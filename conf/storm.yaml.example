@@ -1,0 +1,16 @@
+########### These MUST be filled in for a storm configuration
+# storm.zookeeper.servers:
+#     - "server1"
+#     - "server2"
+# 
+# nimbus.host: "nimbus"
+# 
+# 
+# ##### These may optionally be filled in:
+#     
+## Map of tokens to a serialization class. tokens less than 32 are reserved by storm.
+## Tokens are written on the wire to identify the field.
+# topology.serializations: 
+#     33: "org.mycompany.MyObjectSerialization"
+#     34: "org.mycompany.MyOtherObjectSerialization"
+

@@ -1,6 +1,10 @@
 package backtype.storm.task;
 
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import backtype.storm.utils.Utils;
 import java.util.Arrays;
 import java.util.List;

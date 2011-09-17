@@ -40,10 +40,15 @@ struct SpoutSpec {
   3: required bool distributed;
 }
 
+enum StreamType {
+  NORMAL = 1,
+  FAILURE = 2
+}
+
 struct GlobalStreamId {
   1: required i32 componentId;
   2: required i32 streamId;
-  #Going to need to add an enum for the stream type (NORMAL or FAILURE)
+  3: optional StreamType streamType;
 }
 
 struct Bolt {
@@ -52,8 +57,6 @@ struct Bolt {
   3: required ComponentCommon common;
 }
 
-// not implemented yet
-// this will eventually be the basis for subscription implementation in storm
 struct StateSpoutSpec {
   1: required ComponentObject state_spout_object;
   2: required ComponentCommon common;

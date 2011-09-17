@@ -1,13 +1,24 @@
 (ns backtype.storm.daemon.common
   (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [backtype.storm log config util])
+  (:import [backtype.storm Constants])
   )
 
 (def ACKER-COMPONENT-ID -1)
+
 (def ACKER-INIT-STREAM-ID -1)
 (def ACKER-ACK-STREAM-ID -2)
 (def ACKER-FAIL-STREAM-ID -3)
+(def SYNC-REQUEST-STREAM-ID -4)
 
+(def SYNC-SYNC-SUBSTREAM -1)
+(def SYNC-RESYNC-SUBSTREAM -2)
+(def SYNC-SYNC-FINISH-SUBSTREAM -3)
+(def SYNC-ADD-SUBSTREAM -4)
+(def SYNC-UPDATE-SUBSTREAM -5)
+(def SYNC-REMOVE-SUBSTREAM -6)
+
+(def FAILURE-SUBSTREAM Constants/FAILURE_SUBSTREAM)
 
 (defn system-component? [id]
   (< id 0))

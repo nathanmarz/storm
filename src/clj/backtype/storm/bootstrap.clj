@@ -8,12 +8,15 @@
                       TimeCacheMap$ExpiredCallback BufferFileInputStream]))
       (import (quote [backtype.storm.serialization TupleSerializer TupleDeserializer]))
       (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
-      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
+      (import (quote [backtype.storm.tuple Tuple Fields MessageId TupleImpl]))
       (import (quote [backtype.storm.task IBolt IOutputCollector
                       OutputCollector OutputCollectorImpl IInternalOutputCollector
                       TopologyContext ShellBolt
-                      CoordinatedBolt CoordinatedBolt$SourceArgs KeyedFairBolt]))
+                      CoordinatedBolt CoordinatedBolt$SourceArgs KeyedFairBolt
+                      ComponentType]))
       (import (quote [backtype.storm.daemon Shutdownable]))
+      (import (quote [backtype.storm.state IStateSpout ISubscribedState ISynchronizeOutputCollector IStateSpoutOutputCollector
+                      StateSpoutOutputCollector SynchronizeOutputCollector]))
       (use (quote [backtype.storm config util log clojure]))
       (use (quote [clojure.contrib.seq :only [find-first]]))
       (require (quote [backtype.storm [thrift :as thrift] [cluster :as cluster]

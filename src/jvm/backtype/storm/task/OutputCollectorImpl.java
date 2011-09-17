@@ -2,6 +2,7 @@ package backtype.storm.task;
 
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,9 @@ public class OutputCollectorImpl extends OutputCollector {
                 }
             }
         }
-        return new Tuple(_context, tuple, _context.getThisTaskId(), streamId, MessageId.makeId(anchorsToIds));
+        List<Integer> fullStreamId = new ArrayList<Integer>(1);
+        fullStreamId.add(streamId);
+        return new TupleImpl(_context, tuple, _context.getThisTaskId(), fullStreamId, null, MessageId.makeId(anchorsToIds));
     }
 
     public void ack(Tuple input) {

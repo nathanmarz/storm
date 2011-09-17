@@ -59,6 +59,6 @@ topology.message.timeout.secs: 30
 topology.skip.missing.serializations: false
 topology.max.task.parallelism: null
 topology.max.spout.pending: null
-topology.state.synchronization.timeout.secs: 60
+topology.state.sync.timeout.secs: 60
+topology.state.sync.max.tries: 3
 topology.stats.sample.rate: 0.05
-

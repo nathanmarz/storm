@@ -262,13 +262,12 @@ public class Config {
      * typically used in testing to limit the number of threads spawned in local mode.
      */
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
-
-
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
      */
-    public static String TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS="topology.state.synchronization.timeout.secs";
+    public static String TOPOLOGY_STATE_SYNC_TIMEOUT_SECS="topology.state.sync.timeout.secs";
+    public static String TOPOLOGY_STATE_SYNC_MAX_TRIES="topology.state.sync.max.tries";
 
     /**
      * The percentage of tuples to sample to produce stats for a task.

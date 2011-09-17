@@ -13,6 +13,7 @@ import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,6 +107,43 @@ public class TopologyContext {
      */
     public <T extends ISubscribedState> T setSubscribedState(int componentId, int streamId, T obj) {
         throw new NotImplementedException();
+    }
+
+    public ComponentType getComponentType(int componentId) {
+        if(_topology.get_bolts().containsKey(componentId)) {
+            return ComponentType.BOLT;
+        }
+        if(_topology.get_spouts().containsKey(componentId)) {
+            return ComponentType.SPOUT;
+        }
+        if(_topology.get_state_spouts().containsKey(componentId)) {
+            return ComponentType.STATE_SPOUT;
+        }
+        throw new IllegalArgumentException("Invalid component id: " + componentId);
+    }
+
+    public boolean isThisSpout() {
+        return isSpout(getThisComponentId());
+    }
+
+    public boolean isSpout(int componentId) {
+        return getComponentType(componentId) == ComponentType.SPOUT;
+    }
+
+    public boolean isThisBolt() {
+        return isBolt(getThisComponentId());
+    }
+
+    public boolean isBolt(int componentId) {
+        return getComponentType(componentId) == ComponentType.BOLT;
+    }
+
+    public boolean isThisStateSpout() {
+        return isStateSpout(getThisComponentId());
+    }
+
+    public boolean isStateSpout(int componentId) {
+        return getComponentType(componentId) == ComponentType.STATE_SPOUT;
     }
 
     /**
@@ -217,6 +255,21 @@ public class TopologyContext {
      */
     public Map<GlobalStreamId, Grouping> getThisSources() {
         return getSources(getThisComponentId());
+    }
+
+    public Set<Integer> getThisSourceComponents() {
+        return getSourceComponents(getThisComponentId());
+    }
+
+    public Set<Integer> getSourceComponents(int componentId) {
+        Map<GlobalStreamId, Grouping> sources = getSources(componentId);
+        Set<Integer> ret = new HashSet<Integer>();
+        if(sources!=null) {
+            for(GlobalStreamId id: sources.keySet()) {
+                ret.add(id.get_componentId());
+            }
+        }
+        return ret;
     }
     
     /**

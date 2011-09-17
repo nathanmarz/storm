@@ -403,7 +403,7 @@
   `(with-var-roots [task/outbound-components (let [old# task/outbound-components]
                                                (fn [& args#]
                                                  (merge (apply old# args#)
-                                                        {TrackerAggregator/TRACK_STREAM
+                                                        {[TrackerAggregator/TRACK_STREAM]
                                                          {TRACKER-BOLT-ID (fn [& args#] 0)}}
                                                         )))
                     task/mk-acker-bolt (let [old# task/mk-acker-bolt]

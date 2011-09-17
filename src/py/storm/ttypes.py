@@ -16,6 +16,20 @@ except:
   fastbinary = None
 
 
+class StreamType:
+  NORMAL = 1
+  FAILURE = 2
+
+  _VALUES_TO_NAMES = {
+    1: "NORMAL",
+    2: "FAILURE",
+  }
+
+  _NAMES_TO_VALUES = {
+    "NORMAL": 1,
+    "FAILURE": 2,
+  }
+
 class NullStruct:
 
   thrift_spec = (
@@ -682,17 +696,20 @@ class GlobalStreamId:
   Attributes:
    - componentId
    - streamId
+   - streamType
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.I32, 'componentId', None, None, ), # 1
     (2, TType.I32, 'streamId', None, None, ), # 2
+    (3, TType.I32, 'streamType', None, None, ), # 3
   )
 
-  def __init__(self, componentId=None, streamId=None,):
+  def __init__(self, componentId=None, streamId=None, streamType=None,):
     self.componentId = componentId
     self.streamId = streamId
+    self.streamType = streamType
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -713,6 +730,11 @@ class GlobalStreamId:
           self.streamId = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.streamType = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -730,6 +752,10 @@ class GlobalStreamId:
     if self.streamId != None:
       oprot.writeFieldBegin('streamId', TType.I32, 2)
       oprot.writeI32(self.streamId)
+      oprot.writeFieldEnd()
+    if self.streamType != None:
+      oprot.writeFieldBegin('streamType', TType.I32, 3)
+      oprot.writeI32(self.streamType)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

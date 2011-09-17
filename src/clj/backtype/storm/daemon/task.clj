@@ -111,38 +111,95 @@
       obj
       )))
 
-
 (defn outbound-components
-  "Returns map of stream id to component id to grouper"
+  "Returns map of stream id to component id to grouper, including all implicit streams"
   [topology-context]
   (let [output-groupings (clojurify-structure (.getThisTargets topology-context))
-        acker-task-amt (count (.getComponentTasks topology-context ACKER-COMPONENT-ID))]
+        acker-task-amt (count (.getComponentTasks topology-context ACKER-COMPONENT-ID))
+        state-spout-sources (filter #(.isStateSpout topology-context %)
+                                    (.getThisSourceComponents topology-context))
+        ]
     (merge
+
+     ;; streams to send acknowledgement information to acker components
      {
-      ACKER-INIT-STREAM-ID
+      [ACKER-INIT-STREAM-ID]
         {ACKER-COMPONENT-ID (mk-fields-grouper (Fields. ["id" "spout-task"])
                                                (Fields. ["id"])
                                                acker-task-amt)}
-      ACKER-ACK-STREAM-ID
+      [ACKER-ACK-STREAM-ID]
         {ACKER-COMPONENT-ID (mk-fields-grouper (Fields. ["id" "ack-val"])
                                                (Fields. ["id"])
                                                acker-task-amt)}
-      ACKER-FAIL-STREAM-ID
+      [ACKER-FAIL-STREAM-ID]
         {ACKER-COMPONENT-ID (mk-fields-grouper (Fields. ["id"]) ;; TODO: add failure msg here later...
                                                (Fields. ["id"])
                                                acker-task-amt)}
+        }
+
+     ;; stream for tasks to reqest syncronizations from state spouts
+     {
+      [SYNC-REQUEST-STREAM-ID]
+      (into {}
+            (for [cid state-spout-sources]
+              [cid :direct]
+              ))
       }
-     (into {}
-           (for [[stream-id component->grouping] output-groupings
-                 :let [out-fields (.getThisOutputFields topology-context stream-id)]]
-             [stream-id
-              (into {}
-                    (for [[component tgrouping] component->grouping]
-                      [component (mk-grouper out-fields
-                                             tgrouping
-                                             (count (.getComponentTasks topology-context component))
-                                             )]
-                      ))])))
+
+     ;; declared streams
+     (into {}           
+           (for [[stream-id component->grouping] output-groupings]
+             (apply
+              merge-with merge
+              (for [[component tgrouping] component->grouping]
+                (let [out-fields (.getThisOutputFields topology-context stream-id)
+                      num-out-tasks (count (.getComponentTasks topology-context component))]
+                  (if (.isThisStateSpout topology-context)
+                    {
+                     ;; sync id is metadata
+                     [stream-id SYNC-SYNC-SUBSTREAM]
+                     {component (mk-grouper out-fields
+                                            tgrouping
+                                            num-out-tasks
+                                            )}
+
+                     ;; sync id is metadata
+                     [stream-id SYNC-RESYNC-SUBSTREAM]
+                     {component :direct}
+                     
+                     [stream-id SYNC-SYNC-FINISH-SUBSTREAM]
+                     {component :direct}
+
+                     ;; hash is metadata
+                     [stream-id SYNC-ADD-SUBSTREAM]
+                     {component (mk-grouper out-fields
+                                            tgrouping
+                                            num-out-tasks
+                                            )}
+                        
+                     ;; hash is metadata
+                     [stream-id SYNC-REMOVE-SUBSTREAM]
+                     {component :direct}
+
+                     }
+                       
+
+                    {[stream-id]
+                     {component (mk-grouper out-fields
+                                            tgrouping
+                                            num-out-tasks
+                                            )}
+
+                     ;; failure information is added as metadata
+                     ;; TODO: probably shouldn't declare this for bolts
+                     [stream-id FAILURE-SUBSTREAM]
+                     {component (mk-grouper out-fields
+                                            tgrouping
+                                            num-out-tasks
+                                            )}
+                     }
+                    )))))            
+           ))
     ))
 
 
@@ -163,10 +220,10 @@
                  ^List generated-ids send-fn]
   (let [ack-val (bit-xor-vals generated-ids)]
     (doseq [[anchor id] (.. input-tuple getMessageId getAnchorsToIds)]
-      (send-fn (Tuple. topology-context
-                       [anchor (bit-xor ack-val id)]
-                       (.getThisTaskId topology-context)
-                       ACKER-ACK-STREAM-ID))
+      (send-fn (TupleImpl. topology-context
+                          [anchor (bit-xor ack-val id)]
+                          (.getThisTaskId topology-context)
+                          [ACKER-ACK-STREAM-ID]))
       )))
 
 (defn mk-task [conf storm-conf topology-context storm-id zmq-context cluster-state storm-active-atom transfer-fn]
@@ -200,7 +257,9 @@
         stream->component->grouper (outbound-components topology-context)
         component->tasks (reverse-map task-info)
         ;; important it binds to virtual port before function returns
-        ^ZMQ$Socket puller (-> zmq-context (mq/socket mq/pull) (mqvp/virtual-bind task-id))
+        ^ZMQ$Socket puller (-> zmq-context
+                               (mq/socket mq/pull)
+                               (mqvp/virtual-bind task-id))
 
         ;; TODO: consider DRYing things up and moving stats / tuple -> multiple components code here
         task-transfer-fn (fn [task ^Tuple tuple]
@@ -210,11 +269,11 @@
 
         emit-sampler (mk-stats-sampler storm-conf)
         send-fn (fn this
-                  ([^Integer out-task-id ^Tuple tuple]
+                  ([^Integer out-task-id ^TupleImpl tuple]
                      (when (= true (storm-conf TOPOLOGY-DEBUG))
                        (log-message "Emitting direct: " out-task-id "; " task-readable-name " " tuple))
                      (let [target-component (.getComponentId topology-context out-task-id)
-                           component->grouping (stream->component->grouper (.getSourceStreamId tuple))
+                           component->grouping (stream->component->grouper (.getFullStreamId tuple))
                            grouping (get component->grouping target-component)
                            out-task-id (if (or
                                             ;; This makes streams to/from system
@@ -233,10 +292,10 @@
                          )
                        [out-task-id]
                        ))
-                  ([^Tuple tuple]
+                  ([^TupleImpl tuple]
                      (when (= true (storm-conf TOPOLOGY-DEBUG))
                        (log-message "Emitting: " task-readable-name " " tuple))
-                     (let [stream (.getSourceStreamId tuple)
+                     (let [stream (.getFullStreamId tuple)
                            ;; TODO: this doesn't seem to be very fast
                            ;; and seems to be the current bottleneck
                            out-tasks (mapcat
@@ -339,11 +398,11 @@
                                tuple-id (if message-id
                                           (MessageId/makeRootId gen-id)
                                           (MessageId/makeUnanchored))
-                               tuple (Tuple. topology-context
-                                             values
-                                             task-id
-                                             out-stream-id
-                                             tuple-id)
+                               tuple (TupleImpl. topology-context
+                                                 values
+                                                 task-id
+                                                 [out-stream-id]
+                                                 tuple-id)
                                out-tasks (if out-task-id
                                            (send-fn out-task-id tuple)
                                            (send-fn tuple))]
@@ -353,10 +412,10 @@
                                (.put pending gen-id [message-id
                                                     tuple
                                                     (if (sampler) (System/currentTimeMillis))])
-                               (send-fn (Tuple. topology-context
-                                                [gen-id task-id]
-                                                task-id
-                                                ACKER-INIT-STREAM-ID))
+                               (send-fn (TupleImpl. topology-context
+                                                    [gen-id task-id]
+                                                    task-id
+                                                    [ACKER-INIT-STREAM-ID]))
                                ))
                            out-tasks
                            ))
@@ -438,10 +497,10 @@
                                      )))
                           (^void fail [this ^Tuple input-tuple]
                                  (doseq [anchor (.. input-tuple getMessageId getAnchors)]
-                                     (send-fn (Tuple. topology-context
-                                                      [anchor]
-                                                      task-id
-                                                      ACKER-FAIL-STREAM-ID))
+                                     (send-fn (TupleImpl. topology-context
+                                                          [anchor]
+                                                          task-id
+                                                          [ACKER-FAIL-STREAM-ID]))
                                      )
                                  (let [delta (tuple-time-delta! tuple-start-times input-tuple)]
                                    (when delta
@@ -459,9 +518,8 @@
               (OutputCollectorImpl. topology-context output-collector))
     ;; TODO: can get any SubscribedState objects out of the context now
     [(fn []
-       ;; synchronization needs to be done with a key provided by this bolt, otherwise:
-       ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
        ;; TODO: for state sync, need to first send sync messages in a loop and receive tuples until synchronization
+       ;; can make whether or not to wait a configuration parameter
        ;; buffer other tuples until fully synchronized, then process all of those tuples
        ;; then go into normal loop
        ;; spill to disk?
@@ -475,7 +533,8 @@
            (let [tuple (.deserialize deserializer ser)]
              ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
              ;; TODO: how to handle incremental updates as well as synchronizations at same time
-             ;; TODO: need to version tuples somehow
+             ;; if receive incremental update during sync with a state spout, go into sync mode for that spout
+             ;; once out of sync, need to drop messages from that state spout
              (log-debug "Received tuple " tuple " at task " (.getThisTaskId topology-context))
              (when (sampler)
                (.put tuple-start-times tuple (System/currentTimeMillis)))
@@ -484,6 +543,98 @@
              ))))]
     ))
 
+(defstruct StateSpoutState :id->tuple :task->ids)
+
+(defn remove-state-tuple [state id]
+  )
+
+(defn add-state-tuple [tasks state id ^Tuple tuple]
+  )
+
+(defn mk-state-tuple [^List values]
+  ;; chose a unique id
+  )
+
+(defn do-synchronization [^IStateSpout state-spout storm-conf send-fn ^TopologyContext topology-context]
+  (loop [i 0]
+    (when (>= i (storm-conf TOPOLOGY-STATE-SYNC-MAX-TRIES))
+      (throw (RuntimeException. "Exceeded maximum number of attempts at syncing state spout")))
+    (let [
+          resync? (atom false)
+          output-collector (SynchronizeOutputCollector.
+                            (reify ISynchronizeOutputCollector
+                                   (^void add [this ^int stream ^List values]
+                                          (let [tuple (TupleImpl. topology-context
+                                                                  values
+                                                                  (.getThisTaskId topology-context)
+                                                                  [stream SYNC-SYNC-SUBSTREAM]
+                                                                  (MessageId/makeRootId (MessageId/generateId)))]
+                                            ;; TODO: finish
+                                            ;; TODO: update sync map
+                                            ;; (remember id -> tuple values)
+                                            ))
+                                   (^void resynchronize [this]
+                                          (reset! resync? true))
+                                   ))]
+      (.synchronize state-spout output-collector)
+      (if @resync?
+        (recur (inc i))
+        (do
+          ;; TODO: select a unique id for the syncing
+          ;; send all the tuples to the sync stream
+          ;; send count to the comm stream
+          ;; update internal mapping of tasks to tuples
+          ))
+      )))
+
+(defmethod mk-executors IStateSpout [^IStateSpout state-spout storm-conf ^ZMQ$Socket puller send-fn storm-active-atom ^TopologyContext topology-context task-stats]
+  (let [deserializer (TupleDeserializer. storm-conf topology-context)
+        event-queue (ConcurrentLinkedQueue.)
+        resync? (atom false)
+        output-collector (StateSpoutOutputCollector.
+                          (reify IStateSpoutOutputCollector
+                                 (^void add [this ^int stream ^List tuple]
+                                        ;; TODO: finish
+                                        ;; if have seen id before, reuse the same tuple id, otherwise generate root id
+                                        ;; TODO: update internal state. send tuple with hash and update map for tasks it was sent to. include the hash
+                                        )
+                                 (^void remove [this ^int stream ^List tuple]
+                                        ;; TODO: finish
+                                        ;; if have seen id before, reuse the same tuple id, otherwise generate root id
+                                        ;; TODO: update internal state. send tuple with hash and update map for tasks it was sent to. include the hash
+                                        )
+                                 (^void resynchronize [this]
+                                        (reset! resync? true))
+                                 ))
+        ]
+    [(fn []
+       (let [^bytes ser (mq/recv puller)]
+         (when-not (empty? ser)  ; skip empty messages (used during shutdown)
+           (let [tuple (.deserialize deserializer ser)
+                 task-id (.getSourceTask tuple)]
+             (.add event-queue (fn []
+                                 ;; TODO: synchronize to the task
+                                 ;; TODO: read internal state and re-emit it to the task
+                                 ))
+             ))))
+     (fn []
+       (loop []
+         (let [event (.poll event-queue)]
+           (when event
+             (event)
+             (recur)
+             )))
+       ;; TODO: this needs to be non-blocking -- alternative design? lock around the state itself?
+       (.nextTuple state-spout output-collector)
+       (loop []
+         (when @resync?
+           (reset! resync? false)
+           (.synchronize state-spout output-collector)
+           (recur)
+           ))
+       )
+     ]
+    ))
 
 (defmethod close-component ISpout [spout]
   (.close spout))

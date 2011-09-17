@@ -31,14 +31,21 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
 
   private static final TField COMPONENT_ID_FIELD_DESC = new TField("componentId", TType.I32, (short)1);
   private static final TField STREAM_ID_FIELD_DESC = new TField("streamId", TType.I32, (short)2);
+  private static final TField STREAM_TYPE_FIELD_DESC = new TField("streamType", TType.I32, (short)3);
 
   private int componentId;
   private int streamId;
+  private StreamType streamType;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
     COMPONENT_ID((short)1, "componentId"),
-    STREAM_ID((short)2, "streamId");
+    STREAM_ID((short)2, "streamId"),
+    /**
+     * 
+     * @see StreamType
+     */
+    STREAM_TYPE((short)3, "streamType");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -57,6 +64,8 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
           return COMPONENT_ID;
         case 2: // STREAM_ID
           return STREAM_ID;
+        case 3: // STREAM_TYPE
+          return STREAM_TYPE;
         default:
           return null;
       }
@@ -108,6 +117,8 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
         new FieldValueMetaData(TType.I32)));
     tmpMap.put(_Fields.STREAM_ID, new FieldMetaData("streamId", TFieldRequirementType.REQUIRED, 
         new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.STREAM_TYPE, new FieldMetaData("streamType", TFieldRequirementType.OPTIONAL, 
+        new EnumMetaData(TType.ENUM, StreamType.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(GlobalStreamId.class, metaDataMap);
   }
@@ -134,6 +145,9 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
     __isset_bit_vector.or(other.__isset_bit_vector);
     this.componentId = other.componentId;
     this.streamId = other.streamId;
+    if (other.is_set_streamType()) {
+      this.streamType = other.streamType;
+    }
   }
 
   public GlobalStreamId deepCopy() {
@@ -189,6 +203,37 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
     __isset_bit_vector.set(__STREAMID_ISSET_ID, value);
   }
 
+  /**
+   * 
+   * @see StreamType
+   */
+  public StreamType get_streamType() {
+    return this.streamType;
+  }
+
+  /**
+   * 
+   * @see StreamType
+   */
+  public void set_streamType(StreamType streamType) {
+    this.streamType = streamType;
+  }
+
+  public void unset_streamType() {
+    this.streamType = null;
+  }
+
+  /** Returns true if field streamType is set (has been asigned a value) and false otherwise */
+  public boolean is_set_streamType() {
+    return this.streamType != null;
+  }
+
+  public void set_streamType_isSet(boolean value) {
+    if (!value) {
+      this.streamType = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case COMPONENT_ID:
@@ -207,6 +252,14 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
       }
       break;
 
+    case STREAM_TYPE:
+      if (value == null) {
+        unset_streamType();
+      } else {
+        set_streamType((StreamType)value);
+      }
+      break;
+
     }
   }
 
@@ -221,6 +274,9 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
 
     case STREAM_ID:
       return new Integer(get_streamId());
+
+    case STREAM_TYPE:
+      return get_streamType();
 
     }
     throw new IllegalStateException();
@@ -237,6 +293,8 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
       return is_set_componentId();
     case STREAM_ID:
       return is_set_streamId();
+    case STREAM_TYPE:
+      return is_set_streamType();
     }
     throw new IllegalStateException();
   }
@@ -276,6 +334,15 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
         return false;
     }
 
+    boolean this_present_streamType = true && this.is_set_streamType();
+    boolean that_present_streamType = true && that.is_set_streamType();
+    if (this_present_streamType || that_present_streamType) {
+      if (!(this_present_streamType && that_present_streamType))
+        return false;
+      if (!this.streamType.equals(that.streamType))
+        return false;
+    }
+
     return true;
   }
 
@@ -292,6 +359,11 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
     builder.append(present_streamId);
     if (present_streamId)
       builder.append(streamId);
+
+    boolean present_streamType = true && (is_set_streamType());
+    builder.append(present_streamType);
+    if (present_streamType)
+      builder.append(streamType.getValue());
 
     return builder.toHashCode();
   }
@@ -318,6 +390,15 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
       return lastComparison;
     }
     if (is_set_streamId()) {      lastComparison = TBaseHelper.compareTo(this.streamId, typedOther.streamId);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_streamType()).compareTo(typedOther.is_set_streamType());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_streamType()) {      lastComparison = TBaseHelper.compareTo(this.streamType, typedOther.streamType);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -351,6 +432,13 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 3: // STREAM_TYPE
+          if (field.type == TType.I32) {
+            this.streamType = StreamType.findByValue(iprot.readI32());
+          } else { 
+            TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           TProtocolUtil.skip(iprot, field.type);
       }
@@ -370,6 +458,13 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
     oprot.writeFieldBegin(STREAM_ID_FIELD_DESC);
     oprot.writeI32(this.streamId);
     oprot.writeFieldEnd();
+    if (this.streamType != null) {
+      if (is_set_streamType()) {
+        oprot.writeFieldBegin(STREAM_TYPE_FIELD_DESC);
+        oprot.writeI32(this.streamType.getValue());
+        oprot.writeFieldEnd();
+      }
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -386,6 +481,16 @@ public class GlobalStreamId implements TBase<GlobalStreamId, GlobalStreamId._Fie
     sb.append("streamId:");
     sb.append(this.streamId);
     first = false;
+    if (is_set_streamType()) {
+      if (!first) sb.append(", ");
+      sb.append("streamType:");
+      if (this.streamType == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.streamType);
+      }
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }

@@ -370,6 +370,9 @@
        (InvalidTopologyException.
         "All component ids must be positive")))
     ;; TODO: validate that every declared stream is positive
+    ;; TODO: validate that everything subscribes to a valid, declared stream
+    ;; TODO: check that failure stream subscriptions are to a spout stream
+    ;; TODO: check that field groupings are valid
     ))
 
 (defn file-cache-map [conf]

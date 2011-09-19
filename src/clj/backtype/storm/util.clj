@@ -15,9 +15,7 @@
   (:require [clojure.contrib [str-utils2 :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
-  (:use [backtype.storm log])
-  (:use [clojure.contrib.def :only [defnk]])
-  )
+  (:use [backtype.storm log]))
 
 (defn local-hostname []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
@@ -199,12 +197,12 @@
   (sleeping? [this]))
 
 ;; afn returns amount of time to sleep
-(defnk async-loop [afn
-                   :daemon false
-                   :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
-                   :priority Thread/NORM_PRIORITY
-                   :args-fn (fn [] [])
-                   :start true]
+(defn async-loop [afn & {:keys [daemon kill-fn priority args-fn start]
+                         :org {daemon false
+                               kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
+                               priority Thread/NORM_PRIORITY
+                               args-fn  (fn [] [])
+                               start true}}]
   (let [thread (Thread.
                 (fn []
                   (try

@@ -1,5 +1,4 @@
 (ns zilch.virtual-port
-  (:use [clojure.contrib.def :only [defnk]])
   (:use [backtype.storm util log])
   (:require [zilch [mq :as mq]])
   (:import [java.nio ByteBuffer])
@@ -46,11 +45,11 @@
   ([^ZMQ$Socket socket virtual-port ^bytes message]
      (virtual-send socket virtual-port message ZMQ/NOBLOCK)))
 
-(defnk launch-virtual-port!
-  [context url :daemon true
-               :kill-fn (fn [] (System/exit 1))
-               :priority Thread/NORM_PRIORITY
-               :valid-ports nil]
+(defn launch-virtual-port!
+  [context url & {:keys [daemon kill-fn priority valid-ports]
+                  :or {daemon true
+                       kill-fn (fn [] (System/exit 1))
+                       priority Thread/NORM_PRIORITY}}]
   (let [valid-ports (set (map short valid-ports))
         vthread (async-loop
                   (fn [^ZMQ$Socket socket virtual-mapping]

@@ -6,9 +6,7 @@
   (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
   (:import [org.apache.thrift.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift.transport TTransport TFramedTransport TSocket])
-  (:use [backtype.storm util])
-  (:use [clojure.contrib.def :only [defnk]])
-  )
+  (:use [backtype.storm util]))
 
 (def grouping-constants
   {Grouping$_Fields/FIELDS :fields
@@ -80,7 +78,7 @@
     ret
     ))
 
-(defnk mk-spout-spec [spout :parallelism-hint nil]
+(defn mk-spout-spec [spout & {:keys [parallelism-hint]}]
   (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
               (mk-component-common spout parallelism-hint)
               (.isDistributed spout))
@@ -134,7 +132,7 @@
        (mk-grouping grouping-spec)]
       )))
 
-(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil]
+(defn mk-bolt-spec [inputs bolt & {:keys [parallelism-hint]}]
   (let [bolt (if (instance? IBasicBolt bolt) (BasicBoltExecutor. bolt) bolt)]
     (Bolt.
      (mk-inputs inputs)
@@ -142,7 +140,7 @@
      (mk-component-common bolt parallelism-hint)
      )))
 
-(defnk mk-shell-bolt-spec [inputs command script output-spec :parallelism-hint nil]
+(defn mk-shell-bolt-spec [inputs command script output-spec & {:keys [parallelism-hint]}]
   (Bolt.
     (mk-inputs inputs)
     (ComponentObject/shell (ShellComponent. command script))
@@ -155,7 +153,7 @@
   ([spout-map bolt-map state-spout-map]
      (StormTopology. spout-map bolt-map state-spout-map)))
 
-(defnk coordinated-bolt [bolt :type nil :all-out false]
+(defn coordinated-bolt [bolt & {:keys [type all-out] :or {all-out false}}]
   (let [source (condp = type
                    nil nil
                    :all (CoordinatedBolt$SourceArgs/all)

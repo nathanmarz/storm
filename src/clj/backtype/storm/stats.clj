@@ -3,8 +3,7 @@
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
             ClusterSummary TopologyInfo TopologySummary TaskSummary TaskStats TaskSpecificStats
             SpoutStats BoltStats ErrorInfo SupervisorSummary])
-  (:use [backtype.storm util])
-  (:use [clojure.contrib.math :only [ceil]]))
+  (:use [backtype.storm util]))
 
 ;;TODO: consider replacing this with some sort of RRD
 

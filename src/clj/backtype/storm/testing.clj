@@ -13,7 +13,6 @@
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
             SpoutTracker BoltTracker TrackerAggregator])
   (:require [backtype.storm [zookeeper :as zk]])
-  (:use [clojure.contrib.seq :only [find-first]])
   (:use [backtype.storm cluster util thrift config log]))
 
 (defn feeder-spout [fields]
@@ -115,14 +114,13 @@
 
 (defn get-supervisor [cluster-map supervisor-id]
   (let [finder-fn #(= (.get-id %) supervisor-id)]
-    (find-first finder-fn @(:supervisors cluster-map))
+    (some finder-fn @(:supervisors cluster-map))
     ))
 
 (defn kill-supervisor [cluster-map supervisor-id]
   (let [finder-fn #(= (.get-id %) supervisor-id)
         supervisors @(:supervisors cluster-map)
-        sup (find-first finder-fn
-                        supervisors)]
+        sup (some finder-fn supervisors)]
     ;; tmp-dir will be taken care of by shutdown
     (reset! (:supervisors cluster-map) (remove-first finder-fn supervisors))
     (.shutdown sup)

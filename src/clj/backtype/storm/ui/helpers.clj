@@ -1,8 +1,7 @@
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [clojure.contrib
-         [str-utils2 :only [join]]])
+  (:use [clojure.contrib [str-utils2 :only [join]]])
   (:use [backtype.storm.util :only [uuid]])
   (:use [clj-time coerce format])
   (:require [compojure.route :as route]

@@ -646,7 +646,7 @@
           topology (.getTopology ^Nimbus$Client nimbus topology-id)
           task (->> summ
                     .get_tasks
-                    (some #(= (.get_task_id ^TaskSummary %) task-id)))]
+                    (first (filter #(= (.get_task_id ^TaskSummary %) task-id))))]
       (concat
        [[:h2 "Task summary"]]
        [(task-summary-table task summ)]

@@ -66,9 +66,10 @@
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
-    (some
-      #(= storm-name (:storm-name (.storm-base storm-cluster-state % nil)))
-      active-storms)
+    (first
+      (filter
+        #(= storm-name (:storm-name (.storm-base storm-cluster-state % nil))))
+        active-storms)
     ))
 
 (defn topology-bases [storm-cluster-state]

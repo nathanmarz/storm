@@ -119,7 +119,7 @@
   (apply rolling-window-set update-keyed-avg merge-keyed-avg extract-keyed-avg num-buckets bucket-sizes))
 
 ;; (defn choose-bucket [val buckets]
-;;   (let [ret (some #(<= val %) buckets)]
+;;   (let [ret (first (filter #(<= val %) buckets))]
 ;;     (if ret
 ;;       ret
 ;;       (* 10 (first buckets)))

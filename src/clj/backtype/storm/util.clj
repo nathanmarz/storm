@@ -198,7 +198,7 @@
 
 ;; afn returns amount of time to sleep
 (defn async-loop [afn & {:keys [daemon kill-fn priority args-fn start]
-                         :org {daemon false
+                         :or {daemon false
                                kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
                                priority Thread/NORM_PRIORITY
                                args-fn  (fn [] [])

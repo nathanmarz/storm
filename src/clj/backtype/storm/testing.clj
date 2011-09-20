@@ -79,7 +79,7 @@
 ;; can customize the supervisors (except for ports) by passing in map for :supervisors parameter
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
 (defn mk-local-storm-cluster [& {:keys [supervisors ports-per-supervisor daemon-conf]
-                                 :org {supervisors 2 
+                                 :or {supervisors 2 
                                        ports-per-supervisor 3
                                        daemon-conf {}}}]
   (let [zk-port 2181
@@ -286,7 +286,7 @@
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
 (defn complete-topology [cluster-map topology & {:keys [mock-sources storm-conf]
-                                                 :org {mock-sources {}
+                                                 :or {mock-sources {}
                                                        storm-conf {}}}]
   (let [storm-name (str "topologytest-" (uuid))
         state (:storm-cluster-state cluster-map)

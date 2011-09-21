@@ -8,7 +8,8 @@
                  "twitter4j" "http://twitter4j.org/maven2"
                  }
 
-  :dependencies [
+  :dependencies [[org.clojure/clojure "1.2.0"]
+                 [org.clojure/clojure-contrib "1.2.0"]
                  [backtype/twitter4j-core "2.2.4-SNAPSHOT"]
                  [org.twitter4j/twitter4j-stream "2.2.4-SNAPSHOT"]
                  [com.googlecode.json-simple/json-simple "1.1"]

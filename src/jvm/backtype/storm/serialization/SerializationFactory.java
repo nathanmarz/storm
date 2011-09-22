@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 
 public class SerializationFactory {
+    public static final int SERIALIZATION_TOKEN_BOUNDARY = 32;
     public static Logger LOG = Logger.getLogger(SerializationFactory.class);
     private static byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
@@ -151,7 +152,7 @@ public class SerializationFactory {
         for(Object tokenObj: customSerializations.keySet()) {
             String serializationClassName = customSerializations.get(tokenObj);
             int token = toToken(tokenObj);
-            if(token<=32) {
+            if(token<=SERIALIZATION_TOKEN_BOUNDARY) {
                 throw new RuntimeException("Illegal token " + token + " for " + serializationClassName);
             }
             try {

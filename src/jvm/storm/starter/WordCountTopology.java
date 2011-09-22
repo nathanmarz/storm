@@ -70,9 +70,9 @@ public class WordCountTopology {
         
         
         
-        Map conf = new HashMap();
-        conf.put(Config.TOPOLOGY_DEBUG, true);
-        conf.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 3);
+        Config conf = new Config();
+        conf.setDebug(true);
+        conf.setMaxTaskParallelism(3);
         
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("word-count", conf, builder.createTopology());

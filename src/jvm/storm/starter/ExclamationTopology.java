@@ -12,7 +12,6 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
-import java.util.HashMap;
 import java.util.Map;
 
 
@@ -47,17 +46,14 @@ public class ExclamationTopology {
     public static void main(String[] args) {
         TopologyBuilder builder = new TopologyBuilder();
         
-        builder.setSpout(1, new TestWordSpout(), 10);
-        
+        builder.setSpout(1, new TestWordSpout(), 10);        
         builder.setBolt(2, new ExclamationBolt(), 3)
                 .shuffleGrouping(1);
-        
+        builder.setBolt(3, new ExclamationBolt(), 2)
+                .shuffleGrouping(2);
                 
-                
-        
-        
-        Map conf = new HashMap();
-        conf.put(Config.TOPOLOGY_DEBUG, true);
+        Config conf = new Config();
+        conf.setDebug(true);
         
         
         LocalCluster cluster = new LocalCluster();

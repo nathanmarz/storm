@@ -5,8 +5,6 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.utils.Utils;
-import java.util.HashMap;
-import java.util.Map;
 
 
 public class PrintSampleStream {        
@@ -18,8 +16,8 @@ public class PrintSampleStream {
         builder.setSpout(1, new TwitterSampleSpout(username, pwd));
                 
         
-        Map conf = new HashMap();
-        conf.put(Config.TOPOLOGY_DEBUG, true);
+        Config conf = new Config();
+        conf.setDebug(true);
         
         
         LocalCluster cluster = new LocalCluster();

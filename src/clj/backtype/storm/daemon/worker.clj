@@ -8,8 +8,7 @@
 (bootstrap)
 
 
-(defmulti virtual-port-url cluster-mode)
-(defmulti connect-url cluster-mode)
+(defmulti mk-context cluster-mode)
 
 
 (defn read-worker-task-ids [storm-cluster-state storm-id supervisor-id port]
@@ -102,7 +101,7 @@
                                                (worker-pids-root conf worker-id)
                                                %)
 
-        zmq-context (mq/context (storm-conf ZMQ-THREADS))
+        mq-context (mk-context conf storm-conf)
         outbound-tasks (worker-outbound-tasks task->component mk-topology-context task-ids)
         endpoint-socket-lock (mk-rw-lock)
         node+port->socket (atom {})
@@ -128,13 +127,10 @@
                                              (into {}
                                                (dofor [[node port :as endpoint] new-connections]
                                                  [endpoint
-                                                  (-> zmq-context
-                                                      (mq/socket mq/push)
-                                                      (mq/set-linger (storm-conf ZMQ-LINGER-MILLIS))
-                                                      (mq/connect
-                                                       (connect-url conf
-                                                                    ((:node->host assignment) node)
-                                                                    port)))
+                                                  (msg/connect
+                                                   mq-context
+                                                   ((:node->host assignment) node)
+                                                   port)
                                                   ]
                                                  )))
                                       (write-locked endpoint-socket-lock
@@ -166,7 +162,7 @@
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY)        
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id zmq-context cluster-state storm-active-atom transfer-fn))
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)
@@ -184,7 +180,7 @@
                         (doseq [[task ^Tuple tuple] drainer]
                           (let [socket (node+port->socket (task->node+port task))
                                 ser-tuple (.serialize serializer tuple)]
-                            (mqvp/virtual-send socket task ser-tuple)
+                            (msg/send socket task ser-tuple)
                             ))
                         ))
                     (.clear drainer)
@@ -192,11 +188,13 @@
                   :args-fn (fn [] [(ArrayList.) (TupleSerializer. storm-conf)]))
                  heartbeat-thread]
         _ (log-message "Launching virtual port for " supervisor-id ":" port)
-        virtual-port-shutdown (mqvp/launch-virtual-port! zmq-context
-                                                         (virtual-port-url conf port)
-                                                         :kill-fn (fn []
-                                                                    (halt-process! 11))
-                                                         :valid-ports task-ids)
+        virtual-port-shutdown (if (conf STORM-LOCAL-MODE-ZMQ)
+                                (msg-loader/launch-virtual-port!
+                                 mq-context
+                                 (str "tcp://*:" port)
+                                 :kill-fn (fn []
+                                            (halt-process! 11))
+                                 :valid-ports task-ids))
         _ (log-message "Launched virtual port for " supervisor-id ":" port)
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
@@ -206,9 +204,9 @@
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
-                    (virtual-port-shutdown)
+                    (if virtual-port-shutdown (virtual-port-shutdown))
                     (log-message "Terminating zmq context")
-                    (.term zmq-context)
+                    (msg/term mq-context)
                     (log-message "Disconnecting from storm cluster state context")
                     (log-message "Waiting for heartbeat thread to die")
                     (doseq [t threads]
@@ -234,20 +232,13 @@
     ret
     ))
 
+(defmethod mk-context :local [conf storm-conf]
+  (msg-loader/mk-local-context))
 
-
-(defmethod virtual-port-url :local [conf port]
-           (str "ipc://" port ".ipc"))
-
-(defmethod virtual-port-url :distributed [conf port]
-           (str "tcp://*:" port))
-
-(defmethod connect-url :local [conf host port]
-           (str "ipc://" port ".ipc"))
-
-(defmethod connect-url :distributed [conf host port]
-           (str "tcp://" host ":" port))
-
+(defmethod mk-context :distributed [conf storm-conf]
+  (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
+                             (storm-conf ZMQ-LINGER-MILLIS)))
+ 
 
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]

@@ -11,10 +11,11 @@
                 var-get)]
     (afn num-threads linger)))
 
-(defn launch-virtual-port! [& args]
+(defn launch-virtual-port! [context & args]
   (require '[zilch.virtual-port :as mqvp])
+  (require '[backtype.storm.messaging.zmq :as zmq])
   (let [afn (-> 'zilch.virtual-port/launch-virtual-port!
                 find-var
-                var-get)]
-    (apply afn args)))
-
+                var-get)
+        ]
+    (apply afn (cons (.zmq-context context) args))))

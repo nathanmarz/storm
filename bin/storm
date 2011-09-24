@@ -45,33 +45,32 @@ ARGS = sys.argv[2:]
 def jar(jarfile, klass, *args):
    exec_storm_class(
         klass,
-        childopts="-Dlog4j.configuration=storm.log.properties",
         jvmtype="-client",
         extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin"],
         args=args,
         prefix="export STORM_JAR=" + jarfile + ";")
 
 def kill(name):
-    exec_storm_class("backtype.storm.command.kill_topology", args=[name], jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"], childopts="-Dlog4j.configuration=storm.log.properties")
+    exec_storm_class("backtype.storm.command.kill_topology", args=[name], jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
 
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
     os.system("jar cf %s %s" % (tmpjarpath, resourcesdir))
     runnerargs = [tmpjarpath, command]
     runnerargs.extend(args)
-    exec_storm_class("backtype.storm.command.shell_submission", args=runnerargs, jvmtype="-client", extrajars=[CONF_DIR], childopts="-Dlog4j.configuration=storm.log.properties")
+    exec_storm_class("backtype.storm.command.shell_submission", args=runnerargs, jvmtype="-client", extrajars=[CONF_DIR])
     os.system("rm " + tmpjarpath)
 
 def nimbus():
-    childopts = confvalue("nimbus.childopts") + " -Dlogfile.name=nimbus.log"
+    childopts = confvalue("nimbus.childopts") + " -Dlogfile.name=nimbus.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.daemon.nimbus", jvmtype="-server", extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"], childopts=childopts)
 
 def supervisor():
-    childopts = confvalue("nimbus.childopts") + " -Dlogfile.name=supervisor.log"
+    childopts = confvalue("nimbus.childopts") + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.daemon.supervisor", jvmtype="-server", extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"], childopts=childopts)
 
 def ui():
-    childopts = "-Xmx768m -Dlogfile.name=ui.log"
+    childopts = "-Xmx768m -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.ui.core", jvmtype="-server", childopts=childopts, extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
 
 

@@ -13,6 +13,7 @@
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
             SpoutTracker BoltTracker TrackerAggregator])
   (:require [backtype.storm [zookeeper :as zk]])
+  (:require [backtype.storm.messaging.loader :as msg-loader])
   (:use [clojure.contrib.def :only [defnk]])
   (:use [clojure.contrib.seq :only [find-first]])
   (:use [backtype.storm cluster util thrift config log]))
@@ -70,10 +71,16 @@
                                 SUPERVISOR-SLOTS-PORTS port-ids
                                })
         id-fn (if id (fn [] id) supervisor/generate-supervisor-id)
-        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf))]
+        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf (:shared-context cluster-map)))]
     (swap! (:supervisors cluster-map) conj daemon)
     (swap! (:tmp-dirs cluster-map) conj tmp-dir)
     daemon
+    ))
+
+(defn mk-shared-context [conf]
+  (if (and (= (conf STORM-CLUSTER-MODE) "local")
+           (not (conf STORM-LOCAL-MODE-ZMQ)))
+    (msg-loader/mk-local-context)
     ))
 
 ;; returns map containing cluster info
@@ -95,6 +102,7 @@
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp))
+        context (mk-shared-context daemon-conf)
         cluster-map {:nimbus nimbus
                      :port-counter port-counter
                      :daemon-conf daemon-conf
@@ -102,7 +110,8 @@
                      :state (mk-distributed-cluster-state daemon-conf)
                      :storm-cluster-state (mk-storm-cluster-state daemon-conf)
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
-                     :zookeeper zk-handle}
+                     :zookeeper zk-handle
+                     :shared-context context}
         supervisor-confs (if (sequential? supervisors)
                            supervisors
                            (repeat supervisors {}))]
@@ -206,7 +215,7 @@
     ))
 
 (defn mk-capture-launch-fn [capture-atom]
-  (fn [conf storm-id supervisor-id port worker-id _]
+  (fn [conf shared-context storm-id supervisor-id port worker-id _]
     (let [existing (get @capture-atom [supervisor-id port] [])]
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id))
       )))

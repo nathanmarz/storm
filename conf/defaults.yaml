@@ -10,6 +10,7 @@ storm.zookeeper.port: 2181
 storm.zookeeper.root: "/storm"
 storm.zookeeper.session.timeout: 10000
 storm.cluster.mode: "distributed" # can be distributed or local
+storm.local.mode.zmq: false
 
 ### nimbus.* configs are for the master
 nimbus.thrift.port: 6627

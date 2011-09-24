@@ -17,19 +17,23 @@
     (.close socket)
     ))
 
-(deftype ZMQContext [context linger-ms]
+(deftype ZMQContext [context linger-ms ipc?]
   Context
   (bind [this virtual-port]
     (-> context
         (mq/socket mq/pull)
         (mqvp/virtual-bind virtual-port)
+        (ZMQConnection.)
         ))
   (connect [this host port]
-    (let [url (str "tcp://" host ":" port)]
+    (let [url (if ipc?
+                (str "ipc://" port ".ipc")
+                (str "tcp://" host ":" port))]
       (-> context
           (mq/socket mq/push)
           (mq/set-linger linger-ms)
-          (mq/connect url))))
+          (mq/connect url)
+          (ZMQConnection.))))
   (send-local-task-empty [this virtual-port]
     (let [pusher (-> context (mq/socket mq/push) (mqvp/virtual-connect virtual-port))]
           (mq/send pusher (mq/barr))
@@ -41,6 +45,6 @@
     context))
 
 
-(defn mk-zmq-context [num-threads linger]
-  (ZMQContext. (mq/context num-threads) linger))
+(defn mk-zmq-context [num-threads linger local?]
+  (ZMQContext. (mq/context num-threads) linger local?))
 

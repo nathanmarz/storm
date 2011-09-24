@@ -7,8 +7,9 @@
 
 (bootstrap)
 
-
-(defmulti mk-context cluster-mode)
+(defn local-mode-zmq? [conf]
+  (or (= (conf STORM-CLUSTER-MODE) "distributed")
+      (conf STORM-LOCAL-MODE-ZMQ)))
 
 
 (defn read-worker-task-ids [storm-cluster-state storm-id supervisor-id port]
@@ -74,7 +75,7 @@
 ;; what about if there's inconsistency in assignments? -> but nimbus
 ;; should guarantee this consistency
 ;; TODO: consider doing worker heartbeating rather than task heartbeating to reduce the load on zookeeper
-(defserverfn mk-worker [conf storm-id supervisor-id port worker-id]
+(defserverfn mk-worker [conf mq-context storm-id supervisor-id port worker-id]
   (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id)
   (let [active (atom true)
         storm-active-atom (atom false)
@@ -101,7 +102,11 @@
                                                (worker-pids-root conf worker-id)
                                                %)
 
-        mq-context (mk-context conf storm-conf)
+        mq-context (if mq-context
+                     mq-context
+                     (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
+                                                (storm-conf ZMQ-LINGER-MILLIS)
+                                                (= (conf STORM-CLUSTER-MODE) "local")))
         outbound-tasks (worker-outbound-tasks task->component mk-topology-context task-ids)
         endpoint-socket-lock (mk-rw-lock)
         node+port->socket (atom {})
@@ -187,15 +192,15 @@
                     0 )
                   :args-fn (fn [] [(ArrayList.) (TupleSerializer. storm-conf)]))
                  heartbeat-thread]
-        _ (log-message "Launching virtual port for " supervisor-id ":" port)
-        virtual-port-shutdown (if (conf STORM-LOCAL-MODE-ZMQ)
+        virtual-port-shutdown (when (local-mode-zmq? conf)
+                                (log-message "Launching virtual port for " supervisor-id ":" port)
                                 (msg-loader/launch-virtual-port!
+                                 (= (conf STORM-CLUSTER-MODE) "local")
                                  mq-context
-                                 (str "tcp://*:" port)
-                                 :kill-fn (fn []
+                                 port
+                                 :kill-fn (fn [t]
                                             (halt-process! 11))
                                  :valid-ports task-ids))
-        _ (log-message "Launched virtual port for " supervisor-id ":" port)
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
                     (reset! active false)
@@ -231,16 +236,9 @@
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")
     ret
     ))
-
-(defmethod mk-context :local [conf storm-conf]
-  (msg-loader/mk-local-context))
-
-(defmethod mk-context :distributed [conf storm-conf]
-  (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
-                             (storm-conf ZMQ-LINGER-MILLIS)))
  
 
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-worker conf storm-id supervisor-id (Integer/parseInt port-str) worker-id)))
+    (mk-worker conf nil storm-id supervisor-id (Integer/parseInt port-str) worker-id)))

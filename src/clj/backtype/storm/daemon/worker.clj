@@ -194,7 +194,8 @@
         _ (log-message "Launching virtual port for " supervisor-id ":" port)
         virtual-port-shutdown (mqvp/launch-virtual-port! zmq-context
                                                          (virtual-port-url conf port)
-                                                         :kill-fn (fn [] (halt-process! 11))
+                                                         :kill-fn (fn []
+                                                                    (halt-process! 11))
                                                          :valid-ports task-ids)
         _ (log-message "Launched virtual port for " supervisor-id ":" port)
         shutdown* (fn []

@@ -77,26 +77,29 @@
 
 
 (deftest test-basic-topology
-  (with-simulated-time-local-cluster [cluster :supervisors 4]
-    (let [topology (thrift/mk-topology
-                    {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
-                    {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
-                     3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
-                     4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
-                     })
-          results (complete-topology cluster
-                                     topology
-                                     :mock-sources {1 [["nathan"] ["bob"] ["joey"] ["nathan"]]}
-                                     :storm-conf {TOPOLOGY-DEBUG true})]
-      (is (ms= [["nathan"] ["bob"] ["joey"] ["nathan"]]
-             (read-tuples results 1)))
-      (is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
-               (read-tuples results 2)))
-      (is (= [[1] [2] [3] [4]]
+  (doseq [zmq-on? [true false]]
+    (with-simulated-time-local-cluster [cluster :supervisors 4
+                                        :daemon-conf {STORM-LOCAL-MODE-ZMQ zmq-on?}]
+      (let [topology (thrift/mk-topology
+                      {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                      {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
+                       3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
+                       4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
+                       })
+            results (complete-topology cluster
+                                       topology
+                                       :mock-sources {1 [["nathan"] ["bob"] ["joey"] ["nathan"]]}
+                                       :storm-conf {TOPOLOGY-DEBUG true
+                                                    TOPOLOGY-WORKERS 2})]
+        (is (ms= [["nathan"] ["bob"] ["joey"] ["nathan"]]
+                 (read-tuples results 1)))
+        (is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
+                 (read-tuples results 2)))
+        (is (= [[1] [2] [3] [4]]
                (read-tuples results 3)))
-      (is (= [[1] [2] [3] [4]]
-             (read-tuples results 4)))
-      )))
+        (is (= [[1] [2] [3] [4]]
+               (read-tuples results 4)))
+        ))))
 
 (deftest test-shuffle
   (with-simulated-time-local-cluster [cluster :supervisors 4]

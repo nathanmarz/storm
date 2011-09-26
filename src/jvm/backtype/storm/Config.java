@@ -343,7 +343,7 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
     }
     
-    public void addSerialization(int token, Class<ISerialization> serialization) {
+    public void addSerialization(int token, Class<? extends ISerialization> serialization) {
         if(!containsKey(Config.TOPOLOGY_SERIALIZATIONS)) {
             put(Config.TOPOLOGY_SERIALIZATIONS, new HashMap());
         }

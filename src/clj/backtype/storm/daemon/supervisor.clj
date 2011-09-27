@@ -123,7 +123,9 @@
           (log-message id " still hasn't started")
           (Time/sleep 500)
           (recur)
-          ))
+          )))
+    (when-not (.get state LS-WORKER-HEARTBEAT)
+      (log-message "Worker " id " failed to start")
       )))
 
 (defn- wait-for-workers-launch [conf ids]

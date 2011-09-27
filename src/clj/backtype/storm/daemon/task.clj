@@ -478,7 +478,7 @@
              (when (sampler)
                (.put tuple-start-times tuple (System/currentTimeMillis)))
              
-             (.execute bolt tuple)             
+             (.execute bolt tuple)
              ))))]
     ))
 

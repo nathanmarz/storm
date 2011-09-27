@@ -8,7 +8,7 @@ java.library.path: "/usr/local/lib:/opt/local/lib:/usr/lib"
 storm.local.dir: "/mnt/storm"
 storm.zookeeper.port: 2181
 storm.zookeeper.root: "/storm"
-storm.zookeeper.session.timeout: 10000
+storm.zookeeper.session.timeout: 20000
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 

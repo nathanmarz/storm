@@ -136,29 +136,30 @@
     (.ack collector tuple)
     ))
 
-(defboltfull lalala-bolt2 ["word"]
-  :let [state (atom nil)]
-  :prepare ([conf context collector]
-              (println "prepare")
-              (reset! state "lalala")
-              )
-  :execute ([tuple collector]
-              (let [ret (-> (.getValue tuple 0) (str @state))]
+(defbolt lalala-bolt2 ["word"] {:prepare true}
+  [conf context collector]
+  (let [state (atom nil)]
+    (reset! state "lalala")
+    (bolt
+      (execute [tuple]
+        (let [ret (-> (.getValue tuple 0) (str @state))]
                 (.emit collector tuple [ret])
                 (.ack collector tuple)
-                )))
-
-(defboltfull lalala-bolt3 ["word"]
-  :let [state (atom nil)]
-  :params [prefix]
-  :prepare ([conf context collector]
-              (reset! state (str prefix "lalala"))
-              )
-  :execute ([tuple collector]
-              (let [ret (-> (.getValue tuple 0) (str @state))]
-                (.emit collector tuple [ret])
-                (.ack collector tuple)
-                )))
+                ))
+      )))
+      
+(defbolt lalala-bolt3 ["word"] {:prepare true :params [prefix]}
+  [conf context collector]
+  (let [state (atom nil)]
+    (bolt
+      (prepare [_ _ _]
+        (reset! state (str prefix "lalala")))
+      (execute [tuple]
+        (let [ret (-> (.getValue tuple 0) (str @state))]
+          (.emit collector tuple [ret])
+          (.ack collector tuple)
+          )))
+    ))
 
 (deftest test-clojure-bolt
   (with-simulated-time-local-cluster [cluster :supervisors 4]
@@ -193,25 +194,26 @@
        )]
     ))
 
-(defboltfull branching-bolt ["num"]
-  :params [amt]
-  :execute ([tuple collector]
-              (doseq [i (range amt)]
-                (.emit collector tuple [i]))
-              (.ack collector tuple)
-              ))
+(defbolt branching-bolt ["num"]
+  {:params [amt]}
+  [tuple collector]
+  (doseq [i (range amt)]
+    (.emit collector tuple [i]))
+  (.ack collector tuple))
 
-(defboltfull agg-bolt ["num"]
-  :let [seen (atom [])]
-  :params [amt]
-  :execute ([tuple collector]
-              (swap! seen conj tuple)
-              (when (= (count @seen) amt)
-                (.emit collector @seen [1])
-                (doseq [s @seen]
-                  (.ack collector s))
-                (reset! seen [])
-                )))
+(defbolt agg-bolt ["num"] {:prepare true :params [amt]}
+  [conf context collector]
+  (let [seen (atom [])]
+    (bolt
+      (execute [tuple]
+        (swap! seen conj tuple)
+        (when (= (count @seen) amt)
+          (.emit collector @seen [1])
+          (doseq [s @seen]
+            (.ack collector s))
+          (reset! seen [])
+          )))
+      ))
 
 (defbolt ack-bolt {}
   [tuple collector]

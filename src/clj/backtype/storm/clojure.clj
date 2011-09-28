@@ -4,8 +4,9 @@
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.task OutputCollector IBolt])
+  (:import [backtype.storm.spout SpoutOutputCollector ISpout])
   (:import [backtype.storm.utils Utils])
-  (:import backtype.storm.clojure.ClojureBolt)
+  (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
   (:require [backtype.storm [thrift :as thrift]]))
 
 (defn hint [sym class-sym]
@@ -28,6 +29,29 @@
            []
            )
 
+(defmethod hinted-args 'close [_ []]
+           []
+           )
+
+(defmethod hinted-args 'open [_ [conf context collector]]
+           [(hint conf 'java.util.Map)
+            (hint context 'backtype.storm.task.TopologyContext)
+            (hint collector 'backtype.storm.spout.SpoutOutputCollector)]
+           )
+
+(defmethod hinted-args 'nextTuple [_ []]
+           []
+           )
+
+(defmethod hinted-args 'ack [_ [id]]
+           [(hint id 'java.lang.Object)]
+           )
+
+(defmethod hinted-args 'fail [_ [id]]
+           [(hint id 'java.lang.Object)]
+           )
+
+
 (defn direct-stream [fields]
   (StreamInfo. fields true))
 
@@ -39,17 +63,34 @@
 (defmacro clojure-bolt [output-spec fn-sym args]
   `(clojure-bolt* ~output-spec (var ~fn-sym) ~args))
 
+
+(defn clojure-spout* [output-spec distributed? fn-var args]
+  (let [m (meta fn-var)]
+    (ClojureSpout. (str (:ns m)) (str (:name m)) args (thrift/mk-output-spec output-spec) distributed?)
+    ))
+
+(defmacro clojure-spout [output-spec distributed? fn-sym args]
+  `(clojure-spout* ~output-spec ~distributed? (var ~fn-sym) ~args))
+
+(defn hint-fns [body]
+  (for [[name args & impl] body
+        :let [name (hint name 'void)
+              args (hinted-args name args)
+              args (-> "this"
+                       gensym
+                       (cons args)
+                       vec)]]
+    (concat [name args] impl)
+    ))
+
 (defmacro bolt [& body]
-  (let [fns (for [[name args & impl] body
-                  :let [name (hint name 'void)
-                        args (hinted-args name args)
-                        args (-> "this"
-                                 gensym
-                                 (cons args)
-                                 vec)]]
-              (concat [name args] impl)
-              )]
+  (let [fns (hint-fns body)]
     `(reify IBolt
+       ~@fns)))
+
+(defmacro spout [& body]
+  (let [fns (hint-fns body)]
+    `(reify ISpout
        ~@fns)))
 
 (defmacro defbolt [name output-spec & [opts & impl :as all]]
@@ -76,16 +117,66 @@
            ~fn-body
            )
          ~definer
-         )
+         ))))
+
+(defmacro defspout [name output-spec & [opts & impl :as all]]
+  (if-not (map? opts)
+    `(defspout ~name ~output-spec {} ~@all)
+    (let [worker-name (symbol (str name "__"))
+          params (:params opts)
+          distributed? (get opts :distributed true)
+          fn-body (if (:prepare opts)
+                    (cons 'fn impl)
+                    (let [[args & impl-body] impl
+                          coll-sym (first args)
+                          prepargs (hinted-args 'prepare [(gensym "conf") (gensym "context") coll-sym])]
+                      `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
+          definer (if params
+                    `(defn ~name [& args#]
+                       (clojure-spout ~output-spec ~distributed? ~worker-name args#))
+                    `(def ~name
+                       (clojure-spout ~output-spec ~distributed? ~worker-name []))
+                    )
+          ]
+      `(do
+         (defn ~worker-name ~(if params params [])
+           ~fn-body
+           )
+         ~definer
+         ))))
+
+(defprotocol StormOutputter
+  (emit! [this values & kwargs])
+  (emit-direct! [this values & kwargs]))
+
+(extend-protocol StormOutputter
+  OutputCollector
+  (^List emit! [^OutputCollector collector ^List values
+                & {stream :stream anchor :anchor}]
+    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)
+          ^List anchor (if anchor (collectify anchor) [])]
+      (.emit collector stream (collectify anchor) values)
+      ))
+  (^void emit-direct! [^OutputCollector collector ^Integer task ^List values
+                       & {stream :stream anchor :anchor}]
+    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)
+          ^List anchor (if anchor (collectify anchor) [])]
+      (.emitDirect collector task stream (collectify anchor) values)
+      ))
+  SpoutOutputCollector
+  (^List emit! [^SpoutOutputCollector collector ^List values
+                & {stream :stream id :id}]
+    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)]
+      (.emit collector stream values id)
+      ))
+  (^void emit-direct! [^SpoutOutputCollector collector ^Integer task ^List values
+                       & {stream :stream id :id}]
+    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)]
+      (.emitDirect collector task stream values id)
       )))
-
-(defnk emit! [^OutputCollector collector ^List values :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emit collector stream (collectify anchor) values)))
-
-(defnk emit-direct! [^OutputCollector collector task ^List values :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emitDirect collector task stream (collectify anchor) values)))
 
 (defn ack! [^OutputCollector collector ^Tuple tuple]
   (.ack collector tuple))
+
+(defn fail! [^OutputCollector collector ^Tuple tuple]
+  (.fail collector tuple))

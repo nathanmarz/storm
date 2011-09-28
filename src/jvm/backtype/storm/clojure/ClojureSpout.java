@@ -1,13 +1,12 @@
 package backtype.storm.clojure;
 
 import backtype.storm.generated.StreamInfo;
-import backtype.storm.task.IBolt;
-import backtype.storm.task.OutputCollector;
+import backtype.storm.spout.ISpout;
+import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
 import clojure.lang.RT;
@@ -15,37 +14,43 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
-public class ClojureBolt implements IRichBolt {
+public class ClojureSpout implements IRichSpout {
+    private boolean _isDistributed;
     Map<Integer, StreamInfo> _fields;
     String _namespace;
     String _fnName;
     List<Object> _params;
     
-    IBolt _bolt;
+    ISpout _spout;
     
-    public ClojureBolt(String namespace, String fnName, List<Object> params, Map<Integer, StreamInfo> fields) {
+    public ClojureSpout(String namespace, String fnName, List<Object> params, Map<Integer, StreamInfo> fields, boolean isDistributed) {
+        _isDistributed = isDistributed;
         _namespace = namespace;
         _fnName = fnName;
         _params = params;
         _fields = fields;
     }
+    
+    @Override
+    public boolean isDistributed() {
+        return _isDistributed;
+    }
 
     @Override
-    public void prepare(final Map stormConf, final TopologyContext context, final OutputCollector collector) {
+    public void open(final Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
         IFn hof = Utils.loadClojureFn(_namespace, _fnName);
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
             List<Object> args = new ArrayList<Object>() {{
-                add(stormConf);
+                add(conf);
                 add(context);
                 add(collector);
             }};
             
-            _bolt = (IBolt) preparer.applyTo(RT.seq(args));
+            _spout = (ISpout) preparer.applyTo(RT.seq(args));
             //this is kind of unnecessary for clojure
             try {
-                _bolt.prepare(stormConf, context, collector);
+                _spout.open(conf, context, collector);
             } catch(AbstractMethodError ame) {
                 
             }
@@ -55,17 +60,42 @@ public class ClojureBolt implements IRichBolt {
     }
 
     @Override
-    public void execute(Tuple input) {
-        _bolt.execute(input);
+    public void close() {
+        try {
+            _spout.close();
+        } catch(AbstractMethodError ame) {
+                
+        }
     }
 
     @Override
-    public void cleanup() {
-            try {
-                _bolt.cleanup();
-            } catch(AbstractMethodError ame) {
+    public void nextTuple() {
+        try {
+            _spout.nextTuple();
+        } catch(AbstractMethodError ame) {
                 
-            }
+        }
+
+    }
+
+    @Override
+    public void ack(Object msgId) {
+        try {
+            _spout.ack(msgId);
+        } catch(AbstractMethodError ame) {
+                
+        }
+
+    }
+
+    @Override
+    public void fail(Object msgId) {
+        try {
+            _spout.fail(msgId);
+        } catch(AbstractMethodError ame) {
+                
+        }
+
     }
 
     @Override
@@ -75,4 +105,5 @@ public class ClojureBolt implements IRichBolt {
             declarer.declareStream(stream, info.is_direct(), new Fields(info.get_output_fields()));
         }
     }
+    
 }

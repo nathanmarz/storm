@@ -1,6 +1,8 @@
 package backtype.storm.utils;
 
 import backtype.storm.generated.ComponentObject;
+import clojure.lang.IFn;
+import clojure.lang.RT;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -140,5 +142,14 @@ public class Utils {
             out.write(chunk);
         }
         out.close();
+    }
+    
+    public static IFn loadClojureFn(String namespace, String name) {
+        try {
+          clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));
+        } catch (Exception e) {
+          //if playing from the repl and defining functions, file won't exist
+        }
+        return (IFn) RT.var(namespace, name).deref();        
     }
 }

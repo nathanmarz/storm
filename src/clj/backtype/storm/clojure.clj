@@ -1,5 +1,5 @@
 (ns backtype.storm.clojure
-  (:use [clojure.contrib.def :only [defnk]])
+  (:use [clojure.contrib.def :only [defnk defalias]])
   (:use [backtype.storm bootstrap util])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
@@ -125,11 +125,13 @@
     (let [worker-name (symbol (str name "__"))
           params (:params opts)
           distributed? (get opts :distributed true)
-          fn-body (if (:prepare opts)
+          prepare? (:prepare opts)
+          prepare? (if (nil? prepare?) true prepare?)
+          fn-body (if prepare?
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (first args)
-                          prepargs (hinted-args 'prepare [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs (hinted-args 'open [(gensym "conf") (gensym "context") coll-sym])]
                       `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
@@ -145,38 +147,32 @@
          ~definer
          ))))
 
-(defprotocol StormOutputter
-  (emit! [this values & kwargs])
-  (emit-direct! [this values & kwargs]))
+(defnk emit-bolt! [^OutputCollector collector ^List values
+                   :stream Utils/DEFAULT_STREAM_ID :anchor []]
+  (let [^List anchor (collectify anchor)]
+    (.emit collector stream anchor values)
+    ))
 
-(extend-protocol StormOutputter
-  OutputCollector
-  (^List emit! [^OutputCollector collector ^List values
-                & {stream :stream anchor :anchor}]
-    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)
-          ^List anchor (if anchor (collectify anchor) [])]
-      (.emit collector stream (collectify anchor) values)
-      ))
-  (^void emit-direct! [^OutputCollector collector ^Integer task ^List values
-                       & {stream :stream anchor :anchor}]
-    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)
-          ^List anchor (if anchor (collectify anchor) [])]
-      (.emitDirect collector task stream (collectify anchor) values)
-      ))
-  SpoutOutputCollector
-  (^List emit! [^SpoutOutputCollector collector ^List values
-                & {stream :stream id :id}]
-    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)]
-      (.emit collector stream values id)
-      ))
-  (^void emit-direct! [^SpoutOutputCollector collector ^Integer task ^List values
-                       & {stream :stream id :id}]
-    (let [stream (if stream stream Utils/DEFAULT_STREAM_ID)]
-      (.emitDirect collector task stream values id)
-      )))
+(defnk emit-direct-bolt! [^OutputCollector collector task ^List values
+                          :stream Utils/DEFAULT_STREAM_ID :anchor []]
+  (let [^List anchor (collectify anchor)]
+    (.emitDirect collector task stream anchor values)
+    ))
 
 (defn ack! [^OutputCollector collector ^Tuple tuple]
   (.ack collector tuple))
 
 (defn fail! [^OutputCollector collector ^Tuple tuple]
   (.fail collector tuple))
+
+(defnk emit-spout! [^SpoutOutputCollector collector ^List values
+                    :stream Utils/DEFAULT_STREAM_ID :id nil]
+  (.emit collector stream values id))
+
+(defnk emit-direct-spout! [^SpoutOutputCollector collector task ^List values
+                           :stream Utils/DEFAULT_STREAM_ID :id nil]
+  (.emitDirect collector task stream values id))
+
+(defalias topology thrift/mk-topology)
+(defalias bolt-spec thrift/mk-bolt-spec)
+(defalias spout-spec thrift/mk-spout-spec)

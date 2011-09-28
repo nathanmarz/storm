@@ -198,7 +198,7 @@
   {:params [amt]}
   [tuple collector]
   (doseq [i (range amt)]
-    (emit! collector [i] :anchor tuple))
+    (emit-bolt! collector [i] :anchor tuple))
   (ack! collector tuple))
 
 (defbolt agg-bolt ["num"] {:prepare true :params [amt]}
@@ -208,7 +208,7 @@
       (execute [tuple]
         (swap! seen conj tuple)
         (when (= (count @seen) amt)
-          (emit! collector [1] :anchor @seen)
+          (emit-bolt! collector [1] :anchor @seen)
           (doseq [s @seen]
             (ack! collector s))
           (reset! seen [])
@@ -221,7 +221,7 @@
 
 (defbolt identity-bolt ["num"]
   [tuple collector]
-  (emit! collector (.getValues tuple) :anchor tuple)
+  (emit-bolt! collector (.getValues tuple) :anchor tuple)
   (ack! collector tuple))
 
 (deftest test-acking
@@ -294,7 +294,7 @@
 
 (defbolt dup-anchor ["num"]
   [tuple collector]
-  (emit! collector [1] :anchor [tuple tuple])
+  (emit-bolt! collector [1] :anchor [tuple tuple])
   (ack! collector tuple))
 
 (deftest test-acking-self-anchor
@@ -317,6 +317,50 @@
       (tracked-wait tracked 3)
       (checker 3)
       )))
+
+
+
+(defspout IncSpout ["word"]
+  [conf context collector]
+  (let [state (atom 0)]
+    (spout
+     (nextTuple []
+       (Thread/sleep 100)
+       (emit-spout! collector [@state] :id 1)         
+       )
+     (ack [id]
+       (swap! state inc))
+     )))
+
+
+(defspout IncSpout2 ["word"] {:params [prefix]}
+  [conf context collector]
+  (let [state (atom 0)]
+    (spout
+     (nextTuple []
+       (Thread/sleep 100)
+       (swap! state inc)
+       (emit-spout! collector [(str prefix "-" @state)])         
+       )
+     )))
+
+;; (deftest test-clojure-spout
+;;   (with-local-cluster [cluster]
+;;     (let [nimbus (:nimbus cluster)
+;;           top (topology
+;;                {1 (spout-spec IncSpout)}
+;;                {}
+;;                )]
+;;       (submit-local-topology nimbus
+;;                              "spout-test"
+;;                              {TOPOLOGY-DEBUG true
+;;                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 3}
+;;                              top)
+;;       (Thread/sleep 10000)
+;;       (.killTopology nimbus "spout-test")
+;;       (Thread/sleep 10000)
+;;       )))
+
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

@@ -80,11 +80,13 @@
     ret
     ))
 
-(defnk mk-spout-spec [spout :parallelism-hint nil]
-  (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
-              (mk-component-common spout parallelism-hint)
-              (.isDistributed spout))
-  )
+(defnk mk-spout-spec [spout :parallelism-hint nil :p nil]
+  ;; for backwards compatibility
+  (let [parallelism-hint (if p p parallelism-hint)]
+    (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
+                (mk-component-common spout parallelism-hint)
+                (.isDistributed spout))
+    ))
 
 (defn mk-shuffle-grouping []
   (Grouping/shuffle (NullStruct.)))
@@ -134,20 +136,24 @@
        (mk-grouping grouping-spec)]
       )))
 
-(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil]
-  (let [bolt (if (instance? IBasicBolt bolt) (BasicBoltExecutor. bolt) bolt)]
+(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil]
+  ;; for backwards compatibility
+  (let [parallelism-hint (if p p parallelism-hint)
+        bolt (if (instance? IBasicBolt bolt) (BasicBoltExecutor. bolt) bolt)]
     (Bolt.
      (mk-inputs inputs)
      (ComponentObject/serialized_java (Utils/serialize bolt))
      (mk-component-common bolt parallelism-hint)
      )))
 
-(defnk mk-shell-bolt-spec [inputs command script output-spec :parallelism-hint nil]
-  (Bolt.
-    (mk-inputs inputs)
-    (ComponentObject/shell (ShellComponent. command script))
-    (mk-plain-component-common output-spec parallelism-hint)
-    ))
+(defnk mk-shell-bolt-spec [inputs command script output-spec :parallelism-hint nil :p nil]
+  ;; for backwards compatibility
+  (let [parallelism-hint (if p p parallelism-hint)]
+    (Bolt.
+     (mk-inputs inputs)
+     (ComponentObject/shell (ShellComponent. command script))
+     (mk-plain-component-common output-spec parallelism-hint)
+     )))
 
 (defn mk-topology
   ([spout-map bolt-map]

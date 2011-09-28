@@ -176,3 +176,4 @@
 (defalias topology thrift/mk-topology)
 (defalias bolt-spec thrift/mk-bolt-spec)
 (defalias spout-spec thrift/mk-spout-spec)
+(defalias shell-bolt-spec thrift/mk-shell-bolt-spec)

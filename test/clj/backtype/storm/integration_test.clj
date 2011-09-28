@@ -198,8 +198,8 @@
   {:params [amt]}
   [tuple collector]
   (doseq [i (range amt)]
-    (.emit collector tuple [i]))
-  (.ack collector tuple))
+    (emit! collector [i] :anchor tuple))
+  (ack! collector tuple))
 
 (defbolt agg-bolt ["num"] {:prepare true :params [amt]}
   [conf context collector]
@@ -208,21 +208,21 @@
       (execute [tuple]
         (swap! seen conj tuple)
         (when (= (count @seen) amt)
-          (.emit collector @seen [1])
+          (emit! collector [1] :anchor @seen)
           (doseq [s @seen]
-            (.ack collector s))
+            (ack! collector s))
           (reset! seen [])
           )))
       ))
 
 (defbolt ack-bolt {}
   [tuple collector]
-  (.ack collector tuple))
+  (ack! collector tuple))
 
 (defbolt identity-bolt ["num"]
   [tuple collector]
-  (.emit collector tuple (.getValues tuple))
-  (.ack collector tuple))
+  (emit! collector (.getValues tuple) :anchor tuple)
+  (ack! collector tuple))
 
 (deftest test-acking
   (with-tracked-cluster [cluster]
@@ -294,8 +294,8 @@
 
 (defbolt dup-anchor ["num"]
   [tuple collector]
-  (.emit collector [tuple tuple] [1])
-  (.ack collector tuple))
+  (emit! collector [1] :anchor [tuple tuple])
+  (ack! collector tuple))
 
 (deftest test-acking-self-anchor
   (with-tracked-cluster [cluster]

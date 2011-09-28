@@ -1,8 +1,10 @@
 (ns backtype.storm.clojure
-  (:use backtype.storm.bootstrap)
+  (:use [clojure.contrib.def :only [defnk]])
+  (:use [backtype.storm bootstrap util])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.task OutputCollector IBolt])
+  (:import [backtype.storm.utils Utils])
   (:import backtype.storm.clojure.ClojureBolt)
   (:require [backtype.storm [thrift :as thrift]]))
 
@@ -76,3 +78,14 @@
          ~definer
          )
       )))
+
+(defnk emit! [^OutputCollector collector ^List values :stream Utils/DEFAULT_STREAM_ID :anchor []]
+  (let [^List anchor (collectify anchor)]
+    (.emit collector stream (collectify anchor) values)))
+
+(defnk emit-direct! [^OutputCollector collector task ^List values :stream Utils/DEFAULT_STREAM_ID :anchor []]
+  (let [^List anchor (collectify anchor)]
+    (.emitDirect collector task stream (collectify anchor) values)))
+
+(defn ack! [^OutputCollector collector ^Tuple tuple]
+  (.ack collector tuple))

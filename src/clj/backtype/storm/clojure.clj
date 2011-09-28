@@ -6,6 +6,26 @@
   (:import backtype.storm.clojure.ClojureBolt)
   (:require [backtype.storm [thrift :as thrift]]))
 
+(defn hint [sym class-sym]
+  (with-meta sym {:tag class-sym})
+  )
+
+(defmulti hinted-args (fn [m args] m))
+
+(defmethod hinted-args 'prepare [_ [conf context collector]]
+           [(hint conf 'java.util.Map)
+            (hint context 'backtype.storm.task.TopologyContext)
+            (hint collector 'backtype.storm.task.OutputCollector)]
+           )
+
+(defmethod hinted-args 'execute [_ [tuple]]
+           [(hint tuple 'backtype.storm.tuple.Tuple)]
+           )
+
+(defmethod hinted-args 'cleanup [_ []]
+           []
+           )
+
 (defn direct-stream [fields]
   (StreamInfo. fields true))
 
@@ -19,7 +39,9 @@
 
 (defmacro bolt [& body]
   (let [fns (for [[name args & impl] body
-                  :let [args (-> "this"
+                  :let [name (hint name 'void)
+                        args (hinted-args name args)
+                        args (-> "this"
                                  gensym
                                  (cons args)
                                  vec)]]
@@ -37,8 +59,9 @@
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (nth args 1)
-                          args (vec (take 1 args))]
-                      `(fn [conf# context# ~coll-sym] (bolt (~'execute ~args ~@impl-body)))))
+                          args (vec (take 1 args))
+                          prepargs (hinted-args 'prepare [(gensym "conf") (gensym "context") coll-sym])]
+                      `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
                        (clojure-bolt ~output-spec ~worker-name args#))

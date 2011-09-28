@@ -1,4 +1,5 @@
 (defproject storm-starter "0.0.1-SNAPSHOT"
+  :source-path "src/clj"
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}
   :resources-path "multilang"
@@ -15,6 +16,6 @@
                  [com.googlecode.json-simple/json-simple "1.1"]
                  ]
 
-  :dev-dependencies [[storm "0.5.2"]
+  :dev-dependencies [[storm "0.5.3-SNAPSHOT"]
                      ])
 

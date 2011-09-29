@@ -182,8 +182,11 @@
         task-stats (mk-task-stats task-object (sampling-rate storm-conf))
 
         report-error (fn [error]
-                       (.report-task-error storm-cluster-state storm-id task-id error)
-                       (halt-process! 1 "Task died!"))
+                       (.report-task-error storm-cluster-state storm-id task-id error))
+        
+        report-error-and-die (fn [error]
+                                (report-error error)
+                                (halt-process! 1 "Task died"))
 
         ;; heartbeat ASAP so nimbus doesn't reassign
         heartbeat-thread (async-loop
@@ -195,7 +198,7 @@
                             (when @active (storm-conf TASK-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY
-                          :kill-fn report-error)
+                          :kill-fn report-error-and-die)
 
         stream->component->grouper (outbound-components topology-context)
         component->tasks (reverse-map task-info)
@@ -276,7 +279,7 @@
                                               storm-active-atom topology-context
                                               task-stats report-error)]
                           (async-loop (fn [] (exec) (when @active 0))
-                                      :kill-fn report-error))
+                                      :kill-fn report-error-and-die))
         system-threads [heartbeat-thread]
         all-threads  (concat executor-threads system-threads)]
     (reify

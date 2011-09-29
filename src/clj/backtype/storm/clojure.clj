@@ -88,6 +88,10 @@
     `(reify IBolt
        ~@fns)))
 
+(defmacro bolt-execute [& body]
+  `(bolt
+     (~'execute ~@body)))
+
 (defmacro spout [& body]
   (let [fns (hint-fns body)]
     `(reify ISpout

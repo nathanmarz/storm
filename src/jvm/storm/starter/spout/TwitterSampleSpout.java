@@ -8,13 +8,13 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
-import static backtype.storm.utils.Utils.*;
 
 public class TwitterSampleSpout implements IRichSpout {
     SpoutOutputCollector _collector;
@@ -74,7 +74,7 @@ public class TwitterSampleSpout implements IRichSpout {
         if(ret==null) {
             Utils.sleep(50);
         } else {
-            _collector.emit(tuple(ret));            
+            _collector.emit(new Values(ret));
         }
     }
 

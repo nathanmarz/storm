@@ -72,8 +72,14 @@
 (defn read-yaml-config [name]
   (clojurify-structure (Utils/findAndReadConfigFile name true)))
 
+(defn master-local-dir [conf]
+  (let [ret (str (conf STORM-LOCAL-DIR) "/nimbus")]
+    (FileUtils/forceMkdir (File. ret))
+    ret
+    ))
+
 (defn master-stormdist-root [conf storm-id]
-  (str (conf STORM-LOCAL-DIR) "/stormdist/" storm-id))
+  (str (master-local-dir conf) "/stormdist/" storm-id))
 
 (defn master-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))
@@ -85,12 +91,18 @@
   (str stormroot "/stormconf.ser"))
 
 (defn master-inbox [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) "/inbox")]
+  (let [ret (str (master-local-dir conf) "/inbox")]
     (FileUtils/forceMkdir (File. ret))
     ret ))
 
+(defn supervisor-local-dir [conf]
+  (let [ret (str (conf STORM-LOCAL-DIR) "/supervisor")]
+    (FileUtils/forceMkdir (File. ret))
+    ret
+    ))
+
 (defn supervisor-stormdist-root
-  ([conf] (str (conf STORM-LOCAL-DIR) "/stormdist"))
+  ([conf] (str (supervisor-local-dir conf) "/stormdist"))
   ([conf storm-id]
       (str (supervisor-stormdist-root conf) "/" storm-id)))
 
@@ -104,7 +116,7 @@
   (str stormroot "/stormconf.ser"))
 
 (defn supervisor-tmp-dir [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) "/tmp")]
+  (let [ret (str (supervisor-local-dir conf) "/tmp")]
     (FileUtils/forceMkdir (File. ret))
     ret ))
 
@@ -112,7 +124,7 @@
   (str stormroot "/" RESOURCES-SUBDIR))
 
 (defn ^LocalState supervisor-state [conf]
-  (LocalState. (str (conf STORM-LOCAL-DIR) "/localstate")))
+  (LocalState. (str (supervisor-local-dir conf) "/localstate")))
 
 
 (defn worker-root

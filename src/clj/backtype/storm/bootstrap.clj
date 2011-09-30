@@ -14,12 +14,12 @@
                       TopologyContext ShellBolt
                       CoordinatedBolt CoordinatedBolt$SourceArgs KeyedFairBolt]))
       (import (quote [backtype.storm.daemon Shutdownable]))
+      (require (quote [backtype.storm.messaging.loader :as msg-loader]))
+      (require (quote [backtype.storm.messaging.protocol :as msg]))
       (use (quote [backtype.storm config util log clojure]))
       (require (quote [backtype.storm [thrift :as thrift] [cluster :as cluster]
                                       [event :as event] [process-simulator :as psim]]))
       (require (quote [clojure.set :as set]))
-      (require (quote [zilch [mq :as mq]]))
-      (require (quote [zilch [virtual-port :as mqvp]]))
       (require (quote [backtype.storm [stats :as stats]]))
       (import (quote [org.apache.log4j PropertyConfigurator Logger]))
 
@@ -33,5 +33,4 @@
       (import (quote [java.util List Random Map HashMap]))
       (import (quote [org.apache.commons.io FileUtils]))
       (import (quote [java.util ArrayList]))
-      (mq/zeromq-imports)
       ))

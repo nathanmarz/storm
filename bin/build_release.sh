@@ -12,9 +12,7 @@ rm *jar
 lein clean
 lein deps
 lein compile
-mv conf/log4j.properties conf/storm.log.properties
 lein jar
-mv conf/storm.log.properties conf/log4j.properties
 mkdir -p $DIR
 mkdir $DIR/lib
 cp storm*jar $DIR/

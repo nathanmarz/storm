@@ -123,7 +123,9 @@
           (log-message id " still hasn't started")
           (Time/sleep 500)
           (recur)
-          ))
+          )))
+    (when-not (.get state LS-WORKER-HEARTBEAT)
+      (log-message "Worker " id " failed to start")
       )))
 
 (defn- wait-for-workers-launch [conf ids]
@@ -160,7 +162,7 @@
 
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
-(defserverfn mk-supervisor [conf]
+(defserverfn mk-supervisor [conf shared-context]
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
   (let [active (atom true)
         uptime (uptime-computer)
@@ -227,6 +229,7 @@
                                              id
                                              )
                                 (launch-worker conf
+                                               shared-context
                                                (:storm-id assignment)
                                                supervisor-id
                                                port
@@ -359,7 +362,7 @@
 
 
 (defmethod launch-worker
-    :distributed [conf storm-id supervisor-id port worker-id worker-thread-pids-atom]
+    :distributed [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]
     (let [stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
           classpath (add-to-classpath (current-classpath) [stormjar])
@@ -368,6 +371,7 @@
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
+                       " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
                        storm-id " " supervisor-id " " port " " worker-id)]
       (launch-process command)
@@ -386,9 +390,9 @@
               ))))
 
 (defmethod launch-worker
-    :local [conf storm-id supervisor-id port worker-id worker-thread-pids-atom]
+    :local [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]
     (let [pid (uuid)
-          worker (worker/mk-worker conf storm-id supervisor-id port worker-id)]
+          worker (worker/mk-worker conf shared-context storm-id supervisor-id port worker-id)]
       (psim/register-process pid worker)
       (swap! worker-thread-pids-atom assoc worker-id pid)
       ))
@@ -396,4 +400,4 @@
 (defn -main []
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf)))
+    (mk-supervisor conf nil)))

@@ -17,7 +17,7 @@ public interface ISerialization<T> {
     /**
      * Returns whether this serialization can handle the given type.
      */
-    public boolean accept(Class<T> c);
+    public boolean accept(Class c);
 
     /**
      * Serializes the provided object into the stream.

@@ -1,15 +1,26 @@
 package backtype.storm;
 
+import backtype.storm.serialization.ISerialization;
+import backtype.storm.serialization.SerializationFactory;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * This class provides constants for all the configurations possible on a Storm
+ * Topology configs are specified as a plain old map. This class provides a 
+ * convenient way to create a topology config map by providing setter methods for 
+ * all the configs that can be set. It also makes it easier to do things like add 
+ * serializations.
+ * 
+ * <p>This class also provides constants for all the configurations possible on a Storm
  * cluster and Storm topology. Default values for these configs can be found in
- * defaults.yaml.
+ * defaults.yaml.</p>
  *
- * <p>Note that you may put other configurations in the configuration maps. Storm
+ * <p>Note that you may put other configurations in any of the configs. Storm
  * will ignore anything it doesn't recognize, but your topologies are free to make
- * use of them.</p>
+ * use of them by reading them in the prepare method of Bolts or the open method of 
+ * Spouts. .</p>
  */
-public class Config {
+public class Config extends HashMap<String, Object> {
     
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
@@ -33,6 +44,16 @@ public class Config {
      * The mode this Storm cluster is running in. Either "distributed" or "local".
      */
     public static String STORM_CLUSTER_MODE = "storm.cluster.mode";
+
+    /**
+     * Whether or not to use ZeroMQ for messaging in local mode. If this is set 
+     * to false, then Storm will use a pure-Java messaging system. The purpose 
+     * of this flag is to make it easy to run Storm in local mode by eliminating 
+     * the need for native dependencies, which can be difficult to install.
+     *
+     * Defaults to false.
+     */
+    public static String STORM_LOCAL_MODE_ZMQ = "storm.local.mode.zmq";
 
     /**
      * The root location at which Storm stores data in ZooKeeper.
@@ -234,18 +255,24 @@ public class Config {
     public static String TOPOLOGY_MESSAGE_TIMEOUT_SECS = "topology.message.timeout.secs";
 
     /**
-     * A map from unique tokens to the name of classes that implement custom serializations.
-     * Custom serializations are implemented using the {@link backtype.storm.serialization.ISerialization}
-     * interface. The unique tokens you provide are what are serialized on the wire to identify fields. This
-     * is much more efficient than writing the classname. These serializations will be used
-     * automatically when appropriate.
+     * A map from unique tokens to the name of classes that implement custom serializations. Tokens 
+     * must 33 or greater. Custom serializations are implemented using the
+     * {@link backtype.storm.serialization.ISerialization} interface. The unique tokens you provide
+     * are what are serialized on the wire so that Storm can identify the types of fields. Storm
+     * forces this optimization on you because otherwise it would have to write the class name, 
+     * which would be terribly inefficient. After you register serializations through this config, 
+     * Storm will make use of them automatically.
      */
     public static String TOPOLOGY_SERIALIZATIONS = "topology.serializations";
 
     /**
      * Whether or not Storm should skip the loading of a serialization for which it
-     * does not contain the code. Otherwise, the task will fail to load and will throw
-     * an error at runtime.
+     * does not have the code. Otherwise, the task will fail to load and will throw
+     * an error at runtime. The use case of this is if you want to declare your serializations 
+     * on the storm.yaml files on the cluster rather than every single time you submit a topology.
+     * Different applications may use different serializations and so a single application may not 
+     * have the code for the other serializers used by other apps. By setting this config to true,
+     * Storm will ignore that it doesn't have those other serializations rather than throw an error.
      */
     public static String TOPOLOGY_SKIP_MISSING_SERIALIZATIONS= "topology.skip.missing.serializations";
 
@@ -295,5 +322,55 @@ public class Config {
      * Storm uses the ZeroMQ and JZMQ native libs. 
      */
     public static String JAVA_LIBRARY_PATH = "java.library.path";
+    
+    public void setDebug(boolean isOn) {
+        put(Config.TOPOLOGY_DEBUG, isOn);
+    } 
 
+    public void setOptimize(boolean isOn) {
+        put(Config.TOPOLOGY_OPTIMIZE, isOn);
+    } 
+    
+    public void setNumWorkers(int workers) {
+        put(Config.TOPOLOGY_WORKERS, workers);
+    }
+    
+    public void setNumAckers(int numTasks) {
+        put(Config.TOPOLOGY_ACKERS, numTasks);
+    }
+    
+    public void setMessageTimeoutSecs(int secs) {
+        put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
+    }
+    
+    public void addSerialization(int token, Class<? extends ISerialization> serialization) {
+        if(!containsKey(Config.TOPOLOGY_SERIALIZATIONS)) {
+            put(Config.TOPOLOGY_SERIALIZATIONS, new HashMap());
+        }
+        Map<Integer, String> sers = (Map<Integer, String>) get(Config.TOPOLOGY_SERIALIZATIONS);
+        if(token<=SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY) {
+            throw new IllegalArgumentException("User serialization tokens must be greater than " + SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY);
+        }
+        if(sers.containsKey(token)) {
+            throw new IllegalArgumentException("All serialization tokens must be unique. Found duplicate token: " + token);
+        }
+        sers.put(token, serialization.getName());
+    }
+    
+    public void setSkipMissingSerializations(boolean skip) {
+        put(Config.TOPOLOGY_SKIP_MISSING_SERIALIZATIONS, skip);
+    }
+    
+    public void setMaxTaskParallelism(int max) {
+        put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, max);
+    }
+    
+    public void setMaxSpoutPending(int max) {
+        put(Config.TOPOLOGY_MAX_SPOUT_PENDING, max);
+    }
+    
+    public void setStatsSampleRate(double rate) {
+        put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
+    }    
+    
 }

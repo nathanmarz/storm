@@ -1,6 +1,7 @@
 (ns storm.starter.clj.word-count
-  (:import backtype.storm.LocalCluster)
-  (:use [backtype.storm clojure config]))
+  (:import [backtype.storm StormSubmitter LocalCluster])
+  (:use [backtype.storm clojure config])
+  (:gen-class))
 
 (defspout sentence-spout ["sentence"]
   [conf context collector]
@@ -43,14 +44,19 @@
          )))))
 
 (defn mk-topology []
+
   (topology
    {1 (spout-spec sentence-spout)
     2 (spout-spec (sentence-spout-parameterized
                    ["the cat jumped over the door"
                     "greetings from a faraway land"])
                   :p 2)}
-   {3 (bolt-spec {1 :shuffle 2 :shuffle} split-sentence :p 5)
-    4 (bolt-spec {3 ["word"]} word-count :p 6)}))
+   {3 (bolt-spec {1 :shuffle 2 :shuffle}
+                 split-sentence
+                 :p 5)
+    4 (bolt-spec {3 ["word"]}
+                 word-count
+                 :p 6)}))
 
 (defn run-local! []
   (let [cluster (LocalCluster.)]
@@ -58,3 +64,11 @@
     (Thread/sleep 10000)
     (.shutdown cluster)
     ))
+
+(defn -main [name]
+  (StormSubmitter/submitTopology
+   name
+   {TOPOLOGY-DEBUG true
+    TOPOLOGY-WORKERS 3}
+   (mk-topology)))
+

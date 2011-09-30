@@ -1,5 +1,4 @@
 (ns backtype.storm.daemon.common
-  (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [backtype.storm log config util])
   )
 
@@ -67,9 +66,9 @@
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
-    (find-first
+    (first (filter
       #(= storm-name (:storm-name (.storm-base storm-cluster-state % nil)))
-      active-storms)
+      active-storms))
     ))
 
 (defn topology-bases [storm-cluster-state]

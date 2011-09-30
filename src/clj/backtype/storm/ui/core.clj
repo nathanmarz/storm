@@ -4,7 +4,6 @@
   (:use [backtype.storm config util])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID]]])
-  (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [backtype.storm.generated TaskSpecificStats
             TaskStats TaskSummary TopologyInfo SpoutStats BoltStats
@@ -647,7 +646,7 @@
           topology (.getTopology ^Nimbus$Client nimbus topology-id)
           task (->> summ
                     .get_tasks
-                    (find-first #(= (.get_task_id ^TaskSummary %) task-id)))]
+                    (first (filter #(= (.get_task_id ^TaskSummary %) task-id))))]
       (concat
        [[:h2 "Task summary"]]
        [(task-summary-table task summ)]

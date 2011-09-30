@@ -1,5 +1,5 @@
 (ns backtype.storm.clojure
-  (:use [clojure.contrib.def :only [defnk defalias]])
+  (:use [clojure.contrib.def :only [defalias]])
   (:use [backtype.storm bootstrap util])
   (:import [backtype.storm LocalCluster StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])

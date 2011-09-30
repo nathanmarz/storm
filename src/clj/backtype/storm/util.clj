@@ -12,7 +12,7 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
-  (:require [clojure.contrib [str-utils2 :as str]])
+  (:require [clojure.string :as str])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
   (:use [backtype.storm log]))

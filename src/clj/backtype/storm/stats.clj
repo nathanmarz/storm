@@ -3,9 +3,7 @@
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
             ClusterSummary TopologyInfo TopologySummary TaskSummary TaskStats TaskSpecificStats
             SpoutStats BoltStats ErrorInfo SupervisorSummary])
-  (:use [backtype.storm util])
-  (:use [clojure.contrib.seq-utils :only [find-first]])
-  (:use [clojure.contrib.math :only [ceil]]))
+  (:use [backtype.storm util]))
 
 ;;TODO: consider replacing this with some sort of RRD
 
@@ -121,7 +119,7 @@
   (apply rolling-window-set update-keyed-avg merge-keyed-avg extract-keyed-avg num-buckets bucket-sizes))
 
 ;; (defn choose-bucket [val buckets]
-;;   (let [ret (find-first #(<= val %) buckets)]
+;;   (let [ret (first (filter #(<= val %) buckets))]
 ;;     (if ret
 ;;       ret
 ;;       (* 10 (first buckets)))

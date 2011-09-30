@@ -2,7 +2,6 @@
   (:import [org.apache.zookeeper.data Stat])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
-  (:use [clojure.contrib.core :only [dissoc-in]])
   (:require [backtype.storm [zookeeper :as zk]])
   )
 

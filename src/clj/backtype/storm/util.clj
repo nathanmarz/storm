@@ -12,12 +12,10 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
-  (:require [clojure.contrib [str-utils2 :as str]])
+  (:require [clojure.string :as str])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
-  (:use [backtype.storm log])
-  (:use [clojure.contrib.def :only [defnk]])
-  )
+  (:use [backtype.storm log]))
 
 (defn local-hostname []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
@@ -199,12 +197,12 @@
   (sleeping? [this]))
 
 ;; afn returns amount of time to sleep
-(defnk async-loop [afn
-                   :daemon false
-                   :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
-                   :priority Thread/NORM_PRIORITY
-                   :args-fn (fn [] [])
-                   :start true]
+(defn async-loop [afn & {:keys [daemon kill-fn priority args-fn start]
+                         :or {daemon false
+                               kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
+                               priority Thread/NORM_PRIORITY
+                               args-fn  (fn [] [])
+                               start true}}]
   (let [thread (Thread.
                 (fn []
                   (try
@@ -501,3 +499,24 @@
 
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))
+
+(defmacro defnk
+ "NOTE: copied over from clojure-contrib to allow reuse in 1.3
+ Define a function accepting keyword arguments. Symbols up to the first
+ keyword in the parameter list are taken as positional arguments.  Then
+ an alternating sequence of keywords and defaults values is expected. The
+ values of the keyword arguments are available in the function body by
+ virtue of the symbol corresponding to the keyword (cf. :keys destructuring).
+ defnk accepts an optional docstring as well as an optional metadata map."
+  [fn-name & fn-tail]
+  (let [[fn-name [args & body]] (name-with-attributes fn-name fn-tail)
+        [pos kw-vals]           (split-with symbol? args)
+        syms                    (map #(-> % name symbol) (take-nth 2 kw-vals))
+        values                  (take-nth 2 (rest kw-vals))
+        sym-vals                (apply hash-map (interleave syms values))
+        de-map                  {:keys (vec syms)
+                                 :or   sym-vals}]
+    `(defn ~fn-name
+       [~@pos & options#]
+       (let [~de-map (apply hash-map options#)]
+         ~@body))))

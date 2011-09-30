@@ -78,7 +78,6 @@
     ret
     ))
 
-<<<<<<< HEAD
 (defnk mk-spout-spec [spout :parallelism-hint nil :p nil]
   ;; for backwards compatibility
   (let [parallelism-hint (if p p parallelism-hint)]
@@ -86,13 +85,6 @@
                 (mk-component-common spout parallelism-hint)
                 (.isDistributed spout))
     ))
-=======
-(defn mk-spout-spec [spout & {:keys [parallelism-hint]}]
-  (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
-              (mk-component-common spout parallelism-hint)
-              (.isDistributed spout))
-  )
->>>>>>> f59b48e... Round two of contrib removal, replace defnk
 
 (defn mk-shuffle-grouping []
   (Grouping/shuffle (NullStruct.)))

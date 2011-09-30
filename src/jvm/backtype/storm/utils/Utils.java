@@ -81,7 +81,7 @@ public class Utils {
     }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
-        InputStream is = Object.class.getResourceAsStream("/" + name);
+        InputStream is = Utils.class.getResourceAsStream("/" + name);
         if(is==null) {
             if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
             else return new HashMap();

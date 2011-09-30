@@ -120,14 +120,13 @@
 
 (defn get-supervisor [cluster-map supervisor-id]
   (let [finder-fn #(= (.get-id %) supervisor-id)]
-    (find-first finder-fn @(:supervisors cluster-map))
+    (first (filter finder-fn @(:supervisors cluster-map)))
     ))
 
 (defn kill-supervisor [cluster-map supervisor-id]
   (let [finder-fn #(= (.get-id %) supervisor-id)
         supervisors @(:supervisors cluster-map)
-        sup (find-first finder-fn
-                        supervisors)]
+        sup (first (filter finder-fn supervisors))]
     ;; tmp-dir will be taken care of by shutdown
     (reset! (:supervisors cluster-map) (remove-first finder-fn supervisors))
     (.shutdown sup)

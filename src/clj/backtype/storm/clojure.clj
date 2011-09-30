@@ -1,6 +1,7 @@
 (ns backtype.storm.clojure
   (:use [clojure.contrib.def :only [defnk defalias]])
   (:use [backtype.storm bootstrap util])
+  (:import [backtype.storm LocalCluster StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.task OutputCollector IBolt])
@@ -181,3 +182,9 @@
 (defalias bolt-spec thrift/mk-bolt-spec)
 (defalias spout-spec thrift/mk-spout-spec)
 (defalias shell-bolt-spec thrift/mk-shell-bolt-spec)
+
+(defn submit-remote-topology [name conf topology]
+  (StormSubmitter/submitTopology name conf topology))
+
+(defn local-cluster []
+  (LocalCluster.))

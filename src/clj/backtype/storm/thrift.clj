@@ -159,7 +159,7 @@
   ([spout-map bolt-map state-spout-map]
      (StormTopology. spout-map bolt-map state-spout-map)))
 
-(defnk coordinated-bolt [bolt :type nil :all-out false]
+(defn coordinated-bolt [bolt & {:keys [type all-out] :or {all-out false}}]
   (let [source (condp = type
                    nil nil
                    :all (CoordinatedBolt$SourceArgs/all)

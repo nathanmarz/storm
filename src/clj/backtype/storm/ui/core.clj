@@ -423,7 +423,7 @@
     (sort-by #(.get_task_id ^TaskSummary %) ret)
     ))
 
-(defnk task-link [topology-id id :suffix ""]
+(defn task-link [topology-id id & {:keys [suffix] :or {suffix ""}}]
   (link-to (format "/topology/%s/task/%s%s" topology-id id suffix)
            id))
 

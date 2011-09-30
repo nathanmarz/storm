@@ -68,7 +68,7 @@
       )]
    ])
 
-(defnk sort-table [id :sort-list "[[0,0]]" :time-cols []]
+(defn sort-table [id & {:keys [sort-list time-cols] :or {sort-list "[[0,0]]" time-cols []}}]
   (let [strs (for [c time-cols] (format "%s: { sorter: 'stormtimestr'}" c))
         sorters (join ", " strs)]
     [:script

@@ -14,8 +14,6 @@
             SpoutTracker BoltTracker TrackerAggregator])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
-  (:use [clojure.contrib.def :only [defnk]])
-  (:use [clojure.contrib.seq :only [find-first]])
   (:use [backtype.storm cluster util thrift config log]))
 
 (defn feeder-spout [fields]
@@ -62,7 +60,7 @@
   (advance-time-ms! (* (long secs) 1000)))
 
 
-(defnk add-supervisor [cluster-map :ports 2 :conf {} :id nil]
+(defn add-supervisor [cluster-map & {:keys [ports conf id] :or {ports 2 conf {}}}]
   (let [tmp-dir (local-temp-path)
         port-ids (if (sequential? ports) ports (doall (repeatedly ports (:port-counter cluster-map))))
         supervisor-conf (merge (:daemon-conf cluster-map)
@@ -87,7 +85,10 @@
 ;; local dir is always overridden in maps
 ;; can customize the supervisors (except for ports) by passing in map for :supervisors parameter
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
-(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {}]
+(defn mk-local-storm-cluster [& {:keys [supervisors ports-per-supervisor daemon-conf]
+                                 :or {supervisors 2 
+                                       ports-per-supervisor 3
+                                       daemon-conf {}}}]
   (let [zk-port 2181
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-SERIALIZATIONS true
@@ -122,14 +123,13 @@
 
 (defn get-supervisor [cluster-map supervisor-id]
   (let [finder-fn #(= (.get-id %) supervisor-id)]
-    (find-first finder-fn @(:supervisors cluster-map))
+    (first (filter finder-fn @(:supervisors cluster-map)))
     ))
 
 (defn kill-supervisor [cluster-map supervisor-id]
   (let [finder-fn #(= (.get-id %) supervisor-id)
         supervisors @(:supervisors cluster-map)
-        sup (find-first finder-fn
-                        supervisors)]
+        sup (first (filter finder-fn supervisors))]
     ;; tmp-dir will be taken care of by shutdown
     (reset! (:supervisors cluster-map) (remove-first finder-fn supervisors))
     (.shutdown sup)
@@ -258,7 +258,7 @@
 (defmacro capture-shutdown-workers [& body]
   `(:shutdown (capture-changed-workers ~@body)))
 
-(defnk aggregated-stat [cluster-map storm-name stat-key :component-ids nil]
+(defn aggregated-stat [cluster-map storm-name stat-key &{:keys [component-ids]}]
   (let [state (:storm-cluster-state cluster-map)
         storm-id (common/get-storm-id state storm-name)
         component->tasks (reverse-map
@@ -294,7 +294,9 @@
 
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
+(defn complete-topology [cluster-map topology & {:keys [mock-sources storm-conf]
+                                                 :or {mock-sources {}
+                                                       storm-conf {}}}]
   (let [storm-name (str "topologytest-" (uuid))
         state (:storm-cluster-state cluster-map)
         spouts (.get_spouts topology)

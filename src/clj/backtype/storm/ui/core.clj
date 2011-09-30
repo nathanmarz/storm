@@ -4,8 +4,6 @@
   (:use [backtype.storm config util])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID]]])
-  (:use [clojure.contrib.def :only [defnk]])
-  (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [backtype.storm.generated TaskSpecificStats
             TaskStats TaskSummary TopologyInfo SpoutStats BoltStats
@@ -425,7 +423,7 @@
     (sort-by #(.get_task_id ^TaskSummary %) ret)
     ))
 
-(defnk task-link [topology-id id :suffix ""]
+(defn task-link [topology-id id & {:keys [suffix] :or {suffix ""}}]
   (link-to (format "/topology/%s/task/%s%s" topology-id id suffix)
            id))
 
@@ -648,7 +646,7 @@
           topology (.getTopology ^Nimbus$Client nimbus topology-id)
           task (->> summ
                     .get_tasks
-                    (find-first #(= (.get_task_id ^TaskSummary %) task-id)))]
+                    (first (filter #(= (.get_task_id ^TaskSummary %) task-id))))]
       (concat
        [[:h2 "Task summary"]]
        [(task-summary-table task summ)]

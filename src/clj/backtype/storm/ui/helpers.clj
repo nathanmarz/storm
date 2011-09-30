@@ -1,9 +1,7 @@
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [clojure.contrib
-         [str-utils2 :only [join]]
-         [def :only [defnk]]])
+  (:use [clojure.string :only [join]])
   (:use [backtype.storm.util :only [uuid]])
   (:use [clj-time coerce format])
   (:require [compojure.route :as route]
@@ -70,7 +68,7 @@
       )]
    ])
 
-(defnk sort-table [id :sort-list "[[0,0]]" :time-cols []]
+(defn sort-table [id & {:keys [sort-list time-cols] :or {sort-list "[[0,0]]" time-cols []}}]
   (let [strs (for [c time-cols] (format "%s: { sorter: 'stormtimestr'}" c))
         sorters (join ", " strs)]
     [:script

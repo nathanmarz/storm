@@ -7,6 +7,7 @@
   :dev-resources-path "src/dev"
   :dependencies [[org.clojure/clojure "1.2.0"]
                  [org.clojure/clojure-contrib "1.2.0"]
+                 [org.clojure/tools.logging "0.1.2"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [jvyaml "1.0.0"]

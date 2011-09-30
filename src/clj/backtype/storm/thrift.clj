@@ -6,9 +6,7 @@
   (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
   (:import [org.apache.thrift.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift.transport TTransport TFramedTransport TSocket])
-  (:use [backtype.storm util])
-  (:use [clojure.contrib.def :only [defnk]])
-  )
+  (:use [backtype.storm util]))
 
 (def grouping-constants
   {Grouping$_Fields/FIELDS :fields
@@ -161,7 +159,7 @@
   ([spout-map bolt-map state-spout-map]
      (StormTopology. spout-map bolt-map state-spout-map)))
 
-(defnk coordinated-bolt [bolt :type nil :all-out false]
+(defn coordinated-bolt [bolt & {:keys [type all-out] :or {all-out false}}]
   (let [source (condp = type
                    nil nil
                    :all (CoordinatedBolt$SourceArgs/all)

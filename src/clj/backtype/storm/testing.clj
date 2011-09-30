@@ -14,8 +14,6 @@
             SpoutTracker BoltTracker TrackerAggregator])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
-  (:use [clojure.contrib.def :only [defnk]])
-  (:use [clojure.contrib.seq :only [find-first]])
   (:use [backtype.storm cluster util thrift config log]))
 
 (defn feeder-spout [fields]

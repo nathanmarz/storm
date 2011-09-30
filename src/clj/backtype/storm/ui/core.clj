@@ -4,7 +4,6 @@
   (:use [backtype.storm config util])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID]]])
-  (:use [clojure.contrib.def :only [defnk]])
   (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [backtype.storm.generated TaskSpecificStats

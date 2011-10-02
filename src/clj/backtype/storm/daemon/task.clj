@@ -169,7 +169,7 @@
                        ACKER-ACK-STREAM-ID))
       )))
 
-(defn mk-task [conf storm-conf topology-context storm-id zmq-context cluster-state storm-active-atom transfer-fn]
+(defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         task-info (.getTaskToComponent topology-context)
@@ -182,8 +182,11 @@
         task-stats (mk-task-stats task-object (sampling-rate storm-conf))
 
         report-error (fn [error]
-                       (.report-task-error storm-cluster-state storm-id task-id error)
-                       (halt-process! 1 "Task died!"))
+                       (.report-task-error storm-cluster-state storm-id task-id error))
+        
+        report-error-and-die (fn [error]
+                                (report-error error)
+                                (halt-process! 1 "Task died"))
 
         ;; heartbeat ASAP so nimbus doesn't reassign
         heartbeat-thread (async-loop
@@ -195,12 +198,12 @@
                             (when @active (storm-conf TASK-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY
-                          :kill-fn report-error)
+                          :kill-fn report-error-and-die)
 
         stream->component->grouper (outbound-components topology-context)
         component->tasks (reverse-map task-info)
         ;; important it binds to virtual port before function returns
-        ^ZMQ$Socket puller (-> zmq-context (mq/socket mq/pull) (mqvp/virtual-bind task-id))
+        puller (msg/bind mq-context task-id)
 
         ;; TODO: consider DRYing things up and moving stats / tuple -> multiple components code here
         task-transfer-fn (fn [task ^Tuple tuple]
@@ -276,7 +279,7 @@
                                               storm-active-atom topology-context
                                               task-stats report-error)]
                           (async-loop (fn [] (exec) (when @active 0))
-                                      :kill-fn report-error))
+                                      :kill-fn report-error-and-die))
         system-threads [heartbeat-thread]
         all-threads  (concat executor-threads system-threads)]
     (reify
@@ -285,10 +288,8 @@
         [this]
         (log-message "Shutting down task " storm-id ":" task-id)
         (reset! active false)
-        (let [pusher (-> zmq-context (mq/socket mq/push) (mqvp/virtual-connect task-id))]
-          ;; empty messages are skip messages (this unblocks the socket)
-          (mq/send pusher (mq/barr))
-          (.close pusher))
+        ;; empty messages are skip messages (this unblocks the socket)
+        (msg/send-local-task-empty mq-context task-id)
         (doseq [t all-threads]
           (.interrupt t)
           (.join t))
@@ -319,7 +320,7 @@
     (stats/spout-acked-tuple! task-stats (.getSourceStreamId tuple) time-delta)
     ))
 
-(defmethod mk-executors ISpout [^ISpout spout storm-conf ^ZMQ$Socket puller send-fn storm-active-atom
+(defmethod mk-executors ISpout [^ISpout spout storm-conf puller send-fn storm-active-atom
                                 ^TopologyContext topology-context task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
         max-spout-pending (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)
@@ -384,7 +385,7 @@
          ;; TODO: log that it's getting throttled
          ))
       (fn []
-        (let [^bytes ser-msg (mq/recv puller)]
+        (let [^bytes ser-msg (msg/recv puller)]
           ;; skip empty messages (used during shutdown)
           (when-not (empty? ser-msg)
             (let [tuple (.deserialize deserializer ser-msg)
@@ -409,7 +410,7 @@
       (time-delta-ms start-time))
     ))
 
-(defmethod mk-executors IBolt [^IBolt bolt storm-conf ^ZMQ$Socket puller send-fn storm-active-atom
+(defmethod mk-executors IBolt [^IBolt bolt storm-conf puller send-fn storm-active-atom
                                ^TopologyContext topology-context task-stats report-error-fn]
   (let [deserializer (TupleDeserializer. storm-conf topology-context)
         task-id (.getThisTaskId topology-context)
@@ -469,7 +470,7 @@
        ;; should remember sync requests and include a random sync id in the request. drop anything not related to active sync requests
        ;; or just timeout the sync messages that are coming in until full sync is hit from that task
        ;; need to drop incremental updates from tasks where waiting for sync. otherwise, buffer the incremental updates
-       (let [^bytes ser (mq/recv puller)]
+       (let [^bytes ser (msg/recv puller)]
          (when-not (empty? ser)  ; skip empty messages (used during shutdown)
            (log-debug "Processing message")
            (let [tuple (.deserialize deserializer ser)]
@@ -480,7 +481,7 @@
              (when (sampler)
                (.put tuple-start-times tuple (System/currentTimeMillis)))
              
-             (.execute bolt tuple)             
+             (.execute bolt tuple)
              ))))]
     ))
 

@@ -26,6 +26,9 @@ public class NimbusClient {
 
     public NimbusClient(String host, int port) {
         try {
+            if(host==null) {
+                throw new IllegalArgumentException("Nimbus host is not set");
+            }
             conn = new TFramedTransport(new TSocket(host, port));
             client = new Nimbus.Client(new TBinaryProtocol(conn));
             conn.open();

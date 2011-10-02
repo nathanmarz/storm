@@ -8,8 +8,9 @@ java.library.path: "/usr/local/lib:/opt/local/lib:/usr/lib"
 storm.local.dir: "/mnt/storm"
 storm.zookeeper.port: 2181
 storm.zookeeper.root: "/storm"
-storm.zookeeper.session.timeout: 10000
+storm.zookeeper.session.timeout: 20000
 storm.cluster.mode: "distributed" # can be distributed or local
+storm.local.mode.zmq: false
 
 ### nimbus.* configs are for the master
 nimbus.thrift.port: 6627
@@ -17,7 +18,7 @@ nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60
 nimbus.monitor.freq.secs: 10
-nimbus.task.launch.secs: 90
+nimbus.task.launch.secs: 240
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 
@@ -30,9 +31,9 @@ supervisor.slots.ports:
     - 6703
 supervisor.childopts: "-Xmx1024m"
 #how long supervisor will wait to ensure that a worker process is started
-supervisor.worker.start.timeout.secs: 20
+supervisor.worker.start.timeout.secs: 240
 #how long between heartbeats until supervisor considers that worker dead and tries to restart it
-supervisor.worker.timeout.secs: 25
+supervisor.worker.timeout.secs: 30
 #how frequently the supervisor checks on the status of the processes it's monitoring and restarts if necessary
 supervisor.monitor.frequency.secs: 3
 #how frequently the supervisor heartbeats to the cluster state (for nimbus)

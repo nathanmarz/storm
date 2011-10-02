@@ -7,7 +7,11 @@ import java.util.Map;
 
 public class ShellSpout implements ISpout {
     public ShellSpout(ShellComponent component) {
-
+        this(component.get_execution_command(), component.get_script());
+    }
+    
+    public ShellSpout(String shellCommand, String codeResource) {
+        
     }
     
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {

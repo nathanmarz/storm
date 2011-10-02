@@ -48,7 +48,7 @@
 
 (defnk launch-virtual-port!
   [context url :daemon true
-               :kill-fn (fn [] (System/exit 1))
+               :kill-fn (fn [t] (System/exit 1))
                :priority Thread/NORM_PRIORITY
                :valid-ports nil]
   (let [valid-ports (set (map short valid-ports))

@@ -92,7 +92,7 @@ public class ShellBolt implements IBolt {
             sendToSubprocess(JSONValue.toJSONString(stormConf));
             sendToSubprocess(context.toJSONString());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error when launching multilang subprocess", e);
         }
     }
 
@@ -173,7 +173,7 @@ public class ShellBolt implements IBolt {
               }
             }
         } catch(IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error during multilang processing", e);
         }
     }
 

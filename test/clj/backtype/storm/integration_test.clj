@@ -77,26 +77,29 @@
 
 
 (deftest test-basic-topology
-  (with-simulated-time-local-cluster [cluster :supervisors 4]
-    (let [topology (thrift/mk-topology
-                    {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
-                    {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
-                     3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
-                     4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
-                     })
-          results (complete-topology cluster
-                                     topology
-                                     :mock-sources {1 [["nathan"] ["bob"] ["joey"] ["nathan"]]}
-                                     :storm-conf {TOPOLOGY-DEBUG true})]
-      (is (ms= [["nathan"] ["bob"] ["joey"] ["nathan"]]
-             (read-tuples results 1)))
-      (is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
-               (read-tuples results 2)))
-      (is (= [[1] [2] [3] [4]]
+  (doseq [zmq-on? [true false]]
+    (with-simulated-time-local-cluster [cluster :supervisors 4
+                                        :daemon-conf {STORM-LOCAL-MODE-ZMQ zmq-on?}]
+      (let [topology (thrift/mk-topology
+                      {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                      {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
+                       3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
+                       4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
+                       })
+            results (complete-topology cluster
+                                       topology
+                                       :mock-sources {1 [["nathan"] ["bob"] ["joey"] ["nathan"]]}
+                                       :storm-conf {TOPOLOGY-DEBUG true
+                                                    TOPOLOGY-WORKERS 2})]
+        (is (ms= [["nathan"] ["bob"] ["joey"] ["nathan"]]
+                 (read-tuples results 1)))
+        (is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
+                 (read-tuples results 2)))
+        (is (= [[1] [2] [3] [4]]
                (read-tuples results 3)))
-      (is (= [[1] [2] [3] [4]]
-             (read-tuples results 4)))
-      )))
+        (is (= [[1] [2] [3] [4]]
+               (read-tuples results 4)))
+        ))))
 
 (deftest test-shuffle
   (with-simulated-time-local-cluster [cluster :supervisors 4]
@@ -133,29 +136,30 @@
     (.ack collector tuple)
     ))
 
-(defboltfull lalala-bolt2 ["word"]
-  :let [state (atom nil)]
-  :prepare ([conf context collector]
-              (println "prepare")
-              (reset! state "lalala")
-              )
-  :execute ([tuple collector]
-              (let [ret (-> (.getValue tuple 0) (str @state))]
+(defbolt lalala-bolt2 ["word"] {:prepare true}
+  [conf context collector]
+  (let [state (atom nil)]
+    (reset! state "lalala")
+    (bolt
+      (execute [tuple]
+        (let [ret (-> (.getValue tuple 0) (str @state))]
                 (.emit collector tuple [ret])
                 (.ack collector tuple)
-                )))
-
-(defboltfull lalala-bolt3 ["word"]
-  :let [state (atom nil)]
-  :params [prefix]
-  :prepare ([conf context collector]
-              (reset! state (str prefix "lalala"))
-              )
-  :execute ([tuple collector]
-              (let [ret (-> (.getValue tuple 0) (str @state))]
-                (.emit collector tuple [ret])
-                (.ack collector tuple)
-                )))
+                ))
+      )))
+      
+(defbolt lalala-bolt3 ["word"] {:prepare true :params [prefix]}
+  [conf context collector]
+  (let [state (atom nil)]
+    (bolt
+      (prepare [_ _ _]
+        (reset! state (str prefix "lalala")))
+      (execute [tuple]
+        (let [ret (-> (.getValue tuple 0) (str @state))]
+          (.emit collector tuple [ret])
+          (.ack collector tuple)
+          )))
+    ))
 
 (deftest test-clojure-bolt
   (with-simulated-time-local-cluster [cluster :supervisors 4]
@@ -190,34 +194,35 @@
        )]
     ))
 
-(defboltfull branching-bolt ["num"]
-  :params [amt]
-  :execute ([tuple collector]
-              (doseq [i (range amt)]
-                (.emit collector tuple [i]))
-              (.ack collector tuple)
-              ))
+(defbolt branching-bolt ["num"]
+  {:params [amt]}
+  [tuple collector]
+  (doseq [i (range amt)]
+    (emit-bolt! collector [i] :anchor tuple))
+  (ack! collector tuple))
 
-(defboltfull agg-bolt ["num"]
-  :let [seen (atom [])]
-  :params [amt]
-  :execute ([tuple collector]
-              (swap! seen conj tuple)
-              (when (= (count @seen) amt)
-                (.emit collector @seen [1])
-                (doseq [s @seen]
-                  (.ack collector s))
-                (reset! seen [])
-                )))
+(defbolt agg-bolt ["num"] {:prepare true :params [amt]}
+  [conf context collector]
+  (let [seen (atom [])]
+    (bolt
+      (execute [tuple]
+        (swap! seen conj tuple)
+        (when (= (count @seen) amt)
+          (emit-bolt! collector [1] :anchor @seen)
+          (doseq [s @seen]
+            (ack! collector s))
+          (reset! seen [])
+          )))
+      ))
 
 (defbolt ack-bolt {}
   [tuple collector]
-  (.ack collector tuple))
+  (ack! collector tuple))
 
 (defbolt identity-bolt ["num"]
   [tuple collector]
-  (.emit collector tuple (.getValues tuple))
-  (.ack collector tuple))
+  (emit-bolt! collector (.getValues tuple) :anchor tuple)
+  (ack! collector tuple))
 
 (deftest test-acking
   (with-tracked-cluster [cluster]
@@ -289,8 +294,8 @@
 
 (defbolt dup-anchor ["num"]
   [tuple collector]
-  (.emit collector [tuple tuple] [1])
-  (.ack collector tuple))
+  (emit-bolt! collector [1] :anchor [tuple tuple])
+  (ack! collector tuple))
 
 (deftest test-acking-self-anchor
   (with-tracked-cluster [cluster]
@@ -312,6 +317,50 @@
       (tracked-wait tracked 3)
       (checker 3)
       )))
+
+
+
+(defspout IncSpout ["word"]
+  [conf context collector]
+  (let [state (atom 0)]
+    (spout
+     (nextTuple []
+       (Thread/sleep 100)
+       (emit-spout! collector [@state] :id 1)         
+       )
+     (ack [id]
+       (swap! state inc))
+     )))
+
+
+(defspout IncSpout2 ["word"] {:params [prefix]}
+  [conf context collector]
+  (let [state (atom 0)]
+    (spout
+     (nextTuple []
+       (Thread/sleep 100)
+       (swap! state inc)
+       (emit-spout! collector [(str prefix "-" @state)])         
+       )
+     )))
+
+;; (deftest test-clojure-spout
+;;   (with-local-cluster [cluster]
+;;     (let [nimbus (:nimbus cluster)
+;;           top (topology
+;;                {1 (spout-spec IncSpout)}
+;;                {}
+;;                )]
+;;       (submit-local-topology nimbus
+;;                              "spout-test"
+;;                              {TOPOLOGY-DEBUG true
+;;                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 3}
+;;                              top)
+;;       (Thread/sleep 10000)
+;;       (.killTopology nimbus "spout-test")
+;;       (Thread/sleep 10000)
+;;       )))
+
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

@@ -81,6 +81,8 @@ public class Utils {
     }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
+        // It's important to use Utils.class here instead of Object.class here.
+        // If Object.class is used, sbt can't find defaults.yaml
         InputStream is = Utils.class.getResourceAsStream("/" + name);
         if(is==null) {
             if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);

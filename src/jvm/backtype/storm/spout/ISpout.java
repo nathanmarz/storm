@@ -9,13 +9,14 @@ import java.io.Serializable;
  * for feeding messages into the topology for processing. For every tuple emitted by
  * a spout, Storm will track the (potentially very large) DAG of tuples generated
  * based on a tuple emitted by the spout. When Storm detects that every tuple in
- * that DAG has been successfuly processed, it will send an ack message to the Spout.
+ * that DAG has been successfully processed, it will send an ack message to the Spout.
  *
  * <p>If a tuple fails to be fully process within the configured timeout for the
- * topology (see {@link backtype.storm.Config}), Storm will send a fail message to the spout for the message.</p>
+ * topology (see {@link backtype.storm.Config}), Storm will send a fail message to the spout
+ * for the message.</p>
  *
- * <p> When a Spout emits a tuple, it tags the tuple with a message id. The message id
- * can be of any type. When Storm acks or fails a message, it will pass back to the
+ * <p> When a Spout emits a tuple, it can tag the tuple with a message id. The message id
+ * can be any type. When Storm acks or fails a message, it will pass back to the
  * spout the same message id to identify which tuple it's referring to. If the spout leaves out
  * the message id, or sets it to null, then Storm will not track the message and the spout
  * will not receive any ack or fail callbacks for the message.</p>
@@ -50,8 +51,10 @@ public interface ISpout extends Serializable {
     /**
      * When this method is called, Storm is requesting that the Spout emit tuples to the 
      * output collector. This method should be non-blocking, so if the Spout has no tuples
-     * to emit, this method should return. It is recommended that the Spout call Thread.sleep
-     * for a short amount of time in this case.
+     * to emit, this method should return. nextTuple, ack, and fail are all called in a tight
+     * loop in a single thread in the spout task. When there are no tuples to emit, it is courteous
+     * to have nextTuple sleep for a short amount of time (like a single millisecond)
+     * so as not to waste too much CPU.
      */
     void nextTuple();
 

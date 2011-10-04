@@ -69,6 +69,10 @@ public class Tuple implements ILookup {
         return values.size();
     }
     
+    public int fieldIndex(String field) {
+        return getFields().fieldIndex(field);
+    }
+    
     /**
      * Gets the field at position i in the tuple. Returns object since tuples are dynamically typed.
      */
@@ -146,6 +150,47 @@ public class Tuple implements ILookup {
      */
     public byte[] getBinary(int i) {
         return (byte[]) values.get(i);
+    }
+    
+    
+    public Object getValueByField(String field) {
+        return values.get(fieldIndex(field));
+    }
+
+    public String getStringByField(String field) {
+        return (String) values.get(fieldIndex(field));
+    }
+
+    public Integer getIntegerByField(String field) {
+        return (Integer) values.get(fieldIndex(field));
+    }
+
+    public Long getLongByField(String field) {
+        return (Long) values.get(fieldIndex(field));
+    }
+
+    public Boolean getBooleanByField(String field) {
+        return (Boolean) values.get(fieldIndex(field));
+    }
+
+    public Short getShortByField(String field) {
+        return (Short) values.get(fieldIndex(field));
+    }
+
+    public Byte getByteByField(String field) {
+        return (Byte) values.get(fieldIndex(field));
+    }
+
+    public Double getDoubleByField(String field) {
+        return (Double) values.get(fieldIndex(field));
+    }
+
+    public Float getFloatByField(String field) {
+        return (Float) values.get(fieldIndex(field));
+    }
+
+    public byte[] getBinaryByField(String field) {
+        return (byte[]) values.get(fieldIndex(field));
     }
     
     @Deprecated

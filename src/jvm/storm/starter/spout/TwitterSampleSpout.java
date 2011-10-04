@@ -15,6 +15,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
+import twitter4j.json.DataObjectFactory;
 
 public class TwitterSampleSpout implements IRichSpout {
     SpoutOutputCollector _collector;
@@ -41,8 +42,8 @@ public class TwitterSampleSpout implements IRichSpout {
         StatusListener listener = new StatusListener() {
 
             @Override
-            public void onStatus(Status status) {
-                queue.offer(status.toString());
+            public void onStatus(Status status) {                
+                queue.offer(DataObjectFactory.getRawJSON(status));
             }
 
             @Override

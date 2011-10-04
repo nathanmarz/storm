@@ -133,6 +133,11 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
 
     /**
+     * Storm UI binds to this port.
+     */
+    public static String UI_PORT = "ui.port";
+
+    /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune
      * how many workers run on each machine.

@@ -22,6 +22,8 @@ nimbus.task.launch.secs: 240
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 
+ui.port: 8080
+
 ### supervisor.* configs are for node supervisors
 # Define the amount of workers that can be run on this machine. Each worker is assigned a port to use for communication
 supervisor.slots.ports:

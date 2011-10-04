@@ -679,4 +679,4 @@
   (handler/site main-routes))
 
 (defn -main []
-  (run-jetty app {:port 8080}))
+  (run-jetty app {:port (int (*STORM-CONF* UI-PORT))}))

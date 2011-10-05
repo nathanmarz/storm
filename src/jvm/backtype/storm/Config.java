@@ -290,8 +290,10 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
-     * The maximum parallelism allowed for a component in this topology. This configuration is
-     * typically used in testing to limit the number of threads spawned in local mode.
+     * The maximum number of tuples that can be pending on a spout at any given time. A pending
+     * tuple is one that has been emitted from a spout but has not been acked or failed yet.
+     * Note that this config parameter has no effect for unreliable spouts that don't tag 
+     * their tuples with a message id.
      */
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
 

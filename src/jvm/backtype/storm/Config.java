@@ -290,8 +290,10 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
-     * The maximum number of tuples that can be pending on a spout at any given time. A pending
-     * tuple is one that has been emitted from a spout but has not been acked or failed yet.
+     * The maximum number of tuples that can be pending on a spout task at any given time. 
+     * This config applies to individual tasks, not to spouts or topologies as a whole. 
+     * 
+     * A pending tuple is one that has been emitted from a spout but has not been acked or failed yet.
      * Note that this config parameter has no effect for unreliable spouts that don't tag 
      * their tuples with a message id.
      */

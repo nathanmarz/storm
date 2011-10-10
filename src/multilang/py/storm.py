@@ -97,6 +97,11 @@ class Tuple:
         self.task = task
         self.values = values
 
+    def __repr__(self):
+        return '<%s%s>' % (
+                self.__class__.__name__,
+                ''.join(' %s=%r' % (k, self.__dict__[k]) for k in sorted(self.__dict__.keys())))
+
 class Bolt:
     def initialize(self, stormconf, context):
         pass

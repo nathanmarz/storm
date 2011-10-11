@@ -60,9 +60,6 @@ def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=
     print "Running: " + command    
     os.system(command)
 
-COMMAND = sys.argv[1]
-ARGS = sys.argv[2:]
-
 def jar(jarfile, klass, *args):
    exec_storm_class(
         klass,
@@ -105,4 +102,25 @@ def print_classpath():
 
 COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "supervisor": supervisor, "localconfvalue": print_localconfvalue, "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath}
 
-COMMANDS[COMMAND](*ARGS)
+def print_commands():
+    global COMMANDS
+    cmds = COMMANDS.keys()
+    cmds.sort()
+    print "Commands:\n\t", reduce(lambda x,y: x + ', ' + y, cmds[1:], cmds[0])
+
+def print_usage(msg=None):
+    if msg != None:
+        print msg
+    print_commands()
+
+def main():
+    if len(sys.argv) <= 1:
+        print_usage()
+        sys.exit(-1)
+
+    COMMAND = sys.argv[1]
+    ARGS = sys.argv[2:]
+    COMMANDS[COMMAND](*ARGS)
+    
+if __name__ == "__main__":
+    main()

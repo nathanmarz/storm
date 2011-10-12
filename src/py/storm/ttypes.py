@@ -5,15 +5,14 @@
 #
 
 from thrift.Thrift import *
-import sys
-sys.path = ["/".join(__file__.split("/")[:-1]) + "/.."] + sys.path
 
 from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TBinaryProtocol, TProtocol
 try:
   from thrift.protocol import fastbinary
 except:
   fastbinary = None
+
 
 
 class NullStruct:
@@ -42,6 +41,9 @@ class NullStruct:
     oprot.writeStructBegin('NullStruct')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -53,25 +55,6 @@ class NullStruct:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class Grouping:
   """
@@ -113,7 +96,7 @@ class Grouping:
           self.fields = []
           (_etype3, _size0) = iprot.readListBegin()
           for _i4 in xrange(_size0):
-            _elem5 = iprot.readString().decode('utf-8');
+            _elem5 = iprot.readString().decode('utf-8')
             self.fields.append(_elem5)
           iprot.readListEnd()
         else:
@@ -156,7 +139,7 @@ class Grouping:
       oprot.writeFieldBegin('fields', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.fields))
       for iter6 in self.fields:
-        oprot.writeString(iter6.encode('utf-8'));
+        oprot.writeString(iter6.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.shuffle != None:
@@ -177,6 +160,9 @@ class Grouping:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -188,25 +174,6 @@ class Grouping:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class StreamInfo:
   """
@@ -239,7 +206,7 @@ class StreamInfo:
           self.output_fields = []
           (_etype10, _size7) = iprot.readListBegin()
           for _i11 in xrange(_size7):
-            _elem12 = iprot.readString().decode('utf-8');
+            _elem12 = iprot.readString().decode('utf-8')
             self.output_fields.append(_elem12)
           iprot.readListEnd()
         else:
@@ -263,7 +230,7 @@ class StreamInfo:
       oprot.writeFieldBegin('output_fields', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.output_fields))
       for iter13 in self.output_fields:
-        oprot.writeString(iter13.encode('utf-8'));
+        oprot.writeString(iter13.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.direct != None:
@@ -272,6 +239,13 @@ class StreamInfo:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.output_fields is None:
+        raise TProtocol.TProtocolException(message='Required field output_fields is unset!')
+      if self.direct is None:
+        raise TProtocol.TProtocolException(message='Required field direct is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -283,25 +257,6 @@ class StreamInfo:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class ShellComponent:
   """
@@ -331,12 +286,12 @@ class ShellComponent:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.execution_command = iprot.readString().decode('utf-8');
+          self.execution_command = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.script = iprot.readString().decode('utf-8');
+          self.script = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -351,14 +306,17 @@ class ShellComponent:
     oprot.writeStructBegin('ShellComponent')
     if self.execution_command != None:
       oprot.writeFieldBegin('execution_command', TType.STRING, 1)
-      oprot.writeString(self.execution_command.encode('utf-8'));
+      oprot.writeString(self.execution_command.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.script != None:
       oprot.writeFieldBegin('script', TType.STRING, 2)
-      oprot.writeString(self.script.encode('utf-8'));
+      oprot.writeString(self.script.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -370,25 +328,6 @@ class ShellComponent:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class ComponentObject:
   """
@@ -439,7 +378,7 @@ class ComponentObject:
     oprot.writeStructBegin('ComponentObject')
     if self.serialized_java != None:
       oprot.writeFieldBegin('serialized_java', TType.STRING, 1)
-      oprot.writeString(self.serialized_java);
+      oprot.writeString(self.serialized_java)
       oprot.writeFieldEnd()
     if self.shell != None:
       oprot.writeFieldBegin('shell', TType.STRUCT, 2)
@@ -447,6 +386,9 @@ class ComponentObject:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -458,25 +400,6 @@ class ComponentObject:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class ComponentCommon:
   """
@@ -545,6 +468,11 @@ class ComponentCommon:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.streams is None:
+        raise TProtocol.TProtocolException(message='Required field streams is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -556,25 +484,6 @@ class ComponentCommon:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class SpoutSpec:
   """
@@ -646,6 +555,15 @@ class SpoutSpec:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.spout_object is None:
+        raise TProtocol.TProtocolException(message='Required field spout_object is unset!')
+      if self.common is None:
+        raise TProtocol.TProtocolException(message='Required field common is unset!')
+      if self.distributed is None:
+        raise TProtocol.TProtocolException(message='Required field distributed is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -657,25 +575,6 @@ class SpoutSpec:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class GlobalStreamId:
   """
@@ -733,6 +632,13 @@ class GlobalStreamId:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.componentId is None:
+        raise TProtocol.TProtocolException(message='Required field componentId is unset!')
+      if self.streamId is None:
+        raise TProtocol.TProtocolException(message='Required field streamId is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -744,25 +650,6 @@ class GlobalStreamId:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class Bolt:
   """
@@ -846,6 +733,15 @@ class Bolt:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.inputs is None:
+        raise TProtocol.TProtocolException(message='Required field inputs is unset!')
+      if self.bolt_object is None:
+        raise TProtocol.TProtocolException(message='Required field bolt_object is unset!')
+      if self.common is None:
+        raise TProtocol.TProtocolException(message='Required field common is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -857,25 +753,6 @@ class Bolt:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class StateSpoutSpec:
   """
@@ -935,6 +812,13 @@ class StateSpoutSpec:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.state_spout_object is None:
+        raise TProtocol.TProtocolException(message='Required field state_spout_object is unset!')
+      if self.common is None:
+        raise TProtocol.TProtocolException(message='Required field common is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -946,25 +830,6 @@ class StateSpoutSpec:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class StormTopology:
   """
@@ -1067,6 +932,15 @@ class StormTopology:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.spouts is None:
+        raise TProtocol.TProtocolException(message='Required field spouts is unset!')
+      if self.bolts is None:
+        raise TProtocol.TProtocolException(message='Required field bolts is unset!')
+      if self.state_spouts is None:
+        raise TProtocol.TProtocolException(message='Required field state_spouts is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1078,25 +952,6 @@ class StormTopology:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class AlreadyAliveException(Exception):
   """
@@ -1123,7 +978,7 @@ class AlreadyAliveException(Exception):
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.msg = iprot.readString().decode('utf-8');
+          self.msg = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1138,10 +993,15 @@ class AlreadyAliveException(Exception):
     oprot.writeStructBegin('AlreadyAliveException')
     if self.msg != None:
       oprot.writeFieldBegin('msg', TType.STRING, 1)
-      oprot.writeString(self.msg.encode('utf-8'));
+      oprot.writeString(self.msg.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.msg is None:
+        raise TProtocol.TProtocolException(message='Required field msg is unset!')
+      return
+
 
   def __str__(self):
     return repr(self)
@@ -1156,25 +1016,6 @@ class AlreadyAliveException(Exception):
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class NotAliveException(Exception):
   """
@@ -1201,7 +1042,7 @@ class NotAliveException(Exception):
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.msg = iprot.readString().decode('utf-8');
+          self.msg = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1216,10 +1057,15 @@ class NotAliveException(Exception):
     oprot.writeStructBegin('NotAliveException')
     if self.msg != None:
       oprot.writeFieldBegin('msg', TType.STRING, 1)
-      oprot.writeString(self.msg.encode('utf-8'));
+      oprot.writeString(self.msg.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.msg is None:
+        raise TProtocol.TProtocolException(message='Required field msg is unset!')
+      return
+
 
   def __str__(self):
     return repr(self)
@@ -1234,25 +1080,6 @@ class NotAliveException(Exception):
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class InvalidTopologyException(Exception):
   """
@@ -1279,7 +1106,7 @@ class InvalidTopologyException(Exception):
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.msg = iprot.readString().decode('utf-8');
+          self.msg = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1294,10 +1121,15 @@ class InvalidTopologyException(Exception):
     oprot.writeStructBegin('InvalidTopologyException')
     if self.msg != None:
       oprot.writeFieldBegin('msg', TType.STRING, 1)
-      oprot.writeString(self.msg.encode('utf-8'));
+      oprot.writeString(self.msg.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.msg is None:
+        raise TProtocol.TProtocolException(message='Required field msg is unset!')
+      return
+
 
   def __str__(self):
     return repr(self)
@@ -1312,25 +1144,6 @@ class InvalidTopologyException(Exception):
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class TopologySummary:
   """
@@ -1369,12 +1182,12 @@ class TopologySummary:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.name = iprot.readString().decode('utf-8');
+          self.name = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 3:
@@ -1404,11 +1217,11 @@ class TopologySummary:
     oprot.writeStructBegin('TopologySummary')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.name != None:
       oprot.writeFieldBegin('name', TType.STRING, 2)
-      oprot.writeString(self.name.encode('utf-8'));
+      oprot.writeString(self.name.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.num_tasks != None:
       oprot.writeFieldBegin('num_tasks', TType.I32, 3)
@@ -1424,6 +1237,19 @@ class TopologySummary:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.id is None:
+        raise TProtocol.TProtocolException(message='Required field id is unset!')
+      if self.name is None:
+        raise TProtocol.TProtocolException(message='Required field name is unset!')
+      if self.num_tasks is None:
+        raise TProtocol.TProtocolException(message='Required field num_tasks is unset!')
+      if self.num_workers is None:
+        raise TProtocol.TProtocolException(message='Required field num_workers is unset!')
+      if self.uptime_secs is None:
+        raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1435,25 +1261,6 @@ class TopologySummary:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class SupervisorSummary:
   """
@@ -1489,7 +1296,7 @@ class SupervisorSummary:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.host = iprot.readString().decode('utf-8');
+          self.host = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -1519,7 +1326,7 @@ class SupervisorSummary:
     oprot.writeStructBegin('SupervisorSummary')
     if self.host != None:
       oprot.writeFieldBegin('host', TType.STRING, 1)
-      oprot.writeString(self.host.encode('utf-8'));
+      oprot.writeString(self.host.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.uptime_secs != None:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 2)
@@ -1535,6 +1342,17 @@ class SupervisorSummary:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.host is None:
+        raise TProtocol.TProtocolException(message='Required field host is unset!')
+      if self.uptime_secs is None:
+        raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
+      if self.num_workers is None:
+        raise TProtocol.TProtocolException(message='Required field num_workers is unset!')
+      if self.num_used_workers is None:
+        raise TProtocol.TProtocolException(message='Required field num_used_workers is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1546,25 +1364,6 @@ class SupervisorSummary:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class ClusterSummary:
   """
@@ -1652,6 +1451,15 @@ class ClusterSummary:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.supervisors is None:
+        raise TProtocol.TProtocolException(message='Required field supervisors is unset!')
+      if self.nimbus_uptime_secs is None:
+        raise TProtocol.TProtocolException(message='Required field nimbus_uptime_secs is unset!')
+      if self.topologies is None:
+        raise TProtocol.TProtocolException(message='Required field topologies is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1663,25 +1471,6 @@ class ClusterSummary:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class ErrorInfo:
   """
@@ -1711,7 +1500,7 @@ class ErrorInfo:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.error = iprot.readString().decode('utf-8');
+          self.error = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -1731,7 +1520,7 @@ class ErrorInfo:
     oprot.writeStructBegin('ErrorInfo')
     if self.error != None:
       oprot.writeFieldBegin('error', TType.STRING, 1)
-      oprot.writeString(self.error.encode('utf-8'));
+      oprot.writeString(self.error.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.error_time_secs != None:
       oprot.writeFieldBegin('error_time_secs', TType.I32, 2)
@@ -1739,6 +1528,13 @@ class ErrorInfo:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.error is None:
+        raise TProtocol.TProtocolException(message='Required field error is unset!')
+      if self.error_time_secs is None:
+        raise TProtocol.TProtocolException(message='Required field error_time_secs is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1750,25 +1546,6 @@ class ErrorInfo:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class BoltStats:
   """
@@ -1804,7 +1581,7 @@ class BoltStats:
           self.acked = {}
           (_ktype74, _vtype75, _size73 ) = iprot.readMapBegin() 
           for _i77 in xrange(_size73):
-            _key78 = iprot.readString().decode('utf-8');
+            _key78 = iprot.readString().decode('utf-8')
             _val79 = {}
             (_ktype81, _vtype82, _size80 ) = iprot.readMapBegin() 
             for _i84 in xrange(_size80):
@@ -1822,7 +1599,7 @@ class BoltStats:
           self.failed = {}
           (_ktype88, _vtype89, _size87 ) = iprot.readMapBegin() 
           for _i91 in xrange(_size87):
-            _key92 = iprot.readString().decode('utf-8');
+            _key92 = iprot.readString().decode('utf-8')
             _val93 = {}
             (_ktype95, _vtype96, _size94 ) = iprot.readMapBegin() 
             for _i98 in xrange(_size94):
@@ -1840,7 +1617,7 @@ class BoltStats:
           self.process_ms_avg = {}
           (_ktype102, _vtype103, _size101 ) = iprot.readMapBegin() 
           for _i105 in xrange(_size101):
-            _key106 = iprot.readString().decode('utf-8');
+            _key106 = iprot.readString().decode('utf-8')
             _val107 = {}
             (_ktype109, _vtype110, _size108 ) = iprot.readMapBegin() 
             for _i112 in xrange(_size108):
@@ -1867,7 +1644,7 @@ class BoltStats:
       oprot.writeFieldBegin('acked', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.acked))
       for kiter115,viter116 in self.acked.items():
-        oprot.writeString(kiter115.encode('utf-8'));
+        oprot.writeString(kiter115.encode('utf-8'))
         oprot.writeMapBegin(TType.STRUCT, TType.I64, len(viter116))
         for kiter117,viter118 in viter116.items():
           kiter117.write(oprot)
@@ -1879,7 +1656,7 @@ class BoltStats:
       oprot.writeFieldBegin('failed', TType.MAP, 2)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.failed))
       for kiter119,viter120 in self.failed.items():
-        oprot.writeString(kiter119.encode('utf-8'));
+        oprot.writeString(kiter119.encode('utf-8'))
         oprot.writeMapBegin(TType.STRUCT, TType.I64, len(viter120))
         for kiter121,viter122 in viter120.items():
           kiter121.write(oprot)
@@ -1891,7 +1668,7 @@ class BoltStats:
       oprot.writeFieldBegin('process_ms_avg', TType.MAP, 3)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.process_ms_avg))
       for kiter123,viter124 in self.process_ms_avg.items():
-        oprot.writeString(kiter123.encode('utf-8'));
+        oprot.writeString(kiter123.encode('utf-8'))
         oprot.writeMapBegin(TType.STRUCT, TType.DOUBLE, len(viter124))
         for kiter125,viter126 in viter124.items():
           kiter125.write(oprot)
@@ -1901,6 +1678,15 @@ class BoltStats:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.acked is None:
+        raise TProtocol.TProtocolException(message='Required field acked is unset!')
+      if self.failed is None:
+        raise TProtocol.TProtocolException(message='Required field failed is unset!')
+      if self.process_ms_avg is None:
+        raise TProtocol.TProtocolException(message='Required field process_ms_avg is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1912,25 +1698,6 @@ class BoltStats:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class SpoutStats:
   """
@@ -1966,7 +1733,7 @@ class SpoutStats:
           self.acked = {}
           (_ktype128, _vtype129, _size127 ) = iprot.readMapBegin() 
           for _i131 in xrange(_size127):
-            _key132 = iprot.readString().decode('utf-8');
+            _key132 = iprot.readString().decode('utf-8')
             _val133 = {}
             (_ktype135, _vtype136, _size134 ) = iprot.readMapBegin() 
             for _i138 in xrange(_size134):
@@ -1983,7 +1750,7 @@ class SpoutStats:
           self.failed = {}
           (_ktype142, _vtype143, _size141 ) = iprot.readMapBegin() 
           for _i145 in xrange(_size141):
-            _key146 = iprot.readString().decode('utf-8');
+            _key146 = iprot.readString().decode('utf-8')
             _val147 = {}
             (_ktype149, _vtype150, _size148 ) = iprot.readMapBegin() 
             for _i152 in xrange(_size148):
@@ -2000,7 +1767,7 @@ class SpoutStats:
           self.complete_ms_avg = {}
           (_ktype156, _vtype157, _size155 ) = iprot.readMapBegin() 
           for _i159 in xrange(_size155):
-            _key160 = iprot.readString().decode('utf-8');
+            _key160 = iprot.readString().decode('utf-8')
             _val161 = {}
             (_ktype163, _vtype164, _size162 ) = iprot.readMapBegin() 
             for _i166 in xrange(_size162):
@@ -2026,7 +1793,7 @@ class SpoutStats:
       oprot.writeFieldBegin('acked', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.acked))
       for kiter169,viter170 in self.acked.items():
-        oprot.writeString(kiter169.encode('utf-8'));
+        oprot.writeString(kiter169.encode('utf-8'))
         oprot.writeMapBegin(TType.I32, TType.I64, len(viter170))
         for kiter171,viter172 in viter170.items():
           oprot.writeI32(kiter171)
@@ -2038,7 +1805,7 @@ class SpoutStats:
       oprot.writeFieldBegin('failed', TType.MAP, 2)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.failed))
       for kiter173,viter174 in self.failed.items():
-        oprot.writeString(kiter173.encode('utf-8'));
+        oprot.writeString(kiter173.encode('utf-8'))
         oprot.writeMapBegin(TType.I32, TType.I64, len(viter174))
         for kiter175,viter176 in viter174.items():
           oprot.writeI32(kiter175)
@@ -2050,7 +1817,7 @@ class SpoutStats:
       oprot.writeFieldBegin('complete_ms_avg', TType.MAP, 3)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.complete_ms_avg))
       for kiter177,viter178 in self.complete_ms_avg.items():
-        oprot.writeString(kiter177.encode('utf-8'));
+        oprot.writeString(kiter177.encode('utf-8'))
         oprot.writeMapBegin(TType.I32, TType.DOUBLE, len(viter178))
         for kiter179,viter180 in viter178.items():
           oprot.writeI32(kiter179)
@@ -2060,6 +1827,15 @@ class SpoutStats:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.acked is None:
+        raise TProtocol.TProtocolException(message='Required field acked is unset!')
+      if self.failed is None:
+        raise TProtocol.TProtocolException(message='Required field failed is unset!')
+      if self.complete_ms_avg is None:
+        raise TProtocol.TProtocolException(message='Required field complete_ms_avg is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2071,25 +1847,6 @@ class SpoutStats:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class TaskSpecificStats:
   """
@@ -2149,6 +1906,9 @@ class TaskSpecificStats:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2160,25 +1920,6 @@ class TaskSpecificStats:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class TaskStats:
   """
@@ -2214,7 +1955,7 @@ class TaskStats:
           self.emitted = {}
           (_ktype182, _vtype183, _size181 ) = iprot.readMapBegin() 
           for _i185 in xrange(_size181):
-            _key186 = iprot.readString().decode('utf-8');
+            _key186 = iprot.readString().decode('utf-8')
             _val187 = {}
             (_ktype189, _vtype190, _size188 ) = iprot.readMapBegin() 
             for _i192 in xrange(_size188):
@@ -2231,7 +1972,7 @@ class TaskStats:
           self.transferred = {}
           (_ktype196, _vtype197, _size195 ) = iprot.readMapBegin() 
           for _i199 in xrange(_size195):
-            _key200 = iprot.readString().decode('utf-8');
+            _key200 = iprot.readString().decode('utf-8')
             _val201 = {}
             (_ktype203, _vtype204, _size202 ) = iprot.readMapBegin() 
             for _i206 in xrange(_size202):
@@ -2263,7 +2004,7 @@ class TaskStats:
       oprot.writeFieldBegin('emitted', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.emitted))
       for kiter209,viter210 in self.emitted.items():
-        oprot.writeString(kiter209.encode('utf-8'));
+        oprot.writeString(kiter209.encode('utf-8'))
         oprot.writeMapBegin(TType.I32, TType.I64, len(viter210))
         for kiter211,viter212 in viter210.items():
           oprot.writeI32(kiter211)
@@ -2275,7 +2016,7 @@ class TaskStats:
       oprot.writeFieldBegin('transferred', TType.MAP, 2)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.transferred))
       for kiter213,viter214 in self.transferred.items():
-        oprot.writeString(kiter213.encode('utf-8'));
+        oprot.writeString(kiter213.encode('utf-8'))
         oprot.writeMapBegin(TType.I32, TType.I64, len(viter214))
         for kiter215,viter216 in viter214.items():
           oprot.writeI32(kiter215)
@@ -2289,6 +2030,15 @@ class TaskStats:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.emitted is None:
+        raise TProtocol.TProtocolException(message='Required field emitted is unset!')
+      if self.transferred is None:
+        raise TProtocol.TProtocolException(message='Required field transferred is unset!')
+      if self.specific is None:
+        raise TProtocol.TProtocolException(message='Required field specific is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2300,25 +2050,6 @@ class TaskStats:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class TaskSummary:
   """
@@ -2373,7 +2104,7 @@ class TaskSummary:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRING:
-          self.host = iprot.readString().decode('utf-8');
+          self.host = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 4:
@@ -2423,7 +2154,7 @@ class TaskSummary:
       oprot.writeFieldEnd()
     if self.host != None:
       oprot.writeFieldBegin('host', TType.STRING, 3)
-      oprot.writeString(self.host.encode('utf-8'));
+      oprot.writeString(self.host.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.port != None:
       oprot.writeFieldBegin('port', TType.I32, 4)
@@ -2446,6 +2177,21 @@ class TaskSummary:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.task_id is None:
+        raise TProtocol.TProtocolException(message='Required field task_id is unset!')
+      if self.component_id is None:
+        raise TProtocol.TProtocolException(message='Required field component_id is unset!')
+      if self.host is None:
+        raise TProtocol.TProtocolException(message='Required field host is unset!')
+      if self.port is None:
+        raise TProtocol.TProtocolException(message='Required field port is unset!')
+      if self.uptime_secs is None:
+        raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
+      if self.errors is None:
+        raise TProtocol.TProtocolException(message='Required field errors is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2457,25 +2203,6 @@ class TaskSummary:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class TopologyInfo:
   """
@@ -2511,12 +2238,12 @@ class TopologyInfo:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.name = iprot.readString().decode('utf-8');
+          self.name = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 3:
@@ -2547,11 +2274,11 @@ class TopologyInfo:
     oprot.writeStructBegin('TopologyInfo')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.name != None:
       oprot.writeFieldBegin('name', TType.STRING, 2)
-      oprot.writeString(self.name.encode('utf-8'));
+      oprot.writeString(self.name.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.uptime_secs != None:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 3)
@@ -2566,6 +2293,17 @@ class TopologyInfo:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      if self.id is None:
+        raise TProtocol.TProtocolException(message='Required field id is unset!')
+      if self.name is None:
+        raise TProtocol.TProtocolException(message='Required field name is unset!')
+      if self.uptime_secs is None:
+        raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
+      if self.tasks is None:
+        raise TProtocol.TProtocolException(message='Required field tasks is unset!')
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2577,23 +2315,3 @@ class TopologyInfo:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
-

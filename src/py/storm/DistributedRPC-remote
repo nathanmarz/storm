@@ -35,20 +35,22 @@ http = False
 argi = 1
 
 if sys.argv[argi] == '-h':
-  parts = sys.argv[argi+1].split(':') 
+  parts = sys.argv[argi+1].split(':')
   host = parts[0]
   port = int(parts[1])
   argi += 2
 
 if sys.argv[argi] == '-u':
   url = urlparse(sys.argv[argi+1])
-  parts = url[1].split(':') 
+  parts = url[1].split(':')
   host = parts[0]
   if len(parts) > 1:
     port = int(parts[1])
   else:
     port = 80
   uri = url[2]
+  if url[4]:
+    uri += '?%s' % url[4]
   http = True
   argi += 2
 
@@ -82,5 +84,9 @@ elif cmd == 'result':
     print 'result requires 2 args'
     sys.exit(1)
   pp.pprint(client.result(args[0],args[1],))
+
+else:
+  print 'Unrecognized method %s' % cmd
+  sys.exit(1)
 
 transport.close()

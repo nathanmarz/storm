@@ -16,80 +16,75 @@ import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.thrift.*;
-import org.apache.thrift.async.*;
-import org.apache.thrift.meta_data.*;
-import org.apache.thrift.transport.*;
-import org.apache.thrift.protocol.*;
 
 public class DistributedRPC {
 
   public interface Iface {
 
-    public String execute(String functionName, String funcArgs) throws TException;
+    public String execute(String functionName, String funcArgs) throws org.apache.thrift.TException;
 
-    public void result(String id, String result) throws TException;
+    public void result(String id, String result) throws org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void execute(String functionName, String funcArgs, AsyncMethodCallback<AsyncClient.execute_call> resultHandler) throws TException;
+    public void execute(String functionName, String funcArgs, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.execute_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void result(String id, String result, AsyncMethodCallback<AsyncClient.result_call> resultHandler) throws TException;
+    public void result(String id, String result, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.result_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
-  public static class Client implements TServiceClient, Iface {
-    public static class Factory implements TServiceClientFactory<Client> {
+  public static class Client implements org.apache.thrift.TServiceClient, Iface {
+    public static class Factory implements org.apache.thrift.TServiceClientFactory<Client> {
       public Factory() {}
-      public Client getClient(TProtocol prot) {
+      public Client getClient(org.apache.thrift.protocol.TProtocol prot) {
         return new Client(prot);
       }
-      public Client getClient(TProtocol iprot, TProtocol oprot) {
+      public Client getClient(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) {
         return new Client(iprot, oprot);
       }
     }
 
-    public Client(TProtocol prot)
+    public Client(org.apache.thrift.protocol.TProtocol prot)
     {
       this(prot, prot);
     }
 
-    public Client(TProtocol iprot, TProtocol oprot)
+    public Client(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot)
     {
       iprot_ = iprot;
       oprot_ = oprot;
     }
 
-    protected TProtocol iprot_;
-    protected TProtocol oprot_;
+    protected org.apache.thrift.protocol.TProtocol iprot_;
+    protected org.apache.thrift.protocol.TProtocol oprot_;
 
     protected int seqid_;
 
-    public TProtocol getInputProtocol()
+    public org.apache.thrift.protocol.TProtocol getInputProtocol()
     {
       return this.iprot_;
     }
 
-    public TProtocol getOutputProtocol()
+    public org.apache.thrift.protocol.TProtocol getOutputProtocol()
     {
       return this.oprot_;
     }
 
-    public String execute(String functionName, String funcArgs) throws TException
+    public String execute(String functionName, String funcArgs) throws org.apache.thrift.TException
     {
       send_execute(functionName, funcArgs);
       return recv_execute();
     }
 
-    public void send_execute(String functionName, String funcArgs) throws TException
+    public void send_execute(String functionName, String funcArgs) throws org.apache.thrift.TException
     {
-      oprot_.writeMessageBegin(new TMessage("execute", TMessageType.CALL, ++seqid_));
+      oprot_.writeMessageBegin(new org.apache.thrift.protocol.TMessage("execute", org.apache.thrift.protocol.TMessageType.CALL, ++seqid_));
       execute_args args = new execute_args();
       args.set_functionName(functionName);
       args.set_funcArgs(funcArgs);
@@ -98,16 +93,16 @@ public class DistributedRPC {
       oprot_.getTransport().flush();
     }
 
-    public String recv_execute() throws TException
+    public String recv_execute() throws org.apache.thrift.TException
     {
-      TMessage msg = iprot_.readMessageBegin();
-      if (msg.type == TMessageType.EXCEPTION) {
-        TApplicationException x = TApplicationException.read(iprot_);
+      org.apache.thrift.protocol.TMessage msg = iprot_.readMessageBegin();
+      if (msg.type == org.apache.thrift.protocol.TMessageType.EXCEPTION) {
+        org.apache.thrift.TApplicationException x = org.apache.thrift.TApplicationException.read(iprot_);
         iprot_.readMessageEnd();
         throw x;
       }
       if (msg.seqid != seqid_) {
-        throw new TApplicationException(TApplicationException.BAD_SEQUENCE_ID, "execute failed: out of sequence response");
+        throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.BAD_SEQUENCE_ID, "execute failed: out of sequence response");
       }
       execute_result result = new execute_result();
       result.read(iprot_);
@@ -115,18 +110,18 @@ public class DistributedRPC {
       if (result.is_set_success()) {
         return result.success;
       }
-      throw new TApplicationException(TApplicationException.MISSING_RESULT, "execute failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "execute failed: unknown result");
     }
 
-    public void result(String id, String result) throws TException
+    public void result(String id, String result) throws org.apache.thrift.TException
     {
       send_result(id, result);
       recv_result();
     }
 
-    public void send_result(String id, String result) throws TException
+    public void send_result(String id, String result) throws org.apache.thrift.TException
     {
-      oprot_.writeMessageBegin(new TMessage("result", TMessageType.CALL, ++seqid_));
+      oprot_.writeMessageBegin(new org.apache.thrift.protocol.TMessage("result", org.apache.thrift.protocol.TMessageType.CALL, ++seqid_));
       result_args args = new result_args();
       args.set_id(id);
       args.set_result(result);
@@ -135,16 +130,16 @@ public class DistributedRPC {
       oprot_.getTransport().flush();
     }
 
-    public void recv_result() throws TException
+    public void recv_result() throws org.apache.thrift.TException
     {
-      TMessage msg = iprot_.readMessageBegin();
-      if (msg.type == TMessageType.EXCEPTION) {
-        TApplicationException x = TApplicationException.read(iprot_);
+      org.apache.thrift.protocol.TMessage msg = iprot_.readMessageBegin();
+      if (msg.type == org.apache.thrift.protocol.TMessageType.EXCEPTION) {
+        org.apache.thrift.TApplicationException x = org.apache.thrift.TApplicationException.read(iprot_);
         iprot_.readMessageEnd();
         throw x;
       }
       if (msg.seqid != seqid_) {
-        throw new TApplicationException(TApplicationException.BAD_SEQUENCE_ID, "result failed: out of sequence response");
+        throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.BAD_SEQUENCE_ID, "result failed: out of sequence response");
       }
       result_result result = new result_result();
       result.read(iprot_);
@@ -153,40 +148,41 @@ public class DistributedRPC {
     }
 
   }
-  public static class AsyncClient extends TAsyncClient implements AsyncIface {
-    public static class Factory implements TAsyncClientFactory<AsyncClient> {
-      private TAsyncClientManager clientManager;
-      private TProtocolFactory protocolFactory;
-      public Factory(TAsyncClientManager clientManager, TProtocolFactory protocolFactory) {
+  public static class AsyncClient extends org.apache.thrift.async.TAsyncClient implements AsyncIface {
+    public static class Factory implements org.apache.thrift.async.TAsyncClientFactory<AsyncClient> {
+      private org.apache.thrift.async.TAsyncClientManager clientManager;
+      private org.apache.thrift.protocol.TProtocolFactory protocolFactory;
+      public Factory(org.apache.thrift.async.TAsyncClientManager clientManager, org.apache.thrift.protocol.TProtocolFactory protocolFactory) {
         this.clientManager = clientManager;
         this.protocolFactory = protocolFactory;
       }
-      public AsyncClient getAsyncClient(TNonblockingTransport transport) {
+      public AsyncClient getAsyncClient(org.apache.thrift.transport.TNonblockingTransport transport) {
         return new AsyncClient(protocolFactory, clientManager, transport);
       }
     }
 
-    public AsyncClient(TProtocolFactory protocolFactory, TAsyncClientManager clientManager, TNonblockingTransport transport) {
+    public AsyncClient(org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.async.TAsyncClientManager clientManager, org.apache.thrift.transport.TNonblockingTransport transport) {
       super(protocolFactory, clientManager, transport);
     }
 
-    public void execute(String functionName, String funcArgs, AsyncMethodCallback<execute_call> resultHandler) throws TException {
+    public void execute(String functionName, String funcArgs, org.apache.thrift.async.AsyncMethodCallback<execute_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       execute_call method_call = new execute_call(functionName, funcArgs, resultHandler, this, protocolFactory, transport);
+      this.currentMethod = method_call;
       manager.call(method_call);
     }
 
-    public static class execute_call extends TAsyncMethodCall {
+    public static class execute_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String functionName;
       private String funcArgs;
-      public execute_call(String functionName, String funcArgs, AsyncMethodCallback<execute_call> resultHandler, TAsyncClient client, TProtocolFactory protocolFactory, TNonblockingTransport transport) throws TException {
+      public execute_call(String functionName, String funcArgs, org.apache.thrift.async.AsyncMethodCallback<execute_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.functionName = functionName;
         this.funcArgs = funcArgs;
       }
 
-      public void write_args(TProtocol prot) throws TException {
-        prot.writeMessageBegin(new TMessage("execute", TMessageType.CALL, 0));
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("execute", org.apache.thrift.protocol.TMessageType.CALL, 0));
         execute_args args = new execute_args();
         args.set_functionName(functionName);
         args.set_funcArgs(funcArgs);
@@ -194,33 +190,34 @@ public class DistributedRPC {
         prot.writeMessageEnd();
       }
 
-      public String getResult() throws TException {
-        if (getState() != State.RESPONSE_READ) {
+      public String getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
-        TMemoryInputTransport memoryTransport = new TMemoryInputTransport(getFrameBuffer().array());
-        TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         return (new Client(prot)).recv_execute();
       }
     }
 
-    public void result(String id, String result, AsyncMethodCallback<result_call> resultHandler) throws TException {
+    public void result(String id, String result, org.apache.thrift.async.AsyncMethodCallback<result_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       result_call method_call = new result_call(id, result, resultHandler, this, protocolFactory, transport);
+      this.currentMethod = method_call;
       manager.call(method_call);
     }
 
-    public static class result_call extends TAsyncMethodCall {
+    public static class result_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String id;
       private String result;
-      public result_call(String id, String result, AsyncMethodCallback<result_call> resultHandler, TAsyncClient client, TProtocolFactory protocolFactory, TNonblockingTransport transport) throws TException {
+      public result_call(String id, String result, org.apache.thrift.async.AsyncMethodCallback<result_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.id = id;
         this.result = result;
       }
 
-      public void write_args(TProtocol prot) throws TException {
-        prot.writeMessageBegin(new TMessage("result", TMessageType.CALL, 0));
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("result", org.apache.thrift.protocol.TMessageType.CALL, 0));
         result_args args = new result_args();
         args.set_id(id);
         args.set_result(result);
@@ -228,19 +225,19 @@ public class DistributedRPC {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws TException {
-        if (getState() != State.RESPONSE_READ) {
+      public void getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
-        TMemoryInputTransport memoryTransport = new TMemoryInputTransport(getFrameBuffer().array());
-        TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         (new Client(prot)).recv_result();
       }
     }
 
   }
 
-  public static class Processor implements TProcessor {
+  public static class Processor implements org.apache.thrift.TProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class.getName());
     public Processor(Iface iface)
     {
@@ -250,21 +247,21 @@ public class DistributedRPC {
     }
 
     protected static interface ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException;
+      public void process(int seqid, org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException;
     }
 
     private Iface iface_;
     protected final HashMap<String,ProcessFunction> processMap_ = new HashMap<String,ProcessFunction>();
 
-    public boolean process(TProtocol iprot, TProtocol oprot) throws TException
+    public boolean process(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException
     {
-      TMessage msg = iprot.readMessageBegin();
+      org.apache.thrift.protocol.TMessage msg = iprot.readMessageBegin();
       ProcessFunction fn = processMap_.get(msg.name);
       if (fn == null) {
-        TProtocolUtil.skip(iprot, TType.STRUCT);
+        org.apache.thrift.protocol.TProtocolUtil.skip(iprot, org.apache.thrift.protocol.TType.STRUCT);
         iprot.readMessageEnd();
-        TApplicationException x = new TApplicationException(TApplicationException.UNKNOWN_METHOD, "Invalid method name: '"+msg.name+"'");
-        oprot.writeMessageBegin(new TMessage(msg.name, TMessageType.EXCEPTION, msg.seqid));
+        org.apache.thrift.TApplicationException x = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "Invalid method name: '"+msg.name+"'");
+        oprot.writeMessageBegin(new org.apache.thrift.protocol.TMessage(msg.name, org.apache.thrift.protocol.TMessageType.EXCEPTION, msg.seqid));
         x.write(oprot);
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
@@ -275,15 +272,15 @@ public class DistributedRPC {
     }
 
     private class execute implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
+      public void process(int seqid, org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException
       {
         execute_args args = new execute_args();
         try {
           args.read(iprot);
-        } catch (TProtocolException e) {
+        } catch (org.apache.thrift.protocol.TProtocolException e) {
           iprot.readMessageEnd();
-          TApplicationException x = new TApplicationException(TApplicationException.PROTOCOL_ERROR, e.getMessage());
-          oprot.writeMessageBegin(new TMessage("execute", TMessageType.EXCEPTION, seqid));
+          org.apache.thrift.TApplicationException x = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.PROTOCOL_ERROR, e.getMessage());
+          oprot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("execute", org.apache.thrift.protocol.TMessageType.EXCEPTION, seqid));
           x.write(oprot);
           oprot.writeMessageEnd();
           oprot.getTransport().flush();
@@ -292,7 +289,7 @@ public class DistributedRPC {
         iprot.readMessageEnd();
         execute_result result = new execute_result();
         result.success = iface_.execute(args.functionName, args.funcArgs);
-        oprot.writeMessageBegin(new TMessage("execute", TMessageType.REPLY, seqid));
+        oprot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("execute", org.apache.thrift.protocol.TMessageType.REPLY, seqid));
         result.write(oprot);
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
@@ -301,15 +298,15 @@ public class DistributedRPC {
     }
 
     private class result implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
+      public void process(int seqid, org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException
       {
         result_args args = new result_args();
         try {
           args.read(iprot);
-        } catch (TProtocolException e) {
+        } catch (org.apache.thrift.protocol.TProtocolException e) {
           iprot.readMessageEnd();
-          TApplicationException x = new TApplicationException(TApplicationException.PROTOCOL_ERROR, e.getMessage());
-          oprot.writeMessageBegin(new TMessage("result", TMessageType.EXCEPTION, seqid));
+          org.apache.thrift.TApplicationException x = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.PROTOCOL_ERROR, e.getMessage());
+          oprot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("result", org.apache.thrift.protocol.TMessageType.EXCEPTION, seqid));
           x.write(oprot);
           oprot.writeMessageEnd();
           oprot.getTransport().flush();
@@ -318,7 +315,7 @@ public class DistributedRPC {
         iprot.readMessageEnd();
         result_result result = new result_result();
         iface_.result(args.id, args.result);
-        oprot.writeMessageBegin(new TMessage("result", TMessageType.REPLY, seqid));
+        oprot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("result", org.apache.thrift.protocol.TMessageType.REPLY, seqid));
         result.write(oprot);
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
@@ -328,17 +325,17 @@ public class DistributedRPC {
 
   }
 
-  public static class execute_args implements TBase<execute_args, execute_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final TStruct STRUCT_DESC = new TStruct("execute_args");
+  public static class execute_args implements org.apache.thrift.TBase<execute_args, execute_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("execute_args");
 
-    private static final TField FUNCTION_NAME_FIELD_DESC = new TField("functionName", TType.STRING, (short)1);
-    private static final TField FUNC_ARGS_FIELD_DESC = new TField("funcArgs", TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField FUNCTION_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("functionName", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField FUNC_ARGS_FIELD_DESC = new org.apache.thrift.protocol.TField("funcArgs", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private String functionName;
     private String funcArgs;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       FUNCTION_NAME((short)1, "functionName"),
       FUNC_ARGS((short)2, "funcArgs");
 
@@ -400,15 +397,15 @@ public class DistributedRPC {
 
     // isset id assignments
 
-    public static final Map<_Fields, FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.FUNCTION_NAME, new FieldMetaData("functionName", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
-      tmpMap.put(_Fields.FUNC_ARGS, new FieldMetaData("funcArgs", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.FUNCTION_NAME, new org.apache.thrift.meta_data.FieldMetaData("functionName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.FUNC_ARGS, new org.apache.thrift.meta_data.FieldMetaData("funcArgs", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      FieldMetaData.addStructMetaDataMap(execute_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(execute_args.class, metaDataMap);
     }
 
     public execute_args() {
@@ -439,9 +436,10 @@ public class DistributedRPC {
       return new execute_args(this);
     }
 
-    @Deprecated
-    public execute_args clone() {
-      return new execute_args(this);
+    @Override
+    public void clear() {
+      this.functionName = null;
+      this.funcArgs = null;
     }
 
     public String get_functionName() {
@@ -456,7 +454,7 @@ public class DistributedRPC {
       this.functionName = null;
     }
 
-    /** Returns true if field functionName is set (has been asigned a value) and false otherwise */
+    /** Returns true if field functionName is set (has been assigned a value) and false otherwise */
     public boolean is_set_functionName() {
       return this.functionName != null;
     }
@@ -479,7 +477,7 @@ public class DistributedRPC {
       this.funcArgs = null;
     }
 
-    /** Returns true if field funcArgs is set (has been asigned a value) and false otherwise */
+    /** Returns true if field funcArgs is set (has been assigned a value) and false otherwise */
     public boolean is_set_funcArgs() {
       return this.funcArgs != null;
     }
@@ -511,10 +509,6 @@ public class DistributedRPC {
       }
     }
 
-    public void setFieldValue(int fieldID, Object value) {
-      setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
-    }
-
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case FUNCTION_NAME:
@@ -527,12 +521,12 @@ public class DistributedRPC {
       throw new IllegalStateException();
     }
 
-    public Object getFieldValue(int fieldId) {
-      return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
       switch (field) {
       case FUNCTION_NAME:
         return is_set_functionName();
@@ -540,10 +534,6 @@ public class DistributedRPC {
         return is_set_funcArgs();
       }
       throw new IllegalStateException();
-    }
-
-    public boolean isSet(int fieldID) {
-      return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
 
     @Override
@@ -609,7 +599,8 @@ public class DistributedRPC {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_functionName()) {        lastComparison = TBaseHelper.compareTo(this.functionName, typedOther.functionName);
+      if (is_set_functionName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.functionName, typedOther.functionName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -618,7 +609,8 @@ public class DistributedRPC {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_funcArgs()) {        lastComparison = TBaseHelper.compareTo(this.funcArgs, typedOther.funcArgs);
+      if (is_set_funcArgs()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.funcArgs, typedOther.funcArgs);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -626,32 +618,36 @@ public class DistributedRPC {
       return 0;
     }
 
-    public void read(TProtocol iprot) throws TException {
-      TField field;
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 1: // FUNCTION_NAME
-            if (field.type == TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.functionName = iprot.readString();
             } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 2: // FUNC_ARGS
-            if (field.type == TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.funcArgs = iprot.readString();
             } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -659,7 +655,7 @@ public class DistributedRPC {
       validate();
     }
 
-    public void write(TProtocol oprot) throws TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -701,21 +697,37 @@ public class DistributedRPC {
       return sb.toString();
     }
 
-    public void validate() throws TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
     }
 
   }
 
-  public static class execute_result implements TBase<execute_result, execute_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final TStruct STRUCT_DESC = new TStruct("execute_result");
+  public static class execute_result implements org.apache.thrift.TBase<execute_result, execute_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("execute_result");
 
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRING, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
 
     private String success;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -774,13 +786,13 @@ public class DistributedRPC {
 
     // isset id assignments
 
-    public static final Map<_Fields, FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      FieldMetaData.addStructMetaDataMap(execute_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(execute_result.class, metaDataMap);
     }
 
     public execute_result() {
@@ -806,9 +818,9 @@ public class DistributedRPC {
       return new execute_result(this);
     }
 
-    @Deprecated
-    public execute_result clone() {
-      return new execute_result(this);
+    @Override
+    public void clear() {
+      this.success = null;
     }
 
     public String get_success() {
@@ -823,7 +835,7 @@ public class DistributedRPC {
       this.success = null;
     }
 
-    /** Returns true if field success is set (has been asigned a value) and false otherwise */
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
     public boolean is_set_success() {
       return this.success != null;
     }
@@ -847,10 +859,6 @@ public class DistributedRPC {
       }
     }
 
-    public void setFieldValue(int fieldID, Object value) {
-      setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
-    }
-
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
@@ -860,21 +868,17 @@ public class DistributedRPC {
       throw new IllegalStateException();
     }
 
-    public Object getFieldValue(int fieldId) {
-      return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
       switch (field) {
       case SUCCESS:
         return is_set_success();
       }
       throw new IllegalStateException();
-    }
-
-    public boolean isSet(int fieldID) {
-      return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
 
     @Override
@@ -926,7 +930,8 @@ public class DistributedRPC {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_success()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -934,25 +939,29 @@ public class DistributedRPC {
       return 0;
     }
 
-    public void read(TProtocol iprot) throws TException {
-      TField field;
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 0: // SUCCESS
-            if (field.type == TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.success = iprot.readString();
             } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -960,7 +969,7 @@ public class DistributedRPC {
       validate();
     }
 
-    public void write(TProtocol oprot) throws TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
       if (this.is_set_success()) {
@@ -988,23 +997,39 @@ public class DistributedRPC {
       return sb.toString();
     }
 
-    public void validate() throws TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
     }
 
   }
 
-  public static class result_args implements TBase<result_args, result_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final TStruct STRUCT_DESC = new TStruct("result_args");
+  public static class result_args implements org.apache.thrift.TBase<result_args, result_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("result_args");
 
-    private static final TField ID_FIELD_DESC = new TField("id", TType.STRING, (short)1);
-    private static final TField RESULT_FIELD_DESC = new TField("result", TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField RESULT_FIELD_DESC = new org.apache.thrift.protocol.TField("result", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private String id;
     private String result;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       ID((short)1, "id"),
       RESULT((short)2, "result");
 
@@ -1066,15 +1091,15 @@ public class DistributedRPC {
 
     // isset id assignments
 
-    public static final Map<_Fields, FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.ID, new FieldMetaData("id", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
-      tmpMap.put(_Fields.RESULT, new FieldMetaData("result", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.RESULT, new org.apache.thrift.meta_data.FieldMetaData("result", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      FieldMetaData.addStructMetaDataMap(result_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(result_args.class, metaDataMap);
     }
 
     public result_args() {
@@ -1105,9 +1130,10 @@ public class DistributedRPC {
       return new result_args(this);
     }
 
-    @Deprecated
-    public result_args clone() {
-      return new result_args(this);
+    @Override
+    public void clear() {
+      this.id = null;
+      this.result = null;
     }
 
     public String get_id() {
@@ -1122,7 +1148,7 @@ public class DistributedRPC {
       this.id = null;
     }
 
-    /** Returns true if field id is set (has been asigned a value) and false otherwise */
+    /** Returns true if field id is set (has been assigned a value) and false otherwise */
     public boolean is_set_id() {
       return this.id != null;
     }
@@ -1145,7 +1171,7 @@ public class DistributedRPC {
       this.result = null;
     }
 
-    /** Returns true if field result is set (has been asigned a value) and false otherwise */
+    /** Returns true if field result is set (has been assigned a value) and false otherwise */
     public boolean is_set_result() {
       return this.result != null;
     }
@@ -1177,10 +1203,6 @@ public class DistributedRPC {
       }
     }
 
-    public void setFieldValue(int fieldID, Object value) {
-      setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
-    }
-
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case ID:
@@ -1193,12 +1215,12 @@ public class DistributedRPC {
       throw new IllegalStateException();
     }
 
-    public Object getFieldValue(int fieldId) {
-      return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
       switch (field) {
       case ID:
         return is_set_id();
@@ -1206,10 +1228,6 @@ public class DistributedRPC {
         return is_set_result();
       }
       throw new IllegalStateException();
-    }
-
-    public boolean isSet(int fieldID) {
-      return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
 
     @Override
@@ -1275,7 +1293,8 @@ public class DistributedRPC {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_id()) {        lastComparison = TBaseHelper.compareTo(this.id, typedOther.id);
+      if (is_set_id()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, typedOther.id);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1284,7 +1303,8 @@ public class DistributedRPC {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_result()) {        lastComparison = TBaseHelper.compareTo(this.result, typedOther.result);
+      if (is_set_result()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.result, typedOther.result);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1292,32 +1312,36 @@ public class DistributedRPC {
       return 0;
     }
 
-    public void read(TProtocol iprot) throws TException {
-      TField field;
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 1: // ID
-            if (field.type == TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.id = iprot.readString();
             } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 2: // RESULT
-            if (field.type == TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.result = iprot.readString();
             } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -1325,7 +1349,7 @@ public class DistributedRPC {
       validate();
     }
 
-    public void write(TProtocol oprot) throws TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -1367,19 +1391,35 @@ public class DistributedRPC {
       return sb.toString();
     }
 
-    public void validate() throws TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
     }
 
   }
 
-  public static class result_result implements TBase<result_result, result_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final TStruct STRUCT_DESC = new TStruct("result_result");
+  public static class result_result implements org.apache.thrift.TBase<result_result, result_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("result_result");
 
 
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
 ;
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -1433,11 +1473,11 @@ public class DistributedRPC {
         return _fieldName;
       }
     }
-    public static final Map<_Fields, FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      FieldMetaData.addStructMetaDataMap(result_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(result_result.class, metaDataMap);
     }
 
     public result_result() {
@@ -1453,18 +1493,13 @@ public class DistributedRPC {
       return new result_result(this);
     }
 
-    @Deprecated
-    public result_result clone() {
-      return new result_result(this);
+    @Override
+    public void clear() {
     }
 
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       }
-    }
-
-    public void setFieldValue(int fieldID, Object value) {
-      setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
 
     public Object getFieldValue(_Fields field) {
@@ -1473,19 +1508,15 @@ public class DistributedRPC {
       throw new IllegalStateException();
     }
 
-    public Object getFieldValue(int fieldId) {
-      return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
       switch (field) {
       }
       throw new IllegalStateException();
-    }
-
-    public boolean isSet(int fieldID) {
-      return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
 
     @Override
@@ -1522,18 +1553,22 @@ public class DistributedRPC {
       return 0;
     }
 
-    public void read(TProtocol iprot) throws TException {
-      TField field;
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           default:
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -1541,7 +1576,7 @@ public class DistributedRPC {
       validate();
     }
 
-    public void write(TProtocol oprot) throws TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
       oprot.writeFieldStop();
@@ -1557,8 +1592,24 @@ public class DistributedRPC {
       return sb.toString();
     }
 
-    public void validate() throws TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
     }
 
   }

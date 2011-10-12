@@ -1,7 +1,8 @@
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Options])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift TException])
+  (:import [java.nio ByteBuffer])
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
@@ -474,7 +475,7 @@
           fileloc
           ))
       
-      (^void uploadChunk [this ^String location ^bytes chunk]
+      (^void uploadChunk [this ^String location ^ByteBuffer chunk]
              (let [^FileOutputStream os (.get uploaders location)]
                (when-not os
                  (throw (RuntimeException.
@@ -500,7 +501,7 @@
                  id
                  ))
 
-      (^bytes downloadChunk [this ^String id]
+      (^ByteBuffer downloadChunk [this ^String id]
               (let [^BufferFileInputStream is (.get downloaders id)]
                 (when-not is
                   (throw (RuntimeException.
@@ -604,13 +605,13 @@
 
 (defn launch-server! [conf]
   (validate-distributed-mode! conf)
-  (let [options (THsHaServer$Options.)
-       _ (set! (. options maxWorkerThreads) 64)
+  (let [options (THsHaServer$Args.
+  			(TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT))))
+       _ (set! (. options workerThreads) 64)
+       _ (set! (. options processor) (Nimbus$Processor. service-handler))
+       _ (set! (. options protocolFactory) (TBinaryProtocol$Factory.))
        service-handler (service-handler conf)
-       server (THsHaServer.
-               (Nimbus$Processor. service-handler)
-               (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
-               (TBinaryProtocol$Factory.) options)]
+       server (THsHaServer. options)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))

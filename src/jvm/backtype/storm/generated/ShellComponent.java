@@ -16,27 +16,22 @@ import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.thrift.*;
-import org.apache.thrift.async.*;
-import org.apache.thrift.meta_data.*;
-import org.apache.thrift.transport.*;
-import org.apache.thrift.protocol.*;
+public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, ShellComponent._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ShellComponent");
 
-public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fields>, java.io.Serializable, Cloneable {
-  private static final TStruct STRUCT_DESC = new TStruct("ShellComponent");
-
-  private static final TField EXECUTION_COMMAND_FIELD_DESC = new TField("execution_command", TType.STRING, (short)1);
-  private static final TField SCRIPT_FIELD_DESC = new TField("script", TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField EXECUTION_COMMAND_FIELD_DESC = new org.apache.thrift.protocol.TField("execution_command", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField SCRIPT_FIELD_DESC = new org.apache.thrift.protocol.TField("script", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private String execution_command;
   private String script;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXECUTION_COMMAND((short)1, "execution_command"),
     SCRIPT((short)2, "script");
 
@@ -98,15 +93,15 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
 
   // isset id assignments
 
-  public static final Map<_Fields, FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXECUTION_COMMAND, new FieldMetaData("execution_command", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.SCRIPT, new FieldMetaData("script", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
+    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.EXECUTION_COMMAND, new org.apache.thrift.meta_data.FieldMetaData("execution_command", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.SCRIPT, new org.apache.thrift.meta_data.FieldMetaData("script", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    FieldMetaData.addStructMetaDataMap(ShellComponent.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ShellComponent.class, metaDataMap);
   }
 
   public ShellComponent() {
@@ -137,9 +132,10 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     return new ShellComponent(this);
   }
 
-  @Deprecated
-  public ShellComponent clone() {
-    return new ShellComponent(this);
+  @Override
+  public void clear() {
+    this.execution_command = null;
+    this.script = null;
   }
 
   public String get_execution_command() {
@@ -154,7 +150,7 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     this.execution_command = null;
   }
 
-  /** Returns true if field execution_command is set (has been asigned a value) and false otherwise */
+  /** Returns true if field execution_command is set (has been assigned a value) and false otherwise */
   public boolean is_set_execution_command() {
     return this.execution_command != null;
   }
@@ -177,7 +173,7 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     this.script = null;
   }
 
-  /** Returns true if field script is set (has been asigned a value) and false otherwise */
+  /** Returns true if field script is set (has been assigned a value) and false otherwise */
   public boolean is_set_script() {
     return this.script != null;
   }
@@ -209,10 +205,6 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
-    setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
-  }
-
   public Object getFieldValue(_Fields field) {
     switch (field) {
     case EXECUTION_COMMAND:
@@ -225,12 +217,12 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     throw new IllegalStateException();
   }
 
-  public Object getFieldValue(int fieldId) {
-    return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-  }
-
-  /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+  /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
+    if (field == null) {
+      throw new IllegalArgumentException();
+    }
+
     switch (field) {
     case EXECUTION_COMMAND:
       return is_set_execution_command();
@@ -238,10 +230,6 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
       return is_set_script();
     }
     throw new IllegalStateException();
-  }
-
-  public boolean isSet(int fieldID) {
-    return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
 
   @Override
@@ -307,7 +295,8 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_execution_command()) {      lastComparison = TBaseHelper.compareTo(this.execution_command, typedOther.execution_command);
+    if (is_set_execution_command()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.execution_command, typedOther.execution_command);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -316,7 +305,8 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_script()) {      lastComparison = TBaseHelper.compareTo(this.script, typedOther.script);
+    if (is_set_script()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.script, typedOther.script);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -324,32 +314,36 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     return 0;
   }
 
-  public void read(TProtocol iprot) throws TException {
-    TField field;
+  public _Fields fieldForId(int fieldId) {
+    return _Fields.findByThriftId(fieldId);
+  }
+
+  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+    org.apache.thrift.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // EXECUTION_COMMAND
-          if (field.type == TType.STRING) {
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
             this.execution_command = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // SCRIPT
-          if (field.type == TType.STRING) {
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
             this.script = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -357,7 +351,7 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     validate();
   }
 
-  public void write(TProtocol oprot) throws TException {
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -399,8 +393,24 @@ public class ShellComponent implements TBase<ShellComponent, ShellComponent._Fie
     return sb.toString();
   }
 
-  public void validate() throws TException {
+  public void validate() throws org.apache.thrift.TException {
     // check for required fields
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+    try {
+      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift.TException te) {
+      throw new java.io.IOException(te);
+    }
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+    try {
+      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift.TException te) {
+      throw new java.io.IOException(te);
+    }
   }
 
 }

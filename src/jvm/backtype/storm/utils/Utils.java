@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -137,7 +138,7 @@ public class Utils {
         String id = client.getClient().beginFileDownload(file);
         FileOutputStream out = new FileOutputStream(localFile);
         while(true) {
-            byte[] chunk = client.getClient().downloadChunk(id);
+            byte[] chunk = toByteArray(client.getClient().downloadChunk(id));
             if(chunk.length==0) {
                 break;
             }
@@ -154,4 +155,10 @@ public class Utils {
         }
         return (IFn) RT.var(namespace, name).deref();        
     }
+    
+    public static byte[] toByteArray(ByteBuffer bb){
+		byte[] bytes = new byte[bb.capacity()];
+		bb.get(bytes);
+		return bytes;
+	}
 }

@@ -5,11 +5,10 @@
 #
 
 from thrift.Thrift import *
-import sys
 from ttypes import *
 from thrift.Thrift import TProcessor
 from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TBinaryProtocol, TProtocol
 try:
   from thrift.protocol import fastbinary
 except:
@@ -179,12 +178,12 @@ class execute_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.functionName = iprot.readString().decode('utf-8');
+          self.functionName = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.funcArgs = iprot.readString().decode('utf-8');
+          self.funcArgs = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -199,14 +198,17 @@ class execute_args:
     oprot.writeStructBegin('execute_args')
     if self.functionName != None:
       oprot.writeFieldBegin('functionName', TType.STRING, 1)
-      oprot.writeString(self.functionName.encode('utf-8'));
+      oprot.writeString(self.functionName.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.funcArgs != None:
       oprot.writeFieldBegin('funcArgs', TType.STRING, 2)
-      oprot.writeString(self.funcArgs.encode('utf-8'));
+      oprot.writeString(self.funcArgs.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -218,25 +220,6 @@ class execute_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class execute_result:
   """
@@ -262,7 +245,7 @@ class execute_result:
         break
       if fid == 0:
         if ftype == TType.STRING:
-          self.success = iprot.readString().decode('utf-8');
+          self.success = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -277,10 +260,13 @@ class execute_result:
     oprot.writeStructBegin('execute_result')
     if self.success != None:
       oprot.writeFieldBegin('success', TType.STRING, 0)
-      oprot.writeString(self.success.encode('utf-8'));
+      oprot.writeString(self.success.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -292,25 +278,6 @@ class execute_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class result_args:
   """
@@ -340,12 +307,12 @@ class result_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.result = iprot.readString().decode('utf-8');
+          self.result = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -360,14 +327,17 @@ class result_args:
     oprot.writeStructBegin('result_args')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.result != None:
       oprot.writeFieldBegin('result', TType.STRING, 2)
-      oprot.writeString(self.result.encode('utf-8'));
+      oprot.writeString(self.result.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -379,25 +349,6 @@ class result_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class result_result:
 
@@ -425,6 +376,9 @@ class result_result:
     oprot.writeStructBegin('result_result')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -436,24 +390,3 @@ class result_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
-
-

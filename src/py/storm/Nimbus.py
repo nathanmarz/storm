@@ -5,11 +5,10 @@
 #
 
 from thrift.Thrift import *
-import sys
 from ttypes import *
 from thrift.Thrift import TProcessor
 from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TBinaryProtocol, TProtocol
 try:
   from thrift.protocol import fastbinary
 except:
@@ -637,17 +636,17 @@ class submitTopology_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.name = iprot.readString().decode('utf-8');
+          self.name = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.uploadedJarLocation = iprot.readString().decode('utf-8');
+          self.uploadedJarLocation = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRING:
-          self.jsonConf = iprot.readString().decode('utf-8');
+          self.jsonConf = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 4:
@@ -668,15 +667,15 @@ class submitTopology_args:
     oprot.writeStructBegin('submitTopology_args')
     if self.name != None:
       oprot.writeFieldBegin('name', TType.STRING, 1)
-      oprot.writeString(self.name.encode('utf-8'));
+      oprot.writeString(self.name.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.uploadedJarLocation != None:
       oprot.writeFieldBegin('uploadedJarLocation', TType.STRING, 2)
-      oprot.writeString(self.uploadedJarLocation.encode('utf-8'));
+      oprot.writeString(self.uploadedJarLocation.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.jsonConf != None:
       oprot.writeFieldBegin('jsonConf', TType.STRING, 3)
-      oprot.writeString(self.jsonConf.encode('utf-8'));
+      oprot.writeString(self.jsonConf.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.topology != None:
       oprot.writeFieldBegin('topology', TType.STRUCT, 4)
@@ -684,6 +683,9 @@ class submitTopology_args:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -695,25 +697,6 @@ class submitTopology_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class submitTopology_result:
   """
@@ -773,6 +756,9 @@ class submitTopology_result:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -784,25 +770,6 @@ class submitTopology_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class killTopology_args:
   """
@@ -829,7 +796,7 @@ class killTopology_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.name = iprot.readString().decode('utf-8');
+          self.name = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -844,10 +811,13 @@ class killTopology_args:
     oprot.writeStructBegin('killTopology_args')
     if self.name != None:
       oprot.writeFieldBegin('name', TType.STRING, 1)
-      oprot.writeString(self.name.encode('utf-8'));
+      oprot.writeString(self.name.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -859,25 +829,6 @@ class killTopology_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class killTopology_result:
   """
@@ -924,6 +875,9 @@ class killTopology_result:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -935,25 +889,6 @@ class killTopology_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class beginFileUpload_args:
 
@@ -981,6 +916,9 @@ class beginFileUpload_args:
     oprot.writeStructBegin('beginFileUpload_args')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -992,25 +930,6 @@ class beginFileUpload_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class beginFileUpload_result:
   """
@@ -1036,7 +955,7 @@ class beginFileUpload_result:
         break
       if fid == 0:
         if ftype == TType.STRING:
-          self.success = iprot.readString().decode('utf-8');
+          self.success = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1051,10 +970,13 @@ class beginFileUpload_result:
     oprot.writeStructBegin('beginFileUpload_result')
     if self.success != None:
       oprot.writeFieldBegin('success', TType.STRING, 0)
-      oprot.writeString(self.success.encode('utf-8'));
+      oprot.writeString(self.success.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1066,25 +988,6 @@ class beginFileUpload_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class uploadChunk_args:
   """
@@ -1114,7 +1017,7 @@ class uploadChunk_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.location = iprot.readString().decode('utf-8');
+          self.location = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -1134,14 +1037,17 @@ class uploadChunk_args:
     oprot.writeStructBegin('uploadChunk_args')
     if self.location != None:
       oprot.writeFieldBegin('location', TType.STRING, 1)
-      oprot.writeString(self.location.encode('utf-8'));
+      oprot.writeString(self.location.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.chunk != None:
       oprot.writeFieldBegin('chunk', TType.STRING, 2)
-      oprot.writeString(self.chunk);
+      oprot.writeString(self.chunk)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1153,25 +1059,6 @@ class uploadChunk_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class uploadChunk_result:
 
@@ -1199,6 +1086,9 @@ class uploadChunk_result:
     oprot.writeStructBegin('uploadChunk_result')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1210,25 +1100,6 @@ class uploadChunk_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class finishFileUpload_args:
   """
@@ -1255,7 +1126,7 @@ class finishFileUpload_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.location = iprot.readString().decode('utf-8');
+          self.location = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1270,10 +1141,13 @@ class finishFileUpload_args:
     oprot.writeStructBegin('finishFileUpload_args')
     if self.location != None:
       oprot.writeFieldBegin('location', TType.STRING, 1)
-      oprot.writeString(self.location.encode('utf-8'));
+      oprot.writeString(self.location.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1285,25 +1159,6 @@ class finishFileUpload_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class finishFileUpload_result:
 
@@ -1331,6 +1186,9 @@ class finishFileUpload_result:
     oprot.writeStructBegin('finishFileUpload_result')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1342,25 +1200,6 @@ class finishFileUpload_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class beginFileDownload_args:
   """
@@ -1387,7 +1226,7 @@ class beginFileDownload_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.file = iprot.readString().decode('utf-8');
+          self.file = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1402,10 +1241,13 @@ class beginFileDownload_args:
     oprot.writeStructBegin('beginFileDownload_args')
     if self.file != None:
       oprot.writeFieldBegin('file', TType.STRING, 1)
-      oprot.writeString(self.file.encode('utf-8'));
+      oprot.writeString(self.file.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1417,25 +1259,6 @@ class beginFileDownload_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class beginFileDownload_result:
   """
@@ -1461,7 +1284,7 @@ class beginFileDownload_result:
         break
       if fid == 0:
         if ftype == TType.STRING:
-          self.success = iprot.readString().decode('utf-8');
+          self.success = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1476,10 +1299,13 @@ class beginFileDownload_result:
     oprot.writeStructBegin('beginFileDownload_result')
     if self.success != None:
       oprot.writeFieldBegin('success', TType.STRING, 0)
-      oprot.writeString(self.success.encode('utf-8'));
+      oprot.writeString(self.success.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1491,25 +1317,6 @@ class beginFileDownload_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class downloadChunk_args:
   """
@@ -1536,7 +1343,7 @@ class downloadChunk_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1551,10 +1358,13 @@ class downloadChunk_args:
     oprot.writeStructBegin('downloadChunk_args')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1566,25 +1376,6 @@ class downloadChunk_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class downloadChunk_result:
   """
@@ -1625,10 +1416,13 @@ class downloadChunk_result:
     oprot.writeStructBegin('downloadChunk_result')
     if self.success != None:
       oprot.writeFieldBegin('success', TType.STRING, 0)
-      oprot.writeString(self.success);
+      oprot.writeString(self.success)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1640,25 +1434,6 @@ class downloadChunk_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getClusterInfo_args:
 
@@ -1686,6 +1461,9 @@ class getClusterInfo_args:
     oprot.writeStructBegin('getClusterInfo_args')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1697,25 +1475,6 @@ class getClusterInfo_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getClusterInfo_result:
   """
@@ -1761,6 +1520,9 @@ class getClusterInfo_result:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1772,25 +1534,6 @@ class getClusterInfo_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getTopologyInfo_args:
   """
@@ -1817,7 +1560,7 @@ class getTopologyInfo_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1832,10 +1575,13 @@ class getTopologyInfo_args:
     oprot.writeStructBegin('getTopologyInfo_args')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1847,25 +1593,6 @@ class getTopologyInfo_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getTopologyInfo_result:
   """
@@ -1924,6 +1651,9 @@ class getTopologyInfo_result:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -1935,25 +1665,6 @@ class getTopologyInfo_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getTopologyConf_args:
   """
@@ -1980,7 +1691,7 @@ class getTopologyConf_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -1995,10 +1706,13 @@ class getTopologyConf_args:
     oprot.writeStructBegin('getTopologyConf_args')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2010,25 +1724,6 @@ class getTopologyConf_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getTopologyConf_result:
   """
@@ -2057,7 +1752,7 @@ class getTopologyConf_result:
         break
       if fid == 0:
         if ftype == TType.STRING:
-          self.success = iprot.readString().decode('utf-8');
+          self.success = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 1:
@@ -2078,7 +1773,7 @@ class getTopologyConf_result:
     oprot.writeStructBegin('getTopologyConf_result')
     if self.success != None:
       oprot.writeFieldBegin('success', TType.STRING, 0)
-      oprot.writeString(self.success.encode('utf-8'));
+      oprot.writeString(self.success.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.e != None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)
@@ -2086,6 +1781,9 @@ class getTopologyConf_result:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2097,25 +1795,6 @@ class getTopologyConf_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getTopology_args:
   """
@@ -2142,7 +1821,7 @@ class getTopology_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.id = iprot.readString().decode('utf-8');
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -2157,10 +1836,13 @@ class getTopology_args:
     oprot.writeStructBegin('getTopology_args')
     if self.id != None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
-      oprot.writeString(self.id.encode('utf-8'));
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2172,25 +1854,6 @@ class getTopology_args:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
 
 class getTopology_result:
   """
@@ -2249,6 +1912,9 @@ class getTopology_result:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -2260,24 +1926,3 @@ class getTopology_result:
 
   def __ne__(self, other):
     return not (self == other)
-
-  def union_value(self):
-    d = self.__dict__
-    for key in d:
-      val = d[key]
-      if not val is None:
-        return val
-
-  def get_set_field(self):
-    for attr in self.__dict__:
-      if not self.__dict__[attr] is None:
-        return attr
-
-  def get_set_field_id(self):
-    for idx, tup in enumerate(self.__class__.thrift_spec):
-      if tup:
-        key = tup[2]
-        if not self.__dict__[key] is None:
-          return idx
-
-

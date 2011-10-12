@@ -16,26 +16,21 @@ import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.thrift.*;
-import org.apache.thrift.async.*;
-import org.apache.thrift.meta_data.*;
-import org.apache.thrift.transport.*;
-import org.apache.thrift.protocol.*;
+public class TaskSummary implements org.apache.thrift.TBase<TaskSummary, TaskSummary._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TaskSummary");
 
-public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, java.io.Serializable, Cloneable {
-  private static final TStruct STRUCT_DESC = new TStruct("TaskSummary");
-
-  private static final TField TASK_ID_FIELD_DESC = new TField("task_id", TType.I32, (short)1);
-  private static final TField COMPONENT_ID_FIELD_DESC = new TField("component_id", TType.I32, (short)2);
-  private static final TField HOST_FIELD_DESC = new TField("host", TType.STRING, (short)3);
-  private static final TField PORT_FIELD_DESC = new TField("port", TType.I32, (short)4);
-  private static final TField UPTIME_SECS_FIELD_DESC = new TField("uptime_secs", TType.I32, (short)5);
-  private static final TField ERRORS_FIELD_DESC = new TField("errors", TType.LIST, (short)6);
-  private static final TField STATS_FIELD_DESC = new TField("stats", TType.STRUCT, (short)7);
+  private static final org.apache.thrift.protocol.TField TASK_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("task_id", org.apache.thrift.protocol.TType.I32, (short)1);
+  private static final org.apache.thrift.protocol.TField COMPONENT_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("component_id", org.apache.thrift.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift.protocol.TField HOST_FIELD_DESC = new org.apache.thrift.protocol.TField("host", org.apache.thrift.protocol.TType.STRING, (short)3);
+  private static final org.apache.thrift.protocol.TField PORT_FIELD_DESC = new org.apache.thrift.protocol.TField("port", org.apache.thrift.protocol.TType.I32, (short)4);
+  private static final org.apache.thrift.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("uptime_secs", org.apache.thrift.protocol.TType.I32, (short)5);
+  private static final org.apache.thrift.protocol.TField ERRORS_FIELD_DESC = new org.apache.thrift.protocol.TField("errors", org.apache.thrift.protocol.TType.LIST, (short)6);
+  private static final org.apache.thrift.protocol.TField STATS_FIELD_DESC = new org.apache.thrift.protocol.TField("stats", org.apache.thrift.protocol.TType.STRUCT, (short)7);
 
   private int task_id;
   private int component_id;
@@ -46,7 +41,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
   private TaskStats stats;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TASK_ID((short)1, "task_id"),
     COMPONENT_ID((short)2, "component_id"),
     HOST((short)3, "host"),
@@ -128,26 +123,26 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
   private static final int __UPTIME_SECS_ISSET_ID = 3;
   private BitSet __isset_bit_vector = new BitSet(4);
 
-  public static final Map<_Fields, FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TASK_ID, new FieldMetaData("task_id", TFieldRequirementType.REQUIRED, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.COMPONENT_ID, new FieldMetaData("component_id", TFieldRequirementType.REQUIRED, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.HOST, new FieldMetaData("host", TFieldRequirementType.REQUIRED, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.PORT, new FieldMetaData("port", TFieldRequirementType.REQUIRED, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.UPTIME_SECS, new FieldMetaData("uptime_secs", TFieldRequirementType.REQUIRED, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.ERRORS, new FieldMetaData("errors", TFieldRequirementType.REQUIRED, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, ErrorInfo.class))));
-    tmpMap.put(_Fields.STATS, new FieldMetaData("stats", TFieldRequirementType.OPTIONAL, 
-        new StructMetaData(TType.STRUCT, TaskStats.class)));
+    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.TASK_ID, new org.apache.thrift.meta_data.FieldMetaData("task_id", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.COMPONENT_ID, new org.apache.thrift.meta_data.FieldMetaData("component_id", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.HOST, new org.apache.thrift.meta_data.FieldMetaData("host", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.PORT, new org.apache.thrift.meta_data.FieldMetaData("port", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.UPTIME_SECS, new org.apache.thrift.meta_data.FieldMetaData("uptime_secs", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.ERRORS, new org.apache.thrift.meta_data.FieldMetaData("errors", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ErrorInfo.class))));
+    tmpMap.put(_Fields.STATS, new org.apache.thrift.meta_data.FieldMetaData("stats", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TaskStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    FieldMetaData.addStructMetaDataMap(TaskSummary.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TaskSummary.class, metaDataMap);
   }
 
   public TaskSummary() {
@@ -203,9 +198,19 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     return new TaskSummary(this);
   }
 
-  @Deprecated
-  public TaskSummary clone() {
-    return new TaskSummary(this);
+  @Override
+  public void clear() {
+    set_task_id_isSet(false);
+    this.task_id = 0;
+    set_component_id_isSet(false);
+    this.component_id = 0;
+    this.host = null;
+    set_port_isSet(false);
+    this.port = 0;
+    set_uptime_secs_isSet(false);
+    this.uptime_secs = 0;
+    this.errors = null;
+    this.stats = null;
   }
 
   public int get_task_id() {
@@ -221,7 +226,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     __isset_bit_vector.clear(__TASK_ID_ISSET_ID);
   }
 
-  /** Returns true if field task_id is set (has been asigned a value) and false otherwise */
+  /** Returns true if field task_id is set (has been assigned a value) and false otherwise */
   public boolean is_set_task_id() {
     return __isset_bit_vector.get(__TASK_ID_ISSET_ID);
   }
@@ -243,7 +248,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     __isset_bit_vector.clear(__COMPONENT_ID_ISSET_ID);
   }
 
-  /** Returns true if field component_id is set (has been asigned a value) and false otherwise */
+  /** Returns true if field component_id is set (has been assigned a value) and false otherwise */
   public boolean is_set_component_id() {
     return __isset_bit_vector.get(__COMPONENT_ID_ISSET_ID);
   }
@@ -264,7 +269,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     this.host = null;
   }
 
-  /** Returns true if field host is set (has been asigned a value) and false otherwise */
+  /** Returns true if field host is set (has been assigned a value) and false otherwise */
   public boolean is_set_host() {
     return this.host != null;
   }
@@ -288,7 +293,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     __isset_bit_vector.clear(__PORT_ISSET_ID);
   }
 
-  /** Returns true if field port is set (has been asigned a value) and false otherwise */
+  /** Returns true if field port is set (has been assigned a value) and false otherwise */
   public boolean is_set_port() {
     return __isset_bit_vector.get(__PORT_ISSET_ID);
   }
@@ -310,7 +315,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     __isset_bit_vector.clear(__UPTIME_SECS_ISSET_ID);
   }
 
-  /** Returns true if field uptime_secs is set (has been asigned a value) and false otherwise */
+  /** Returns true if field uptime_secs is set (has been assigned a value) and false otherwise */
   public boolean is_set_uptime_secs() {
     return __isset_bit_vector.get(__UPTIME_SECS_ISSET_ID);
   }
@@ -346,7 +351,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     this.errors = null;
   }
 
-  /** Returns true if field errors is set (has been asigned a value) and false otherwise */
+  /** Returns true if field errors is set (has been assigned a value) and false otherwise */
   public boolean is_set_errors() {
     return this.errors != null;
   }
@@ -369,7 +374,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     this.stats = null;
   }
 
-  /** Returns true if field stats is set (has been asigned a value) and false otherwise */
+  /** Returns true if field stats is set (has been assigned a value) and false otherwise */
   public boolean is_set_stats() {
     return this.stats != null;
   }
@@ -441,10 +446,6 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
-    setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
-  }
-
   public Object getFieldValue(_Fields field) {
     switch (field) {
     case TASK_ID:
@@ -472,12 +473,12 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     throw new IllegalStateException();
   }
 
-  public Object getFieldValue(int fieldId) {
-    return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-  }
-
-  /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+  /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
+    if (field == null) {
+      throw new IllegalArgumentException();
+    }
+
     switch (field) {
     case TASK_ID:
       return is_set_task_id();
@@ -495,10 +496,6 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
       return is_set_stats();
     }
     throw new IllegalStateException();
-  }
-
-  public boolean isSet(int fieldID) {
-    return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
 
   @Override
@@ -634,7 +631,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_task_id()) {      lastComparison = TBaseHelper.compareTo(this.task_id, typedOther.task_id);
+    if (is_set_task_id()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.task_id, typedOther.task_id);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -643,7 +641,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_component_id()) {      lastComparison = TBaseHelper.compareTo(this.component_id, typedOther.component_id);
+    if (is_set_component_id()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.component_id, typedOther.component_id);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -652,7 +651,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_host()) {      lastComparison = TBaseHelper.compareTo(this.host, typedOther.host);
+    if (is_set_host()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.host, typedOther.host);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -661,7 +661,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_port()) {      lastComparison = TBaseHelper.compareTo(this.port, typedOther.port);
+    if (is_set_port()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.port, typedOther.port);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -670,7 +671,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_uptime_secs()) {      lastComparison = TBaseHelper.compareTo(this.uptime_secs, typedOther.uptime_secs);
+    if (is_set_uptime_secs()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.uptime_secs, typedOther.uptime_secs);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -679,7 +681,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_errors()) {      lastComparison = TBaseHelper.compareTo(this.errors, typedOther.errors);
+    if (is_set_errors()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.errors, typedOther.errors);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -688,7 +691,8 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_stats()) {      lastComparison = TBaseHelper.compareTo(this.stats, typedOther.stats);
+    if (is_set_stats()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.stats, typedOther.stats);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -696,59 +700,63 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     return 0;
   }
 
-  public void read(TProtocol iprot) throws TException {
-    TField field;
+  public _Fields fieldForId(int fieldId) {
+    return _Fields.findByThriftId(fieldId);
+  }
+
+  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+    org.apache.thrift.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // TASK_ID
-          if (field.type == TType.I32) {
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
             this.task_id = iprot.readI32();
             set_task_id_isSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // COMPONENT_ID
-          if (field.type == TType.I32) {
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
             this.component_id = iprot.readI32();
             set_component_id_isSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // HOST
-          if (field.type == TType.STRING) {
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
             this.host = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 4: // PORT
-          if (field.type == TType.I32) {
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
             this.port = iprot.readI32();
             set_port_isSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 5: // UPTIME_SECS
-          if (field.type == TType.I32) {
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
             this.uptime_secs = iprot.readI32();
             set_uptime_secs_isSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 6: // ERRORS
-          if (field.type == TType.LIST) {
+          if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              TList _list121 = iprot.readListBegin();
+              org.apache.thrift.protocol.TList _list121 = iprot.readListBegin();
               this.errors = new ArrayList<ErrorInfo>(_list121.size);
               for (int _i122 = 0; _i122 < _list121.size; ++_i122)
               {
@@ -760,19 +768,19 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
               iprot.readListEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 7: // STATS
-          if (field.type == TType.STRUCT) {
+          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
             this.stats = new TaskStats();
             this.stats.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -780,7 +788,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     validate();
   }
 
-  public void write(TProtocol oprot) throws TException {
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -804,7 +812,7 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     if (this.errors != null) {
       oprot.writeFieldBegin(ERRORS_FIELD_DESC);
       {
-        oprot.writeListBegin(new TList(TType.STRUCT, this.errors.size()));
+        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.errors.size()));
         for (ErrorInfo _iter124 : this.errors)
         {
           _iter124.write(oprot);
@@ -874,32 +882,50 @@ public class TaskSummary implements TBase<TaskSummary, TaskSummary._Fields>, jav
     return sb.toString();
   }
 
-  public void validate() throws TException {
+  public void validate() throws org.apache.thrift.TException {
     // check for required fields
     if (!is_set_task_id()) {
-      throw new TProtocolException("Required field 'task_id' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'task_id' is unset! Struct:" + toString());
     }
 
     if (!is_set_component_id()) {
-      throw new TProtocolException("Required field 'component_id' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'component_id' is unset! Struct:" + toString());
     }
 
     if (!is_set_host()) {
-      throw new TProtocolException("Required field 'host' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'host' is unset! Struct:" + toString());
     }
 
     if (!is_set_port()) {
-      throw new TProtocolException("Required field 'port' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'port' is unset! Struct:" + toString());
     }
 
     if (!is_set_uptime_secs()) {
-      throw new TProtocolException("Required field 'uptime_secs' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'uptime_secs' is unset! Struct:" + toString());
     }
 
     if (!is_set_errors()) {
-      throw new TProtocolException("Required field 'errors' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'errors' is unset! Struct:" + toString());
     }
 
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+    try {
+      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift.TException te) {
+      throw new java.io.IOException(te);
+    }
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+    try {
+      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+      __isset_bit_vector = new BitSet(1);
+      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift.TException te) {
+      throw new java.io.IOException(te);
+    }
   }
 
 }

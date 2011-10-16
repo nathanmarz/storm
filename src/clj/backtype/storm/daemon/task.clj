@@ -185,8 +185,9 @@
                        (.report-task-error storm-cluster-state storm-id task-id error))
         
         report-error-and-die (fn [error]
-                                (report-error error)
-                                (halt-process! 1 "Task died"))
+                               (report-error error)
+                               (when (not= "local" (storm-conf STORM-CLUSTER-MODE))
+                                 (halt-process! 1 "Task died")))
 
         ;; heartbeat ASAP so nimbus doesn't reassign
         heartbeat-thread (async-loop

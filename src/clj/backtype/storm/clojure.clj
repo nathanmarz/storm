@@ -1,6 +1,5 @@
 (ns backtype.storm.clojure
-  (:use [clojure.contrib.def :only [defnk defalias]])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm util])
   (:import [backtype.storm LocalCluster StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
@@ -8,6 +7,7 @@
   (:import [backtype.storm.spout SpoutOutputCollector ISpout])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
+  (:import [java.util List])
   (:require [backtype.storm [thrift :as thrift]]))
 
 (defn hint [sym class-sym]

@@ -1,5 +1,4 @@
 (ns zilch.virtual-port
-  (:use [clojure.contrib.def :only [defnk]])
   (:use [backtype.storm util log])
   (:require [zilch [mq :as mq]])
   (:import [java.nio ByteBuffer])

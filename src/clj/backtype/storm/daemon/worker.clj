@@ -43,6 +43,7 @@
   "Returns seq of task-ids that receive messages from this worker"
   ;; if this is an acker, needs to talk to the spouts
   [task->component mk-topology-context task-ids]
+  (log-message "worker outbound " (class (first task-ids)))
   (let [topology-context (mk-topology-context (first task-ids))
         spout-components (-> topology-context
                              .getRawTopology
@@ -82,6 +83,7 @@
         cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         task-ids (read-worker-task-ids storm-cluster-state storm-id supervisor-id port)
+        _ (doseq [t task-ids] (log-message t " " (class t)))
         ;; because in local mode, its not a separate
         ;; process. supervisor will register it in this case
         _ (when (= :distributed (cluster-mode conf))

@@ -1,7 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
-  (:use [backtype.storm bootstrap testing])
+  (:use [backtype.storm bootstrap clojure testing])
   (:use [backtype.storm.daemon common])
   )
 

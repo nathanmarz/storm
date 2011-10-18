@@ -271,6 +271,8 @@ public class Tuple implements ILookup {
     
     @Override
     public Object valAt(Object o) {
+        // should change this to get by field name, and push metadata stuff like this
+        // into metadata
         if(o.equals(STREAM_KEYWORD)) {
             return getSourceStreamId();
         } else if(o.equals(COMPONENT_KEYWORD)) {

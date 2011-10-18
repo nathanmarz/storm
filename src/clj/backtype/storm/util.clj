@@ -12,12 +12,96 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
-  (:require [clojure.contrib [str-utils2 :as str]])
+  (:require [clojure [string :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
   (:use [backtype.storm log])
-  (:use [clojure.contrib.def :only [defnk]])
   )
+
+(defmacro defalias
+  "Defines an alias for a var: a new var with the same root binding (if
+  any) and similar metadata. The metadata of the alias is its initial
+  metadata (as provided by def) merged into the metadata of the original."
+  ([name orig]
+     `(do
+        (alter-meta!
+         (if (.hasRoot (var ~orig))
+           (def ~name (.getRawRoot (var ~orig)))
+           (def ~name))
+         ;; When copying metadata, disregard {:macro false}.
+         ;; Workaround for http://www.assembla.com/spaces/clojure/tickets/273
+         #(conj (dissoc % :macro)
+                (apply dissoc (meta (var ~orig)) (remove #{:macro} (keys %)))))
+        (var ~name)))
+  ([name orig doc]
+     (list `defalias (with-meta name (assoc (meta name) :doc doc)) orig)))
+
+;; name-with-attributes by Konrad Hinsen:
+(defn name-with-attributes
+  "To be used in macro definitions.
+   Handles optional docstrings and attribute maps for a name to be defined
+   in a list of macro arguments. If the first macro argument is a string,
+   it is added as a docstring to name and removed from the macro argument
+   list. If afterwards the first macro argument is a map, its entries are
+   added to the name's metadata map and the map is removed from the
+   macro argument list. The return value is a vector containing the name
+   with its extended metadata map and the list of unprocessed macro
+   arguments."
+  [name macro-args]
+  (let [[docstring macro-args] (if (string? (first macro-args))
+                                 [(first macro-args) (next macro-args)]
+                                 [nil macro-args])
+    [attr macro-args]          (if (map? (first macro-args))
+                                 [(first macro-args) (next macro-args)]
+                                 [{} macro-args])
+    attr                       (if docstring
+                                 (assoc attr :doc docstring)
+                                 attr)
+    attr                       (if (meta name)
+                                 (conj (meta name) attr)
+                                 attr)]
+    [(with-meta name attr) macro-args]))
+
+(defmacro defnk
+ "Define a function accepting keyword arguments. Symbols up to the first
+ keyword in the parameter list are taken as positional arguments.  Then
+ an alternating sequence of keywords and defaults values is expected. The
+ values of the keyword arguments are available in the function body by
+ virtue of the symbol corresponding to the keyword (cf. :keys destructuring).
+ defnk accepts an optional docstring as well as an optional metadata map."
+ [fn-name & fn-tail]
+ (let [[fn-name [args & body]] (name-with-attributes fn-name fn-tail)
+       [pos kw-vals]           (split-with symbol? args)
+       syms                    (map #(-> % name symbol) (take-nth 2 kw-vals))
+       values                  (take-nth 2 (rest kw-vals))
+       sym-vals                (apply hash-map (interleave syms values))
+       de-map                  {:keys (vec syms)
+                                :or   sym-vals}]
+   `(defn ~fn-name
+      [~@pos & options#]
+      (let [~de-map (apply hash-map options#)]
+        ~@body))))
+
+(defn find-first
+  "Returns the first item of coll for which (pred item) returns logical true.
+  Consumes sequences up to the first match, will consume the entire sequence
+  and return nil if no match is found."
+  [pred coll]
+  (first (filter pred coll)))
+
+(defn dissoc-in
+  "Dissociates an entry from a nested associative structure returning a new
+  nested structure. keys is a sequence of keys. Any empty maps that result
+  will not be present in the new structure."
+  [m [k & ks :as keys]]
+  (if ks
+    (if-let [nextmap (get m k)]
+      (let [newmap (dissoc-in nextmap ks)]
+        (if (seq newmap)
+          (assoc m k newmap)
+          (dissoc m k)))
+      m)
+    (dissoc m k)))
 
 (defn local-hostname []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
@@ -26,7 +110,7 @@
   (str (UUID/randomUUID)))
 
 (defn current-time-secs []
-  (int (unchecked-divide (Time/currentTimeMillis) (long 1000))))
+  (Time/currentTimeSecs))
 
 (defn clojurify-structure [s]
   (prewalk (fn [x]
@@ -125,7 +209,7 @@
 (defn mk-counter []
   (let [val (atom 0)]
     (fn []
-      (swap! val inc))))
+      (Integer. (swap! val inc)))))
 
 (defmacro for-times [times & body]
   `(for [i# (range ~times)]
@@ -324,10 +408,10 @@
   (- (System/currentTimeMillis) time-ms))
 
 (defn parse-int [str]
-  (Integer/parseInt str))
+  (Integer/valueOf str))
 
 (defn integer-divided [sum num-pieces]
-  (let [base (int (/ sum num-pieces))
+  (let [base (Integer. (int (/ sum num-pieces)))
         num-inc (mod sum num-pieces)
         num-bases (- num-pieces num-inc)]
     (if (= num-inc 0)

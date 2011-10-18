@@ -5,8 +5,7 @@
   :javac-options {:debug "true" :fork "true"}
   :resources-path "conf"
   :dev-resources-path "src/dev"
-  :dependencies [[org.clojure/clojure "1.2.0"]
-                 [org.clojure/clojure-contrib "1.2.0"]
+  :dependencies [[org.clojure/clojure "1.3.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [jvyaml "1.0.0"]
@@ -19,10 +18,12 @@
                  [compojure "0.6.4"]
                  [hiccup "0.3.6"]
                  [ring/ring-jetty-adapter "0.3.11"]
+                 [org.clojure/tools.logging "0.2.3"]
+                 [org.clojure/math.numeric-tower "0.0.1"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [
-                     [swank-clojure "1.2.1"]
+                     [swank-clojure "1.4.0-SNAPSHOT"]
                      [lein-ring "0.4.5"]
                     ]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]

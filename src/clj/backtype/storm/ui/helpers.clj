@@ -1,16 +1,14 @@
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [clojure.contrib
-         [str-utils2 :only [join]]
-         [def :only [defnk]]])
-  (:use [backtype.storm.util :only [uuid]])
+  (:use [clojure [string :only [join]]])
+  (:use [backtype.storm.util :only [uuid defnk]])
   (:use [clj-time coerce format])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
 
 (defn split-divide [val divider]
-  [(int (/ val divider)) (mod val divider)]
+  [(Integer. (int (/ val divider))) (mod val divider)]
   )
 
 (def PRETTY-SEC-DIVIDERS

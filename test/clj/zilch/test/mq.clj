@@ -6,8 +6,8 @@
 (defn uuid [] (str (UUID/randomUUID)))
 
 (defn random-msg []
-  (byte-array (map byte (for [i (range (int (rand 100)))]
-    (int (rand 100))
+  (byte-array (map byte (for [i (range (Integer. (int (rand 100))))]
+    (Integer. (int (rand 100)))
     ))))
 
 (def url

@@ -4,7 +4,7 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
-  (:require [clojure.contrib [str-utils2 :as str]])
+  (:require [clojure [string :as str]])
   (:use [backtype.storm util])
   )
 

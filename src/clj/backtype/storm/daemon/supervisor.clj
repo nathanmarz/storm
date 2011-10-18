@@ -385,9 +385,11 @@
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             ;; should detect if it was run with "storm jar" and copy or extract appropriately
-            url (.getResource classloader RESOURCES-SUBDIR)]
+            url (.getResource classloader RESOURCES-SUBDIR)
+            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
             (when url
-              (FileUtils/copyDirectory (File. (.getFile url)) (File. (str stormroot "/" RESOURCES-SUBDIR)))
+              (log-message "Copying resources at " (str url) " to " target-dir)
+              (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
               ))))
 
 (defmethod launch-worker

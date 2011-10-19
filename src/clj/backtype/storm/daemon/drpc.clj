@@ -1,5 +1,5 @@
 (ns backtype.storm.daemon.drpc
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Options])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift TException])
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
@@ -64,13 +64,12 @@
   ([spout-adder]
     (launch-server! DEFAULT-PORT spout-adder))
   ([port spout-adder]
-    (let [options (THsHaServer$Options.)
-         _ (set! (. options maxWorkerThreads) 64)
-         service-handler (service-handler spout-adder port)
-         server (THsHaServer.
-                 (DistributedRPC$Processor. service-handler)
-                 (TNonblockingServerSocket. port)
-                 (TBinaryProtocol$Factory.) options)]
+    (let [service-handler (service-handler spout-adder port)          
+          options (THsHaServer$Args. (TNonblockingServerSocket. port))
+          _ (set! (. options maxWorkerThreads) 64)
+          _ (set! (. options processor) (DistributedRPC$Processor. service-handler)) 
+          _ (set! (. options protocolFactory) (TBinaryProtocol$Factory.))
+          server (THsHaServer. options)]
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
       (log-message "Starting Distributed RPC server...")
       (.serve server))))

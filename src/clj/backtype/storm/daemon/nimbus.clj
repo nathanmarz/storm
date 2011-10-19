@@ -1,8 +1,10 @@
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Options])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift TException])
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [java.nio ByteBuffer])
+  (:import [java.nio.channels Channels WritableByteChannel])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:gen-class))
@@ -469,26 +471,26 @@
 
       (beginFileUpload [this]
         (let [fileloc (str inbox "/stormjar-" (uuid) ".jar")]
-          (.put uploaders fileloc (FileOutputStream. fileloc))
+          (.put uploaders fileloc (Channels/newChannel (FileOutputStream. fileloc)))
           (log-message "Uploading file from client to " fileloc)
           fileloc
           ))
       
-      (^void uploadChunk [this ^String location ^bytes chunk]
-             (let [^FileOutputStream os (.get uploaders location)]
-               (when-not os
+      (^void uploadChunk [this ^String location ^ByteBuffer chunk]
+             (let [^WritableByteChannel channel (.get uploaders location)]
+               (when-not channel
                  (throw (RuntimeException.
                          "File for that location does not exist (or timed out)")))
-               (.write os chunk)
-               (.put uploaders location os)
+               (.write channel chunk)
+               (.put uploaders location channel)
                ))
 
       (^void finishFileUpload [this ^String location]
-             (let [^FileOutputStream os (.get uploaders location)]
-               (when-not os
+             (let [^WritableByteChannel channel (.get uploaders location)]
+               (when-not channel
                  (throw (RuntimeException.
                          "File for that location does not exist (or timed out)")))
-               (.close os)
+               (.close channel)
                (log-message "Finished uploading file from client: " location)
                (.remove uploaders location)
                ))
@@ -500,7 +502,7 @@
                  id
                  ))
 
-      (^bytes downloadChunk [this ^String id]
+      (^ByteBuffer downloadChunk [this ^String id]
               (let [^BufferFileInputStream is (.get downloaders id)]
                 (when-not is
                   (throw (RuntimeException.
@@ -509,7 +511,7 @@
                   (.put downloaders id is)
                   (when (empty? ret)
                     (.remove downloaders id))
-                  ret
+                  (ByteBuffer/wrap ret)
                   )))
 
       (^String getTopologyConf [this ^String id]
@@ -604,13 +606,15 @@
 
 (defn launch-server! [conf]
   (validate-distributed-mode! conf)
-  (let [options (THsHaServer$Options.)
-       _ (set! (. options maxWorkerThreads) 64)
-       service-handler (service-handler conf)
-       server (THsHaServer.
-               (Nimbus$Processor. service-handler)
-               (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
-               (TBinaryProtocol$Factory.) options)]
+  (let [service-handler (service-handler conf)
+        options (THsHaServer$Args.
+                  (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT))))
+        _ (set! (. options workerThreads) 64)
+        _ (set! (. options processor) (Nimbus$Processor. service-handler))
+        _ (set! (. options protocolFactory) (TBinaryProtocol$Factory.))
+        _ (set! (. options maxWorkerThreads) 64)
+       
+       server (THsHaServer. options)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))

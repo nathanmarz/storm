@@ -13,6 +13,9 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -135,13 +138,11 @@ public class Utils {
     public static void downloadFromMaster(Map conf, String file, String localFile) throws IOException, TException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
         String id = client.getClient().beginFileDownload(file);
-        FileOutputStream out = new FileOutputStream(localFile);
+        WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
         while(true) {
-            byte[] chunk = client.getClient().downloadChunk(id);
-            if(chunk.length==0) {
-                break;
-            }
-            out.write(chunk);
+            ByteBuffer chunk = client.getClient().downloadChunk(id);
+            int written = out.write(chunk);
+            if(written==0) break;
         }
         out.close();
     }

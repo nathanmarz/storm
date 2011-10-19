@@ -64,11 +64,13 @@
   ([spout-adder]
     (launch-server! DEFAULT-PORT spout-adder))
   ([port spout-adder]
-    (let [service-handler (service-handler spout-adder port)          
-          options (THsHaServer$Args. (TNonblockingServerSocket. port))
-          _ (set! (. options maxWorkerThreads) 64)
-          _ (set! (. options processor) (DistributedRPC$Processor. service-handler)) 
-          _ (set! (. options protocolFactory) (TBinaryProtocol$Factory.))
+    (let [service-handler (service-handler spout-adder port)     
+          options (-> (TNonblockingServerSocket. port)
+                    (THsHaServer$Args.)
+                    (.workerThreads 64)
+                    (.protocolFactory (TBinaryProtocol$Factory.))
+                    (.processor (DistributedRPC$Processor. service-handler))
+                    )
           server (THsHaServer. options)]
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
       (log-message "Starting Distributed RPC server...")

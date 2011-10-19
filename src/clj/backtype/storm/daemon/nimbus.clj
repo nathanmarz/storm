@@ -607,13 +607,12 @@
 (defn launch-server! [conf]
   (validate-distributed-mode! conf)
   (let [service-handler (service-handler conf)
-        options (THsHaServer$Args.
-                  (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT))))
-        _ (set! (. options workerThreads) 64)
-        _ (set! (. options processor) (Nimbus$Processor. service-handler))
-        _ (set! (. options protocolFactory) (TBinaryProtocol$Factory.))
-        _ (set! (. options maxWorkerThreads) 64)
-       
+        options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
+                    (THsHaServer$Args.)
+                    (.workerThreads 64)
+                    (.protocolFactory (TBinaryProtocol$Factory.))
+                    (.processor (Nimbus$Processor. service-handler))
+                    )
        server (THsHaServer. options)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")

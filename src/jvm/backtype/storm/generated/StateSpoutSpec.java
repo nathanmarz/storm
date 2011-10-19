@@ -21,17 +21,17 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, StateSpoutSpec._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("StateSpoutSpec");
+public class StateSpoutSpec implements org.apache.thrift7.TBase<StateSpoutSpec, StateSpoutSpec._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("StateSpoutSpec");
 
-  private static final org.apache.thrift.protocol.TField STATE_SPOUT_OBJECT_FIELD_DESC = new org.apache.thrift.protocol.TField("state_spout_object", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift.protocol.TField("common", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift7.protocol.TField STATE_SPOUT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("state_spout_object", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
   private ComponentObject state_spout_object; // required
   private ComponentCommon common; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     STATE_SPOUT_OBJECT((short)1, "state_spout_object"),
     COMMON((short)2, "common");
 
@@ -93,15 +93,15 @@ public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, S
 
   // isset id assignments
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.STATE_SPOUT_OBJECT, new org.apache.thrift.meta_data.FieldMetaData("state_spout_object", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ComponentObject.class)));
-    tmpMap.put(_Fields.COMMON, new org.apache.thrift.meta_data.FieldMetaData("common", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ComponentCommon.class)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.STATE_SPOUT_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("state_spout_object", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentObject.class)));
+    tmpMap.put(_Fields.COMMON, new org.apache.thrift7.meta_data.FieldMetaData("common", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentCommon.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(StateSpoutSpec.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(StateSpoutSpec.class, metaDataMap);
   }
 
   public StateSpoutSpec() {
@@ -296,7 +296,7 @@ public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, S
       return lastComparison;
     }
     if (is_set_state_spout_object()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.state_spout_object, typedOther.state_spout_object);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.state_spout_object, typedOther.state_spout_object);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -306,7 +306,7 @@ public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, S
       return lastComparison;
     }
     if (is_set_common()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.common, typedOther.common);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.common, typedOther.common);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -318,34 +318,34 @@ public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, S
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // STATE_SPOUT_OBJECT
-          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.state_spout_object = new ComponentObject();
             this.state_spout_object.read(iprot);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // COMMON
-          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.common = new ComponentCommon();
             this.common.read(iprot);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -353,7 +353,7 @@ public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, S
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -395,30 +395,30 @@ public class StateSpoutSpec implements org.apache.thrift.TBase<StateSpoutSpec, S
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_state_spout_object()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'state_spout_object' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'state_spout_object' is unset! Struct:" + toString());
     }
 
     if (!is_set_common()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'common' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'common' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

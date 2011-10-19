@@ -21,19 +21,19 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TaskStats");
+public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("TaskStats");
 
-  private static final org.apache.thrift.protocol.TField EMITTED_FIELD_DESC = new org.apache.thrift.protocol.TField("emitted", org.apache.thrift.protocol.TType.MAP, (short)1);
-  private static final org.apache.thrift.protocol.TField TRANSFERRED_FIELD_DESC = new org.apache.thrift.protocol.TField("transferred", org.apache.thrift.protocol.TType.MAP, (short)2);
-  private static final org.apache.thrift.protocol.TField SPECIFIC_FIELD_DESC = new org.apache.thrift.protocol.TField("specific", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift7.protocol.TField EMITTED_FIELD_DESC = new org.apache.thrift7.protocol.TField("emitted", org.apache.thrift7.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift7.protocol.TField TRANSFERRED_FIELD_DESC = new org.apache.thrift7.protocol.TField("transferred", org.apache.thrift7.protocol.TType.MAP, (short)2);
+  private static final org.apache.thrift7.protocol.TField SPECIFIC_FIELD_DESC = new org.apache.thrift7.protocol.TField("specific", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
   private Map<String,Map<Integer,Long>> emitted; // required
   private Map<String,Map<Integer,Long>> transferred; // required
   private TaskSpecificStats specific; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     EMITTED((short)1, "emitted"),
     TRANSFERRED((short)2, "transferred"),
     SPECIFIC((short)3, "specific");
@@ -98,25 +98,25 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
 
   // isset id assignments
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EMITTED, new org.apache.thrift.meta_data.FieldMetaData("emitted", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)))));
-    tmpMap.put(_Fields.TRANSFERRED, new org.apache.thrift.meta_data.FieldMetaData("transferred", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)))));
-    tmpMap.put(_Fields.SPECIFIC, new org.apache.thrift.meta_data.FieldMetaData("specific", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TaskSpecificStats.class)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.EMITTED, new org.apache.thrift7.meta_data.FieldMetaData("emitted", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)))));
+    tmpMap.put(_Fields.TRANSFERRED, new org.apache.thrift7.meta_data.FieldMetaData("transferred", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)))));
+    tmpMap.put(_Fields.SPECIFIC, new org.apache.thrift7.meta_data.FieldMetaData("specific", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskSpecificStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TaskStats.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TaskStats.class, metaDataMap);
   }
 
   public TaskStats() {
@@ -435,7 +435,7 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
       return lastComparison;
     }
     if (is_set_emitted()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.emitted, typedOther.emitted);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.emitted, typedOther.emitted);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -445,7 +445,7 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
       return lastComparison;
     }
     if (is_set_transferred()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.transferred, typedOther.transferred);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.transferred, typedOther.transferred);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -455,7 +455,7 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
       return lastComparison;
     }
     if (is_set_specific()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.specific, typedOther.specific);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.specific, typedOther.specific);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -467,20 +467,20 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // EMITTED
-          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift.protocol.TMap _map101 = iprot.readMapBegin();
+              org.apache.thrift7.protocol.TMap _map101 = iprot.readMapBegin();
               this.emitted = new HashMap<String,Map<Integer,Long>>(2*_map101.size);
               for (int _i102 = 0; _i102 < _map101.size; ++_i102)
               {
@@ -488,7 +488,7 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
                 Map<Integer,Long> _val104; // required
                 _key103 = iprot.readString();
                 {
-                  org.apache.thrift.protocol.TMap _map105 = iprot.readMapBegin();
+                  org.apache.thrift7.protocol.TMap _map105 = iprot.readMapBegin();
                   _val104 = new HashMap<Integer,Long>(2*_map105.size);
                   for (int _i106 = 0; _i106 < _map105.size; ++_i106)
                   {
@@ -505,13 +505,13 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // TRANSFERRED
-          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift.protocol.TMap _map109 = iprot.readMapBegin();
+              org.apache.thrift7.protocol.TMap _map109 = iprot.readMapBegin();
               this.transferred = new HashMap<String,Map<Integer,Long>>(2*_map109.size);
               for (int _i110 = 0; _i110 < _map109.size; ++_i110)
               {
@@ -519,7 +519,7 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
                 Map<Integer,Long> _val112; // required
                 _key111 = iprot.readString();
                 {
-                  org.apache.thrift.protocol.TMap _map113 = iprot.readMapBegin();
+                  org.apache.thrift7.protocol.TMap _map113 = iprot.readMapBegin();
                   _val112 = new HashMap<Integer,Long>(2*_map113.size);
                   for (int _i114 = 0; _i114 < _map113.size; ++_i114)
                   {
@@ -536,19 +536,19 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // SPECIFIC
-          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.specific = new TaskSpecificStats();
             this.specific.read(iprot);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -556,19 +556,19 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.emitted != null) {
       oprot.writeFieldBegin(EMITTED_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, this.emitted.size()));
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.emitted.size()));
         for (Map.Entry<String, Map<Integer,Long>> _iter117 : this.emitted.entrySet())
         {
           oprot.writeString(_iter117.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I64, _iter117.getValue().size()));
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.I64, _iter117.getValue().size()));
             for (Map.Entry<Integer, Long> _iter118 : _iter117.getValue().entrySet())
             {
               oprot.writeI32(_iter118.getKey());
@@ -584,12 +584,12 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
     if (this.transferred != null) {
       oprot.writeFieldBegin(TRANSFERRED_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, this.transferred.size()));
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.transferred.size()));
         for (Map.Entry<String, Map<Integer,Long>> _iter119 : this.transferred.entrySet())
         {
           oprot.writeString(_iter119.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I64, _iter119.getValue().size()));
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.I64, _iter119.getValue().size()));
             for (Map.Entry<Integer, Long> _iter120 : _iter119.getValue().entrySet())
             {
               oprot.writeI32(_iter120.getKey());
@@ -643,34 +643,34 @@ public class TaskStats implements org.apache.thrift.TBase<TaskStats, TaskStats._
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_emitted()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'emitted' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'emitted' is unset! Struct:" + toString());
     }
 
     if (!is_set_transferred()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'transferred' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'transferred' is unset! Struct:" + toString());
     }
 
     if (!is_set_specific()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'specific' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'specific' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

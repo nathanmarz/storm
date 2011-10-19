@@ -21,17 +21,17 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ErrorInfo");
+public class ErrorInfo implements org.apache.thrift7.TBase<ErrorInfo, ErrorInfo._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ErrorInfo");
 
-  private static final org.apache.thrift.protocol.TField ERROR_FIELD_DESC = new org.apache.thrift.protocol.TField("error", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField ERROR_TIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("error_time_secs", org.apache.thrift.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift7.protocol.TField ERROR_FIELD_DESC = new org.apache.thrift7.protocol.TField("error", org.apache.thrift7.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift7.protocol.TField ERROR_TIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("error_time_secs", org.apache.thrift7.protocol.TType.I32, (short)2);
 
   private String error; // required
   private int error_time_secs; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     ERROR((short)1, "error"),
     ERROR_TIME_SECS((short)2, "error_time_secs");
 
@@ -95,15 +95,15 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
   private static final int __ERROR_TIME_SECS_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.ERROR, new org.apache.thrift.meta_data.FieldMetaData("error", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.ERROR_TIME_SECS, new org.apache.thrift.meta_data.FieldMetaData("error_time_secs", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.ERROR, new org.apache.thrift7.meta_data.FieldMetaData("error", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+    tmpMap.put(_Fields.ERROR_TIME_SECS, new org.apache.thrift7.meta_data.FieldMetaData("error_time_secs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ErrorInfo.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ErrorInfo.class, metaDataMap);
   }
 
   public ErrorInfo() {
@@ -299,7 +299,7 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
       return lastComparison;
     }
     if (is_set_error()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.error, typedOther.error);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.error, typedOther.error);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -309,7 +309,7 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
       return lastComparison;
     }
     if (is_set_error_time_secs()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.error_time_secs, typedOther.error_time_secs);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.error_time_secs, typedOther.error_time_secs);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -321,33 +321,33 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // ERROR
-          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
             this.error = iprot.readString();
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // ERROR_TIME_SECS
-          if (field.type == org.apache.thrift.protocol.TType.I32) {
+          if (field.type == org.apache.thrift7.protocol.TType.I32) {
             this.error_time_secs = iprot.readI32();
             set_error_time_secs_isSet(true);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -355,7 +355,7 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -391,22 +391,22 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_error()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'error' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'error' is unset! Struct:" + toString());
     }
 
     if (!is_set_error_time_secs()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'error_time_secs' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'error_time_secs' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -415,8 +415,8 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     try {
       // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
       __isset_bit_vector = new BitSet(1);
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

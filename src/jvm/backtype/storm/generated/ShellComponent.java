@@ -21,17 +21,17 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, ShellComponent._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ShellComponent");
+public class ShellComponent implements org.apache.thrift7.TBase<ShellComponent, ShellComponent._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ShellComponent");
 
-  private static final org.apache.thrift.protocol.TField EXECUTION_COMMAND_FIELD_DESC = new org.apache.thrift.protocol.TField("execution_command", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField SCRIPT_FIELD_DESC = new org.apache.thrift.protocol.TField("script", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift7.protocol.TField EXECUTION_COMMAND_FIELD_DESC = new org.apache.thrift7.protocol.TField("execution_command", org.apache.thrift7.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift7.protocol.TField SCRIPT_FIELD_DESC = new org.apache.thrift7.protocol.TField("script", org.apache.thrift7.protocol.TType.STRING, (short)2);
 
   private String execution_command; // required
   private String script; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     EXECUTION_COMMAND((short)1, "execution_command"),
     SCRIPT((short)2, "script");
 
@@ -93,15 +93,15 @@ public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, S
 
   // isset id assignments
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXECUTION_COMMAND, new org.apache.thrift.meta_data.FieldMetaData("execution_command", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.SCRIPT, new org.apache.thrift.meta_data.FieldMetaData("script", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.EXECUTION_COMMAND, new org.apache.thrift7.meta_data.FieldMetaData("execution_command", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+    tmpMap.put(_Fields.SCRIPT, new org.apache.thrift7.meta_data.FieldMetaData("script", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ShellComponent.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ShellComponent.class, metaDataMap);
   }
 
   public ShellComponent() {
@@ -296,7 +296,7 @@ public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, S
       return lastComparison;
     }
     if (is_set_execution_command()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.execution_command, typedOther.execution_command);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.execution_command, typedOther.execution_command);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -306,7 +306,7 @@ public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, S
       return lastComparison;
     }
     if (is_set_script()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.script, typedOther.script);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.script, typedOther.script);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -318,32 +318,32 @@ public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, S
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // EXECUTION_COMMAND
-          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
             this.execution_command = iprot.readString();
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // SCRIPT
-          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
             this.script = iprot.readString();
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -351,7 +351,7 @@ public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, S
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -393,22 +393,22 @@ public class ShellComponent implements org.apache.thrift.TBase<ShellComponent, S
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

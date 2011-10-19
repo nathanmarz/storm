@@ -21,19 +21,19 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StormTopology implements org.apache.thrift.TBase<StormTopology, StormTopology._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("StormTopology");
+public class StormTopology implements org.apache.thrift7.TBase<StormTopology, StormTopology._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("StormTopology");
 
-  private static final org.apache.thrift.protocol.TField SPOUTS_FIELD_DESC = new org.apache.thrift.protocol.TField("spouts", org.apache.thrift.protocol.TType.MAP, (short)1);
-  private static final org.apache.thrift.protocol.TField BOLTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bolts", org.apache.thrift.protocol.TType.MAP, (short)2);
-  private static final org.apache.thrift.protocol.TField STATE_SPOUTS_FIELD_DESC = new org.apache.thrift.protocol.TField("state_spouts", org.apache.thrift.protocol.TType.MAP, (short)3);
+  private static final org.apache.thrift7.protocol.TField SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("spouts", org.apache.thrift7.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift7.protocol.TField BOLTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolts", org.apache.thrift7.protocol.TType.MAP, (short)2);
+  private static final org.apache.thrift7.protocol.TField STATE_SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("state_spouts", org.apache.thrift7.protocol.TType.MAP, (short)3);
 
   private Map<Integer,SpoutSpec> spouts; // required
   private Map<Integer,Bolt> bolts; // required
   private Map<Integer,StateSpoutSpec> state_spouts; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     SPOUTS((short)1, "spouts"),
     BOLTS((short)2, "bolts"),
     STATE_SPOUTS((short)3, "state_spouts");
@@ -98,23 +98,23 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
 
   // isset id assignments
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SPOUTS, new org.apache.thrift.meta_data.FieldMetaData("spouts", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SpoutSpec.class))));
-    tmpMap.put(_Fields.BOLTS, new org.apache.thrift.meta_data.FieldMetaData("bolts", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Bolt.class))));
-    tmpMap.put(_Fields.STATE_SPOUTS, new org.apache.thrift.meta_data.FieldMetaData("state_spouts", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, StateSpoutSpec.class))));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.SPOUTS, new org.apache.thrift7.meta_data.FieldMetaData("spouts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, SpoutSpec.class))));
+    tmpMap.put(_Fields.BOLTS, new org.apache.thrift7.meta_data.FieldMetaData("bolts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, Bolt.class))));
+    tmpMap.put(_Fields.STATE_SPOUTS, new org.apache.thrift7.meta_data.FieldMetaData("state_spouts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, StateSpoutSpec.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(StormTopology.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(StormTopology.class, metaDataMap);
   }
 
   public StormTopology() {
@@ -434,7 +434,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
       return lastComparison;
     }
     if (is_set_spouts()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.spouts, typedOther.spouts);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.spouts, typedOther.spouts);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -444,7 +444,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
       return lastComparison;
     }
     if (is_set_bolts()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bolts, typedOther.bolts);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.bolts, typedOther.bolts);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -454,7 +454,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
       return lastComparison;
     }
     if (is_set_state_spouts()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.state_spouts, typedOther.state_spouts);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.state_spouts, typedOther.state_spouts);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -466,20 +466,20 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // SPOUTS
-          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift.protocol.TMap _map18 = iprot.readMapBegin();
+              org.apache.thrift7.protocol.TMap _map18 = iprot.readMapBegin();
               this.spouts = new HashMap<Integer,SpoutSpec>(2*_map18.size);
               for (int _i19 = 0; _i19 < _map18.size; ++_i19)
               {
@@ -493,13 +493,13 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // BOLTS
-          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift.protocol.TMap _map22 = iprot.readMapBegin();
+              org.apache.thrift7.protocol.TMap _map22 = iprot.readMapBegin();
               this.bolts = new HashMap<Integer,Bolt>(2*_map22.size);
               for (int _i23 = 0; _i23 < _map22.size; ++_i23)
               {
@@ -513,13 +513,13 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // STATE_SPOUTS
-          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift.protocol.TMap _map26 = iprot.readMapBegin();
+              org.apache.thrift7.protocol.TMap _map26 = iprot.readMapBegin();
               this.state_spouts = new HashMap<Integer,StateSpoutSpec>(2*_map26.size);
               for (int _i27 = 0; _i27 < _map26.size; ++_i27)
               {
@@ -533,11 +533,11 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -545,14 +545,14 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.spouts != null) {
       oprot.writeFieldBegin(SPOUTS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.STRUCT, this.spouts.size()));
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.spouts.size()));
         for (Map.Entry<Integer, SpoutSpec> _iter30 : this.spouts.entrySet())
         {
           oprot.writeI32(_iter30.getKey());
@@ -565,7 +565,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
     if (this.bolts != null) {
       oprot.writeFieldBegin(BOLTS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.STRUCT, this.bolts.size()));
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.bolts.size()));
         for (Map.Entry<Integer, Bolt> _iter31 : this.bolts.entrySet())
         {
           oprot.writeI32(_iter31.getKey());
@@ -578,7 +578,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
     if (this.state_spouts != null) {
       oprot.writeFieldBegin(STATE_SPOUTS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.STRUCT, this.state_spouts.size()));
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.state_spouts.size()));
         for (Map.Entry<Integer, StateSpoutSpec> _iter32 : this.state_spouts.entrySet())
         {
           oprot.writeI32(_iter32.getKey());
@@ -624,34 +624,34 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_spouts()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'spouts' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'spouts' is unset! Struct:" + toString());
     }
 
     if (!is_set_bolts()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'bolts' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'bolts' is unset! Struct:" + toString());
     }
 
     if (!is_set_state_spouts()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'state_spouts' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'state_spouts' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

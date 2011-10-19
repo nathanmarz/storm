@@ -21,17 +21,17 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon, ComponentCommon._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ComponentCommon");
+public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon, ComponentCommon._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ComponentCommon");
 
-  private static final org.apache.thrift.protocol.TField STREAMS_FIELD_DESC = new org.apache.thrift.protocol.TField("streams", org.apache.thrift.protocol.TType.MAP, (short)1);
-  private static final org.apache.thrift.protocol.TField PARALLELISM_HINT_FIELD_DESC = new org.apache.thrift.protocol.TField("parallelism_hint", org.apache.thrift.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift7.protocol.TField STREAMS_FIELD_DESC = new org.apache.thrift7.protocol.TField("streams", org.apache.thrift7.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift7.protocol.TField PARALLELISM_HINT_FIELD_DESC = new org.apache.thrift7.protocol.TField("parallelism_hint", org.apache.thrift7.protocol.TType.I32, (short)2);
 
   private Map<Integer,StreamInfo> streams; // required
   private int parallelism_hint; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     STREAMS((short)1, "streams"),
     PARALLELISM_HINT((short)2, "parallelism_hint");
 
@@ -95,17 +95,17 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
   private static final int __PARALLELISM_HINT_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.STREAMS, new org.apache.thrift.meta_data.FieldMetaData("streams", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, StreamInfo.class))));
-    tmpMap.put(_Fields.PARALLELISM_HINT, new org.apache.thrift.meta_data.FieldMetaData("parallelism_hint", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.STREAMS, new org.apache.thrift7.meta_data.FieldMetaData("streams", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, StreamInfo.class))));
+    tmpMap.put(_Fields.PARALLELISM_HINT, new org.apache.thrift7.meta_data.FieldMetaData("parallelism_hint", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ComponentCommon.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ComponentCommon.class, metaDataMap);
   }
 
   public ComponentCommon() {
@@ -321,7 +321,7 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
       return lastComparison;
     }
     if (is_set_streams()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.streams, typedOther.streams);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.streams, typedOther.streams);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -331,7 +331,7 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
       return lastComparison;
     }
     if (is_set_parallelism_hint()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.parallelism_hint, typedOther.parallelism_hint);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.parallelism_hint, typedOther.parallelism_hint);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -343,20 +343,20 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // STREAMS
-          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift.protocol.TMap _map8 = iprot.readMapBegin();
+              org.apache.thrift7.protocol.TMap _map8 = iprot.readMapBegin();
               this.streams = new HashMap<Integer,StreamInfo>(2*_map8.size);
               for (int _i9 = 0; _i9 < _map8.size; ++_i9)
               {
@@ -370,19 +370,19 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // PARALLELISM_HINT
-          if (field.type == org.apache.thrift.protocol.TType.I32) {
+          if (field.type == org.apache.thrift7.protocol.TType.I32) {
             this.parallelism_hint = iprot.readI32();
             set_parallelism_hint_isSet(true);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -390,14 +390,14 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.streams != null) {
       oprot.writeFieldBegin(STREAMS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.STRUCT, this.streams.size()));
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.streams.size()));
         for (Map.Entry<Integer, StreamInfo> _iter12 : this.streams.entrySet())
         {
           oprot.writeI32(_iter12.getKey());
@@ -438,18 +438,18 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_streams()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'streams' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'streams' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -458,8 +458,8 @@ public class ComponentCommon implements org.apache.thrift.TBase<ComponentCommon,
     try {
       // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
       __isset_bit_vector = new BitSet(1);
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

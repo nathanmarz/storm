@@ -10,7 +10,7 @@
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [jvyaml "1.0.0"]
-                 [org.apache.thrift/libthrift "0.7.0"]
+                 [storm/libthrift7 "0.7.0"]
                  [clj-time "0.3.0"]
                  [log4j/log4j "1.2.16"]
                  [org.apache.zookeeper/zookeeper "3.3.2"]

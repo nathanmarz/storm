@@ -21,19 +21,19 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, ClusterSummary._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ClusterSummary");
+public class ClusterSummary implements org.apache.thrift7.TBase<ClusterSummary, ClusterSummary._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ClusterSummary");
 
-  private static final org.apache.thrift.protocol.TField SUPERVISORS_FIELD_DESC = new org.apache.thrift.protocol.TField("supervisors", org.apache.thrift.protocol.TType.LIST, (short)1);
-  private static final org.apache.thrift.protocol.TField NIMBUS_UPTIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("nimbus_uptime_secs", org.apache.thrift.protocol.TType.I32, (short)2);
-  private static final org.apache.thrift.protocol.TField TOPOLOGIES_FIELD_DESC = new org.apache.thrift.protocol.TField("topologies", org.apache.thrift.protocol.TType.LIST, (short)3);
+  private static final org.apache.thrift7.protocol.TField SUPERVISORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("supervisors", org.apache.thrift7.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift7.protocol.TField NIMBUS_UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("nimbus_uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift7.protocol.TField TOPOLOGIES_FIELD_DESC = new org.apache.thrift7.protocol.TField("topologies", org.apache.thrift7.protocol.TType.LIST, (short)3);
 
   private List<SupervisorSummary> supervisors; // required
   private int nimbus_uptime_secs; // required
   private List<TopologySummary> topologies; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     SUPERVISORS((short)1, "supervisors"),
     NIMBUS_UPTIME_SECS((short)2, "nimbus_uptime_secs"),
     TOPOLOGIES((short)3, "topologies");
@@ -100,19 +100,19 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
   private static final int __NIMBUS_UPTIME_SECS_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SUPERVISORS, new org.apache.thrift.meta_data.FieldMetaData("supervisors", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorSummary.class))));
-    tmpMap.put(_Fields.NIMBUS_UPTIME_SECS, new org.apache.thrift.meta_data.FieldMetaData("nimbus_uptime_secs", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-    tmpMap.put(_Fields.TOPOLOGIES, new org.apache.thrift.meta_data.FieldMetaData("topologies", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TopologySummary.class))));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.SUPERVISORS, new org.apache.thrift7.meta_data.FieldMetaData("supervisors", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, SupervisorSummary.class))));
+    tmpMap.put(_Fields.NIMBUS_UPTIME_SECS, new org.apache.thrift7.meta_data.FieldMetaData("nimbus_uptime_secs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.TOPOLOGIES, new org.apache.thrift7.meta_data.FieldMetaData("topologies", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TopologySummary.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ClusterSummary.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ClusterSummary.class, metaDataMap);
   }
 
   public ClusterSummary() {
@@ -402,7 +402,7 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       return lastComparison;
     }
     if (is_set_supervisors()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.supervisors, typedOther.supervisors);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.supervisors, typedOther.supervisors);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -412,7 +412,7 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       return lastComparison;
     }
     if (is_set_nimbus_uptime_secs()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.nimbus_uptime_secs, typedOther.nimbus_uptime_secs);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.nimbus_uptime_secs, typedOther.nimbus_uptime_secs);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -422,7 +422,7 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       return lastComparison;
     }
     if (is_set_topologies()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.topologies, typedOther.topologies);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.topologies, typedOther.topologies);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -434,20 +434,20 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // SUPERVISORS
-          if (field.type == org.apache.thrift.protocol.TType.LIST) {
+          if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list33 = iprot.readListBegin();
+              org.apache.thrift7.protocol.TList _list33 = iprot.readListBegin();
               this.supervisors = new ArrayList<SupervisorSummary>(_list33.size);
               for (int _i34 = 0; _i34 < _list33.size; ++_i34)
               {
@@ -459,21 +459,21 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
               iprot.readListEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // NIMBUS_UPTIME_SECS
-          if (field.type == org.apache.thrift.protocol.TType.I32) {
+          if (field.type == org.apache.thrift7.protocol.TType.I32) {
             this.nimbus_uptime_secs = iprot.readI32();
             set_nimbus_uptime_secs_isSet(true);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // TOPOLOGIES
-          if (field.type == org.apache.thrift.protocol.TType.LIST) {
+          if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list36 = iprot.readListBegin();
+              org.apache.thrift7.protocol.TList _list36 = iprot.readListBegin();
               this.topologies = new ArrayList<TopologySummary>(_list36.size);
               for (int _i37 = 0; _i37 < _list36.size; ++_i37)
               {
@@ -485,11 +485,11 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
               iprot.readListEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -497,14 +497,14 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.supervisors != null) {
       oprot.writeFieldBegin(SUPERVISORS_FIELD_DESC);
       {
-        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.supervisors.size()));
+        oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.supervisors.size()));
         for (SupervisorSummary _iter39 : this.supervisors)
         {
           _iter39.write(oprot);
@@ -519,7 +519,7 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     if (this.topologies != null) {
       oprot.writeFieldBegin(TOPOLOGIES_FIELD_DESC);
       {
-        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.topologies.size()));
+        oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.topologies.size()));
         for (TopologySummary _iter40 : this.topologies)
         {
           _iter40.write(oprot);
@@ -560,26 +560,26 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_supervisors()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'supervisors' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'supervisors' is unset! Struct:" + toString());
     }
 
     if (!is_set_nimbus_uptime_secs()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'nimbus_uptime_secs' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'nimbus_uptime_secs' is unset! Struct:" + toString());
     }
 
     if (!is_set_topologies()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'topologies' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'topologies' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -588,8 +588,8 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     try {
       // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
       __isset_bit_vector = new BitSet(1);
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

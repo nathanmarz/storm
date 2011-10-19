@@ -21,13 +21,13 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, ComponentObject._Fields> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ComponentObject");
-  private static final org.apache.thrift.protocol.TField SERIALIZED_JAVA_FIELD_DESC = new org.apache.thrift.protocol.TField("serialized_java", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField SHELL_FIELD_DESC = new org.apache.thrift.protocol.TField("shell", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, ComponentObject._Fields> {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ComponentObject");
+  private static final org.apache.thrift7.protocol.TField SERIALIZED_JAVA_FIELD_DESC = new org.apache.thrift7.protocol.TField("serialized_java", org.apache.thrift7.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift7.protocol.TField SHELL_FIELD_DESC = new org.apache.thrift7.protocol.TField("shell", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     SERIALIZED_JAVA((short)1, "serialized_java"),
     SHELL((short)2, "shell");
 
@@ -87,15 +87,15 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
     }
   }
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SERIALIZED_JAVA, new org.apache.thrift.meta_data.FieldMetaData("serialized_java", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
-    tmpMap.put(_Fields.SHELL, new org.apache.thrift.meta_data.FieldMetaData("shell", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ShellComponent.class)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.SERIALIZED_JAVA, new org.apache.thrift7.meta_data.FieldMetaData("serialized_java", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING        , true)));
+    tmpMap.put(_Fields.SHELL, new org.apache.thrift7.meta_data.FieldMetaData("shell", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ShellComponent.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ComponentObject.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ComponentObject.class, metaDataMap);
   }
 
   public ComponentObject() {
@@ -151,7 +151,7 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
   }
 
   @Override
-  protected Object readValue(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TField field) throws org.apache.thrift.TException {
+  protected Object readValue(org.apache.thrift7.protocol.TProtocol iprot, org.apache.thrift7.protocol.TField field) throws org.apache.thrift7.TException {
     _Fields setField = _Fields.findByThriftId(field.id);
     if (setField != null) {
       switch (setField) {
@@ -161,7 +161,7 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
             serialized_java = iprot.readBinary();
             return serialized_java;
           } else {
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
         case SHELL:
@@ -171,20 +171,20 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
             shell.read(iprot);
             return shell;
           } else {
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
     } else {
-      org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+      org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       return null;
     }
   }
 
   @Override
-  protected void writeValue(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  protected void writeValue(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     switch (setField_) {
       case SERIALIZED_JAVA:
         ByteBuffer serialized_java = (ByteBuffer)value_;
@@ -200,7 +200,7 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
   }
 
   @Override
-  protected org.apache.thrift.protocol.TField getFieldDesc(_Fields setField) {
+  protected org.apache.thrift7.protocol.TField getFieldDesc(_Fields setField) {
     switch (setField) {
       case SERIALIZED_JAVA:
         return SERIALIZED_JAVA_FIELD_DESC;
@@ -212,7 +212,7 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
   }
 
   @Override
-  protected org.apache.thrift.protocol.TStruct getStructDesc() {
+  protected org.apache.thrift7.protocol.TStruct getStructDesc() {
     return STRUCT_DESC;
   }
 
@@ -227,7 +227,7 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
 
 
   public byte[] get_serialized_java() {
-    set_serialized_java(org.apache.thrift.TBaseHelper.rightSize(buffer_for_serialized_java()));
+    set_serialized_java(org.apache.thrift7.TBaseHelper.rightSize(buffer_for_serialized_java()));
     ByteBuffer b = buffer_for_serialized_java();
     return b == null ? null : b.array();
   }
@@ -288,9 +288,9 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
 
   @Override
   public int compareTo(ComponentObject other) {
-    int lastComparison = org.apache.thrift.TBaseHelper.compareTo(getSetField(), other.getSetField());
+    int lastComparison = org.apache.thrift7.TBaseHelper.compareTo(getSetField(), other.getSetField());
     if (lastComparison == 0) {
-      return org.apache.thrift.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());
+      return org.apache.thrift7.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());
     }
     return lastComparison;
   }
@@ -300,12 +300,12 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
   public int hashCode() {
     HashCodeBuilder hcb = new HashCodeBuilder();
     hcb.append(this.getClass().getName());
-    org.apache.thrift.TFieldIdEnum setField = getSetField();
+    org.apache.thrift7.TFieldIdEnum setField = getSetField();
     if (setField != null) {
       hcb.append(setField.getThriftFieldId());
       Object value = getFieldValue();
-      if (value instanceof org.apache.thrift.TEnum) {
-        hcb.append(((org.apache.thrift.TEnum)getFieldValue()).getValue());
+      if (value instanceof org.apache.thrift7.TEnum) {
+        hcb.append(((org.apache.thrift7.TEnum)getFieldValue()).getValue());
       } else {
         hcb.append(value);
       }
@@ -314,8 +314,8 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
   }
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -323,8 +323,8 @@ public class ComponentObject extends org.apache.thrift.TUnion<ComponentObject, C
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

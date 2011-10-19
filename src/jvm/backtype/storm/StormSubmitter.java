@@ -10,7 +10,7 @@ import backtype.storm.utils.Utils;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import org.apache.log4j.Logger;
-import org.apache.thrift.TException;
+import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 /**

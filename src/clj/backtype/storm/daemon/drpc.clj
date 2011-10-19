@@ -1,8 +1,8 @@
 (ns backtype.storm.daemon.drpc
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
-  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
-  (:import [org.apache.thrift TException])
-  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.thrift7.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift7 TException])
+  (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor])
   (:import [java.util.concurrent Semaphore])
   (:import [backtype.storm.drpc SpoutAdder])

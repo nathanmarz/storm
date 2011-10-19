@@ -21,17 +21,17 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInfo._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("StreamInfo");
+public class StreamInfo implements org.apache.thrift7.TBase<StreamInfo, StreamInfo._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("StreamInfo");
 
-  private static final org.apache.thrift.protocol.TField OUTPUT_FIELDS_FIELD_DESC = new org.apache.thrift.protocol.TField("output_fields", org.apache.thrift.protocol.TType.LIST, (short)1);
-  private static final org.apache.thrift.protocol.TField DIRECT_FIELD_DESC = new org.apache.thrift.protocol.TField("direct", org.apache.thrift.protocol.TType.BOOL, (short)2);
+  private static final org.apache.thrift7.protocol.TField OUTPUT_FIELDS_FIELD_DESC = new org.apache.thrift7.protocol.TField("output_fields", org.apache.thrift7.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift7.protocol.TField DIRECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("direct", org.apache.thrift7.protocol.TType.BOOL, (short)2);
 
   private List<String> output_fields; // required
   private boolean direct; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     OUTPUT_FIELDS((short)1, "output_fields"),
     DIRECT((short)2, "direct");
 
@@ -95,16 +95,16 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
   private static final int __DIRECT_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.OUTPUT_FIELDS, new org.apache.thrift.meta_data.FieldMetaData("output_fields", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
-    tmpMap.put(_Fields.DIRECT, new org.apache.thrift.meta_data.FieldMetaData("direct", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.OUTPUT_FIELDS, new org.apache.thrift7.meta_data.FieldMetaData("output_fields", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING))));
+    tmpMap.put(_Fields.DIRECT, new org.apache.thrift7.meta_data.FieldMetaData("direct", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.BOOL)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(StreamInfo.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(StreamInfo.class, metaDataMap);
   }
 
   public StreamInfo() {
@@ -319,7 +319,7 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
       return lastComparison;
     }
     if (is_set_output_fields()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.output_fields, typedOther.output_fields);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.output_fields, typedOther.output_fields);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -329,7 +329,7 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
       return lastComparison;
     }
     if (is_set_direct()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.direct, typedOther.direct);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.direct, typedOther.direct);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -341,20 +341,20 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // OUTPUT_FIELDS
-          if (field.type == org.apache.thrift.protocol.TType.LIST) {
+          if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list4 = iprot.readListBegin();
+              org.apache.thrift7.protocol.TList _list4 = iprot.readListBegin();
               this.output_fields = new ArrayList<String>(_list4.size);
               for (int _i5 = 0; _i5 < _list4.size; ++_i5)
               {
@@ -365,19 +365,19 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
               iprot.readListEnd();
             }
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // DIRECT
-          if (field.type == org.apache.thrift.protocol.TType.BOOL) {
+          if (field.type == org.apache.thrift7.protocol.TType.BOOL) {
             this.direct = iprot.readBool();
             set_direct_isSet(true);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -385,14 +385,14 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.output_fields != null) {
       oprot.writeFieldBegin(OUTPUT_FIELDS_FIELD_DESC);
       {
-        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.output_fields.size()));
+        oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRING, this.output_fields.size()));
         for (String _iter7 : this.output_fields)
         {
           oprot.writeString(_iter7);
@@ -428,22 +428,22 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_output_fields()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'output_fields' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'output_fields' is unset! Struct:" + toString());
     }
 
     if (!is_set_direct()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'direct' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'direct' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -452,8 +452,8 @@ public class StreamInfo implements org.apache.thrift.TBase<StreamInfo, StreamInf
     try {
       // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
       __isset_bit_vector = new BitSet(1);
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

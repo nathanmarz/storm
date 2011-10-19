@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.thrift.TException;
+import org.apache.thrift7.TException;
 import org.jvyaml.YAML;
 
 public class Utils {

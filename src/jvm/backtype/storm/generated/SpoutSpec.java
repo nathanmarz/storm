@@ -21,19 +21,19 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("SpoutSpec");
+public class SpoutSpec implements org.apache.thrift7.TBase<SpoutSpec, SpoutSpec._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("SpoutSpec");
 
-  private static final org.apache.thrift.protocol.TField SPOUT_OBJECT_FIELD_DESC = new org.apache.thrift.protocol.TField("spout_object", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift.protocol.TField("common", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-  private static final org.apache.thrift.protocol.TField DISTRIBUTED_FIELD_DESC = new org.apache.thrift.protocol.TField("distributed", org.apache.thrift.protocol.TType.BOOL, (short)3);
+  private static final org.apache.thrift7.protocol.TField SPOUT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("spout_object", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift7.protocol.TField DISTRIBUTED_FIELD_DESC = new org.apache.thrift7.protocol.TField("distributed", org.apache.thrift7.protocol.TType.BOOL, (short)3);
 
   private ComponentObject spout_object; // required
   private ComponentCommon common; // required
   private boolean distributed; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     SPOUT_OBJECT((short)1, "spout_object"),
     COMMON((short)2, "common"),
     DISTRIBUTED((short)3, "distributed");
@@ -100,17 +100,17 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
   private static final int __DISTRIBUTED_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
-  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SPOUT_OBJECT, new org.apache.thrift.meta_data.FieldMetaData("spout_object", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ComponentObject.class)));
-    tmpMap.put(_Fields.COMMON, new org.apache.thrift.meta_data.FieldMetaData("common", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ComponentCommon.class)));
-    tmpMap.put(_Fields.DISTRIBUTED, new org.apache.thrift.meta_data.FieldMetaData("distributed", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.SPOUT_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("spout_object", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentObject.class)));
+    tmpMap.put(_Fields.COMMON, new org.apache.thrift7.meta_data.FieldMetaData("common", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentCommon.class)));
+    tmpMap.put(_Fields.DISTRIBUTED, new org.apache.thrift7.meta_data.FieldMetaData("distributed", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.BOOL)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(SpoutSpec.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(SpoutSpec.class, metaDataMap);
   }
 
   public SpoutSpec() {
@@ -362,7 +362,7 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
       return lastComparison;
     }
     if (is_set_spout_object()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.spout_object, typedOther.spout_object);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.spout_object, typedOther.spout_object);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -372,7 +372,7 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
       return lastComparison;
     }
     if (is_set_common()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.common, typedOther.common);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.common, typedOther.common);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -382,7 +382,7 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
       return lastComparison;
     }
     if (is_set_distributed()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.distributed, typedOther.distributed);
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.distributed, typedOther.distributed);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -394,42 +394,42 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-    org.apache.thrift.protocol.TField field;
+  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+    org.apache.thrift7.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // SPOUT_OBJECT
-          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.spout_object = new ComponentObject();
             this.spout_object.read(iprot);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // COMMON
-          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.common = new ComponentCommon();
             this.common.read(iprot);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // DISTRIBUTED
-          if (field.type == org.apache.thrift.protocol.TType.BOOL) {
+          if (field.type == org.apache.thrift7.protocol.TType.BOOL) {
             this.distributed = iprot.readBool();
             set_distributed_isSet(true);
           } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -437,7 +437,7 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
     validate();
   }
 
-  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -486,26 +486,26 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift.TException {
+  public void validate() throws org.apache.thrift7.TException {
     // check for required fields
     if (!is_set_spout_object()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'spout_object' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'spout_object' is unset! Struct:" + toString());
     }
 
     if (!is_set_common()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'common' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'common' is unset! Struct:" + toString());
     }
 
     if (!is_set_distributed()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'distributed' is unset! Struct:" + toString());
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'distributed' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift.TException te) {
+      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -514,8 +514,8 @@ public class SpoutSpec implements org.apache.thrift.TBase<SpoutSpec, SpoutSpec._
     try {
       // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
       __isset_bit_vector = new BitSet(1);
-      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift.TException te) {
+      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);
     }
   }

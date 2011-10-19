@@ -7,7 +7,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.DRPCClient;
 import java.util.Map;
-import org.apache.thrift.TException;
+import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 

@@ -414,7 +414,7 @@
                                  ;; technically a supervisor could still think there's an assignment and try to d/l
                                  ;; this will cause supervisor to go down and come back up... eventually it should sync
                                  ;; TODO: removing code locally should be done separately (since topology that doesn't start will still have code)
-                                 (log-message "Killing storm: " id)
+                                 (log-message "Killing topology: " id)
                                  (rmr (master-stormdist-root conf id))
                                  (.remove-storm! storm-cluster-state id)
                                  (recur (rest kill-order))

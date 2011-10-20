@@ -68,8 +68,8 @@ def jar(jarfile, klass, *args):
         args=args,
         prefix="export STORM_JAR=" + jarfile + ";")
 
-def kill(name):
-    exec_storm_class("backtype.storm.command.kill_topology", args=[name], jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+def kill(*args):
+    exec_storm_class("backtype.storm.command.kill_topology", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
 
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"

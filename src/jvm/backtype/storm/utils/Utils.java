@@ -13,10 +13,12 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -84,16 +86,24 @@ public class Utils {
     }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
-        // It's important to use Utils.class here instead of Object.class here.
-        // If Object.class is used, sbt can't find defaults.yaml
-        InputStream is = Utils.class.getResourceAsStream("/" + name);
-        if(is==null) {
-            if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
-            else return new HashMap();
+        try {
+            Enumeration resources = Thread.currentThread().getContextClassLoader().getResources(name);
+            if(!resources.hasMoreElements()) {
+                if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
+                else return new HashMap();
+            }
+            URL resource = (URL) resources.nextElement();
+            Map ret = (Map) YAML.load(new InputStreamReader(resource.openStream()));
+            if(ret==null) ret = new HashMap();
+            
+            if(resources.hasMoreElements()) {
+                throw new RuntimeException("Found multiple " + name + " resources");
+            }
+            return new HashMap(ret);
+            
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        Map ret = (Map) YAML.load(new InputStreamReader(is));
-        if(ret==null) ret = new HashMap();
-        return new HashMap(ret);
     }
 
     public static Map findAndReadConfigFile(String name) {

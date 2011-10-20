@@ -2,6 +2,7 @@ package storm.starter;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
+import backtype.storm.StormSubmitter;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.TestWordSpout;
@@ -43,7 +44,7 @@ public class ExclamationTopology {
 
     }
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TopologyBuilder builder = new TopologyBuilder();
         
         builder.setSpout(1, new TestWordSpout(), 10);        
@@ -55,11 +56,17 @@ public class ExclamationTopology {
         Config conf = new Config();
         conf.setDebug(true);
         
+        if(args.length > 0) {
+            conf.setNumWorkers(3);
+            
+            StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
+        } else {
         
-        LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology("test", conf, builder.createTopology());
-        Utils.sleep(10000);
-        cluster.killTopology("test");
-        cluster.shutdown();        
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("test", conf, builder.createTopology());
+            Utils.sleep(10000);
+            cluster.killTopology("test");
+            cluster.shutdown();    
+        }
     }
 }

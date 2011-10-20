@@ -3,6 +3,7 @@ package storm.starter;
 import storm.starter.spout.RandomSentenceSpout;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
+import backtype.storm.StormSubmitter;
 import backtype.storm.task.ShellBolt;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
@@ -67,18 +68,23 @@ public class WordCountTopology {
                  .shuffleGrouping(1);
         builder.setBolt(3, new WordCount(), 12)
                  .fieldsGrouping(2, new Fields("word"));
-        
-        
-        
+
         Config conf = new Config();
         conf.setDebug(true);
-        conf.setMaxTaskParallelism(3);
+
         
-        LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology("word-count", conf, builder.createTopology());
-        Thread.sleep(10000);
-        
-        cluster.shutdown();
-        
+        if(args.length > 0) {
+            conf.setNumWorkers(3);
+            
+            StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
+        } else {        
+            conf.setMaxTaskParallelism(3);
+
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("word-count", conf, builder.createTopology());
+            Thread.sleep(10000);
+
+            cluster.shutdown();
+        }
     }
 }

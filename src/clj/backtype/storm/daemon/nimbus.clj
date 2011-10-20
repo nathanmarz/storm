@@ -382,6 +382,11 @@
                   ))
    ))
 
+(defn extract-status-str [base]
+  (let [t (-> base :status :type)]
+    (.toUpperCase (name t))
+    ))
+
 (defserverfn service-handler [conf]
   (let [submitted-count (atom 0)
         active (atom true)
@@ -572,6 +577,7 @@
                                                                 set
                                                                 count)
                                                             (time-delta (:launch-time-secs base))
+                                                            (extract-status-str base)
                                                             )
                                           ))
               ]
@@ -609,6 +615,7 @@
                          (:storm-name base)
                          (time-delta (:launch-time-secs base))
                          task-summaries
+                         (extract-status-str base)
                          )
           ))
       

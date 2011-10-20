@@ -1167,6 +1167,7 @@ class TopologySummary:
    - num_tasks
    - num_workers
    - uptime_secs
+   - status
   """
 
   thrift_spec = (
@@ -1176,14 +1177,16 @@ class TopologySummary:
     (3, TType.I32, 'num_tasks', None, None, ), # 3
     (4, TType.I32, 'num_workers', None, None, ), # 4
     (5, TType.I32, 'uptime_secs', None, None, ), # 5
+    (6, TType.STRING, 'status', None, None, ), # 6
   )
 
-  def __init__(self, id=None, name=None, num_tasks=None, num_workers=None, uptime_secs=None,):
+  def __init__(self, id=None, name=None, num_tasks=None, num_workers=None, uptime_secs=None, status=None,):
     self.id = id
     self.name = name
     self.num_tasks = num_tasks
     self.num_workers = num_workers
     self.uptime_secs = uptime_secs
+    self.status = status
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1219,6 +1222,11 @@ class TopologySummary:
           self.uptime_secs = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.STRING:
+          self.status = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1249,6 +1257,10 @@ class TopologySummary:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 5)
       oprot.writeI32(self.uptime_secs)
       oprot.writeFieldEnd()
+    if self.status is not None:
+      oprot.writeFieldBegin('status', TType.STRING, 6)
+      oprot.writeString(self.status.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -1263,6 +1275,8 @@ class TopologySummary:
       raise TProtocol.TProtocolException(message='Required field num_workers is unset!')
     if self.uptime_secs is None:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
+    if self.status is None:
+      raise TProtocol.TProtocolException(message='Required field status is unset!')
     return
 
 
@@ -2234,6 +2248,7 @@ class TopologyInfo:
    - name
    - uptime_secs
    - tasks
+   - status
   """
 
   thrift_spec = (
@@ -2242,13 +2257,15 @@ class TopologyInfo:
     (2, TType.STRING, 'name', None, None, ), # 2
     (3, TType.I32, 'uptime_secs', None, None, ), # 3
     (4, TType.LIST, 'tasks', (TType.STRUCT,(TaskSummary, TaskSummary.thrift_spec)), None, ), # 4
+    (5, TType.STRING, 'status', None, None, ), # 5
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, tasks=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, tasks=None, status=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
     self.tasks = tasks
+    self.status = status
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2285,6 +2302,11 @@ class TopologyInfo:
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.status = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2314,6 +2336,10 @@ class TopologyInfo:
         iter230.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
+    if self.status is not None:
+      oprot.writeFieldBegin('status', TType.STRING, 5)
+      oprot.writeString(self.status.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2326,6 +2352,8 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
     if self.tasks is None:
       raise TProtocol.TProtocolException(message='Required field tasks is unset!')
+    if self.status is None:
+      raise TProtocol.TProtocolException(message='Required field status is unset!')
     return
 
 

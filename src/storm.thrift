@@ -85,6 +85,7 @@ struct TopologySummary {
   3: required i32 num_tasks;
   4: required i32 num_workers;
   5: required i32 uptime_secs;
+  6: required string status;
 }
 
 struct SupervisorSummary {
@@ -145,6 +146,7 @@ struct TopologyInfo {
   2: required string name;
   3: required i32 uptime_secs;
   4: required list<TaskSummary> tasks;
+  5: required string status;
 }
 
 struct KillOptions {

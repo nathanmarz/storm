@@ -29,12 +29,14 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
   private static final org.apache.thrift7.protocol.TField NUM_TASKS_FIELD_DESC = new org.apache.thrift7.protocol.TField("num_tasks", org.apache.thrift7.protocol.TType.I32, (short)3);
   private static final org.apache.thrift7.protocol.TField NUM_WORKERS_FIELD_DESC = new org.apache.thrift7.protocol.TField("num_workers", org.apache.thrift7.protocol.TType.I32, (short)4);
   private static final org.apache.thrift7.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)5);
+  private static final org.apache.thrift7.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift7.protocol.TField("status", org.apache.thrift7.protocol.TType.STRING, (short)6);
 
   private String id; // required
   private String name; // required
   private int num_tasks; // required
   private int num_workers; // required
   private int uptime_secs; // required
+  private String status; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -42,7 +44,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     NAME((short)2, "name"),
     NUM_TASKS((short)3, "num_tasks"),
     NUM_WORKERS((short)4, "num_workers"),
-    UPTIME_SECS((short)5, "uptime_secs");
+    UPTIME_SECS((short)5, "uptime_secs"),
+    STATUS((short)6, "status");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -67,6 +70,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
           return NUM_WORKERS;
         case 5: // UPTIME_SECS
           return UPTIME_SECS;
+        case 6: // STATUS
+          return STATUS;
         default:
           return null;
       }
@@ -125,6 +130,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     tmpMap.put(_Fields.UPTIME_SECS, new org.apache.thrift7.meta_data.FieldMetaData("uptime_secs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.STATUS, new org.apache.thrift7.meta_data.FieldMetaData("status", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TopologySummary.class, metaDataMap);
   }
@@ -137,7 +144,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     String name,
     int num_tasks,
     int num_workers,
-    int uptime_secs)
+    int uptime_secs,
+    String status)
   {
     this();
     this.id = id;
@@ -148,6 +156,7 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     set_num_workers_isSet(true);
     this.uptime_secs = uptime_secs;
     set_uptime_secs_isSet(true);
+    this.status = status;
   }
 
   /**
@@ -165,6 +174,9 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     this.num_tasks = other.num_tasks;
     this.num_workers = other.num_workers;
     this.uptime_secs = other.uptime_secs;
+    if (other.is_set_status()) {
+      this.status = other.status;
+    }
   }
 
   public TopologySummary deepCopy() {
@@ -181,6 +193,7 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     this.num_workers = 0;
     set_uptime_secs_isSet(false);
     this.uptime_secs = 0;
+    this.status = null;
   }
 
   public String get_id() {
@@ -295,6 +308,29 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     __isset_bit_vector.set(__UPTIME_SECS_ISSET_ID, value);
   }
 
+  public String get_status() {
+    return this.status;
+  }
+
+  public void set_status(String status) {
+    this.status = status;
+  }
+
+  public void unset_status() {
+    this.status = null;
+  }
+
+  /** Returns true if field status is set (has been assigned a value) and false otherwise */
+  public boolean is_set_status() {
+    return this.status != null;
+  }
+
+  public void set_status_isSet(boolean value) {
+    if (!value) {
+      this.status = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ID:
@@ -337,6 +373,14 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
       }
       break;
 
+    case STATUS:
+      if (value == null) {
+        unset_status();
+      } else {
+        set_status((String)value);
+      }
+      break;
+
     }
   }
 
@@ -356,6 +400,9 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
 
     case UPTIME_SECS:
       return Integer.valueOf(get_uptime_secs());
+
+    case STATUS:
+      return get_status();
 
     }
     throw new IllegalStateException();
@@ -378,6 +425,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
       return is_set_num_workers();
     case UPTIME_SECS:
       return is_set_uptime_secs();
+    case STATUS:
+      return is_set_status();
     }
     throw new IllegalStateException();
   }
@@ -440,6 +489,15 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
         return false;
     }
 
+    boolean this_present_status = true && this.is_set_status();
+    boolean that_present_status = true && that.is_set_status();
+    if (this_present_status || that_present_status) {
+      if (!(this_present_status && that_present_status))
+        return false;
+      if (!this.status.equals(that.status))
+        return false;
+    }
+
     return true;
   }
 
@@ -471,6 +529,11 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     builder.append(present_uptime_secs);
     if (present_uptime_secs)
       builder.append(uptime_secs);
+
+    boolean present_status = true && (is_set_status());
+    builder.append(present_status);
+    if (present_status)
+      builder.append(status);
 
     return builder.toHashCode();
   }
@@ -533,6 +596,16 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_status()).compareTo(typedOther.is_set_status());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_status()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.status, typedOther.status);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -588,6 +661,13 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 6: // STATUS
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.status = iprot.readString();
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -620,6 +700,11 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     oprot.writeFieldBegin(UPTIME_SECS_FIELD_DESC);
     oprot.writeI32(this.uptime_secs);
     oprot.writeFieldEnd();
+    if (this.status != null) {
+      oprot.writeFieldBegin(STATUS_FIELD_DESC);
+      oprot.writeString(this.status);
+      oprot.writeFieldEnd();
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -656,6 +741,14 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     sb.append("uptime_secs:");
     sb.append(this.uptime_secs);
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("status:");
+    if (this.status == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.status);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -680,6 +773,10 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
 
     if (!is_set_uptime_secs()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'uptime_secs' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_status()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'status' is unset! Struct:" + toString());
     }
 
   }

@@ -312,6 +312,11 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_STATS_SAMPLE_RATE="topology.stats.sample.rate";
 
     /**
+     * Whether or not to use Java serialization in a topology.
+     */
+    public static String TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION="topology.fall.back.on.java.serialization";
+    
+    /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static String ZMQ_THREADS = "zmq.threads";
@@ -380,6 +385,10 @@ public class Config extends HashMap<String, Object> {
     
     public void setStatsSampleRate(double rate) {
         put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
+    }    
+
+    public void setFallBackOnJavaSerialization(boolean fallback) {
+        put(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION, fallback);
     }    
     
 }

@@ -13,9 +13,12 @@ public class SerializationFactory {
     public static final int SERIALIZATION_TOKEN_BOUNDARY = 32;
     public static Logger LOG = Logger.getLogger(SerializationFactory.class);
     private static byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    public static final int JAVA_SERIALIZATION_TOKEN = 1;
 
+    private JavaSerialization _javaSerializer = new JavaSerialization();
+    private boolean _useJavaSerialization;
     private Map<Integer, ISerialization> _serializations = new HashMap<Integer, ISerialization>() {{
-        put(1, new ISerialization<Integer>() {
+        put(2, new ISerialization<Integer>() {
                 public boolean accept(Class c) {
                     return Integer.class.equals(c);
                 }
@@ -30,7 +33,7 @@ public class SerializationFactory {
                     return stream.readInt();
                 }
         });
-        put(2, new ISerialization<Long>() {
+        put(3, new ISerialization<Long>() {
                 public boolean accept(Class c) {
                     return Long.class.equals(c);
                 }
@@ -45,7 +48,7 @@ public class SerializationFactory {
                     return stream.readLong();
                 }
         });
-        put(3, new ISerialization<Float>() {
+        put(4, new ISerialization<Float>() {
                 public boolean accept(Class c) {
                     return Float.class.equals(c);
                 }
@@ -58,7 +61,7 @@ public class SerializationFactory {
                     return stream.readFloat();
                 }
         });
-        put(4, new ISerialization<Double>() {
+        put(5, new ISerialization<Double>() {
                 public boolean accept(Class c) {
                     return Double.class.equals(c);
                 }
@@ -71,7 +74,7 @@ public class SerializationFactory {
                     return stream.readDouble();
                 }
         });
-        put(5, new ISerialization<Byte>() {
+        put(6, new ISerialization<Byte>() {
                 public boolean accept(Class c) {
                     return Byte.class.equals(c);
                 }
@@ -84,7 +87,7 @@ public class SerializationFactory {
                     return stream.readByte();
                 }
         });
-        put(6, new ISerialization<Short>() {
+        put(7, new ISerialization<Short>() {
                 public boolean accept(Class c) {
                     return Short.class.equals(c);
                 }
@@ -97,7 +100,7 @@ public class SerializationFactory {
                     return stream.readShort();
                 }
         });
-        put(7, new ISerialization<String>() {
+        put(8, new ISerialization<String>() {
                 public boolean accept(Class c) {
                     return String.class.equals(c);
                 }
@@ -110,7 +113,7 @@ public class SerializationFactory {
                     return stream.readUTF();
                 }
         });
-        put(8, new ISerialization<Boolean>() {
+        put(9, new ISerialization<Boolean>() {
                 public boolean accept(Class c) {
                     return Boolean.class.equals(c);
                 }
@@ -123,8 +126,7 @@ public class SerializationFactory {
                     return stream.readBoolean();
                 }
         });
-        put(9, new ISerialization<byte[]>() {
-            
+        put(10, new ISerialization<byte[]>() {            
                 public boolean accept(Class c) {
                     return EMPTY_BYTE_ARRAY.getClass().equals(c);
                 }
@@ -146,6 +148,7 @@ public class SerializationFactory {
     }};
 
     public SerializationFactory(Map conf) {
+        _useJavaSerialization = (Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION);
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_SERIALIZATIONS);
         Map<Object, String> customSerializations = (Map<Object, String>) conf.get(Config.TOPOLOGY_SERIALIZATIONS);
         if(customSerializations==null) customSerializations = new HashMap<Object, String>();
@@ -171,6 +174,9 @@ public class SerializationFactory {
                 throw new RuntimeException(e);
             }
         }
+        if(_serializations.containsKey(JAVA_SERIALIZATION_TOKEN)) {
+            throw new RuntimeException("Should not have a serialization with the java serialization token");
+        }
     }
 
     private int toToken(Object tokenObj) {
@@ -191,7 +197,11 @@ public class SerializationFactory {
     public FieldSerialization getSerializationForToken(int token) {
         ISerialization ser = _serializations.get(token);
         if(ser==null) {
-            throw new RuntimeException("Could not find serialization for token " + token);
+            if(token==JAVA_SERIALIZATION_TOKEN) {
+                ser = _javaSerializer;
+            } else {
+                throw new RuntimeException("Could not find serialization for token " + token);
+            }
         }
         return new FieldSerialization(token, ser);
     }
@@ -202,6 +212,9 @@ public class SerializationFactory {
             if(ser.accept(klass)) {
                 return getSerializationForToken(token);
             }
+        }
+        if(_useJavaSerialization && _javaSerializer.accept(klass)) {
+            return new FieldSerialization(JAVA_SERIALIZATION_TOKEN, _javaSerializer);
         }
         throw new RuntimeException("Could not find serialization for class " + klass.toString());
     }

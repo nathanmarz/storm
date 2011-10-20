@@ -24,10 +24,13 @@
       (require (quote [backtype.storm [stats :as stats]]))
       (import (quote [org.apache.log4j PropertyConfigurator Logger]))
 
-      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor Nimbus$Iface StormTopology ShellComponent
-                        NotAliveException AlreadyAliveException InvalidTopologyException
-                        ClusterSummary TopologyInfo TopologySummary TaskSummary TaskStats TaskSpecificStats
-                        SpoutStats BoltStats ErrorInfo SupervisorSummary]))
+      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor
+                      Nimbus$Iface StormTopology ShellComponent
+                      NotAliveException AlreadyAliveException
+                      InvalidTopologyException ClusterSummary TopologyInfo
+                      TopologySummary TaskSummary TaskStats TaskSpecificStats
+                      SpoutStats BoltStats ErrorInfo SupervisorSummary
+                      KillOptions]))
       (import (quote [backtype.storm.daemon.common StormBase Assignment
                       TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
       (import (quote [java.io File FileOutputStream FileInputStream]))

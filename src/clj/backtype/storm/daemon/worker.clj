@@ -152,9 +152,11 @@
                                ([]
                                   (this (fn [& ignored] (.add event-manager this))))
                                ([callback]
+                                 (let [base (.storm-base storm-cluster-state storm-id callback)]
                                   (reset!
                                    storm-active-atom
-                                   (not-nil? (.storm-base storm-cluster-state storm-id callback)))
+                                   (= :active (-> base :status :type))
+                                   ))
                                   ))      
         _ (refresh-connections nil)
         _ (refresh-storm-active nil)

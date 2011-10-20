@@ -150,8 +150,8 @@
     (let [state (mk-storm-state)
           assignment1 (Assignment. "/aaa" {} {1 [2 2002 1]} {})
           assignment2 (Assignment. "/aaa" {} {1 [2 2002]} {})
-          base1 (StormBase. "/tmp/storm1" 1)
-          base2 (StormBase. "/tmp/storm2" 2)]
+          base1 (StormBase. "/tmp/storm1" 1 {:type :active})
+          base2 (StormBase. "/tmp/storm2" 2 {:type :active})]
       (is (= [] (.assignments state nil)))
       (.set-assignment! state "storm1" assignment1)
       (is (= assignment1 (.assignment-info state "storm1" nil)))
@@ -171,7 +171,7 @@
       (is (= base1 (.storm-base state "storm1" nil)))
       (is (= base2 (.storm-base state "storm2" nil)))
       (is (= #{"storm1" "storm2"} (set (.active-storms state))))
-      (.deactivate-storm! state "storm1")
+      (.remove-storm-base! state "storm1")
       (is (= base2 (.storm-base state "storm2" nil)))
       (is (= #{"storm2"} (set (.active-storms state))))
 

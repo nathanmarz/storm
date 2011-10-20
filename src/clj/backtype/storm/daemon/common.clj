@@ -17,7 +17,7 @@
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
 (defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
 
-(defrecord StormBase [storm-name launch-time-secs])
+(defrecord StormBase [storm-name launch-time-secs status])
 
 (defrecord SupervisorInfo [time-secs hostname worker-ports uptime-secs])
 

@@ -136,13 +136,6 @@
         ))))
 
 
-(defn max-message-timeout-time [conf storm-ids]
-  (apply max
-    (for [id storm-ids]
-      ((read-storm-conf conf id) TOPOLOGY-MESSAGE-TIMEOUT-SECS)
-      )))
-
-
 (defn task-dead? [conf storm-cluster-state storm-id task-id]
   (let [info (.task-heartbeat storm-cluster-state storm-id task-id)]
     (or (not info)
@@ -324,7 +317,7 @@
 
 (defn- start-storm [storm-name storm-cluster-state storm-id]
   (log-message "Activating " storm-name ": " storm-id)
-  (.activate-storm! storm-cluster-state storm-id (StormBase. storm-name (current-time-secs)))
+  (.activate-storm! storm-cluster-state storm-id (StormBase. storm-name (current-time-secs) {:type :active}))
   )
 
 ;; Master:
@@ -337,10 +330,16 @@
 (defn storm-active? [storm-cluster-state storm-name]
   (not-nil? (get-storm-id storm-cluster-state storm-name)))
 
-(defn inactive-storm-ids [storm-cluster-state]
-  (let [assigned-ids (set (.assignments storm-cluster-state nil))
-        active-ids (set (.active-storms storm-cluster-state))]
-        (set/difference assigned-ids active-ids)
+(defn topologies-to-kill [storm-cluster-state]
+  (let [assigned-ids (set (.assignments storm-cluster-state nil))]
+    (reduce (fn [ret id]
+              (let [status (:status (.storm-base storm-cluster-state id nil))]
+                (if (or (nil? status) (= :killed (:type status)))
+                  (assoc ret id (:kill-time-secs status))
+                  ret)
+                ))
+            {}
+            assigned-ids)
         ))
 
 (defn cleanup-storm-ids [conf storm-cluster-state]
@@ -397,19 +396,32 @@
         uptime (uptime-computer)
         
         cleanup-fn (fn []
-                      (let [to-kill-ids (locking storm-submit-lock (inactive-storm-ids storm-cluster-state))]
-                        (when-not (empty? to-kill-ids)
-                          (let [sleep-amt (max-message-timeout-time conf to-kill-ids)]
-                            (log-message "Waiting for " sleep-amt " seconds to kill topologies " (pr-str to-kill-ids))
-                            ;; sleep to let the storm finish processing whatever messages are still inside it
-                            (sleep-secs sleep-amt)
-                            (doseq [id to-kill-ids]
-                              ;; technically a supervisor could still think there's an assignment and try to d/l
-                              ;; this will cause supervisor to go down and come back up... eventually it should sync
-                              ;; TODO: removing code locally should be done separately (since topology that doesn't start will still have code)
-                              (rmr (master-stormdist-root conf id))
-                              (.remove-storm! storm-cluster-state id))
-                            (log-message "Killed topologies: " to-kill-ids))))
+                     (let [id->kill-time (locking storm-submit-lock
+                                           (topologies-to-kill storm-cluster-state))]
+                       (when-not (empty? id->kill-time)
+                         (log-message "Entering kill loop for " (pr-str id->kill-time)))
+                       (loop [kill-order (sort-by second (seq id->kill-time))]
+                         (when-not (empty? kill-order)
+                           (let [[id kill-time] (first kill-order)
+                                 now (current-time-secs)]
+                             (if (or (nil? kill-time) (>= now kill-time))
+                               (do
+                                 ;; technically a supervisor could still think there's an assignment and try to d/l
+                                 ;; this will cause supervisor to go down and come back up... eventually it should sync
+                                 ;; TODO: removing code locally should be done separately (since topology that doesn't start will still have code)
+                                 (log-message "Killing storm: " id)
+                                 (rmr (master-stormdist-root conf id))
+                                 (.remove-storm! storm-cluster-state id)
+                                 (recur (rest kill-order))
+                                 )
+                               (do
+                                 (log-message "Waiting for " (- kill-time now) " seconds to kill topology " id)
+                                 (sleep-secs (- kill-time now))
+                                 (recur kill-order)
+                                 ))
+                             )))
+                       (when-not (empty? id->kill-time)
+                         (log-message "Killed " (pr-str id->kill-time))))
                       (let [to-cleanup-ids (locking storm-submit-lock (cleanup-storm-ids conf storm-cluster-state))]
                         (when-not (empty? to-cleanup-ids)
                           (doseq [id to-cleanup-ids]
@@ -426,7 +438,8 @@
                                 active-storm-ids (.active-storms storm-cluster-state)]
                             (doseq [storm-id active-storm-ids]
                               (let [base (.storm-base storm-cluster-state storm-id nil)]
-                                (mk-assignments conf storm-id storm-cluster-state callback task-heartbeats-cache)))
+                                (if (= :active (-> base :status :type))
+                                  (mk-assignments conf storm-id storm-cluster-state callback task-heartbeats-cache))))
                               ))))
         threads [(async-loop
                    (fn []
@@ -459,15 +472,29 @@
                  (mk-assignments conf storm-id storm-cluster-state (fn [& ignored] (.add event-manager reassign-fn)) task-heartbeats-cache)
                  (start-storm storm-name storm-cluster-state storm-id))
                ))
+      
+      (^void killTopology [this ^String name]
+        (.killTopologyWithOpts this name (KillOptions.)))
 
-      (^void killTopology [this ^String storm-name]
-        (let [storm-id (get-storm-id storm-cluster-state storm-name)]
-          (when-not storm-id
-            (throw (NotAliveException. storm-name)))
-          (.deactivate-storm! storm-cluster-state storm-id)
-          (.add cleanup-manager cleanup-fn)
-          (log-message "Deactivated " storm-name " and scheduled to be killed")
-          ))
+      (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
+        (letlocals
+         (bind storm-id
+               (get-storm-id storm-cluster-state storm-name))         
+         (when-not storm-id
+           (throw (NotAliveException. storm-name)))
+         (bind wait-amt
+               (if (.is_set_wait_secs options)
+                 (.get_wait_secs options)
+                 ((read-storm-conf conf storm-id) TOPOLOGY-MESSAGE-TIMEOUT-SECS)
+                 ))
+         (locking storm-submit-lock
+           (.update-storm! storm-cluster-state
+                           storm-id
+                           {:status {:type :killed
+                                     :kill-time-secs (+ (current-time-secs) wait-amt)}}))
+         (.add cleanup-manager cleanup-fn)
+         (log-message "Deactivated " storm-name " and scheduled to be killed")
+         ))
 
       (beginFileUpload [this]
         (let [fileloc (str inbox "/stormjar-" (uuid) ".jar")]

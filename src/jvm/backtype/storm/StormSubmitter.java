@@ -92,6 +92,6 @@ public class StormSubmitter {
             throw new RuntimeException(e);            
         } finally {
             client.close();
-        } 
+        }
     }
 }

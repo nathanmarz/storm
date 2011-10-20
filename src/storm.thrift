@@ -147,9 +147,14 @@ struct TopologyInfo {
   4: required list<TaskSummary> tasks;
 }
 
+struct KillOptions {
+  1: optional i32 wait_secs;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
   void killTopology(1: string name) throws (1: NotAliveException e);
+  void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 
   string beginFileUpload();

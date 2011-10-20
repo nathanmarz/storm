@@ -109,7 +109,8 @@
   (remove-task-heartbeat! [this storm-id task-id])
   (supervisor-heartbeat! [this supervisor-id info])
   (activate-storm! [this storm-id storm-base])
-  (deactivate-storm! [this storm-id])
+  (update-storm! [this storm-id new-elems])
+  (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
   (remove-storm! [this storm-id])
   (report-task-error [this storm-id task-id error])
@@ -293,13 +294,19 @@
         (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base))
         )
 
+      (update-storm! [this storm-id new-elems]
+        (set-data cluster-state (storm-path storm-id)
+                                (-> (storm-base this storm-id nil)
+                                    (merge new-elems)
+                                    Utils/serialize)))
+
       (storm-base [this storm-id callback]
         (when callback
           (swap! storm-base-callback assoc storm-id callback))
         (maybe-deserialize (get-data cluster-state (storm-path storm-id) (not-nil? callback)))
         )
 
-      (deactivate-storm! [this storm-id]
+      (remove-storm-base! [this storm-id]
         (delete-node cluster-state (storm-path storm-id))
         )
 
@@ -308,6 +315,7 @@
         )
 
       (remove-storm! [this storm-id]
+        (remove-storm-base! this storm-id)
         ;; rmr the task related info. must remove assignment last
         (delete-node cluster-state (storm-task-root storm-id))
         (delete-node cluster-state (assignment-path storm-id))

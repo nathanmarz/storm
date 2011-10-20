@@ -122,10 +122,12 @@
 (defn defaulted [val default]
   (if val val default))
 
-(defn mk-counter []
-  (let [val (atom 0)]
-    (fn []
-      (swap! val inc))))
+(defn mk-counter
+  ([] (mk-counter 1))
+  ([start-val]
+     (let [val (atom (dec start-val))]
+       (fn []
+         (swap! val inc)))))
 
 (defmacro for-times [times & body]
   `(for [i# (range ~times)]

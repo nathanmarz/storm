@@ -387,6 +387,25 @@
     (.toUpperCase (name t))
     ))
 
+(defn assign-serialization-ids [sers-seq]
+  (let [counter (mk-counter (inc SerializationFactory/SERIALIZATION_TOKEN_BOUNDARY))]
+    (into {}
+          (for [s sers-seq]
+            [(counter) s]))
+    ))
+
+(defn normalize-conf [conf storm-conf]
+  ;; ensure that serializations are same for all tasks no matter what's on
+  ;; the supervisors. this also allows you to declare the serializations as a sequence
+  (let [sers (storm-conf TOPOLOGY-SERIALIZATIONS)
+        sers (if sers sers (conf TOPOLOGY-SERIALIZATIONS))
+        sers (if (map? sers)
+               sers
+               (assign-serialization-ids sers)
+               )]
+    (assoc storm-conf TOPOLOGY-SERIALIZATIONS sers)
+    ))
+
 (defserverfn service-handler [conf]
   (let [submitted-count (atom 0)
         active (atom true)
@@ -464,7 +483,7 @@
              (let [storm-id (str storm-name "-" @submitted-count "-" (current-time-secs))
                    storm-conf (from-json serializedConf)
                    storm-conf (assoc storm-conf STORM-ID storm-id)
-
+                   storm-conf (normalize-conf conf storm-conf)
                    total-storm-conf (merge conf storm-conf)
                    topology (if (total-storm-conf TOPOLOGY-OPTIMIZE) (optimize-topology topology) topology)]
                (log-message "Received topology submission for " storm-name " with conf " storm-conf)

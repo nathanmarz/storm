@@ -21,8 +21,9 @@ import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
-//for local mode, should have a service lookup of some sort. DRPCSpout(LocalDRPC...)
 public class DRPCSpout implements IRichSpout {
+    private static final long serialVersionUID = 1L;
+    
     public static Logger LOG = Logger.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;

@@ -55,7 +55,7 @@
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
               ]
-          (log-debug "Received DRPC request for " function " " args)
+          (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
           (.add queue req)
@@ -68,7 +68,7 @@
               ))))
       (^void result [this ^String id ^String result]
         (let [^Semaphore sem (@id->sem id)]
-          (log-debug "Received result " result " for " id)
+          (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
           (when sem
             (swap! id->result assoc id result)
             (.release sem)
@@ -80,11 +80,11 @@
             (.release sem)
             )))
       (^DRPCRequest fetchRequest [this ^String func]
-        (log-debug "Fetching request for " func)
         (let [^ConcurrentLinkedQueue queue (acquire-queue request-queues func)
               ret (.poll queue)]
           (if ret
-            ret
+            (do (log-debug "Fetched request for " func " at " (System/currentTimeMillis))
+                ret)
             (DRPCRequest. "" ""))
           ))
       Shutdownable

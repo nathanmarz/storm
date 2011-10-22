@@ -9,7 +9,7 @@ import org.apache.thrift7.transport.TFramedTransport;
 import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
 
-
+//TODO: needs to auto-reconnect
 public class DRPCClient implements DistributedRPC.Iface {
     private TTransport conn;
     private DistributedRPC.Client client;

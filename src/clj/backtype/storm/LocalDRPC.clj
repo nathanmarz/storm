@@ -31,7 +31,10 @@
   (.failRequest (:handler (. this state)) id)
   )
   
+(defn -getServiceId [this]
+  (:service-id (. this state)))  
+
 (defn -shutdown [this]
-  (ServiceRegistry/unregisterService {:service-id (. this state)})
-  (.shutdown {:handler (. this state)})
+  (ServiceRegistry/unregisterService (:service-id (. this state)))
+  (.shutdown (:handler (. this state)))
   )

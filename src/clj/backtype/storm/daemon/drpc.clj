@@ -7,7 +7,7 @@
   (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
-  (:use [backtype.storm bootstrap config])
+  (:use [backtype.storm bootstrap config log])
   (:gen-class))
 
 (bootstrap)
@@ -19,8 +19,9 @@
 (defn acquire-queue [queues-atom function]
   (swap! queues-atom
     (fn [amap]
-      (when-not (amap function))
+      (if-not (amap function)
         (assoc amap function (ConcurrentLinkedQueue.))
+        amap)
         ))
   (@queues-atom function))
 
@@ -54,6 +55,7 @@
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
               ]
+          (log-message "Received DRPC request for " function " " args)
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
           (.add queue req)

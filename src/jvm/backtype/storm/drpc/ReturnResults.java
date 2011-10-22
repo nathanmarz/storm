@@ -35,7 +35,7 @@ public class ReturnResults implements IRichBolt {
             String id = (String) retMap.get("id");
             DistributedRPC.Iface client;
             if(local) {
-                client = (ILocalDRPC) ServiceRegistry.getService(host);
+                client = (DistributedRPC.Iface) ServiceRegistry.getService(host);
             } else {
                 client = new DRPCClient(host, port);
             }

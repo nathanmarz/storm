@@ -27,7 +27,7 @@ public class DRPCSpout implements IRichSpout {
     public static Logger LOG = Logger.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
-    List<DRPCClient> _clients;
+    List<DRPCClient> _clients = new ArrayList<DRPCClient>();
     String _function;
     String _local_drpc_id = null;
     
@@ -69,7 +69,6 @@ public class DRPCSpout implements IRichSpout {
             if(servers.isEmpty()) {
                 throw new RuntimeException("No DRPC servers configured for topology");   
             }
-            _clients = new ArrayList<DRPCClient>();
             if(numTasks < servers.size()) {
                 for(String s: servers) {
                     _clients.add(new DRPCClient(s, port));
@@ -111,7 +110,7 @@ public class DRPCSpout implements IRichSpout {
                 }
             }
         } else {
-            ILocalDRPC drpc = (ILocalDRPC) ServiceRegistry.getService(_local_drpc_id);
+            DistributedRPC.Iface drpc = (DistributedRPC.Iface) ServiceRegistry.getService(_local_drpc_id);
             try {
                 DRPCRequest req = drpc.fetchRequest(_function);
                 if(req.get_request_id().length() > 0) {

@@ -175,7 +175,18 @@ service Nimbus {
   StormTopology getTopology(1: string id) throws (1: NotAliveException e);
 }
 
+struct DRPCRequest {
+  1: required string func_args;
+  2: required string request_id;
+}
+
+exception DRPCExecutionException {
+  1: required string msg;
+}
+
 service DistributedRPC {
-  string execute(1: string functionName, 2: string funcArgs);
+  string execute(1: string functionName, 2: string funcArgs) throws (1: DRPCExecutionException e);
   void result(1: string id, 2: string result);
+  DRPCRequest fetchRequest(1: string functionName);
+  void failRequest(1: string id);
 }

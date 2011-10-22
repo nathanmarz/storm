@@ -1,9 +1,9 @@
 package backtype.storm;
 
 import backtype.storm.serialization.ISerialization;
-import backtype.storm.serialization.SerializationFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * Topology configs are specified as a plain old map. This class provides a 
@@ -137,6 +137,17 @@ public class Config extends HashMap<String, Object> {
      */
     public static String UI_PORT = "ui.port";
 
+    /**
+     * List of DRPC servers so that the DRPCSpout knows who to talk to.
+     */
+    public static String DRPC_SERVERS = "drpc.servers";
+
+    /**
+     * Storm DRPC binds to this port.
+     */
+    public static String DRPC_PORT = "drpc.port";
+    
+    
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune
@@ -357,18 +368,12 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
     }
     
-    public void addSerialization(int token, Class<? extends ISerialization> serialization) {
+    public void addSerialization(Class<? extends ISerialization> serialization) {
         if(!containsKey(Config.TOPOLOGY_SERIALIZATIONS)) {
-            put(Config.TOPOLOGY_SERIALIZATIONS, new HashMap());
+            put(Config.TOPOLOGY_SERIALIZATIONS, new ArrayList());
         }
-        Map<Integer, String> sers = (Map<Integer, String>) get(Config.TOPOLOGY_SERIALIZATIONS);
-        if(token<=SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY) {
-            throw new IllegalArgumentException("User serialization tokens must be greater than " + SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY);
-        }
-        if(sers.containsKey(token)) {
-            throw new IllegalArgumentException("All serialization tokens must be unique. Found duplicate token: " + token);
-        }
-        sers.put(token, serialization.getName());
+        List<String> sers = (List<String>) get(Config.TOPOLOGY_SERIALIZATIONS);        
+        sers.add(serialization.getName());
     }
     
     public void setSkipMissingSerializations(boolean skip) {

@@ -24,6 +24,8 @@ nimbus.file.copy.expiration.secs: 600
 
 ui.port: 8080
 
+drpc.port: 3772
+
 ### supervisor.* configs are for node supervisors
 # Define the amount of workers that can be run on this machine. Each worker is assigned a port to use for communication
 supervisor.slots.ports:
@@ -65,4 +67,3 @@ topology.max.spout.pending: null
 topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
-

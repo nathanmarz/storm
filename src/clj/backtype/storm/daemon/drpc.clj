@@ -13,8 +13,8 @@
 (bootstrap)
 
 
-(def REQUEST-TIMEOUT-SECS 600)
-(def TIMEOUT-CHECK-SECS 60)
+(def REQUEST-TIMEOUT-SECS 60)
+(def TIMEOUT-CHECK-SECS 5)
 
 (defn acquire-queue [queues-atom function]
   (swap! queues-atom
@@ -55,7 +55,7 @@
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
               ]
-          (log-message "Received DRPC request for " function " " args)
+          (log-debug "Received DRPC request for " function " " args)
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
           (.add queue req)
@@ -68,6 +68,7 @@
               ))))
       (^void result [this ^String id ^String result]
         (let [^Semaphore sem (@id->sem id)]
+          (log-debug "Received result " result " for " id)
           (when sem
             (swap! id->result assoc id result)
             (.release sem)
@@ -79,6 +80,7 @@
             (.release sem)
             )))
       (^DRPCRequest fetchRequest [this ^String func]
+        (log-debug "Fetching request for " func)
         (let [^ConcurrentLinkedQueue queue (acquire-queue request-queues func)
               ret (.poll queue)]
           (if ret

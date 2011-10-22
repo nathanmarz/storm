@@ -50,18 +50,21 @@
         ]
     (reify DistributedRPC$Iface
       (^String execute [this ^String function ^String args]
+        (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
         (let [id (str (swap! ctr (fn [v] (mod (inc v) 1000000000))))
               ^Semaphore sem (Semaphore. 0)
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
               ]
-          (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
           (.add queue req)
+          (log-debug "Waiting for DRPC result for " function " " args " at " (System/currentTimeMillis))
           (.acquire sem)
+          (log-debug "Acquired DRPC result for " function " " args " at " (System/currentTimeMillis))
           (let [result (@id->result id)]
             (cleanup id)
+            (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
             (if (instance? DRPCExecutionException result)
               (throw result)
               result

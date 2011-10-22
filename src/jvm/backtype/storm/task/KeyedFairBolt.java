@@ -9,8 +9,6 @@ import java.util.Map;
 
 
 public class KeyedFairBolt implements IRichBolt, FinishedCallback {
-    private static final long serialVersionUID = 1L;
-
     IRichBolt _delegate;
     KeyedRoundRobinQueue<Tuple> _rrQueue;
     Thread _executor;

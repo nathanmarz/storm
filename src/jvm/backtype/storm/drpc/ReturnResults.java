@@ -18,8 +18,6 @@ import org.json.simple.JSONValue;
 
 
 public class ReturnResults implements IRichBolt {
-    private static final long serialVersionUID = 1L;
-
     OutputCollector _collector;
     boolean local;
 

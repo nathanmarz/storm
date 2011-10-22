@@ -47,8 +47,6 @@ import org.json.simple.JSONValue;
  * </pre>
  */
 public class ShellBolt implements IBolt {
-    private static final long serialVersionUID = 1L;
-
     public static Logger LOG = Logger.getLogger(ShellBolt.class);
 
     String _shellCommand;

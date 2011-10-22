@@ -22,8 +22,6 @@ import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 public class DRPCSpout implements IRichSpout {
-    private static final long serialVersionUID = 1L;
-    
     public static Logger LOG = Logger.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;

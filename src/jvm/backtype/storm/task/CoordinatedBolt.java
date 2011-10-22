@@ -20,8 +20,6 @@ import static backtype.storm.utils.Utils.tuple;
 
 
 public class CoordinatedBolt implements IRichBolt {
-    private static final long serialVersionUID = 1L;
-
     public static Logger LOG = Logger.getLogger(CoordinatedBolt.class);
 
     public static interface FinishedCallback {

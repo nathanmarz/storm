@@ -25,10 +25,6 @@ public class KeyedFairBolt implements IRichBolt, FinishedCallback {
     public KeyedFairBolt(IBasicBolt delegate) {
         this(new BasicBoltExecutor(delegate));
     }
-
-    public KeyedFairBolt(IStintBolt delegate) {
-        this(new StintBoltExecutor(delegate));
-    }
     
     
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {

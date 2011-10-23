@@ -1,9 +1,7 @@
 package backtype.storm.drpc;
 
-import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
-import backtype.storm.StormSubmitter;
 import backtype.storm.drpc.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
@@ -44,15 +42,7 @@ public class LinearDRPCTopologyBuilder {
     public LinearDRPCInputDeclarer addBolt(IBasicBolt bolt) {
         return addBolt(bolt, 1);
     }
-    
-    public LinearDRPCInputDeclarer addBolt(IStintBolt bolt, int parallelism) {
-        return addBolt(new StintBoltExecutor(bolt), parallelism);
-    }
-
-    public LinearDRPCInputDeclarer addBolt(IStintBolt bolt) {
-        return addBolt(bolt, 1);
-    }
-    
+        
     public StormTopology createLocalTopology(ILocalDRPC drpc) {
         return createTopology(new DRPCSpout(_function, drpc));
     }

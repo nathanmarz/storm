@@ -15,11 +15,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
-import twitter4j.json.DataObjectFactory;
 
 public class TwitterSampleSpout implements IRichSpout {
     SpoutOutputCollector _collector;
-    LinkedBlockingQueue<String> queue = null;
+    LinkedBlockingQueue<Status> queue = null;
     TwitterStream _twitterStream;
     String _username;
     String _pwd;
@@ -37,13 +36,13 @@ public class TwitterSampleSpout implements IRichSpout {
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        queue = new LinkedBlockingQueue<String>(1000);
+        queue = new LinkedBlockingQueue<Status>(1000);
         _collector = collector;
         StatusListener listener = new StatusListener() {
 
             @Override
-            public void onStatus(Status status) {                
-                queue.offer(DataObjectFactory.getRawJSON(status));
+            public void onStatus(Status status) {
+                queue.offer(status);
             }
 
             @Override
@@ -71,7 +70,7 @@ public class TwitterSampleSpout implements IRichSpout {
 
     @Override
     public void nextTuple() {
-        String ret = queue.poll();
+        Status ret = queue.poll();
         if(ret==null) {
             Utils.sleep(50);
         } else {

@@ -5,6 +5,7 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.utils.Utils;
+import storm.starter.bolt.PrinterBolt;
 
 
 public class PrintSampleStream {        
@@ -14,10 +15,11 @@ public class PrintSampleStream {
         TopologyBuilder builder = new TopologyBuilder();
         
         builder.setSpout(1, new TwitterSampleSpout(username, pwd));
+        builder.setBolt(2, new PrinterBolt())
+                .shuffleGrouping(1);
                 
         
         Config conf = new Config();
-        conf.setDebug(true);
         
         
         LocalCluster cluster = new LocalCluster();

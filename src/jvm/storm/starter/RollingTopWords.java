@@ -9,6 +9,13 @@ import storm.starter.bolt.MergeObjects;
 import storm.starter.bolt.RankObjects;
 import storm.starter.bolt.RollingCountObjects;
 
+
+/**
+ * This topology does a continuous computation of the top N words that the topology has seen 
+ * in terms of cardinality. The top N computation is done in a completely scalable way, and 
+ * a similar approach could be used to compute things like trending topics or trending images
+ * on Twitter.
+ */
 public class RollingTopWords {
     
     public static void main(String[] args) throws Exception {

@@ -15,7 +15,9 @@ import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import java.util.Map;
 
-
+/**
+ * This is a basic example of a Storm topology.
+ */
 public class ExclamationTopology {
     
     public static class ExclamationBolt implements IRichBolt {

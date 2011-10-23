@@ -17,7 +17,9 @@ import backtype.storm.tuple.Values;
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+ * This topology demonstrates Storm's stream groupings and multilang capabilities.
+ */
 public class WordCountTopology {
     public static class SplitSentence extends ShellBolt implements IRichBolt {
         

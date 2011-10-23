@@ -48,9 +48,8 @@ public class BasicDRPCTopology {
         builder.addBolt(new ExclaimBolt(), 3);
         
         Config conf = new Config();
-        conf.setDebug(true);
         
-        if(args.length==0) {
+        if(args==null || args.length==0) {
             LocalDRPC drpc = new LocalDRPC();
             LocalCluster cluster = new LocalCluster();
             
@@ -60,6 +59,9 @@ public class BasicDRPCTopology {
                 System.out.println("Result for \"" + word + "\": "
                         + drpc.execute("exclamation", word));
             }
+            
+            cluster.shutdown();
+            drpc.shutdown();
         } else {
             conf.setNumWorkers(3);
             StormSubmitter.submitTopology(args[0], conf, builder.createRemoteTopology());

@@ -12,7 +12,7 @@
 
 (bootstrap)
 
-
+;; TODO: timeout should be configurable on a per-function basis
 (def REQUEST-TIMEOUT-SECS 60)
 (def TIMEOUT-CHECK-SECS 5)
 

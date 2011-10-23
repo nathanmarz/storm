@@ -11,8 +11,9 @@
       (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
       (import (quote [backtype.storm.task IBolt IOutputCollector
                       OutputCollector OutputCollectorImpl IInternalOutputCollector
-                      TopologyContext ShellBolt
-                      CoordinatedBolt CoordinatedBolt$SourceArgs KeyedFairBolt]))
+                      TopologyContext ShellBolt]))
+      (import (quote [backtype.storm.drpc CoordinatedBolt
+                      CoordinatedBolt$SourceArgs KeyedFairBolt]))
       (import (quote [backtype.storm.daemon Shutdownable]))
       (require (quote [backtype.storm.messaging.loader :as msg-loader]))
       (require (quote [backtype.storm.messaging.protocol :as msg]))

@@ -140,13 +140,13 @@ public class DRPCSpout implements IRichSpout {
         if(_local_drpc_id == null) {
             client = _clients.get(did.index);
         } else {
-            client = (ILocalDRPC) ServiceRegistry.getService(_local_drpc_id);
+            client = (DistributedRPC.Iface) ServiceRegistry.getService(_local_drpc_id);
         }
         try {
             client.failRequest(did.id);
         } catch (TException e) {
             LOG.error("Failed to fail request", e);
-        }        
+        }
     }
 
     @Override

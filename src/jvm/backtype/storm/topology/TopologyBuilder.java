@@ -73,7 +73,7 @@ public class TopologyBuilder {
     private Map<Integer, SpoutSpec> _spouts = new HashMap<Integer, SpoutSpec>();
     private Map<Integer, StateSpoutSpec> _stateSpouts = new HashMap<Integer, StateSpoutSpec>();
     private Map<Integer, Integer> _boltParallelismHints = new HashMap<Integer, Integer>();
-
+        
     public StormTopology createTopology() {
         Map<Integer, Bolt> boltSpecs = new HashMap<Integer, Bolt>();
         for(Integer boltId: _bolts.keySet()) {

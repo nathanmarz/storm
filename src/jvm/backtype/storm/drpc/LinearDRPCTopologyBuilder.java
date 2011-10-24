@@ -267,37 +267,4 @@ public class LinearDRPCTopologyBuilder {
             _component.declarations.add(declaration);
         }        
     }
-    
-//    public static void main(String[] args) {
-//        LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");
-//        builder.addBolt(new GetTweeters(), 10);
-//        builder.addBolt(new KeyedFairBolt(new GetFollowers()), 40)
-//                .shuffleGrouping();
-//        builder.addBolt(new PartialDistinct(), 20)
-//                .fieldsGrouping(new Fields("id", "follower"));
-//        builder.addBolt(new CountAggregator(), 3)
-//                .fieldsGrouping(new Fields("id"));
-//
-//        Config conf = new Config();
-//        
-//        
-//        if(args.length==0) {
-//            LocalDRPC drpc = new LocalDRPC();
-//            LocalCluster cluster = new LocalCluster();
-//
-//            conf.setDebug(true);
-//            conf.setMaxTaskParallelism(3);
-//
-//            cluster.submitTopology("reach-demo", conf, builder.createLocalTopology(drpc));
-//
-//            System.out.println(drpc.execute("reach", "http://nathanmarz.com"));
-//
-//            cluster.shutdown();
-//            drpc.shutdown();
-//        } else {
-//            conf.setNumWorkers(20);
-//            
-//            StormSubmitter.submitTopology(args[0], conf, builder.createRemoteTopology());
-//        }
-//    }
 }

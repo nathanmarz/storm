@@ -1,7 +1,10 @@
-package backtype.storm.task;
+package backtype.storm.drpc;
 
 import backtype.storm.Constants;
 import backtype.storm.generated.Grouping;
+import backtype.storm.task.IOutputCollector;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;

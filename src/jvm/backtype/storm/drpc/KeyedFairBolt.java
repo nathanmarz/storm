@@ -1,6 +1,10 @@
-package backtype.storm.task;
+package backtype.storm.drpc;
 
-import backtype.storm.task.CoordinatedBolt.FinishedCallback;
+import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.BasicBoltExecutor;
+import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
@@ -17,7 +21,12 @@ public class KeyedFairBolt implements IRichBolt, FinishedCallback {
     public KeyedFairBolt(IRichBolt delegate) {
         _delegate = delegate;
     }
-
+    
+    public KeyedFairBolt(IBasicBolt delegate) {
+        this(new BasicBoltExecutor(delegate));
+    }
+    
+    
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         if(_delegate instanceof FinishedCallback) {
             _callback = (FinishedCallback) _delegate;

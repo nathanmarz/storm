@@ -1,9 +1,9 @@
 package backtype.storm;
 
 import backtype.storm.serialization.ISerialization;
-import backtype.storm.serialization.SerializationFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * Topology configs are specified as a plain old map. This class provides a 
@@ -132,6 +132,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
 
+    /**
+     * Storm UI binds to this port.
+     */
+    public static String UI_PORT = "ui.port";
+
+    /**
+     * List of DRPC servers so that the DRPCSpout knows who to talk to.
+     */
+    public static String DRPC_SERVERS = "drpc.servers";
+
+    /**
+     * Storm DRPC binds to this port.
+     */
+    public static String DRPC_PORT = "drpc.port";
+    
+    
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune
@@ -285,8 +301,12 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
-     * The maximum parallelism allowed for a component in this topology. This configuration is
-     * typically used in testing to limit the number of threads spawned in local mode.
+     * The maximum number of tuples that can be pending on a spout task at any given time. 
+     * This config applies to individual tasks, not to spouts or topologies as a whole. 
+     * 
+     * A pending tuple is one that has been emitted from a spout but has not been acked or failed yet.
+     * Note that this config parameter has no effect for unreliable spouts that don't tag 
+     * their tuples with a message id.
      */
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
 
@@ -302,6 +322,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TOPOLOGY_STATS_SAMPLE_RATE="topology.stats.sample.rate";
 
+    /**
+     * Whether or not to use Java serialization in a topology.
+     */
+    public static String TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION="topology.fall.back.on.java.serialization";
+    
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
@@ -343,18 +368,12 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
     }
     
-    public void addSerialization(int token, Class<? extends ISerialization> serialization) {
+    public void addSerialization(Class<? extends ISerialization> serialization) {
         if(!containsKey(Config.TOPOLOGY_SERIALIZATIONS)) {
-            put(Config.TOPOLOGY_SERIALIZATIONS, new HashMap());
+            put(Config.TOPOLOGY_SERIALIZATIONS, new ArrayList());
         }
-        Map<Integer, String> sers = (Map<Integer, String>) get(Config.TOPOLOGY_SERIALIZATIONS);
-        if(token<=SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY) {
-            throw new IllegalArgumentException("User serialization tokens must be greater than " + SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY);
-        }
-        if(sers.containsKey(token)) {
-            throw new IllegalArgumentException("All serialization tokens must be unique. Found duplicate token: " + token);
-        }
-        sers.put(token, serialization.getName());
+        List<String> sers = (List<String>) get(Config.TOPOLOGY_SERIALIZATIONS);        
+        sers.add(serialization.getName());
     }
     
     public void setSkipMissingSerializations(boolean skip) {
@@ -371,6 +390,10 @@ public class Config extends HashMap<String, Object> {
     
     public void setStatsSampleRate(double rate) {
         put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
+    }    
+
+    public void setFallBackOnJavaSerialization(boolean fallback) {
+        put(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION, fallback);
     }    
     
 }

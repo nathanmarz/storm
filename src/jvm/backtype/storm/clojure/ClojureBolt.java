@@ -1,5 +1,6 @@
 package backtype.storm.clojure;
 
+import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class ClojureBolt implements IRichBolt {
+public class ClojureBolt implements IRichBolt, FinishedCallback {
     Map<Integer, StreamInfo> _fields;
     String _namespace;
     String _fnName;
@@ -73,6 +74,13 @@ public class ClojureBolt implements IRichBolt {
         for(Integer stream: _fields.keySet()) {
             StreamInfo info = _fields.get(stream);
             declarer.declareStream(stream, info.is_direct(), new Fields(info.get_output_fields()));
+        }
+    }
+
+    @Override
+    public void finishedId(Object id) {
+        if(_bolt instanceof FinishedCallback) {
+            ((FinishedCallback) _bolt).finishedId(id);
         }
     }
 }

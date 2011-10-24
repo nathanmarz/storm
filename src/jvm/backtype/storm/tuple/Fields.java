@@ -45,6 +45,14 @@ public class Fields implements Iterable<String>, Serializable {
         return _fields.iterator();
     }
     
+    public int fieldIndex(String field) {
+        Integer ret = _index.get(field);
+        if(ret==null) {
+            throw new IllegalArgumentException(field + " does not exist");
+        }
+        return ret;
+    }
+    
     private void index() {
         for(int i=0; i<_fields.size(); i++) {
             _index.put(_fields.get(i), i);

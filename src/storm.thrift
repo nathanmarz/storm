@@ -85,6 +85,7 @@ struct TopologySummary {
   3: required i32 num_tasks;
   4: required i32 num_workers;
   5: required i32 uptime_secs;
+  6: required string status;
 }
 
 struct SupervisorSummary {
@@ -145,11 +146,17 @@ struct TopologyInfo {
   2: required string name;
   3: required i32 uptime_secs;
   4: required list<TaskSummary> tasks;
+  5: required string status;
+}
+
+struct KillOptions {
+  1: optional i32 wait_secs;
 }
 
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
   void killTopology(1: string name) throws (1: NotAliveException e);
+  void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 
   string beginFileUpload();
@@ -168,7 +175,18 @@ service Nimbus {
   StormTopology getTopology(1: string id) throws (1: NotAliveException e);
 }
 
+struct DRPCRequest {
+  1: required string func_args;
+  2: required string request_id;
+}
+
+exception DRPCExecutionException {
+  1: required string msg;
+}
+
 service DistributedRPC {
-  string execute(1: string functionName, 2: string funcArgs);
+  string execute(1: string functionName, 2: string funcArgs) throws (1: DRPCExecutionException e);
   void result(1: string id, 2: string result);
+  DRPCRequest fetchRequest(1: string functionName);
+  void failRequest(1: string id);
 }

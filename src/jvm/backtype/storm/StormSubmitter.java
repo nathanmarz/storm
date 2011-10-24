@@ -7,9 +7,10 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.utils.BufferFileInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import org.apache.log4j.Logger;
-import org.apache.thrift.TException;
+import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 /**
@@ -82,7 +83,7 @@ public class StormSubmitter {
             while(true) {
                 byte[] toSubmit = is.read();
                 if(toSubmit.length==0) break;
-                client.getClient().uploadChunk(uploadLocation, toSubmit);
+                client.getClient().uploadChunk(uploadLocation, ByteBuffer.wrap(toSubmit));
             }
             client.getClient().finishFileUpload(uploadLocation);
             LOG.info("Successfully uploaded topology jar to assigned location: " + uploadLocation);
@@ -91,6 +92,6 @@ public class StormSubmitter {
             throw new RuntimeException(e);            
         } finally {
             client.close();
-        } 
+        }
     }
 }

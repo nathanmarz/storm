@@ -90,7 +90,7 @@
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
-        [storm-conf topology] (read-storm-cache conf storm-id)
+        [storm-conf topology] (read-storm-cache conf storm-id)        
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
@@ -152,9 +152,11 @@
                                ([]
                                   (this (fn [& ignored] (.add event-manager this))))
                                ([callback]
+                                 (let [base (.storm-base storm-cluster-state storm-id callback)]
                                   (reset!
                                    storm-active-atom
-                                   (not-nil? (.storm-base storm-cluster-state storm-id callback)))
+                                   (= :active (-> base :status :type))
+                                   ))
                                   ))      
         _ (refresh-connections nil)
         _ (refresh-storm-active nil)
@@ -233,6 +235,7 @@
                         (every? (memfn waiting?) tasks)
                         (.sleeping? heartbeat-thread)))
              )]
+    (log-message "Worker has topology config " storm-conf)
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")
     ret
     ))

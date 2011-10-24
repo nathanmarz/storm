@@ -85,18 +85,22 @@
     ))
 
 (defmacro bolt [& body]
-  (let [fns (hint-fns body)]
+  (let [[bolt-fns other-fns] (split-with #(not (symbol? %)) body)
+        fns (hint-fns bolt-fns)]
     `(reify IBolt
-       ~@fns)))
+       ~@fns
+       ~@other-fns)))
 
 (defmacro bolt-execute [& body]
   `(bolt
      (~'execute ~@body)))
 
 (defmacro spout [& body]
-  (let [fns (hint-fns body)]
+  (let [[spout-fns other-fns] (split-with #(not (symbol? %)) body)
+        fns (hint-fns spout-fns)]
     `(reify ISpout
-       ~@fns)))
+       ~@fns
+       ~@other-fns)))
 
 (defmacro defbolt [name output-spec & [opts & impl :as all]]
   (if-not (map? opts)

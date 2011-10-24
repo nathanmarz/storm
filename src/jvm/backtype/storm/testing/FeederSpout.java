@@ -6,25 +6,20 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.InprocMessaging;
 import backtype.storm.utils.Utils;
 import java.util.List;
-import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class FeederSpout implements IRichSpout {
-
-    public transient static Map<String, LinkedBlockingQueue<List<Object>>> _feeds = new HashMap<String, LinkedBlockingQueue<List<Object>>>();
-
-    private String _id;
+    private int _id;
     private Fields _outFields;
     private SpoutOutputCollector _collector;
     private AckFailDelegate _ackFailDelegate;
 
     public FeederSpout(Fields outFields) {
-        _id = UUID.randomUUID().toString();
-        _feeds.put(_id, new LinkedBlockingQueue<List<Object>>());
+        _id = InprocMessaging.acquireNewPort();
         _outFields = outFields;
     }
 
@@ -33,7 +28,7 @@ public class FeederSpout implements IRichSpout {
     }
     
     public void feed(List<Object> tuple) {
-        _feeds.get(_id).add(tuple);
+        InprocMessaging.sendMessage(_id, tuple);
     }
 
     public boolean isDistributed() {
@@ -49,11 +44,11 @@ public class FeederSpout implements IRichSpout {
     }
 
     public void nextTuple() {
-        List<Object> tuple = _feeds.get(_id).poll();
+        List<Object> tuple = (List<Object>) InprocMessaging.pollMessage(_id);
         if(tuple!=null) {
             _collector.emit(tuple, UUID.randomUUID().toString());
         } else {
-            Utils.sleep(100);                
+            Utils.sleep(10);                
         }
     }
 

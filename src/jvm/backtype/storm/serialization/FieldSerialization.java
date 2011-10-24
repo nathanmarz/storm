@@ -18,6 +18,10 @@ public class FieldSerialization {
         return _token;
     }
 
+    public ISerialization getSerialization() {
+        return _serialization;
+    }    
+    
     public void serialize(Object obj, DataOutputStream out) throws IOException {
         _serialization.serialize(obj, out);
     }

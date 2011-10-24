@@ -141,6 +141,7 @@
   (.disconnect (:storm-cluster-state cluster-map))
   (doseq [s @(:supervisors cluster-map)]
     (.shutdown-all-workers s)
+    ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
   (psim/kill-all-processes)
   (log-message "Shutting down in process zookeeper")

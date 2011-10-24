@@ -39,6 +39,8 @@ public class OutputCollectorImpl extends OutputCollector {
     }
 
     private Tuple anchorTuple(List<Tuple> anchors, int streamId, List<Object> tuple) {
+        // The simple algorithm in this function is the key to Storm. It is
+        // what enables Storm to guarantee message processing.
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
         if(anchors!=null) {
             for(Tuple anchor: anchors) {

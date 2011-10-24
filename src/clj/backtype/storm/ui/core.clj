@@ -95,10 +95,11 @@
   ;; make the id clickable
   ;; make the table sortable
   (sorted-table
-   ["Name" "Id" "Uptime" "Num workers" "Num tasks"]
+   ["Name" "Id" "Status" "Uptime" "Num workers" "Num tasks"]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (.get_id t)
+      (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
       (.get_num_tasks t)
@@ -268,9 +269,10 @@
 (defn topology-summary-table [^TopologyInfo summ]
   (let [tasks (.get_tasks summ)
         workers (set (for [^TaskSummary t tasks] [(.get_host t) (.get_port t)]))]
-    (table ["Name" "Id" "Uptime" "Num workers" "Num tasks"]
+    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num tasks"]
            [[(.get_name summ)
              (.get_id summ)
+             (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)
              (count tasks)
@@ -679,4 +681,4 @@
   (handler/site main-routes))
 
 (defn -main []
-  (run-jetty app {:port 8080}))
+  (run-jetty app {:port (int (*STORM-CONF* UI-PORT))}))

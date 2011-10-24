@@ -6,13 +6,14 @@
       (import (quote [backtype.storm.testing FeederSpout TestPlannerBolt TestPlannerSpout AckFailDelegate AckTracker]))
       (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                       TimeCacheMap$ExpiredCallback BufferFileInputStream]))
-      (import (quote [backtype.storm.serialization TupleSerializer TupleDeserializer]))
+      (import (quote [backtype.storm.serialization TupleSerializer TupleDeserializer SerializationFactory]))
       (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
       (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
       (import (quote [backtype.storm.task IBolt IOutputCollector
                       OutputCollector OutputCollectorImpl IInternalOutputCollector
-                      TopologyContext ShellBolt
-                      CoordinatedBolt CoordinatedBolt$SourceArgs KeyedFairBolt]))
+                      TopologyContext ShellBolt]))
+      (import (quote [backtype.storm.drpc CoordinatedBolt
+                      CoordinatedBolt$SourceArgs KeyedFairBolt]))
       (import (quote [backtype.storm.daemon Shutdownable]))
       (require (quote [backtype.storm.messaging.loader :as msg-loader]))
       (require (quote [backtype.storm.messaging.protocol :as msg]))
@@ -24,10 +25,13 @@
       (require (quote [backtype.storm [stats :as stats]]))
       (import (quote [org.apache.log4j PropertyConfigurator Logger]))
 
-      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor Nimbus$Iface StormTopology ShellComponent
-                        NotAliveException AlreadyAliveException InvalidTopologyException
-                        ClusterSummary TopologyInfo TopologySummary TaskSummary TaskStats TaskSpecificStats
-                        SpoutStats BoltStats ErrorInfo SupervisorSummary]))
+      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor
+                      Nimbus$Iface StormTopology ShellComponent
+                      NotAliveException AlreadyAliveException
+                      InvalidTopologyException ClusterSummary TopologyInfo
+                      TopologySummary TaskSummary TaskStats TaskSpecificStats
+                      SpoutStats BoltStats ErrorInfo SupervisorSummary
+                      KillOptions]))
       (import (quote [backtype.storm.daemon.common StormBase Assignment
                       TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
       (import (quote [java.io File FileOutputStream FileInputStream]))

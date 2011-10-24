@@ -1,8 +1,10 @@
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Options])
-  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
-  (:import [org.apache.thrift TException])
-  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.thrift7.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift7 TException])
+  (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [java.nio ByteBuffer])
+  (:import [java.nio.channels Channels WritableByteChannel])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:gen-class))
@@ -132,13 +134,6 @@
       (FileUtils/readFileToByteArray
         (File. (master-stormcode-path stormroot))
         ))))
-
-
-(defn max-message-timeout-time [conf storm-ids]
-  (apply max
-    (for [id storm-ids]
-      ((read-storm-conf conf id) TOPOLOGY-MESSAGE-TIMEOUT-SECS)
-      )))
 
 
 (defn task-dead? [conf storm-cluster-state storm-id task-id]
@@ -322,7 +317,7 @@
 
 (defn- start-storm [storm-name storm-cluster-state storm-id]
   (log-message "Activating " storm-name ": " storm-id)
-  (.activate-storm! storm-cluster-state storm-id (StormBase. storm-name (current-time-secs)))
+  (.activate-storm! storm-cluster-state storm-id (StormBase. storm-name (current-time-secs) {:type :active}))
   )
 
 ;; Master:
@@ -335,10 +330,16 @@
 (defn storm-active? [storm-cluster-state storm-name]
   (not-nil? (get-storm-id storm-cluster-state storm-name)))
 
-(defn inactive-storm-ids [storm-cluster-state]
-  (let [assigned-ids (set (.assignments storm-cluster-state nil))
-        active-ids (set (.active-storms storm-cluster-state))]
-        (set/difference assigned-ids active-ids)
+(defn topologies-to-kill [storm-cluster-state]
+  (let [assigned-ids (set (.assignments storm-cluster-state nil))]
+    (reduce (fn [ret id]
+              (let [status (:status (.storm-base storm-cluster-state id nil))]
+                (if (or (nil? status) (= :killed (:type status)))
+                  (assoc ret id (:kill-time-secs status))
+                  ret)
+                ))
+            {}
+            assigned-ids)
         ))
 
 (defn cleanup-storm-ids [conf storm-cluster-state]
@@ -381,6 +382,30 @@
                   ))
    ))
 
+(defn extract-status-str [base]
+  (let [t (-> base :status :type)]
+    (.toUpperCase (name t))
+    ))
+
+(defn assign-serialization-ids [sers-seq]
+  (let [counter (mk-counter (inc SerializationFactory/SERIALIZATION_TOKEN_BOUNDARY))]
+    (into {}
+          (for [s sers-seq]
+            [(counter) s]))
+    ))
+
+(defn normalize-conf [conf storm-conf]
+  ;; ensure that serializations are same for all tasks no matter what's on
+  ;; the supervisors. this also allows you to declare the serializations as a sequence
+  (let [sers (storm-conf TOPOLOGY-SERIALIZATIONS)
+        sers (if sers sers (conf TOPOLOGY-SERIALIZATIONS))
+        sers (if (map? sers)
+               sers
+               (assign-serialization-ids sers)
+               )]
+    (assoc storm-conf TOPOLOGY-SERIALIZATIONS sers)
+    ))
+
 (defserverfn service-handler [conf]
   (let [submitted-count (atom 0)
         active (atom true)
@@ -395,19 +420,32 @@
         uptime (uptime-computer)
         
         cleanup-fn (fn []
-                      (let [to-kill-ids (locking storm-submit-lock (inactive-storm-ids storm-cluster-state))]
-                        (when-not (empty? to-kill-ids)
-                          (let [sleep-amt (max-message-timeout-time conf to-kill-ids)]
-                            (log-message "Waiting for " sleep-amt " seconds to kill topologies " (pr-str to-kill-ids))
-                            ;; sleep to let the storm finish processing whatever messages are still inside it
-                            (sleep-secs sleep-amt)
-                            (doseq [id to-kill-ids]
-                              ;; technically a supervisor could still think there's an assignment and try to d/l
-                              ;; this will cause supervisor to go down and come back up... eventually it should sync
-                              ;; TODO: removing code locally should be done separately (since topology that doesn't start will still have code)
-                              (rmr (master-stormdist-root conf id))
-                              (.remove-storm! storm-cluster-state id))
-                            (log-message "Killed topologies: " to-kill-ids))))
+                     (let [id->kill-time (locking storm-submit-lock
+                                           (topologies-to-kill storm-cluster-state))]
+                       (when-not (empty? id->kill-time)
+                         (log-message "Entering kill loop for " (pr-str id->kill-time)))
+                       (loop [kill-order (sort-by second (seq id->kill-time))]
+                         (when-not (empty? kill-order)
+                           (let [[id kill-time] (first kill-order)
+                                 now (current-time-secs)]
+                             (if (or (nil? kill-time) (>= now kill-time))
+                               (do
+                                 ;; technically a supervisor could still think there's an assignment and try to d/l
+                                 ;; this will cause supervisor to go down and come back up... eventually it should sync
+                                 ;; TODO: removing code locally should be done separately (since topology that doesn't start will still have code)
+                                 (log-message "Killing topology: " id)
+                                 (rmr (master-stormdist-root conf id))
+                                 (.remove-storm! storm-cluster-state id)
+                                 (recur (rest kill-order))
+                                 )
+                               (do
+                                 (log-message "Waiting for " (- kill-time now) " seconds to kill topology " id)
+                                 (sleep-secs (- kill-time now))
+                                 (recur kill-order)
+                                 ))
+                             )))
+                       (when-not (empty? id->kill-time)
+                         (log-message "Killed " (pr-str id->kill-time))))
                       (let [to-cleanup-ids (locking storm-submit-lock (cleanup-storm-ids conf storm-cluster-state))]
                         (when-not (empty? to-cleanup-ids)
                           (doseq [id to-cleanup-ids]
@@ -424,7 +462,8 @@
                                 active-storm-ids (.active-storms storm-cluster-state)]
                             (doseq [storm-id active-storm-ids]
                               (let [base (.storm-base storm-cluster-state storm-id nil)]
-                                (mk-assignments conf storm-id storm-cluster-state callback task-heartbeats-cache)))
+                                (if (= :active (-> base :status :type))
+                                  (mk-assignments conf storm-id storm-cluster-state callback task-heartbeats-cache))))
                               ))))
         threads [(async-loop
                    (fn []
@@ -444,7 +483,7 @@
              (let [storm-id (str storm-name "-" @submitted-count "-" (current-time-secs))
                    storm-conf (from-json serializedConf)
                    storm-conf (assoc storm-conf STORM-ID storm-id)
-
+                   storm-conf (normalize-conf conf storm-conf)
                    total-storm-conf (merge conf storm-conf)
                    topology (if (total-storm-conf TOPOLOGY-OPTIMIZE) (optimize-topology topology) topology)]
                (log-message "Received topology submission for " storm-name " with conf " storm-conf)
@@ -457,38 +496,52 @@
                  (mk-assignments conf storm-id storm-cluster-state (fn [& ignored] (.add event-manager reassign-fn)) task-heartbeats-cache)
                  (start-storm storm-name storm-cluster-state storm-id))
                ))
+      
+      (^void killTopology [this ^String name]
+        (.killTopologyWithOpts this name (KillOptions.)))
 
-      (^void killTopology [this ^String storm-name]
-        (let [storm-id (get-storm-id storm-cluster-state storm-name)]
-          (when-not storm-id
-            (throw (NotAliveException. storm-name)))
-          (.deactivate-storm! storm-cluster-state storm-id)
-          (.add cleanup-manager cleanup-fn)
-          (log-message "Deactivated " storm-name " and scheduled to be killed")
-          ))
+      (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
+        (letlocals
+         (bind storm-id
+               (get-storm-id storm-cluster-state storm-name))         
+         (when-not storm-id
+           (throw (NotAliveException. storm-name)))
+         (bind wait-amt
+               (if (.is_set_wait_secs options)
+                 (.get_wait_secs options)
+                 ((read-storm-conf conf storm-id) TOPOLOGY-MESSAGE-TIMEOUT-SECS)
+                 ))
+         (locking storm-submit-lock
+           (.update-storm! storm-cluster-state
+                           storm-id
+                           {:status {:type :killed
+                                     :kill-time-secs (+ (current-time-secs) wait-amt)}}))
+         (.add cleanup-manager cleanup-fn)
+         (log-message "Deactivated " storm-name " and scheduled to be killed")
+         ))
 
       (beginFileUpload [this]
         (let [fileloc (str inbox "/stormjar-" (uuid) ".jar")]
-          (.put uploaders fileloc (FileOutputStream. fileloc))
+          (.put uploaders fileloc (Channels/newChannel (FileOutputStream. fileloc)))
           (log-message "Uploading file from client to " fileloc)
           fileloc
           ))
       
-      (^void uploadChunk [this ^String location ^bytes chunk]
-             (let [^FileOutputStream os (.get uploaders location)]
-               (when-not os
+      (^void uploadChunk [this ^String location ^ByteBuffer chunk]
+             (let [^WritableByteChannel channel (.get uploaders location)]
+               (when-not channel
                  (throw (RuntimeException.
                          "File for that location does not exist (or timed out)")))
-               (.write os chunk)
-               (.put uploaders location os)
+               (.write channel chunk)
+               (.put uploaders location channel)
                ))
 
       (^void finishFileUpload [this ^String location]
-             (let [^FileOutputStream os (.get uploaders location)]
-               (when-not os
+             (let [^WritableByteChannel channel (.get uploaders location)]
+               (when-not channel
                  (throw (RuntimeException.
                          "File for that location does not exist (or timed out)")))
-               (.close os)
+               (.close channel)
                (log-message "Finished uploading file from client: " location)
                (.remove uploaders location)
                ))
@@ -500,7 +553,7 @@
                  id
                  ))
 
-      (^bytes downloadChunk [this ^String id]
+      (^ByteBuffer downloadChunk [this ^String id]
               (let [^BufferFileInputStream is (.get downloaders id)]
                 (when-not is
                   (throw (RuntimeException.
@@ -509,7 +562,7 @@
                   (.put downloaders id is)
                   (when (empty? ret)
                     (.remove downloaders id))
-                  ret
+                  (ByteBuffer/wrap ret)
                   )))
 
       (^String getTopologyConf [this ^String id]
@@ -543,6 +596,7 @@
                                                                 set
                                                                 count)
                                                             (time-delta (:launch-time-secs base))
+                                                            (extract-status-str base)
                                                             )
                                           ))
               ]
@@ -580,6 +634,7 @@
                          (:storm-name base)
                          (time-delta (:launch-time-secs base))
                          task-summaries
+                         (extract-status-str base)
                          )
           ))
       
@@ -604,13 +659,14 @@
 
 (defn launch-server! [conf]
   (validate-distributed-mode! conf)
-  (let [options (THsHaServer$Options.)
-       _ (set! (. options maxWorkerThreads) 64)
-       service-handler (service-handler conf)
-       server (THsHaServer.
-               (Nimbus$Processor. service-handler)
-               (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
-               (TBinaryProtocol$Factory.) options)]
+  (let [service-handler (service-handler conf)
+        options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
+                    (THsHaServer$Args.)
+                    (.workerThreads 64)
+                    (.protocolFactory (TBinaryProtocol$Factory.))
+                    (.processor (Nimbus$Processor. service-handler))
+                    )
+       server (THsHaServer. options)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))

@@ -3,11 +3,11 @@ package backtype.storm.utils;
 import backtype.storm.Config;
 import backtype.storm.generated.Nimbus;
 import java.util.Map;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
+import org.apache.thrift7.TException;
+import org.apache.thrift7.protocol.TBinaryProtocol;
+import org.apache.thrift7.transport.TFramedTransport;
+import org.apache.thrift7.transport.TSocket;
+import org.apache.thrift7.transport.TTransport;
 
 
 public class NimbusClient {

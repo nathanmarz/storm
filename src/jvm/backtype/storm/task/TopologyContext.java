@@ -7,6 +7,7 @@ import backtype.storm.generated.Grouping;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.StreamInfo;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -207,7 +208,11 @@ public class TopologyContext {
      * Gets the declared output fields for the specified component/stream.
      */
     public Fields getComponentOutputFields(int componentId, int streamId) {
-        return new Fields(getComponentCommon(componentId).get_streams().get(streamId).get_output_fields());
+        StreamInfo streamInfo = getComponentCommon(componentId).get_streams().get(streamId);
+        if(streamInfo==null) {
+            throw new IllegalArgumentException("No output fields defined for component:stream " + componentId + ":" + streamId);
+        }
+        return new Fields(streamInfo.get_output_fields());
     }
 
     /**

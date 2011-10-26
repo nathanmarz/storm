@@ -374,6 +374,7 @@
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
                        storm-id " " supervisor-id " " port " " worker-id)]
+      (log-message "Launching worker with command: " command)
       (launch-process command)
       ))
 

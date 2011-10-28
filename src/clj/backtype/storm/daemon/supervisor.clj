@@ -368,12 +368,13 @@
           classpath (add-to-classpath (current-classpath) [stormjar])
           childopts (conf WORKER-CHILDOPTS)
           logfilename (str "worker-" port ".log")
+          outfilename (str "worker-" port ".out")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
-                       storm-id " " supervisor-id " " port " " worker-id)]
+                       storm-id " " supervisor-id " " port " " worker-id " > " outfilename)]
       (log-message "Launching worker with command: " command)
       (launch-process command)
       ))

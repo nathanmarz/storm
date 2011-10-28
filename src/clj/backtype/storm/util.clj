@@ -185,6 +185,7 @@
 (defn launch-process [command]
   (let [command (seq (.split command " "))
         builder (ProcessBuilder. (cons "nohup" command))]
+    (.redirectErrorStream builder true)
     (.start builder)
     ))
 

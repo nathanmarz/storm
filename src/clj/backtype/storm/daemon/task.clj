@@ -169,7 +169,7 @@
                        ACKER-ACK-STREAM-ID))
       )))
 
-(defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn]
+(defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn all-threads]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         task-info (.getTaskToComponent topology-context)
@@ -186,9 +186,9 @@
         
         report-error-and-die (fn [error]
                                (report-error error)
-                               (when (not= "local" (storm-conf STORM-CLUSTER-MODE))
-                                 (halt-process! 1 "Task died")))
-
+                               (if (not= "local" (storm-conf STORM-CLUSTER-MODE))
+                                 (halt-process! 1 "Task died")
+                                 (doseq [t all-threads] (.interrupt t) (.join t))))
         ;; heartbeat ASAP so nimbus doesn't reassign
         heartbeat-thread (async-loop
                           (fn []

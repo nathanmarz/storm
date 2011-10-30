@@ -169,7 +169,6 @@
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY)        
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)
@@ -194,6 +193,7 @@
                     0 )
                   :args-fn (fn [] [(ArrayList.) (TupleSerializer. storm-conf)]))
                  heartbeat-thread]
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn threads))
         virtual-port-shutdown (when (local-mode-zmq? conf)
                                 (log-message "Launching virtual port for " supervisor-id ":" port)
                                 (msg-loader/launch-virtual-port!

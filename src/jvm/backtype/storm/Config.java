@@ -201,7 +201,8 @@ public class Config extends HashMap<String, Object> {
     public static String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
     
     /**
-     * The jvm opts provided to workers launched by this supervisor.
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
+     * with an identifier for this worker.
      */
     public static String WORKER_CHILDOPTS = "worker.childopts";
 

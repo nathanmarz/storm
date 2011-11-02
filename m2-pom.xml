@@ -39,6 +39,8 @@
 			<groupId>storm</groupId>
 			<artifactId>storm</artifactId>
 			<version>0.5.4</version>
+			<!-- keep storm out of the jar-with-dependencies -->
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.twitter4j</groupId>
@@ -75,6 +77,35 @@
 			</resource>
 		</resources>
 		<plugins>
+		    <!-- 
+		    bind the maven-assembly-plugin to the package phase
+		    this will create a jar file without the storm dependencies
+		    suitable for deployment to a cluster.
+		     -->
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass></mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+
+			</plugin>
+
 			<plugin>
 				<groupId>com.theoryinpractise</groupId>
 				<artifactId>clojure-maven-plugin</artifactId>

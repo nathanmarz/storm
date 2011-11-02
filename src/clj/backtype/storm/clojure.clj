@@ -52,6 +52,24 @@
            [(hint id 'java.lang.Object)]
            )
 
+(defmacro lettuple [tuple bindings & forms]
+  (let [tuplex       (gensym "tuple")
+        getter       (fn [type-expr idx]
+                         `(. ~tuplex ~(->> type-expr (str "get") symbol) ~idx))
+        init-expr    (fn [type-expr idx]
+                         (if (seq? type-expr)
+                           `(-> ~(getter (first type-expr) idx) ~@(rest type-expr))
+                           (getter type-expr idx)))
+        let-bindings (loop [acc [tuplex tuple] bindings bindings idx 0]
+                       (if (seq bindings)
+                         (let [[var-symbol type-expr & more] bindings]
+                           (recur (conj acc var-symbol (init-expr type-expr idx))
+                                  more
+                                  (inc idx)))
+                         acc))]
+    `(let
+       ~let-bindings
+       ~@forms)))
 
 (defn direct-stream [fields]
   (StreamInfo. fields true))

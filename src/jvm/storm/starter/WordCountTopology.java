@@ -75,7 +75,7 @@ public class WordCountTopology {
         conf.setDebug(true);
 
         
-        if(args.length > 0) {
+        if(args!=null && args.length > 0) {
             conf.setNumWorkers(3);
             
             StormSubmitter.submitTopology(args[0], conf, builder.createTopology());

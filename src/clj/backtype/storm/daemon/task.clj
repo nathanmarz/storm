@@ -172,6 +172,7 @@
 (defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
+        _ (log-message "Loading task " component-id ":" task-id)
         task-info (.getTaskToComponent topology-context)
         active (atom true)
         uptime (uptime-computer)
@@ -282,6 +283,7 @@
                                       :kill-fn report-error-and-die))
         system-threads [heartbeat-thread]
         all-threads  (concat executor-threads system-threads)]
+    (log-message "Finished loading task " component-id ":" task-id)
     (reify
        Shutdownable
        (shutdown
@@ -323,6 +325,8 @@
 (defmethod mk-executors ISpout [^ISpout spout storm-conf puller send-fn storm-active-atom
                                 ^TopologyContext topology-context task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
+        task-id (.getThisTaskId topology-context)
+        component-id (.getThisComponentId topology-context)
         max-spout-pending (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)
         deserializer (TupleDeserializer. storm-conf topology-context)
         event-queue (ConcurrentLinkedQueue.)
@@ -335,8 +339,7 @@
                                   (.add event-queue #(fail-spout-msg spout storm-conf spout-id tuple time-delta task-stats)))
                                 )))
         send-spout-msg (fn [out-stream-id values message-id out-task-id]
-                         (let [task-id (.getThisTaskId topology-context)
-                               gen-id (MessageId/generateId)
+                         (let [gen-id (MessageId/generateId)
                                tuple-id (if message-id
                                           (MessageId/makeRootId gen-id)
                                           (MessageId/makeUnanchored))
@@ -369,7 +372,9 @@
                                                    ^List tuple ^Object message-id]
                                        (send-spout-msg stream-id tuple message-id out-task-id)
                                        ))]
+    (log-message "Opening spout " component-id ":" task-id)
     (.open spout storm-conf topology-context (SpoutOutputCollector. output-collector))
+    (log-message "Opened spout " component-id ":" task-id)
     [(fn []
        ;; This design requires that spouts be non-blocking
        (loop []
@@ -454,10 +459,12 @@
                           (^void reportError [this ^Throwable error]
                                  (report-error-fn error)
                                  ))]
+    (log-message "Preparing bolt " component-id ":" task-id)
     (.prepare bolt
               storm-conf
               topology-context
               (OutputCollectorImpl. topology-context output-collector))
+    (log-message "Prepared bolt " component-id ":" task-id)
     ;; TODO: can get any SubscribedState objects out of the context now
     [(fn []
        ;; synchronization needs to be done with a key provided by this bolt, otherwise:

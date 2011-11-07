@@ -8,6 +8,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ public class BoltTracker implements IRichBolt {
         }
 
 
-        public List<Integer> emit(int streamId, List<Tuple> anchors, List<Object> tuple) {
+        public List<Integer> emit(int streamId, Collection<Tuple> anchors, List<Object> tuple) {
             List<Integer> ret = _collector.emit(streamId, anchors, tuple);
             transferred += ret.size();
 
@@ -44,7 +45,7 @@ public class BoltTracker implements IRichBolt {
             return ret;
         }
 
-        public void emitDirect(int taskId, int streamId, List<Tuple> anchors, List<Object> tuple) {
+        public void emitDirect(int taskId, int streamId, Collection<Tuple> anchors, List<Object> tuple) {
             _collector.emitDirect(taskId, streamId, anchors, tuple);
             transferred++;
         }

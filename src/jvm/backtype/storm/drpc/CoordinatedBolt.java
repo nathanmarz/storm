@@ -1,5 +1,6 @@
 package backtype.storm.drpc;
 
+import java.util.Collection;
 import backtype.storm.Constants;
 import backtype.storm.generated.Grouping;
 import backtype.storm.task.IOutputCollector;
@@ -52,13 +53,13 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate = delegate;
         }
 
-        public List<Integer> emit(int stream, List<Tuple> anchors, List<Object> tuple) {
+        public List<Integer> emit(int stream, Collection<Tuple> anchors, List<Object> tuple) {
             List<Integer> tasks = _delegate.emit(stream, anchors, tuple);
             updateTaskCounts(tuple.get(0), tasks);
             return tasks;
         }
 
-        public void emitDirect(int task, int stream, List<Tuple> anchors, List<Object> tuple) {
+        public void emitDirect(int task, int stream, Collection<Tuple> anchors, List<Object> tuple) {
             updateTaskCounts(tuple.get(0), Arrays.asList(task));
             _delegate.emitDirect(task, stream, anchors, tuple);
         }

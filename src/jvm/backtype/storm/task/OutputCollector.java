@@ -3,6 +3,7 @@ package backtype.storm.task;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -44,7 +45,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param tuple the new output tuple from this bolt
      * @return the list of task ids that this new tuple was sent to
      */
-    public List<Integer> emit(List<Tuple> anchors, List<Object> tuple) {
+    public List<Integer> emit(Collection<Tuple> anchors, List<Object> tuple) {
         return emit(Utils.DEFAULT_STREAM_ID, anchors, tuple);
     }
 
@@ -119,7 +120,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param anchosr the tuples to anchor to
      * @param tuple the new output tuple from this bolt
      */
-    public void emitDirect(int taskId, List<Tuple> anchors, List<Object> tuple) {
+    public void emitDirect(int taskId, Collection<Tuple> anchors, List<Object> tuple) {
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, anchors, tuple);
     }
 

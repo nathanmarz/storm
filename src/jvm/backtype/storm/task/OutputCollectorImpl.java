@@ -3,6 +3,7 @@ package backtype.storm.task;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
@@ -30,15 +31,15 @@ public class OutputCollectorImpl extends OutputCollector {
         _collector = collector;
     }
     
-    public List<Integer> emit(int streamId, List<Tuple> anchors, List<Object> tuple) {
+    public List<Integer> emit(int streamId, Collection<Tuple> anchors, List<Object> tuple) {
         return _collector.emit(anchorTuple(anchors, streamId, tuple));
     }
     
-    public void emitDirect(int taskId, int streamId, List<Tuple> anchors, List<Object> tuple) {
+    public void emitDirect(int taskId, int streamId, Collection<Tuple> anchors, List<Object> tuple) {
         _collector.emitDirect(taskId, anchorTuple(anchors, streamId, tuple));
     }
 
-    private Tuple anchorTuple(List<Tuple> anchors, int streamId, List<Object> tuple) {
+    private Tuple anchorTuple(Collection<Tuple> anchors, int streamId, List<Object> tuple) {
         // The simple algorithm in this function is the key to Storm. It is
         // what enables Storm to guarantee message processing.
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();

@@ -20,4 +20,6 @@ java -cp `lein classpath` storm.starter.ExclamationTopology
 
 Maven is an alternative to Leiningen. storm-starter contains m2-pom.xml which can be used with Maven using the -f option, e.g.:
 
+```
 mvn -f m2-pom.xml package
+```

@@ -10,10 +10,11 @@ More information about Storm can be found on the [project page](http://github.co
 
 ## Running an example with Leiningen
 
+```
 lein deps
 lein compile
 java -cp `lein classpath` storm.starter.ExclamationTopology
-
+```
 
 ## Maven
 

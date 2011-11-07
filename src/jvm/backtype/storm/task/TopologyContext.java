@@ -216,6 +216,13 @@ public class TopologyContext {
     }
 
     /**
+     * Gets the declared output fields for the specified global stream id.
+     */
+    public Fields getComponentOutputFields(GlobalStreamId id) {
+        return getComponentOutputFields(id.get_componentId(), id.get_streamId());
+    }    
+    
+    /**
      * Gets the declared inputs to this component.
      * 
      * @return A map from subscribed component/stream to the grouping subscribed with.

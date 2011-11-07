@@ -1,5 +1,6 @@
 package backtype.storm.tuple;
 
+import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.TopologyContext;
 import clojure.lang.ILookup;
 import clojure.lang.Keyword;
@@ -217,6 +218,14 @@ public class Tuple implements ILookup {
      */
     public List<Object> select(Fields selector) {
         return getFields().select(selector, values);
+    }
+    
+    
+    /**
+     * Returns the global stream id (component + stream) of this tuple.
+     */
+    public GlobalStreamId getSourceGlobalStreamid() {
+        return new GlobalStreamId(getSourceComponent(), streamId);
     }
     
     /**

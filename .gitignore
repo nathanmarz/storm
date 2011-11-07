@@ -3,3 +3,4 @@ lib/
 *.pyc
 .classpath
 .project
+*.jar

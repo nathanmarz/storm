@@ -6,7 +6,7 @@ storm-starter contains a variety of examples of using Storm. If this is your fir
 2. WordCountTopology: Basic topology that makes use of multilang by implementing one bolt in Python
 3. ReachTopology: Example of complex DRPC on top of Storm
 
-More information about Storm can be found on the [project page](http://github.com/nathanmarz/storm)
+More information about Storm can be found on the [project page](http://github.com/nathanmarz/storm).
 
 ## Running an example with Leiningen
 

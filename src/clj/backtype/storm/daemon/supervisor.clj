@@ -311,6 +311,7 @@
                            (when @active (conf SUPERVISOR-MONITOR-FREQUENCY-SECS))
                            )
                          :priority Thread/MAX_PRIORITY)]))]
+    (log-message "Starting supervisor with id " supervisor-id)
     (reify
      Shutdownable
      (shutdown [this]

@@ -101,16 +101,35 @@ public class SerializationFactory {
                 }
         });
         put(8, new ISerialization<String>() {
+                final static int SERIALIZATION_LIMIT_SIZE = 64 * 1024 - 1;
+            
                 public boolean accept(Class c) {
                     return String.class.equals(c);
                 }
 
                 public void serialize(String object, DataOutputStream stream) throws IOException {
-                    stream.writeUTF(object);
+                    // this hack is here because writeUTF doesn't work for strings greater than 64K
+                    // but writeUTF seems to be twice than writing the byte array directly, so there's
+                    // a switch here based on the size of the string
+                    if(object.length()<=SERIALIZATION_LIMIT_SIZE) {
+                        stream.writeInt(-1);
+                        stream.writeUTF(object);
+                    } else {
+                        byte[] bytes = object.getBytes();
+                        stream.writeInt(bytes.length);
+                        stream.write(bytes);
+                    }
                 }
 
                 public String deserialize(DataInputStream stream) throws IOException {
-                    return stream.readUTF();
+                    int size = stream.readInt();
+                    if(size==-1) {
+                        return stream.readUTF();                    
+                    } else {
+                        byte[] bytes = new byte[size];
+                        stream.readFully(bytes);
+                        return new String(bytes);
+                    }
                 }
         });
         put(9, new ISerialization<Boolean>() {

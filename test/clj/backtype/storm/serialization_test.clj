@@ -1,6 +1,9 @@
 (ns backtype.storm.serialization-test
   (:use [clojure test])
-  (:import [backtype.storm.serialization SerializationFactory JavaSerialization])
+  (:import [java.io ByteArrayOutputStream DataOutputStream
+            ByteArrayInputStream DataInputStream])
+  (:import [backtype.storm.serialization SerializationFactory JavaSerialization
+            ValuesSerializer ValuesDeserializer])
   (:import [backtype.storm.testing TestSerObject TestSerObjectSerialization])
   (:use [backtype.storm util config])
   )
@@ -26,3 +29,36 @@
    
    
    ))
+
+(defn serialize [vals]
+  (let [serializer (ValuesSerializer. (mk-conf {}))
+        bos (ByteArrayOutputStream.)
+        os (DataOutputStream. bos)]
+    (.serializeInto serializer vals os)
+    (.toByteArray bos)
+    ))
+
+(defn deserialize [bytes]
+  (let [deserializer (ValuesDeserializer. (mk-conf {}))
+        bin (ByteArrayInputStream. bytes)
+        in (DataInputStream. bin)]
+    (.deserializeFrom deserializer in)
+    ))
+
+(defn roundtrip [vals]
+  (deserialize (serialize vals)))
+
+(defn mk-string [size]
+  (let [builder (StringBuilder.)]
+    (doseq [i (range size)]
+      (.append builder "a"))
+    (.toString builder)))
+
+(defn is-roundtrip [vals]
+  (is (= vals (roundtrip vals))))
+
+(deftest test-string-serialization
+  (is-roundtrip ["a" "bb" "cde"])
+  (is-roundtrip [(mk-string (* 64 1024))])
+  (is-roundtrip [(mk-string (* 1024 1024))])
+  )

@@ -2,6 +2,7 @@ package backtype.storm.drpc;
 
 import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
+import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
 import backtype.storm.drpc.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
@@ -16,6 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+
+// need a "final bolt" method, that does fields groupings based on the first field of previous streams.
+// preparerequest needs to emit to a special stream to indicate which task in the last bolt is responsible for that id?
+// -- what if it's shuffle grouping all the way through? need to enforce that last bolt do fields grouping on id...
 public class LinearDRPCTopologyBuilder {    
     String _function;
     List<Component> _components = new ArrayList<Component>();
@@ -69,11 +74,17 @@ public class LinearDRPCTopologyBuilder {
             } else {
                 source = SourceArgs.all();
             }
-            boolean allOut = (i < _components.size()-2);
+            Integer idComponent = null;
+            if(i==_components.size()-1 && component.bolt instanceof FinishedCallback) {
+                idComponent = 2;
+            }
             InputDeclarer declarer = builder.setBolt(
                     id,
-                    new CoordinatedBolt(component.bolt, source, allOut),
+                    new CoordinatedBolt(component.bolt, source, idComponent),
                     component.parallelism);
+            if(idComponent!=null) {
+                declarer.fieldsGrouping(idComponent, PrepareRequest.ID_STREAM, new Fields("request"));
+            }
             if(i==0 && component.declarations.size()==0) {
                 declarer.noneGrouping(2, PrepareRequest.ARGS_STREAM);
             } else {

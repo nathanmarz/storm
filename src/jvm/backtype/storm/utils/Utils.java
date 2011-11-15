@@ -157,6 +157,13 @@ public class Utils {
         out.close();
     }
     
+    public static Integer toInteger(Object o) {
+        if(o==null) return null;
+        else if(o instanceof Integer) return (Integer) o;
+        else if(o instanceof Long) return ((Long) o).intValue();
+        else throw new RuntimeException("Could not coerce " + o + " to integer");
+    }
+    
     public static IFn loadClojureFn(String namespace, String name) {
         try {
           clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));

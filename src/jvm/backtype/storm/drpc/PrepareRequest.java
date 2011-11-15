@@ -16,6 +16,7 @@ import java.util.Random;
 public class PrepareRequest implements IBasicBolt {
     public static final int ARGS_STREAM = 1;
     public static final int RETURN_STREAM = 2;
+    public static final int ID_STREAM = 3;
 
     Random rand;
 
@@ -29,6 +30,7 @@ public class PrepareRequest implements IBasicBolt {
         long requestId = rand.nextLong();
         collector.emit(ARGS_STREAM, new Values(requestId, args));
         collector.emit(RETURN_STREAM, new Values(requestId, returnInfo));
+        collector.emit(ID_STREAM, new Values(requestId));
     }
 
     public void cleanup() {
@@ -37,7 +39,6 @@ public class PrepareRequest implements IBasicBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declareStream(ARGS_STREAM, new Fields("request", "args"));
         declarer.declareStream(RETURN_STREAM, new Fields("request", "return"));
+        declarer.declareStream(ID_STREAM, new Fields("request"));
     }
-
-
 }

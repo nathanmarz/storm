@@ -276,9 +276,10 @@
                            ))
                        out-tasks)))
         executor-threads (dofor
-                          [exec (mk-executors task-object storm-conf puller send-fn
-                                              storm-active-atom topology-context
-                                              task-stats report-error)]
+                          [exec (with-error-reaction report-error-and-die
+                                  (mk-executors task-object storm-conf puller send-fn
+                                                storm-active-atom topology-context
+                                                task-stats report-error))]
                           (async-loop (fn [] (exec) (when @active 0))
                                       :kill-fn report-error-and-die))
         system-threads [heartbeat-thread]

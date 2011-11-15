@@ -503,3 +503,7 @@
 
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))
+
+(defmacro with-error-reaction [afn & body]
+  `(try ~@body
+     (catch Throwable t# (~afn t#))))

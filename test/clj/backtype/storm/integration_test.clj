@@ -318,7 +318,35 @@
       (checker 3)
       )))
 
+;; (defspout ConstantSpout ["val"] {:prepare false}
+;;   [collector]
+;;   (Time/sleep 100)
+;;   (emit-spout! collector [1]))
 
+;; (def errored (atom false))
+;; (def restarted (atom false))
+
+;; (defbolt local-error-checker {} [tuple collector]
+;;   (when-not @errored
+;;     (reset! errored true)
+;;     (println "erroring")
+;;     (throw (RuntimeException.)))
+;;   (when-not @restarted (println "restarted"))
+;;   (reset! restarted true))
+
+;; (deftest test-no-halt-local-mode
+;;   (with-simulated-time-local-cluster [cluster]
+;;       (let [topology (topology
+;;                       {1 (spout-spec ConstantSpout)}
+;;                       {2 (bolt-spec {1 :shuffle} local-error-checker)
+;;                        })]
+;;         (submit-local-topology (:nimbus cluster)
+;;                                "test"
+;;                                {}
+;;                                topology)
+;;         (while (not @restarted)
+;;           (advance-time-ms! 100))
+;;         )))
 
 (defspout IncSpout ["word"]
   [conf context collector]

@@ -169,7 +169,7 @@
                        ACKER-ACK-STREAM-ID))
       )))
 
-(defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn]
+(defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         _ (log-message "Loading task " component-id ":" task-id)
@@ -186,8 +186,8 @@
                        (.report-task-error storm-cluster-state storm-id task-id error))
         
         report-error-and-die (fn [error]
-                                (report-error error)
-                                (halt-process! 1 "Task died"))
+                               (report-error error)
+                               (suicide-fn))
 
         ;; heartbeat ASAP so nimbus doesn't reassign
         heartbeat-thread (async-loop

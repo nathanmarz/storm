@@ -7,6 +7,8 @@
 
 (bootstrap)
 
+(defmulti mk-suicide-fn cluster-mode)
+
 (defn local-mode-zmq? [conf]
   (or (= (conf STORM-CLUSTER-MODE) "distributed")
       (conf STORM-LOCAL-MODE-ZMQ)))
@@ -168,8 +170,9 @@
                             ;; of writing heartbeat after it's been shut down.
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
-                          :priority Thread/MAX_PRIORITY)        
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn))
+                          :priority Thread/MAX_PRIORITY)
+        suicide-fn (mk-suicide-fn conf active)
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)
@@ -239,7 +242,14 @@
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")
     ret
     ))
- 
+
+(defmethod mk-suicide-fn
+  :local [conf active]
+  (fn [] (reset! active false)))
+
+(defmethod mk-suicide-fn
+  :distributed [conf _]
+  (fn [] (halt-process! 1 "Task died")))
 
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]

@@ -124,6 +124,8 @@ public class Utils {
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {
             return Utils.deserialize(obj.get_serialized_java());
+        } else if(obj.getSetField()==ComponentObject._Fields.JAVA_OBJECT) {
+            return obj.get_java_object();
         } else {
             return obj.get_shell();
         }

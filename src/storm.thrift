@@ -43,6 +43,7 @@ struct ShellComponent {
 union ComponentObject {
   1: binary serialized_java;
   2: ShellComponent shell;
+  3: JavaObject java_object;
 }
 
 struct ComponentCommon {

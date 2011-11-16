@@ -568,17 +568,20 @@ class ComponentObject:
   Attributes:
    - serialized_java
    - shell
+   - java_object
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'serialized_java', None, None, ), # 1
     (2, TType.STRUCT, 'shell', (ShellComponent, ShellComponent.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'java_object', (JavaObject, JavaObject.thrift_spec), None, ), # 3
   )
 
-  def __init__(self, serialized_java=None, shell=None,):
+  def __init__(self, serialized_java=None, shell=None, java_object=None,):
     self.serialized_java = serialized_java
     self.shell = shell
+    self.java_object = java_object
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -600,6 +603,12 @@ class ComponentObject:
           self.shell.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.java_object = JavaObject()
+          self.java_object.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -617,6 +626,10 @@ class ComponentObject:
     if self.shell is not None:
       oprot.writeFieldBegin('shell', TType.STRUCT, 2)
       self.shell.write(oprot)
+      oprot.writeFieldEnd()
+    if self.java_object is not None:
+      oprot.writeFieldBegin('java_object', TType.STRUCT, 3)
+      self.java_object.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

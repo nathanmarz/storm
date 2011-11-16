@@ -119,6 +119,9 @@
                 (if (contains? spouts component-id)
                   (ShellSpout. obj)
                   (ShellBolt. obj))
+                obj )
+          obj (if (instance? JavaObject obj)
+                (thrift/instantiate-java-object obj)
                 obj )]
       obj
       )))

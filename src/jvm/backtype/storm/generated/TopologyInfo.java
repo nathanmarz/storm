@@ -595,14 +595,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         case 4: // TASKS
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list125 = iprot.readListBegin();
-              this.tasks = new ArrayList<TaskSummary>(_list125.size);
-              for (int _i126 = 0; _i126 < _list125.size; ++_i126)
+              org.apache.thrift7.protocol.TList _list129 = iprot.readListBegin();
+              this.tasks = new ArrayList<TaskSummary>(_list129.size);
+              for (int _i130 = 0; _i130 < _list129.size; ++_i130)
               {
-                TaskSummary _elem127; // required
-                _elem127 = new TaskSummary();
-                _elem127.read(iprot);
-                this.tasks.add(_elem127);
+                TaskSummary _elem131; // required
+                _elem131 = new TaskSummary();
+                _elem131.read(iprot);
+                this.tasks.add(_elem131);
               }
               iprot.readListEnd();
             }
@@ -647,9 +647,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       oprot.writeFieldBegin(TASKS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.tasks.size()));
-        for (TaskSummary _iter128 : this.tasks)
+        for (TaskSummary _iter132 : this.tasks)
         {
-          _iter128.write(oprot);
+          _iter132.write(oprot);
         }
         oprot.writeListEnd();
       }

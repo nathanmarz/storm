@@ -12,6 +12,12 @@
          num-tasks)
     ))
 
+(defn- mk-custom-grouper [^CustomStreamGrouping grouping num-tasks]
+  (.prepare grouping num-tasks)
+  (fn [^Tuple tuple]
+    (.taskIndices grouping tuple)
+    ))
+
 (defn- mk-grouper
   "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
   [^Fields out-fields thrift-grouping num-tasks]
@@ -36,6 +42,12 @@
       :none
         (fn [^Tuple tuple]
           (mod (.nextInt random) num-tasks))
+      :custom-object
+        (let [grouping (thrift/instantiate-java-object (.getFieldValue thrift-grouping))]
+          (mk-custom-grouper grouping num-tasks))
+      :custom-serialized
+        (let [grouping (Utils/deserialize (.getFieldValue thrift-grouping))]
+          (mk-custom-grouper grouping num-tasks))
       :direct
         :direct
       )))

@@ -354,13 +354,13 @@ public class StreamInfo implements org.apache.thrift7.TBase<StreamInfo, StreamIn
         case 1: // OUTPUT_FIELDS
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list4 = iprot.readListBegin();
-              this.output_fields = new ArrayList<String>(_list4.size);
-              for (int _i5 = 0; _i5 < _list4.size; ++_i5)
+              org.apache.thrift7.protocol.TList _list8 = iprot.readListBegin();
+              this.output_fields = new ArrayList<String>(_list8.size);
+              for (int _i9 = 0; _i9 < _list8.size; ++_i9)
               {
-                String _elem6; // required
-                _elem6 = iprot.readString();
-                this.output_fields.add(_elem6);
+                String _elem10; // required
+                _elem10 = iprot.readString();
+                this.output_fields.add(_elem10);
               }
               iprot.readListEnd();
             }
@@ -393,9 +393,9 @@ public class StreamInfo implements org.apache.thrift7.TBase<StreamInfo, StreamIn
       oprot.writeFieldBegin(OUTPUT_FIELDS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRING, this.output_fields.size()));
-        for (String _iter7 : this.output_fields)
+        for (String _iter11 : this.output_fields)
         {
-          oprot.writeString(_iter7);
+          oprot.writeString(_iter11);
         }
         oprot.writeListEnd();
       }

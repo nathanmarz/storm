@@ -1,6 +1,7 @@
 package backtype.storm.tuple;
 
 import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.generated.Grouping;
 import backtype.storm.task.TopologyContext;
 import clojure.lang.ILookup;
 import clojure.lang.Keyword;
@@ -34,6 +35,7 @@ public class Tuple implements ILookup {
         this.streamId = streamId;
         this.id = id;
         this.context = context;
+        
         //TODO: should find a way to include this information here
         //TODO: should only leave out the connection info?
         //TODO: have separate methods for "user" and "system" topology?

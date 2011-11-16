@@ -356,16 +356,16 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
         case 1: // STREAMS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map8 = iprot.readMapBegin();
-              this.streams = new HashMap<Integer,StreamInfo>(2*_map8.size);
-              for (int _i9 = 0; _i9 < _map8.size; ++_i9)
+              org.apache.thrift7.protocol.TMap _map12 = iprot.readMapBegin();
+              this.streams = new HashMap<Integer,StreamInfo>(2*_map12.size);
+              for (int _i13 = 0; _i13 < _map12.size; ++_i13)
               {
-                int _key10; // required
-                StreamInfo _val11; // required
-                _key10 = iprot.readI32();
-                _val11 = new StreamInfo();
-                _val11.read(iprot);
-                this.streams.put(_key10, _val11);
+                int _key14; // required
+                StreamInfo _val15; // required
+                _key14 = iprot.readI32();
+                _val15 = new StreamInfo();
+                _val15.read(iprot);
+                this.streams.put(_key14, _val15);
               }
               iprot.readMapEnd();
             }
@@ -398,10 +398,10 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       oprot.writeFieldBegin(STREAMS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.streams.size()));
-        for (Map.Entry<Integer, StreamInfo> _iter12 : this.streams.entrySet())
+        for (Map.Entry<Integer, StreamInfo> _iter16 : this.streams.entrySet())
         {
-          oprot.writeI32(_iter12.getKey());
-          _iter12.getValue().write(oprot);
+          oprot.writeI32(_iter16.getKey());
+          _iter16.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }

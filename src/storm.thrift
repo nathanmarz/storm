@@ -2,6 +2,20 @@
 
 namespace java backtype.storm.generated
 
+union JavaObjectArg {
+  1: i32 int_arg;
+  2: i64 long_arg;
+  3: string string_arg;
+  4: bool bool_arg;
+  5: binary binary_arg;
+  6: double double_arg;
+}
+
+struct JavaObject {
+  1: required string full_class_name;
+  2: required list<JavaObjectArg> args_list;
+}
+
 struct NullStruct {
   
 }
@@ -12,6 +26,8 @@ union Grouping {
   3: NullStruct all; // tuple is sent to every task
   4: NullStruct none; // tuple is sent to a single task (storm's choice) -> allows storm to optimize the topology by bundling tasks into a single process
   5: NullStruct direct; // this bolt expects the source bolt to send tuples directly to it
+  6: JavaObject custom_object;
+  7: binary custom_serialized;
 }
 
 struct StreamInfo {

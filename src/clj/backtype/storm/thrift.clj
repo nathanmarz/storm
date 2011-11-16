@@ -1,5 +1,7 @@
 (ns backtype.storm.thrift
-  (:import [backtype.storm.generated Grouping Nimbus StormTopology Bolt Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
+  (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology Bolt Nimbus$Client
+    Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
+    GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.drpc CoordinatedBolt CoordinatedBolt$SourceArgs
@@ -11,11 +13,19 @@
   (:use [clojure.contrib.def :only [defnk]])
   )
 
+(defn instantiate-java-object [^JavaObject obj]
+  (let [name (symbol (.get_full_class_name obj))
+        args (map (memfn getFieldValue) (.get_args_list obj))]
+    (eval `(new ~name ~@args))
+    ))
+
 (def grouping-constants
   {Grouping$_Fields/FIELDS :fields
    Grouping$_Fields/SHUFFLE :shuffle
    Grouping$_Fields/ALL :all
    Grouping$_Fields/NONE :none
+   Grouping$_Fields/CUSTOM_SERIALIZED :custom-serialized
+   Grouping$_Fields/CUSTOM_OBJECT :custom-object
    Grouping$_Fields/DIRECT :direct
   })
 

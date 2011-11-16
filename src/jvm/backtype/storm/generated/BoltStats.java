@@ -518,28 +518,28 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
         case 1: // ACKED
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map41 = iprot.readMapBegin();
-              this.acked = new HashMap<String,Map<GlobalStreamId,Long>>(2*_map41.size);
-              for (int _i42 = 0; _i42 < _map41.size; ++_i42)
+              org.apache.thrift7.protocol.TMap _map45 = iprot.readMapBegin();
+              this.acked = new HashMap<String,Map<GlobalStreamId,Long>>(2*_map45.size);
+              for (int _i46 = 0; _i46 < _map45.size; ++_i46)
               {
-                String _key43; // required
-                Map<GlobalStreamId,Long> _val44; // required
-                _key43 = iprot.readString();
+                String _key47; // required
+                Map<GlobalStreamId,Long> _val48; // required
+                _key47 = iprot.readString();
                 {
-                  org.apache.thrift7.protocol.TMap _map45 = iprot.readMapBegin();
-                  _val44 = new HashMap<GlobalStreamId,Long>(2*_map45.size);
-                  for (int _i46 = 0; _i46 < _map45.size; ++_i46)
+                  org.apache.thrift7.protocol.TMap _map49 = iprot.readMapBegin();
+                  _val48 = new HashMap<GlobalStreamId,Long>(2*_map49.size);
+                  for (int _i50 = 0; _i50 < _map49.size; ++_i50)
                   {
-                    GlobalStreamId _key47; // required
-                    long _val48; // required
-                    _key47 = new GlobalStreamId();
-                    _key47.read(iprot);
-                    _val48 = iprot.readI64();
-                    _val44.put(_key47, _val48);
+                    GlobalStreamId _key51; // required
+                    long _val52; // required
+                    _key51 = new GlobalStreamId();
+                    _key51.read(iprot);
+                    _val52 = iprot.readI64();
+                    _val48.put(_key51, _val52);
                   }
                   iprot.readMapEnd();
                 }
-                this.acked.put(_key43, _val44);
+                this.acked.put(_key47, _val48);
               }
               iprot.readMapEnd();
             }
@@ -550,28 +550,28 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
         case 2: // FAILED
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map49 = iprot.readMapBegin();
-              this.failed = new HashMap<String,Map<GlobalStreamId,Long>>(2*_map49.size);
-              for (int _i50 = 0; _i50 < _map49.size; ++_i50)
+              org.apache.thrift7.protocol.TMap _map53 = iprot.readMapBegin();
+              this.failed = new HashMap<String,Map<GlobalStreamId,Long>>(2*_map53.size);
+              for (int _i54 = 0; _i54 < _map53.size; ++_i54)
               {
-                String _key51; // required
-                Map<GlobalStreamId,Long> _val52; // required
-                _key51 = iprot.readString();
+                String _key55; // required
+                Map<GlobalStreamId,Long> _val56; // required
+                _key55 = iprot.readString();
                 {
-                  org.apache.thrift7.protocol.TMap _map53 = iprot.readMapBegin();
-                  _val52 = new HashMap<GlobalStreamId,Long>(2*_map53.size);
-                  for (int _i54 = 0; _i54 < _map53.size; ++_i54)
+                  org.apache.thrift7.protocol.TMap _map57 = iprot.readMapBegin();
+                  _val56 = new HashMap<GlobalStreamId,Long>(2*_map57.size);
+                  for (int _i58 = 0; _i58 < _map57.size; ++_i58)
                   {
-                    GlobalStreamId _key55; // required
-                    long _val56; // required
-                    _key55 = new GlobalStreamId();
-                    _key55.read(iprot);
-                    _val56 = iprot.readI64();
-                    _val52.put(_key55, _val56);
+                    GlobalStreamId _key59; // required
+                    long _val60; // required
+                    _key59 = new GlobalStreamId();
+                    _key59.read(iprot);
+                    _val60 = iprot.readI64();
+                    _val56.put(_key59, _val60);
                   }
                   iprot.readMapEnd();
                 }
-                this.failed.put(_key51, _val52);
+                this.failed.put(_key55, _val56);
               }
               iprot.readMapEnd();
             }
@@ -582,28 +582,28 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
         case 3: // PROCESS_MS_AVG
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map57 = iprot.readMapBegin();
-              this.process_ms_avg = new HashMap<String,Map<GlobalStreamId,Double>>(2*_map57.size);
-              for (int _i58 = 0; _i58 < _map57.size; ++_i58)
+              org.apache.thrift7.protocol.TMap _map61 = iprot.readMapBegin();
+              this.process_ms_avg = new HashMap<String,Map<GlobalStreamId,Double>>(2*_map61.size);
+              for (int _i62 = 0; _i62 < _map61.size; ++_i62)
               {
-                String _key59; // required
-                Map<GlobalStreamId,Double> _val60; // required
-                _key59 = iprot.readString();
+                String _key63; // required
+                Map<GlobalStreamId,Double> _val64; // required
+                _key63 = iprot.readString();
                 {
-                  org.apache.thrift7.protocol.TMap _map61 = iprot.readMapBegin();
-                  _val60 = new HashMap<GlobalStreamId,Double>(2*_map61.size);
-                  for (int _i62 = 0; _i62 < _map61.size; ++_i62)
+                  org.apache.thrift7.protocol.TMap _map65 = iprot.readMapBegin();
+                  _val64 = new HashMap<GlobalStreamId,Double>(2*_map65.size);
+                  for (int _i66 = 0; _i66 < _map65.size; ++_i66)
                   {
-                    GlobalStreamId _key63; // required
-                    double _val64; // required
-                    _key63 = new GlobalStreamId();
-                    _key63.read(iprot);
-                    _val64 = iprot.readDouble();
-                    _val60.put(_key63, _val64);
+                    GlobalStreamId _key67; // required
+                    double _val68; // required
+                    _key67 = new GlobalStreamId();
+                    _key67.read(iprot);
+                    _val68 = iprot.readDouble();
+                    _val64.put(_key67, _val68);
                   }
                   iprot.readMapEnd();
                 }
-                this.process_ms_avg.put(_key59, _val60);
+                this.process_ms_avg.put(_key63, _val64);
               }
               iprot.readMapEnd();
             }
@@ -628,15 +628,15 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       oprot.writeFieldBegin(ACKED_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.acked.size()));
-        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter65 : this.acked.entrySet())
+        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter69 : this.acked.entrySet())
         {
-          oprot.writeString(_iter65.getKey());
+          oprot.writeString(_iter69.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter65.getValue().size()));
-            for (Map.Entry<GlobalStreamId, Long> _iter66 : _iter65.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter69.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Long> _iter70 : _iter69.getValue().entrySet())
             {
-              _iter66.getKey().write(oprot);
-              oprot.writeI64(_iter66.getValue());
+              _iter70.getKey().write(oprot);
+              oprot.writeI64(_iter70.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -649,15 +649,15 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       oprot.writeFieldBegin(FAILED_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.failed.size()));
-        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter67 : this.failed.entrySet())
+        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter71 : this.failed.entrySet())
         {
-          oprot.writeString(_iter67.getKey());
+          oprot.writeString(_iter71.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter67.getValue().size()));
-            for (Map.Entry<GlobalStreamId, Long> _iter68 : _iter67.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter71.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Long> _iter72 : _iter71.getValue().entrySet())
             {
-              _iter68.getKey().write(oprot);
-              oprot.writeI64(_iter68.getValue());
+              _iter72.getKey().write(oprot);
+              oprot.writeI64(_iter72.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -670,15 +670,15 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       oprot.writeFieldBegin(PROCESS_MS_AVG_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.process_ms_avg.size()));
-        for (Map.Entry<String, Map<GlobalStreamId,Double>> _iter69 : this.process_ms_avg.entrySet())
+        for (Map.Entry<String, Map<GlobalStreamId,Double>> _iter73 : this.process_ms_avg.entrySet())
         {
-          oprot.writeString(_iter69.getKey());
+          oprot.writeString(_iter73.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.DOUBLE, _iter69.getValue().size()));
-            for (Map.Entry<GlobalStreamId, Double> _iter70 : _iter69.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.DOUBLE, _iter73.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Double> _iter74 : _iter73.getValue().entrySet())
             {
-              _iter70.getKey().write(oprot);
-              oprot.writeDouble(_iter70.getValue());
+              _iter74.getKey().write(oprot);
+              oprot.writeDouble(_iter74.getValue());
             }
             oprot.writeMapEnd();
           }

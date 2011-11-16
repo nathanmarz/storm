@@ -479,16 +479,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         case 1: // SPOUTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map18 = iprot.readMapBegin();
-              this.spouts = new HashMap<Integer,SpoutSpec>(2*_map18.size);
-              for (int _i19 = 0; _i19 < _map18.size; ++_i19)
+              org.apache.thrift7.protocol.TMap _map22 = iprot.readMapBegin();
+              this.spouts = new HashMap<Integer,SpoutSpec>(2*_map22.size);
+              for (int _i23 = 0; _i23 < _map22.size; ++_i23)
               {
-                int _key20; // required
-                SpoutSpec _val21; // required
-                _key20 = iprot.readI32();
-                _val21 = new SpoutSpec();
-                _val21.read(iprot);
-                this.spouts.put(_key20, _val21);
+                int _key24; // required
+                SpoutSpec _val25; // required
+                _key24 = iprot.readI32();
+                _val25 = new SpoutSpec();
+                _val25.read(iprot);
+                this.spouts.put(_key24, _val25);
               }
               iprot.readMapEnd();
             }
@@ -499,16 +499,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         case 2: // BOLTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map22 = iprot.readMapBegin();
-              this.bolts = new HashMap<Integer,Bolt>(2*_map22.size);
-              for (int _i23 = 0; _i23 < _map22.size; ++_i23)
+              org.apache.thrift7.protocol.TMap _map26 = iprot.readMapBegin();
+              this.bolts = new HashMap<Integer,Bolt>(2*_map26.size);
+              for (int _i27 = 0; _i27 < _map26.size; ++_i27)
               {
-                int _key24; // required
-                Bolt _val25; // required
-                _key24 = iprot.readI32();
-                _val25 = new Bolt();
-                _val25.read(iprot);
-                this.bolts.put(_key24, _val25);
+                int _key28; // required
+                Bolt _val29; // required
+                _key28 = iprot.readI32();
+                _val29 = new Bolt();
+                _val29.read(iprot);
+                this.bolts.put(_key28, _val29);
               }
               iprot.readMapEnd();
             }
@@ -519,16 +519,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         case 3: // STATE_SPOUTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map26 = iprot.readMapBegin();
-              this.state_spouts = new HashMap<Integer,StateSpoutSpec>(2*_map26.size);
-              for (int _i27 = 0; _i27 < _map26.size; ++_i27)
+              org.apache.thrift7.protocol.TMap _map30 = iprot.readMapBegin();
+              this.state_spouts = new HashMap<Integer,StateSpoutSpec>(2*_map30.size);
+              for (int _i31 = 0; _i31 < _map30.size; ++_i31)
               {
-                int _key28; // required
-                StateSpoutSpec _val29; // required
-                _key28 = iprot.readI32();
-                _val29 = new StateSpoutSpec();
-                _val29.read(iprot);
-                this.state_spouts.put(_key28, _val29);
+                int _key32; // required
+                StateSpoutSpec _val33; // required
+                _key32 = iprot.readI32();
+                _val33 = new StateSpoutSpec();
+                _val33.read(iprot);
+                this.state_spouts.put(_key32, _val33);
               }
               iprot.readMapEnd();
             }
@@ -553,10 +553,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       oprot.writeFieldBegin(SPOUTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.spouts.size()));
-        for (Map.Entry<Integer, SpoutSpec> _iter30 : this.spouts.entrySet())
+        for (Map.Entry<Integer, SpoutSpec> _iter34 : this.spouts.entrySet())
         {
-          oprot.writeI32(_iter30.getKey());
-          _iter30.getValue().write(oprot);
+          oprot.writeI32(_iter34.getKey());
+          _iter34.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }
@@ -566,10 +566,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       oprot.writeFieldBegin(BOLTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.bolts.size()));
-        for (Map.Entry<Integer, Bolt> _iter31 : this.bolts.entrySet())
+        for (Map.Entry<Integer, Bolt> _iter35 : this.bolts.entrySet())
         {
-          oprot.writeI32(_iter31.getKey());
-          _iter31.getValue().write(oprot);
+          oprot.writeI32(_iter35.getKey());
+          _iter35.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }
@@ -579,10 +579,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       oprot.writeFieldBegin(STATE_SPOUTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.state_spouts.size()));
-        for (Map.Entry<Integer, StateSpoutSpec> _iter32 : this.state_spouts.entrySet())
+        for (Map.Entry<Integer, StateSpoutSpec> _iter36 : this.state_spouts.entrySet())
         {
-          oprot.writeI32(_iter32.getKey());
-          _iter32.getValue().write(oprot);
+          oprot.writeI32(_iter36.getKey());
+          _iter36.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }

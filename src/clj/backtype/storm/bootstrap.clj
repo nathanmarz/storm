@@ -31,9 +31,10 @@
                       InvalidTopologyException ClusterSummary TopologyInfo
                       TopologySummary TaskSummary TaskStats TaskSpecificStats
                       SpoutStats BoltStats ErrorInfo SupervisorSummary
-                      KillOptions]))
+                      KillOptions JavaObject]))
       (import (quote [backtype.storm.daemon.common StormBase Assignment
                       TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
+      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
       (import (quote [java.io File FileOutputStream FileInputStream]))
       (import (quote [java.util List Random Map HashMap]))
       (import (quote [org.apache.commons.io FileUtils]))

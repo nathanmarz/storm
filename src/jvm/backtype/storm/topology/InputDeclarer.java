@@ -1,5 +1,6 @@
 package backtype.storm.topology;
 
+import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 
 
@@ -21,4 +22,8 @@ public interface InputDeclarer {
 
     public InputDeclarer directGrouping(int componentId);
     public InputDeclarer directGrouping(int componentId, int streamId);
+
+    public InputDeclarer customGrouping(int componentId, CustomStreamGrouping grouping);
+    public InputDeclarer customGrouping(int componentId, int streamId, CustomStreamGrouping grouping);
+
 }

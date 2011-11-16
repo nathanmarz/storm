@@ -4,6 +4,7 @@
     GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
+  (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.drpc CoordinatedBolt CoordinatedBolt$SourceArgs
             KeyedFairBolt])
   (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
@@ -129,6 +130,8 @@
 (defn mk-grouping [grouping-spec]
   (cond (nil? grouping-spec) (mk-none-grouping)
         (instance? Grouping grouping-spec) grouping-spec
+        (instance? CustomStreamGrouping grouping-spec) (Grouping/custom_serialized (Utils/serialize grouping-spec))
+        (instance? JavaObject grouping-spec) (Grouping/custom_object grouping-spec)
         (sequential? grouping-spec) (mk-fields-grouping grouping-spec)
         (= grouping-spec :shuffle) (mk-shuffle-grouping)
         (= grouping-spec :none) (mk-none-grouping)

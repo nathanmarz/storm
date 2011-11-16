@@ -43,10 +43,10 @@
         (fn [^Tuple tuple]
           (mod (.nextInt random) num-tasks))
       :custom-object
-        (let [grouping (thrift/instantiate-java-object (.getFieldValue thrift-grouping))]
+        (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
           (mk-custom-grouper grouping num-tasks))
       :custom-serialized
-        (let [grouping (Utils/deserialize (.getFieldValue thrift-grouping))]
+        (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping))]
           (mk-custom-grouper grouping num-tasks))
       :direct
         :direct

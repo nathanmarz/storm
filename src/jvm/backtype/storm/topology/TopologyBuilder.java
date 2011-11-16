@@ -9,6 +9,7 @@ import backtype.storm.generated.NullStruct;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -265,6 +266,16 @@ public class TopologyBuilder {
         private InputDeclarer grouping(int componentId, int streamId, Grouping grouping) {
             _inputs.get(_boltId).put(new GlobalStreamId(componentId, streamId), grouping);
             return this;
+        }
+
+        @Override
+        public InputDeclarer customGrouping(int componentId, CustomStreamGrouping grouping) {
+            return customGrouping(componentId, Utils.DEFAULT_STREAM_ID, grouping);
+        }
+
+        @Override
+        public InputDeclarer customGrouping(int componentId, int streamId, CustomStreamGrouping grouping) {
+            return grouping(componentId, streamId, Grouping.custom_serialized(Utils.serialize(grouping)));
         }
         
     }

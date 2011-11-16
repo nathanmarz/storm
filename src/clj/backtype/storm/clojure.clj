@@ -1,7 +1,7 @@
 (ns backtype.storm.clojure
   (:use [clojure.contrib.def :only [defnk defalias]])
   (:use [backtype.storm bootstrap util])
-  (:import [backtype.storm LocalCluster StormSubmitter])
+  (:import [backtype.storm StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.task OutputCollector IBolt])
@@ -190,5 +190,7 @@
 (defn submit-remote-topology [name conf topology]
   (StormSubmitter/submitTopology name conf topology))
 
-(defn local-cluster []
-  (LocalCluster.))
+(defn local-cluster []  
+  ;; do this to avoid a cyclic dependency of
+  ;; LocalCluster -> testing -> nimbus -> bootstrap -> clojure -> LocalCluster
+  (eval '(new backtype.storm.LocalCluster))

@@ -193,4 +193,4 @@
 (defn local-cluster []  
   ;; do this to avoid a cyclic dependency of
   ;; LocalCluster -> testing -> nimbus -> bootstrap -> clojure -> LocalCluster
-  (eval '(new backtype.storm.LocalCluster))
+  (eval '(new backtype.storm.LocalCluster)))

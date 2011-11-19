@@ -4,5 +4,5 @@ import backtype.storm.tuple.Tuple;
 import java.io.IOException;
 
 public interface ITupleDeserializer {
-    Tuple deserialize(byte[] ser) throws IOException;        
+    Tuple deserialize(byte[] ser);        
 }

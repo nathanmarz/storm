@@ -1,10 +1,9 @@
 package backtype.storm.serialization;
 
 import backtype.storm.tuple.Tuple;
-import java.io.IOException;
 
 
 public interface ITupleSerializer {
-    byte[] serialize(Tuple tuple) throws IOException;
+    byte[] serialize(Tuple tuple);
     long crc32(Tuple tuple);
 }

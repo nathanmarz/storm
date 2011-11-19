@@ -10,4 +10,11 @@ public class TestSerObject implements Serializable {
        this.f1 = f1;
        this.f2 = f2;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        TestSerObject other = (TestSerObject) o;
+        return f1 == other.f1 && f2 == other.f2;
+    }
+        
 }

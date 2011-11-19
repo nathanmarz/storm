@@ -90,7 +90,7 @@
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {}]
   (let [zk-port 2181
         daemon-conf (merge (read-storm-config)
-                           {TOPOLOGY-SKIP-MISSING-SERIALIZATIONS true
+                           {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             }
                            daemon-conf

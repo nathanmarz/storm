@@ -16,6 +16,7 @@
                  [org.apache.zookeeper/zookeeper "3.3.2"]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
+                 [com.googlecode/kryo "1.04"]
                  [compojure "0.6.4"]
                  [hiccup "0.3.6"]
                  [ring/ring-jetty-adapter "0.3.11"]

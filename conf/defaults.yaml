@@ -61,7 +61,7 @@ topology.workers: 1
 topology.ackers: 1
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
-topology.skip.missing.serializations: false
+topology.skip.missing.kryo.registrations: false
 topology.max.task.parallelism: null
 topology.max.spout.pending: null
 topology.state.synchronization.timeout.secs: 60

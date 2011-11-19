@@ -344,7 +344,7 @@
         task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         max-spout-pending (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)
-        deserializer (TupleDeserializer. storm-conf topology-context)
+        deserializer (KryoTupleDeserializer. storm-conf topology-context)
         event-queue (ConcurrentLinkedQueue.)
         sampler (mk-stats-sampler storm-conf)
         pending (TimeCacheMap.
@@ -433,7 +433,7 @@
 
 (defmethod mk-executors IBolt [^IBolt bolt storm-conf puller send-fn storm-active-atom
                                ^TopologyContext topology-context task-stats report-error-fn]
-  (let [deserializer (TupleDeserializer. storm-conf topology-context)
+  (let [deserializer (KryoTupleDeserializer. storm-conf topology-context)
         task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         tuple-start-times (ConcurrentHashMap.)

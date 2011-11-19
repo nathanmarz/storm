@@ -1,0 +1,74 @@
+package backtype.storm.serialization;
+
+import backtype.storm.Config;
+import backtype.storm.utils.ListDelegate;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.ObjectBuffer;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.serialize.SerializableSerializer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import org.apache.log4j.Logger;
+
+public class KryoFactory {
+    public static final Logger LOG = Logger.getLogger(KryoFactory.class);
+    
+    public static class KryoSerializableDefault extends Kryo {
+        boolean _override = false;
+        
+        public void overrideDefault(boolean value) {
+            _override = value;
+        }
+        
+        @Override
+        protected Serializer newDefaultSerializer(Class type) {
+            if(_override) {
+                return new SerializableSerializer();
+            } else {
+                return super.newDefaultSerializer(type);
+            }
+        }        
+    }
+    
+    public static ObjectBuffer getKryo(Map conf) {
+        KryoSerializableDefault k = new KryoSerializableDefault();
+        k.setRegistrationOptional((Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION));
+        k.register(ListDelegate.class);
+        k.register(ArrayList.class);
+        k.register(HashMap.class);
+        k.register(HashSet.class);
+        Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
+        if(registrations==null) registrations = new HashMap<String, String>();
+        boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
+        for(String klassName: registrations.keySet()) {
+            String serializerClassName = registrations.get(klassName);
+            try {
+                Class klass = Class.forName(klassName);
+                Class serializerClass = null;
+                if(serializerClassName!=null)
+                    serializerClass = Class.forName(serializerClassName);
+                if(serializerClass == null) {
+                    k.register(klass);
+                } else {
+                    k.register(klass, (Serializer) serializerClass.newInstance());
+                }
+                
+            } catch (ClassNotFoundException e) {
+                if(skipMissing) {
+                    LOG.info("Could not find serialization or class for " + serializerClassName + ". Skipping registration...");
+                } else {
+                    throw new RuntimeException(e);
+                }
+            } catch (InstantiationException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);                
+            }
+        }                
+        // TODO: do clojure persistent data structures
+        k.overrideDefault(true);
+        return new ObjectBuffer(k, 2000, 2000000000);        
+    }
+}

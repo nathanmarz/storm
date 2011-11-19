@@ -387,23 +387,19 @@
     (.toUpperCase (name t))
     ))
 
-(defn assign-serialization-ids [sers-seq]
-  (let [counter (mk-counter (inc SerializationFactory/SERIALIZATION_TOKEN_BOUNDARY))]
-    (into {}
-          (for [s sers-seq]
-            [(counter) s]))
-    ))
+(defn mapify-serializations [sers]
+  (->> sers
+       (map (fn [e] (if (map? e) e {e nil})))
+       (apply merge)
+       ))
 
 (defn normalize-conf [conf storm-conf]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
-  (let [sers (storm-conf TOPOLOGY-SERIALIZATIONS)
-        sers (if sers sers (conf TOPOLOGY-SERIALIZATIONS))
-        sers (if (map? sers)
-               sers
-               (assign-serialization-ids sers)
-               )]
-    (assoc storm-conf TOPOLOGY-SERIALIZATIONS sers)
+  (let [sers (storm-conf TOPOLOGY-KRYO-REGISTER)
+        sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
+        sers (mapify-serializations sers)]
+    (assoc storm-conf TOPOLOGY-KRYO-REGISTER sers)
     ))
 
 (defserverfn service-handler [conf]

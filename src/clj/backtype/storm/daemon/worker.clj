@@ -180,7 +180,7 @@
                     (when @active (storm-conf TASK-REFRESH-POLL-SECS))
                     ))
                  (async-loop
-                  (fn [^ArrayList drainer ^TupleSerializer serializer]
+                  (fn [^ArrayList drainer ^KryoTupleSerializer serializer]
                     (let [felem (.take transfer-queue)]
                       (.add drainer felem)
                       (.drainTo transfer-queue drainer))
@@ -195,7 +195,7 @@
                         ))
                     (.clear drainer)
                     0 )
-                  :args-fn (fn [] [(ArrayList.) (TupleSerializer. storm-conf)]))
+                  :args-fn (fn [] [(ArrayList.) (KryoTupleSerializer. storm-conf)]))
                  heartbeat-thread]
         virtual-port-shutdown (when (local-mode-zmq? conf)
                                 (log-message "Launching virtual port for " supervisor-id ":" port)

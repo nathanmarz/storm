@@ -50,7 +50,7 @@ public class OutputCollectorImpl extends OutputCollector {
                 for(long root: anchor.getMessageId().getAnchorsToIds().keySet()) {
                     Long curr = anchorsToIds.get(root);
                     if(curr == null) curr = 0L;
-                    anchorsToIds.put(root, curr ^ newId);                
+                    anchorsToIds.put(root, curr ^ newId);
                 }
             }
         }

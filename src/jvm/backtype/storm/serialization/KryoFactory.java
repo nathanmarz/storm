@@ -39,6 +39,7 @@ public class KryoFactory {
         k.register(ArrayList.class);
         k.register(HashMap.class);
         k.register(HashSet.class);
+        // TODO: do clojure persistent data structures
         Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
         if(registrations==null) registrations = new HashMap<String, String>();
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
@@ -66,8 +67,7 @@ public class KryoFactory {
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);                
             }
-        }                
-        // TODO: do clojure persistent data structures
+        }
         k.overrideDefault(true);
         return new ObjectBuffer(k, 2000, 2000000000);        
     }

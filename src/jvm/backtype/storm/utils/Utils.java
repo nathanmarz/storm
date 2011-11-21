@@ -1,6 +1,8 @@
 package backtype.storm.utils;
 
+import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.StormTopology;
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import java.io.ByteArrayInputStream;
@@ -26,7 +28,7 @@ import org.apache.thrift7.TException;
 import org.jvyaml.YAML;
 
 public class Utils {
-    public static final int DEFAULT_STREAM_ID = 1;
+    public static final String DEFAULT_STREAM_ID = "default";
 
     public static byte[] serialize(Object obj) {
         try {
@@ -172,5 +174,34 @@ public class Utils {
           //if playing from the repl and defining functions, file won't exist
         }
         return (IFn) RT.var(namespace, name).deref();        
+    }
+    
+    public static boolean isSystemStream(String id) {
+        return id.startsWith("__");
+    }
+    
+    public static boolean isSystemComponent(String id) {
+        return id.startsWith("__");        
+    }
+    
+    public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
+        Map<V, K> ret = new HashMap<V, K>();
+        for(K key: map.keySet()) {
+            ret.put(map.get(key), key);
+        }
+        return ret;
+    }
+    
+    public static ComponentCommon getComponentCommon(StormTopology topology, String id) {
+        if(topology.get_spouts().containsKey(id)) {
+            return topology.get_spouts().get(id).get_common();
+        }
+        if(topology.get_bolts().containsKey(id)) {
+            return topology.get_bolts().get(id).get_common();
+        }
+        if(topology.get_state_spouts().containsKey(id)) {
+            return topology.get_state_spouts().get(id).get_common();
+        }
+        throw new IllegalArgumentException("Could not find component with id " + id);
     }
 }

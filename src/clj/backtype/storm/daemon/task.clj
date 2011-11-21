@@ -57,7 +57,7 @@
     (assoc curr-entry :val (bit-xor old val))
     ))
 
-(defn- acker-emit-direct [^OutputCollector collector ^Integer task ^Integer stream ^List values]
+(defn- acker-emit-direct [^OutputCollector collector ^Integer task ^String stream ^List values]
   (.emitDirect collector task stream values)
   )
 
@@ -381,10 +381,10 @@
                            out-tasks
                            ))
         output-collector (reify ISpoutOutputCollector
-                                (^List emit [this ^int stream-id ^List tuple ^Object message-id]
+                                (^List emit [this ^String stream-id ^List tuple ^Object message-id]
                                        (send-spout-msg stream-id tuple message-id nil)
                                        )
-                                (^void emitDirect [this ^int out-task-id ^int stream-id
+                                (^void emitDirect [this ^int out-task-id ^String stream-id
                                                    ^List tuple ^Object message-id]
                                        (send-spout-msg stream-id tuple message-id out-task-id)
                                        ))]

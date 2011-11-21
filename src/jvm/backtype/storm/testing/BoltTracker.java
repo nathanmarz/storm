@@ -30,7 +30,7 @@ public class BoltTracker implements IRichBolt {
         }
 
 
-        public List<Integer> emit(int streamId, Collection<Tuple> anchors, List<Object> tuple) {
+        public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
             List<Integer> ret = _collector.emit(streamId, anchors, tuple);
             transferred += ret.size();
 
@@ -45,7 +45,7 @@ public class BoltTracker implements IRichBolt {
             return ret;
         }
 
-        public void emitDirect(int taskId, int streamId, Collection<Tuple> anchors, List<Object> tuple) {
+        public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
             _collector.emitDirect(taskId, streamId, anchors, tuple);
             transferred++;
         }

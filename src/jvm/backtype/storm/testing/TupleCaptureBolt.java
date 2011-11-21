@@ -11,15 +11,15 @@ import java.util.Map;
 
 
 public class TupleCaptureBolt implements IBolt {
-    public static transient Map<String, Map<Integer, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<Integer, List<FixedTuple>>>();
+    public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
 
     private String _name;
-    private Map<Integer, List<FixedTuple>> _results = null;
+    private Map<String, List<FixedTuple>> _results = null;
     private OutputCollector _collector;
 
     public TupleCaptureBolt(String name) {
         _name = name;
-        emitted_tuples.put(name, new HashMap<Integer, List<FixedTuple>>());
+        emitted_tuples.put(name, new HashMap<String, List<FixedTuple>>());
     }
 
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
@@ -27,8 +27,8 @@ public class TupleCaptureBolt implements IBolt {
     }
 
     public void execute(Tuple input) {
-        int component = input.getSourceComponent();
-        Map<Integer, List<FixedTuple>> captured = emitted_tuples.get(_name);
+        String component = input.getSourceComponent();
+        Map<String, List<FixedTuple>> captured = emitted_tuples.get(_name);
         if(!captured.containsKey(component)) {
            captured.put(component, new ArrayList<FixedTuple>());
         }
@@ -36,7 +36,7 @@ public class TupleCaptureBolt implements IBolt {
         _collector.ack(input);
     }
 
-    public Map<Integer, List<FixedTuple>> getResults() {
+    public Map<String, List<FixedTuple>> getResults() {
         if(_results==null) {
             _results = emitted_tuples.remove(_name);
         }

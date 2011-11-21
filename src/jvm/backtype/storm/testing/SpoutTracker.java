@@ -25,7 +25,7 @@ public class SpoutTracker implements IRichSpout {
             _collector = collector;
         }
 
-        public List<Integer> emit(int streamId, List<Object> tuple, Object messageId) {
+        public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
             List<Integer> ret = _collector.emit(streamId, tuple, messageId);
             emitted++;
             transferred += ret.size();
@@ -38,7 +38,7 @@ public class SpoutTracker implements IRichSpout {
             return ret;
         }
 
-        public void emitDirect(int taskId, int streamId, List<Object> tuple, Object messageId) {
+        public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
             _collector.emitDirect(taskId, streamId, tuple, messageId);
             emitted++;
             transferred++;

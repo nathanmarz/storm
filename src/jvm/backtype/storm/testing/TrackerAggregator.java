@@ -13,7 +13,7 @@ import java.util.UUID;
 public class TrackerAggregator implements IRichBolt {
     public static final Map<String, TrackStats> _stats = new HashMap<String, TrackStats>();
 
-    public static int TRACK_STREAM = 999;
+    public static String TRACK_STREAM = "TrackerAggregator/track";
 
     TopologyContext _context;
 

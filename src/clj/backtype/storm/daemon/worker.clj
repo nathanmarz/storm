@@ -45,7 +45,7 @@
   "Returns seq of task-ids that receive messages from this worker"
   ;; if this is an acker, needs to talk to the spouts
   [task->component mk-topology-context task-ids]
-  (let [topology-context (mk-topology-context (first task-ids))
+  (let [topology-context (mk-topology-context nil)
         spout-components (-> topology-context
                              .getRawTopology
                              .get_spouts
@@ -195,7 +195,7 @@
                         ))
                     (.clear drainer)
                     0 )
-                  :args-fn (fn [] [(ArrayList.) (KryoTupleSerializer. storm-conf)]))
+                  :args-fn (fn [] [(ArrayList.) (KryoTupleSerializer. storm-conf (mk-topology-context nil))]))
                  heartbeat-thread]
         virtual-port-shutdown (when (local-mode-zmq? conf)
                                 (log-message "Launching virtual port for " supervisor-id ":" port)

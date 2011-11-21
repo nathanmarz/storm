@@ -31,15 +31,15 @@ public class OutputCollectorImpl extends OutputCollector {
         _collector = collector;
     }
     
-    public List<Integer> emit(int streamId, Collection<Tuple> anchors, List<Object> tuple) {
+    public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
         return _collector.emit(anchorTuple(anchors, streamId, tuple));
     }
     
-    public void emitDirect(int taskId, int streamId, Collection<Tuple> anchors, List<Object> tuple) {
+    public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
         _collector.emitDirect(taskId, anchorTuple(anchors, streamId, tuple));
     }
 
-    private Tuple anchorTuple(Collection<Tuple> anchors, int streamId, List<Object> tuple) {
+    private Tuple anchorTuple(Collection<Tuple> anchors, String streamId, List<Object> tuple) {
         // The simple algorithm in this function is the key to Storm. It is
         // what enables Storm to guarantee message processing.
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();

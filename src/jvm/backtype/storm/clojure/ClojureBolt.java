@@ -18,14 +18,14 @@ import java.util.Map;
 
 
 public class ClojureBolt implements IRichBolt, FinishedCallback {
-    Map<Integer, StreamInfo> _fields;
+    Map<String, StreamInfo> _fields;
     String _namespace;
     String _fnName;
     List<Object> _params;
     
     IBolt _bolt;
     
-    public ClojureBolt(String namespace, String fnName, List<Object> params, Map<Integer, StreamInfo> fields) {
+    public ClojureBolt(String namespace, String fnName, List<Object> params, Map<String, StreamInfo> fields) {
         _namespace = namespace;
         _fnName = fnName;
         _params = params;
@@ -71,7 +71,7 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        for(Integer stream: _fields.keySet()) {
+        for(String stream: _fields.keySet()) {
             StreamInfo info = _fields.get(stream);
             declarer.declareStream(stream, info.is_direct(), new Fields(info.get_output_fields()));
         }

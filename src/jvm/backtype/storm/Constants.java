@@ -1,6 +1,8 @@
 package backtype.storm;
 
+import backtype.storm.drpc.CoordinatedBolt;
+
 
 public class Constants {
-    public static final int COORDINATED_STREAM_ID = 100;
+    public static final String COORDINATED_STREAM_ID = CoordinatedBolt.class.getName() + "/coord-stream";
 }

@@ -12,7 +12,7 @@ public class KryoValuesSerializer {
     ListDelegate _delegate;
     
     public KryoValuesSerializer(Map conf) {
-        _kryo = KryoFactory.getKryo(conf);
+        _kryo = SerializationFactory.getKryo(conf);
         _delegate = new ListDelegate();
     }
     

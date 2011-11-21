@@ -658,7 +658,7 @@ class ComponentCommon:
 
   thrift_spec = (
     None, # 0
-    (1, TType.MAP, 'streams', (TType.I32,None,TType.STRUCT,(StreamInfo, StreamInfo.thrift_spec)), None, ), # 1
+    (1, TType.MAP, 'streams', (TType.STRING,None,TType.STRUCT,(StreamInfo, StreamInfo.thrift_spec)), None, ), # 1
     (2, TType.I32, 'parallelism_hint', None, None, ), # 2
   )
 
@@ -680,7 +680,7 @@ class ComponentCommon:
           self.streams = {}
           (_ktype22, _vtype23, _size21 ) = iprot.readMapBegin() 
           for _i25 in xrange(_size21):
-            _key26 = iprot.readI32();
+            _key26 = iprot.readString().decode('utf-8')
             _val27 = StreamInfo()
             _val27.read(iprot)
             self.streams[_key26] = _val27
@@ -704,9 +704,9 @@ class ComponentCommon:
     oprot.writeStructBegin('ComponentCommon')
     if self.streams is not None:
       oprot.writeFieldBegin('streams', TType.MAP, 1)
-      oprot.writeMapBegin(TType.I32, TType.STRUCT, len(self.streams))
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.streams))
       for kiter28,viter29 in self.streams.items():
-        oprot.writeI32(kiter28)
+        oprot.writeString(kiter28.encode('utf-8'))
         viter29.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
@@ -835,8 +835,8 @@ class GlobalStreamId:
 
   thrift_spec = (
     None, # 0
-    (1, TType.I32, 'componentId', None, None, ), # 1
-    (2, TType.I32, 'streamId', None, None, ), # 2
+    (1, TType.STRING, 'componentId', None, None, ), # 1
+    (2, TType.STRING, 'streamId', None, None, ), # 2
   )
 
   def __init__(self, componentId=None, streamId=None,):
@@ -853,13 +853,13 @@ class GlobalStreamId:
       if ftype == TType.STOP:
         break
       if fid == 1:
-        if ftype == TType.I32:
-          self.componentId = iprot.readI32();
+        if ftype == TType.STRING:
+          self.componentId = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
-        if ftype == TType.I32:
-          self.streamId = iprot.readI32();
+        if ftype == TType.STRING:
+          self.streamId = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -873,12 +873,12 @@ class GlobalStreamId:
       return
     oprot.writeStructBegin('GlobalStreamId')
     if self.componentId is not None:
-      oprot.writeFieldBegin('componentId', TType.I32, 1)
-      oprot.writeI32(self.componentId)
+      oprot.writeFieldBegin('componentId', TType.STRING, 1)
+      oprot.writeString(self.componentId.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.streamId is not None:
-      oprot.writeFieldBegin('streamId', TType.I32, 2)
-      oprot.writeI32(self.streamId)
+      oprot.writeFieldBegin('streamId', TType.STRING, 2)
+      oprot.writeString(self.streamId.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1094,9 +1094,9 @@ class StormTopology:
 
   thrift_spec = (
     None, # 0
-    (1, TType.MAP, 'spouts', (TType.I32,None,TType.STRUCT,(SpoutSpec, SpoutSpec.thrift_spec)), None, ), # 1
-    (2, TType.MAP, 'bolts', (TType.I32,None,TType.STRUCT,(Bolt, Bolt.thrift_spec)), None, ), # 2
-    (3, TType.MAP, 'state_spouts', (TType.I32,None,TType.STRUCT,(StateSpoutSpec, StateSpoutSpec.thrift_spec)), None, ), # 3
+    (1, TType.MAP, 'spouts', (TType.STRING,None,TType.STRUCT,(SpoutSpec, SpoutSpec.thrift_spec)), None, ), # 1
+    (2, TType.MAP, 'bolts', (TType.STRING,None,TType.STRUCT,(Bolt, Bolt.thrift_spec)), None, ), # 2
+    (3, TType.MAP, 'state_spouts', (TType.STRING,None,TType.STRUCT,(StateSpoutSpec, StateSpoutSpec.thrift_spec)), None, ), # 3
   )
 
   def __init__(self, spouts=None, bolts=None, state_spouts=None,):
@@ -1118,7 +1118,7 @@ class StormTopology:
           self.spouts = {}
           (_ktype40, _vtype41, _size39 ) = iprot.readMapBegin() 
           for _i43 in xrange(_size39):
-            _key44 = iprot.readI32();
+            _key44 = iprot.readString().decode('utf-8')
             _val45 = SpoutSpec()
             _val45.read(iprot)
             self.spouts[_key44] = _val45
@@ -1130,7 +1130,7 @@ class StormTopology:
           self.bolts = {}
           (_ktype47, _vtype48, _size46 ) = iprot.readMapBegin() 
           for _i50 in xrange(_size46):
-            _key51 = iprot.readI32();
+            _key51 = iprot.readString().decode('utf-8')
             _val52 = Bolt()
             _val52.read(iprot)
             self.bolts[_key51] = _val52
@@ -1142,7 +1142,7 @@ class StormTopology:
           self.state_spouts = {}
           (_ktype54, _vtype55, _size53 ) = iprot.readMapBegin() 
           for _i57 in xrange(_size53):
-            _key58 = iprot.readI32();
+            _key58 = iprot.readString().decode('utf-8')
             _val59 = StateSpoutSpec()
             _val59.read(iprot)
             self.state_spouts[_key58] = _val59
@@ -1161,25 +1161,25 @@ class StormTopology:
     oprot.writeStructBegin('StormTopology')
     if self.spouts is not None:
       oprot.writeFieldBegin('spouts', TType.MAP, 1)
-      oprot.writeMapBegin(TType.I32, TType.STRUCT, len(self.spouts))
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.spouts))
       for kiter60,viter61 in self.spouts.items():
-        oprot.writeI32(kiter60)
+        oprot.writeString(kiter60.encode('utf-8'))
         viter61.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.bolts is not None:
       oprot.writeFieldBegin('bolts', TType.MAP, 2)
-      oprot.writeMapBegin(TType.I32, TType.STRUCT, len(self.bolts))
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.bolts))
       for kiter62,viter63 in self.bolts.items():
-        oprot.writeI32(kiter62)
+        oprot.writeString(kiter62.encode('utf-8'))
         viter63.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.state_spouts is not None:
       oprot.writeFieldBegin('state_spouts', TType.MAP, 3)
-      oprot.writeMapBegin(TType.I32, TType.STRUCT, len(self.state_spouts))
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.state_spouts))
       for kiter64,viter65 in self.state_spouts.items():
-        oprot.writeI32(kiter64)
+        oprot.writeString(kiter64.encode('utf-8'))
         viter65.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
@@ -1985,9 +1985,9 @@ class SpoutStats:
 
   thrift_spec = (
     None, # 0
-    (1, TType.MAP, 'acked', (TType.STRING,None,TType.MAP,(TType.I32,None,TType.I64,None)), None, ), # 1
-    (2, TType.MAP, 'failed', (TType.STRING,None,TType.MAP,(TType.I32,None,TType.I64,None)), None, ), # 2
-    (3, TType.MAP, 'complete_ms_avg', (TType.STRING,None,TType.MAP,(TType.I32,None,TType.DOUBLE,None)), None, ), # 3
+    (1, TType.MAP, 'acked', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 1
+    (2, TType.MAP, 'failed', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 2
+    (3, TType.MAP, 'complete_ms_avg', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.DOUBLE,None)), None, ), # 3
   )
 
   def __init__(self, acked=None, failed=None, complete_ms_avg=None,):
@@ -2013,7 +2013,7 @@ class SpoutStats:
             _val140 = {}
             (_ktype142, _vtype143, _size141 ) = iprot.readMapBegin() 
             for _i145 in xrange(_size141):
-              _key146 = iprot.readI32();
+              _key146 = iprot.readString().decode('utf-8')
               _val147 = iprot.readI64();
               _val140[_key146] = _val147
             iprot.readMapEnd()
@@ -2030,7 +2030,7 @@ class SpoutStats:
             _val154 = {}
             (_ktype156, _vtype157, _size155 ) = iprot.readMapBegin() 
             for _i159 in xrange(_size155):
-              _key160 = iprot.readI32();
+              _key160 = iprot.readString().decode('utf-8')
               _val161 = iprot.readI64();
               _val154[_key160] = _val161
             iprot.readMapEnd()
@@ -2047,7 +2047,7 @@ class SpoutStats:
             _val168 = {}
             (_ktype170, _vtype171, _size169 ) = iprot.readMapBegin() 
             for _i173 in xrange(_size169):
-              _key174 = iprot.readI32();
+              _key174 = iprot.readString().decode('utf-8')
               _val175 = iprot.readDouble();
               _val168[_key174] = _val175
             iprot.readMapEnd()
@@ -2070,9 +2070,9 @@ class SpoutStats:
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.acked))
       for kiter176,viter177 in self.acked.items():
         oprot.writeString(kiter176.encode('utf-8'))
-        oprot.writeMapBegin(TType.I32, TType.I64, len(viter177))
+        oprot.writeMapBegin(TType.STRING, TType.I64, len(viter177))
         for kiter178,viter179 in viter177.items():
-          oprot.writeI32(kiter178)
+          oprot.writeString(kiter178.encode('utf-8'))
           oprot.writeI64(viter179)
         oprot.writeMapEnd()
       oprot.writeMapEnd()
@@ -2082,9 +2082,9 @@ class SpoutStats:
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.failed))
       for kiter180,viter181 in self.failed.items():
         oprot.writeString(kiter180.encode('utf-8'))
-        oprot.writeMapBegin(TType.I32, TType.I64, len(viter181))
+        oprot.writeMapBegin(TType.STRING, TType.I64, len(viter181))
         for kiter182,viter183 in viter181.items():
-          oprot.writeI32(kiter182)
+          oprot.writeString(kiter182.encode('utf-8'))
           oprot.writeI64(viter183)
         oprot.writeMapEnd()
       oprot.writeMapEnd()
@@ -2094,9 +2094,9 @@ class SpoutStats:
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.complete_ms_avg))
       for kiter184,viter185 in self.complete_ms_avg.items():
         oprot.writeString(kiter184.encode('utf-8'))
-        oprot.writeMapBegin(TType.I32, TType.DOUBLE, len(viter185))
+        oprot.writeMapBegin(TType.STRING, TType.DOUBLE, len(viter185))
         for kiter186,viter187 in viter185.items():
-          oprot.writeI32(kiter186)
+          oprot.writeString(kiter186.encode('utf-8'))
           oprot.writeDouble(viter187)
         oprot.writeMapEnd()
       oprot.writeMapEnd()
@@ -2209,8 +2209,8 @@ class TaskStats:
 
   thrift_spec = (
     None, # 0
-    (1, TType.MAP, 'emitted', (TType.STRING,None,TType.MAP,(TType.I32,None,TType.I64,None)), None, ), # 1
-    (2, TType.MAP, 'transferred', (TType.STRING,None,TType.MAP,(TType.I32,None,TType.I64,None)), None, ), # 2
+    (1, TType.MAP, 'emitted', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 1
+    (2, TType.MAP, 'transferred', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 2
     (3, TType.STRUCT, 'specific', (TaskSpecificStats, TaskSpecificStats.thrift_spec), None, ), # 3
   )
 
@@ -2237,7 +2237,7 @@ class TaskStats:
             _val194 = {}
             (_ktype196, _vtype197, _size195 ) = iprot.readMapBegin() 
             for _i199 in xrange(_size195):
-              _key200 = iprot.readI32();
+              _key200 = iprot.readString().decode('utf-8')
               _val201 = iprot.readI64();
               _val194[_key200] = _val201
             iprot.readMapEnd()
@@ -2254,7 +2254,7 @@ class TaskStats:
             _val208 = {}
             (_ktype210, _vtype211, _size209 ) = iprot.readMapBegin() 
             for _i213 in xrange(_size209):
-              _key214 = iprot.readI32();
+              _key214 = iprot.readString().decode('utf-8')
               _val215 = iprot.readI64();
               _val208[_key214] = _val215
             iprot.readMapEnd()
@@ -2283,9 +2283,9 @@ class TaskStats:
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.emitted))
       for kiter216,viter217 in self.emitted.items():
         oprot.writeString(kiter216.encode('utf-8'))
-        oprot.writeMapBegin(TType.I32, TType.I64, len(viter217))
+        oprot.writeMapBegin(TType.STRING, TType.I64, len(viter217))
         for kiter218,viter219 in viter217.items():
-          oprot.writeI32(kiter218)
+          oprot.writeString(kiter218.encode('utf-8'))
           oprot.writeI64(viter219)
         oprot.writeMapEnd()
       oprot.writeMapEnd()
@@ -2295,9 +2295,9 @@ class TaskStats:
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.transferred))
       for kiter220,viter221 in self.transferred.items():
         oprot.writeString(kiter220.encode('utf-8'))
-        oprot.writeMapBegin(TType.I32, TType.I64, len(viter221))
+        oprot.writeMapBegin(TType.STRING, TType.I64, len(viter221))
         for kiter222,viter223 in viter221.items():
-          oprot.writeI32(kiter222)
+          oprot.writeString(kiter222.encode('utf-8'))
           oprot.writeI64(viter223)
         oprot.writeMapEnd()
       oprot.writeMapEnd()
@@ -2345,7 +2345,7 @@ class TaskSummary:
   thrift_spec = (
     None, # 0
     (1, TType.I32, 'task_id', None, None, ), # 1
-    (2, TType.I32, 'component_id', None, None, ), # 2
+    (2, TType.STRING, 'component_id', None, None, ), # 2
     (3, TType.STRING, 'host', None, None, ), # 3
     (4, TType.I32, 'port', None, None, ), # 4
     (5, TType.I32, 'uptime_secs', None, None, ), # 5
@@ -2377,8 +2377,8 @@ class TaskSummary:
         else:
           iprot.skip(ftype)
       elif fid == 2:
-        if ftype == TType.I32:
-          self.component_id = iprot.readI32();
+        if ftype == TType.STRING:
+          self.component_id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 3:
@@ -2428,8 +2428,8 @@ class TaskSummary:
       oprot.writeI32(self.task_id)
       oprot.writeFieldEnd()
     if self.component_id is not None:
-      oprot.writeFieldBegin('component_id', TType.I32, 2)
-      oprot.writeI32(self.component_id)
+      oprot.writeFieldBegin('component_id', TType.STRING, 2)
+      oprot.writeString(self.component_id.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.host is not None:
       oprot.writeFieldBegin('host', TType.STRING, 3)

@@ -47,7 +47,7 @@ union ComponentObject {
 }
 
 struct ComponentCommon {
-  1: required map<i32, StreamInfo> streams; //key is stream id
+  1: required map<string, StreamInfo> streams; //key is stream id
   2: optional i32 parallelism_hint; //how many threads across the cluster should be dedicated to this component
 }
 
@@ -58,8 +58,8 @@ struct SpoutSpec {
 }
 
 struct GlobalStreamId {
-  1: required i32 componentId;
-  2: required i32 streamId;
+  1: required string componentId;
+  2: required string streamId;
   #Going to need to add an enum for the stream type (NORMAL or FAILURE)
 }
 
@@ -78,9 +78,9 @@ struct StateSpoutSpec {
 
 struct StormTopology {
   //ids must be unique across maps
-  1: required map<i32, SpoutSpec> spouts;
-  2: required map<i32, Bolt> bolts;
-  3: required map<i32, StateSpoutSpec> state_spouts;
+  1: required map<string, SpoutSpec> spouts;
+  2: required map<string, Bolt> bolts;
+  3: required map<string, StateSpoutSpec> state_spouts;
   // #workers to use is in conf
 }
 
@@ -130,9 +130,9 @@ struct BoltStats {
 }
 
 struct SpoutStats {
-  1: required map<string, map<i32, i64>> acked;
-  2: required map<string, map<i32, i64>> failed;
-  3: required map<string, map<i32, double>> complete_ms_avg;
+  1: required map<string, map<string, i64>> acked;
+  2: required map<string, map<string, i64>> failed;
+  3: required map<string, map<string, double>> complete_ms_avg;
 }
 
 union TaskSpecificStats {
@@ -143,14 +143,14 @@ union TaskSpecificStats {
 // Stats are a map from the time window (all time or a number indicating number of seconds in the window)
 //    to the stats. Usually stats are a stream id to a count or average.
 struct TaskStats {
-  1: required map<string, map<i32, i64>> emitted;
-  2: required map<string, map<i32, i64>> transferred;
+  1: required map<string, map<string, i64>> emitted;
+  2: required map<string, map<string, i64>> transferred;
   3: required TaskSpecificStats specific;
 }
 
 struct TaskSummary {
   1: required i32 task_id;
-  2: required i32 component_id;
+  2: required string component_id;
   3: required string host;
   4: required i32 port;
   5: required i32 uptime_secs;

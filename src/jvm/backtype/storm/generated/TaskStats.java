@@ -28,8 +28,8 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
   private static final org.apache.thrift7.protocol.TField TRANSFERRED_FIELD_DESC = new org.apache.thrift7.protocol.TField("transferred", org.apache.thrift7.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift7.protocol.TField SPECIFIC_FIELD_DESC = new org.apache.thrift7.protocol.TField("specific", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
-  private Map<String,Map<Integer,Long>> emitted; // required
-  private Map<String,Map<Integer,Long>> transferred; // required
+  private Map<String,Map<String,Long>> emitted; // required
+  private Map<String,Map<String,Long>> transferred; // required
   private TaskSpecificStats specific; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -105,13 +105,13 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
             new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
                 new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)))));
     tmpMap.put(_Fields.TRANSFERRED, new org.apache.thrift7.meta_data.FieldMetaData("transferred", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
             new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
                 new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)))));
     tmpMap.put(_Fields.SPECIFIC, new org.apache.thrift7.meta_data.FieldMetaData("specific", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskSpecificStats.class)));
@@ -123,8 +123,8 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
   }
 
   public TaskStats(
-    Map<String,Map<Integer,Long>> emitted,
-    Map<String,Map<Integer,Long>> transferred,
+    Map<String,Map<String,Long>> emitted,
+    Map<String,Map<String,Long>> transferred,
     TaskSpecificStats specific)
   {
     this();
@@ -138,21 +138,21 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
    */
   public TaskStats(TaskStats other) {
     if (other.is_set_emitted()) {
-      Map<String,Map<Integer,Long>> __this__emitted = new HashMap<String,Map<Integer,Long>>();
-      for (Map.Entry<String, Map<Integer,Long>> other_element : other.emitted.entrySet()) {
+      Map<String,Map<String,Long>> __this__emitted = new HashMap<String,Map<String,Long>>();
+      for (Map.Entry<String, Map<String,Long>> other_element : other.emitted.entrySet()) {
 
         String other_element_key = other_element.getKey();
-        Map<Integer,Long> other_element_value = other_element.getValue();
+        Map<String,Long> other_element_value = other_element.getValue();
 
         String __this__emitted_copy_key = other_element_key;
 
-        Map<Integer,Long> __this__emitted_copy_value = new HashMap<Integer,Long>();
-        for (Map.Entry<Integer, Long> other_element_value_element : other_element_value.entrySet()) {
+        Map<String,Long> __this__emitted_copy_value = new HashMap<String,Long>();
+        for (Map.Entry<String, Long> other_element_value_element : other_element_value.entrySet()) {
 
-          Integer other_element_value_element_key = other_element_value_element.getKey();
+          String other_element_value_element_key = other_element_value_element.getKey();
           Long other_element_value_element_value = other_element_value_element.getValue();
 
-          Integer __this__emitted_copy_value_copy_key = other_element_value_element_key;
+          String __this__emitted_copy_value_copy_key = other_element_value_element_key;
 
           Long __this__emitted_copy_value_copy_value = other_element_value_element_value;
 
@@ -164,21 +164,21 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       this.emitted = __this__emitted;
     }
     if (other.is_set_transferred()) {
-      Map<String,Map<Integer,Long>> __this__transferred = new HashMap<String,Map<Integer,Long>>();
-      for (Map.Entry<String, Map<Integer,Long>> other_element : other.transferred.entrySet()) {
+      Map<String,Map<String,Long>> __this__transferred = new HashMap<String,Map<String,Long>>();
+      for (Map.Entry<String, Map<String,Long>> other_element : other.transferred.entrySet()) {
 
         String other_element_key = other_element.getKey();
-        Map<Integer,Long> other_element_value = other_element.getValue();
+        Map<String,Long> other_element_value = other_element.getValue();
 
         String __this__transferred_copy_key = other_element_key;
 
-        Map<Integer,Long> __this__transferred_copy_value = new HashMap<Integer,Long>();
-        for (Map.Entry<Integer, Long> other_element_value_element : other_element_value.entrySet()) {
+        Map<String,Long> __this__transferred_copy_value = new HashMap<String,Long>();
+        for (Map.Entry<String, Long> other_element_value_element : other_element_value.entrySet()) {
 
-          Integer other_element_value_element_key = other_element_value_element.getKey();
+          String other_element_value_element_key = other_element_value_element.getKey();
           Long other_element_value_element_value = other_element_value_element.getValue();
 
-          Integer __this__transferred_copy_value_copy_key = other_element_value_element_key;
+          String __this__transferred_copy_value_copy_key = other_element_value_element_key;
 
           Long __this__transferred_copy_value_copy_value = other_element_value_element_value;
 
@@ -209,18 +209,18 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
     return (this.emitted == null) ? 0 : this.emitted.size();
   }
 
-  public void put_to_emitted(String key, Map<Integer,Long> val) {
+  public void put_to_emitted(String key, Map<String,Long> val) {
     if (this.emitted == null) {
-      this.emitted = new HashMap<String,Map<Integer,Long>>();
+      this.emitted = new HashMap<String,Map<String,Long>>();
     }
     this.emitted.put(key, val);
   }
 
-  public Map<String,Map<Integer,Long>> get_emitted() {
+  public Map<String,Map<String,Long>> get_emitted() {
     return this.emitted;
   }
 
-  public void set_emitted(Map<String,Map<Integer,Long>> emitted) {
+  public void set_emitted(Map<String,Map<String,Long>> emitted) {
     this.emitted = emitted;
   }
 
@@ -243,18 +243,18 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
     return (this.transferred == null) ? 0 : this.transferred.size();
   }
 
-  public void put_to_transferred(String key, Map<Integer,Long> val) {
+  public void put_to_transferred(String key, Map<String,Long> val) {
     if (this.transferred == null) {
-      this.transferred = new HashMap<String,Map<Integer,Long>>();
+      this.transferred = new HashMap<String,Map<String,Long>>();
     }
     this.transferred.put(key, val);
   }
 
-  public Map<String,Map<Integer,Long>> get_transferred() {
+  public Map<String,Map<String,Long>> get_transferred() {
     return this.transferred;
   }
 
-  public void set_transferred(Map<String,Map<Integer,Long>> transferred) {
+  public void set_transferred(Map<String,Map<String,Long>> transferred) {
     this.transferred = transferred;
   }
 
@@ -302,7 +302,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       if (value == null) {
         unset_emitted();
       } else {
-        set_emitted((Map<String,Map<Integer,Long>>)value);
+        set_emitted((Map<String,Map<String,Long>>)value);
       }
       break;
 
@@ -310,7 +310,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       if (value == null) {
         unset_transferred();
       } else {
-        set_transferred((Map<String,Map<Integer,Long>>)value);
+        set_transferred((Map<String,Map<String,Long>>)value);
       }
       break;
 
@@ -481,20 +481,20 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
               org.apache.thrift7.protocol.TMap _map105 = iprot.readMapBegin();
-              this.emitted = new HashMap<String,Map<Integer,Long>>(2*_map105.size);
+              this.emitted = new HashMap<String,Map<String,Long>>(2*_map105.size);
               for (int _i106 = 0; _i106 < _map105.size; ++_i106)
               {
                 String _key107; // required
-                Map<Integer,Long> _val108; // required
+                Map<String,Long> _val108; // required
                 _key107 = iprot.readString();
                 {
                   org.apache.thrift7.protocol.TMap _map109 = iprot.readMapBegin();
-                  _val108 = new HashMap<Integer,Long>(2*_map109.size);
+                  _val108 = new HashMap<String,Long>(2*_map109.size);
                   for (int _i110 = 0; _i110 < _map109.size; ++_i110)
                   {
-                    int _key111; // required
+                    String _key111; // required
                     long _val112; // required
-                    _key111 = iprot.readI32();
+                    _key111 = iprot.readString();
                     _val112 = iprot.readI64();
                     _val108.put(_key111, _val112);
                   }
@@ -512,20 +512,20 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
               org.apache.thrift7.protocol.TMap _map113 = iprot.readMapBegin();
-              this.transferred = new HashMap<String,Map<Integer,Long>>(2*_map113.size);
+              this.transferred = new HashMap<String,Map<String,Long>>(2*_map113.size);
               for (int _i114 = 0; _i114 < _map113.size; ++_i114)
               {
                 String _key115; // required
-                Map<Integer,Long> _val116; // required
+                Map<String,Long> _val116; // required
                 _key115 = iprot.readString();
                 {
                   org.apache.thrift7.protocol.TMap _map117 = iprot.readMapBegin();
-                  _val116 = new HashMap<Integer,Long>(2*_map117.size);
+                  _val116 = new HashMap<String,Long>(2*_map117.size);
                   for (int _i118 = 0; _i118 < _map117.size; ++_i118)
                   {
-                    int _key119; // required
+                    String _key119; // required
                     long _val120; // required
-                    _key119 = iprot.readI32();
+                    _key119 = iprot.readString();
                     _val120 = iprot.readI64();
                     _val116.put(_key119, _val120);
                   }
@@ -564,14 +564,14 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       oprot.writeFieldBegin(EMITTED_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.emitted.size()));
-        for (Map.Entry<String, Map<Integer,Long>> _iter121 : this.emitted.entrySet())
+        for (Map.Entry<String, Map<String,Long>> _iter121 : this.emitted.entrySet())
         {
           oprot.writeString(_iter121.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.I64, _iter121.getValue().size()));
-            for (Map.Entry<Integer, Long> _iter122 : _iter121.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.I64, _iter121.getValue().size()));
+            for (Map.Entry<String, Long> _iter122 : _iter121.getValue().entrySet())
             {
-              oprot.writeI32(_iter122.getKey());
+              oprot.writeString(_iter122.getKey());
               oprot.writeI64(_iter122.getValue());
             }
             oprot.writeMapEnd();
@@ -585,14 +585,14 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       oprot.writeFieldBegin(TRANSFERRED_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.transferred.size()));
-        for (Map.Entry<String, Map<Integer,Long>> _iter123 : this.transferred.entrySet())
+        for (Map.Entry<String, Map<String,Long>> _iter123 : this.transferred.entrySet())
         {
           oprot.writeString(_iter123.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.I64, _iter123.getValue().size()));
-            for (Map.Entry<Integer, Long> _iter124 : _iter123.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.I64, _iter123.getValue().size()));
+            for (Map.Entry<String, Long> _iter124 : _iter123.getValue().entrySet())
             {
-              oprot.writeI32(_iter124.getKey());
+              oprot.writeString(_iter124.getKey());
               oprot.writeI64(_iter124.getValue());
             }
             oprot.writeMapEnd();

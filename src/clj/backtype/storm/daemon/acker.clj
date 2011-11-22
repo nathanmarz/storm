@@ -1,12 +1,19 @@
 (ns backtype.storm.daemon.acker
   (:import [backtype.storm.task OutputCollector IBolt TopologyContext])
   (:import [backtype.storm.tuple Tuple Fields])
-  (:use [backtype.storm.daemon common])
+  (:import [backtype.storm.utils TimeCacheMap])
+  (:import [java.util List Map])
+  (:use [backtype.storm config])
   (:gen-class
    :init init
    :implements [backtype.storm.topology.IRichBolt]
    :constructors {[] []}
    :state state ))
+
+(def ACKER-COMPONENT-ID "__acker")
+(def ACKER-INIT-STREAM-ID "__ack_init")
+(def ACKER-ACK-STREAM-ID "__ack_ack")
+(def ACKER-FAIL-STREAM-ID "__ack_fail")
 
 (defn- update-ack [curr-entry val]
   (let [old (get curr-entry :val 0)]
@@ -17,6 +24,7 @@
   (.emitDirect collector task stream values)
   )
 
+;;TODO: this approach doesn't work... need to set it during prepare
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]

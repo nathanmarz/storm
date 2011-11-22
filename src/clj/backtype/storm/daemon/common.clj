@@ -3,16 +3,18 @@
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.utils Utils])
+  (:require [backtype.storm.daemon.acker :as acker])
+  (:import [backtype.storm.daemon acker])
   (:require [backtype.storm.thrift :as thrift])
   )
 
 (defn system-component? [id]
   (Utils/isSystemComponent id))
 
-(def ACKER-COMPONENT-ID "__acker")
-(def ACKER-INIT-STREAM-ID "__ack_init")
-(def ACKER-ACK-STREAM-ID "__ack_ack")
-(def ACKER-FAIL-STREAM-ID "__ack_fail")
+(def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
+(def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
+(def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
+(def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
@@ -112,10 +114,11 @@
     (.put_to_bolts ret "__acker" acker-bolt)
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
-      (.put_to_streams ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
-      (.put_to_streams ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"])))
+      (do
+        (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
+        (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))))
     (dofor [[_ spout] (.get_spouts ret)
-            :let [common (.get_common bolt)]]
-      (.put_to_streams ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"])))
+            :let [common (.get_common spout)]]
+      (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"])))
     ret
     ))

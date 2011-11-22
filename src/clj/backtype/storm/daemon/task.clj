@@ -61,6 +61,7 @@
   (.emitDirect collector task stream values)
   )
 
+;; TODO: this should be defined somewhere else and be serializable. it should be added to topology by nimbus
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]
@@ -105,7 +106,9 @@
              )
       )))
 
+
 (defn- get-task-object [topology component-id]
+  ;; TODO: this will be no longer necessary when constructing system topology in nimbus
   (if (= ACKER-COMPONENT-ID component-id)
     (mk-acker-bolt)
     (let [spouts (.get_spouts topology)
@@ -127,6 +130,7 @@
       )))
 
 
+;; TODO: this logic needs to be moved to nimbus for constructing system topology
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
   [topology-context]
@@ -167,12 +171,7 @@
 (defmulti mk-task-stats class-selector)
 
 (defn- get-readable-name [topology-context]
-  (let [component-id (.getThisComponentId topology-context)]
-    (if (system-component? component-id)
-      ({ACKER-COMPONENT-ID "Acker"} component-id)
-      ;; TODO: change this so that can get better name for nested bolts 
-      (str (class (get-task-object (.getRawTopology topology-context) component-id)))
-      )))
+  (.getThisComponentId topology-context))
 
 (defn- send-ack [^TopologyContext topology-context ^Tuple input-tuple
                  ^List generated-ids send-fn]

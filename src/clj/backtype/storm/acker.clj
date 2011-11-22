@@ -1,5 +1,10 @@
 (ns backtype.storm.acker)
 
+;; TODO: finish this class
+
+;; TODO: needs to implement IRichBolt
+;; TODO: need to declare 2 output streams, both direct
+
 (defn- update-ack [curr-entry val]
   (let [old (get curr-entry :val 0)]
     (assoc curr-entry :val (bit-xor old val))
@@ -9,7 +14,7 @@
   (.emitDirect collector task stream values)
   )
 
-;; TODO: this should be defined somewhere else and be serializable. it should be added to topology by nimbus
+
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]

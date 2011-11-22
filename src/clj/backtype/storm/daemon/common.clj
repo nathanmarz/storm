@@ -107,7 +107,7 @@
                          [id ACKER-FAIL-STREAM-ID] ["id"]}
                         ))
         acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
-                                        ... ;; TODO: need to make sure output fields are declared for acker
+                                        (backtype.storm.acker.)
                                         :p (storm-conf TOPOLOGY-ACKERS))]
     (.put_to_bolts ret "__acker" acker-bolt)
     (dofor [[_ bolt] (.get_bolts ret)
@@ -117,7 +117,5 @@
     (dofor [[_ spout] (.get_spouts ret)
             :let [common (.get_common bolt)]]
       (.put_to_streams ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"])))
-    ;; TODO: need to declare outputs of ackers
-    ;; TODO: need to make it so ackers can send messages direct to spouts...
     ret
     ))

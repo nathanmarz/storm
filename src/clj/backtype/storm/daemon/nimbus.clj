@@ -563,7 +563,7 @@
                (to-json (read-storm-conf conf id)))
 
       (^StormTopology getTopology [this ^String id]
-                      (read-storm-topology conf id))
+                      (system-topology (read-storm-topology conf id)))
       
       (^ClusterSummary getClusterInfo [this]
         (let [assigned (assigned-slots storm-cluster-state)

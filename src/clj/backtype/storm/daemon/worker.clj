@@ -55,7 +55,6 @@
                                     (.getComponentId topology-context tid)))
                                task-ids)
         components (concat
-                    [ACKER-COMPONENT-ID]
                     (if contains-acker? spout-components)
                     (mapcat
                      (fn [task-id]

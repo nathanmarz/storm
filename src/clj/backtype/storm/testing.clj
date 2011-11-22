@@ -373,7 +373,7 @@
 (defn ms= [& args]  
   (apply = (map multi-set args)))
 
-(def TRACKER-BOLT-ID 9999)
+(def TRACKER-BOLT-ID "__tracker")
 
 (defn mk-tracked-topology
   "Spouts are of form [spout & options], bolts are of form [inputs bolt & options]"

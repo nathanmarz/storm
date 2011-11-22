@@ -99,6 +99,7 @@
         ))))
 
 (defn mk-inprocess-zookeeper [localdir port]
+  (log-message "Starting inprocess zookeeper at port " port " and dir " localdir)
   (let [localfile (File. localdir)
         zk (ZooKeeperServer. localfile localfile 2000)
         factory (NIOServerCnxn$Factory. (InetSocketAddress. port))]

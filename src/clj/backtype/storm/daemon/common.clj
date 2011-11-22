@@ -107,7 +107,7 @@
                          [id ACKER-FAIL-STREAM-ID] ["id"]}
                         ))
         acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
-                                        (backtype.storm.acker.)
+                                        (backtype.storm.daemon.acker.)
                                         :p (storm-conf TOPOLOGY-ACKERS))]
     (.put_to_bolts ret "__acker" acker-bolt)
     (dofor [[_ bolt] (.get_bolts ret)

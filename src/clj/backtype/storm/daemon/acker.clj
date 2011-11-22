@@ -1,9 +1,12 @@
-(ns backtype.storm.acker)
-
-;; TODO: finish this class
-
-;; TODO: needs to implement IRichBolt
-;; TODO: need to declare 2 output streams, both direct
+(ns backtype.storm.daemon.acker
+  (:import [backtype.storm.task OutputCollector IBolt TopologyContext])
+  (:import [backtype.storm.tuple Tuple Fields])
+  (:use [backtype.storm.daemon common])
+  (:gen-class
+   :init init
+   :implements [backtype.storm.topology.IRichBolt]
+   :constructors {[] []}
+   :state state ))
 
 (defn- update-ack [curr-entry val]
   (let [old (get curr-entry :val 0)]
@@ -13,7 +16,6 @@
 (defn- acker-emit-direct [^OutputCollector collector ^Integer task ^String stream ^List values]
   (.emitDirect collector task stream values)
   )
-
 
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
@@ -58,3 +60,22 @@
       (^void cleanup [this]
              )
       )))
+
+(defn -init []
+  [[] (mk-acker-bolt)]
+  )
+  
+(defn -prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
+  (.prepare ^IBolt (. this state) storm-conf context collector))
+
+(defn -execute [this ^Tuple tuple]
+  (.execute ^IBolt (. this state) tuple))
+
+(defn -cleanup [this]
+  (.cleanup ^IBolt (. this state)))
+
+(defn -declareOutputFields [this declarer]
+  (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
+  (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
+
+

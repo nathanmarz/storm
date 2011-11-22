@@ -96,14 +96,20 @@
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
-        mk-topology-context #(TopologyContext. topology
+        mk-topology-context #(TopologyContext. (system-topology topology)
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path
                                                  (supervisor-stormdist-root conf storm-id))
                                                (worker-pids-root conf worker-id)
                                                %)
-
+        mk-user-context #(TopologyContext. topology
+                                           task->component
+                                           storm-id
+                                           (supervisor-storm-resources-path
+                                             (supervisor-stormdist-root conf storm-id))
+                                           (worker-pids-root conf worker-id)
+                                           %)
         mq-context (if mq-context
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
@@ -172,7 +178,7 @@
                             )
                           :priority Thread/MAX_PRIORITY)
         suicide-fn (mk-suicide-fn conf active)
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn))
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) (mk-user-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)

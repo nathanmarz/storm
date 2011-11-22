@@ -52,116 +52,42 @@
         :direct
       )))
 
-(defn- update-ack [curr-entry val]
-  (let [old (get curr-entry :val 0)]
-    (assoc curr-entry :val (bit-xor old val))
-    ))
-
-(defn- acker-emit-direct [^OutputCollector collector ^Integer task ^String stream ^List values]
-  (.emitDirect collector task stream values)
-  )
-
-;; TODO: this should be defined somewhere else and be serializable. it should be added to topology by nimbus
-(defn mk-acker-bolt []
-  (let [output-collector (atom nil)
-        pending (atom nil)]
-    (reify IBolt
-      (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
-               (reset! output-collector collector)
-               (reset! pending (TimeCacheMap. (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))))
-               )
-      (^void execute [this ^Tuple tuple]
-             (let [id (.getValue tuple 0)
-                   ^TimeCacheMap pending @pending
-                   curr (.get pending id)
-                   curr (condp = (.getSourceStreamId tuple)
-                            ACKER-INIT-STREAM-ID (-> curr
-                                                     (update-ack id)
-                                                     (assoc :spout-task (.getValue tuple 1)))
-                            ACKER-ACK-STREAM-ID (update-ack curr (.getValue tuple 1))
-                            ACKER-FAIL-STREAM-ID (assoc curr :failed true))]
-               (.put pending id curr)
-               (when (and curr
-                          (:spout-task curr))
-                 (cond (= 0 (:val curr))
-                       (do
-                         (.remove pending id)
-                         (acker-emit-direct @output-collector
-                                            (:spout-task curr)
-                                            ACKER-ACK-STREAM-ID
-                                            [id]
-                                            ))
-                       (:failed curr)
-                       (do
-                         (.remove pending id)
-                         (acker-emit-direct @output-collector
-                                            (:spout-task curr)
-                                            ACKER-FAIL-STREAM-ID
-                                            [id]
-                                            ))
-                       ))
-               (.ack ^OutputCollector @output-collector tuple)
-               ))
-      (^void cleanup [this]
-             )
-      )))
-
 
 (defn- get-task-object [topology component-id]
-  ;; TODO: this will be no longer necessary when constructing system topology in nimbus
-  (if (= ACKER-COMPONENT-ID component-id)
-    (mk-acker-bolt)
-    (let [spouts (.get_spouts topology)
-          bolts (.get_bolts topology)
-          obj (Utils/getSetComponentObject
-               (cond
-                (contains? spouts component-id) (.get_spout_object (get spouts component-id))
-                (contains? bolts component-id) (.get_bolt_object (get bolts component-id))
-                true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
-          obj (if (instance? ShellComponent obj)
-                (if (contains? spouts component-id)
-                  (ShellSpout. obj)
-                  (ShellBolt. obj))
-                obj )
-          obj (if (instance? JavaObject obj)
-                (thrift/instantiate-java-object obj)
-                obj )]
-      obj
-      )))
+  (let [spouts (.get_spouts topology)
+        bolts (.get_bolts topology)
+        obj (Utils/getSetComponentObject
+             (cond
+              (contains? spouts component-id) (.get_spout_object (get spouts component-id))
+              (contains? bolts component-id) (.get_bolt_object (get bolts component-id))
+              true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
+        obj (if (instance? ShellComponent obj)
+              (if (contains? spouts component-id)
+                (ShellSpout. obj)
+                (ShellBolt. obj))
+              obj )
+        obj (if (instance? JavaObject obj)
+              (thrift/instantiate-java-object obj)
+              obj )]
+    obj
+    ))
 
 
-;; TODO: this logic needs to be moved to nimbus for constructing system topology
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
   [topology-context]
-  (let [output-groupings (clojurify-structure (.getThisTargets topology-context))
-        acker-task-amt (count (.getComponentTasks topology-context ACKER-COMPONENT-ID))]
-    (merge
-     {
-      ACKER-INIT-STREAM-ID
-        {ACKER-COMPONENT-ID (mk-fields-grouper (Fields. ["id" "spout-task"])
-                                               (Fields. ["id"])
-                                               acker-task-amt)}
-      ACKER-ACK-STREAM-ID
-        {ACKER-COMPONENT-ID (mk-fields-grouper (Fields. ["id" "ack-val"])
-                                               (Fields. ["id"])
-                                               acker-task-amt)}
-      ACKER-FAIL-STREAM-ID
-        {ACKER-COMPONENT-ID (mk-fields-grouper (Fields. ["id"]) ;; TODO: add failure msg here later...
-                                               (Fields. ["id"])
-                                               acker-task-amt)}
-      }
+  (let [output-groupings (clojurify-structure (.getThisTargets topology-context))]
      (into {}
-           (for [[stream-id component->grouping] output-groupings
-                 :let [out-fields (.getThisOutputFields topology-context stream-id)]]
-             [stream-id
-              (into {}
-                    (for [[component tgrouping] component->grouping]
-                      [component (mk-grouper out-fields
-                                             tgrouping
-                                             (count (.getComponentTasks topology-context component))
-                                             )]
-                      ))])))
+       (for [[stream-id component->grouping] output-groupings
+             :let [out-fields (.getThisOutputFields topology-context stream-id)]]
+         [stream-id
+          (into {}
+                (for [[component tgrouping] component->grouping]
+                  [component (mk-grouper out-fields
+                                         tgrouping
+                                         (count (.getComponentTasks topology-context component))
+                                         )]
+                  ))]))
     ))
 
 
@@ -183,7 +109,7 @@
                        ACKER-ACK-STREAM-ID))
       )))
 
-(defn mk-task [conf storm-conf topology-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
+(defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         _ (log-message "Loading task " component-id ":" task-id)
@@ -234,12 +160,9 @@
                      (let [target-component (.getComponentId topology-context out-task-id)
                            component->grouping (stream->component->grouper (.getSourceStreamId tuple))
                            grouping (get component->grouping target-component)
-                           out-task-id (if (or
-                                            ;; This makes streams to/from system
-                                            ;; component (like ackers) implicit
-                                            (system-component? component-id)
-                                            (system-component? target-component)
-                                            grouping)
+                           out-task-id (if (or grouping
+                                               ;; this is needed because ackers send direct to spouts
+                                               (system-component? component-id))
                                          out-task-id)]
                        (when (and (not-nil? grouping) (not= :direct grouping))
                          (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))
@@ -293,7 +216,7 @@
                           [exec (with-error-reaction report-error-and-die
                                   (mk-executors task-object storm-conf puller send-fn
                                                 storm-active-atom topology-context
-                                                task-stats report-error))]
+                                                user-context task-stats report-error))]
                           (async-loop (fn [] (exec) (when @active 0))
                                       :kill-fn report-error-and-die))
         system-threads [heartbeat-thread]
@@ -338,7 +261,8 @@
     ))
 
 (defmethod mk-executors ISpout [^ISpout spout storm-conf puller send-fn storm-active-atom
-                                ^TopologyContext topology-context task-stats report-error-fn]
+                                ^TopologyContext topology-context ^TopologyContext user-context
+                                task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
         task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
@@ -388,7 +312,7 @@
                                        (send-spout-msg stream-id tuple message-id out-task-id)
                                        ))]
     (log-message "Opening spout " component-id ":" task-id)
-    (.open spout storm-conf topology-context (SpoutOutputCollector. output-collector))
+    (.open spout storm-conf user-context (SpoutOutputCollector. output-collector))
     (log-message "Opened spout " component-id ":" task-id)
     [(fn []
        ;; This design requires that spouts be non-blocking
@@ -431,7 +355,8 @@
     ))
 
 (defmethod mk-executors IBolt [^IBolt bolt storm-conf puller send-fn storm-active-atom
-                               ^TopologyContext topology-context task-stats report-error-fn]
+                               ^TopologyContext topology-context ^TopologyContext user-context
+                               task-stats report-error-fn]
   (let [deserializer (KryoTupleDeserializer. storm-conf topology-context)
         task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
@@ -477,7 +402,7 @@
     (log-message "Preparing bolt " component-id ":" task-id)
     (.prepare bolt
               storm-conf
-              topology-context
+              user-context
               (OutputCollectorImpl. topology-context output-collector))
     (log-message "Prepared bolt " component-id ":" task-id)
     ;; TODO: can get any SubscribedState objects out of the context now

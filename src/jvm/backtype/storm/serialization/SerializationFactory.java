@@ -82,10 +82,6 @@ public class SerializationFactory {
         Map<String, Map<Integer, String>> streamIdToName = new HashMap<String, Map<Integer, String>>();
 
         public IdDictionary(StormTopology topology) {
-            // TODO: need to handle system streams and system components
-            // should bite the bullet and expose user topology and system topology
-            // should create system topology in nimbus and use that for everything. user topology
-            // is just for querying
             List<String> componentNames = new ArrayList<String>(topology.get_spouts().keySet());
             componentNames.addAll(topology.get_bolts().keySet());
             componentNames.addAll(topology.get_state_spouts().keySet());

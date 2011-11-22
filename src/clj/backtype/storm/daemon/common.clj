@@ -1,16 +1,18 @@
 (ns backtype.storm.daemon.common
   (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [backtype.storm log config util])
+  (:import [backtype.storm.generated StormTopology])
+  (:import [backtype.storm.utils Utils])
+  (:require [backtype.storm.thrift :as thrift])
   )
 
-(def ACKER-COMPONENT-ID -1)
-(def ACKER-INIT-STREAM-ID -1)
-(def ACKER-ACK-STREAM-ID -2)
-(def ACKER-FAIL-STREAM-ID -3)
-
-
 (defn system-component? [id]
-  (< id 0))
+  (Utils/isSystemComponent id))
+
+(def ACKER-COMPONENT-ID "__acker")
+(def ACKER-INIT-STREAM-ID "__ack_init")
+(def ACKER-ACK-STREAM-ID "__ack_ack")
+(def ACKER-FAIL-STREAM-ID "__ack_fail")
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
@@ -37,10 +39,6 @@
 
 (defrecord WorkerHeartbeat [time-secs storm-id task-ids port])
 
-;; should include stats in here
-;; TODO: want to know how many it has processed from every source
-;; component/stream pair
-;; TODO: want to know how many it has emitted to every stream
 (defrecord TaskStats [^long processed
                       ^long acked
                       ^long emitted
@@ -74,7 +72,7 @@
 
 (defn topology-bases [storm-cluster-state]
   (let [active-topologies (.active-storms storm-cluster-state)]
-    (into {}
+    (into {} 
           (dofor [id active-topologies]
                  [id (.storm-base storm-cluster-state id nil)]
                  ))
@@ -94,3 +92,32 @@
         (log-error t# "Error on initialization of server " ~(str name))
         (halt-process! 13 "Error on initialization")
         )))))
+
+(defn system-topology [storm-conf ^StormTopology topology]
+  (let [ret (.deepCopy topology)
+        bolt-ids (.. ret get_bolts keySet)
+        spout-ids (.. ret get_spouts keySet)
+        spout-inputs (apply merge
+                        (for [id spout-ids]
+                          {[id ACKER-INIT-STREAM-ID] ["id"]}
+                          ))
+        bolt-inputs (apply merge
+                      (for [id bolt-ids]
+                        {[id ACKER-ACK-STREAM-ID] ["id"]
+                         [id ACKER-FAIL-STREAM-ID] ["id"]}
+                        ))
+        acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
+                                        ... ;; TODO: need to make sure output fields are declared for acker
+                                        :p (storm-conf TOPOLOGY-ACKERS))]
+    (.put_to_bolts ret "__acker" acker-bolt)
+    (dofor [[_ bolt] (.get_bolts ret)
+            :let [common (.get_common bolt)]]
+      (.put_to_streams ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
+      (.put_to_streams ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"])))
+    (dofor [[_ spout] (.get_spouts ret)
+            :let [common (.get_common bolt)]]
+      (.put_to_streams ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"])))
+    ;; TODO: need to declare outputs of ackers
+    ;; TODO: need to make it so ackers can send messages direct to spouts...
+    ret
+    ))

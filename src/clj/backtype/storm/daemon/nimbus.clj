@@ -147,7 +147,7 @@
 (defn mk-task-component-assignments [conf storm-id]
   (let [storm-conf (read-storm-conf conf storm-id)
         max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        topology (read-storm-topology conf storm-id)
+        topology (system-topology (read-storm-topology conf storm-id))
         slots-to-use (storm-conf TOPOLOGY-WORKERS)
         counter (mk-counter)
         tasks (concat
@@ -157,8 +157,6 @@
                        (.get_spouts topology))
                (mapcat (mk-task-maker max-parallelism state-spout-parallelism counter)
                        (.get_state_spouts topology))
-               (repeatedly (storm-conf TOPOLOGY-ACKERS)
-                           (fn [] [(counter) ACKER-COMPONENT-ID]))
                )]
     (into {}
       tasks)
@@ -366,11 +364,11 @@
        (InvalidTopologyException.
         (str "Cannot use same component id for both spout and bolt: " (vec common))
         )))
-    (when-not (every? #(> % 0) (concat bolt-ids spout-ids state-spout-ids))
+    (when-not (every? (complement system-component?) (concat bolt-ids spout-ids state-spout-ids))
       (throw
        (InvalidTopologyException.
-        "All component ids must be positive")))
-    ;; TODO: validate that every declared stream is positive
+        "Component ids cannot start with '__'")))
+    ;; TODO: validate that every declared stream is not a system stream
     ))
 
 (defn file-cache-map [conf]

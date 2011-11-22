@@ -37,20 +37,13 @@ public class Tuple implements ILookup {
         this.id = id;
         this.context = context;
         
-        //TODO: should find a way to include this information here
-        //TODO: should only leave out the connection info?
-        //TODO: have separate methods for "user" and "system" topology?
-        if(!Utils.isSystemStream(streamId)) {
-            String componentId = context.getComponentId(taskId);
-            if(!Utils.isSystemComponent(componentId)) {
-                Fields schema = context.getComponentOutputFields(componentId, streamId);
-                if(values.size()!=schema.size()) {
-                    throw new IllegalArgumentException(
-                            "Tuple created with wrong number of fields. " +
-                            "Expected " + schema.size() + " fields but got " +
-                            values.size() + " fields");
-                }
-            }
+        String componentId = context.getComponentId(taskId);
+        Fields schema = context.getComponentOutputFields(componentId, streamId);
+        if(values.size()!=schema.size()) {
+            throw new IllegalArgumentException(
+                    "Tuple created with wrong number of fields. " +
+                    "Expected " + schema.size() + " fields but got " +
+                    values.size() + " fields");
         }
     }
 

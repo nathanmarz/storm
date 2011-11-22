@@ -74,6 +74,9 @@
 (defn direct-output-fields [fields]
   (StreamInfo. fields true))
 
+(defn output-fields [fields]
+  (StreamInfo. fields false))
+
 (defn mk-output-spec [output-spec]
   (let [output-spec (if (map? output-spec) output-spec {Utils/DEFAULT_STREAM_ID output-spec})]
     (map-val

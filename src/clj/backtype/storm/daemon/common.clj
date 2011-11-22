@@ -4,7 +4,6 @@
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.utils Utils])
   (:require [backtype.storm.daemon.acker :as acker])
-  (:import [backtype.storm.daemon acker])
   (:require [backtype.storm.thrift :as thrift])
   )
 
@@ -109,7 +108,7 @@
                          [id ACKER-FAIL-STREAM-ID] ["id"]}
                         ))
         acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
-                                        (backtype.storm.daemon.acker.)
+                                        (acker/mk-acker-bolt)
                                         :p (storm-conf TOPOLOGY-ACKERS))]
     (.put_to_bolts ret "__acker" acker-bolt)
     (dofor [[_ bolt] (.get_bolts ret)

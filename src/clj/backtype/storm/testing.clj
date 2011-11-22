@@ -14,6 +14,7 @@
             SpoutTracker BoltTracker TrackerAggregator])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
+  (:require [backtype.storm.daemon.acker :as acker])
   (:use [clojure.contrib.def :only [defnk]])
   (:use [clojure.contrib.seq :only [find-first]])
   (:use [backtype.storm cluster util thrift config log]))
@@ -410,17 +411,16 @@
      }))
 
 (defmacro with-tracked-cluster [cluster-args & body]
-  ;;TODO: need an alternative approach to this
   `(with-var-roots [task/outbound-components (let [old# task/outbound-components]
                                                (fn [& args#]
                                                  (merge (apply old# args#)
                                                         {TrackerAggregator/TRACK_STREAM
                                                          {TRACKER-BOLT-ID (fn [& args#] 0)}}
                                                         )))
-                    task/mk-acker-bolt (let [old# task/mk-acker-bolt]
-                                         (fn [& args#]
-                                           (BoltTracker. (apply old# args#))
-                                           ))
+                    acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
+                                          (fn [& args#]
+                                            (BoltTracker. (apply old# args#))
+                                            ))
                     ]
      (with-local-cluster ~cluster-args
        ~@body

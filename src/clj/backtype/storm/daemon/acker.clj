@@ -1,14 +1,10 @@
 (ns backtype.storm.daemon.acker
-  (:import [backtype.storm.task OutputCollector IBolt TopologyContext])
+  (:import [backtype.storm.task OutputCollector TopologyContext])
   (:import [backtype.storm.tuple Tuple Fields])
   (:import [backtype.storm.utils TimeCacheMap])
+  (:import [backtype.storm.topology IRichBolt])
   (:import [java.util List Map])
-  (:use [backtype.storm config])
-  (:gen-class
-   :init init
-   :implements [backtype.storm.topology.IRichBolt]
-   :constructors {[] []}
-   :state state ))
+  (:use [backtype.storm config]))
 
 (def ACKER-COMPONENT-ID "__acker")
 (def ACKER-INIT-STREAM-ID "__ack_init")
@@ -24,11 +20,10 @@
   (.emitDirect collector task stream values)
   )
 
-;;TODO: this approach doesn't work... need to set it during prepare
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]
-    (reify IBolt
+    (reify IRichBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (reset! output-collector collector)
                (reset! pending (TimeCacheMap. (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))))
@@ -67,23 +62,7 @@
                ))
       (^void cleanup [this]
              )
+      (declareOutputFields [this declarer]
+        (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
+        (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
       )))
-
-(defn -init []
-  [[] (mk-acker-bolt)]
-  )
-  
-(defn -prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
-  (.prepare ^IBolt (. this state) storm-conf context collector))
-
-(defn -execute [this ^Tuple tuple]
-  (.execute ^IBolt (. this state) tuple))
-
-(defn -cleanup [this]
-  (.cleanup ^IBolt (. this state)))
-
-(defn -declareOutputFields [this declarer]
-  (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
-  (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
-
-

@@ -248,9 +248,13 @@
     ret
     ))
 
+;; (defmethod mk-suicide-fn
+;;   :local [conf active]
+;;   (fn [] (reset! active false)))
+
 (defmethod mk-suicide-fn
-  :local [conf active]
-  (fn [] (reset! active false)))
+  :local [conf _]
+  (fn [] (halt-process! 1 "Task died")))
 
 (defmethod mk-suicide-fn
   :distributed [conf _]

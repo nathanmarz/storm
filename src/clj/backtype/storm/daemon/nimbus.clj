@@ -147,7 +147,7 @@
 (defn mk-task-component-assignments [conf storm-id]
   (let [storm-conf (read-storm-conf conf storm-id)
         max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        topology (system-topology (read-storm-topology conf storm-id))
+        topology (system-topology storm-conf (read-storm-topology conf storm-id))
         slots-to-use (storm-conf TOPOLOGY-WORKERS)
         counter (mk-counter)
         tasks (concat
@@ -563,7 +563,7 @@
                (to-json (read-storm-conf conf id)))
 
       (^StormTopology getTopology [this ^String id]
-                      (system-topology (read-storm-topology conf id)))
+                      (system-topology (read-storm-conf conf id) (read-storm-topology conf id)))
       
       (^ClusterSummary getClusterInfo [this]
         (let [assigned (assigned-slots storm-cluster-state)

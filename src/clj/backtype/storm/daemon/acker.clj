@@ -66,3 +66,5 @@
         (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
         (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
       )))
+
+;; need to create a class

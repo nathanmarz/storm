@@ -24,10 +24,10 @@
         spout (DRPCSpout. "test" drpc)
         cluster (LocalCluster.)
         topology (topology
-                  {1 (spout-spec spout)}
-                  {2 (bolt-spec {1 :shuffle}
+                  {"1" (spout-spec spout)}
+                  {"2" (bolt-spec {"1" :shuffle}
                                 exclamation-bolt)
-                   3 (bolt-spec {2 :shuffle}
+                   "3" (bolt-spec {"2" :shuffle}
                                 (ReturnResults.))})]
     (.submitTopology cluster "test" {TOPOLOGY-DEBUG true} topology)
 

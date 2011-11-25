@@ -95,7 +95,7 @@
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
-        mk-topology-context #(TopologyContext. (system-topology topology)
+        mk-topology-context #(TopologyContext. (system-topology storm-conf topology)
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path

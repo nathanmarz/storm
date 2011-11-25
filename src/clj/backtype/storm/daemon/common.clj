@@ -108,16 +108,21 @@
                          [id ACKER-FAIL-STREAM-ID] ["id"]}
                         ))
         acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
-                                        (acker/mk-acker-bolt)
+                                        (new backtype.storm.daemon.acker)
                                         :p (storm-conf TOPOLOGY-ACKERS))]
     (.put_to_bolts ret "__acker" acker-bolt)
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
       (do
         (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
-        (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))))
+        (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
+        ))
     (dofor [[_ spout] (.get_spouts ret)
             :let [common (.get_common spout)]]
-      (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"])))
+      (do
+        (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"]))
+        (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
+        (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
+        ))
     ret
     ))

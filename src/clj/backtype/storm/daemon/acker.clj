@@ -1,10 +1,15 @@
 (ns backtype.storm.daemon.acker
-  (:import [backtype.storm.task OutputCollector TopologyContext])
+  (:import [backtype.storm.task OutputCollector TopologyContext IBolt])
   (:import [backtype.storm.tuple Tuple Fields])
   (:import [backtype.storm.utils TimeCacheMap])
   (:import [backtype.storm.topology IRichBolt])
   (:import [java.util List Map])
-  (:use [backtype.storm config]))
+  (:use [backtype.storm config util])
+  (:gen-class
+   :init init
+   :implements [backtype.storm.topology.IRichBolt]
+   :constructors {[] []}
+   :state state ))
 
 (def ACKER-COMPONENT-ID "__acker")
 (def ACKER-INIT-STREAM-ID "__ack_init")
@@ -23,7 +28,7 @@
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]
-    (reify IRichBolt
+    (reify IBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (reset! output-collector collector)
                (reset! pending (TimeCacheMap. (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))))
@@ -62,9 +67,27 @@
                ))
       (^void cleanup [this]
              )
-      (declareOutputFields [this declarer]
-        (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
-        (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
       )))
 
-;; need to create a class
+(defn -init []
+  [[] (container)])
+
+(defn -prepare [this conf context collector]
+  (let [^IBolt ret (mk-acker-bolt)]
+    (container-set! (.state this) ret)
+    (.prepare ret conf context collector)
+    ))
+
+(defn -execute [this tuple]
+  (let [^IBolt delegate (container-get (.state this))]
+    (.execute delegate tuple)
+    ))
+
+(defn -cleanup [this]
+  (let [^IBolt delegate (container-get (.state this))]
+    (.cleanup delegate)
+    ))
+
+(defn -declareOutputFields [this declarer]
+  (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
+  (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))

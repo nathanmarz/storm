@@ -262,7 +262,7 @@ public class TopologyContext {
         for(String otherComponentId: _topology.get_bolts().keySet()) {
             Bolt bolt = _topology.get_bolts().get(otherComponentId);
             for(GlobalStreamId id: bolt.get_inputs().keySet()) {
-                if(id.get_componentId()==componentId) {
+                if(id.get_componentId().equals(componentId)) {
                     Map<String, Grouping> curr = ret.get(id.get_streamId());
                     if(curr==null) curr = new HashMap<String, Grouping>();
                     curr.put(otherComponentId, bolt.get_inputs().get(id));

@@ -110,7 +110,6 @@
         acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
                                         (new backtype.storm.daemon.acker)
                                         :p (storm-conf TOPOLOGY-ACKERS))]
-    (.put_to_bolts ret "__acker" acker-bolt)
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
       (do
@@ -124,5 +123,6 @@
         (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
         (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
         ))
+    (.put_to_bolts ret "__acker" acker-bolt)
     ret
     ))

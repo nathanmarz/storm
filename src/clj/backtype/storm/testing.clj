@@ -308,12 +308,10 @@
                                      (FixedTuple. (:stream tup) (:values tup))
                                      tup))))
                               mock-sources)
-        all-ids (concat (keys spouts) (keys bolts))
         all-streams (apply concat
                            (for [[id spec] (merge (clojurify-structure spouts) (clojurify-structure bolts))]
                              (for [[stream _] (.. spec get_common get_streams)]
                                (GlobalStreamId. id stream))))
-        max-id (apply max all-ids)
         capturer (TupleCaptureBolt. storm-name)
         ]
     (doseq [[id spout] replacements]
@@ -327,7 +325,7 @@
     
     (.set_bolts topology
                 (assoc (clojurify-structure bolts)
-                  (inc max-id)
+                  (uuid)
                   (Bolt.
                    (into {} (for [id all-streams] [id (mk-global-grouping)]))
                    (serialize-component-object capturer)
@@ -374,7 +372,7 @@
 (defn ms= [& args]  
   (apply = (map multi-set args)))
 
-(def TRACKER-BOLT-ID "__tracker")
+(def TRACKER-BOLT-ID "+++tracker-bolt")
 
 (defn mk-tracked-topology
   "Spouts are of form [spout & options], bolts are of form [inputs bolt & options]"

@@ -28,7 +28,7 @@
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]
-    (reify IBolt
+    (reify IRichBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (reset! output-collector collector)
                (reset! pending (TimeCacheMap. (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))))
@@ -67,6 +67,9 @@
                ))
       (^void cleanup [this]
              )
+      (declareOutputFields [this declarer]
+        (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
+        (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
       )))
 
 (defn -init []
@@ -89,5 +92,4 @@
     ))
 
 (defn -declareOutputFields [this declarer]
-  (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
-  (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
+  (.declareOutputFields (mk-acker-bolt) declarer))

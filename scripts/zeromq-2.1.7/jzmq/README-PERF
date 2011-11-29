@@ -1,0 +1,5 @@
+First you have to compile library, follow README.
+
+Performance utilities must be executed from perf directory (cd perf).
+
+More informations can be found here http://www.zeromq.org/results:perf-howto.

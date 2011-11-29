@@ -1,0 +1,11 @@
+jzmq (2.1.0-1) unstable; urgency=low
+
+  * Development release
+
+ -- Alois Bělaška <alois.belaska@gmail.com>  Thu, 09 Dec 2010 11:44:56 +0100
+
+jzmq (2.0.9-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Alois Bělaška <alois.belaska@gmail.com>  Wed, 08 Dec 2010 11:15:56 +0100

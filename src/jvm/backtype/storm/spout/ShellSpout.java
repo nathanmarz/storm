@@ -62,7 +62,7 @@ public class ShellSpout implements ISpout {
     	try
 		{
 			//send the sub process the nextTuple command, then wait for a response
-    		sendLineToSubprocess("next");
+    		sendToSubprocess("next");
 			
 			String line = "";
 			while (true)
@@ -102,6 +102,7 @@ public class ShellSpout implements ISpout {
 
 					if (task == null) {
                        List<Integer> outtasks = _collector.emit((int)stream.longValue(), tuple, id);
+                       sendToSubprocess(JSONValue.toJSONString(outtasks));
                     } else {
                         _collector.emitDirect((int)task.longValue(), (int)stream.longValue(), tuple, id);
                     }

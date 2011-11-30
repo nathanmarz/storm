@@ -71,6 +71,11 @@
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
+(defn mk-transfer-fn [transfer-queue]
+  (fn [task ^Tuple tuple]
+    (.put ^LinkedBlockingQueue transfer-queue [task tuple])
+    ))
+
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
 ;; what about if there's inconsistency in assignments? -> but nimbus
@@ -121,9 +126,7 @@
 
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         
-        transfer-fn (fn [task ^Tuple tuple]
-                      (.put transfer-queue [task tuple])
-                      )
+        transfer-fn (mk-transfer-fn transfer-queue)
         refresh-connections (fn this
                               ([]
                                 (this (fn [& ignored] (.add event-manager this))))

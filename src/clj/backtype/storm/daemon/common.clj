@@ -100,7 +100,8 @@
         spout-ids (.. ret get_spouts keySet)
         spout-inputs (apply merge
                         (for [id spout-ids]
-                          {[id ACKER-INIT-STREAM-ID] ["id"]}
+                          {[id ACKER-INIT-STREAM-ID] ["id"]
+                           [id ACKER-ACK-STREAM-ID] ["id"]}
                           ))
         bolt-inputs (apply merge
                       (for [id bolt-ids]
@@ -121,8 +122,8 @@
       (do
         (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"]))
         (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
-        (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
         ))
-    (.put_to_bolts ret "__acker" acker-bolt)
+    (if (> (storm-conf TOPOLOGY-ACKERS) 0)
+      (.put_to_bolts ret "__acker" acker-bolt))
     ret
     ))

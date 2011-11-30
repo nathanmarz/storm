@@ -4,7 +4,7 @@
   (:import [backtype.storm.utils TimeCacheMap])
   (:import [backtype.storm.topology IRichBolt])
   (:import [java.util List Map])
-  (:use [backtype.storm config util])
+  (:use [backtype.storm config util log])
   (:gen-class
    :init init
    :implements [backtype.storm.topology.IRichBolt]

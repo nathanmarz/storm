@@ -63,14 +63,14 @@
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
-                    {1 (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
-                    {2 (thrift/mk-bolt-spec {1 :none} (TestPlannerBolt.) :parallelism-hint 4)
-                     3 (thrift/mk-bolt-spec {2 :none} (TestPlannerBolt.))})
+                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
+                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
+                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
           topology2 (thrift/mk-topology
-                     {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 12)}
-                     {2 (thrift/mk-bolt-spec {1 :none} (TestPlannerBolt.) :parallelism-hint 6)
-                      3 (thrift/mk-bolt-spec {1 :global} (TestPlannerBolt.) :parallelism-hint 8)
-                      4 (thrift/mk-bolt-spec {1 :global 2 :none} (TestPlannerBolt.) :parallelism-hint 4)}
+                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 12)}
+                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 6)
+                      "3" (thrift/mk-bolt-spec {"1" :global} (TestPlannerBolt.) :parallelism-hint 8)
+                      "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
                      )
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component-info state "mystorm")]
@@ -78,18 +78,18 @@
       ;; 3 should be assigned once (if it were optimized, we'd have
       ;; different topology)
       (is (= 1 (count (.assignments state nil))))
-      (is (= 1 (count (task-info 1))))
-      (is (= 4 (count (task-info 2))))
-      (is (= 1 (count (task-info 3))))
+      (is (= 1 (count (task-info "1"))))
+      (is (= 4 (count (task-info "2"))))
+      (is (= 1 (count (task-info "3"))))
       (is (= 4 (storm-num-workers state "mystorm")))
       (submit-local-topology nimbus "storm2" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20} topology2)
       (check-consistency cluster "storm2")
       (is (= 2 (count (.assignments state nil))))
       (let [task-info (storm-component-info state "storm2")]
-        (is (= 12 (count (task-info 1))))
-        (is (= 6 (count (task-info 2))))
-        (is (= 1 (count (task-info 3))))
-        (is (= 4 (count (task-info 4))))
+        (is (= 12 (count (task-info "1"))))
+        (is (= 6 (count (task-info "2"))))
+        (is (= 1 (count (task-info "3"))))
+        (is (= 4 (count (task-info "4"))))
         (is (= 8 (storm-num-workers state "storm2")))
         )
       )))
@@ -99,18 +99,18 @@
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
-                     {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 21)}
-                     {2 (thrift/mk-bolt-spec {1 :none} (TestPlannerBolt.) :parallelism-hint 9)
-                      3 (thrift/mk-bolt-spec {1 :none} (TestPlannerBolt.) :parallelism-hint 2)
-                      4 (thrift/mk-bolt-spec {1 :none} (TestPlannerBolt.) :parallelism-hint 10)}
+                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 21)}
+                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 9)
+                      "3" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 2)
+                      "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
                      )
           _ (submit-local-topology nimbus "test" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 7} topology)
           task-info (storm-component-info state "test")]
       (check-consistency cluster "test")
-      (is (= 21 (count (task-info 1))))
-      (is (= 9 (count (task-info 2))))
-      (is (= 2 (count (task-info 3))))
-      (is (= 10 (count (task-info 4))))
+      (is (= 21 (count (task-info "1"))))
+      (is (= 9 (count (task-info "2"))))
+      (is (= 2 (count (task-info "3"))))
+      (is (= 10 (count (task-info "4"))))
       (is (= 7 (storm-num-workers state "test")))
     )))
 
@@ -125,7 +125,7 @@
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
-                       {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 14)}
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 14)}
                        {}
                        ))
       (bind state (:storm-cluster-state cluster))
@@ -209,7 +209,7 @@
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
-                       {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
                        {}
                        ))
       (bind state (:storm-cluster-state cluster))
@@ -306,7 +306,7 @@
                   TOPOLOGY-ACKERS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
-                        {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 9)}
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 9)}
                         {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 4} topology)  ; distribution should be 2, 2, 2, 3 ideally

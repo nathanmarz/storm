@@ -200,7 +200,8 @@
                          ;; not including this tuple in the ack list
                          ;; for previous tuple
                          ;; TODO: need to create the new ids, and then create the tuples, and then ack
-                         (let [out-ids (repeatedly (count out-tasks) #(MessageId/generateId))]
+                         (let [out-ids (repeatedly (count out-tasks)
+                                                   #(MessageId/generateId))]
                            (dorun
                             (map (fn [id t]
                                    (task-transfer-fn t (.copyWithNewId tuple id)))
@@ -270,6 +271,7 @@
         deserializer (KryoTupleDeserializer. storm-conf topology-context)
         event-queue (ConcurrentLinkedQueue.)
         sampler (mk-stats-sampler storm-conf)
+        
         pending (TimeCacheMap.
                  (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))
                  (reify TimeCacheMap$ExpiredCallback

@@ -230,6 +230,7 @@
           [feeder2 checker2] (ack-tracking-feeder ["num"])
           [feeder3 checker3] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
+                   cluster
                    {"1" [feeder1]
                     "2" [feeder2]
                     "3" [feeder3]}
@@ -243,8 +244,8 @@
                     "9" [{"8" :shuffle} ack-bolt]}
                    )]
       (submit-local-topology (:nimbus cluster)
-                             "test"
-                             {}
+                             "acking-test1"
+                             {TOPOLOGY-DEBUG true}
                              (:topology tracked))
       (.feed feeder1 [1])
       (tracked-wait tracked 1)
@@ -275,13 +276,14 @@
   (with-tracked-cluster [cluster]
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
+                   cluster
                    {"1" [feeder]}
                    {"2" [{"1" :shuffle} identity-bolt]
                     "3" [{"1" :shuffle} identity-bolt]
                     "4" [{"2" :shuffle
-                        "3" :shuffle} (agg-bolt 4)]})]
+                          "3" :shuffle} (agg-bolt 4)]})]
       (submit-local-topology (:nimbus cluster)
-                             "test"
+                             "test-acking2"
                              {}
                              (:topology tracked))
       (.feed feeder [1])
@@ -301,6 +303,7 @@
   (with-tracked-cluster [cluster]
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
+                   cluster
                    {"1" [feeder]}
                    {"2" [{"1" :shuffle} dup-anchor]
                     "3" [{"2" :shuffle} ack-bolt]})]

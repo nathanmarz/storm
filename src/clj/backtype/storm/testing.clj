@@ -3,15 +3,18 @@
              [nimbus :as nimbus]
              [supervisor :as supervisor]
              [common :as common]
+             [worker :as worker]
              [task :as task]])
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
-  (:import [backtype.storm.utils Time Utils])
+  (:import [java.util.concurrent.atomic AtomicInteger])
+  (:import [java.util.concurrent ConcurrentHashMap])
+  (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
-            SpoutTracker BoltTracker TrackerAggregator])
+            SpoutTracker BoltTracker])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
@@ -376,53 +379,67 @@
 
 (defn mk-tracked-topology
   "Spouts are of form [spout & options], bolts are of form [inputs bolt & options]"
-  [spouts-map bolts-map]
-  (let [tracker (TrackerAggregator.)
+  [tracked-cluster spouts-map bolts-map]
+  (let [track-id (::track-id tracked-cluster)        
         spouts-map (into {}
                          (for [[id [spout & options]] spouts-map]
                            [id
                             (apply mk-spout-spec
-                                   (SpoutTracker. spout)
+                                   (SpoutTracker. spout track-id)
                                    options)]))
         bolts-map (into {}
                         (for [[id [inputs bolt & options]] bolts-map]
                           [id
                            (apply mk-bolt-spec
                                   inputs
-                                  (BoltTracker. bolt)
+                                  (BoltTracker. bolt track-id)
                                   options)]))
-        all-ids (concat (keys spouts-map) (keys bolts-map))
-        tracker-inputs (into {}
-                             (for [key all-ids]
-                               [[key TrackerAggregator/TRACK_STREAM] :global]
-                               ))
-        bolts-map (assoc bolts-map
-                    TRACKER-BOLT-ID
-                    (mk-bolt-spec
-                     tracker-inputs
-                     tracker
-                     ))
         ]
     {:topology (mk-topology spouts-map bolts-map)
      :last-spout-emit (atom 0)
-     :tracker tracker
+     :cluster tracked-cluster
      }))
 
-(defmacro with-tracked-cluster [cluster-args & body]
-  `(with-var-roots [task/outbound-components (let [old# task/outbound-components]
-                                               (fn [& args#]
-                                                 (merge (apply old# args#)
-                                                        {TrackerAggregator/TRACK_STREAM
-                                                         {TRACKER-BOLT-ID (fn [& args#] 0)}}
-                                                        )))
-                    acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
-                                          (fn [& args#]
-                                            (BoltTracker. (apply old# args#))
-                                            ))
-                    ]
-     (with-local-cluster ~cluster-args
-       ~@body
-       )))
+(defn assoc-track-id [cluster track-id]
+  (assoc cluster ::track-id track-id))
+
+(defn increment-global! [id key]
+  (-> (RegisteredGlobalState/getState id)
+      (get key)
+      .incrementAndGet))
+
+(defn global-amt [id key]
+  (-> (RegisteredGlobalState/getState id)
+      (get key)
+      .get
+      ))
+
+(defmacro with-tracked-cluster [[cluster-sym & cluster-args] & body]
+  `(let [id# (uuid)]
+     (RegisteredGlobalState/setState id#
+                                     (doto (ConcurrentHashMap.)
+                                       (.put "spout-emitted" (AtomicInteger. 0))
+                                       (.put "transferred" (AtomicInteger. 0))
+                                       (.put "processed" (AtomicInteger. 0))))
+     (with-var-roots [acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
+                                            (fn [& args#]
+                                              (BoltTracker. (apply old# args#) id#)
+                                              ))
+                      worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
+                                              (fn [& args#]
+                                                (let [transferrer# (apply old# args#)]
+                                                  (fn [& transfer-args#]
+                                                    ;; (log-message "Transferring: " transfer-args#)
+                                                    (increment-global! id# "transferred")
+                                                    (apply transferrer# transfer-args#)
+                                                    ))))
+                      ]
+       (with-local-cluster [~cluster-sym ~@cluster-args]
+         (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
+           ~@body)
+         ))
+     (RegisteredGlobalState/clearState id#)
+     ))
 
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."
@@ -430,10 +447,11 @@
      (tracked-wait tracked-topology 1))
   ([tracked-topology amt]
       (let [target (+ amt @(:last-spout-emit tracked-topology))
-            tracker (:tracker tracked-topology)
+            track-id (-> tracked-topology :cluster ::track-id)
             waiting? (fn []
-                       (or (not= target (.getSpoutEmitted tracker))
-                           (not= (.getTransferred tracker) (.getProcessed tracker))
+                       (or (not= target (global-amt track-id "spout-emitted"))
+                           (not= (global-amt track-id "transferred")                                 
+                                 (global-amt track-id "processed"))
                            ))]
         (while (waiting?)
           (Thread/sleep 5))

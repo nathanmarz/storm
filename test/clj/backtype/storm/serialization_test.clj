@@ -53,3 +53,10 @@
   (is-roundtrip [(mk-string (* 64 1024))])
   (is-roundtrip [(mk-string (* 1024 1024))])
   )
+
+(deftest test-clojure-serialization
+  (is-roundtrip [:a])
+  (is-roundtrip [["a" 1 2 :a] 2 "aaa"])
+  (is-roundtrip [#{:a :b :c}])
+  (is-roundtrip [#{:a :b} 1 2 ["a" 3 5 #{5 6}]])
+  (is-roundtrip [{:a [1 2 #{:a :b 1}] :b 3}]))

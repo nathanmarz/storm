@@ -21,6 +21,7 @@
                  [hiccup "0.3.6"]
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.slf4j/slf4j-log4j12 "1.5.8"]
+                 [storm/carbonite "1.0.0"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [

@@ -5,6 +5,7 @@ import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.utils.ListDelegate;
 import backtype.storm.utils.Utils;
+import carbonite.JavaBridge;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.ObjectBuffer;
 import com.esotericsoftware.kryo.Serializer;
@@ -44,7 +45,10 @@ public class SerializationFactory {
         k.register(ArrayList.class);
         k.register(HashMap.class);
         k.register(HashSet.class);
-        // TODO: do clojure persistent data structures
+        JavaBridge clojureSerializersBridge = new JavaBridge();
+        clojureSerializersBridge.registerClojureCollections(k);
+        clojureSerializersBridge.registerClojurePrimitives(k);
+        
         Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
         if(registrations==null) registrations = new HashMap<String, String>();
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);

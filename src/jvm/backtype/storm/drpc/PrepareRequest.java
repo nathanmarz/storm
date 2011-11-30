@@ -7,16 +7,14 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 
 public class PrepareRequest implements IBasicBolt {
-    public static final int ARGS_STREAM = 1;
-    public static final int RETURN_STREAM = 2;
-    public static final int ID_STREAM = 3;
+    public static final String ARGS_STREAM = "args";
+    public static final String RETURN_STREAM = "ret";
+    public static final String ID_STREAM = "id";
 
     Random rand;
 

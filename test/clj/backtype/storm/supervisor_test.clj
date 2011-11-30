@@ -56,7 +56,7 @@
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
     (letlocals
       (bind topology (thrift/mk-topology
-                       {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind changed (capture-changed-workers
@@ -65,10 +65,10 @@
                           "test"
                           {TOPOLOGY-WORKERS 3}
                           topology
-                          {1 1
-                           2 1
-                           3 1
-                           4 1}
+                          {1 "1"
+                           2 "1"
+                           3 "1"
+                           4 "1"}
                           {1 ["sup1" 1]
                            2 ["sup1" 2]
                            3 ["sup1" 3]
@@ -103,10 +103,10 @@
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
     (letlocals
       (bind topology (thrift/mk-topology
-                       {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
                        {}))
       (bind topology2 (thrift/mk-topology
-                       {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind sup2 (add-supervisor cluster :id "sup2" :ports [1 2]))
@@ -116,10 +116,10 @@
                           "test"
                           {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
                           topology
-                          {1 1
-                           2 1
-                           3 1
-                           4 1}
+                          {1 "1"
+                           2 "1"
+                           3 "1"
+                           4 "1"}
                           {1 ["sup1" 1]
                            2 ["sup1" 2]
                            3 ["sup2" 1]
@@ -138,9 +138,9 @@
                           "test2"
                           {TOPOLOGY-WORKERS 2}
                           topology2
-                          {1 1
-                           2 1
-                           3 1}
+                          {1 "1"
+                           2 "1"
+                           3 "1"}
                           {1 ["sup1" 3]
                            2 ["sup1" 3]
                            3 ["sup2" 2]
@@ -206,7 +206,7 @@
       (advance-cluster-time cluster 15)
       (check-heartbeat cluster "sup" 3)
       (bind topology (thrift/mk-topology
-                       {1 (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
                        {}))
       ;; prevent them from launching by capturing them
       (capture-changed-workers (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology))

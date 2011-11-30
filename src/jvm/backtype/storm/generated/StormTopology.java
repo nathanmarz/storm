@@ -28,9 +28,9 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
   private static final org.apache.thrift7.protocol.TField BOLTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolts", org.apache.thrift7.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift7.protocol.TField STATE_SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("state_spouts", org.apache.thrift7.protocol.TType.MAP, (short)3);
 
-  private Map<Integer,SpoutSpec> spouts; // required
-  private Map<Integer,Bolt> bolts; // required
-  private Map<Integer,StateSpoutSpec> state_spouts; // required
+  private Map<String,SpoutSpec> spouts; // required
+  private Map<String,Bolt> bolts; // required
+  private Map<String,StateSpoutSpec> state_spouts; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -103,15 +103,15 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.SPOUTS, new org.apache.thrift7.meta_data.FieldMetaData("spouts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, SpoutSpec.class))));
     tmpMap.put(_Fields.BOLTS, new org.apache.thrift7.meta_data.FieldMetaData("bolts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, Bolt.class))));
     tmpMap.put(_Fields.STATE_SPOUTS, new org.apache.thrift7.meta_data.FieldMetaData("state_spouts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, StateSpoutSpec.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(StormTopology.class, metaDataMap);
@@ -121,9 +121,9 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
   }
 
   public StormTopology(
-    Map<Integer,SpoutSpec> spouts,
-    Map<Integer,Bolt> bolts,
-    Map<Integer,StateSpoutSpec> state_spouts)
+    Map<String,SpoutSpec> spouts,
+    Map<String,Bolt> bolts,
+    Map<String,StateSpoutSpec> state_spouts)
   {
     this();
     this.spouts = spouts;
@@ -136,13 +136,13 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
    */
   public StormTopology(StormTopology other) {
     if (other.is_set_spouts()) {
-      Map<Integer,SpoutSpec> __this__spouts = new HashMap<Integer,SpoutSpec>();
-      for (Map.Entry<Integer, SpoutSpec> other_element : other.spouts.entrySet()) {
+      Map<String,SpoutSpec> __this__spouts = new HashMap<String,SpoutSpec>();
+      for (Map.Entry<String, SpoutSpec> other_element : other.spouts.entrySet()) {
 
-        Integer other_element_key = other_element.getKey();
+        String other_element_key = other_element.getKey();
         SpoutSpec other_element_value = other_element.getValue();
 
-        Integer __this__spouts_copy_key = other_element_key;
+        String __this__spouts_copy_key = other_element_key;
 
         SpoutSpec __this__spouts_copy_value = new SpoutSpec(other_element_value);
 
@@ -151,13 +151,13 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       this.spouts = __this__spouts;
     }
     if (other.is_set_bolts()) {
-      Map<Integer,Bolt> __this__bolts = new HashMap<Integer,Bolt>();
-      for (Map.Entry<Integer, Bolt> other_element : other.bolts.entrySet()) {
+      Map<String,Bolt> __this__bolts = new HashMap<String,Bolt>();
+      for (Map.Entry<String, Bolt> other_element : other.bolts.entrySet()) {
 
-        Integer other_element_key = other_element.getKey();
+        String other_element_key = other_element.getKey();
         Bolt other_element_value = other_element.getValue();
 
-        Integer __this__bolts_copy_key = other_element_key;
+        String __this__bolts_copy_key = other_element_key;
 
         Bolt __this__bolts_copy_value = new Bolt(other_element_value);
 
@@ -166,13 +166,13 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       this.bolts = __this__bolts;
     }
     if (other.is_set_state_spouts()) {
-      Map<Integer,StateSpoutSpec> __this__state_spouts = new HashMap<Integer,StateSpoutSpec>();
-      for (Map.Entry<Integer, StateSpoutSpec> other_element : other.state_spouts.entrySet()) {
+      Map<String,StateSpoutSpec> __this__state_spouts = new HashMap<String,StateSpoutSpec>();
+      for (Map.Entry<String, StateSpoutSpec> other_element : other.state_spouts.entrySet()) {
 
-        Integer other_element_key = other_element.getKey();
+        String other_element_key = other_element.getKey();
         StateSpoutSpec other_element_value = other_element.getValue();
 
-        Integer __this__state_spouts_copy_key = other_element_key;
+        String __this__state_spouts_copy_key = other_element_key;
 
         StateSpoutSpec __this__state_spouts_copy_value = new StateSpoutSpec(other_element_value);
 
@@ -197,18 +197,18 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     return (this.spouts == null) ? 0 : this.spouts.size();
   }
 
-  public void put_to_spouts(int key, SpoutSpec val) {
+  public void put_to_spouts(String key, SpoutSpec val) {
     if (this.spouts == null) {
-      this.spouts = new HashMap<Integer,SpoutSpec>();
+      this.spouts = new HashMap<String,SpoutSpec>();
     }
     this.spouts.put(key, val);
   }
 
-  public Map<Integer,SpoutSpec> get_spouts() {
+  public Map<String,SpoutSpec> get_spouts() {
     return this.spouts;
   }
 
-  public void set_spouts(Map<Integer,SpoutSpec> spouts) {
+  public void set_spouts(Map<String,SpoutSpec> spouts) {
     this.spouts = spouts;
   }
 
@@ -231,18 +231,18 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     return (this.bolts == null) ? 0 : this.bolts.size();
   }
 
-  public void put_to_bolts(int key, Bolt val) {
+  public void put_to_bolts(String key, Bolt val) {
     if (this.bolts == null) {
-      this.bolts = new HashMap<Integer,Bolt>();
+      this.bolts = new HashMap<String,Bolt>();
     }
     this.bolts.put(key, val);
   }
 
-  public Map<Integer,Bolt> get_bolts() {
+  public Map<String,Bolt> get_bolts() {
     return this.bolts;
   }
 
-  public void set_bolts(Map<Integer,Bolt> bolts) {
+  public void set_bolts(Map<String,Bolt> bolts) {
     this.bolts = bolts;
   }
 
@@ -265,18 +265,18 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     return (this.state_spouts == null) ? 0 : this.state_spouts.size();
   }
 
-  public void put_to_state_spouts(int key, StateSpoutSpec val) {
+  public void put_to_state_spouts(String key, StateSpoutSpec val) {
     if (this.state_spouts == null) {
-      this.state_spouts = new HashMap<Integer,StateSpoutSpec>();
+      this.state_spouts = new HashMap<String,StateSpoutSpec>();
     }
     this.state_spouts.put(key, val);
   }
 
-  public Map<Integer,StateSpoutSpec> get_state_spouts() {
+  public Map<String,StateSpoutSpec> get_state_spouts() {
     return this.state_spouts;
   }
 
-  public void set_state_spouts(Map<Integer,StateSpoutSpec> state_spouts) {
+  public void set_state_spouts(Map<String,StateSpoutSpec> state_spouts) {
     this.state_spouts = state_spouts;
   }
 
@@ -301,7 +301,7 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       if (value == null) {
         unset_spouts();
       } else {
-        set_spouts((Map<Integer,SpoutSpec>)value);
+        set_spouts((Map<String,SpoutSpec>)value);
       }
       break;
 
@@ -309,7 +309,7 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       if (value == null) {
         unset_bolts();
       } else {
-        set_bolts((Map<Integer,Bolt>)value);
+        set_bolts((Map<String,Bolt>)value);
       }
       break;
 
@@ -317,7 +317,7 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       if (value == null) {
         unset_state_spouts();
       } else {
-        set_state_spouts((Map<Integer,StateSpoutSpec>)value);
+        set_state_spouts((Map<String,StateSpoutSpec>)value);
       }
       break;
 
@@ -480,12 +480,12 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
               org.apache.thrift7.protocol.TMap _map22 = iprot.readMapBegin();
-              this.spouts = new HashMap<Integer,SpoutSpec>(2*_map22.size);
+              this.spouts = new HashMap<String,SpoutSpec>(2*_map22.size);
               for (int _i23 = 0; _i23 < _map22.size; ++_i23)
               {
-                int _key24; // required
+                String _key24; // required
                 SpoutSpec _val25; // required
-                _key24 = iprot.readI32();
+                _key24 = iprot.readString();
                 _val25 = new SpoutSpec();
                 _val25.read(iprot);
                 this.spouts.put(_key24, _val25);
@@ -500,12 +500,12 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
               org.apache.thrift7.protocol.TMap _map26 = iprot.readMapBegin();
-              this.bolts = new HashMap<Integer,Bolt>(2*_map26.size);
+              this.bolts = new HashMap<String,Bolt>(2*_map26.size);
               for (int _i27 = 0; _i27 < _map26.size; ++_i27)
               {
-                int _key28; // required
+                String _key28; // required
                 Bolt _val29; // required
-                _key28 = iprot.readI32();
+                _key28 = iprot.readString();
                 _val29 = new Bolt();
                 _val29.read(iprot);
                 this.bolts.put(_key28, _val29);
@@ -520,12 +520,12 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
               org.apache.thrift7.protocol.TMap _map30 = iprot.readMapBegin();
-              this.state_spouts = new HashMap<Integer,StateSpoutSpec>(2*_map30.size);
+              this.state_spouts = new HashMap<String,StateSpoutSpec>(2*_map30.size);
               for (int _i31 = 0; _i31 < _map30.size; ++_i31)
               {
-                int _key32; // required
+                String _key32; // required
                 StateSpoutSpec _val33; // required
-                _key32 = iprot.readI32();
+                _key32 = iprot.readString();
                 _val33 = new StateSpoutSpec();
                 _val33.read(iprot);
                 this.state_spouts.put(_key32, _val33);
@@ -552,10 +552,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     if (this.spouts != null) {
       oprot.writeFieldBegin(SPOUTS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.spouts.size()));
-        for (Map.Entry<Integer, SpoutSpec> _iter34 : this.spouts.entrySet())
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.spouts.size()));
+        for (Map.Entry<String, SpoutSpec> _iter34 : this.spouts.entrySet())
         {
-          oprot.writeI32(_iter34.getKey());
+          oprot.writeString(_iter34.getKey());
           _iter34.getValue().write(oprot);
         }
         oprot.writeMapEnd();
@@ -565,10 +565,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     if (this.bolts != null) {
       oprot.writeFieldBegin(BOLTS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.bolts.size()));
-        for (Map.Entry<Integer, Bolt> _iter35 : this.bolts.entrySet())
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.bolts.size()));
+        for (Map.Entry<String, Bolt> _iter35 : this.bolts.entrySet())
         {
-          oprot.writeI32(_iter35.getKey());
+          oprot.writeString(_iter35.getKey());
           _iter35.getValue().write(oprot);
         }
         oprot.writeMapEnd();
@@ -578,10 +578,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     if (this.state_spouts != null) {
       oprot.writeFieldBegin(STATE_SPOUTS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.state_spouts.size()));
-        for (Map.Entry<Integer, StateSpoutSpec> _iter36 : this.state_spouts.entrySet())
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.state_spouts.size()));
+        for (Map.Entry<String, StateSpoutSpec> _iter36 : this.state_spouts.entrySet())
         {
-          oprot.writeI32(_iter36.getKey());
+          oprot.writeString(_iter36.getKey());
           _iter36.getValue().write(oprot);
         }
         oprot.writeMapEnd();

@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class OutputFieldsGetter implements OutputFieldsDeclarer {
-    private Map<Integer, StreamInfo> _fields = new HashMap<Integer, StreamInfo>();
+    private Map<String, StreamInfo> _fields = new HashMap<String, StreamInfo>();
 
     public void declare(Fields fields) {
         declare(false, fields);
@@ -17,11 +17,11 @@ public class OutputFieldsGetter implements OutputFieldsDeclarer {
         declareStream(Utils.DEFAULT_STREAM_ID, direct, fields);
     }
 
-    public void declareStream(int streamId, Fields fields) {
+    public void declareStream(String streamId, Fields fields) {
         declareStream(streamId, false, fields);
     }
 
-    public void declareStream(int streamId, boolean direct, Fields fields) {
+    public void declareStream(String streamId, boolean direct, Fields fields) {
         if(_fields.containsKey(streamId)) {
             throw new IllegalArgumentException("Fields for " + streamId + " already set");
         }
@@ -29,7 +29,7 @@ public class OutputFieldsGetter implements OutputFieldsDeclarer {
     }
 
 
-    public Map<Integer, StreamInfo> getFieldsDeclaration() {
+    public Map<String, StreamInfo> getFieldsDeclaration() {
         return _fields;
     }
 

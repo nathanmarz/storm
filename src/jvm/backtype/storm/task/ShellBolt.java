@@ -149,8 +149,8 @@ public class ShellBolt implements IBolt {
                     String msg = (String) action.get("msg");
                     LOG.info("Shell msg: " + msg);
                   } else if(command.equals("emit")) {
-                    Long stream = (Long) action.get("stream");
-                    if(stream==null) stream = (long)Utils.DEFAULT_STREAM_ID;
+                    String stream = (String) action.get("stream");
+                    if(stream==null) stream = Utils.DEFAULT_STREAM_ID;
                     Long task = (Long) action.get("task");
                     List<Object> tuple = (List) action.get("tuple");
                     List<Tuple> anchors = new ArrayList<Tuple>();
@@ -164,10 +164,10 @@ public class ShellBolt implements IBolt {
                         }
                     }
                     if(task==null) {
-                       List<Integer> outtasks = _collector.emit((int)stream.longValue(), anchors, tuple);
+                       List<Integer> outtasks = _collector.emit(stream, anchors, tuple);
                        sendToSubprocess(JSONValue.toJSONString(outtasks));
                     } else {
-                        _collector.emitDirect((int)task.longValue(), (int)stream.longValue(), anchors, tuple);
+                        _collector.emitDirect((int)task.longValue(), stream, anchors, tuple);
                     }
                   }
               }

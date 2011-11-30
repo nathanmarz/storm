@@ -16,14 +16,14 @@ import java.util.Map;
 
 public class ClojureSpout implements IRichSpout {
     private boolean _isDistributed;
-    Map<Integer, StreamInfo> _fields;
+    Map<String, StreamInfo> _fields;
     String _namespace;
     String _fnName;
     List<Object> _params;
     
     ISpout _spout;
     
-    public ClojureSpout(String namespace, String fnName, List<Object> params, Map<Integer, StreamInfo> fields, boolean isDistributed) {
+    public ClojureSpout(String namespace, String fnName, List<Object> params, Map<String, StreamInfo> fields, boolean isDistributed) {
         _isDistributed = isDistributed;
         _namespace = namespace;
         _fnName = fnName;
@@ -100,7 +100,7 @@ public class ClojureSpout implements IRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        for(Integer stream: _fields.keySet()) {
+        for(String stream: _fields.keySet()) {
             StreamInfo info = _fields.get(stream);
             declarer.declareStream(stream, info.is_direct(), new Fields(info.get_output_fields()));
         }

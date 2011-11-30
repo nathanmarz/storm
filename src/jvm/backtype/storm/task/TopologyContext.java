@@ -30,23 +30,23 @@ import org.json.simple.JSONValue;
  */
 public class TopologyContext {
     private StormTopology _topology;
-    private Map<Integer, Integer> _taskToComponent;
-    private int _taskId;
-    private Map<Integer, List<Integer>> _componentToTasks;
+    private Map<Integer, String> _taskToComponent;
+    private Integer _taskId;
+    private Map<String, List<Integer>> _componentToTasks;
     private String _codeDir;
     private String _pidDir;
     private String _stormId;
 
-    public TopologyContext(StormTopology topology, Map<Integer, Integer> taskToComponent, String stormId, String codeDir, String pidDir, int taskId) {
+    public TopologyContext(StormTopology topology, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
         _topology = topology;
         _taskToComponent = taskToComponent;
         _stormId = stormId;
         _taskId = taskId;
-        _componentToTasks = new HashMap<Integer, List<Integer>>();
+        _componentToTasks = new HashMap<String, List<Integer>>();
         _pidDir = pidDir;
         _codeDir = codeDir;
         for(Integer task: taskToComponent.keySet()) {
-            int component = taskToComponent.get(task);
+            String component = taskToComponent.get(task);
             List<Integer> curr = _componentToTasks.get(component);
             if(curr==null) curr = new ArrayList<Integer>();
             curr.add(task);
@@ -87,7 +87,7 @@ public class TopologyContext {
      * @param obj Provided ISubscribedState implementation
      * @return Returns the ISubscribedState object provided
      */
-    public <T extends ISubscribedState> T setSubscribedState(int componentId, T obj) {
+    public <T extends ISubscribedState> T setSubscribedState(String componentId, T obj) {
         return setSubscribedState(componentId, Utils.DEFAULT_STREAM_ID, obj);
     }
 
@@ -105,7 +105,7 @@ public class TopologyContext {
      * @param obj Provided ISubscribedState implementation
      * @return Returns the ISubscribedState object provided
      */
-    public <T extends ISubscribedState> T setSubscribedState(int componentId, int streamId, T obj) {
+    public <T extends ISubscribedState> T setSubscribedState(String componentId, String streamId, T obj) {
         throw new NotImplementedException();
     }
 
@@ -143,7 +143,7 @@ public class TopologyContext {
      * @param taskId the task id
      * @return the component id for the input task id
      */
-    public int getComponentId(int taskId) {
+    public String getComponentId(int taskId) {
         return _taskToComponent.get(taskId);
     }
 
@@ -152,7 +152,7 @@ public class TopologyContext {
      * to a component id specified for a Spout or Bolt in the topology definition.
      * @return
      */
-    public int getThisComponentId() {
+    public String getThisComponentId() {
         return getComponentId(_taskId);
     }
 
@@ -160,21 +160,21 @@ public class TopologyContext {
      * Gets the declared output fields for the specified stream id for the component
      * this task is a part of.
      */
-    public Fields getThisOutputFields(int streamId) {
+    public Fields getThisOutputFields(String streamId) {
         return getComponentOutputFields(getThisComponentId(), streamId);
     }
 
     /**
      * Gets the set of streams declared for the component of this task.
      */
-    public Set<Integer> getThisStreams() {
+    public Set<String> getThisStreams() {
         return getComponentStreams(getThisComponentId());
     }
 
     /**
      * Gets the set of streams declared for the specified component.
      */
-    public Set<Integer> getComponentStreams(int componentId) {
+    public Set<String> getComponentStreams(String componentId) {
         return getComponentCommon(componentId).get_streams().keySet();
     }
 
@@ -182,7 +182,7 @@ public class TopologyContext {
      * Gets the task ids allocated for the given component id. The task ids are
      * always returned in ascending order.
      */
-    public List<Integer> getComponentTasks(int componentId) {
+    public List<Integer> getComponentTasks(String componentId) {
         List<Integer> ret = _componentToTasks.get(componentId);
         if(ret==null) return new ArrayList<Integer>();
         else return new ArrayList<Integer>(ret);
@@ -207,7 +207,7 @@ public class TopologyContext {
     /**
      * Gets the declared output fields for the specified component/stream.
      */
-    public Fields getComponentOutputFields(int componentId, int streamId) {
+    public Fields getComponentOutputFields(String componentId, String streamId) {
         StreamInfo streamInfo = getComponentCommon(componentId).get_streams().get(streamId);
         if(streamInfo==null) {
             throw new IllegalArgumentException("No output fields defined for component:stream " + componentId + ":" + streamId);
@@ -236,7 +236,7 @@ public class TopologyContext {
      *
      * @return A map from subscribed component/stream to the grouping subscribed with.
      */
-    public Map<GlobalStreamId, Grouping> getSources(int componentId) {
+    public Map<GlobalStreamId, Grouping> getSources(String componentId) {
         Bolt bolt = _topology.get_bolts().get(componentId);
         if(bolt==null) return null;
         return bolt.get_inputs();
@@ -247,7 +247,7 @@ public class TopologyContext {
      *
      * @return Map from stream id to component id to the Grouping used.
      */
-    public Map<Integer, Map<Integer, Grouping>> getThisTargets() {
+    public Map<String, Map<String, Grouping>> getThisTargets() {
         return getTargets(getThisComponentId());
     }
 
@@ -257,14 +257,14 @@ public class TopologyContext {
      *
      * @return Map from stream id to component id to the Grouping used.
      */
-    public Map<Integer, Map<Integer, Grouping>> getTargets(int componentId) {
-        Map<Integer, Map<Integer, Grouping>> ret = new HashMap<Integer, Map<Integer, Grouping>>();
-        for(int otherComponentId: _topology.get_bolts().keySet()) {
+    public Map<String, Map<String, Grouping>> getTargets(String componentId) {
+        Map<String, Map<String, Grouping>> ret = new HashMap<String, Map<String, Grouping>>();
+        for(String otherComponentId: _topology.get_bolts().keySet()) {
             Bolt bolt = _topology.get_bolts().get(otherComponentId);
             for(GlobalStreamId id: bolt.get_inputs().keySet()) {
-                if(id.get_componentId()==componentId) {
-                    Map<Integer, Grouping> curr = ret.get(id.get_streamId());
-                    if(curr==null) curr = new HashMap<Integer, Grouping>();
+                if(id.get_componentId().equals(componentId)) {
+                    Map<String, Grouping> curr = ret.get(id.get_streamId());
+                    if(curr==null) curr = new HashMap<String, Grouping>();
                     curr.put(otherComponentId, bolt.get_inputs().get(id));
                     ret.put(id.get_streamId(), curr);
                 }
@@ -282,7 +282,7 @@ public class TopologyContext {
         return JSONValue.toJSONString(obj);
     }
 
-    private ComponentCommon getComponentCommon(int componentId) {
+    private ComponentCommon getComponentCommon(String componentId) {
        Bolt bolt =  _topology.get_bolts().get(componentId);
        if(bolt!=null) {
            return bolt.get_common();
@@ -319,7 +319,7 @@ public class TopologyContext {
     /**
      * Gets a map from task id to component id.
      */
-    public Map<Integer, Integer> getTaskToComponent() {
+    public Map<Integer, String> getTaskToComponent() {
         return _taskToComponent;
     }
 }

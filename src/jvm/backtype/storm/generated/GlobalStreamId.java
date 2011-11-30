@@ -24,11 +24,11 @@ import org.slf4j.LoggerFactory;
 public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, GlobalStreamId._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("GlobalStreamId");
 
-  private static final org.apache.thrift7.protocol.TField COMPONENT_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("componentId", org.apache.thrift7.protocol.TType.I32, (short)1);
-  private static final org.apache.thrift7.protocol.TField STREAM_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("streamId", org.apache.thrift7.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift7.protocol.TField COMPONENT_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("componentId", org.apache.thrift7.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift7.protocol.TField STREAM_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("streamId", org.apache.thrift7.protocol.TType.STRING, (short)2);
 
-  private int componentId; // required
-  private int streamId; // required
+  private String componentId; // required
+  private String streamId; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -92,17 +92,14 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
   }
 
   // isset id assignments
-  private static final int __COMPONENTID_ISSET_ID = 0;
-  private static final int __STREAMID_ISSET_ID = 1;
-  private BitSet __isset_bit_vector = new BitSet(2);
 
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.COMPONENT_ID, new org.apache.thrift7.meta_data.FieldMetaData("componentId", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     tmpMap.put(_Fields.STREAM_ID, new org.apache.thrift7.meta_data.FieldMetaData("streamId", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(GlobalStreamId.class, metaDataMap);
   }
@@ -111,24 +108,24 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
   }
 
   public GlobalStreamId(
-    int componentId,
-    int streamId)
+    String componentId,
+    String streamId)
   {
     this();
     this.componentId = componentId;
-    set_componentId_isSet(true);
     this.streamId = streamId;
-    set_streamId_isSet(true);
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public GlobalStreamId(GlobalStreamId other) {
-    __isset_bit_vector.clear();
-    __isset_bit_vector.or(other.__isset_bit_vector);
-    this.componentId = other.componentId;
-    this.streamId = other.streamId;
+    if (other.is_set_componentId()) {
+      this.componentId = other.componentId;
+    }
+    if (other.is_set_streamId()) {
+      this.streamId = other.streamId;
+    }
   }
 
   public GlobalStreamId deepCopy() {
@@ -137,54 +134,54 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
 
   @Override
   public void clear() {
-    set_componentId_isSet(false);
-    this.componentId = 0;
-    set_streamId_isSet(false);
-    this.streamId = 0;
+    this.componentId = null;
+    this.streamId = null;
   }
 
-  public int get_componentId() {
+  public String get_componentId() {
     return this.componentId;
   }
 
-  public void set_componentId(int componentId) {
+  public void set_componentId(String componentId) {
     this.componentId = componentId;
-    set_componentId_isSet(true);
   }
 
   public void unset_componentId() {
-    __isset_bit_vector.clear(__COMPONENTID_ISSET_ID);
+    this.componentId = null;
   }
 
   /** Returns true if field componentId is set (has been assigned a value) and false otherwise */
   public boolean is_set_componentId() {
-    return __isset_bit_vector.get(__COMPONENTID_ISSET_ID);
+    return this.componentId != null;
   }
 
   public void set_componentId_isSet(boolean value) {
-    __isset_bit_vector.set(__COMPONENTID_ISSET_ID, value);
+    if (!value) {
+      this.componentId = null;
+    }
   }
 
-  public int get_streamId() {
+  public String get_streamId() {
     return this.streamId;
   }
 
-  public void set_streamId(int streamId) {
+  public void set_streamId(String streamId) {
     this.streamId = streamId;
-    set_streamId_isSet(true);
   }
 
   public void unset_streamId() {
-    __isset_bit_vector.clear(__STREAMID_ISSET_ID);
+    this.streamId = null;
   }
 
   /** Returns true if field streamId is set (has been assigned a value) and false otherwise */
   public boolean is_set_streamId() {
-    return __isset_bit_vector.get(__STREAMID_ISSET_ID);
+    return this.streamId != null;
   }
 
   public void set_streamId_isSet(boolean value) {
-    __isset_bit_vector.set(__STREAMID_ISSET_ID, value);
+    if (!value) {
+      this.streamId = null;
+    }
   }
 
   public void setFieldValue(_Fields field, Object value) {
@@ -193,7 +190,7 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
       if (value == null) {
         unset_componentId();
       } else {
-        set_componentId((Integer)value);
+        set_componentId((String)value);
       }
       break;
 
@@ -201,7 +198,7 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
       if (value == null) {
         unset_streamId();
       } else {
-        set_streamId((Integer)value);
+        set_streamId((String)value);
       }
       break;
 
@@ -211,10 +208,10 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
   public Object getFieldValue(_Fields field) {
     switch (field) {
     case COMPONENT_ID:
-      return Integer.valueOf(get_componentId());
+      return get_componentId();
 
     case STREAM_ID:
-      return Integer.valueOf(get_streamId());
+      return get_streamId();
 
     }
     throw new IllegalStateException();
@@ -248,21 +245,21 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
     if (that == null)
       return false;
 
-    boolean this_present_componentId = true;
-    boolean that_present_componentId = true;
+    boolean this_present_componentId = true && this.is_set_componentId();
+    boolean that_present_componentId = true && that.is_set_componentId();
     if (this_present_componentId || that_present_componentId) {
       if (!(this_present_componentId && that_present_componentId))
         return false;
-      if (this.componentId != that.componentId)
+      if (!this.componentId.equals(that.componentId))
         return false;
     }
 
-    boolean this_present_streamId = true;
-    boolean that_present_streamId = true;
+    boolean this_present_streamId = true && this.is_set_streamId();
+    boolean that_present_streamId = true && that.is_set_streamId();
     if (this_present_streamId || that_present_streamId) {
       if (!(this_present_streamId && that_present_streamId))
         return false;
-      if (this.streamId != that.streamId)
+      if (!this.streamId.equals(that.streamId))
         return false;
     }
 
@@ -273,12 +270,12 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_componentId = true;
+    boolean present_componentId = true && (is_set_componentId());
     builder.append(present_componentId);
     if (present_componentId)
       builder.append(componentId);
 
-    boolean present_streamId = true;
+    boolean present_streamId = true && (is_set_streamId());
     builder.append(present_streamId);
     if (present_streamId)
       builder.append(streamId);
@@ -332,17 +329,15 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
       }
       switch (field.id) {
         case 1: // COMPONENT_ID
-          if (field.type == org.apache.thrift7.protocol.TType.I32) {
-            this.componentId = iprot.readI32();
-            set_componentId_isSet(true);
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.componentId = iprot.readString();
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // STREAM_ID
-          if (field.type == org.apache.thrift7.protocol.TType.I32) {
-            this.streamId = iprot.readI32();
-            set_streamId_isSet(true);
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.streamId = iprot.readString();
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -360,12 +355,16 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    oprot.writeFieldBegin(COMPONENT_ID_FIELD_DESC);
-    oprot.writeI32(this.componentId);
-    oprot.writeFieldEnd();
-    oprot.writeFieldBegin(STREAM_ID_FIELD_DESC);
-    oprot.writeI32(this.streamId);
-    oprot.writeFieldEnd();
+    if (this.componentId != null) {
+      oprot.writeFieldBegin(COMPONENT_ID_FIELD_DESC);
+      oprot.writeString(this.componentId);
+      oprot.writeFieldEnd();
+    }
+    if (this.streamId != null) {
+      oprot.writeFieldBegin(STREAM_ID_FIELD_DESC);
+      oprot.writeString(this.streamId);
+      oprot.writeFieldEnd();
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -376,11 +375,19 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
     boolean first = true;
 
     sb.append("componentId:");
-    sb.append(this.componentId);
+    if (this.componentId == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.componentId);
+    }
     first = false;
     if (!first) sb.append(", ");
     sb.append("streamId:");
-    sb.append(this.streamId);
+    if (this.streamId == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.streamId);
+    }
     first = false;
     sb.append(")");
     return sb.toString();
@@ -408,8 +415,6 @@ public class GlobalStreamId implements org.apache.thrift7.TBase<GlobalStreamId, 
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-      __isset_bit_vector = new BitSet(1);
       read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift7.TException te) {
       throw new java.io.IOException(te);

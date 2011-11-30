@@ -10,6 +10,6 @@ public interface OutputFieldsDeclarer {
     public void declare(Fields fields);
     public void declare(boolean direct, Fields fields);
     
-    public void declareStream(int streamId, Fields fields);
-    public void declareStream(int streamId, boolean direct, Fields fields);
+    public void declareStream(String streamId, Fields fields);
+    public void declareStream(String streamId, boolean direct, Fields fields);
 }

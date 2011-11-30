@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.util.List;
 
 public class FixedTuple implements Serializable {
-    public int stream;
+    public String stream;
     public List<Object> values;
 
     public FixedTuple(List<Object> values) {
@@ -13,7 +13,7 @@ public class FixedTuple implements Serializable {
         this.values = values;
     }
 
-    public FixedTuple(int stream, List<Object> values) {
+    public FixedTuple(String stream, List<Object> values) {
         this.stream = stream;
         this.values = values;
     }

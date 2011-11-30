@@ -11,7 +11,7 @@ public class KryoValuesDeserializer {
     ObjectBuffer _kryo;
     
     public KryoValuesDeserializer(Map conf) {
-        _kryo = KryoFactory.getKryo(conf);
+        _kryo = SerializationFactory.getKryo(conf);
     }
     
     public List<Object> deserializeFrom(InputStream in) throws IOException { 

@@ -3,6 +3,7 @@ package backtype.storm.task;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -20,7 +21,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param tuple the new output tuple from this bolt
      * @return the list of task ids that this new tuple was sent to
      */
-    public List<Integer> emit(int streamId, Tuple anchor, List<Object> tuple) {
+    public List<Integer> emit(String streamId, Tuple anchor, List<Object> tuple) {
         return emit(streamId, Arrays.asList(anchor), tuple);
     }
 
@@ -33,7 +34,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param tuple the new output tuple from this bolt
      * @return the list of task ids that this new tuple was sent to
      */
-    public List<Integer> emit(int streamId, List<Object> tuple) {
+    public List<Integer> emit(String streamId, List<Object> tuple) {
         return emit(streamId, (List) null, tuple);
     }
 
@@ -44,7 +45,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param tuple the new output tuple from this bolt
      * @return the list of task ids that this new tuple was sent to
      */
-    public List<Integer> emit(List<Tuple> anchors, List<Object> tuple) {
+    public List<Integer> emit(Collection<Tuple> anchors, List<Object> tuple) {
         return emit(Utils.DEFAULT_STREAM_ID, anchors, tuple);
     }
 
@@ -84,7 +85,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param anchor the tuple to anchor to
      * @param tuple the new output tuple from this bolt
      */
-    public void emitDirect(int taskId, int streamId, Tuple anchor, List<Object> tuple) {
+    public void emitDirect(int taskId, String streamId, Tuple anchor, List<Object> tuple) {
         emitDirect(taskId, streamId, Arrays.asList(anchor), tuple);
     }
 
@@ -100,7 +101,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param streamId the stream to send the tuple on. It must be declared as a direct stream in the topology definition.
      * @param tuple the new output tuple from this bolt
      */
-    public void emitDirect(int taskId, int streamId, List<Object> tuple) {
+    public void emitDirect(int taskId, String streamId, List<Object> tuple) {
         emitDirect(taskId, streamId, (List) null, tuple);
     }
 
@@ -119,7 +120,7 @@ public abstract class OutputCollector implements IOutputCollector {
      * @param anchosr the tuples to anchor to
      * @param tuple the new output tuple from this bolt
      */
-    public void emitDirect(int taskId, List<Tuple> anchors, List<Object> tuple) {
+    public void emitDirect(int taskId, Collection<Tuple> anchors, List<Object> tuple) {
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, anchors, tuple);
     }
 

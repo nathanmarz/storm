@@ -7,15 +7,14 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 
 public class PrepareRequest implements IBasicBolt {
-    public static final int ARGS_STREAM = 1;
-    public static final int RETURN_STREAM = 2;
+    public static final String ARGS_STREAM = "args";
+    public static final String RETURN_STREAM = "ret";
+    public static final String ID_STREAM = "id";
 
     Random rand;
 
@@ -29,6 +28,7 @@ public class PrepareRequest implements IBasicBolt {
         long requestId = rand.nextLong();
         collector.emit(ARGS_STREAM, new Values(requestId, args));
         collector.emit(RETURN_STREAM, new Values(requestId, returnInfo));
+        collector.emit(ID_STREAM, new Values(requestId));
     }
 
     public void cleanup() {
@@ -37,7 +37,6 @@ public class PrepareRequest implements IBasicBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declareStream(ARGS_STREAM, new Fields("request", "args"));
         declarer.declareStream(RETURN_STREAM, new Fields("request", "return"));
+        declarer.declareStream(ID_STREAM, new Fields("request"));
     }
-
-
 }

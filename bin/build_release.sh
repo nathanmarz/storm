@@ -8,6 +8,7 @@ DIR=_release/storm-$RELEASE
 
 rm -rf _release
 export LEIN_ROOT=1
+rm *.zip
 rm *jar
 lein clean
 lein deps

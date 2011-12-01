@@ -136,7 +136,6 @@
     (cond
      (.containsKey bolts id) :bolt
      (.containsKey spouts id) :spout
-     (= ACKER-COMPONENT-ID id) :bolt
      )))
 
 (defn task-summary-type [topology ^TaskSummary s]

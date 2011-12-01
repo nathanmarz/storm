@@ -147,7 +147,7 @@
 (defn mk-task-component-assignments [conf storm-id]
   (let [storm-conf (read-storm-conf conf storm-id)
         max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        topology (read-storm-topology conf storm-id)
+        topology (system-topology storm-conf (read-storm-topology conf storm-id))
         slots-to-use (storm-conf TOPOLOGY-WORKERS)
         counter (mk-counter)
         tasks (concat
@@ -157,8 +157,6 @@
                        (.get_spouts topology))
                (mapcat (mk-task-maker max-parallelism state-spout-parallelism counter)
                        (.get_state_spouts topology))
-               (repeatedly (storm-conf TOPOLOGY-ACKERS)
-                           (fn [] [(counter) ACKER-COMPONENT-ID]))
                )]
     (into {}
       tasks)
@@ -366,11 +364,11 @@
        (InvalidTopologyException.
         (str "Cannot use same component id for both spout and bolt: " (vec common))
         )))
-    (when-not (every? #(> % 0) (concat bolt-ids spout-ids state-spout-ids))
+    (when-not (every? (complement system-component?) (concat bolt-ids spout-ids state-spout-ids))
       (throw
        (InvalidTopologyException.
-        "All component ids must be positive")))
-    ;; TODO: validate that every declared stream is positive
+        "Component ids cannot start with '__'")))
+    ;; TODO: validate that every declared stream is not a system stream
     ))
 
 (defn file-cache-map [conf]
@@ -387,23 +385,19 @@
     (.toUpperCase (name t))
     ))
 
-(defn assign-serialization-ids [sers-seq]
-  (let [counter (mk-counter (inc SerializationFactory/SERIALIZATION_TOKEN_BOUNDARY))]
-    (into {}
-          (for [s sers-seq]
-            [(counter) s]))
-    ))
+(defn mapify-serializations [sers]
+  (->> sers
+       (map (fn [e] (if (map? e) e {e nil})))
+       (apply merge)
+       ))
 
 (defn normalize-conf [conf storm-conf]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
-  (let [sers (storm-conf TOPOLOGY-SERIALIZATIONS)
-        sers (if sers sers (conf TOPOLOGY-SERIALIZATIONS))
-        sers (if (map? sers)
-               sers
-               (assign-serialization-ids sers)
-               )]
-    (assoc storm-conf TOPOLOGY-SERIALIZATIONS sers)
+  (let [sers (storm-conf TOPOLOGY-KRYO-REGISTER)
+        sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
+        sers (mapify-serializations sers)]
+    (assoc storm-conf TOPOLOGY-KRYO-REGISTER sers)
     ))
 
 (defserverfn service-handler [conf]
@@ -569,7 +563,7 @@
                (to-json (read-storm-conf conf id)))
 
       (^StormTopology getTopology [this ^String id]
-                      (read-storm-topology conf id))
+                      (system-topology (read-storm-conf conf id) (read-storm-topology conf id)))
       
       (^ClusterSummary getClusterInfo [this]
         (let [assigned (assigned-slots storm-cluster-state)

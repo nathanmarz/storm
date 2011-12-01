@@ -311,6 +311,7 @@
                            (when @active (conf SUPERVISOR-MONITOR-FREQUENCY-SECS))
                            )
                          :priority Thread/MAX_PRIORITY)]))]
+    (log-message "Starting supervisor with id " supervisor-id)
     (reify
      Shutdownable
      (shutdown [this]
@@ -366,7 +367,7 @@
     (let [stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (conf WORKER-CHILDOPTS)
+          childopts (.replaceAll (conf WORKER-CHILDOPTS) "%ID%" (str port))
           logfilename (str "worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
@@ -374,6 +375,7 @@
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
                        storm-id " " supervisor-id " " port " " worker-id)]
+      (log-message "Launching worker with command: " command)
       (launch-process command)
       ))
 

@@ -9,6 +9,7 @@ import backtype.storm.generated.NullStruct;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -68,15 +69,15 @@ import java.util.Map;
  * the inputs for that component.</p>
  */
 public class TopologyBuilder {
-    private Map<Integer, IRichBolt> _bolts = new HashMap<Integer, IRichBolt>();
-    private Map<Integer, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<Integer, Map<GlobalStreamId, Grouping>>();
-    private Map<Integer, SpoutSpec> _spouts = new HashMap<Integer, SpoutSpec>();
-    private Map<Integer, StateSpoutSpec> _stateSpouts = new HashMap<Integer, StateSpoutSpec>();
-    private Map<Integer, Integer> _boltParallelismHints = new HashMap<Integer, Integer>();
+    private Map<String, IRichBolt> _bolts = new HashMap<String, IRichBolt>();
+    private Map<String, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<String, Map<GlobalStreamId, Grouping>>();
+    private Map<String, SpoutSpec> _spouts = new HashMap<String, SpoutSpec>();
+    private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<String, StateSpoutSpec>();
+    private Map<String, Integer> _boltParallelismHints = new HashMap<String, Integer>();
         
     public StormTopology createTopology() {
-        Map<Integer, Bolt> boltSpecs = new HashMap<Integer, Bolt>();
-        for(Integer boltId: _bolts.keySet()) {
+        Map<String, Bolt> boltSpecs = new HashMap<String, Bolt>();
+        for(String boltId: _bolts.keySet()) {
             IRichBolt bolt = _bolts.get(boltId);
             Integer parallelism_hint = _boltParallelismHints.get(boltId);
             Map<GlobalStreamId, Grouping> inputs = _inputs.get(boltId);
@@ -86,9 +87,9 @@ public class TopologyBuilder {
             }
             boltSpecs.put(boltId, new Bolt(inputs, ComponentObject.serialized_java(Utils.serialize(bolt)), common));
         }
-        return new StormTopology(new HashMap<Integer, SpoutSpec>(_spouts),
+        return new StormTopology(new HashMap<String, SpoutSpec>(_spouts),
                                  boltSpecs,
-                                 new HashMap<Integer, StateSpoutSpec>(_stateSpouts));
+                                 new HashMap<String, StateSpoutSpec>(_stateSpouts));
     }
 
     /**
@@ -98,7 +99,7 @@ public class TopologyBuilder {
      * @param bolt the bolt
      * @return use the returned object to declare the inputs to this component
      */
-    public InputDeclarer setBolt(int id, IRichBolt bolt) {
+    public InputDeclarer setBolt(String id, IRichBolt bolt) {
         return setBolt(id, bolt, null);
     }
 
@@ -110,7 +111,7 @@ public class TopologyBuilder {
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somewhere around the cluster.
      * @return use the returned object to declare the inputs to this component
      */
-    public InputDeclarer setBolt(int id, IRichBolt bolt, Integer parallelism_hint) {
+    public InputDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism_hint) {
         validateUnusedId(id);
         _bolts.put(id, bolt);
         _boltParallelismHints.put(id, parallelism_hint);
@@ -128,7 +129,7 @@ public class TopologyBuilder {
      * @param bolt the basic bolt
      * @return use the returned object to declare the inputs to this component
      */
-    public InputDeclarer setBolt(int id, IBasicBolt bolt) {
+    public InputDeclarer setBolt(String id, IBasicBolt bolt) {
         return setBolt(id, bolt, null);
     }
 
@@ -143,7 +144,7 @@ public class TopologyBuilder {
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
      * @return use the returned object to declare the inputs to this component
      */
-    public InputDeclarer setBolt(int id, IBasicBolt bolt, Integer parallelism_hint) {
+    public InputDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism_hint) {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism_hint);
     }
 
@@ -153,7 +154,7 @@ public class TopologyBuilder {
      * @param id the id of this component. This id is referenced by other components that want to consume this spout's outputs.
      * @param spout the spout
      */
-    public void setSpout(int id, IRichSpout spout) {
+    public void setSpout(String id, IRichSpout spout) {
         setSpout(id, spout, null);
     }
 
@@ -166,16 +167,16 @@ public class TopologyBuilder {
      * @param parallelism_hint the number of tasks that should be assigned to execute this spout. Each task will run on a thread in a process somwehere around the cluster.
      * @param spout the spout
      */
-    public void setSpout(int id, IRichSpout spout, Integer parallelism_hint) {
+    public void setSpout(String id, IRichSpout spout, Integer parallelism_hint) {
         validateUnusedId(id);
         _spouts.put(id, new SpoutSpec(ComponentObject.serialized_java(Utils.serialize(spout)), getComponentCommon(spout, parallelism_hint), spout.isDistributed()));
     }
 
-    public void setStateSpout(int id, IRichStateSpout stateSpout) {
+    public void setStateSpout(String id, IRichStateSpout stateSpout) {
         setStateSpout(id, stateSpout, null);
     }
 
-    public void setStateSpout(int id, IRichStateSpout stateSpout, Integer parallelism_hint) {
+    public void setStateSpout(String id, IRichStateSpout stateSpout, Integer parallelism_hint) {
         validateUnusedId(id);
         _stateSpouts.put(id,
                          new StateSpoutSpec(
@@ -184,7 +185,7 @@ public class TopologyBuilder {
     }
 
 
-    private void validateUnusedId(int id) {
+    private void validateUnusedId(String id) {
         if(_bolts.containsKey(id)) {
             throw new IllegalArgumentException("Bolt has already been declared for id " + id);
         }
@@ -208,63 +209,73 @@ public class TopologyBuilder {
     }
 
     protected class InputGetter implements InputDeclarer {
-        private int _boltId;
+        private String _boltId;
 
-        public InputGetter(int boltId) {
+        public InputGetter(String boltId) {
             _boltId = boltId;
         }
 
-        public InputDeclarer fieldsGrouping(int componentId, Fields fields) {
+        public InputDeclarer fieldsGrouping(String componentId, Fields fields) {
             return fieldsGrouping(componentId, Utils.DEFAULT_STREAM_ID, fields);
         }
 
-        public InputDeclarer fieldsGrouping(int componentId, int streamId, Fields fields) {
+        public InputDeclarer fieldsGrouping(String componentId, String streamId, Fields fields) {
             return grouping(componentId, streamId, Grouping.fields(fields.toList()));
         }
 
-        public InputDeclarer globalGrouping(int componentId) {
+        public InputDeclarer globalGrouping(String componentId) {
             return globalGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public InputDeclarer globalGrouping(int componentId, int streamId) {
+        public InputDeclarer globalGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.fields(new ArrayList<String>()));
         }
 
-        public InputDeclarer shuffleGrouping(int componentId) {
+        public InputDeclarer shuffleGrouping(String componentId) {
             return shuffleGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public InputDeclarer shuffleGrouping(int componentId, int streamId) {
+        public InputDeclarer shuffleGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.shuffle(new NullStruct()));
         }
 
-        public InputDeclarer noneGrouping(int componentId) {
+        public InputDeclarer noneGrouping(String componentId) {
             return noneGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public InputDeclarer noneGrouping(int componentId, int streamId) {
+        public InputDeclarer noneGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.none(new NullStruct()));
         }
 
-        public InputDeclarer allGrouping(int componentId) {
+        public InputDeclarer allGrouping(String componentId) {
             return allGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public InputDeclarer allGrouping(int componentId, int streamId) {
+        public InputDeclarer allGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.all(new NullStruct()));
         }
 
-        public InputDeclarer directGrouping(int componentId) {
+        public InputDeclarer directGrouping(String componentId) {
             return directGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public InputDeclarer directGrouping(int componentId, int streamId) {
+        public InputDeclarer directGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.direct(new NullStruct()));
         }
 
-        private InputDeclarer grouping(int componentId, int streamId, Grouping grouping) {
+        private InputDeclarer grouping(String componentId, String streamId, Grouping grouping) {
             _inputs.get(_boltId).put(new GlobalStreamId(componentId, streamId), grouping);
             return this;
+        }
+
+        @Override
+        public InputDeclarer customGrouping(String componentId, CustomStreamGrouping grouping) {
+            return customGrouping(componentId, Utils.DEFAULT_STREAM_ID, grouping);
+        }
+
+        @Override
+        public InputDeclarer customGrouping(String componentId, String streamId, CustomStreamGrouping grouping) {
+            return grouping(componentId, streamId, Grouping.custom_serialized(Utils.serialize(grouping)));
         }
         
     }

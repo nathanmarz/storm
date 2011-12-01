@@ -7,6 +7,8 @@
 
 (bootstrap)
 
+(defmulti mk-suicide-fn cluster-mode)
+
 (defn local-mode-zmq? [conf]
   (or (= (conf STORM-CLUSTER-MODE) "distributed")
       (conf STORM-LOCAL-MODE-ZMQ)))
@@ -43,7 +45,7 @@
   "Returns seq of task-ids that receive messages from this worker"
   ;; if this is an acker, needs to talk to the spouts
   [task->component mk-topology-context task-ids]
-  (let [topology-context (mk-topology-context (first task-ids))
+  (let [topology-context (mk-topology-context nil)
         spout-components (-> topology-context
                              .getRawTopology
                              .get_spouts
@@ -53,7 +55,6 @@
                                     (.getComponentId topology-context tid)))
                                task-ids)
         components (concat
-                    [ACKER-COMPONENT-ID]
                     (if contains-acker? spout-components)
                     (mapcat
                      (fn [task-id]
@@ -68,6 +69,11 @@
      (apply concat
             ;; fix this
             (-> (reverse-map task->component) (select-keys components) vals)))
+    ))
+
+(defn mk-transfer-fn [transfer-queue]
+  (fn [task ^Tuple tuple]
+    (.put ^LinkedBlockingQueue transfer-queue [task tuple])
     ))
 
 ;; TODO: should worker even take the storm-id as input? this should be
@@ -94,14 +100,20 @@
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
-        mk-topology-context #(TopologyContext. topology
+        mk-topology-context #(TopologyContext. (system-topology storm-conf topology)
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path
                                                  (supervisor-stormdist-root conf storm-id))
                                                (worker-pids-root conf worker-id)
                                                %)
-
+        mk-user-context #(TopologyContext. topology
+                                           task->component
+                                           storm-id
+                                           (supervisor-storm-resources-path
+                                             (supervisor-stormdist-root conf storm-id))
+                                           (worker-pids-root conf worker-id)
+                                           %)
         mq-context (if mq-context
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
@@ -114,9 +126,7 @@
 
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         
-        transfer-fn (fn [task ^Tuple tuple]
-                      (.put transfer-queue [task tuple])
-                      )
+        transfer-fn (mk-transfer-fn transfer-queue)
         refresh-connections (fn this
                               ([]
                                 (this (fn [& ignored] (.add event-manager this))))
@@ -168,8 +178,9 @@
                             ;; of writing heartbeat after it's been shut down.
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
-                          :priority Thread/MAX_PRIORITY)        
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn))
+                          :priority Thread/MAX_PRIORITY)
+        suicide-fn (mk-suicide-fn conf active)
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) (mk-user-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)
@@ -177,7 +188,7 @@
                     (when @active (storm-conf TASK-REFRESH-POLL-SECS))
                     ))
                  (async-loop
-                  (fn [^ArrayList drainer ^TupleSerializer serializer]
+                  (fn [^ArrayList drainer ^KryoTupleSerializer serializer]
                     (let [felem (.take transfer-queue)]
                       (.add drainer felem)
                       (.drainTo transfer-queue drainer))
@@ -192,7 +203,7 @@
                         ))
                     (.clear drainer)
                     0 )
-                  :args-fn (fn [] [(ArrayList.) (TupleSerializer. storm-conf)]))
+                  :args-fn (fn [] [(ArrayList.) (KryoTupleSerializer. storm-conf (mk-topology-context nil))]))
                  heartbeat-thread]
         virtual-port-shutdown (when (local-mode-zmq? conf)
                                 (log-message "Launching virtual port for " supervisor-id ":" port)
@@ -239,7 +250,18 @@
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")
     ret
     ))
- 
+
+;; (defmethod mk-suicide-fn
+;;   :local [conf active]
+;;   (fn [] (reset! active false)))
+
+(defmethod mk-suicide-fn
+  :local [conf _]
+  (fn [] (halt-process! 1 "Task died")))
+
+(defmethod mk-suicide-fn
+  :distributed [conf _]
+  (fn [] (halt-process! 1 "Task died")))
 
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]

@@ -3,7 +3,7 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time])
+  (:import [backtype.storm.utils Time Container])
   (:import [java.util UUID])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.io File RandomAccessFile StringWriter PrintWriter])
@@ -21,6 +21,17 @@
 
 (defn local-hostname []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
+
+(letfn [(try-port [port]
+          (with-open [socket (java.net.ServerSocket. port)]
+            (.getLocalPort socket)))]
+  (defn available-port
+    ([] (try-port 0))
+    ([preferred]
+      (try
+        (try-port preferred)
+        (catch java.io.IOException e
+          (available-port))))))
 
 (defn uuid []
   (str (UUID/randomUUID)))
@@ -503,3 +514,17 @@
 
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))
+
+(defmacro with-error-reaction [afn & body]
+  `(try ~@body
+     (catch Throwable t# (~afn t#))))
+
+(defn container []
+  (Container.))
+
+(defn container-set! [^Container container obj]
+  (set! (. container object) obj)
+  container)
+
+(defn container-get [^Container container]
+  (. container object))

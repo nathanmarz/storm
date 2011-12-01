@@ -63,8 +63,8 @@
   (with-local-cluster [cluster :supervisors 4]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
-                      {1 (thrift/mk-spout-spec (TestWordSpout. false))}
-                      {2 (thrift/mk-shell-bolt-spec {1 :shuffle} "python" "tester.py" ["word"] :parallelism-hint 1)}
+                      {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
+                      {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "python" "tester.py" ["word"] :parallelism-hint 1)}
                       )]
       (submit-local-topology nimbus
                           "test"
@@ -81,38 +81,38 @@
     (with-simulated-time-local-cluster [cluster :supervisors 4
                                         :daemon-conf {STORM-LOCAL-MODE-ZMQ zmq-on?}]
       (let [topology (thrift/mk-topology
-                      {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
-                      {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
-                       3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
-                       4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
+                      {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                      {"2" (thrift/mk-bolt-spec {"1" ["word"]} (TestWordCounter.) :parallelism-hint 4)
+                       "3" (thrift/mk-bolt-spec {"1" :global} (TestGlobalCount.))
+                       "4" (thrift/mk-bolt-spec {"2" :global} (TestAggregatesCounter.))
                        })
             results (complete-topology cluster
                                        topology
-                                       :mock-sources {1 [["nathan"] ["bob"] ["joey"] ["nathan"]]}
+                                       :mock-sources {"1" [["nathan"] ["bob"] ["joey"] ["nathan"]]}
                                        :storm-conf {TOPOLOGY-DEBUG true
                                                     TOPOLOGY-WORKERS 2})]
         (is (ms= [["nathan"] ["bob"] ["joey"] ["nathan"]]
-                 (read-tuples results 1)))
+                 (read-tuples results "1")))
         (is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
-                 (read-tuples results 2)))
+                 (read-tuples results "2")))
         (is (= [[1] [2] [3] [4]]
-               (read-tuples results 3)))
+               (read-tuples results "3")))
         (is (= [[1] [2] [3] [4]]
-               (read-tuples results 4)))
+               (read-tuples results "4")))
         ))))
 
 (deftest test-shuffle
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [topology (thrift/mk-topology
-                    {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
-                    {2 (thrift/mk-bolt-spec {1 :shuffle} (TestGlobalCount.)
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
+                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
                                             :parallelism-hint 6)
                      })
           results (complete-topology cluster
                                      topology
                                      ;; important for test that
                                      ;; #tuples = multiple of 4 and 6
-                                     :mock-sources {1 [["a"] ["b"]
+                                     :mock-sources {"1" [["a"] ["b"]
                                                        ["a"] ["b"]
                                                        ["a"] ["b"]
                                                        ["a"] ["b"]
@@ -127,7 +127,7 @@
                                                        ]}
                                      )]
       (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
-               (read-tuples results 2)))
+               (read-tuples results "2")))
       )))
 
 (defbolt lalala-bolt1 ["word"] [tuple collector]
@@ -165,23 +165,23 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
-                      {1 (thrift/mk-spout-spec (TestWordSpout. false))}
-                      {2 (thrift/mk-bolt-spec {1 :shuffle}
+                      {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
+                      {"2" (thrift/mk-bolt-spec {"1" :shuffle}
                                               lalala-bolt1)
-                       3 (thrift/mk-bolt-spec {1 :shuffle}
+                       "3" (thrift/mk-bolt-spec {"1" :shuffle}
                                               lalala-bolt2)
-                       4 (thrift/mk-bolt-spec {1 :shuffle}
+                       "4" (thrift/mk-bolt-spec {"1" :shuffle}
                                               (lalala-bolt3 "_nathan_"))}
                       )
           results (complete-topology cluster
                                      topology
-                                     :mock-sources {1 [["david"]
+                                     :mock-sources {"1" [["david"]
                                                        ["adam"]
                                                        ]}
                                      )]
-      (is (ms= [["davidlalala"] ["adamlalala"]] (read-tuples results 2)))
-      (is (ms= [["davidlalala"] ["adamlalala"]] (read-tuples results 3)))
-      (is (ms= [["david_nathan_lalala"] ["adam_nathan_lalala"]] (read-tuples results 4)))
+      (is (ms= [["davidlalala"] ["adamlalala"]] (read-tuples results "2")))
+      (is (ms= [["davidlalala"] ["adamlalala"]] (read-tuples results "3")))
+      (is (ms= [["david_nathan_lalala"] ["adam_nathan_lalala"]] (read-tuples results "4")))
       )))
 
 (defn ack-tracking-feeder [fields]
@@ -230,21 +230,22 @@
           [feeder2 checker2] (ack-tracking-feeder ["num"])
           [feeder3 checker3] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
-                   {1 [feeder1]
-                    2 [feeder2]
-                    3 [feeder3]}
-                   {4 [{1 :shuffle} (branching-bolt 2)]
-                    5 [{2 :shuffle} (branching-bolt 4)]
-                    6 [{3 :shuffle} (branching-bolt 1)]
-                    7 [{4 :shuffle
-                        5 :shuffle
-                        6 :shuffle} (agg-bolt 3)]
-                    8 [{7 :shuffle} (branching-bolt 2)]
-                    9 [{8 :shuffle} ack-bolt]}
+                   cluster
+                   {"1" [feeder1]
+                    "2" [feeder2]
+                    "3" [feeder3]}
+                   {"4" [{"1" :shuffle} (branching-bolt 2)]
+                    "5" [{"2" :shuffle} (branching-bolt 4)]
+                    "6" [{"3" :shuffle} (branching-bolt 1)]
+                    "7" [{"4" :shuffle
+                        "5" :shuffle
+                        "6" :shuffle} (agg-bolt 3)]
+                    "8" [{"7" :shuffle} (branching-bolt 2)]
+                    "9" [{"8" :shuffle} ack-bolt]}
                    )]
       (submit-local-topology (:nimbus cluster)
-                             "test"
-                             {}
+                             "acking-test1"
+                             {TOPOLOGY-DEBUG true}
                              (:topology tracked))
       (.feed feeder1 [1])
       (tracked-wait tracked 1)
@@ -275,13 +276,14 @@
   (with-tracked-cluster [cluster]
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
-                   {1 [feeder]}
-                   {2 [{1 :shuffle} identity-bolt]
-                    3 [{1 :shuffle} identity-bolt]
-                    4 [{2 :shuffle
-                        3 :shuffle} (agg-bolt 4)]})]
+                   cluster
+                   {"1" [feeder]}
+                   {"2" [{"1" :shuffle} identity-bolt]
+                    "3" [{"1" :shuffle} identity-bolt]
+                    "4" [{"2" :shuffle
+                          "3" :shuffle} (agg-bolt 4)]})]
       (submit-local-topology (:nimbus cluster)
-                             "test"
+                             "test-acking2"
                              {}
                              (:topology tracked))
       (.feed feeder [1])
@@ -301,9 +303,10 @@
   (with-tracked-cluster [cluster]
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
-                   {1 [feeder]}
-                   {2 [{1 :shuffle} dup-anchor]
-                    3 [{2 :shuffle} ack-bolt]})]
+                   cluster
+                   {"1" [feeder]}
+                   {"2" [{"1" :shuffle} dup-anchor]
+                    "3" [{"2" :shuffle} ack-bolt]})]
       (submit-local-topology (:nimbus cluster)
                              "test"
                              {}
@@ -318,7 +321,35 @@
       (checker 3)
       )))
 
+;; (defspout ConstantSpout ["val"] {:prepare false}
+;;   [collector]
+;;   (Time/sleep 100)
+;;   (emit-spout! collector [1]))
 
+;; (def errored (atom false))
+;; (def restarted (atom false))
+
+;; (defbolt local-error-checker {} [tuple collector]
+;;   (when-not @errored
+;;     (reset! errored true)
+;;     (println "erroring")
+;;     (throw (RuntimeException.)))
+;;   (when-not @restarted (println "restarted"))
+;;   (reset! restarted true))
+
+;; (deftest test-no-halt-local-mode
+;;   (with-simulated-time-local-cluster [cluster]
+;;       (let [topology (topology
+;;                       {1 (spout-spec ConstantSpout)}
+;;                       {2 (bolt-spec {1 :shuffle} local-error-checker)
+;;                        })]
+;;         (submit-local-topology (:nimbus cluster)
+;;                                "test"
+;;                                {}
+;;                                topology)
+;;         (while (not @restarted)
+;;           (advance-time-ms! 100))
+;;         )))
 
 (defspout IncSpout ["word"]
   [conf context collector]

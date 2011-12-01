@@ -1,5 +1,7 @@
 package backtype.storm.drpc;
 
+import backtype.storm.Config;
+import java.util.Collection;
 import backtype.storm.Constants;
 import backtype.storm.generated.Grouping;
 import backtype.storm.task.IOutputCollector;
@@ -9,6 +11,7 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.TimeCacheMap;
 import backtype.storm.utils.Utils;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -52,13 +55,13 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate = delegate;
         }
 
-        public List<Integer> emit(int stream, List<Tuple> anchors, List<Object> tuple) {
+        public List<Integer> emit(String stream, Collection<Tuple> anchors, List<Object> tuple) {
             List<Integer> tasks = _delegate.emit(stream, anchors, tuple);
             updateTaskCounts(tuple.get(0), tasks);
             return tasks;
         }
 
-        public void emitDirect(int task, int stream, List<Tuple> anchors, List<Object> tuple) {
+        public void emitDirect(int task, String stream, Collection<Tuple> anchors, List<Object> tuple) {
             updateTaskCounts(tuple.get(0), Arrays.asList(task));
             _delegate.emitDirect(task, stream, anchors, tuple);
         }
@@ -96,19 +99,20 @@ public class CoordinatedBolt implements IRichBolt {
     }
 
     private SourceArgs _sourceArgs;
+    private String _idComponent;
     private IRichBolt _delegate;
     private Integer _numSourceReports;
     private List<Integer> _countOutTasks = new ArrayList<Integer>();;
     private OutputCollector _collector;
-    private Map<Object, TrackingInfo> _tracked = new HashMap<Object, TrackingInfo>();
-    private boolean _allOut;
+    private TimeCacheMap<Object, TrackingInfo> _tracked;
 
     public static class TrackingInfo {
         int reportCount = 0;
         int expectedTupleCount = 0;
         int receivedTuples = 0;
         Map<Integer, Integer> taskEmittedTuples = new HashMap<Integer, Integer>();
-
+        boolean receivedId = false;
+        
         @Override
         public String toString() {
             return "reportCount: " + reportCount + "\n" +
@@ -119,34 +123,23 @@ public class CoordinatedBolt implements IRichBolt {
     }
 
     
-    public CoordinatedBolt(IRichBolt delegate, SourceArgs sourceArgs) {
-        this(delegate, sourceArgs, false);
-    }
-
     public CoordinatedBolt(IRichBolt delegate) {
-        this(delegate, null);
+        this(delegate, null, null);
     }
 
-    /**
-     * allOut indicates whether counts should be sent to all out tasks or just to those it sent tuples to
-     */
-    public CoordinatedBolt(IRichBolt delegate, SourceArgs sourceArgs, boolean allOut) {
+    public CoordinatedBolt(IRichBolt delegate, SourceArgs sourceArgs, String idComponent) {
         _sourceArgs = sourceArgs;
         _delegate = delegate;
-        _allOut = allOut;
+        _idComponent = idComponent;
     }
-
-    public CoordinatedBolt(IRichBolt delegate, boolean allOut) {
-        this(delegate, null, allOut);
-    }
-
 
     public void prepare(Map config, TopologyContext context, OutputCollector collector) {
+        _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.toInteger(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
         _collector = collector;
         _delegate.prepare(config, context, new CoordinatedOutputCollector(collector));
-        for(Integer component: Utils.get(context.getThisTargets(),
+        for(String component: Utils.get(context.getThisTargets(),
                                         Constants.COORDINATED_STREAM_ID,
-                                        new HashMap<Integer, Grouping>())
+                                        new HashMap<String, Grouping>())
                                         .keySet()) {
             for(Integer task: context.getComponentTasks(component)) {
                 _countOutTasks.add(task);
@@ -156,7 +149,7 @@ public class CoordinatedBolt implements IRichBolt {
             if(_sourceArgs.singleCount) {
                 _numSourceReports = 1;
             } else {
-                int sourceComponent = context.getThisSources().keySet().iterator().next().get_componentId();
+                String sourceComponent = context.getThisSources().keySet().iterator().next().get_componentId();
                 _numSourceReports = context.getComponentTasks(sourceComponent).size();
             }
         }
@@ -165,23 +158,21 @@ public class CoordinatedBolt implements IRichBolt {
     private void checkFinishId(Object id) {
         synchronized(_tracked) {
             TrackingInfo track = _tracked.get(id);
-            if(track!=null &&
-               (_sourceArgs==null
-                    ||
-               track.reportCount==_numSourceReports &&
-               track.expectedTupleCount == track.receivedTuples)) {
+            if(track!=null
+                    && track.receivedId 
+                    && (_sourceArgs==null
+                        ||
+                       track.reportCount==_numSourceReports &&
+                       track.expectedTupleCount == track.receivedTuples)) {
                 if(_delegate instanceof FinishedCallback) {
                     ((FinishedCallback)_delegate).finishedId(id);
                 }
-                Iterator<Integer> outTasks;
-                if(_allOut) outTasks = _countOutTasks.iterator();
-                else outTasks = track.taskEmittedTuples.keySet().iterator();
+                Iterator<Integer> outTasks = _countOutTasks.iterator();
                 while(outTasks.hasNext()) {
                     int task = outTasks.next();
                     int numTuples = get(track.taskEmittedTuples, task, 0);
                     _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tuple(id, numTuples));
                 }
-                //TODO: need a thread that clears this out occassionally (or wait until have a map type that does this automatically)
                 _tracked.remove(id);
             }
         }
@@ -194,19 +185,32 @@ public class CoordinatedBolt implements IRichBolt {
             track = _tracked.get(id);
             if(track==null) {
                 track = new TrackingInfo();
+                if(_idComponent==null) track.receivedId = true;
                 _tracked.put(id, track);
             }
         }
-
-        if(_sourceArgs!=null && tuple.getSourceStreamId()==Constants.COORDINATED_STREAM_ID) {
+        
+        boolean checkFinish = false;
+        if(_idComponent!=null
+                && tuple.getSourceComponent().equals(_idComponent)
+                && tuple.getSourceStreamId().equals(PrepareRequest.ID_STREAM)) {
+            synchronized(_tracked) {
+                track.receivedId = true;
+            }
+            checkFinish = true;
+        } else if(_sourceArgs!=null
+                && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
             int count = (Integer) tuple.getValue(1);
             synchronized(_tracked) {
                 track.reportCount++;
                 track.expectedTupleCount+=count;
             }
-            checkFinishId(id);
+            checkFinish = true;
         } else {            
             _delegate.execute(tuple);
+        }
+        if(checkFinish) {
+            checkFinishId(id);
         }
     }
 

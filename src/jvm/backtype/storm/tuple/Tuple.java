@@ -1,6 +1,9 @@
 package backtype.storm.tuple;
 
+import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.generated.Grouping;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.utils.Utils;
 import clojure.lang.ILookup;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
@@ -22,35 +25,29 @@ import java.util.Map;
 public class Tuple implements ILookup {
     private List<Object> values;
     private int taskId;
-    private int streamId;
+    private String streamId;
     private TopologyContext context;
     private MessageId id;
 
     //needs to get taskId explicitly b/c could be in a different task than where it was created
-    public Tuple(TopologyContext context, List<Object> values, int taskId, int streamId, MessageId id) {
+    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
         this.values = values;
         this.taskId = taskId;
         this.streamId = streamId;
         this.id = id;
         this.context = context;
-        //TODO: should find a way to include this information here
-        //TODO: should only leave out the connection info?
-        //TODO: have separate methods for "user" and "system" topology?
-        if(streamId>=0) {
-            int componentId = context.getComponentId(taskId);
-            if(componentId>=0) {
-                Fields schema = context.getComponentOutputFields(componentId, streamId);
-                if(values.size()!=schema.size()) {
-                    throw new IllegalArgumentException(
-                            "Tuple created with wrong number of fields. " +
-                            "Expected " + schema.size() + " fields but got " +
-                            values.size() + " fields");
-                }
-            }
+        
+        String componentId = context.getComponentId(taskId);
+        Fields schema = context.getComponentOutputFields(componentId, streamId);
+        if(values.size()!=schema.size()) {
+            throw new IllegalArgumentException(
+                    "Tuple created with wrong number of fields. " +
+                    "Expected " + schema.size() + " fields but got " +
+                    values.size() + " fields");
         }
     }
 
-    public Tuple(TopologyContext context, List<Object> values, int taskId, int streamId) {
+    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }
 
@@ -219,10 +216,18 @@ public class Tuple implements ILookup {
         return getFields().select(selector, values);
     }
     
+    
+    /**
+     * Returns the global stream id (component + stream) of this tuple.
+     */
+    public GlobalStreamId getSourceGlobalStreamid() {
+        return new GlobalStreamId(getSourceComponent(), streamId);
+    }
+    
     /**
      * Gets the id of the component that created this tuple.
      */
-    public int getSourceComponent() {
+    public String getSourceComponent() {
         return context.getComponentId(taskId);
     }
     
@@ -236,7 +241,7 @@ public class Tuple implements ILookup {
     /**
      * Gets the id of the stream that this tuple was emitted to.
      */
-    public int getSourceStreamId() {
+    public String getSourceStreamId() {
         return streamId;
     }
     

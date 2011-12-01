@@ -3,6 +3,7 @@ package backtype.storm.utils;
 import java.util.HashMap;
 import java.util.UUID;
 
+// this class should be combined with RegisteredGlobalState
 public class ServiceRegistry {
     private static HashMap<String, Object> _services = new HashMap<String, Object>();
     private static final Object _lock = new Object();

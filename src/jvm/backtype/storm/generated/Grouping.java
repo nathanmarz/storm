@@ -28,6 +28,8 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
   private static final org.apache.thrift7.protocol.TField ALL_FIELD_DESC = new org.apache.thrift7.protocol.TField("all", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
   private static final org.apache.thrift7.protocol.TField NONE_FIELD_DESC = new org.apache.thrift7.protocol.TField("none", org.apache.thrift7.protocol.TType.STRUCT, (short)4);
   private static final org.apache.thrift7.protocol.TField DIRECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("direct", org.apache.thrift7.protocol.TType.STRUCT, (short)5);
+  private static final org.apache.thrift7.protocol.TField CUSTOM_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("custom_object", org.apache.thrift7.protocol.TType.STRUCT, (short)6);
+  private static final org.apache.thrift7.protocol.TField CUSTOM_SERIALIZED_FIELD_DESC = new org.apache.thrift7.protocol.TField("custom_serialized", org.apache.thrift7.protocol.TType.STRING, (short)7);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -35,7 +37,9 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
     SHUFFLE((short)2, "shuffle"),
     ALL((short)3, "all"),
     NONE((short)4, "none"),
-    DIRECT((short)5, "direct");
+    DIRECT((short)5, "direct"),
+    CUSTOM_OBJECT((short)6, "custom_object"),
+    CUSTOM_SERIALIZED((short)7, "custom_serialized");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -60,6 +64,10 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
           return NONE;
         case 5: // DIRECT
           return DIRECT;
+        case 6: // CUSTOM_OBJECT
+          return CUSTOM_OBJECT;
+        case 7: // CUSTOM_SERIALIZED
+          return CUSTOM_SERIALIZED;
         default:
           return null;
       }
@@ -113,6 +121,10 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, NullStruct.class)));
     tmpMap.put(_Fields.DIRECT, new org.apache.thrift7.meta_data.FieldMetaData("direct", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, NullStruct.class)));
+    tmpMap.put(_Fields.CUSTOM_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("custom_object", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, JavaObject.class)));
+    tmpMap.put(_Fields.CUSTOM_SERIALIZED, new org.apache.thrift7.meta_data.FieldMetaData("custom_serialized", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(Grouping.class, metaDataMap);
   }
@@ -162,6 +174,24 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
     return x;
   }
 
+  public static Grouping custom_object(JavaObject value) {
+    Grouping x = new Grouping();
+    x.set_custom_object(value);
+    return x;
+  }
+
+  public static Grouping custom_serialized(ByteBuffer value) {
+    Grouping x = new Grouping();
+    x.set_custom_serialized(value);
+    return x;
+  }
+
+  public static Grouping custom_serialized(byte[] value) {
+    Grouping x = new Grouping();
+    x.set_custom_serialized(ByteBuffer.wrap(value));
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -191,6 +221,16 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
           break;
         }
         throw new ClassCastException("Was expecting value of type NullStruct for field 'direct', but got " + value.getClass().getSimpleName());
+      case CUSTOM_OBJECT:
+        if (value instanceof JavaObject) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type JavaObject for field 'custom_object', but got " + value.getClass().getSimpleName());
+      case CUSTOM_SERIALIZED:
+        if (value instanceof ByteBuffer) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type ByteBuffer for field 'custom_serialized', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -205,13 +245,13 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
           if (field.type == FIELDS_FIELD_DESC.type) {
             List<String> fields;
             {
-              org.apache.thrift7.protocol.TList _list0 = iprot.readListBegin();
-              fields = new ArrayList<String>(_list0.size);
-              for (int _i1 = 0; _i1 < _list0.size; ++_i1)
+              org.apache.thrift7.protocol.TList _list4 = iprot.readListBegin();
+              fields = new ArrayList<String>(_list4.size);
+              for (int _i5 = 0; _i5 < _list4.size; ++_i5)
               {
-                String _elem2; // required
-                _elem2 = iprot.readString();
-                fields.add(_elem2);
+                String _elem6; // required
+                _elem6 = iprot.readString();
+                fields.add(_elem6);
               }
               iprot.readListEnd();
             }
@@ -260,6 +300,25 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case CUSTOM_OBJECT:
+          if (field.type == CUSTOM_OBJECT_FIELD_DESC.type) {
+            JavaObject custom_object;
+            custom_object = new JavaObject();
+            custom_object.read(iprot);
+            return custom_object;
+          } else {
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
+        case CUSTOM_SERIALIZED:
+          if (field.type == CUSTOM_SERIALIZED_FIELD_DESC.type) {
+            ByteBuffer custom_serialized;
+            custom_serialized = iprot.readBinary();
+            return custom_serialized;
+          } else {
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -276,9 +335,9 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         List<String> fields = (List<String>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRING, fields.size()));
-          for (String _iter3 : fields)
+          for (String _iter7 : fields)
           {
-            oprot.writeString(_iter3);
+            oprot.writeString(_iter7);
           }
           oprot.writeListEnd();
         }
@@ -299,6 +358,14 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         NullStruct direct = (NullStruct)value_;
         direct.write(oprot);
         return;
+      case CUSTOM_OBJECT:
+        JavaObject custom_object = (JavaObject)value_;
+        custom_object.write(oprot);
+        return;
+      case CUSTOM_SERIALIZED:
+        ByteBuffer custom_serialized = (ByteBuffer)value_;
+        oprot.writeBinary(custom_serialized);
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -317,6 +384,10 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         return NONE_FIELD_DESC;
       case DIRECT:
         return DIRECT_FIELD_DESC;
+      case CUSTOM_OBJECT:
+        return CUSTOM_OBJECT_FIELD_DESC;
+      case CUSTOM_SERIALIZED:
+        return CUSTOM_SERIALIZED_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -407,6 +478,44 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
     value_ = value;
   }
 
+  public JavaObject get_custom_object() {
+    if (getSetField() == _Fields.CUSTOM_OBJECT) {
+      return (JavaObject)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'custom_object' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void set_custom_object(JavaObject value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.CUSTOM_OBJECT;
+    value_ = value;
+  }
+
+  public byte[] get_custom_serialized() {
+    set_custom_serialized(org.apache.thrift7.TBaseHelper.rightSize(buffer_for_custom_serialized()));
+    ByteBuffer b = buffer_for_custom_serialized();
+    return b == null ? null : b.array();
+  }
+
+  public ByteBuffer buffer_for_custom_serialized() {
+    if (getSetField() == _Fields.CUSTOM_SERIALIZED) {
+      return (ByteBuffer)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'custom_serialized' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void set_custom_serialized(byte[] value) {
+    set_custom_serialized(ByteBuffer.wrap(value));
+  }
+
+  public void set_custom_serialized(ByteBuffer value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.CUSTOM_SERIALIZED;
+    value_ = value;
+  }
+
   public boolean is_set_fields() {
     return setField_ == _Fields.FIELDS;
   }
@@ -429,6 +538,16 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
 
   public boolean is_set_direct() {
     return setField_ == _Fields.DIRECT;
+  }
+
+
+  public boolean is_set_custom_object() {
+    return setField_ == _Fields.CUSTOM_OBJECT;
+  }
+
+
+  public boolean is_set_custom_serialized() {
+    return setField_ == _Fields.CUSTOM_SERIALIZED;
   }
 
 

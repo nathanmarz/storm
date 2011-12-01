@@ -1,4 +1,4 @@
-(defproject storm "0.5.5-SNAPSHOT"
+(defproject storm "0.6.0"
   :source-path "src/clj"
   :test-path "test/clj"
   :java-source-path "src/jvm"
@@ -16,10 +16,12 @@
                  [org.apache.zookeeper/zookeeper "3.3.2"]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
+                 [com.googlecode/kryo "1.04"]
                  [compojure "0.6.4"]
                  [hiccup "0.3.6"]
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.slf4j/slf4j-log4j12 "1.5.8"]
+                 [storm/carbonite "1.0.0"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [

@@ -51,7 +51,7 @@ public class MessageId {
     @Override
     public boolean equals(Object other) {
         if(other instanceof MessageId) {
-            return _anchorsToIds == ((MessageId) other)._anchorsToIds;
+            return _anchorsToIds.equals(((MessageId) other)._anchorsToIds);
         } else {
             return false;
         }

@@ -1,9 +1,10 @@
 package backtype.storm;
 
-import backtype.storm.serialization.ISerialization;
+import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Topology configs are specified as a plain old map. This class provides a 
@@ -201,7 +202,8 @@ public class Config extends HashMap<String, Object> {
     public static String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
     
     /**
-     * The jvm opts provided to workers launched by this supervisor.
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
+     * with an identifier for this worker.
      */
     public static String WORKER_CHILDOPTS = "worker.childopts";
 
@@ -271,26 +273,26 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_MESSAGE_TIMEOUT_SECS = "topology.message.timeout.secs";
 
     /**
-     * A map from unique tokens to the name of classes that implement custom serializations. Tokens 
-     * must 33 or greater. Custom serializations are implemented using the
-     * {@link backtype.storm.serialization.ISerialization} interface. The unique tokens you provide
-     * are what are serialized on the wire so that Storm can identify the types of fields. Storm
-     * forces this optimization on you because otherwise it would have to write the class name, 
-     * which would be terribly inefficient. After you register serializations through this config, 
-     * Storm will make use of them automatically.
+     * A list of serialization registrations for Kryo ( http://code.google.com/p/kryo/ ),
+     * the underlying serialization framework for Storm. A serialization can either
+     * be the name of a class (in which case Kryo will automatically create a serializer for the class
+     * that saves all the object's fields), or an implementation of com.esotericsoftware.kryo.Serializer.
+     *
+     * See Kryo's documentation for more information about writing custom serializers.
      */
-    public static String TOPOLOGY_SERIALIZATIONS = "topology.serializations";
+    public static String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
 
     /**
-     * Whether or not Storm should skip the loading of a serialization for which it
-     * does not have the code. Otherwise, the task will fail to load and will throw
-     * an error at runtime. The use case of this is if you want to declare your serializations 
-     * on the storm.yaml files on the cluster rather than every single time you submit a topology.
-     * Different applications may use different serializations and so a single application may not 
-     * have the code for the other serializers used by other apps. By setting this config to true,
-     * Storm will ignore that it doesn't have those other serializations rather than throw an error.
+     * Whether or not Storm should skip the loading of kryo registrations for which it
+     * does not know the class or have the serializer implementation. Otherwise, the task will
+     * fail to load and will throw an error at runtime. The use case of this is if you want to
+     * declare your serializations on the storm.yaml files on the cluster rather than every single
+     * time you submit a topology. Different applications may use different serializations and so
+     * a single application may not have the code for the other serializers used by other apps.
+     * By setting this config to true, Storm will ignore that it doesn't have those other serializations
+     * rather than throw an error.
      */
-    public static String TOPOLOGY_SKIP_MISSING_SERIALIZATIONS= "topology.skip.missing.serializations";
+    public static String TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS= "topology.skip.missing.kryo.registrations";
 
 
     /**
@@ -368,16 +370,18 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
     }
     
-    public void addSerialization(Class<? extends ISerialization> serialization) {
-        if(!containsKey(Config.TOPOLOGY_SERIALIZATIONS)) {
-            put(Config.TOPOLOGY_SERIALIZATIONS, new ArrayList());
-        }
-        List<String> sers = (List<String>) get(Config.TOPOLOGY_SERIALIZATIONS);        
-        sers.add(serialization.getName());
+    public void registerSerialization(Class klass) {
+        getRegisteredSerializations().add(klass.getName());
     }
     
-    public void setSkipMissingSerializations(boolean skip) {
-        put(Config.TOPOLOGY_SKIP_MISSING_SERIALIZATIONS, skip);
+    public void registerSerialization(Class klass, Class<? extends Serializer> serializerClass) {
+        Map<String, String> register = new HashMap<String, String>();
+        register.put(klass.getName(), serializerClass.getName());
+        getRegisteredSerializations().add(register);        
+    }
+    
+    public void setSkipMissingKryoRegistrations(boolean skip) {
+        put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
     }
     
     public void setMaxTaskParallelism(int max) {
@@ -396,4 +400,10 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION, fallback);
     }    
     
+    private List getRegisteredSerializations() {
+        if(!containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
+            put(Config.TOPOLOGY_KRYO_REGISTER, new ArrayList());
+        }
+        return (List) get(Config.TOPOLOGY_KRYO_REGISTER);
+    }
 }

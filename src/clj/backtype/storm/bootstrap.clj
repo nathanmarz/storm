@@ -6,7 +6,7 @@
       (import (quote [backtype.storm.testing FeederSpout TestPlannerBolt TestPlannerSpout AckFailDelegate AckTracker]))
       (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                       TimeCacheMap$ExpiredCallback BufferFileInputStream]))
-      (import (quote [backtype.storm.serialization TupleSerializer TupleDeserializer SerializationFactory]))
+      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
       (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
       (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
       (import (quote [backtype.storm.task IBolt IOutputCollector
@@ -31,9 +31,10 @@
                       InvalidTopologyException ClusterSummary TopologyInfo
                       TopologySummary TaskSummary TaskStats TaskSpecificStats
                       SpoutStats BoltStats ErrorInfo SupervisorSummary
-                      KillOptions]))
+                      KillOptions JavaObject JavaObjectArg]))
       (import (quote [backtype.storm.daemon.common StormBase Assignment
                       TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
+      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
       (import (quote [java.io File FileOutputStream FileInputStream]))
       (import (quote [java.util List Random Map HashMap]))
       (import (quote [org.apache.commons.io FileUtils]))

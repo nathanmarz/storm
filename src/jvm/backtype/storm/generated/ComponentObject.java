@@ -25,11 +25,13 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
   private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ComponentObject");
   private static final org.apache.thrift7.protocol.TField SERIALIZED_JAVA_FIELD_DESC = new org.apache.thrift7.protocol.TField("serialized_java", org.apache.thrift7.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift7.protocol.TField SHELL_FIELD_DESC = new org.apache.thrift7.protocol.TField("shell", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift7.protocol.TField JAVA_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("java_object", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     SERIALIZED_JAVA((short)1, "serialized_java"),
-    SHELL((short)2, "shell");
+    SHELL((short)2, "shell"),
+    JAVA_OBJECT((short)3, "java_object");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -48,6 +50,8 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
           return SERIALIZED_JAVA;
         case 2: // SHELL
           return SHELL;
+        case 3: // JAVA_OBJECT
+          return JAVA_OBJECT;
         default:
           return null;
       }
@@ -94,6 +98,8 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING        , true)));
     tmpMap.put(_Fields.SHELL, new org.apache.thrift7.meta_data.FieldMetaData("shell", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ShellComponent.class)));
+    tmpMap.put(_Fields.JAVA_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("java_object", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, JavaObject.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ComponentObject.class, metaDataMap);
   }
@@ -131,6 +137,12 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
     return x;
   }
 
+  public static ComponentObject java_object(JavaObject value) {
+    ComponentObject x = new ComponentObject();
+    x.set_java_object(value);
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -145,6 +157,11 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
           break;
         }
         throw new ClassCastException("Was expecting value of type ShellComponent for field 'shell', but got " + value.getClass().getSimpleName());
+      case JAVA_OBJECT:
+        if (value instanceof JavaObject) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type JavaObject for field 'java_object', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -174,6 +191,16 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case JAVA_OBJECT:
+          if (field.type == JAVA_OBJECT_FIELD_DESC.type) {
+            JavaObject java_object;
+            java_object = new JavaObject();
+            java_object.read(iprot);
+            return java_object;
+          } else {
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -194,6 +221,10 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
         ShellComponent shell = (ShellComponent)value_;
         shell.write(oprot);
         return;
+      case JAVA_OBJECT:
+        JavaObject java_object = (JavaObject)value_;
+        java_object.write(oprot);
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -206,6 +237,8 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
         return SERIALIZED_JAVA_FIELD_DESC;
       case SHELL:
         return SHELL_FIELD_DESC;
+      case JAVA_OBJECT:
+        return JAVA_OBJECT_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -264,6 +297,20 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
     value_ = value;
   }
 
+  public JavaObject get_java_object() {
+    if (getSetField() == _Fields.JAVA_OBJECT) {
+      return (JavaObject)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'java_object' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void set_java_object(JavaObject value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.JAVA_OBJECT;
+    value_ = value;
+  }
+
   public boolean is_set_serialized_java() {
     return setField_ == _Fields.SERIALIZED_JAVA;
   }
@@ -271,6 +318,11 @@ public class ComponentObject extends org.apache.thrift7.TUnion<ComponentObject, 
 
   public boolean is_set_shell() {
     return setField_ == _Fields.SHELL;
+  }
+
+
+  public boolean is_set_java_object() {
+    return setField_ == _Fields.JAVA_OBJECT;
   }
 
 

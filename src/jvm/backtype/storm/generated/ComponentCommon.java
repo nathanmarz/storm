@@ -27,7 +27,7 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
   private static final org.apache.thrift7.protocol.TField STREAMS_FIELD_DESC = new org.apache.thrift7.protocol.TField("streams", org.apache.thrift7.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift7.protocol.TField PARALLELISM_HINT_FIELD_DESC = new org.apache.thrift7.protocol.TField("parallelism_hint", org.apache.thrift7.protocol.TType.I32, (short)2);
 
-  private Map<Integer,StreamInfo> streams; // required
+  private Map<String,StreamInfo> streams; // required
   private int parallelism_hint; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -100,7 +100,7 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.STREAMS, new org.apache.thrift7.meta_data.FieldMetaData("streams", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32), 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, StreamInfo.class))));
     tmpMap.put(_Fields.PARALLELISM_HINT, new org.apache.thrift7.meta_data.FieldMetaData("parallelism_hint", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
@@ -112,7 +112,7 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
   }
 
   public ComponentCommon(
-    Map<Integer,StreamInfo> streams)
+    Map<String,StreamInfo> streams)
   {
     this();
     this.streams = streams;
@@ -125,13 +125,13 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     __isset_bit_vector.clear();
     __isset_bit_vector.or(other.__isset_bit_vector);
     if (other.is_set_streams()) {
-      Map<Integer,StreamInfo> __this__streams = new HashMap<Integer,StreamInfo>();
-      for (Map.Entry<Integer, StreamInfo> other_element : other.streams.entrySet()) {
+      Map<String,StreamInfo> __this__streams = new HashMap<String,StreamInfo>();
+      for (Map.Entry<String, StreamInfo> other_element : other.streams.entrySet()) {
 
-        Integer other_element_key = other_element.getKey();
+        String other_element_key = other_element.getKey();
         StreamInfo other_element_value = other_element.getValue();
 
-        Integer __this__streams_copy_key = other_element_key;
+        String __this__streams_copy_key = other_element_key;
 
         StreamInfo __this__streams_copy_value = new StreamInfo(other_element_value);
 
@@ -157,18 +157,18 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     return (this.streams == null) ? 0 : this.streams.size();
   }
 
-  public void put_to_streams(int key, StreamInfo val) {
+  public void put_to_streams(String key, StreamInfo val) {
     if (this.streams == null) {
-      this.streams = new HashMap<Integer,StreamInfo>();
+      this.streams = new HashMap<String,StreamInfo>();
     }
     this.streams.put(key, val);
   }
 
-  public Map<Integer,StreamInfo> get_streams() {
+  public Map<String,StreamInfo> get_streams() {
     return this.streams;
   }
 
-  public void set_streams(Map<Integer,StreamInfo> streams) {
+  public void set_streams(Map<String,StreamInfo> streams) {
     this.streams = streams;
   }
 
@@ -215,7 +215,7 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       if (value == null) {
         unset_streams();
       } else {
-        set_streams((Map<Integer,StreamInfo>)value);
+        set_streams((Map<String,StreamInfo>)value);
       }
       break;
 
@@ -356,16 +356,16 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
         case 1: // STREAMS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map8 = iprot.readMapBegin();
-              this.streams = new HashMap<Integer,StreamInfo>(2*_map8.size);
-              for (int _i9 = 0; _i9 < _map8.size; ++_i9)
+              org.apache.thrift7.protocol.TMap _map12 = iprot.readMapBegin();
+              this.streams = new HashMap<String,StreamInfo>(2*_map12.size);
+              for (int _i13 = 0; _i13 < _map12.size; ++_i13)
               {
-                int _key10; // required
-                StreamInfo _val11; // required
-                _key10 = iprot.readI32();
-                _val11 = new StreamInfo();
-                _val11.read(iprot);
-                this.streams.put(_key10, _val11);
+                String _key14; // required
+                StreamInfo _val15; // required
+                _key14 = iprot.readString();
+                _val15 = new StreamInfo();
+                _val15.read(iprot);
+                this.streams.put(_key14, _val15);
               }
               iprot.readMapEnd();
             }
@@ -397,11 +397,11 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     if (this.streams != null) {
       oprot.writeFieldBegin(STREAMS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.I32, org.apache.thrift7.protocol.TType.STRUCT, this.streams.size()));
-        for (Map.Entry<Integer, StreamInfo> _iter12 : this.streams.entrySet())
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.streams.size()));
+        for (Map.Entry<String, StreamInfo> _iter16 : this.streams.entrySet())
         {
-          oprot.writeI32(_iter12.getKey());
-          _iter12.getValue().write(oprot);
+          oprot.writeString(_iter16.getKey());
+          _iter16.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }

@@ -24,10 +24,10 @@
         spout (DRPCSpout. "test" drpc)
         cluster (LocalCluster.)
         topology (topology
-                  {1 (spout-spec spout)}
-                  {2 (bolt-spec {1 :shuffle}
+                  {"1" (spout-spec spout)}
+                  {"2" (bolt-spec {"1" :shuffle}
                                 exclamation-bolt)
-                   3 (bolt-spec {2 :shuffle}
+                   "3" (bolt-spec {"2" :shuffle}
                                 (ReturnResults.))})]
     (.submitTopology cluster "test" {TOPOLOGY-DEBUG true} topology)
 
@@ -131,6 +131,45 @@
     (is (= "0" (.execute drpc "square" "0")))
     
     
+    (.shutdown cluster)
+    (.shutdown drpc)
+    ))
+
+(defbolt id-bolt ["request" "val"] [tuple collector]
+  (emit-bolt! collector
+              (.getValues tuple)
+              :anchor tuple)
+  (ack! collector tuple))
+
+(defbolt emit-finish ["request" "result"] {:prepare true}
+  [conf context collector]
+  (bolt
+   (execute [tuple]
+            (ack! collector tuple)
+            )
+   CoordinatedBolt$FinishedCallback
+   (finishedId [this id]
+               (emit-bolt! collector [id "done"])
+               )))
+
+(deftest test-drpc-coordination-tricky
+  (let [drpc (LocalDRPC.)
+        cluster (LocalCluster.)
+        builder (LinearDRPCTopologyBuilder. "tricky")
+        ]
+    (.addBolt builder id-bolt 3)
+    (doto (.addBolt builder id-bolt 3)
+      (.shuffleGrouping))
+    (doto (.addBolt builder emit-finish 3)
+      (.fieldsGrouping (Fields. ["request"])))
+
+    (.submitTopology cluster
+                     "tricky"
+                     {}
+                     (.createLocalTopology builder drpc))
+    (is (= "done" (.execute drpc "tricky" "2")))
+    (is (= "done" (.execute drpc "tricky" "3")))
+    (is (= "done" (.execute drpc "tricky" "4")))
     (.shutdown cluster)
     (.shutdown drpc)
     ))

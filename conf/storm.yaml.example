@@ -8,11 +8,11 @@
 # 
 # ##### These may optionally be filled in:
 #    
-## Map of tokens to a serialization class. tokens less than 32 are reserved by storm.
-## Tokens are written on the wire to identify the field.
+## List of custom serializations
 # topology.serializations: 
 #     - "org.mycompany.MyObjectSerialization"
 #     - "org.mycompany.MyOtherObjectSerialization"
+#
 ## Locations of the drpc servers
 # drpc.servers:
 #     - "server1"

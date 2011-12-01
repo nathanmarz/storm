@@ -1,7 +1,10 @@
 (ns backtype.storm.thrift
-  (:import [backtype.storm.generated Grouping Nimbus StormTopology Bolt Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
+  (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology Bolt Nimbus$Client
+    Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
+    GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
+  (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.drpc CoordinatedBolt CoordinatedBolt$SourceArgs
             KeyedFairBolt])
   (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
@@ -11,11 +14,19 @@
   (:use [clojure.contrib.def :only [defnk]])
   )
 
+(defn instantiate-java-object [^JavaObject obj]
+  (let [name (symbol (.get_full_class_name obj))
+        args (map (memfn getFieldValue) (.get_args_list obj))]
+    (eval `(new ~name ~@args))
+    ))
+
 (def grouping-constants
   {Grouping$_Fields/FIELDS :fields
    Grouping$_Fields/SHUFFLE :shuffle
    Grouping$_Fields/ALL :all
    Grouping$_Fields/NONE :none
+   Grouping$_Fields/CUSTOM_SERIALIZED :custom-serialized
+   Grouping$_Fields/CUSTOM_OBJECT :custom-object
    Grouping$_Fields/DIRECT :direct
   })
 
@@ -62,6 +73,9 @@
 
 (defn direct-output-fields [fields]
   (StreamInfo. fields true))
+
+(defn output-fields [fields]
+  (StreamInfo. fields false))
 
 (defn mk-output-spec [output-spec]
   (let [output-spec (if (map? output-spec) output-spec {Utils/DEFAULT_STREAM_ID output-spec})]
@@ -119,6 +133,8 @@
 (defn mk-grouping [grouping-spec]
   (cond (nil? grouping-spec) (mk-none-grouping)
         (instance? Grouping grouping-spec) grouping-spec
+        (instance? CustomStreamGrouping grouping-spec) (Grouping/custom_serialized (Utils/serialize grouping-spec))
+        (instance? JavaObject grouping-spec) (Grouping/custom_object grouping-spec)
         (sequential? grouping-spec) (mk-fields-grouping grouping-spec)
         (= grouping-spec :shuffle) (mk-shuffle-grouping)
         (= grouping-spec :none) (mk-none-grouping)

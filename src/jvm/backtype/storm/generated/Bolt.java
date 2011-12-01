@@ -429,17 +429,17 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
         case 1: // INPUTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map13 = iprot.readMapBegin();
-              this.inputs = new HashMap<GlobalStreamId,Grouping>(2*_map13.size);
-              for (int _i14 = 0; _i14 < _map13.size; ++_i14)
+              org.apache.thrift7.protocol.TMap _map17 = iprot.readMapBegin();
+              this.inputs = new HashMap<GlobalStreamId,Grouping>(2*_map17.size);
+              for (int _i18 = 0; _i18 < _map17.size; ++_i18)
               {
-                GlobalStreamId _key15; // required
-                Grouping _val16; // required
-                _key15 = new GlobalStreamId();
-                _key15.read(iprot);
-                _val16 = new Grouping();
-                _val16.read(iprot);
-                this.inputs.put(_key15, _val16);
+                GlobalStreamId _key19; // required
+                Grouping _val20; // required
+                _key19 = new GlobalStreamId();
+                _key19.read(iprot);
+                _val20 = new Grouping();
+                _val20.read(iprot);
+                this.inputs.put(_key19, _val20);
               }
               iprot.readMapEnd();
             }
@@ -480,10 +480,10 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
       oprot.writeFieldBegin(INPUTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.STRUCT, this.inputs.size()));
-        for (Map.Entry<GlobalStreamId, Grouping> _iter17 : this.inputs.entrySet())
+        for (Map.Entry<GlobalStreamId, Grouping> _iter21 : this.inputs.entrySet())
         {
-          _iter17.getKey().write(oprot);
-          _iter17.getValue().write(oprot);
+          _iter21.getKey().write(oprot);
+          _iter21.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }

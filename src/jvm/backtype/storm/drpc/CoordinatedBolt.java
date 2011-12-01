@@ -1,5 +1,6 @@
 package backtype.storm.drpc;
 
+import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.Config;
 import java.util.Collection;
 import backtype.storm.Constants;
@@ -45,6 +46,11 @@ public class CoordinatedBolt implements IRichBolt {
 
         public static SourceArgs all() {
             return new SourceArgs(false);
+        }
+        
+        @Override
+        public String toString() {
+            return "<Single: " + singleCount + ">";
         }
     }
 
@@ -149,8 +155,14 @@ public class CoordinatedBolt implements IRichBolt {
             if(_sourceArgs.singleCount) {
                 _numSourceReports = 1;
             } else {
-                String sourceComponent = context.getThisSources().keySet().iterator().next().get_componentId();
-                _numSourceReports = context.getComponentTasks(sourceComponent).size();
+                Iterator<GlobalStreamId> it = context.getThisSources().keySet().iterator();
+                while(it.hasNext()) {
+                    String sourceComponent = it.next().get_componentId();
+                    if(_idComponent==null || !sourceComponent.equals(_idComponent)) {
+                        _numSourceReports = context.getComponentTasks(sourceComponent).size();
+                        break;
+                    }
+                }
             }
         }
     }

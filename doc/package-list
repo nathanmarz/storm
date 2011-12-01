@@ -2,6 +2,7 @@ backtype.storm
 backtype.storm.clojure
 backtype.storm.daemon
 backtype.storm.drpc
+backtype.storm.grouping
 backtype.storm.planner
 backtype.storm.serialization
 backtype.storm.spout

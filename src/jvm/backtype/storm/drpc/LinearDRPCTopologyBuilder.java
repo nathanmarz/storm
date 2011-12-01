@@ -91,8 +91,14 @@ public class LinearDRPCTopologyBuilder {
             if(i==0 && component.declarations.size()==0) {
                 declarer.noneGrouping(PREPARE_ID, PrepareRequest.ARGS_STREAM);
             } else {
+                String prevId;
+                if(i==0) {
+                    prevId = PREPARE_ID;
+                } else {
+                    prevId = boltId(i-1);
+                }
                 for(InputDeclaration declaration: component.declarations) {
-                    declaration.declare(boltId(i-1), declarer);
+                    declaration.declare(prevId, declarer);
                 }
             }
             if(i>0) {

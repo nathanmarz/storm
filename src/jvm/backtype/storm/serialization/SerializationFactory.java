@@ -41,6 +41,7 @@ public class SerializationFactory {
     public static ObjectBuffer getKryo(Map conf) {
         KryoSerializableDefault k = new KryoSerializableDefault();
         k.setRegistrationOptional((Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION));
+        k.register(byte[].class);
         k.register(ListDelegate.class);
         k.register(ArrayList.class);
         k.register(HashMap.class);

@@ -14,9 +14,9 @@ public class PrintSampleStream {
         String pwd = args[1];
         TopologyBuilder builder = new TopologyBuilder();
         
-        builder.setSpout(1, new TwitterSampleSpout(username, pwd));
-        builder.setBolt(2, new PrinterBolt())
-                .shuffleGrouping(1);
+        builder.setSpout("spout", new TwitterSampleSpout(username, pwd));
+        builder.setBolt("print", new PrinterBolt())
+                .shuffleGrouping("spout");
                 
         
         Config conf = new Config();

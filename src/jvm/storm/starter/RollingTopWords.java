@@ -24,14 +24,14 @@ public class RollingTopWords {
         
         TopologyBuilder builder = new TopologyBuilder();
         
-        builder.setSpout(1, new TestWordSpout(), 5);
+        builder.setSpout("word", new TestWordSpout(), 5);
         
-        builder.setBolt(2, new RollingCountObjects(60, 10), 4)
-                 .fieldsGrouping(1, new Fields("word"));
-        builder.setBolt(3, new RankObjects(TOP_N), 4)
-                 .fieldsGrouping(2, new Fields("obj"));
-        builder.setBolt(4, new MergeObjects(TOP_N))
-                 .globalGrouping(3);
+        builder.setBolt("count", new RollingCountObjects(60, 10), 4)
+                 .fieldsGrouping("word", new Fields("word"));
+        builder.setBolt("rank", new RankObjects(TOP_N), 4)
+                 .fieldsGrouping("count", new Fields("obj"));
+        builder.setBolt("merge", new MergeObjects(TOP_N))
+                 .globalGrouping("rank");
         
         
         

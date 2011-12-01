@@ -16,6 +16,6 @@
                  [com.googlecode.json-simple/json-simple "1.1"]
                  ]
 
-  :dev-dependencies [[storm "0.5.4"]
+  :dev-dependencies [[storm "0.6.0"]
                      ])
 

@@ -192,18 +192,24 @@ public class ReachTopology {
         
     }
     
-    public static void main(String[] args) throws Exception {
+    public static LinearDRPCTopologyBuilder construct() {
         LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");
-        builder.addBolt(new GetTweeters(), 3);
+        builder.addBolt(new GetTweeters(), 4);
         builder.addBolt(new GetFollowers(), 12)
-                .shuffleGrouping();
+                 .shuffleGrouping();
         builder.addBolt(new PartialUniquer(), 6)
-                .fieldsGrouping(new Fields("id", "follower"));
-        builder.addBolt(new CountAggregator(), 2)
-                .fieldsGrouping(new Fields("id"));
+                 .fieldsGrouping(new Fields("id", "follower"));
+        builder.addBolt(new CountAggregator(), 3)
+                 .fieldsGrouping(new Fields("id")); 
+        return builder;
+    }
+    
+    public static void main(String[] args) throws Exception {
+        LinearDRPCTopologyBuilder builder = construct();
         
         
         Config conf = new Config();
+        conf.setDebug(true);
         
         if(args==null || args.length==0) {
             conf.setMaxTaskParallelism(3);

@@ -46,17 +46,17 @@
 (defn mk-topology []
 
   (topology
-   {1 (spout-spec sentence-spout)
-    2 (spout-spec (sentence-spout-parameterized
-                   ["the cat jumped over the door"
-                    "greetings from a faraway land"])
-                  :p 2)}
-   {3 (bolt-spec {1 :shuffle 2 :shuffle}
-                 split-sentence
-                 :p 5)
-    4 (bolt-spec {3 ["word"]}
-                 word-count
-                 :p 6)}))
+   {"1" (spout-spec sentence-spout)
+    "2" (spout-spec (sentence-spout-parameterized
+                     ["the cat jumped over the door"
+                      "greetings from a faraway land"])
+                     :p 2)}
+   {"3" (bolt-spec {"1" :shuffle "2" :shuffle}
+                   split-sentence
+                   :p 5)
+    "4" (bolt-spec {"3" ["word"]}
+                   word-count
+                   :p 6)}))
 
 (defn run-local! []
   (let [cluster (LocalCluster.)]

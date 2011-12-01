@@ -15,11 +15,11 @@ public class SingleJoinExample {
         FeederSpout ageSpout = new FeederSpout(new Fields("id", "age"));
         
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout(1, genderSpout);
-        builder.setSpout(2, ageSpout);
-        builder.setBolt(3, new SingleJoinBolt(new Fields("gender", "age")))
-                .fieldsGrouping(1, new Fields("id"))
-                .fieldsGrouping(2, new Fields("id"));
+        builder.setSpout("gender", genderSpout);
+        builder.setSpout("age", ageSpout);
+        builder.setBolt("join", new SingleJoinBolt(new Fields("gender", "age")))
+                .fieldsGrouping("gender", new Fields("id"))
+                .fieldsGrouping("age", new Fields("id"));
         
         Config conf = new Config();
         conf.setDebug(true);

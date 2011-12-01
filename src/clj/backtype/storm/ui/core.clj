@@ -668,7 +668,7 @@
        (-> (topology-page id (:window m))
            ui-template))
   (GET "/topology/:id/component/:component" [id component & m]
-       (-> (component-page id (Integer/parseInt component) (:window m))
+       (-> (component-page id component (:window m))
            ui-template))
   (GET "/topology/:id/task/:task" [id task & m]
        (-> (task-page id (Integer/parseInt task) (:window m))

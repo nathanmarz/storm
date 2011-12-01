@@ -209,7 +209,6 @@ public class ReachTopology {
         
         
         Config conf = new Config();
-        conf.setDebug(true);
         
         if(args==null || args.length==0) {
             conf.setMaxTaskParallelism(3);

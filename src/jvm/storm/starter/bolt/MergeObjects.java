@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import org.json.simple.JSONValue;
 
 
 public class MergeObjects implements IBasicBolt {
@@ -66,7 +65,7 @@ public class MergeObjects implements IBasicBolt {
     public void execute(Tuple tuple, BasicOutputCollector collector) {
 
 
-        List<List> merging = (List) JSONValue.parse(tuple.getString(0));
+        List<List> merging = (List) tuple.getValue(0);
         for(List pair : merging) {
 
             Integer existingIndex = _find(pair.get(0));
@@ -93,9 +92,8 @@ public class MergeObjects implements IBasicBolt {
 
         long currentTime = System.currentTimeMillis();
         if(_lastTime==null || currentTime >= _lastTime + 2000) {
-            String fullRankings = JSONValue.toJSONString(_rankings); 
-            collector.emit(new Values(fullRankings));
-            LOG.info("Rankings: " + fullRankings);
+            collector.emit(new Values(_rankings));
+            LOG.info("Rankings: " + _rankings);
             _lastTime = currentTime;
         }
     }

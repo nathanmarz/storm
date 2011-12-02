@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import org.json.simple.JSONValue;
 
 
 public class RankObjects implements IBasicBolt {
@@ -90,7 +89,7 @@ public class RankObjects implements IBasicBolt {
 
         long currentTime = System.currentTimeMillis();
         if(_lastTime==null || currentTime >= _lastTime + 2000) {
-            collector.emit(new Values(JSONValue.toJSONString(_rankings)));
+            collector.emit(new Values(_rankings));
             _lastTime = currentTime;
         }
     }

@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.thrift7.TException;
-import org.jvyaml.YAML;
+import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
@@ -84,7 +84,8 @@ public class Utils {
                 else return new HashMap();
             }
             URL resource = (URL) resources.nextElement();
-            Map ret = (Map) YAML.load(new InputStreamReader(resource.openStream()));
+            Yaml yaml = new Yaml();
+            Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
             if(ret==null) ret = new HashMap();
             
             if(resources.hasMoreElements()) {

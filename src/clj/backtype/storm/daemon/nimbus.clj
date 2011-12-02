@@ -14,6 +14,22 @@
 (defmulti setup-jar cluster-mode)
 
 
+;; status types
+;; -- killed (:kill-time-secs)
+;; -- active
+;; -- inactive
+;; -- swapping (:name, :launch-wait-time [defaults to launch timeout] :inactive-wait-time[ message timeout for active topology]) --> steps: wait launch timeout, inactivate other topology, wait message timeout, kill other topology (with timeout of 0), activate swapped topology
+;;  State transitions:
+;;    -- swapped + active other = wait + inactivate other
+;;    -- inactive other + swapped = wait message timeout + kill(0)
+;;    -- swapped + killed other = activate
+
+;; swapping design
+;; -- need 2 ports per worker (swap port and regular port)
+;; -- topology that swaps in can use all the existing topologies swap ports, + unused worker slots
+;; -- how to define worker resources? port range + number of workers?
+
+
 ;; Master:
 ;; job submit:
 ;; 1. read which nodes are available
@@ -400,6 +416,17 @@
     (assoc storm-conf TOPOLOGY-KRYO-REGISTER sers)
     ))
 
+(defn set-topology-status! [storm-cluster-state lock storm-name status]
+  (let [storm-id (get-storm-id storm-cluster-state storm-name)]
+   (when-not storm-id
+     (throw (NotAliveException. storm-name)))
+   (locking lock
+     (.update-storm! storm-cluster-state
+                     storm-id
+                     {:status status}))
+   (log-message "Updated " storm-name " with status " status)
+   ))
+
 (defserverfn service-handler [conf]
   (let [submitted-count (atom 0)
         active (atom true)
@@ -505,14 +532,27 @@
                  (.get_wait_secs options)
                  ((read-storm-conf conf storm-id) TOPOLOGY-MESSAGE-TIMEOUT-SECS)
                  ))
-         (locking storm-submit-lock
-           (.update-storm! storm-cluster-state
-                           storm-id
-                           {:status {:type :killed
-                                     :kill-time-secs (+ (current-time-secs) wait-amt)}}))
+         (set-topology-status! storm-cluster-state
+                               storm-submit-lock
+                               storm-name
+                               {:type :killed
+                                :kill-time-secs (+ (current-time-secs) wait-amt)})
          (.add cleanup-manager cleanup-fn)
-         (log-message "Deactivated " storm-name " and scheduled to be killed")
          ))
+
+      (activate [this storm-name]
+        (set-topology-status! storm-cluster-state
+                              storm-submit-lock
+                              storm-name
+                              {:type :active})
+        )
+
+      (deactivate [this storm-name]
+        (set-topology-status! storm-cluster-state
+                              storm-submit-lock
+                              storm-name
+                              {:type :inactive})
+        )
 
       (beginFileUpload [this]
         (let [fileloc (str inbox "/stormjar-" (uuid) ".jar")]

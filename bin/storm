@@ -71,6 +71,12 @@ def jar(jarfile, klass, *args):
 def kill(*args):
     exec_storm_class("backtype.storm.command.kill_topology", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
 
+def activate(*args):
+    exec_storm_class("backtype.storm.command.activate", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+
+def deactivate(*args):
+    exec_storm_class("backtype.storm.command.deactivate", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
     os.system("jar cf %s %s" % (tmpjarpath, resourcesdir))
@@ -104,7 +110,10 @@ def drpc():
 def print_classpath():
   print get_classpath([])
 
-COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue, "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath}
+COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
+            "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
+            "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
+            "activate": activate, "deactivate": deactivate}
 
 def print_commands():
     global COMMANDS

@@ -1,5 +1,4 @@
 (ns backtype.storm.config
-  (:import [org.jvyaml YAML])
   (:import [java.io FileReader File])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils LocalState])

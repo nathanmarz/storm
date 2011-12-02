@@ -76,16 +76,6 @@ public class Utils {
         }
     }
 
-    public static Map readYamlConfig(String path) {
-        try {
-            Map ret = (Map) YAML.load(new FileReader(path));
-            if(ret==null) ret = new HashMap();
-            return new HashMap(ret);
-        } catch (FileNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
         try {
             Enumeration resources = Thread.currentThread().getContextClassLoader().getResources(name);

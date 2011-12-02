@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 public class SerializationFactory {
@@ -50,7 +51,8 @@ public class SerializationFactory {
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);
         
-        Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
+        //ensure always same order for registrations with TreeMap
+        Map<String, String> registrations = new TreeMap<String, String>((Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER));
         if(registrations==null) registrations = new HashMap<String, String>();
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
         for(String klassName: registrations.keySet()) {

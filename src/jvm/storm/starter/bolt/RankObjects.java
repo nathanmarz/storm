@@ -15,7 +15,6 @@ import java.util.Map;
 
 
 public class RankObjects implements IBasicBolt {
-
     List<List> _rankings = new ArrayList<List>();
 
     int _count;
@@ -25,12 +24,9 @@ public class RankObjects implements IBasicBolt {
         _count = n;
     }
 
-
     private int _compare(List one, List two) {
-
         long valueOne = (Long) one.get(1);
         long valueTwo = (Long) two.get(1);
-
         long delta = valueTwo - valueOne;
         if(delta > 0) {
             return 1;
@@ -39,54 +35,37 @@ public class RankObjects implements IBasicBolt {
         } else {
             return 0;
         }
-
-    } //end compare
+    }
 
     private Integer _find(Object tag) {
         for(int i = 0; i < _rankings.size(); ++i) {
-
             Object cur = _rankings.get(i).get(0);
             if (cur.equals(tag)) {
                 return i;
             }
-
         }
-
         return null;
-
     }
 
     public void prepare(Map stormConf, TopologyContext context) {
-
     }
 
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-
         Object tag = tuple.getValue(0);
-
-
         Integer existingIndex = _find(tag);
         if (null != existingIndex) {
             _rankings.set(existingIndex, tuple.getValues());
         } else {
-
             _rankings.add(tuple.getValues());
-
-
         }
-
-
         Collections.sort(_rankings, new Comparator<List>() {
             public int compare(List o1, List o2) {
                 return _compare(o1, o2);
             }
         });
-
-
         if (_rankings.size() > _count) {
             _rankings.remove(_count);
         }
-
         long currentTime = System.currentTimeMillis();
         if(_lastTime==null || currentTime >= _lastTime + 2000) {
             collector.emit(new Values(_rankings));
@@ -100,5 +79,4 @@ public class RankObjects implements IBasicBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("list"));
     }
-
 }

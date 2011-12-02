@@ -14,7 +14,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-
 public class MergeObjects implements IBasicBolt {
     public static Logger LOG = Logger.getLogger(MergeObjects.class);
 
@@ -26,12 +25,9 @@ public class MergeObjects implements IBasicBolt {
         _count = n;
     }
 
-
     private int _compare(List one, List two) {
-
         long valueOne = (Long) one.get(1);
         long valueTwo = (Long) two.get(1);
-
         long delta = valueTwo - valueOne;
         if(delta > 0) {
             return 1;
@@ -40,21 +36,16 @@ public class MergeObjects implements IBasicBolt {
         } else {
             return 0;
         }
-
-    } //end compare
+    }
 
     private Integer _find(Object tag) {
         for(int i = 0; i < _rankings.size(); ++i) {
-
             Object cur = _rankings.get(i).get(0);
             if (cur.equals(tag)) {
                 return i;
             }
-
         }
-
         return null;
-
     }
 
 
@@ -63,18 +54,13 @@ public class MergeObjects implements IBasicBolt {
     }
 
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-
-
         List<List> merging = (List) tuple.getValue(0);
         for(List pair : merging) {
-
             Integer existingIndex = _find(pair.get(0));
             if (null != existingIndex) {
                 _rankings.set(existingIndex, pair);
             } else {
-
                 _rankings.add(pair);
-
             }
 
             Collections.sort(_rankings, new Comparator<List>() {
@@ -83,11 +69,9 @@ public class MergeObjects implements IBasicBolt {
                 }
             });
 
-
             if (_rankings.size() > _count) {
                 _rankings.subList(_count, _rankings.size()).clear();
             }
-
         }
 
         long currentTime = System.currentTimeMillis();
@@ -104,5 +88,4 @@ public class MergeObjects implements IBasicBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("list"));
     }
-
 }

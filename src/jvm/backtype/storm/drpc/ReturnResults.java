@@ -13,11 +13,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 
 public class ReturnResults implements IRichBolt {
+    public static final Logger LOG = Logger.getLogger(ReturnResults.class);
     OutputCollector _collector;
     boolean local;
 
@@ -55,6 +57,7 @@ public class ReturnResults implements IRichBolt {
                 client.result(id, result);
                 _collector.ack(input);
             } catch(TException e) {
+                LOG.error("Failed to return results to DRPC server", e);
                 _collector.fail(input);
             }
         }

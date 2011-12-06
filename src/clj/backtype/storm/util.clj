@@ -193,9 +193,12 @@
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
-(defn launch-process [command]
+(defnk launch-process [command :environment {}]
   (let [command (seq (.split command " "))
-        builder (ProcessBuilder. (cons "nohup" command))]
+        builder (ProcessBuilder. (cons "nohup" command))
+        process-env (.environment builder)]
+    (doseq [[k v] environment]
+      (.put process-env k v))
     (.start builder)
     ))
 

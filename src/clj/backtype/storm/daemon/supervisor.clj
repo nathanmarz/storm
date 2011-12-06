@@ -376,7 +376,7 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        storm-id " " supervisor-id " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
-      (launch-process command)
+      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))
 
 ;; local implementation

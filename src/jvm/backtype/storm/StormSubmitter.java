@@ -67,7 +67,7 @@ public class StormSubmitter {
     private static void submitJar(Map conf) {
         if(submittedJar==null) {
             LOG.info("Jar not uploaded to master yet. Submitting jar...");
-            String localJar = System.getenv("STORM_JAR");
+            String localJar = System.getProperty("storm.jar");
             submittedJar = submitJar(conf, localJar);
         } else {
             LOG.info("Jar already uploaded to master. Not submitting jar.");

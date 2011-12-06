@@ -62,7 +62,7 @@ public class DRPCSpout implements IRichSpout {
             int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
             int index = context.getThisTaskIndex();
 
-            int port = ((Long) conf.get(Config.DRPC_PORT)).intValue();
+            int port = Utils.getInt(conf.get(Config.DRPC_PORT));
             List<String> servers = (List<String>) conf.get(Config.DRPC_SERVERS);
             if(servers.isEmpty()) {
                 throw new RuntimeException("No DRPC servers configured for topology");   

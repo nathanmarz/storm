@@ -9,6 +9,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.DRPCClient;
 import backtype.storm.utils.ServiceRegistry;
+import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +37,7 @@ public class ReturnResults implements IRichBolt {
         if(returnInfo!=null) {
             Map retMap = (Map) JSONValue.parse(returnInfo);
             final String host = (String) retMap.get("host");
-            final int port = (int) ((Long) retMap.get("port")).longValue();                                   
+            final int port = Utils.getInt(retMap.get("port"));
             String id = (String) retMap.get("id");
             DistributedRPC.Iface client;
             if(local) {

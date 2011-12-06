@@ -210,6 +210,7 @@ public class CoordinatedBolt implements IRichBolt {
                 track.receivedId = true;
             }
             checkFinish = true;
+            _collector.ack(tuple);
         } else if(_sourceArgs!=null
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
             int count = (Integer) tuple.getValue(1);
@@ -218,6 +219,7 @@ public class CoordinatedBolt implements IRichBolt {
                 track.expectedTupleCount+=count;
             }
             checkFinish = true;
+            _collector.ack(tuple);
         } else {            
             _delegate.execute(tuple);
         }

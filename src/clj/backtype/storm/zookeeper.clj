@@ -1,7 +1,7 @@
 (ns backtype.storm.zookeeper
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
-            Watcher$Event$EventType])
+            Watcher$Event$EventType KeeperException$NodeExistsException])
   (:import [org.apache.zookeeper.data Stat])
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxn$Factory])
   (:import [java.net InetSocketAddress])
@@ -66,7 +66,11 @@
   (let [path (normalize-path path)]
     (when-not (or (= path "/") (exists-node? zk path false))
       (mkdirs zk (parent-path path))
-      (create-node zk path (barr 7) :persistent)
+      (try
+        (create-node zk path (barr 7) :persistent)
+        (catch KeeperException$NodeExistsException e
+          ;; this can happen when multiple clients doing mkdir at same time
+          ))
       )))
 
 (defn get-data [^ZooKeeper zk ^String path watch?]

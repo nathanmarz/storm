@@ -51,9 +51,11 @@ public class SerializationFactory {
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);
         
-        //ensure always same order for registrations with TreeMap
-        Map<String, String> registrations = new TreeMap<String, String>((Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER));
+        Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
         if(registrations==null) registrations = new HashMap<String, String>();
+
+        //ensure always same order for registrations with TreeMap
+        registrations = new TreeMap<String, String>(registrations);
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
         for(String klassName: registrations.keySet()) {
             String serializerClassName = registrations.get(klassName);

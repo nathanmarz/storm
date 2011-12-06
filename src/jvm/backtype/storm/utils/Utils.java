@@ -195,4 +195,16 @@ public class Utils {
         }
         throw new IllegalArgumentException("Could not find component with id " + id);
     }
+    
+    public static Integer getInt(Object o) {
+        if(o instanceof Long) {
+            return ((Long) o ).intValue();
+        } else if (o instanceof Integer) {
+            return (Integer) o;
+        } else if (o instanceof Short) {
+            return ((Short) o).intValue();
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
+        }
+    }
 }

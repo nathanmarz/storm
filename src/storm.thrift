@@ -36,6 +36,7 @@ struct StreamInfo {
 }
 
 struct ShellComponent {
+  // should change this to 1: required list<string> execution_command;
   1: string execution_command;
   2: string script;
 }

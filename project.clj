@@ -23,6 +23,7 @@
                  [org.slf4j/slf4j-log4j12 "1.5.8"]
                  [storm/carbonite "1.0.0"]
                  [org.yaml/snakeyaml "1.9"]
+                 [org.apache.httpcomponents/httpclient "4.1.1"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [

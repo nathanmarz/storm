@@ -11,6 +11,13 @@
 
 (bootstrap)
 
+;; active -> check reassign every X seconds (or do so when something fails)
+;; inactive -> don't do anything
+;; rebalance -> sleep for X seconds and then
+;; what if a topology is killed while rebalancing? need to clear out its scheduled tasks.
+;; have another thread that every X seconds schedules rebalance for all active topologies
+
+
 (defmulti setup-jar cluster-mode)
 
 (defn file-cache-map [conf]
@@ -520,6 +527,7 @@
             ))))))
 
 (defserverfn service-handler [conf]
+  (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf)        
         cleanup-fn (mk-cleanup-fn nimbus)
         reassign-fn (mk-reassign-fn nimbus)

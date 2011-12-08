@@ -82,7 +82,8 @@
 ;; should guarantee this consistency
 ;; TODO: consider doing worker heartbeating rather than task heartbeating to reduce the load on zookeeper
 (defserverfn mk-worker [conf mq-context storm-id supervisor-id port worker-id]
-  (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id)
+  (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id
+               " and conf " conf)
   (let [active (atom true)
         storm-active-atom (atom false)
         cluster-state (cluster/mk-distributed-cluster-state conf)

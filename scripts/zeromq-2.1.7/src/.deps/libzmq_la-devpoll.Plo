@@ -1,3 +1,0 @@
-libzmq_la-devpoll.lo libzmq_la-devpoll.o: devpoll.cpp platform.hpp
-
-platform.hpp:

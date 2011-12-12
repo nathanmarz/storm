@@ -181,9 +181,8 @@ class ShellSpout:
                     elif (msg['command'] == 'fail'):
                         self.fail(tup)
                 
-        except Exception, e:
-            print e
-            #pass #log(traceback.format_exc(e))
+        except Exception, e:	
+			log(traceback.format_exc(e))
                 
     def ack(self, tup):
         pass

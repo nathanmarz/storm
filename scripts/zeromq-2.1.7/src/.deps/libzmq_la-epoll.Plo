@@ -1,3 +1,0 @@
-libzmq_la-epoll.lo libzmq_la-epoll.o: epoll.cpp platform.hpp
-
-platform.hpp:

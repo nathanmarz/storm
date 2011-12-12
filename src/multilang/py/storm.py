@@ -24,7 +24,15 @@ ANCHOR_TUPLE = None
 
 #reads lines and reconstructs newlines appropriately
 def readMsg():
-    return json_decode(readStringMsg())
+
+    msg = readStringMsg()
+    
+    try:
+        msg = json_decode(msg)
+    except:
+        pass
+        
+    return msg
 
 def sendToParent(s):
     print s
@@ -89,6 +97,11 @@ def initbolt():
     sendpid(heartbeatdir)
     return readenv()
 
+def initspout():
+    heartbeatdir = readStringMsg()
+    sendpid(heartbeatdir)
+    return readenv()
+    
 class Tuple:    
     def __init__(self, id, component, stream, task, values):
         self.id = id
@@ -141,8 +154,39 @@ class BasicBolt:
         except Exception, e:
             log(traceback.format_exc(e))
 
-class Spout:
-    pass
+class ShellSpout:
+    def initialize(self, stormconf, context):
+        pass
+    
+    def nextTuple(self):
+        pass
+    
+    def run(self):
+        conf, context = initspout()
+        self.initialize(conf, context)
+        
+        try:
+        
+            while True:
+                msg = readMsg()
 
+                if (msg == 'next'):
+                    self.nextTuple()
+                elif ('command' in msg):    
 
+                    tup = Tuple(msg["id"], msg["comp"], msg["stream"], msg["task"], msg["tuple"])
 
+                    if (msg['command'] == 'ack'):
+                        self.ack(tup)
+                    elif (msg['command'] == 'fail'):
+                        self.fail(tup)
+                
+        except Exception, e:
+            print e
+            #pass #log(traceback.format_exc(e))
+                
+    def ack(self, tup):
+        pass
+
+    def fail(self, fail):
+        pass

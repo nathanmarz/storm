@@ -6,6 +6,7 @@
   (:import [backtype.storm.utils Time Container ClojureTimerTask])
   (:import [java.util UUID])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
+  (:import [java.util.concurrent Semaphore])
   (:import [java.io File RandomAccessFile StringWriter PrintWriter])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
@@ -533,27 +534,63 @@
 (defn container-get [^Container container]
   (. container object))
 
-(defn mk-timer []
-  {:timer (Timer.) :scheduled (atom #{})})
+(defn to-millis [secs]
+  (* 1000 (long secs)))
 
-(defn scheduled? [timer id]
-  (contains? @(:scheduled timer) id))
+(defn- run-on-timer-thread [^Timer timer afn]
+  (let [wait-sem (Semaphore. 0)]
+    (.schedule timer
+               (ClojureTimerTask.
+                (fn []
+                  (afn)
+                  (.release wait-sem)))
+               (long 0))
+    (.acquire wait-sem)))
 
-(defn schedule [timer id delay afn]
-  (when (scheduled? timer id)
-    (throw (IllegalArgumentException. "Cannot schedule an already scheduled id")))
-  (let [wrapped (fn [] (afn) (swap! (:scheduled timer) disj id))]
-    (.schedule ^Timer (:timer timer)
-              delay
-              (ClojureTimerTask. wrapped))
-    (swap! (:scheduled timer) conj id)
-    ))
+(defnk mk-timer [:kill-fn (fn [& _] )]
+  (let [timer (Timer. true)
+        timer-thread (atom nil)]
+    (run-on-timer-thread timer
+                         #(reset! timer-thread (Thread/currentThread)))
+    {:timer timer
+     :kill-fn kill-fn
+     :timer-thread @timer-thread
+     :active-tasks (atom 0)}))
 
-(defn schedule-if-free [timer id delay afn]
-  (if-not (scheduled? timer id)
-    (schedule timer id delay afn)
-    ))
+(defn- wrap-timer-fn [timer afn task-decrease]
+  (fn []
+    (try
+      (when (Time/isSimulating)
+        ;; this is so we can see if the timer is waiting or not
+        (Time/sleep 1))
+      (afn)
+      (swap! (:active-tasks timer) - task-decrease)
+      (catch Throwable t
+        ((:kill-fn timer) t)
+        (throw t)
+        ))))
 
-;; need a map from "states" to the corresponding event transition (transition can include a delay)
-;; {:rebalance {:delay 10 :action (fn [] ... :active)}
-;; {(fn [] ...)}}
+(defn schedule [timer delay-secs afn]
+  (swap! (:active-tasks timer) inc)
+  (.schedule ^Timer (:timer timer)
+             (ClojureTimerTask. (wrap-timer-fn timer afn 1))
+             (to-millis delay-secs)
+             ))
+
+(defn schedule-recurring [timer delay-secs recur-secs afn]
+  (swap! (:active-tasks timer) inc)
+  (.schedule ^Timer (:timer timer)
+             (ClojureTimerTask. (wrap-timer-fn timer afn 0))
+             (to-millis delay-secs)
+             (to-millis recur-secs)
+             ))
+
+(defn cancel-timer [timer]
+  (run-on-timer-thread (:timer timer) #(.cancel (:timer timer))))
+
+(defn timer-waiting? [timer]
+  (or (= 0 @(:active-tasks timer))
+      (Time/isThreadWaiting (:timer-thread timer))))
+
+(defn throw-runtime [& strs]
+  (throw (RuntimeException. (apply str strs))))

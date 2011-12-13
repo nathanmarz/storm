@@ -31,7 +31,7 @@
    :uploaders (file-cache-map conf)
    :uptime (uptime-computer)
    :timer (mk-timer :kill-fn (fn [t]
-                               (log-error t "Error when processing event " r)
+                               (log-error t "Error when processing event")
                                (halt-process! 20 "Error when processing an event")
                                ))
    })
@@ -52,7 +52,7 @@
    (.update-storm! storm-cluster-state
                    storm-id
                    {:status status})
-   (log-message "Updated " storm-name " with status " status)
+   (log-message "Updated " storm-id " with status " status)
    ))
 
 (declare reassign-topology)

@@ -139,7 +139,7 @@
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
      (locking (:submit-lock nimbus)
-       (let [[event & event-args] (if (keyword? event) [event []] event)
+       (let [[event event-args] (if (keyword? event) [event []] event)
              status (topology-status nimbus storm-id)]
          (if status ; handles the case where event was scheduled but has been removed
            (let [get-event (fn [m e]
@@ -532,7 +532,7 @@
 (defn cleanup-storm-ids [conf storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
         error-ids (set (.task-error-storms storm-cluster-state))
-        assigned-ids (set (.active-storms storm-cluster-state nil))]
+        assigned-ids (set (.active-storms storm-cluster-state))]
     (set/difference (set/union heartbeat-ids error-ids) assigned-ids)
     ))
 

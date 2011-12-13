@@ -94,7 +94,6 @@
     ))
 
 ;; TODO:
-;; have another thread that every X seconds schedules rebalance for all active topologies
 ;; how does cleanup work?
 ;;  -- schedule zookeeper cleanup to be task timeout seconds in future
 ;;  -- cleanup code if its not active (check every minute)
@@ -120,7 +119,7 @@
                       (log-message "Killing topology: " storm-id)
                       (.remove-storm! (:storm-cluster-state nimbus)
                                       storm-id)
-                      'removed )
+                      nil)
             }
    :rebalancing {:monitor (fn [] (delay-event nimbus
                                               storm-id
@@ -159,10 +158,10 @@
                               (fn [] transition)
                               transition)
                  new-status (apply transition event-args)
-                 new-status (cond (nil? new-status) status
-                                  (keyword? new-status) {:type new-status}
-                                  true new-status)]
-             (when-not (= 'removed new-status)
+                 new-status (if (keyword? new-status)
+                              {:type new-status}
+                              new-status)]
+             (when new-status
                (set-topology-status! nimbus storm-id new-status)))))
        )))
 
@@ -321,15 +320,6 @@
       (FileUtils/readFileToByteArray
         (File. (master-stormcode-path stormroot))
         ))))
-
-
-(defn task-dead? [conf storm-cluster-state storm-id task-id]
-  (let [info (.task-heartbeat storm-cluster-state storm-id task-id)]
-    (or (not info)
-        ;; TODO: this is not correct... times could be different
-        (> (time-delta (:time-secs info))
-           (conf NIMBUS-TASK-TIMEOUT-SECS)))
-    ))
 
 ;; public so it can be mocked in tests
 (defn mk-task-component-assignments [conf storm-id]
@@ -542,17 +532,9 @@
 (defn cleanup-storm-ids [conf storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
         error-ids (set (.task-error-storms storm-cluster-state))
-        ;; TODO: should probably use storm-base to determine this?
-        assigned-ids (set (.assignments storm-cluster-state nil))
-        storm-ids (set/difference (set/union heartbeat-ids error-ids) assigned-ids)]
-    (filter
-      (fn [storm-id]
-        (every?
-          (partial task-dead? conf storm-cluster-state storm-id)
-          (.heartbeat-tasks storm-cluster-state storm-id)
-          ))
-      storm-ids
-      )))
+        assigned-ids (set (.active-storms storm-cluster-state nil))]
+    (set/difference (set/union heartbeat-ids error-ids) assigned-ids)
+    ))
 
 (defn validate-topology! [topology]
   (let [bolt-ids (keys (.get_bolts topology))
@@ -649,10 +631,10 @@
                          topology)
               storm-cluster-state (:storm-cluster-state nimbus)]
           (log-message "Received topology submission for " storm-name " with conf " storm-conf)
-          (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
-          ;; protects against multiple storms being submitted at once and cleanup thread killing storm in b/w
-          ;; assignment and starting the storm
+          ;; lock protects against multiple topologies being submitted at once and
+          ;; cleanup thread killing topology in b/w assignment and starting the topology
           (locking (:submit-lock nimbus)
+            (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
             (.setup-heartbeats! storm-cluster-state storm-id)
             (setup-storm-static conf storm-id storm-cluster-state)
             (mk-assignments conf storm-id storm-cluster-state
@@ -735,10 +717,6 @@
       (^StormTopology getTopology [this ^String id]
         (system-topology (read-storm-conf conf id) (read-storm-topology conf id)))
 
-
-      ;; TODO: finish refactoring to new structure      
-
-      
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               assigned (assigned-slots storm-cluster-state)

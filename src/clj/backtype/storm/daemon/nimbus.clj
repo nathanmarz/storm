@@ -139,7 +139,7 @@
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
      (locking (:submit-lock nimbus)
-       (let [[event event-args] (if (keyword? event) [event []] event)
+       (let [[event & event-args] (if (keyword? event) [event] event)
              status (topology-status nimbus storm-id)]
          (if status ; handles the case where event was scheduled but has been removed
            (let [get-event (fn [m e]
@@ -148,10 +148,10 @@
                                (when error-on-no-transition?
                                  (throw-runtime "No transition for event: " event
                                                 ", status: " status,
-                                                "storm-id: " storm-id)
+                                                " storm-id: " storm-id)
                                  )))
                  transition (-> (state-transitions nimbus storm-id status)
-                                (:type status)
+                                (get (:type status))
                                 (get-event event))
                  transition (if (or (nil? transition)
                                     (keyword? transition))

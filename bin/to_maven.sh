@@ -2,6 +2,7 @@
 
 RELEASE=`head -1 project.clj | awk '{print $3}' | sed -e 's/\"//' | sed -e 's/\"//'`
 
+rm -rf classes
 rm *jar
 rm *xml
 lein jar

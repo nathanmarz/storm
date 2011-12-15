@@ -146,6 +146,9 @@
       (is (nil? (.storm-base state storm-id nil)))
       (is (nil? (.assignment-info state storm-id nil)))
       (is (empty? (.task-storms state)))
+
+      ;; cleanup happens on monitoring thread
+      (advance-cluster-time cluster 11)
       (is (empty? (.heartbeat-storms state)))
       ;; TODO: check that code on nimbus was cleaned up locally...
 
@@ -156,21 +159,25 @@
       (is (not-nil? (.storm-base state storm-id nil)))
       (.killTopology (:nimbus cluster) "2test")
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
-      (advance-cluster-time cluster 11)
+      (advance-cluster-time cluster 5)
+      (is (= 1 (count (.task-storms state))))
+      (is (= 1 (count (.heartbeat-storms state))))
+      
+      (advance-cluster-time cluster 6)
       (is (nil? (.storm-base state storm-id nil)))
       (is (nil? (.assignment-info state storm-id nil)))
-
+      (advance-cluster-time cluster 11)
+      (is (= 0 (count (.task-storms state))))
+      (is (= 0 (count (.heartbeat-storms state))))
+      
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (advance-cluster-time cluster 1)
-      (.remove-storm-base! state storm-id3)
+      (.remove-storm! state storm-id3)
       (is (nil? (.storm-base state storm-id3 nil)))
-      (is (not-nil? (.assignment-info state storm-id3 nil)))
-      (is (= 1 (count (.task-storms state))))
-      (is (= 1 (count (.heartbeat-storms state))))
-
-      (advance-cluster-time cluster (+ 1 (conf NIMBUS-MONITOR-FREQ-SECS)))
       (is (nil? (.assignment-info state storm-id3 nil)))
+
+      (advance-cluster-time cluster 11)
       (is (= 0 (count (.task-storms state))))
       (is (= 0 (count (.heartbeat-storms state))))
 

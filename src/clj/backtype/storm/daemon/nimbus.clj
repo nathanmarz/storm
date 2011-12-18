@@ -425,9 +425,6 @@
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
 
-
-        ;; if scratch?, slots = existing slots + available-slots, reassign-ids = all-ids
-        ;; otherwise, do timeout stuff
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids

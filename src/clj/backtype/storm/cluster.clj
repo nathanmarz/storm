@@ -327,7 +327,6 @@
       (remove-storm! [this storm-id]
         (delete-node cluster-state (storm-task-root storm-id))
         (delete-node cluster-state (assignment-path storm-id))
-        ;; TODO: this might be a problem... originally this was the first thing
         (remove-storm-base! this storm-id))
 
       (report-task-error [this storm-id task-id error]

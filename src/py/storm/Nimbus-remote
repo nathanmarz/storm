@@ -26,6 +26,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void killTopologyWithOpts(string name, KillOptions options)'
   print '  void activate(string name)'
   print '  void deactivate(string name)'
+  print '  void rebalance(string name, RebalanceOptions options)'
   print '  string beginFileUpload()'
   print '  void uploadChunk(string location, string chunk)'
   print '  void finishFileUpload(string location)'
@@ -114,6 +115,12 @@ elif cmd == 'deactivate':
     print 'deactivate requires 1 args'
     sys.exit(1)
   pp.pprint(client.deactivate(args[0],))
+
+elif cmd == 'rebalance':
+  if len(args) != 2:
+    print 'rebalance requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.rebalance(args[0],eval(args[1]),))
 
 elif cmd == 'beginFileUpload':
   if len(args) != 0:

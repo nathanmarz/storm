@@ -31,7 +31,7 @@
                       InvalidTopologyException ClusterSummary TopologyInfo
                       TopologySummary TaskSummary TaskStats TaskSpecificStats
                       SpoutStats BoltStats ErrorInfo SupervisorSummary
-                      KillOptions JavaObject JavaObjectArg]))
+                      KillOptions RebalanceOptions JavaObject JavaObjectArg]))
       (import (quote [backtype.storm.daemon.common StormBase Assignment
                       TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
       (import (quote [backtype.storm.grouping CustomStreamGrouping]))

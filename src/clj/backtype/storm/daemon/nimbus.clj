@@ -137,7 +137,9 @@
      (locking (:submit-lock nimbus)
        (let [[event & event-args] (if (keyword? event) [event] event)
              status (topology-status nimbus storm-id)]
-         (if status ; handles the case where event was scheduled but has been removed
+         ;; handles the case where event was scheduled but topology has been removed
+         (if-not status
+           (log-message "Cannot apply event " event " to " storm-id " because topology no longer exists")
            (let [get-event (fn [m e]
                              (if (contains? m e)
                                (m e)
@@ -646,6 +648,14 @@
                          )]
           (transition-name! nimbus storm-name [:kill wait-amt] true)
           ))
+
+      (^void rebalance [this ^String storm-name ^RebalanceOptions options]
+        (check-storm-active! nimbus storm-name true)
+        (let [wait-amt (if (.is_set_wait_secs options)
+                         (.get_wait_secs options)                         
+                         )]
+          (transition-name! nimbus storm-name [:rebalance wait-amt] true)
+          ))      
 
       (activate [this storm-name]
         (transition-name! nimbus storm-name :activate true)

@@ -96,10 +96,16 @@
 (defn delete-recursive [^ZooKeeper zk ^String path]
   (let [path (normalize-path path)]
     (when (exists-node? zk path false)
-      (let [children (get-children zk path false)]
+      (let [children (try-cause (get-children zk path false)
+                                (catch KeeperException$NoNodeException e
+                                  []
+                                  ))]
         (doseq [c children]
           (delete-recursive zk (full-path path c)))
-        (delete-node zk path)
+        (try-cause (delete-node zk path)
+                   (catch KeeperException$NoNodeException e
+                                  nil
+                                  ))
         ))))
 
 (defn mk-inprocess-zookeeper [localdir port]

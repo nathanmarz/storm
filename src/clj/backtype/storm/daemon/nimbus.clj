@@ -93,10 +93,6 @@
     nil
     ))
 
-;; TODO:
-;; how does cleanup work?
-;;  -- schedule zookeeper cleanup to be task timeout seconds in future
-;;  -- cleanup code if its not active (check every minute)
 (defn state-transitions [nimbus storm-id status]
   {:active {:monitor (reassign-transition nimbus storm-id)
             :inactivate :inactive            
@@ -529,11 +525,19 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
+(defn code-ids [conf]
+  (-> conf
+      master-stormdist-root
+      read-dir-contents
+      set
+      ))
+
 (defn cleanup-storm-ids [conf storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
         error-ids (set (.task-error-storms storm-cluster-state))
+        code-ids (code-ids conf)
         assigned-ids (set (.active-storms storm-cluster-state))]
-    (set/difference (set/union heartbeat-ids error-ids) assigned-ids)
+    (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
     ))
 
 (defn validate-topology! [topology]
@@ -573,17 +577,6 @@
     (assoc storm-conf TOPOLOGY-KRYO-REGISTER sers)
     ))
 
-;; TODO: need to put this somewhere else
-;; TODO: removing code locally should be done separately (since topology that doesn't start will still have code)
-;;
-;; technically a supervisor could still think there's an assignment and try to d/l
-;; this will cause supervisor to go down and come back up... eventually it should sync
-;; (rmr (master-stormdist-root conf id))
-;;
-;; (.remove-storm! storm-cluster-state id)
-
-
-;; TODO: need to rethink this whole thing
 (defn do-cleanup [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
@@ -592,11 +585,11 @@
                            (cleanup-storm-ids conf storm-cluster-state))]
       (when-not (empty? to-cleanup-ids)
         (doseq [id to-cleanup-ids]
+          (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-task-errors! storm-cluster-state id)
-          (swap! (:task-heartbeats-cache nimbus) dissoc id)
-          )
-        (log-message "Cleaned up topology task heartbeats: " (pr-str to-cleanup-ids))
+          (rmr (master-stormdist-root conf id))
+          (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
 

@@ -77,8 +77,11 @@
     ret
     ))
 
-(defn master-stormdist-root [conf storm-id]
-  (str (master-local-dir conf) "/stormdist/" storm-id))
+(defn master-stormdist-root
+  ([conf]
+     (str (master-local-dir conf) "/stormdist"))
+  ([conf storm-id]
+     (str (master-stormdist-root conf) "/" storm-id)))
 
 (defn master-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))

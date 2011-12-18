@@ -1,9 +1,11 @@
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat])
+  (:import [org.apache.zookeeper KeeperException])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
   (:use [clojure.contrib.core :only [dissoc-in]])
   (:require [backtype.storm [zookeeper :as zk]])
+  
   )
 
 (defprotocol ClusterState
@@ -281,10 +283,18 @@
         (mkdirs cluster-state (taskbeat-storm-root storm-id)))
 
       (teardown-heartbeats! [this storm-id]
-        (delete-node cluster-state (taskbeat-storm-root storm-id)))
+        (try-cause
+         (delete-node cluster-state (taskbeat-storm-root storm-id))
+         (catch KeeperException e
+           (log-warn-error e "Could not teardown heartbeats for " storm-id)
+           )))
 
       (teardown-task-errors! [this storm-id]
-        (delete-node cluster-state (taskerror-storm-root storm-id)))
+        (try-cause
+         (delete-node cluster-state (taskerror-storm-root storm-id))         
+         (catch KeeperException e
+           (log-warn-error e "Could not teardown errors for " storm-id)
+           )))
 
       (supervisor-heartbeat! [this supervisor-id info]
         (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info))

@@ -7,6 +7,7 @@
   (:import [java.nio.channels Channels WritableByteChannel])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
+  (:use [clojure.contrib.def :only [defnk]])
   (:gen-class))
 
 (bootstrap)
@@ -420,22 +421,28 @@
 
 ;; public so it can be mocked out
 (defn compute-new-task->node+port [conf storm-id existing-assignment storm-cluster-state callback task-heartbeats-cache scratch?]
-  ;; TODO: implement scratch?
-  (let [available-slots (available-slots conf storm-cluster-state callback)
-        existing-assigned (reverse-map (:task->node+port existing-assignment))
+  (let [available-slots (available-slots conf storm-cluster-state callback)        
         storm-conf (read-storm-conf conf storm-id)
-
-        ;; if scratch?, slots = existing slots + available-slots
-        ;; otherwise, do timeout stuff
-        
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
-        alive-ids (set (alive-tasks conf storm-id storm-cluster-state
-                                    all-task-ids (:task->start-time-secs existing-assignment) task-heartbeats-cache))
+
+
+        ;; if scratch?, slots = existing slots + available-slots, reassign-ids = all-ids
+        ;; otherwise, do timeout stuff
+        existing-assigned (reverse-map (:task->node+port existing-assignment))
+        alive-ids (if scratch?
+                    all-task-ids
+                    (set (alive-tasks conf storm-id storm-cluster-state
+                                      all-task-ids (:task->start-time-secs existing-assignment)
+                                      task-heartbeats-cache)))
+        
         alive-assigned (filter-val (partial every? alive-ids) existing-assigned)
-        alive-node-ids (map first (keys alive-assigned))
+
         total-slots-to-use (min (storm-conf TOPOLOGY-WORKERS)
                                 (+ (count available-slots) (count alive-assigned)))
-        keep-assigned (keeper-slots alive-assigned (count all-task-ids) total-slots-to-use)
+        keep-assigned (if scratch?
+                        {}
+                        (keeper-slots alive-assigned (count all-task-ids) total-slots-to-use))
+        
         freed-slots (keys (apply dissoc alive-assigned (keys keep-assigned)))
         reassign-slots (take (- total-slots-to-use (count keep-assigned))
                              (sort-slots (concat available-slots freed-slots)))

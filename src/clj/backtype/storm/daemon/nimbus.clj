@@ -145,11 +145,13 @@
            (let [get-event (fn [m e]
                              (if (contains? m e)
                                (m e)
-                               (when error-on-no-transition?
-                                 (throw-runtime "No transition for event: " event
-                                                ", status: " status,
-                                                " storm-id: " storm-id)
-                                 )))
+                               (let [msg (str "No transition for event: " event
+                                              ", status: " status,
+                                              " storm-id: " storm-id)]
+                                 (if error-on-no-transition?
+                                   (throw-runtime msg)
+                                   (log-message msg)
+                                   ))))
                  transition (-> (state-transitions nimbus storm-id status)
                                 (get (:type status))
                                 (get-event event))

@@ -305,6 +305,11 @@
     (is (= dist (multi-set distribution)))
     ))
 
+(defn check-num-nodes [slot-tasks num-nodes]
+  (let [nodes (->> slot-tasks keys (map first) set)]
+    (is (= num-nodes (count nodes)))
+    ))
+
 (deftest test-reassign-squeezed-topology
   (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 1
     :daemon-conf {SUPERVISOR-ENABLE false
@@ -350,6 +355,44 @@
         (is (= (task->start t) (task->start2 t))))
       (doseq [t changed-tasks]
         (is (not= (task->start t) (task->start2 t))))
+      )))
+
+(deftest test-rebalance
+  (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 3
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
+                  TOPOLOGY-ACKERS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster)
+                             "test"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 60} topology)
+      (bind storm-id (get-storm-id state "test"))
+      (add-supervisor cluster :ports 3)
+      (add-supervisor cluster :ports 3)
+
+      (advance-cluster-time cluster 91)
+
+      (bind slot-tasks (slot-assignments cluster storm-id))
+      ;; check that all workers are on one machine
+      (check-distribution slot-tasks [1 1 1])
+      (check-num-nodes slot-tasks 1)
+      (.rebalance (:nimbus cluster) "test" (RebalanceOptions.))
+
+      (advance-cluster-time cluster 31)
+      (check-distribution slot-tasks [1 1 1])
+      (check-num-nodes slot-tasks 1)
+
+
+      (advance-cluster-time cluster 30)
+      (bind slot-tasks (slot-assignments cluster storm-id))
+      (check-distribution slot-tasks [1 1 1])
+      (check-num-nodes slot-tasks 3)
       )))
 
 (deftest test-no-overlapping-slots

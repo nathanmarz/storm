@@ -181,18 +181,19 @@
       (is (= 0 (count (.task-storms state))))
       (is (= 0 (count (.heartbeat-storms state))))
 
-      ;; test that it doesn't clean up heartbeats until all tasks have timed out
+      ;; this guarantees that monitor thread won't trigger for 10 more seconds
+      (advance-time-secs! 11)
+      (wait-until-cluster-waiting cluster)
+      
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (bind task-id (first (.task-ids state storm-id3)))
-      (do-task-heartbeat cluster storm-id task-id)
+      (do-task-heartbeat cluster storm-id3 task-id)
       (.killTopology (:nimbus cluster) "test3")
       (advance-cluster-time cluster 6)
       (is (= 0 (count (.task-storms state))))
       (is (= 1 (count (.heartbeat-storms state))))
-      (advance-cluster-time cluster 10)
-      (is (= 1 (count (.heartbeat-storms state))))
-      (advance-cluster-time cluster 30)
+      (advance-cluster-time cluster 5)
       (is (= 0 (count (.heartbeat-storms state))))
 
       ;; test kill with opts

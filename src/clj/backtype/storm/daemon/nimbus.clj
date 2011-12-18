@@ -95,6 +95,12 @@
     nil
     ))
 
+;; there's a minor problem where rebalancing is scheduled over and over until it finally happens
+;; can fix this by either:
+;; 1. detecting whether it's scheduled or not...
+;; 2. not using monitor event, but rather some sort of "on startup" event
+;; 3. generating a "rebalance id" and only rebalancing if current status has that id
+
 (defn state-transitions [nimbus storm-id status]
   {:active {:monitor (reassign-transition nimbus storm-id)
             :inactivate :inactive            
@@ -150,7 +156,7 @@
                                               " storm-id: " storm-id)]
                                  (if error-on-no-transition?
                                    (throw-runtime msg)
-                                   (log-message msg)
+                                   (do (log-message msg) nil)
                                    ))))
                  transition (-> (state-transitions nimbus storm-id status)
                                 (get (:type status))

@@ -25,13 +25,13 @@ import java.util.Map;
  * <pre>
  * TopologyBuilder builder = new TopologyBuilder();
  *
- * builder.setSpout(1, new TestWordSpout(true), 5);
- * builder.setSpout(2, new TestWordSpout(true), 3);
- * builder.setBolt(3, new TestWordCounter(), 3)
- *          .fieldsGrouping(1, new Fields("word"))
- *          .fieldsGrouping(2, new Fields("word"));
- * builder.setBolt(4, new TestGlobalCount())
- *          .globalGrouping(1);
+ * builder.setSpout("1", new TestWordSpout(true), 5);
+ * builder.setSpout("2", new TestWordSpout(true), 3);
+ * builder.setBolt("3", new TestWordCounter(), 3)
+ *          .fieldsGrouping("1", new Fields("word"))
+ *          .fieldsGrouping("2", new Fields("word"));
+ * builder.setBolt("4", new TestGlobalCount())
+ *          .globalGrouping("1");
  *
  * Map conf = new HashMap();
  * conf.put(Config.TOPOLOGY_WORKERS, 4);
@@ -46,13 +46,13 @@ import java.util.Map;
  * <pre>
  * TopologyBuilder builder = new TopologyBuilder();
  *
- * builder.setSpout(1, new TestWordSpout(true), 5);
- * builder.setSpout(2, new TestWordSpout(true), 3);
- * builder.setBolt(3, new TestWordCounter(), 3)
- *          .fieldsGrouping(1, new Fields("word"))
- *          .fieldsGrouping(2, new Fields("word"));
- * builder.setBolt(4, new TestGlobalCount())
- *          .globalGrouping(1);
+ * builder.setSpout("1", new TestWordSpout(true), 5);
+ * builder.setSpout("2", new TestWordSpout(true), 3);
+ * builder.setBolt("3", new TestWordCounter(), 3)
+ *          .fieldsGrouping("1", new Fields("word"))
+ *          .fieldsGrouping("2", new Fields("word"));
+ * builder.setBolt("4", new TestGlobalCount())
+ *          .globalGrouping("1");
  *
  * Map conf = new HashMap();
  * conf.put(Config.TOPOLOGY_WORKERS, 4);

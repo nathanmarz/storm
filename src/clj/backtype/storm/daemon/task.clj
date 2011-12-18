@@ -123,6 +123,7 @@
         task-stats (mk-task-stats task-object (sampling-rate storm-conf))
 
         report-error (fn [error]
+                       (log-error error)
                        (.report-task-error storm-cluster-state storm-id task-id error))
         
         report-error-and-die (fn [error]

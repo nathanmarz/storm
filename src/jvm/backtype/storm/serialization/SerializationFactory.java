@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 public class SerializationFactory {
@@ -41,6 +42,7 @@ public class SerializationFactory {
     public static ObjectBuffer getKryo(Map conf) {
         KryoSerializableDefault k = new KryoSerializableDefault();
         k.setRegistrationOptional((Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION));
+        k.register(byte[].class);
         k.register(ListDelegate.class);
         k.register(ArrayList.class);
         k.register(HashMap.class);
@@ -51,6 +53,9 @@ public class SerializationFactory {
         
         Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
         if(registrations==null) registrations = new HashMap<String, String>();
+
+        //ensure always same order for registrations with TreeMap
+        registrations = new TreeMap<String, String>(registrations);
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
         for(String klassName: registrations.keySet()) {
             String serializerClassName = registrations.get(klassName);

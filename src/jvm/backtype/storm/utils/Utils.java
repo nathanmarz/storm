@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.thrift7.TException;
-import org.jvyaml.YAML;
+import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
@@ -76,16 +76,6 @@ public class Utils {
         }
     }
 
-    public static Map readYamlConfig(String path) {
-        try {
-            Map ret = (Map) YAML.load(new FileReader(path));
-            if(ret==null) ret = new HashMap();
-            return new HashMap(ret);
-        } catch (FileNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
         try {
             Enumeration resources = Thread.currentThread().getContextClassLoader().getResources(name);
@@ -94,7 +84,8 @@ public class Utils {
                 else return new HashMap();
             }
             URL resource = (URL) resources.nextElement();
-            Map ret = (Map) YAML.load(new InputStreamReader(resource.openStream()));
+            Yaml yaml = new Yaml();
+            Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
             if(ret==null) ret = new HashMap();
             
             if(resources.hasMoreElements()) {
@@ -203,5 +194,17 @@ public class Utils {
             return topology.get_state_spouts().get(id).get_common();
         }
         throw new IllegalArgumentException("Could not find component with id " + id);
+    }
+    
+    public static Integer getInt(Object o) {
+        if(o instanceof Long) {
+            return ((Long) o ).intValue();
+        } else if (o instanceof Integer) {
+            return (Integer) o;
+        } else if (o instanceof Short) {
+            return ((Short) o).intValue();
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
+        }
     }
 }

@@ -9,9 +9,9 @@
 # ##### These may optionally be filled in:
 #    
 ## List of custom serializations
-# topology.serializations: 
-#     - "org.mycompany.MyObjectSerialization"
-#     - "org.mycompany.MyOtherObjectSerialization"
+# topology.kryo.register:
+#     - org.mycompany.MyType
+#     - org.mycompany.MyType2: org.mycompany.MyType2Serializer
 #
 ## Locations of the drpc servers
 # drpc.servers:

@@ -13,7 +13,7 @@ import org.apache.thrift7.transport.TTransport;
 public class NimbusClient {
     public static NimbusClient getConfiguredClient(Map conf) {
         String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
-        int nimbusPort = ((Long) conf.get(Config.NIMBUS_THRIFT_PORT)).intValue();
+        int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
         return new NimbusClient(nimbusHost, nimbusPort);
     }
 

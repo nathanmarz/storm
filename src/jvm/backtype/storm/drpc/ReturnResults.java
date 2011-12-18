@@ -9,15 +9,18 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.DRPCClient;
 import backtype.storm.utils.ServiceRegistry;
+import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 
 public class ReturnResults implements IRichBolt {
+    public static final Logger LOG = Logger.getLogger(ReturnResults.class);
     OutputCollector _collector;
     boolean local;
 
@@ -34,7 +37,7 @@ public class ReturnResults implements IRichBolt {
         if(returnInfo!=null) {
             Map retMap = (Map) JSONValue.parse(returnInfo);
             final String host = (String) retMap.get("host");
-            final int port = (int) ((Long) retMap.get("port")).longValue();                                   
+            final int port = Utils.getInt(retMap.get("port"));
             String id = (String) retMap.get("id");
             DistributedRPC.Iface client;
             if(local) {
@@ -55,6 +58,7 @@ public class ReturnResults implements IRichBolt {
                 client.result(id, result);
                 _collector.ack(input);
             } catch(TException e) {
+                LOG.error("Failed to return results to DRPC server", e);
                 _collector.fail(input);
             }
         }

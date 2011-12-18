@@ -17,7 +17,7 @@
       (import (quote [backtype.storm.daemon Shutdownable]))
       (require (quote [backtype.storm.messaging.loader :as msg-loader]))
       (require (quote [backtype.storm.messaging.protocol :as msg]))
-      (use (quote [backtype.storm config util log clojure]))
+      (use (quote [backtype.storm config util log clojure timer]))
       (use (quote [clojure.contrib.seq :only [find-first]]))
       (require (quote [backtype.storm [thrift :as thrift] [cluster :as cluster]
                                       [event :as event] [process-simulator :as psim]]))
@@ -31,7 +31,7 @@
                       InvalidTopologyException ClusterSummary TopologyInfo
                       TopologySummary TaskSummary TaskStats TaskSpecificStats
                       SpoutStats BoltStats ErrorInfo SupervisorSummary
-                      KillOptions JavaObject JavaObjectArg]))
+                      KillOptions RebalanceOptions JavaObject JavaObjectArg]))
       (import (quote [backtype.storm.daemon.common StormBase Assignment
                       TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
       (import (quote [backtype.storm.grouping CustomStreamGrouping]))

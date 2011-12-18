@@ -146,6 +146,9 @@
       (is (nil? (.storm-base state storm-id nil)))
       (is (nil? (.assignment-info state storm-id nil)))
       (is (empty? (.task-storms state)))
+
+      ;; cleanup happens on monitoring thread
+      (advance-cluster-time cluster 11)
       (is (empty? (.heartbeat-storms state)))
       ;; TODO: check that code on nimbus was cleaned up locally...
 
@@ -156,36 +159,41 @@
       (is (not-nil? (.storm-base state storm-id nil)))
       (.killTopology (:nimbus cluster) "2test")
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
-      (advance-cluster-time cluster 11)
+      (advance-cluster-time cluster 5)
+      (is (= 1 (count (.task-storms state))))
+      (is (= 1 (count (.heartbeat-storms state))))
+      
+      (advance-cluster-time cluster 6)
       (is (nil? (.storm-base state storm-id nil)))
       (is (nil? (.assignment-info state storm-id nil)))
-
+      (advance-cluster-time cluster 11)
+      (is (= 0 (count (.task-storms state))))
+      (is (= 0 (count (.heartbeat-storms state))))
+      
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (advance-cluster-time cluster 1)
-      (.remove-storm-base! state storm-id3)
+      (.remove-storm! state storm-id3)
       (is (nil? (.storm-base state storm-id3 nil)))
-      (is (not-nil? (.assignment-info state storm-id3 nil)))
-      (is (= 1 (count (.task-storms state))))
-      (is (= 1 (count (.heartbeat-storms state))))
-
-      (advance-cluster-time cluster (+ 1 (conf NIMBUS-MONITOR-FREQ-SECS)))
       (is (nil? (.assignment-info state storm-id3 nil)))
+
+      (advance-cluster-time cluster 11)
       (is (= 0 (count (.task-storms state))))
       (is (= 0 (count (.heartbeat-storms state))))
 
-      ;; test that it doesn't clean up heartbeats until all tasks have timed out
+      ;; this guarantees that monitor thread won't trigger for 10 more seconds
+      (advance-time-secs! 11)
+      (wait-until-cluster-waiting cluster)
+      
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (bind task-id (first (.task-ids state storm-id3)))
-      (do-task-heartbeat cluster storm-id task-id)
+      (do-task-heartbeat cluster storm-id3 task-id)
       (.killTopology (:nimbus cluster) "test3")
       (advance-cluster-time cluster 6)
       (is (= 0 (count (.task-storms state))))
       (is (= 1 (count (.heartbeat-storms state))))
-      (advance-cluster-time cluster 10)
-      (is (= 1 (count (.heartbeat-storms state))))
-      (advance-cluster-time cluster 30)
+      (advance-cluster-time cluster 5)
       (is (= 0 (count (.heartbeat-storms state))))
 
       ;; test kill with opts
@@ -297,6 +305,11 @@
     (is (= dist (multi-set distribution)))
     ))
 
+(defn check-num-nodes [slot-tasks num-nodes]
+  (let [nodes (->> slot-tasks keys (map first) set)]
+    (is (= num-nodes (count nodes)))
+    ))
+
 (deftest test-reassign-squeezed-topology
   (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 1
     :daemon-conf {SUPERVISOR-ENABLE false
@@ -342,6 +355,44 @@
         (is (= (task->start t) (task->start2 t))))
       (doseq [t changed-tasks]
         (is (not= (task->start t) (task->start2 t))))
+      )))
+
+(deftest test-rebalance
+  (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 3
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
+                  TOPOLOGY-ACKERS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster)
+                             "test"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 60} topology)
+      (bind storm-id (get-storm-id state "test"))
+      (add-supervisor cluster :ports 3)
+      (add-supervisor cluster :ports 3)
+
+      (advance-cluster-time cluster 91)
+
+      (bind slot-tasks (slot-assignments cluster storm-id))
+      ;; check that all workers are on one machine
+      (check-distribution slot-tasks [1 1 1])
+      (check-num-nodes slot-tasks 1)
+      (.rebalance (:nimbus cluster) "test" (RebalanceOptions.))
+
+      (advance-cluster-time cluster 31)
+      (check-distribution slot-tasks [1 1 1])
+      (check-num-nodes slot-tasks 1)
+
+
+      (advance-cluster-time cluster 30)
+      (bind slot-tasks (slot-assignments cluster storm-id))
+      (check-distribution slot-tasks [1 1 1])
+      (check-num-nodes slot-tasks 3)
       )))
 
 (deftest test-no-overlapping-slots

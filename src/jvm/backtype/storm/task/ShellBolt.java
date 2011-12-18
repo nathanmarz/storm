@@ -48,27 +48,24 @@ import org.json.simple.JSONValue;
  */
 public class ShellBolt implements IBolt {
     public static Logger LOG = Logger.getLogger(ShellBolt.class);
-
-    String _shellCommand;
-    String _codeResource;
     Process _subprocess;
     DataOutputStream _processin;
     BufferedReader _processout;
     OutputCollector _collector;
     Map<Long, Tuple> _inputs = new HashMap<Long, Tuple>();
-
+    String[] command;
+    
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
 
-    public ShellBolt(String shellCommand, String codeResource) {
-        _shellCommand = shellCommand;
-        _codeResource = codeResource;
+    public ShellBolt(String... command) {
+        this.command = command;
     }
 
     private String initializeSubprocess(TopologyContext context) {
         //can change this to launchSubprocess and have it return the pid (that the subprcess returns)
-        ProcessBuilder builder = new ProcessBuilder(_shellCommand, _codeResource);
+        ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(new File(context.getCodeDir()));
         try {
             _subprocess = builder.start();

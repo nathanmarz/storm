@@ -9,10 +9,11 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import java.util.Map;
 import java.util.Random;
+import backtype.storm.utils.Utils;
 
 
 public class PrepareRequest implements IBasicBolt {
-    public static final String ARGS_STREAM = "args";
+    public static final String ARGS_STREAM = Utils.DEFAULT_STREAM_ID;
     public static final String RETURN_STREAM = "ret";
     public static final String ID_STREAM = "id";
 

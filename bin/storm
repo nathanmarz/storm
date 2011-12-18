@@ -54,9 +54,9 @@ def print_localconfvalue(name):
 def print_remoteconfvalue(name):
   print name + ": " + confvalue(name, [STORM_DIR + "/conf"])
 
-def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[], prefix=""):
+def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
     nativepath = confvalue("java.library.path", extrajars)
-    command = prefix + " java " + jvmtype + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
+    command = "java " + jvmtype + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
     print "Running: " + command    
     os.system(command)
 
@@ -66,10 +66,19 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        prefix="export STORM_JAR=" + jarfile + ";")
+        childopts="-Dstorm.jar=" + jarfile)
 
 def kill(*args):
     exec_storm_class("backtype.storm.command.kill_topology", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+
+def activate(*args):
+    exec_storm_class("backtype.storm.command.activate", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+
+def deactivate(*args):
+    exec_storm_class("backtype.storm.command.deactivate", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+
+def rebalance(*args):
+    exec_storm_class("backtype.storm.command.rebalance", args=args, jvmtype="-client", extrajars=[CONF_DIR, STORM_DIR + "/bin"])
 
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
@@ -104,7 +113,10 @@ def drpc():
 def print_classpath():
   print get_classpath([])
 
-COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue, "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath}
+COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
+            "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
+            "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
+            "activate": activate, "deactivate": deactivate, "rebalance": rebalance}
 
 def print_commands():
     global COMMANDS

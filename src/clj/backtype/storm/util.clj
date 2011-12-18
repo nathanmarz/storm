@@ -3,15 +3,17 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time Container])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask])
   (:import [java.util UUID])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
+  (:import [java.util.concurrent Semaphore])
   (:import [java.io File RandomAccessFile StringWriter PrintWriter])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
+  (:import [java.util Timer])
   (:require [clojure.contrib [str-utils2 :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
@@ -193,9 +195,12 @@
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
-(defn launch-process [command]
+(defnk launch-process [command :environment {}]
   (let [command (seq (.split command " "))
-        builder (ProcessBuilder. (cons "nohup" command))]
+        builder (ProcessBuilder. (cons "nohup" command))
+        process-env (.environment builder)]
+    (doseq [[k v] environment]
+      (.put process-env k v))
     (.start builder)
     ))
 
@@ -528,3 +533,38 @@
 
 (defn container-get [^Container container]
   (. container object))
+
+(defn to-millis [secs]
+  (* 1000 (long secs)))
+
+(defn throw-runtime [& strs]
+  (throw (RuntimeException. (apply str strs))))
+
+(defn exception-cause? [klass ^Throwable t]
+  (->> (iterate #(.getCause ^Throwable %) t)
+       (take-while identity)
+       (some (partial instance? klass))
+       boolean))
+
+(defmacro forcat [[args aseq] & body]
+  `(mapcat (fn [~args]
+             ~@body)
+           ~aseq))
+
+(defmacro try-cause [& body]
+  (let [checker (fn [form]
+                  (or (not (sequential? form))
+                      (not= 'catch (first form))))
+        [code guards] (split-with checker body)
+        error-local (gensym "t")
+        guards (forcat [[_ klass local & guard-body] guards]
+                 `((exception-cause? ~klass ~error-local)
+                   (let [~local ~error-local]
+                     ~@guard-body
+                     )))
+        ]
+    `(try ~@code
+          (catch Throwable ~error-local
+            (cond ~@guards
+                  true (throw ~error-local)
+                  )))))

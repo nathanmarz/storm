@@ -163,6 +163,7 @@
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
 (defserverfn mk-supervisor [conf shared-context]
+  (log-message "Starting Supervisor with conf " conf)
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
   (let [active (atom true)
         uptime (uptime-computer)
@@ -376,7 +377,7 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        storm-id " " supervisor-id " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
-      (launch-process command)
+      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))
 
 ;; local implementation

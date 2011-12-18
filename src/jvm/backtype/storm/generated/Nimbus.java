@@ -31,6 +31,12 @@ public class Nimbus {
 
     public void killTopologyWithOpts(String name, KillOptions options) throws NotAliveException, org.apache.thrift7.TException;
 
+    public void activate(String name) throws NotAliveException, org.apache.thrift7.TException;
+
+    public void deactivate(String name) throws NotAliveException, org.apache.thrift7.TException;
+
+    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, org.apache.thrift7.TException;
+
     public String beginFileUpload() throws org.apache.thrift7.TException;
 
     public void uploadChunk(String location, ByteBuffer chunk) throws org.apache.thrift7.TException;
@@ -58,6 +64,12 @@ public class Nimbus {
     public void killTopology(String name, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.killTopology_call> resultHandler) throws org.apache.thrift7.TException;
 
     public void killTopologyWithOpts(String name, KillOptions options, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.killTopologyWithOpts_call> resultHandler) throws org.apache.thrift7.TException;
+
+    public void activate(String name, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.activate_call> resultHandler) throws org.apache.thrift7.TException;
+
+    public void deactivate(String name, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.deactivate_call> resultHandler) throws org.apache.thrift7.TException;
+
+    public void rebalance(String name, RebalanceOptions options, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.rebalance_call> resultHandler) throws org.apache.thrift7.TException;
 
     public void beginFileUpload(org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.beginFileUpload_call> resultHandler) throws org.apache.thrift7.TException;
 
@@ -169,6 +181,76 @@ public class Nimbus {
     {
       killTopologyWithOpts_result result = new killTopologyWithOpts_result();
       receiveBase(result, "killTopologyWithOpts");
+      if (result.e != null) {
+        throw result.e;
+      }
+      return;
+    }
+
+    public void activate(String name) throws NotAliveException, org.apache.thrift7.TException
+    {
+      send_activate(name);
+      recv_activate();
+    }
+
+    public void send_activate(String name) throws org.apache.thrift7.TException
+    {
+      activate_args args = new activate_args();
+      args.set_name(name);
+      sendBase("activate", args);
+    }
+
+    public void recv_activate() throws NotAliveException, org.apache.thrift7.TException
+    {
+      activate_result result = new activate_result();
+      receiveBase(result, "activate");
+      if (result.e != null) {
+        throw result.e;
+      }
+      return;
+    }
+
+    public void deactivate(String name) throws NotAliveException, org.apache.thrift7.TException
+    {
+      send_deactivate(name);
+      recv_deactivate();
+    }
+
+    public void send_deactivate(String name) throws org.apache.thrift7.TException
+    {
+      deactivate_args args = new deactivate_args();
+      args.set_name(name);
+      sendBase("deactivate", args);
+    }
+
+    public void recv_deactivate() throws NotAliveException, org.apache.thrift7.TException
+    {
+      deactivate_result result = new deactivate_result();
+      receiveBase(result, "deactivate");
+      if (result.e != null) {
+        throw result.e;
+      }
+      return;
+    }
+
+    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, org.apache.thrift7.TException
+    {
+      send_rebalance(name, options);
+      recv_rebalance();
+    }
+
+    public void send_rebalance(String name, RebalanceOptions options) throws org.apache.thrift7.TException
+    {
+      rebalance_args args = new rebalance_args();
+      args.set_name(name);
+      args.set_options(options);
+      sendBase("rebalance", args);
+    }
+
+    public void recv_rebalance() throws NotAliveException, org.apache.thrift7.TException
+    {
+      rebalance_result result = new rebalance_result();
+      receiveBase(result, "rebalance");
       if (result.e != null) {
         throw result.e;
       }
@@ -510,6 +592,105 @@ public class Nimbus {
       }
     }
 
+    public void activate(String name, org.apache.thrift7.async.AsyncMethodCallback<activate_call> resultHandler) throws org.apache.thrift7.TException {
+      checkReady();
+      activate_call method_call = new activate_call(name, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class activate_call extends org.apache.thrift7.async.TAsyncMethodCall {
+      private String name;
+      public activate_call(String name, org.apache.thrift7.async.AsyncMethodCallback<activate_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.name = name;
+      }
+
+      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
+        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("activate", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+        activate_args args = new activate_args();
+        args.set_name(name);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_activate();
+      }
+    }
+
+    public void deactivate(String name, org.apache.thrift7.async.AsyncMethodCallback<deactivate_call> resultHandler) throws org.apache.thrift7.TException {
+      checkReady();
+      deactivate_call method_call = new deactivate_call(name, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class deactivate_call extends org.apache.thrift7.async.TAsyncMethodCall {
+      private String name;
+      public deactivate_call(String name, org.apache.thrift7.async.AsyncMethodCallback<deactivate_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.name = name;
+      }
+
+      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
+        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("deactivate", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+        deactivate_args args = new deactivate_args();
+        args.set_name(name);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_deactivate();
+      }
+    }
+
+    public void rebalance(String name, RebalanceOptions options, org.apache.thrift7.async.AsyncMethodCallback<rebalance_call> resultHandler) throws org.apache.thrift7.TException {
+      checkReady();
+      rebalance_call method_call = new rebalance_call(name, options, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class rebalance_call extends org.apache.thrift7.async.TAsyncMethodCall {
+      private String name;
+      private RebalanceOptions options;
+      public rebalance_call(String name, RebalanceOptions options, org.apache.thrift7.async.AsyncMethodCallback<rebalance_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.name = name;
+        this.options = options;
+      }
+
+      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
+        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("rebalance", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+        rebalance_args args = new rebalance_args();
+        args.set_name(name);
+        args.set_options(options);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_rebalance();
+      }
+    }
+
     public void beginFileUpload(org.apache.thrift7.async.AsyncMethodCallback<beginFileUpload_call> resultHandler) throws org.apache.thrift7.TException {
       checkReady();
       beginFileUpload_call method_call = new beginFileUpload_call(resultHandler, this, ___protocolFactory, ___transport);
@@ -811,6 +992,9 @@ public class Nimbus {
       processMap.put("submitTopology", new submitTopology());
       processMap.put("killTopology", new killTopology());
       processMap.put("killTopologyWithOpts", new killTopologyWithOpts());
+      processMap.put("activate", new activate());
+      processMap.put("deactivate", new deactivate());
+      processMap.put("rebalance", new rebalance());
       processMap.put("beginFileUpload", new beginFileUpload());
       processMap.put("uploadChunk", new uploadChunk());
       processMap.put("finishFileUpload", new finishFileUpload());
@@ -878,6 +1062,66 @@ public class Nimbus {
         killTopologyWithOpts_result result = new killTopologyWithOpts_result();
         try {
           iface.killTopologyWithOpts(args.name, args.options);
+        } catch (NotAliveException e) {
+          result.e = e;
+        }
+        return result;
+      }
+    }
+
+    private static class activate<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, activate_args> {
+      public activate() {
+        super("activate");
+      }
+
+      protected activate_args getEmptyArgsInstance() {
+        return new activate_args();
+      }
+
+      protected activate_result getResult(I iface, activate_args args) throws org.apache.thrift7.TException {
+        activate_result result = new activate_result();
+        try {
+          iface.activate(args.name);
+        } catch (NotAliveException e) {
+          result.e = e;
+        }
+        return result;
+      }
+    }
+
+    private static class deactivate<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, deactivate_args> {
+      public deactivate() {
+        super("deactivate");
+      }
+
+      protected deactivate_args getEmptyArgsInstance() {
+        return new deactivate_args();
+      }
+
+      protected deactivate_result getResult(I iface, deactivate_args args) throws org.apache.thrift7.TException {
+        deactivate_result result = new deactivate_result();
+        try {
+          iface.deactivate(args.name);
+        } catch (NotAliveException e) {
+          result.e = e;
+        }
+        return result;
+      }
+    }
+
+    private static class rebalance<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, rebalance_args> {
+      public rebalance() {
+        super("rebalance");
+      }
+
+      protected rebalance_args getEmptyArgsInstance() {
+        return new rebalance_args();
+      }
+
+      protected rebalance_result getResult(I iface, rebalance_args args) throws org.apache.thrift7.TException {
+        rebalance_result result = new rebalance_result();
+        try {
+          iface.rebalance(args.name, args.options);
         } catch (NotAliveException e) {
           result.e = e;
         }
@@ -3281,6 +3525,1906 @@ public class Nimbus {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("killTopologyWithOpts_result(");
+      boolean first = true;
+
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class activate_args implements org.apache.thrift7.TBase<activate_args, activate_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("activate_args");
+
+    private static final org.apache.thrift7.protocol.TField NAME_FIELD_DESC = new org.apache.thrift7.protocol.TField("name", org.apache.thrift7.protocol.TType.STRING, (short)1);
+
+    private String name; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      NAME((short)1, "name");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // NAME
+            return NAME;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.NAME, new org.apache.thrift7.meta_data.FieldMetaData("name", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(activate_args.class, metaDataMap);
+    }
+
+    public activate_args() {
+    }
+
+    public activate_args(
+      String name)
+    {
+      this();
+      this.name = name;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public activate_args(activate_args other) {
+      if (other.is_set_name()) {
+        this.name = other.name;
+      }
+    }
+
+    public activate_args deepCopy() {
+      return new activate_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.name = null;
+    }
+
+    public String get_name() {
+      return this.name;
+    }
+
+    public void set_name(String name) {
+      this.name = name;
+    }
+
+    public void unset_name() {
+      this.name = null;
+    }
+
+    /** Returns true if field name is set (has been assigned a value) and false otherwise */
+    public boolean is_set_name() {
+      return this.name != null;
+    }
+
+    public void set_name_isSet(boolean value) {
+      if (!value) {
+        this.name = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case NAME:
+        if (value == null) {
+          unset_name();
+        } else {
+          set_name((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case NAME:
+        return get_name();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case NAME:
+        return is_set_name();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof activate_args)
+        return this.equals((activate_args)that);
+      return false;
+    }
+
+    public boolean equals(activate_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_name = true && this.is_set_name();
+      boolean that_present_name = true && that.is_set_name();
+      if (this_present_name || that_present_name) {
+        if (!(this_present_name && that_present_name))
+          return false;
+        if (!this.name.equals(that.name))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_name = true && (is_set_name());
+      builder.append(present_name);
+      if (present_name)
+        builder.append(name);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(activate_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      activate_args typedOther = (activate_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_name()).compareTo(typedOther.is_set_name());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_name()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.name, typedOther.name);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // NAME
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.name = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.name != null) {
+        oprot.writeFieldBegin(NAME_FIELD_DESC);
+        oprot.writeString(this.name);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("activate_args(");
+      boolean first = true;
+
+      sb.append("name:");
+      if (this.name == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.name);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class activate_result implements org.apache.thrift7.TBase<activate_result, activate_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("activate_result");
+
+    private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+
+    private NotAliveException e; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      E((short)1, "e");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // E
+            return E;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(activate_result.class, metaDataMap);
+    }
+
+    public activate_result() {
+    }
+
+    public activate_result(
+      NotAliveException e)
+    {
+      this();
+      this.e = e;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public activate_result(activate_result other) {
+      if (other.is_set_e()) {
+        this.e = new NotAliveException(other.e);
+      }
+    }
+
+    public activate_result deepCopy() {
+      return new activate_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.e = null;
+    }
+
+    public NotAliveException get_e() {
+      return this.e;
+    }
+
+    public void set_e(NotAliveException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((NotAliveException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case E:
+        return get_e();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case E:
+        return is_set_e();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof activate_result)
+        return this.equals((activate_result)that);
+      return false;
+    }
+
+    public boolean equals(activate_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_e = true && (is_set_e());
+      builder.append(present_e);
+      if (present_e)
+        builder.append(e);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(activate_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      activate_result typedOther = (activate_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(typedOther.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // E
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.e = new NotAliveException();
+              this.e.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_e()) {
+        oprot.writeFieldBegin(E_FIELD_DESC);
+        this.e.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("activate_result(");
+      boolean first = true;
+
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class deactivate_args implements org.apache.thrift7.TBase<deactivate_args, deactivate_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("deactivate_args");
+
+    private static final org.apache.thrift7.protocol.TField NAME_FIELD_DESC = new org.apache.thrift7.protocol.TField("name", org.apache.thrift7.protocol.TType.STRING, (short)1);
+
+    private String name; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      NAME((short)1, "name");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // NAME
+            return NAME;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.NAME, new org.apache.thrift7.meta_data.FieldMetaData("name", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(deactivate_args.class, metaDataMap);
+    }
+
+    public deactivate_args() {
+    }
+
+    public deactivate_args(
+      String name)
+    {
+      this();
+      this.name = name;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public deactivate_args(deactivate_args other) {
+      if (other.is_set_name()) {
+        this.name = other.name;
+      }
+    }
+
+    public deactivate_args deepCopy() {
+      return new deactivate_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.name = null;
+    }
+
+    public String get_name() {
+      return this.name;
+    }
+
+    public void set_name(String name) {
+      this.name = name;
+    }
+
+    public void unset_name() {
+      this.name = null;
+    }
+
+    /** Returns true if field name is set (has been assigned a value) and false otherwise */
+    public boolean is_set_name() {
+      return this.name != null;
+    }
+
+    public void set_name_isSet(boolean value) {
+      if (!value) {
+        this.name = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case NAME:
+        if (value == null) {
+          unset_name();
+        } else {
+          set_name((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case NAME:
+        return get_name();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case NAME:
+        return is_set_name();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof deactivate_args)
+        return this.equals((deactivate_args)that);
+      return false;
+    }
+
+    public boolean equals(deactivate_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_name = true && this.is_set_name();
+      boolean that_present_name = true && that.is_set_name();
+      if (this_present_name || that_present_name) {
+        if (!(this_present_name && that_present_name))
+          return false;
+        if (!this.name.equals(that.name))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_name = true && (is_set_name());
+      builder.append(present_name);
+      if (present_name)
+        builder.append(name);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(deactivate_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      deactivate_args typedOther = (deactivate_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_name()).compareTo(typedOther.is_set_name());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_name()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.name, typedOther.name);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // NAME
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.name = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.name != null) {
+        oprot.writeFieldBegin(NAME_FIELD_DESC);
+        oprot.writeString(this.name);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("deactivate_args(");
+      boolean first = true;
+
+      sb.append("name:");
+      if (this.name == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.name);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class deactivate_result implements org.apache.thrift7.TBase<deactivate_result, deactivate_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("deactivate_result");
+
+    private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+
+    private NotAliveException e; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      E((short)1, "e");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // E
+            return E;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(deactivate_result.class, metaDataMap);
+    }
+
+    public deactivate_result() {
+    }
+
+    public deactivate_result(
+      NotAliveException e)
+    {
+      this();
+      this.e = e;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public deactivate_result(deactivate_result other) {
+      if (other.is_set_e()) {
+        this.e = new NotAliveException(other.e);
+      }
+    }
+
+    public deactivate_result deepCopy() {
+      return new deactivate_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.e = null;
+    }
+
+    public NotAliveException get_e() {
+      return this.e;
+    }
+
+    public void set_e(NotAliveException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((NotAliveException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case E:
+        return get_e();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case E:
+        return is_set_e();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof deactivate_result)
+        return this.equals((deactivate_result)that);
+      return false;
+    }
+
+    public boolean equals(deactivate_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_e = true && (is_set_e());
+      builder.append(present_e);
+      if (present_e)
+        builder.append(e);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(deactivate_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      deactivate_result typedOther = (deactivate_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(typedOther.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // E
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.e = new NotAliveException();
+              this.e.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_e()) {
+        oprot.writeFieldBegin(E_FIELD_DESC);
+        this.e.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("deactivate_result(");
+      boolean first = true;
+
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class rebalance_args implements org.apache.thrift7.TBase<rebalance_args, rebalance_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("rebalance_args");
+
+    private static final org.apache.thrift7.protocol.TField NAME_FIELD_DESC = new org.apache.thrift7.protocol.TField("name", org.apache.thrift7.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift7.protocol.TField OPTIONS_FIELD_DESC = new org.apache.thrift7.protocol.TField("options", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+
+    private String name; // required
+    private RebalanceOptions options; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      NAME((short)1, "name"),
+      OPTIONS((short)2, "options");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // NAME
+            return NAME;
+          case 2: // OPTIONS
+            return OPTIONS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.NAME, new org.apache.thrift7.meta_data.FieldMetaData("name", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      tmpMap.put(_Fields.OPTIONS, new org.apache.thrift7.meta_data.FieldMetaData("options", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, RebalanceOptions.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(rebalance_args.class, metaDataMap);
+    }
+
+    public rebalance_args() {
+    }
+
+    public rebalance_args(
+      String name,
+      RebalanceOptions options)
+    {
+      this();
+      this.name = name;
+      this.options = options;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public rebalance_args(rebalance_args other) {
+      if (other.is_set_name()) {
+        this.name = other.name;
+      }
+      if (other.is_set_options()) {
+        this.options = new RebalanceOptions(other.options);
+      }
+    }
+
+    public rebalance_args deepCopy() {
+      return new rebalance_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.name = null;
+      this.options = null;
+    }
+
+    public String get_name() {
+      return this.name;
+    }
+
+    public void set_name(String name) {
+      this.name = name;
+    }
+
+    public void unset_name() {
+      this.name = null;
+    }
+
+    /** Returns true if field name is set (has been assigned a value) and false otherwise */
+    public boolean is_set_name() {
+      return this.name != null;
+    }
+
+    public void set_name_isSet(boolean value) {
+      if (!value) {
+        this.name = null;
+      }
+    }
+
+    public RebalanceOptions get_options() {
+      return this.options;
+    }
+
+    public void set_options(RebalanceOptions options) {
+      this.options = options;
+    }
+
+    public void unset_options() {
+      this.options = null;
+    }
+
+    /** Returns true if field options is set (has been assigned a value) and false otherwise */
+    public boolean is_set_options() {
+      return this.options != null;
+    }
+
+    public void set_options_isSet(boolean value) {
+      if (!value) {
+        this.options = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case NAME:
+        if (value == null) {
+          unset_name();
+        } else {
+          set_name((String)value);
+        }
+        break;
+
+      case OPTIONS:
+        if (value == null) {
+          unset_options();
+        } else {
+          set_options((RebalanceOptions)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case NAME:
+        return get_name();
+
+      case OPTIONS:
+        return get_options();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case NAME:
+        return is_set_name();
+      case OPTIONS:
+        return is_set_options();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof rebalance_args)
+        return this.equals((rebalance_args)that);
+      return false;
+    }
+
+    public boolean equals(rebalance_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_name = true && this.is_set_name();
+      boolean that_present_name = true && that.is_set_name();
+      if (this_present_name || that_present_name) {
+        if (!(this_present_name && that_present_name))
+          return false;
+        if (!this.name.equals(that.name))
+          return false;
+      }
+
+      boolean this_present_options = true && this.is_set_options();
+      boolean that_present_options = true && that.is_set_options();
+      if (this_present_options || that_present_options) {
+        if (!(this_present_options && that_present_options))
+          return false;
+        if (!this.options.equals(that.options))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_name = true && (is_set_name());
+      builder.append(present_name);
+      if (present_name)
+        builder.append(name);
+
+      boolean present_options = true && (is_set_options());
+      builder.append(present_options);
+      if (present_options)
+        builder.append(options);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(rebalance_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      rebalance_args typedOther = (rebalance_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_name()).compareTo(typedOther.is_set_name());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_name()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.name, typedOther.name);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_options()).compareTo(typedOther.is_set_options());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_options()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.options, typedOther.options);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // NAME
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.name = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // OPTIONS
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.options = new RebalanceOptions();
+              this.options.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.name != null) {
+        oprot.writeFieldBegin(NAME_FIELD_DESC);
+        oprot.writeString(this.name);
+        oprot.writeFieldEnd();
+      }
+      if (this.options != null) {
+        oprot.writeFieldBegin(OPTIONS_FIELD_DESC);
+        this.options.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("rebalance_args(");
+      boolean first = true;
+
+      sb.append("name:");
+      if (this.name == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.name);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("options:");
+      if (this.options == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.options);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class rebalance_result implements org.apache.thrift7.TBase<rebalance_result, rebalance_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("rebalance_result");
+
+    private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+
+    private NotAliveException e; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      E((short)1, "e");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // E
+            return E;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(rebalance_result.class, metaDataMap);
+    }
+
+    public rebalance_result() {
+    }
+
+    public rebalance_result(
+      NotAliveException e)
+    {
+      this();
+      this.e = e;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public rebalance_result(rebalance_result other) {
+      if (other.is_set_e()) {
+        this.e = new NotAliveException(other.e);
+      }
+    }
+
+    public rebalance_result deepCopy() {
+      return new rebalance_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.e = null;
+    }
+
+    public NotAliveException get_e() {
+      return this.e;
+    }
+
+    public void set_e(NotAliveException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((NotAliveException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case E:
+        return get_e();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case E:
+        return is_set_e();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof rebalance_result)
+        return this.equals((rebalance_result)that);
+      return false;
+    }
+
+    public boolean equals(rebalance_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_e = true && (is_set_e());
+      builder.append(present_e);
+      if (present_e)
+        builder.append(e);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(rebalance_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      rebalance_result typedOther = (rebalance_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(typedOther.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // E
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.e = new NotAliveException();
+              this.e.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_e()) {
+        oprot.writeFieldBegin(E_FIELD_DESC);
+        this.e.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("rebalance_result(");
       boolean first = true;
 
       sb.append("e:");

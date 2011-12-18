@@ -1,15 +1,15 @@
-(defproject storm "0.6.0"
+(defproject storm "0.6.1-SNAPSHOT"
   :source-path "src/clj"
   :test-path "test/clj"
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}
   :resources-path "conf"
   :dev-resources-path "src/dev"
+  :repositories {"sonatype" "http://oss.sonatype.org/content/groups/public/"}
   :dependencies [[org.clojure/clojure "1.2.0"]
                  [org.clojure/clojure-contrib "1.2.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-                 [jvyaml "1.0.0"]
                  [storm/libthrift7 "0.7.0"]
                  [clj-time "0.3.0"]
                  [log4j/log4j "1.2.16"]
@@ -22,6 +22,8 @@
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.slf4j/slf4j-log4j12 "1.5.8"]
                  [storm/carbonite "1.0.0"]
+                 [org.yaml/snakeyaml "1.9"]
+                 [org.apache.httpcomponents/httpclient "4.1.1"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [

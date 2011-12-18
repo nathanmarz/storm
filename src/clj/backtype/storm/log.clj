@@ -9,3 +9,6 @@
 
 (defmacro log-debug [& args]
   `(log/debug (str ~@args)))
+
+(defmacro log-warn-error [e & args]
+  `(log/warn (str ~@args) ~e))

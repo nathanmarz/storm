@@ -136,7 +136,7 @@
                  }})
 
 (defn topology-status [nimbus storm-id]
-  (:status (.storm-base (:storm-cluster-state nimbus) storm-id nil)))
+  (-> nimbus :storm-cluster-state (.storm-base storm-id nil) :status))
 
 (defn transition!
   ([nimbus storm-id event]

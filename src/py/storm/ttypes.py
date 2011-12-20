@@ -826,6 +826,98 @@ class SpoutSpec:
   def __ne__(self, other):
     return not (self == other)
 
+class TransactionalSpoutSpec:
+  """
+  Attributes:
+   - spout_object
+   - common
+   - distributed
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'spout_object', (ComponentObject, ComponentObject.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'common', (ComponentCommon, ComponentCommon.thrift_spec), None, ), # 2
+    (3, TType.BOOL, 'distributed', None, None, ), # 3
+  )
+
+  def __init__(self, spout_object=None, common=None, distributed=None,):
+    self.spout_object = spout_object
+    self.common = common
+    self.distributed = distributed
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.spout_object = ComponentObject()
+          self.spout_object.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.common = ComponentCommon()
+          self.common.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.BOOL:
+          self.distributed = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('TransactionalSpoutSpec')
+    if self.spout_object is not None:
+      oprot.writeFieldBegin('spout_object', TType.STRUCT, 1)
+      self.spout_object.write(oprot)
+      oprot.writeFieldEnd()
+    if self.common is not None:
+      oprot.writeFieldBegin('common', TType.STRUCT, 2)
+      self.common.write(oprot)
+      oprot.writeFieldEnd()
+    if self.distributed is not None:
+      oprot.writeFieldBegin('distributed', TType.BOOL, 3)
+      oprot.writeBool(self.distributed)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.spout_object is None:
+      raise TProtocol.TProtocolException(message='Required field spout_object is unset!')
+    if self.common is None:
+      raise TProtocol.TProtocolException(message='Required field common is unset!')
+    if self.distributed is None:
+      raise TProtocol.TProtocolException(message='Required field distributed is unset!')
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class GlobalStreamId:
   """
   Attributes:

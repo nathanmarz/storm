@@ -58,6 +58,12 @@ struct SpoutSpec {
   3: required bool distributed;
 }
 
+struct TransactionalSpoutSpec {
+  1: required ComponentObject spout_object;
+  2: required ComponentCommon common;
+  3: required bool distributed;
+}
+
 struct GlobalStreamId {
   1: required string componentId;
   2: required string streamId;

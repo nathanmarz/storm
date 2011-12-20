@@ -312,6 +312,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
 
+    /**
+     * The number of transactions that can be active at once from a TransactionalSpout.
+     * Transactions are always committed in the order they appear, but allowing multiple
+     * transactions to be open at once lets you pipeline the transactions and make
+     * more efficient use of the resources at hand.
+     */
+    public static String TOPOLOGY_MAX_TRANSACTIONS_PENDING = "topology.max.transactions.pending";
 
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests

@@ -1,4 +1,7 @@
 (ns backtype.storm.zookeeper
+  (:import [com.netflix.curator.retry RetryNTimes])
+  (:import [com.netflix.curator.framework.api CuratorEvent CuratorListener])
+  (:import [com.netflix.curator.framework CuratorFramework CuratorFrameworkFactory])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])
@@ -27,15 +30,20 @@
 ;; TODO: make this block until session is established (wait until a flag is triggered by watcher)
 (defn mk-client
   ([conn-str session-timeout watcher]
-    (ZooKeeper.
-      conn-str
-      session-timeout
-      (reify Watcher
-        (^void process [this ^WatchedEvent event]
-          (watcher (zk-keeper-states (.getState event))
-                   (zk-event-types (.getType event))
-                   (.getPath event))
-          ))))
+    (let [fk (CuratorFrameworkFactory/newClient
+               conn-str
+               session-timeout
+               10000
+               ;;TODO: make retry times could be configured.
+               (RetryNTimes. 5 1000))]   
+      (.. fk (getCuratorListenable) (addListener (reify CuratorListener
+                                                   (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
+                                                                        (let [^WatchedEvent event (.getWatchedEvent e)]
+                                                                          (watcher (zk-keeper-states (.getState event))
+                                                                                   (zk-event-types (.getType event))
+                                                                                   (.getPath event)))))))
+      (.start fk)                                                                               
+      fk))
   ([conn-str watcher]
     (mk-client conn-str 10000 watcher))
   ([conn-str]
@@ -51,18 +59,21 @@
    :persistent CreateMode/PERSISTENT})
 
 (defn create-node
-  ([^ZooKeeper zk ^String path ^bytes data mode]
-    (.create zk (normalize-path path) data ZooDefs$Ids/OPEN_ACL_UNSAFE (zk-create-modes mode)))
-  ([^ZooKeeper zk ^String path ^bytes data]
+  ([^CuratorFramework zk ^String path ^bytes data mode]
+    (.. zk (create) (withMode (zk-create-modes mode)) (withACL ZooDefs$Ids/OPEN_ACL_UNSAFE) (forPath (normalize-path path) data)))
+  ([^CuratorFramework zk ^String path ^bytes data]
     (create-node zk path data :persistent)))
 
-(defn exists-node? [^ZooKeeper zk ^String path watch?]
-  ((complement nil?) (.exists zk (normalize-path path) watch?)))
+(defn exists-node? [^CuratorFramework zk ^String path watch?]
+  ((complement nil?)
+    (if watch?
+       (.. zk (checkExists) (watched) (forPath (normalize-path path))) 
+       (.. zk (checkExists) (forPath (normalize-path path))))))
 
-(defn delete-node [^ZooKeeper zk ^String path]
-  (.delete zk (normalize-path path) -1))
+(defn delete-node [^CuratorFramework zk ^String path]
+  (.. zk (delete) (forPath (normalize-path path))))
 
-(defn mkdirs [^ZooKeeper zk ^String path]
+(defn mkdirs [^CuratorFramework zk ^String path]
   (let [path (normalize-path path)]
     (when-not (or (= path "/") (exists-node? zk path false))
       (mkdirs zk (parent-path path))
@@ -73,27 +84,29 @@
           ))
       )))
 
-(defn get-data [^ZooKeeper zk ^String path watch?]
+(defn get-data [^CuratorFramework zk ^String path watch?]
   (let [path (normalize-path path)]
     (try
-      (if (.exists zk path watch?)
-        (.getData zk path watch? (Stat.)))
+      (if (exists-node? zk path watch?)
+        (if watch?
+          (.. zk (getData) (watched) (forPath path))
+          (.. zk (getData) (forPath path))))
     (catch KeeperException$NoNodeException e
       ;; this is fine b/c we still have a watch from the successful exists call
       nil ))))
 
-(defn get-children [^ZooKeeper zk ^String path watch?]
-  (.getChildren zk (normalize-path path) watch?)
-  )
+(defn get-children [^CuratorFramework zk ^String path watch?]
+  (if watch?
+    (.. zk (getChildren) (watched) (forPath (normalize-path path)))
+    (.. zk (getChildren) (forPath (normalize-path path)))))
 
-(defn set-data [^ZooKeeper zk ^String path ^bytes data]
-  (.setData zk (normalize-path path) data -1))
+(defn set-data [^CuratorFramework zk ^String path ^bytes data]
+  (.. zk (setData) (forPath (normalize-path path) data)))
 
-(defn exists [^ZooKeeper zk ^String path watch?]
-  (.exists zk (normalize-path path) watch?)
-  )
+(defn exists [^CuratorFramework zk ^String path watch?]
+  (exists-node? zk path watch?))
 
-(defn delete-recursive [^ZooKeeper zk ^String path]
+(defn delete-recursive [^CuratorFramework zk ^String path]
   (let [path (normalize-path path)]
     (when (exists-node? zk path false)
       (let [children (try-cause (get-children zk path false)

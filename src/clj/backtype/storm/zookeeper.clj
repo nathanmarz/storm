@@ -33,7 +33,7 @@
     (let [fk (CuratorFrameworkFactory/newClient
                conn-str
                session-timeout
-               10000
+               15000
                ;;TODO: make retry times could be configured.
                (RetryNTimes. 5 1000))]   
       (.. fk (getCuratorListenable) (addListener (reify CuratorListener

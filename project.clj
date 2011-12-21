@@ -13,7 +13,7 @@
                  [storm/libthrift7 "0.7.0"]
                  [clj-time "0.3.0"]
                  [log4j/log4j "1.2.16"]
-                 [org.apache.zookeeper/zookeeper "3.3.2"]
+                 [com.netflix.curator/curator-framework "0.6.4"]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
                  [com.googlecode/kryo "1.04"]

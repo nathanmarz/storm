@@ -226,8 +226,6 @@
     (add-acker! (storm-conf TOPOLOGY-ACKERS) ret)
     (add-system-streams! ret)
     (add-transaction-streams! storm-conf ret)
-    ;; TODO: need to set up streams/inputs for transactional spout
-    ;; TODO: need to set up streams/inputs for transactional bolts
     (validate-structure! ret)
     ret
     ))

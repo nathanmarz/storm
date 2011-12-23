@@ -34,7 +34,9 @@ public class TransactionalBoltExecutor implements IBolt {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         if(!_openTransactions.containsKey(attempt)) {
             // TODO: might need to optimize this with a factory
-            _openTransactions.put(attempt, (ITransactionalBolt) Utils.deserialize(_boltSer));
+            ITransactionalBolt bolt = (ITransactionalBolt) Utils.deserialize(_boltSer);
+            bolt.prepare(_conf, _context, attempt.getTransactionId());
+            _openTransactions.put(attempt, bolt);
         }
         ITransactionalBolt bolt = _openTransactions.get(attempt);
         if(bolt!=null) {

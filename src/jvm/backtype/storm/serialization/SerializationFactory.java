@@ -3,6 +3,7 @@ package backtype.storm.serialization;
 import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.utils.ListDelegate;
 import backtype.storm.utils.Utils;
 import carbonite.JavaBridge;
@@ -47,6 +48,7 @@ public class SerializationFactory {
         k.register(ArrayList.class);
         k.register(HashMap.class);
         k.register(HashSet.class);
+        k.register(TransactionAttempt.class);
         JavaBridge clojureSerializersBridge = new JavaBridge();
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);

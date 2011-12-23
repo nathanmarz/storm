@@ -5,6 +5,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class JoinResult implements IRichBolt {
             Tuple result = results.remove(requestId);
             Tuple returner = returns.remove(requestId);
             LOG.debug(result.getValue(1).toString());
-            List<Tuple> anchors = new ArrayList<Tuple>();
+            List<IAnchorable> anchors = new ArrayList<IAnchorable>();
             anchors.add(result);
             anchors.add(returner);            
             _collector.emit(anchors, new Values(""+result.getValue(1), returner.getValue(1)));

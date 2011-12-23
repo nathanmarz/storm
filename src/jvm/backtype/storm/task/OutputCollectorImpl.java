@@ -1,5 +1,6 @@
 package backtype.storm.task;
 
+import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import java.util.ArrayList;
@@ -24,27 +25,27 @@ import java.util.Map;
 public class OutputCollectorImpl extends OutputCollector {
     private TopologyContext _context;
     private IInternalOutputCollector _collector;
-    private Map<Tuple, List<Long>> _pendingAcks = new ConcurrentHashMap<Tuple, List<Long>>();
+    private Map<IAnchorable, List<Long>> _pendingAcks = new ConcurrentHashMap<IAnchorable, List<Long>>();
     
     public OutputCollectorImpl(TopologyContext context, IInternalOutputCollector collector) {
         _context = context;
         _collector = collector;
     }
     
-    public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
+    public List<Integer> emit(String streamId, Collection<IAnchorable> anchors, List<Object> tuple) {
         return _collector.emit(anchorTuple(anchors, streamId, tuple));
     }
     
-    public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
+    public void emitDirect(int taskId, String streamId, Collection<IAnchorable> anchors, List<Object> tuple) {
         _collector.emitDirect(taskId, anchorTuple(anchors, streamId, tuple));
     }
 
-    private Tuple anchorTuple(Collection<Tuple> anchors, String streamId, List<Object> tuple) {
+    private Tuple anchorTuple(Collection<IAnchorable> anchors, String streamId, List<Object> tuple) {
         // The simple algorithm in this function is the key to Storm. It is
         // what enables Storm to guarantee message processing.
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
         if(anchors!=null) {
-            for(Tuple anchor: anchors) {
+            for(IAnchorable anchor: anchors) {
                 long newId = MessageId.generateId();
                 getExistingOutput(anchor).add(newId);
                 for(long root: anchor.getMessageId().getAnchorsToIds().keySet()) {
@@ -73,7 +74,7 @@ public class OutputCollectorImpl extends OutputCollector {
     }
 
     
-    private List<Long> getExistingOutput(Tuple anchor) {
+    private List<Long> getExistingOutput(IAnchorable anchor) {
         if(_pendingAcks.containsKey(anchor)) {
             return _pendingAcks.get(anchor);
         } else {

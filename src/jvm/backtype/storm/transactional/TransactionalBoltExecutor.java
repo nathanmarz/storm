@@ -1,16 +1,18 @@
 package backtype.storm.transactional;
 
+import backtype.storm.Config;
+import backtype.storm.Constants;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.TimeCacheMap;
 import backtype.storm.utils.Utils;
-import java.util.HashMap;
 import java.util.Map;
 
 public class TransactionalBoltExecutor implements IBolt {
     byte[] _boltSer;
-    Map<Long, Map<TransactionAttempt, ITransactionalBolt>> openTransactions = new HashMap<Long, Map<TransactionAttempt, ITransactionalBolt>>();
+    TimeCacheMap<TransactionAttempt, ITransactionalBolt> _openTransactions;
     Map _conf;
     TopologyContext _context;
     OutputCollector _collector;
@@ -24,21 +26,28 @@ public class TransactionalBoltExecutor implements IBolt {
         _conf = conf;
         _context = context;
         _collector = collector;
+        _openTransactions = new TimeCacheMap<TransactionAttempt, ITransactionalBolt>(Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
     }
 
     @Override
-    public void execute(Tuple input) {        
-        // check if it's a commit tuple... and wrap in a transaction tuple and call commit
-        // // input.getSourceComponent() is from a transaction spout
-        // otherwise, get the transaction id from the first field and pass it along (creating 
-        // transactionbolt if necessary
-        // ITransactionalBolt bolt = Utils.deserialize(_boltSer);
-        // acking the transaction tuple is the "OK to commit message the spout needs!!!"
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void execute(Tuple input) {
+        TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
+        if(!_openTransactions.containsKey(attempt)) {
+            // TODO: might need to optimize this with a factory
+            _openTransactions.put(attempt, (ITransactionalBolt) Utils.deserialize(_boltSer));
+        }
+        ITransactionalBolt bolt = _openTransactions.get(attempt);
+        if(bolt!=null) {
+            if(input.getSourceStreamId().equals(Constants.TRANSACTION_COMMIT_STREAM_ID)) {
+                bolt.commit(new TransactionTuple(input), _collector);
+            } else {
+                bolt.execute(input);
+            }
+        }
+        _collector.ack(input);
     }
 
     @Override
     public void cleanup() {
-        openTransactions.clear();
     }    
 }

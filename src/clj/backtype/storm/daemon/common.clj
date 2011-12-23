@@ -4,6 +4,7 @@
   (:import [backtype.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm Constants])
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
   )
@@ -18,8 +19,8 @@
 
 (def SYSTEM-STREAM-ID "__system")
 
-(def TRANSACTION-BATCH-STREAM-ID "__txbatch")
-(def TRANSACTION-COMMIT-STREAM-ID "__txcommit")
+(def TRANSACTION-BATCH-STREAM-ID Constants/TRANSACTION_BATCH_STREAM_ID)
+(def TRANSACTION-COMMIT-STREAM-ID Constants/TRANSACTION_COMMIT_STREAM_ID)
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment

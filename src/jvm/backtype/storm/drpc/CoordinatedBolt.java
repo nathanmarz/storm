@@ -141,7 +141,7 @@ public class CoordinatedBolt implements IRichBolt {
     }
 
     public void prepare(Map config, TopologyContext context, OutputCollector collector) {
-        _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.toInteger(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+        _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.getInt(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
         _collector = collector;
         _delegate.prepare(config, context, new CoordinatedOutputCollector(collector));
         for(String component: Utils.get(context.getThisTargets(),

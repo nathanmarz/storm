@@ -101,6 +101,26 @@
                (read-tuples results "4")))
         ))))
 
+(defbolt identity-bolt ["num"]
+  [tuple collector]
+  (emit-bolt! collector (.getValues tuple) :anchor tuple)
+  (ack! collector tuple))
+
+(deftest test-system-stream
+  ;; this test works because mocking a spout splits up the tuples evenly among the tasks
+  (with-simulated-time-local-cluster [cluster]
+      (let [topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestWordSpout. true) :p 3)}
+                      {"2" (thrift/mk-bolt-spec {"1" ["word"] ["1" "__system"] :global} identity-bolt :p 1)
+                       })
+            results (complete-topology cluster
+                                       topology
+                                       :mock-sources {"1" [["a"] ["b"] ["c"]]}
+                                       :storm-conf {TOPOLOGY-WORKERS 2})]
+        (is (ms= [["a"] ["b"] ["c"] ["startup"] ["startup"] ["startup"]]
+                 (read-tuples results "2")))
+        )))
+
 (deftest test-shuffle
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [topology (thrift/mk-topology
@@ -217,11 +237,6 @@
 
 (defbolt ack-bolt {}
   [tuple collector]
-  (ack! collector tuple))
-
-(defbolt identity-bolt ["num"]
-  [tuple collector]
-  (emit-bolt! collector (.getValues tuple) :anchor tuple)
   (ack! collector tuple))
 
 (deftest test-acking

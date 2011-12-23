@@ -97,16 +97,6 @@
         (halt-process! 13 "Error on initialization")
         )))))
 
-
-;; lets spouts subscribe to streams of other components, includes all implicit relationships... there should be no special cases for ackers, spouts, direct groupings, etc.
-;;   - everything has input streams
-;;   - output stream declarations
-;;   - the component object
-;;   - normalized parallelism
-;;   - just a single map from id -> stuff
-
-;; need to generalize acking so that it can be used by multiple kinds of spout implementations
-
 (defn- validate-ids! [^StormTopology topology]
   (let [sets (map #(.getFieldValue topology %) thrift/STORM-TOPOLOGY-FIELDS)
         offending (apply any-intersection sets)]

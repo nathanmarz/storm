@@ -177,7 +177,7 @@
         sync-processes (fn []
                          (let [assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
                                allocated (read-allocated-workers conf local-state assigned-tasks)
-                               keepers (filter-map-val
+                               keepers (filter-val
                                         (fn [[state _]] (= state :valid))
                                         allocated)
                                keep-ports (set (for [[id [_ hb]] keepers] (:port hb)))
@@ -387,7 +387,7 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
-            ;; should detect if it was run with "storm jar" and copy or extract appropriately
+            ;; TODO: should detect if it was run with "storm jar" and copy or extract appropriately
             url (.getResource classloader RESOURCES-SUBDIR)
             target-dir (str stormroot "/" RESOURCES-SUBDIR)]
             (when url

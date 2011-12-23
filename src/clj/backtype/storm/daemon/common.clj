@@ -1,14 +1,15 @@
 (ns backtype.storm.daemon.common
   (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [backtype.storm log config util])
-  (:import [backtype.storm.generated StormTopology])
+  (:import [backtype.storm.generated StormTopology
+            InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
   )
 
-(defn system-component? [id]
-  (Utils/isSystemComponent id))
+(defn system-id? [id]
+  (Utils/isSystemId id))
 
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
@@ -94,23 +95,72 @@
         (halt-process! 13 "Error on initialization")
         )))))
 
-(defn system-topology [storm-conf ^StormTopology topology]
-  (let [ret (.deepCopy topology)
-        bolt-ids (.. ret get_bolts keySet)
-        spout-ids (.. ret get_spouts keySet)
+
+;; lets spouts subscribe to streams of other components, includes all implicit relationships... there should be no special cases for ackers, spouts, direct groupings, etc.
+;;   - everything has input streams
+;;   - output stream declarations
+;;   - the component object
+;;   - normalized parallelism
+;;   - just a single map from id -> stuff
+
+;; need to generalize acking so that it can be used by multiple kinds of spout implementations
+
+(defn- validate-ids! [^StormTopology topology]
+  (let [sets (map #(.getFieldValue topology %) thrift/STORM-TOPOLOGY-FIELDS)
+        offending (apply any-intersection sets)]
+    (if-not (empty? offending)
+      (throw (InvalidTopologyException.
+              (str "Duplicate component ids: " offending))))
+    (doseq [f thrift/STORM-TOPOLOGY-FIELDS
+            :let [obj-map (.getFieldValue topology f)]]
+      (doseq [id (keys obj-map)]
+        (if (system-id? id)
+          (throw (InvalidTopologyException.
+                  (str id " is not a valid component id")))))
+      (doseq [obj (vals obj-map)
+              id (-> obj .get_common .get_streams keys)]
+        (if (system-id? id)
+          (throw (InvalidTopologyException.
+                  (str id " is not a valid stream id"))))))
+    ))
+
+(defn validate-basic! [^StormTopology topology]
+  (validate-ids! topology)
+  (doseq [f thrift/SPOUT-FIELDS
+          obj (->> f (.getFieldValue topology) vals)]
+    (if-not (empty? (-> obj .get_common .get_inputs))
+      (throw (InvalidTopologyException. "May not declare inputs for a spout"))
+      )))
+
+(defn validate-structure! [^StormTopology topology]
+  ;; TODO: validate that all subscriptions are to valid component/streams
+  )
+
+(defn acker-inputs [^StormTopology topology]
+  (let [bolt-ids (.. topology get_bolts keySet)
+        spout-ids (.. topology get_spouts keySet)
         spout-inputs (apply merge
-                        (for [id spout-ids]
-                          {[id ACKER-INIT-STREAM-ID] ["id"]
-                           [id ACKER-ACK-STREAM-ID] ["id"]}
-                          ))
+                            (for [id spout-ids]
+                              {[id ACKER-INIT-STREAM-ID] ["id"]
+                               [id ACKER-ACK-STREAM-ID] ["id"]}
+                              ))
         bolt-inputs (apply merge
-                      (for [id bolt-ids]
-                        {[id ACKER-ACK-STREAM-ID] ["id"]
-                         [id ACKER-FAIL-STREAM-ID] ["id"]}
-                        ))
-        acker-bolt (thrift/mk-bolt-spec (merge spout-inputs bolt-inputs)
-                                        (new backtype.storm.daemon.acker)
-                                        :p (storm-conf TOPOLOGY-ACKERS))]
+                           (for [id bolt-ids]
+                             {[id ACKER-ACK-STREAM-ID] ["id"]
+                              [id ACKER-FAIL-STREAM-ID] ["id"]}
+                             ))]
+    (merge spout-inputs bolt-inputs)))
+
+
+(defn system-topology! [storm-conf ^StormTopology topology]
+  (validate-basic! topology)
+  (let [ret (.deepCopy topology)
+        acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
+                                         (new backtype.storm.daemon.acker)
+                                         {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
+                                          ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
+                                          }
+                                         :p (storm-conf TOPOLOGY-ACKERS))]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
       (do
@@ -122,8 +172,16 @@
       (do
         (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"]))
         (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
+        (.put_to_inputs common
+                        (GlobalStreamId. ACKER-COMPONENT-ID ACKER-ACK-STREAM-ID)
+                        (thrift/mk-direct-grouping))
+        (.put_to_inputs common
+                        (GlobalStreamId. ACKER-COMPONENT-ID ACKER-FAIL-STREAM-ID)
+                        (thrift/mk-direct-grouping))
         ))
-    (if (> (storm-conf TOPOLOGY-ACKERS) 0)
-      (.put_to_bolts ret "__acker" acker-bolt))
+    ;; TODO: need to set up streams/inputs for transactional spout
+    ;; TODO: need to set up streams/inputs for transactional bolts
+    (.put_to_bolts ret "__acker" acker-bolt)
+    (validate-structure! ret)
     ret
     ))

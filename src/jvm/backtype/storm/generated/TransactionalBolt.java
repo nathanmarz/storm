@@ -21,19 +21,22 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("Bolt");
+public class TransactionalBolt implements org.apache.thrift7.TBase<TransactionalBolt, TransactionalBolt._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("TransactionalBolt");
 
-  private static final org.apache.thrift7.protocol.TField BOLT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt_object", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift7.protocol.TField TRANSACTIONAL_SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("transactional_spouts", org.apache.thrift7.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift7.protocol.TField BOLT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt_object", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
+  private List<String> transactional_spouts; // required
   private ComponentObject bolt_object; // required
   private ComponentCommon common; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    BOLT_OBJECT((short)1, "bolt_object"),
-    COMMON((short)2, "common");
+    TRANSACTIONAL_SPOUTS((short)1, "transactional_spouts"),
+    BOLT_OBJECT((short)2, "bolt_object"),
+    COMMON((short)3, "common");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -48,9 +51,11 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // BOLT_OBJECT
+        case 1: // TRANSACTIONAL_SPOUTS
+          return TRANSACTIONAL_SPOUTS;
+        case 2: // BOLT_OBJECT
           return BOLT_OBJECT;
-        case 2: // COMMON
+        case 3: // COMMON
           return COMMON;
         default:
           return null;
@@ -96,22 +101,27 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.TRANSACTIONAL_SPOUTS, new org.apache.thrift7.meta_data.FieldMetaData("transactional_spouts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING))));
     tmpMap.put(_Fields.BOLT_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("bolt_object", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentObject.class)));
     tmpMap.put(_Fields.COMMON, new org.apache.thrift7.meta_data.FieldMetaData("common", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentCommon.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(Bolt.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TransactionalBolt.class, metaDataMap);
   }
 
-  public Bolt() {
+  public TransactionalBolt() {
   }
 
-  public Bolt(
+  public TransactionalBolt(
+    List<String> transactional_spouts,
     ComponentObject bolt_object,
     ComponentCommon common)
   {
     this();
+    this.transactional_spouts = transactional_spouts;
     this.bolt_object = bolt_object;
     this.common = common;
   }
@@ -119,7 +129,14 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public Bolt(Bolt other) {
+  public TransactionalBolt(TransactionalBolt other) {
+    if (other.is_set_transactional_spouts()) {
+      List<String> __this__transactional_spouts = new ArrayList<String>();
+      for (String other_element : other.transactional_spouts) {
+        __this__transactional_spouts.add(other_element);
+      }
+      this.transactional_spouts = __this__transactional_spouts;
+    }
     if (other.is_set_bolt_object()) {
       this.bolt_object = new ComponentObject(other.bolt_object);
     }
@@ -128,14 +145,53 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     }
   }
 
-  public Bolt deepCopy() {
-    return new Bolt(this);
+  public TransactionalBolt deepCopy() {
+    return new TransactionalBolt(this);
   }
 
   @Override
   public void clear() {
+    this.transactional_spouts = null;
     this.bolt_object = null;
     this.common = null;
+  }
+
+  public int get_transactional_spouts_size() {
+    return (this.transactional_spouts == null) ? 0 : this.transactional_spouts.size();
+  }
+
+  public java.util.Iterator<String> get_transactional_spouts_iterator() {
+    return (this.transactional_spouts == null) ? null : this.transactional_spouts.iterator();
+  }
+
+  public void add_to_transactional_spouts(String elem) {
+    if (this.transactional_spouts == null) {
+      this.transactional_spouts = new ArrayList<String>();
+    }
+    this.transactional_spouts.add(elem);
+  }
+
+  public List<String> get_transactional_spouts() {
+    return this.transactional_spouts;
+  }
+
+  public void set_transactional_spouts(List<String> transactional_spouts) {
+    this.transactional_spouts = transactional_spouts;
+  }
+
+  public void unset_transactional_spouts() {
+    this.transactional_spouts = null;
+  }
+
+  /** Returns true if field transactional_spouts is set (has been assigned a value) and false otherwise */
+  public boolean is_set_transactional_spouts() {
+    return this.transactional_spouts != null;
+  }
+
+  public void set_transactional_spouts_isSet(boolean value) {
+    if (!value) {
+      this.transactional_spouts = null;
+    }
   }
 
   public ComponentObject get_bolt_object() {
@@ -186,6 +242,14 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
+    case TRANSACTIONAL_SPOUTS:
+      if (value == null) {
+        unset_transactional_spouts();
+      } else {
+        set_transactional_spouts((List<String>)value);
+      }
+      break;
+
     case BOLT_OBJECT:
       if (value == null) {
         unset_bolt_object();
@@ -207,6 +271,9 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
+    case TRANSACTIONAL_SPOUTS:
+      return get_transactional_spouts();
+
     case BOLT_OBJECT:
       return get_bolt_object();
 
@@ -224,6 +291,8 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     }
 
     switch (field) {
+    case TRANSACTIONAL_SPOUTS:
+      return is_set_transactional_spouts();
     case BOLT_OBJECT:
       return is_set_bolt_object();
     case COMMON:
@@ -236,14 +305,23 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof Bolt)
-      return this.equals((Bolt)that);
+    if (that instanceof TransactionalBolt)
+      return this.equals((TransactionalBolt)that);
     return false;
   }
 
-  public boolean equals(Bolt that) {
+  public boolean equals(TransactionalBolt that) {
     if (that == null)
       return false;
+
+    boolean this_present_transactional_spouts = true && this.is_set_transactional_spouts();
+    boolean that_present_transactional_spouts = true && that.is_set_transactional_spouts();
+    if (this_present_transactional_spouts || that_present_transactional_spouts) {
+      if (!(this_present_transactional_spouts && that_present_transactional_spouts))
+        return false;
+      if (!this.transactional_spouts.equals(that.transactional_spouts))
+        return false;
+    }
 
     boolean this_present_bolt_object = true && this.is_set_bolt_object();
     boolean that_present_bolt_object = true && that.is_set_bolt_object();
@@ -270,6 +348,11 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
+    boolean present_transactional_spouts = true && (is_set_transactional_spouts());
+    builder.append(present_transactional_spouts);
+    if (present_transactional_spouts)
+      builder.append(transactional_spouts);
+
     boolean present_bolt_object = true && (is_set_bolt_object());
     builder.append(present_bolt_object);
     if (present_bolt_object)
@@ -283,14 +366,24 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     return builder.toHashCode();
   }
 
-  public int compareTo(Bolt other) {
+  public int compareTo(TransactionalBolt other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    Bolt typedOther = (Bolt)other;
+    TransactionalBolt typedOther = (TransactionalBolt)other;
 
+    lastComparison = Boolean.valueOf(is_set_transactional_spouts()).compareTo(typedOther.is_set_transactional_spouts());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_transactional_spouts()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.transactional_spouts, typedOther.transactional_spouts);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     lastComparison = Boolean.valueOf(is_set_bolt_object()).compareTo(typedOther.is_set_bolt_object());
     if (lastComparison != 0) {
       return lastComparison;
@@ -328,7 +421,24 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
         break;
       }
       switch (field.id) {
-        case 1: // BOLT_OBJECT
+        case 1: // TRANSACTIONAL_SPOUTS
+          if (field.type == org.apache.thrift7.protocol.TType.LIST) {
+            {
+              org.apache.thrift7.protocol.TList _list22 = iprot.readListBegin();
+              this.transactional_spouts = new ArrayList<String>(_list22.size);
+              for (int _i23 = 0; _i23 < _list22.size; ++_i23)
+              {
+                String _elem24; // required
+                _elem24 = iprot.readString();
+                this.transactional_spouts.add(_elem24);
+              }
+              iprot.readListEnd();
+            }
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 2: // BOLT_OBJECT
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.bolt_object = new ComponentObject();
             this.bolt_object.read(iprot);
@@ -336,7 +446,7 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 2: // COMMON
+        case 3: // COMMON
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.common = new ComponentCommon();
             this.common.read(iprot);
@@ -357,6 +467,18 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
+    if (this.transactional_spouts != null) {
+      oprot.writeFieldBegin(TRANSACTIONAL_SPOUTS_FIELD_DESC);
+      {
+        oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRING, this.transactional_spouts.size()));
+        for (String _iter25 : this.transactional_spouts)
+        {
+          oprot.writeString(_iter25);
+        }
+        oprot.writeListEnd();
+      }
+      oprot.writeFieldEnd();
+    }
     if (this.bolt_object != null) {
       oprot.writeFieldBegin(BOLT_OBJECT_FIELD_DESC);
       this.bolt_object.write(oprot);
@@ -373,9 +495,17 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("Bolt(");
+    StringBuilder sb = new StringBuilder("TransactionalBolt(");
     boolean first = true;
 
+    sb.append("transactional_spouts:");
+    if (this.transactional_spouts == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.transactional_spouts);
+    }
+    first = false;
+    if (!first) sb.append(", ");
     sb.append("bolt_object:");
     if (this.bolt_object == null) {
       sb.append("null");
@@ -397,6 +527,10 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public void validate() throws org.apache.thrift7.TException {
     // check for required fields
+    if (!is_set_transactional_spouts()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'transactional_spouts' is unset! Struct:" + toString());
+    }
+
     if (!is_set_bolt_object()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'bolt_object' is unset! Struct:" + toString());
     }

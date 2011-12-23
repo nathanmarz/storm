@@ -8,12 +8,15 @@ import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
+import backtype.storm.generated.TransactionalBolt;
+import backtype.storm.generated.TransactionalSpoutSpec;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -237,9 +240,7 @@ public class TopologyContext {
      * @return A map from subscribed component/stream to the grouping subscribed with.
      */
     public Map<GlobalStreamId, Grouping> getSources(String componentId) {
-        Bolt bolt = _topology.get_bolts().get(componentId);
-        if(bolt==null) return null;
-        return bolt.get_inputs();
+        return getComponentCommon(componentId).get_inputs();
     }
 
     /**
@@ -259,13 +260,13 @@ public class TopologyContext {
      */
     public Map<String, Map<String, Grouping>> getTargets(String componentId) {
         Map<String, Map<String, Grouping>> ret = new HashMap<String, Map<String, Grouping>>();
-        for(String otherComponentId: _topology.get_bolts().keySet()) {
-            Bolt bolt = _topology.get_bolts().get(otherComponentId);
-            for(GlobalStreamId id: bolt.get_inputs().keySet()) {
+        for(String otherComponentId: getComponentIds()) {
+            Map<GlobalStreamId, Grouping> inputs = getComponentCommon(otherComponentId).get_inputs();
+            for(GlobalStreamId id: inputs.keySet()) {
                 if(id.get_componentId().equals(componentId)) {
                     Map<String, Grouping> curr = ret.get(id.get_streamId());
                     if(curr==null) curr = new HashMap<String, Grouping>();
-                    curr.put(otherComponentId, bolt.get_inputs().get(id));
+                    curr.put(otherComponentId, inputs.get(id));
                     ret.put(id.get_streamId(), curr);
                 }
             }
@@ -280,22 +281,6 @@ public class TopologyContext {
         // TODO: jsonify StormTopology
         // at the minimum should send source info
         return JSONValue.toJSONString(obj);
-    }
-
-    private ComponentCommon getComponentCommon(String componentId) {
-       Bolt bolt =  _topology.get_bolts().get(componentId);
-       if(bolt!=null) {
-           return bolt.get_common();
-       }
-       SpoutSpec spoutSpec = _topology.get_spouts().get(componentId);
-       if(spoutSpec!=null) {
-           return spoutSpec.get_common();
-       }
-       StateSpoutSpec stateSpoutSpec = _topology.get_state_spouts().get(componentId);
-       if(stateSpoutSpec!=null) {
-           return stateSpoutSpec.get_common();
-       }
-       throw new IllegalArgumentException("Could not find component common for " + componentId);
     }
 
     /**
@@ -321,5 +306,43 @@ public class TopologyContext {
      */
     public Map<Integer, String> getTaskToComponent() {
         return _taskToComponent;
+    }
+    
+    /**
+     * Gets a list of all component ids in this topology
+     */
+    public Set<String> getComponentIds() {
+        Set<String> ret = new HashSet<String>();
+        for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
+            Map<String, Object> componentMap = (Map<String, Object>) getRawTopology().getFieldValue(f);
+            ret.addAll(componentMap.keySet());
+        }
+        return ret;
+    }
+
+    private ComponentCommon getComponentCommon(String componentId) {
+        for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
+            Map<String, Object> componentMap = (Map<String, Object>) getRawTopology().getFieldValue(f);
+            if(componentMap.containsKey(componentId)) {
+                Object component = componentMap.get(componentId);
+                if(component instanceof Bolt) {
+                    return ((Bolt) component).get_common();
+                }
+                if(component instanceof SpoutSpec) {
+                    return ((SpoutSpec) component).get_common();
+                }
+                if(component instanceof StateSpoutSpec) {
+                    return ((StateSpoutSpec) component).get_common();
+                }
+                if(component instanceof TransactionalBolt) {
+                    return ((TransactionalBolt) component).get_common();
+                }
+                if(component instanceof TransactionalSpoutSpec) {
+                    return ((TransactionalSpoutSpec) component).get_common();
+                }
+                throw new RuntimeException("Unreachable code! No get_common conversion for component " + component);
+            }
+        }
+        throw new IllegalArgumentException("Could not find component common for " + componentId);
     }
 }

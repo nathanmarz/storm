@@ -19,7 +19,7 @@ public class TransactionalSpoutOutputCollector implements ITransactionalSpoutOut
 
     public List<Integer> emit(String streamId, List<Object> tuple) {
         return _delegate.emit(Utils.DEFAULT_STREAM_ID, tuple);
-    }    
+    }
     
     /**
      * Emits a tuple to the specified task on the default output stream. This output

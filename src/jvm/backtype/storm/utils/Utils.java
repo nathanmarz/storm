@@ -167,14 +167,10 @@ public class Utils {
         return (IFn) RT.var(namespace, name).deref();        
     }
     
-    public static boolean isSystemStream(String id) {
+    public static boolean isSystemId(String id) {
         return id.startsWith("__");
     }
-    
-    public static boolean isSystemComponent(String id) {
-        return id.startsWith("__");        
-    }
-    
+        
     public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
         Map<V, K> ret = new HashMap<V, K>();
         for(K key: map.keySet()) {

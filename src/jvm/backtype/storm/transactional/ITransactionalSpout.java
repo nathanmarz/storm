@@ -7,6 +7,5 @@ public interface ITransactionalSpout {
     void close();
     void setTransactionId(long txid);
     long getTransactionId();
-    void emitBatch(long txid, TransactionalSpoutOutputCollector collector);
-    void commitBatch(long txid);
+    void emitBatch(TransactionAttempt tx, TransactionalSpoutOutputCollector collector);
 }

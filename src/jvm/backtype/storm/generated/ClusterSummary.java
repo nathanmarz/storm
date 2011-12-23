@@ -447,14 +447,14 @@ public class ClusterSummary implements org.apache.thrift7.TBase<ClusterSummary, 
         case 1: // SUPERVISORS
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list37 = iprot.readListBegin();
-              this.supervisors = new ArrayList<SupervisorSummary>(_list37.size);
-              for (int _i38 = 0; _i38 < _list37.size; ++_i38)
+              org.apache.thrift7.protocol.TList _list51 = iprot.readListBegin();
+              this.supervisors = new ArrayList<SupervisorSummary>(_list51.size);
+              for (int _i52 = 0; _i52 < _list51.size; ++_i52)
               {
-                SupervisorSummary _elem39; // required
-                _elem39 = new SupervisorSummary();
-                _elem39.read(iprot);
-                this.supervisors.add(_elem39);
+                SupervisorSummary _elem53; // required
+                _elem53 = new SupervisorSummary();
+                _elem53.read(iprot);
+                this.supervisors.add(_elem53);
               }
               iprot.readListEnd();
             }
@@ -473,14 +473,14 @@ public class ClusterSummary implements org.apache.thrift7.TBase<ClusterSummary, 
         case 3: // TOPOLOGIES
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list40 = iprot.readListBegin();
-              this.topologies = new ArrayList<TopologySummary>(_list40.size);
-              for (int _i41 = 0; _i41 < _list40.size; ++_i41)
+              org.apache.thrift7.protocol.TList _list54 = iprot.readListBegin();
+              this.topologies = new ArrayList<TopologySummary>(_list54.size);
+              for (int _i55 = 0; _i55 < _list54.size; ++_i55)
               {
-                TopologySummary _elem42; // required
-                _elem42 = new TopologySummary();
-                _elem42.read(iprot);
-                this.topologies.add(_elem42);
+                TopologySummary _elem56; // required
+                _elem56 = new TopologySummary();
+                _elem56.read(iprot);
+                this.topologies.add(_elem56);
               }
               iprot.readListEnd();
             }
@@ -505,9 +505,9 @@ public class ClusterSummary implements org.apache.thrift7.TBase<ClusterSummary, 
       oprot.writeFieldBegin(SUPERVISORS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.supervisors.size()));
-        for (SupervisorSummary _iter43 : this.supervisors)
+        for (SupervisorSummary _iter57 : this.supervisors)
         {
-          _iter43.write(oprot);
+          _iter57.write(oprot);
         }
         oprot.writeListEnd();
       }
@@ -520,9 +520,9 @@ public class ClusterSummary implements org.apache.thrift7.TBase<ClusterSummary, 
       oprot.writeFieldBegin(TOPOLOGIES_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.topologies.size()));
-        for (TopologySummary _iter44 : this.topologies)
+        for (TopologySummary _iter58 : this.topologies)
         {
-          _iter44.write(oprot);
+          _iter58.write(oprot);
         }
         oprot.writeListEnd();
       }

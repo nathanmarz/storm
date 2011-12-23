@@ -1,6 +1,6 @@
 (ns backtype.storm.thrift
-  (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology Bolt Nimbus$Client
-    Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
+  (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology StormTopology$_Fields 
+    Bolt Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
     GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
@@ -45,7 +45,7 @@
 
 (defn parallelism-hint [^ComponentCommon component-common]
   (let [phint (.get_parallelism_hint component-common)]
-    (if (= phint 0) 1 phint)
+    (if-not (.is_set_parallelism_hint component-common) 1 phint)
     ))
 
 (defn nimbus-client-and-conn [host port]
@@ -69,10 +69,10 @@
      (with-nimbus-connection [~client-sym host# port#]
        ~@body )))
 
-(defn mk-component-common [component parallelism-hint]
+(defn mk-component-common [inputs component parallelism-hint]
   (let [getter (OutputFieldsGetter.)
         _ (.declareOutputFields component getter)
-        ret (ComponentCommon. (.getFieldsDeclaration getter))]
+        ret (ComponentCommon. inputs (.getFieldsDeclaration getter))]
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
     ret
@@ -95,8 +95,8 @@
       output-spec
       )))
 
-(defn mk-plain-component-common [output-spec parallelism-hint]
-  (let [ret (ComponentCommon. (mk-output-spec output-spec))]
+(defn mk-plain-component-common [inputs output-spec parallelism-hint]
+  (let [ret (ComponentCommon. inputs (mk-output-spec output-spec))]
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
     ret
@@ -106,7 +106,7 @@
   ;; for backwards compatibility
   (let [parallelism-hint (if p p parallelism-hint)]
     (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
-                (mk-component-common spout parallelism-hint)
+                (mk-component-common {} spout parallelism-hint)
                 (.isDistributed spout))
     ))
 
@@ -160,30 +160,33 @@
        (mk-grouping grouping-spec)]
       )))
 
+(defnk mk-bolt-spec* [inputs bolt outputs :p nil]
+  (let [common (mk-plain-component-common (mk-inputs inputs) outputs p)]
+    (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
+           common )))
+
 (defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil]
   ;; for backwards compatibility
   (let [parallelism-hint (if p p parallelism-hint)
         bolt (if (instance? IBasicBolt bolt) (BasicBoltExecutor. bolt) bolt)]
-    (Bolt.
-     (mk-inputs inputs)
+    (Bolt.     
      (ComponentObject/serialized_java (Utils/serialize bolt))
-     (mk-component-common bolt parallelism-hint)
+     (mk-component-common (mk-inputs inputs) bolt parallelism-hint)
      )))
 
 (defnk mk-shell-bolt-spec [inputs command script output-spec :parallelism-hint nil :p nil]
   ;; for backwards compatibility
   (let [parallelism-hint (if p p parallelism-hint)]
-    (Bolt.
-     (mk-inputs inputs)
+    (Bolt.     
      (ComponentObject/shell (ShellComponent. command script))
-     (mk-plain-component-common output-spec parallelism-hint)
+     (mk-plain-component-common (mk-inputs inputs) output-spec parallelism-hint)
      )))
 
 (defn mk-topology
   ([spout-map bolt-map]
-     (StormTopology. spout-map bolt-map {}))
+     (StormTopology. spout-map bolt-map {} {} {}))
   ([spout-map bolt-map state-spout-map]
-     (StormTopology. spout-map bolt-map state-spout-map)))
+     (StormTopology. spout-map bolt-map state-spout-map {} {})))
 
 (defnk coordinated-bolt [bolt :type nil :all-out false]
   (let [source (condp = type
@@ -195,4 +198,8 @@
 
 (def COORD-STREAM Constants/COORDINATED_STREAM_ID)
 
+(def STORM-TOPOLOGY-FIELDS (-> StormTopology/metaDataMap keys))
 
+(def SPOUT-FIELDS [StormTopology$_Fields/SPOUTS
+                   StormTopology$_Fields/STATE_SPOUTS
+                   StormTopology$_Fields/TRANSACTIONAL_SPOUTS])

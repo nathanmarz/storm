@@ -27,16 +27,22 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
   private static final org.apache.thrift7.protocol.TField SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("spouts", org.apache.thrift7.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift7.protocol.TField BOLTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolts", org.apache.thrift7.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift7.protocol.TField STATE_SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("state_spouts", org.apache.thrift7.protocol.TType.MAP, (short)3);
+  private static final org.apache.thrift7.protocol.TField TRANSACTIONAL_SPOUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("transactional_spouts", org.apache.thrift7.protocol.TType.MAP, (short)4);
+  private static final org.apache.thrift7.protocol.TField TRANSACTIONAL_BOLTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("transactional_bolts", org.apache.thrift7.protocol.TType.MAP, (short)5);
 
   private Map<String,SpoutSpec> spouts; // required
   private Map<String,Bolt> bolts; // required
   private Map<String,StateSpoutSpec> state_spouts; // required
+  private Map<String,TransactionalSpoutSpec> transactional_spouts; // required
+  private Map<String,TransactionalBolt> transactional_bolts; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     SPOUTS((short)1, "spouts"),
     BOLTS((short)2, "bolts"),
-    STATE_SPOUTS((short)3, "state_spouts");
+    STATE_SPOUTS((short)3, "state_spouts"),
+    TRANSACTIONAL_SPOUTS((short)4, "transactional_spouts"),
+    TRANSACTIONAL_BOLTS((short)5, "transactional_bolts");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -57,6 +63,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
           return BOLTS;
         case 3: // STATE_SPOUTS
           return STATE_SPOUTS;
+        case 4: // TRANSACTIONAL_SPOUTS
+          return TRANSACTIONAL_SPOUTS;
+        case 5: // TRANSACTIONAL_BOLTS
+          return TRANSACTIONAL_BOLTS;
         default:
           return null;
       }
@@ -113,6 +123,14 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
             new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, StateSpoutSpec.class))));
+    tmpMap.put(_Fields.TRANSACTIONAL_SPOUTS, new org.apache.thrift7.meta_data.FieldMetaData("transactional_spouts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TransactionalSpoutSpec.class))));
+    tmpMap.put(_Fields.TRANSACTIONAL_BOLTS, new org.apache.thrift7.meta_data.FieldMetaData("transactional_bolts", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TransactionalBolt.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(StormTopology.class, metaDataMap);
   }
@@ -123,12 +141,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
   public StormTopology(
     Map<String,SpoutSpec> spouts,
     Map<String,Bolt> bolts,
-    Map<String,StateSpoutSpec> state_spouts)
+    Map<String,StateSpoutSpec> state_spouts,
+    Map<String,TransactionalSpoutSpec> transactional_spouts,
+    Map<String,TransactionalBolt> transactional_bolts)
   {
     this();
     this.spouts = spouts;
     this.bolts = bolts;
     this.state_spouts = state_spouts;
+    this.transactional_spouts = transactional_spouts;
+    this.transactional_bolts = transactional_bolts;
   }
 
   /**
@@ -180,6 +202,36 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       }
       this.state_spouts = __this__state_spouts;
     }
+    if (other.is_set_transactional_spouts()) {
+      Map<String,TransactionalSpoutSpec> __this__transactional_spouts = new HashMap<String,TransactionalSpoutSpec>();
+      for (Map.Entry<String, TransactionalSpoutSpec> other_element : other.transactional_spouts.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        TransactionalSpoutSpec other_element_value = other_element.getValue();
+
+        String __this__transactional_spouts_copy_key = other_element_key;
+
+        TransactionalSpoutSpec __this__transactional_spouts_copy_value = new TransactionalSpoutSpec(other_element_value);
+
+        __this__transactional_spouts.put(__this__transactional_spouts_copy_key, __this__transactional_spouts_copy_value);
+      }
+      this.transactional_spouts = __this__transactional_spouts;
+    }
+    if (other.is_set_transactional_bolts()) {
+      Map<String,TransactionalBolt> __this__transactional_bolts = new HashMap<String,TransactionalBolt>();
+      for (Map.Entry<String, TransactionalBolt> other_element : other.transactional_bolts.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        TransactionalBolt other_element_value = other_element.getValue();
+
+        String __this__transactional_bolts_copy_key = other_element_key;
+
+        TransactionalBolt __this__transactional_bolts_copy_value = new TransactionalBolt(other_element_value);
+
+        __this__transactional_bolts.put(__this__transactional_bolts_copy_key, __this__transactional_bolts_copy_value);
+      }
+      this.transactional_bolts = __this__transactional_bolts;
+    }
   }
 
   public StormTopology deepCopy() {
@@ -191,6 +243,8 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     this.spouts = null;
     this.bolts = null;
     this.state_spouts = null;
+    this.transactional_spouts = null;
+    this.transactional_bolts = null;
   }
 
   public int get_spouts_size() {
@@ -295,6 +349,74 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     }
   }
 
+  public int get_transactional_spouts_size() {
+    return (this.transactional_spouts == null) ? 0 : this.transactional_spouts.size();
+  }
+
+  public void put_to_transactional_spouts(String key, TransactionalSpoutSpec val) {
+    if (this.transactional_spouts == null) {
+      this.transactional_spouts = new HashMap<String,TransactionalSpoutSpec>();
+    }
+    this.transactional_spouts.put(key, val);
+  }
+
+  public Map<String,TransactionalSpoutSpec> get_transactional_spouts() {
+    return this.transactional_spouts;
+  }
+
+  public void set_transactional_spouts(Map<String,TransactionalSpoutSpec> transactional_spouts) {
+    this.transactional_spouts = transactional_spouts;
+  }
+
+  public void unset_transactional_spouts() {
+    this.transactional_spouts = null;
+  }
+
+  /** Returns true if field transactional_spouts is set (has been assigned a value) and false otherwise */
+  public boolean is_set_transactional_spouts() {
+    return this.transactional_spouts != null;
+  }
+
+  public void set_transactional_spouts_isSet(boolean value) {
+    if (!value) {
+      this.transactional_spouts = null;
+    }
+  }
+
+  public int get_transactional_bolts_size() {
+    return (this.transactional_bolts == null) ? 0 : this.transactional_bolts.size();
+  }
+
+  public void put_to_transactional_bolts(String key, TransactionalBolt val) {
+    if (this.transactional_bolts == null) {
+      this.transactional_bolts = new HashMap<String,TransactionalBolt>();
+    }
+    this.transactional_bolts.put(key, val);
+  }
+
+  public Map<String,TransactionalBolt> get_transactional_bolts() {
+    return this.transactional_bolts;
+  }
+
+  public void set_transactional_bolts(Map<String,TransactionalBolt> transactional_bolts) {
+    this.transactional_bolts = transactional_bolts;
+  }
+
+  public void unset_transactional_bolts() {
+    this.transactional_bolts = null;
+  }
+
+  /** Returns true if field transactional_bolts is set (has been assigned a value) and false otherwise */
+  public boolean is_set_transactional_bolts() {
+    return this.transactional_bolts != null;
+  }
+
+  public void set_transactional_bolts_isSet(boolean value) {
+    if (!value) {
+      this.transactional_bolts = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case SPOUTS:
@@ -321,6 +443,22 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       }
       break;
 
+    case TRANSACTIONAL_SPOUTS:
+      if (value == null) {
+        unset_transactional_spouts();
+      } else {
+        set_transactional_spouts((Map<String,TransactionalSpoutSpec>)value);
+      }
+      break;
+
+    case TRANSACTIONAL_BOLTS:
+      if (value == null) {
+        unset_transactional_bolts();
+      } else {
+        set_transactional_bolts((Map<String,TransactionalBolt>)value);
+      }
+      break;
+
     }
   }
 
@@ -334,6 +472,12 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
 
     case STATE_SPOUTS:
       return get_state_spouts();
+
+    case TRANSACTIONAL_SPOUTS:
+      return get_transactional_spouts();
+
+    case TRANSACTIONAL_BOLTS:
+      return get_transactional_bolts();
 
     }
     throw new IllegalStateException();
@@ -352,6 +496,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       return is_set_bolts();
     case STATE_SPOUTS:
       return is_set_state_spouts();
+    case TRANSACTIONAL_SPOUTS:
+      return is_set_transactional_spouts();
+    case TRANSACTIONAL_BOLTS:
+      return is_set_transactional_bolts();
     }
     throw new IllegalStateException();
   }
@@ -396,6 +544,24 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         return false;
     }
 
+    boolean this_present_transactional_spouts = true && this.is_set_transactional_spouts();
+    boolean that_present_transactional_spouts = true && that.is_set_transactional_spouts();
+    if (this_present_transactional_spouts || that_present_transactional_spouts) {
+      if (!(this_present_transactional_spouts && that_present_transactional_spouts))
+        return false;
+      if (!this.transactional_spouts.equals(that.transactional_spouts))
+        return false;
+    }
+
+    boolean this_present_transactional_bolts = true && this.is_set_transactional_bolts();
+    boolean that_present_transactional_bolts = true && that.is_set_transactional_bolts();
+    if (this_present_transactional_bolts || that_present_transactional_bolts) {
+      if (!(this_present_transactional_bolts && that_present_transactional_bolts))
+        return false;
+      if (!this.transactional_bolts.equals(that.transactional_bolts))
+        return false;
+    }
+
     return true;
   }
 
@@ -417,6 +583,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
     builder.append(present_state_spouts);
     if (present_state_spouts)
       builder.append(state_spouts);
+
+    boolean present_transactional_spouts = true && (is_set_transactional_spouts());
+    builder.append(present_transactional_spouts);
+    if (present_transactional_spouts)
+      builder.append(transactional_spouts);
+
+    boolean present_transactional_bolts = true && (is_set_transactional_bolts());
+    builder.append(present_transactional_bolts);
+    if (present_transactional_bolts)
+      builder.append(transactional_bolts);
 
     return builder.toHashCode();
   }
@@ -459,6 +635,26 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_transactional_spouts()).compareTo(typedOther.is_set_transactional_spouts());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_transactional_spouts()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.transactional_spouts, typedOther.transactional_spouts);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_transactional_bolts()).compareTo(typedOther.is_set_transactional_bolts());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_transactional_bolts()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.transactional_bolts, typedOther.transactional_bolts);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -479,16 +675,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         case 1: // SPOUTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map22 = iprot.readMapBegin();
-              this.spouts = new HashMap<String,SpoutSpec>(2*_map22.size);
-              for (int _i23 = 0; _i23 < _map22.size; ++_i23)
+              org.apache.thrift7.protocol.TMap _map26 = iprot.readMapBegin();
+              this.spouts = new HashMap<String,SpoutSpec>(2*_map26.size);
+              for (int _i27 = 0; _i27 < _map26.size; ++_i27)
               {
-                String _key24; // required
-                SpoutSpec _val25; // required
-                _key24 = iprot.readString();
-                _val25 = new SpoutSpec();
-                _val25.read(iprot);
-                this.spouts.put(_key24, _val25);
+                String _key28; // required
+                SpoutSpec _val29; // required
+                _key28 = iprot.readString();
+                _val29 = new SpoutSpec();
+                _val29.read(iprot);
+                this.spouts.put(_key28, _val29);
               }
               iprot.readMapEnd();
             }
@@ -499,16 +695,16 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         case 2: // BOLTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map26 = iprot.readMapBegin();
-              this.bolts = new HashMap<String,Bolt>(2*_map26.size);
-              for (int _i27 = 0; _i27 < _map26.size; ++_i27)
+              org.apache.thrift7.protocol.TMap _map30 = iprot.readMapBegin();
+              this.bolts = new HashMap<String,Bolt>(2*_map30.size);
+              for (int _i31 = 0; _i31 < _map30.size; ++_i31)
               {
-                String _key28; // required
-                Bolt _val29; // required
-                _key28 = iprot.readString();
-                _val29 = new Bolt();
-                _val29.read(iprot);
-                this.bolts.put(_key28, _val29);
+                String _key32; // required
+                Bolt _val33; // required
+                _key32 = iprot.readString();
+                _val33 = new Bolt();
+                _val33.read(iprot);
+                this.bolts.put(_key32, _val33);
               }
               iprot.readMapEnd();
             }
@@ -519,16 +715,56 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
         case 3: // STATE_SPOUTS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map30 = iprot.readMapBegin();
-              this.state_spouts = new HashMap<String,StateSpoutSpec>(2*_map30.size);
-              for (int _i31 = 0; _i31 < _map30.size; ++_i31)
+              org.apache.thrift7.protocol.TMap _map34 = iprot.readMapBegin();
+              this.state_spouts = new HashMap<String,StateSpoutSpec>(2*_map34.size);
+              for (int _i35 = 0; _i35 < _map34.size; ++_i35)
               {
-                String _key32; // required
-                StateSpoutSpec _val33; // required
-                _key32 = iprot.readString();
-                _val33 = new StateSpoutSpec();
-                _val33.read(iprot);
-                this.state_spouts.put(_key32, _val33);
+                String _key36; // required
+                StateSpoutSpec _val37; // required
+                _key36 = iprot.readString();
+                _val37 = new StateSpoutSpec();
+                _val37.read(iprot);
+                this.state_spouts.put(_key36, _val37);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 4: // TRANSACTIONAL_SPOUTS
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map38 = iprot.readMapBegin();
+              this.transactional_spouts = new HashMap<String,TransactionalSpoutSpec>(2*_map38.size);
+              for (int _i39 = 0; _i39 < _map38.size; ++_i39)
+              {
+                String _key40; // required
+                TransactionalSpoutSpec _val41; // required
+                _key40 = iprot.readString();
+                _val41 = new TransactionalSpoutSpec();
+                _val41.read(iprot);
+                this.transactional_spouts.put(_key40, _val41);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 5: // TRANSACTIONAL_BOLTS
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map42 = iprot.readMapBegin();
+              this.transactional_bolts = new HashMap<String,TransactionalBolt>(2*_map42.size);
+              for (int _i43 = 0; _i43 < _map42.size; ++_i43)
+              {
+                String _key44; // required
+                TransactionalBolt _val45; // required
+                _key44 = iprot.readString();
+                _val45 = new TransactionalBolt();
+                _val45.read(iprot);
+                this.transactional_bolts.put(_key44, _val45);
               }
               iprot.readMapEnd();
             }
@@ -553,10 +789,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       oprot.writeFieldBegin(SPOUTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.spouts.size()));
-        for (Map.Entry<String, SpoutSpec> _iter34 : this.spouts.entrySet())
+        for (Map.Entry<String, SpoutSpec> _iter46 : this.spouts.entrySet())
         {
-          oprot.writeString(_iter34.getKey());
-          _iter34.getValue().write(oprot);
+          oprot.writeString(_iter46.getKey());
+          _iter46.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }
@@ -566,10 +802,10 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       oprot.writeFieldBegin(BOLTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.bolts.size()));
-        for (Map.Entry<String, Bolt> _iter35 : this.bolts.entrySet())
+        for (Map.Entry<String, Bolt> _iter47 : this.bolts.entrySet())
         {
-          oprot.writeString(_iter35.getKey());
-          _iter35.getValue().write(oprot);
+          oprot.writeString(_iter47.getKey());
+          _iter47.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }
@@ -579,10 +815,36 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       oprot.writeFieldBegin(STATE_SPOUTS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.state_spouts.size()));
-        for (Map.Entry<String, StateSpoutSpec> _iter36 : this.state_spouts.entrySet())
+        for (Map.Entry<String, StateSpoutSpec> _iter48 : this.state_spouts.entrySet())
         {
-          oprot.writeString(_iter36.getKey());
-          _iter36.getValue().write(oprot);
+          oprot.writeString(_iter48.getKey());
+          _iter48.getValue().write(oprot);
+        }
+        oprot.writeMapEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    if (this.transactional_spouts != null) {
+      oprot.writeFieldBegin(TRANSACTIONAL_SPOUTS_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.transactional_spouts.size()));
+        for (Map.Entry<String, TransactionalSpoutSpec> _iter49 : this.transactional_spouts.entrySet())
+        {
+          oprot.writeString(_iter49.getKey());
+          _iter49.getValue().write(oprot);
+        }
+        oprot.writeMapEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    if (this.transactional_bolts != null) {
+      oprot.writeFieldBegin(TRANSACTIONAL_BOLTS_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRUCT, this.transactional_bolts.size()));
+        for (Map.Entry<String, TransactionalBolt> _iter50 : this.transactional_bolts.entrySet())
+        {
+          oprot.writeString(_iter50.getKey());
+          _iter50.getValue().write(oprot);
         }
         oprot.writeMapEnd();
       }
@@ -620,6 +882,22 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
       sb.append(this.state_spouts);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("transactional_spouts:");
+    if (this.transactional_spouts == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.transactional_spouts);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("transactional_bolts:");
+    if (this.transactional_bolts == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.transactional_bolts);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -636,6 +914,14 @@ public class StormTopology implements org.apache.thrift7.TBase<StormTopology, St
 
     if (!is_set_state_spouts()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'state_spouts' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_transactional_spouts()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'transactional_spouts' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_transactional_bolts()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'transactional_bolts' is unset! Struct:" + toString());
     }
 
   }

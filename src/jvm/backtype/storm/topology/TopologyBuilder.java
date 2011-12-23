@@ -9,6 +9,8 @@ import backtype.storm.generated.NullStruct;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.TransactionalBolt;
+import backtype.storm.generated.TransactionalSpoutSpec;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -81,15 +83,17 @@ public class TopologyBuilder {
             IRichBolt bolt = _bolts.get(boltId);
             Integer parallelism_hint = _boltParallelismHints.get(boltId);
             Map<GlobalStreamId, Grouping> inputs = _inputs.get(boltId);
-            ComponentCommon common = getComponentCommon(bolt, parallelism_hint);
+            ComponentCommon common = getComponentCommon(inputs, bolt, parallelism_hint);
             if(parallelism_hint!=null) {
                 common.set_parallelism_hint(parallelism_hint);
             }
-            boltSpecs.put(boltId, new Bolt(inputs, ComponentObject.serialized_java(Utils.serialize(bolt)), common));
+            boltSpecs.put(boltId, new Bolt(ComponentObject.serialized_java(Utils.serialize(bolt)), common));
         }
         return new StormTopology(new HashMap<String, SpoutSpec>(_spouts),
                                  boltSpecs,
-                                 new HashMap<String, StateSpoutSpec>(_stateSpouts));
+                                 new HashMap<String, StateSpoutSpec>(_stateSpouts),
+                                 new HashMap<String, TransactionalSpoutSpec>(),
+                                 new HashMap<String, TransactionalBolt>());
     }
 
     /**
@@ -169,7 +173,7 @@ public class TopologyBuilder {
      */
     public void setSpout(String id, IRichSpout spout, Integer parallelism_hint) {
         validateUnusedId(id);
-        _spouts.put(id, new SpoutSpec(ComponentObject.serialized_java(Utils.serialize(spout)), getComponentCommon(spout, parallelism_hint), spout.isDistributed()));
+        _spouts.put(id, new SpoutSpec(ComponentObject.serialized_java(Utils.serialize(spout)), getComponentCommon(null, spout, parallelism_hint), spout.isDistributed()));
     }
 
     public void setStateSpout(String id, IRichStateSpout stateSpout) {
@@ -181,7 +185,7 @@ public class TopologyBuilder {
         _stateSpouts.put(id,
                          new StateSpoutSpec(
                              ComponentObject.serialized_java(Utils.serialize(stateSpout)),
-                             getComponentCommon(stateSpout, parallelism_hint)));
+                             getComponentCommon(null, stateSpout, parallelism_hint)));
     }
 
 
@@ -197,10 +201,11 @@ public class TopologyBuilder {
         }
     }
 
-    private ComponentCommon getComponentCommon(IComponent component, Integer parallelism_hint) {
+    private ComponentCommon getComponentCommon(Map<GlobalStreamId, Grouping> inputs, IComponent component, Integer parallelism_hint) {
+        if(inputs==null) inputs = new HashMap<GlobalStreamId, Grouping>();
         OutputFieldsGetter getter = new OutputFieldsGetter();
         component.declareOutputFields(getter);
-        ComponentCommon common = new ComponentCommon(getter.getFieldsDeclaration());
+        ComponentCommon common = new ComponentCommon(inputs, getter.getFieldsDeclaration());
         if(parallelism_hint!=null) {
             common.set_parallelism_hint(parallelism_hint);
         }

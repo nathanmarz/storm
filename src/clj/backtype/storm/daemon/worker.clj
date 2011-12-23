@@ -43,20 +43,9 @@
 
 (defn worker-outbound-tasks
   "Returns seq of task-ids that receive messages from this worker"
-  ;; if this is an acker, needs to talk to the spouts
   [task->component mk-topology-context task-ids]
   (let [topology-context (mk-topology-context nil)
-        spout-components (-> topology-context
-                             .getRawTopology
-                             .get_spouts
-                             keys)
-        contains-acker? (some? (fn [tid]
-                                 (= ACKER-COMPONENT-ID
-                                    (.getComponentId topology-context tid)))
-                               task-ids)
-        components (concat
-                    (if contains-acker? spout-components)
-                    (mapcat
+        components (mapcat
                      (fn [task-id]
                        (let [context (mk-topology-context task-id)]
                          (->> (.getThisTargets context)
@@ -64,10 +53,9 @@
                               (map keys)
                               (apply concat))
                          ))
-                     task-ids))]
+                     task-ids)]
     (set
      (apply concat
-            ;; fix this
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
@@ -101,7 +89,7 @@
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
-        mk-topology-context #(TopologyContext. (system-topology storm-conf topology)
+        mk-topology-context #(TopologyContext. (system-topology! storm-conf topology)
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path

@@ -279,8 +279,8 @@
      all-slots)
     ))
 
-(defn state-spout-parallelism [state-spout-spec]
-  (-> state-spout-spec .get_common thrift/parallelism-hint))
+(defn common-parallelism [spec]
+  (-> spec .get_common thrift/parallelism-hint))
 
 (defn- spout-parallelism [spout-spec]
   (if (.is_distributed spout-spec)
@@ -291,8 +291,8 @@
   (let [hint (-> bolt-spec .get_common thrift/parallelism-hint)
         fully-global? (every?
                        thrift/global-grouping?
-                       (vals (.get_inputs bolt-spec)))]
-    (if fully-global?
+                       (vals (-> bolt-spec .get_common .get_inputs)))]
+    (if (and (pos? hint) fully-global?)
       1
       hint
       )))
@@ -306,9 +306,8 @@
 (defn mk-task-maker [max-parallelism parallelism-func id-counter]
   (fn [[component-id spec]]
     (let [parallelism (parallelism-func spec)
-          parallelism (if max-parallelism (min parallelism max-parallelism) parallelism)
-          num-tasks (max 1 parallelism)]
-      (for-times num-tasks
+          parallelism (if max-parallelism (min parallelism max-parallelism) parallelism)]
+      (for-times parallelism
                  [(id-counter) component-id])
       )))
 
@@ -333,7 +332,7 @@
 (defn mk-task-component-assignments [conf storm-id]
   (let [storm-conf (read-storm-conf conf storm-id)
         max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        topology (system-topology storm-conf (read-storm-topology conf storm-id))
+        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
         slots-to-use (storm-conf TOPOLOGY-WORKERS)
         counter (mk-counter)
         tasks (concat
@@ -341,7 +340,7 @@
                        (.get_bolts topology))
                (mapcat (mk-task-maker max-parallelism spout-parallelism counter)
                        (.get_spouts topology))
-               (mapcat (mk-task-maker max-parallelism state-spout-parallelism counter)
+               (mapcat (mk-task-maker max-parallelism common-parallelism counter)
                        (.get_state_spouts topology))
                )]
     (into {}
@@ -564,23 +563,6 @@
     (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
     ))
 
-(defn validate-topology! [topology]
-  (let [bolt-ids (keys (.get_bolts topology))
-        spout-ids (keys (.get_spouts topology))
-        state-spout-ids (keys (.get_state_spouts topology))
-        common (any-intersection bolt-ids spout-ids state-spout-ids)]
-    (when-not (empty? common)
-      (throw
-       (InvalidTopologyException.
-        (str "Cannot use same component id for both spout and bolt: " (vec common))
-        )))
-    (when-not (every? (complement system-component?) (concat bolt-ids spout-ids state-spout-ids))
-      (throw
-       (InvalidTopologyException.
-        "Component ids cannot start with '__'")))
-    ;; TODO: validate that every declared stream is not a system stream
-    ))
-
 (defn extract-status-str [base]
   (let [t (-> base :status :type)]
     (.toUpperCase (name t))
@@ -633,8 +615,7 @@
     (reify Nimbus$Iface
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (check-storm-active! nimbus storm-name false)
-        (validate-topology! topology)
+        (check-storm-active! nimbus storm-name false)        
         (swap! (:submitted-count nimbus) inc)
         (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
               storm-conf (normalize-conf
@@ -648,6 +629,7 @@
                          (optimize-topology topology)
                          topology)
               storm-cluster-state (:storm-cluster-state nimbus)]
+          (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
           (log-message "Received topology submission for " storm-name " with conf " storm-conf)
           ;; lock protects against multiple topologies being submitted at once and
           ;; cleanup thread killing topology in b/w assignment and starting the topology
@@ -739,7 +721,7 @@
         (to-json (read-storm-conf conf id)))
 
       (^StormTopology getTopology [this ^String id]
-        (system-topology (read-storm-conf conf id) (read-storm-topology conf id)))
+        (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
 
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)

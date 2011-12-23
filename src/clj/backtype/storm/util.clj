@@ -101,6 +101,14 @@
        amap
        )))
 
+(defn filter-key [afn amap]
+  (into {}
+    (filter
+      (fn [[k v]]
+        (afn k))
+       amap
+       )))
+
 (defn full-path [parent name]
   (let [toks (tokenize-path parent)]
     (toks->path (conj toks name))
@@ -262,9 +270,6 @@
         (Time/isThreadWaiting thread)
         ))
       ))
-
-(defn filter-map-val [afn amap]
-  (into {} (filter (fn [[k v]] (afn v)) amap)))
 
 (defn exists-file? [path]
   (.exists (File. path)))
@@ -568,3 +573,4 @@
             (cond ~@guards
                   true (throw ~error-local)
                   )))))
+

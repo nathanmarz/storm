@@ -20,6 +20,12 @@ struct NullStruct {
   
 }
 
+struct GlobalStreamId {
+  1: required string componentId;
+  2: required string streamId;
+  #Going to need to add an enum for the stream type (NORMAL or FAILURE)
+}
+
 union Grouping {
   1: list<string> fields; //empty list means global grouping
   2: NullStruct shuffle; // tuple is sent to random task
@@ -48,8 +54,9 @@ union ComponentObject {
 }
 
 struct ComponentCommon {
-  1: required map<string, StreamInfo> streams; //key is stream id
-  2: optional i32 parallelism_hint; //how many threads across the cluster should be dedicated to this component
+  1: required map<GlobalStreamId, Grouping> inputs;
+  2: required map<string, StreamInfo> streams; //key is stream id
+  3: optional i32 parallelism_hint; //how many threads across the cluster should be dedicated to this component
 }
 
 struct SpoutSpec {
@@ -64,14 +71,13 @@ struct TransactionalSpoutSpec {
   3: required bool distributed;
 }
 
-struct GlobalStreamId {
-  1: required string componentId;
-  2: required string streamId;
-  #Going to need to add an enum for the stream type (NORMAL or FAILURE)
+struct Bolt {
+  1: required ComponentObject bolt_object;
+  2: required ComponentCommon common;
 }
 
-struct Bolt {
-  1: required map<GlobalStreamId, Grouping> inputs; //a join would have multiple inputs
+struct TransactionalBolt {
+  1: required list<string> transactional_spouts; // empty means all of them in the topology
   2: required ComponentObject bolt_object;
   3: required ComponentCommon common;
 }
@@ -85,10 +91,12 @@ struct StateSpoutSpec {
 
 struct StormTopology {
   //ids must be unique across maps
+  // #workers to use is in conf
   1: required map<string, SpoutSpec> spouts;
   2: required map<string, Bolt> bolts;
   3: required map<string, StateSpoutSpec> state_spouts;
-  // #workers to use is in conf
+  4: required map<string, TransactionalSpoutSpec> transactional_spouts;
+  5: required map<string, TransactionalBolt> transactional_bolts;
 }
 
 exception AlreadyAliveException {

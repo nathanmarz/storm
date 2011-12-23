@@ -14,7 +14,7 @@
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
-            SpoutTracker BoltTracker])
+            SpoutTracker BoltTracker NonRichBoltTracker])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
@@ -329,10 +329,11 @@
     (.set_bolts topology
                 (assoc (clojurify-structure bolts)
                   (uuid)
-                  (Bolt.
-                   (into {} (for [id all-streams] [id (mk-global-grouping)]))
+                  (Bolt.                   
                    (serialize-component-object capturer)
-                   (mk-plain-component-common {} nil))
+                   (mk-plain-component-common (into {} (for [id all-streams] [id (mk-global-grouping)]))
+                                              {}
+                                              nil))
                   ))
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
 
@@ -423,7 +424,7 @@
                                        (.put "processed" (AtomicInteger. 0))))
      (with-var-roots [acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
                                             (fn [& args#]
-                                              (BoltTracker. (apply old# args#) id#)
+                                              (NonRichBoltTracker. (apply old# args#) id#)
                                               ))
                       worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
                                               (fn [& args#]

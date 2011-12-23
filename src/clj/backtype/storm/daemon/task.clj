@@ -79,7 +79,9 @@
   (let [output-groupings (clojurify-structure (.getThisTargets topology-context))]
      (into {}
        (for [[stream-id component->grouping] output-groupings
-             :let [out-fields (.getThisOutputFields topology-context stream-id)]]
+             :let [out-fields (.getThisOutputFields topology-context stream-id)
+                   component->grouping (filter-key #(pos? (count (.getComponentTasks topology-context %)))
+                                       component->grouping)]]         
          [stream-id
           (into {}
                 (for [[component tgrouping] component->grouping]
@@ -161,10 +163,7 @@
                      (let [target-component (.getComponentId topology-context out-task-id)
                            component->grouping (stream->component->grouper (.getSourceStreamId tuple))
                            grouping (get component->grouping target-component)
-                           out-task-id (if (or grouping
-                                               ;; this is needed because ackers send direct to spouts
-                                               (system-component? component-id))
-                                         out-task-id)]
+                           out-task-id (if grouping out-task-id)]
                        (when (and (not-nil? grouping) (not= :direct grouping))
                          (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))
                        (when out-task-id

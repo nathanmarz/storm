@@ -579,8 +579,10 @@
   ;; the supervisors. this also allows you to declare the serializations as a sequence
   (let [sers (storm-conf TOPOLOGY-KRYO-REGISTER)
         sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
-        sers (mapify-serializations sers)]
-    (assoc storm-conf TOPOLOGY-KRYO-REGISTER sers)
+        sers (mapify-serializations sers)
+        total-conf (merge conf storm-conf)]
+    (merge storm-conf {TOPOLOGY-KRYO-REGISTER sers
+                       TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
     ))
 
 (defn do-cleanup [nimbus]

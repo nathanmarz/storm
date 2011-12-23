@@ -755,14 +755,14 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
         case 6: // ERRORS
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list139 = iprot.readListBegin();
-              this.errors = new ArrayList<ErrorInfo>(_list139.size);
-              for (int _i140 = 0; _i140 < _list139.size; ++_i140)
+              org.apache.thrift7.protocol.TList _list125 = iprot.readListBegin();
+              this.errors = new ArrayList<ErrorInfo>(_list125.size);
+              for (int _i126 = 0; _i126 < _list125.size; ++_i126)
               {
-                ErrorInfo _elem141; // required
-                _elem141 = new ErrorInfo();
-                _elem141.read(iprot);
-                this.errors.add(_elem141);
+                ErrorInfo _elem127; // required
+                _elem127 = new ErrorInfo();
+                _elem127.read(iprot);
+                this.errors.add(_elem127);
               }
               iprot.readListEnd();
             }
@@ -814,9 +814,9 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
       oprot.writeFieldBegin(ERRORS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.errors.size()));
-        for (ErrorInfo _iter142 : this.errors)
+        for (ErrorInfo _iter128 : this.errors)
         {
-          _iter142.write(oprot);
+          _iter128.write(oprot);
         }
         oprot.writeListEnd();
       }

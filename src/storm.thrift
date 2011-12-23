@@ -65,21 +65,9 @@ struct SpoutSpec {
   3: required bool distributed;
 }
 
-struct TransactionalSpoutSpec {
-  1: required ComponentObject spout_object;
-  2: required ComponentCommon common;
-  3: required bool distributed;
-}
-
 struct Bolt {
   1: required ComponentObject bolt_object;
   2: required ComponentCommon common;
-}
-
-struct TransactionalBolt {
-  1: required list<string> transactional_spouts; // empty means all of them in the topology
-  2: required ComponentObject bolt_object;
-  3: required ComponentCommon common;
 }
 
 // not implemented yet
@@ -95,8 +83,6 @@ struct StormTopology {
   1: required map<string, SpoutSpec> spouts;
   2: required map<string, Bolt> bolts;
   3: required map<string, StateSpoutSpec> state_spouts;
-  4: required map<string, TransactionalSpoutSpec> transactional_spouts;
-  5: required map<string, TransactionalBolt> transactional_bolts;
 }
 
 exception AlreadyAliveException {

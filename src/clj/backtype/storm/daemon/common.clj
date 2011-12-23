@@ -19,9 +19,6 @@
 
 (def SYSTEM-STREAM-ID "__system")
 
-(def TRANSACTION-BATCH-STREAM-ID Constants/TRANSACTION_BATCH_STREAM_ID)
-(def TRANSACTION-COMMIT-STREAM-ID Constants/TRANSACTION_COMMIT_STREAM_ID)
-
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
@@ -132,12 +129,6 @@
   ;; TODO: validate that all subscriptions are to valid component/streams
   )
 
-(defn all-bolts [^StormTopology topology]
-  (merge {}  (.get_bolts topology) (.get_transactional_bolts topology)))
-
-(defn all-tuple-spouts [^StormTopology topology]
-  (merge {}  (.get_spouts topology) (.get_transactional_spouts topology)))
-
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
@@ -166,13 +157,13 @@
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-tasks)]
-    (dofor [[_ bolt] (all-bolts ret)
+    (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do
              (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
              (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
              ))
-    (dofor [[_ spout] (all-tuple-spouts ret)
+    (dofor [[_ spout] (.get_spouts ret)
             :let [common (.get_common spout)]]
       (do
         (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"]))
@@ -194,39 +185,39 @@
     ;; TODO: consider adding a stats stream for stats aggregation
     ))
 
-(defn add-transaction-streams! [storm-conf ^StormTopology topology]
-  (let [spouts (.get_transactional_spouts topology)
-        bolts (.get_transactional_bolts topology)]
-    (if (and (= 0 (storm-conf TOPOLOGY-ACKERS)) (not (empty? spouts)))
-      (throw (InvalidTopologyException. "Must have at least one acker configured when using transactional spouts")))
-    (if (and (empty? spouts) (not (empty? bolts)))
-      (throw (InvalidTopologyException. "Cannot have transactional bolts without transactional spouts")))
-    (doseq [[bid bolt] bolts
-            id (.get_transactional_spouts bolt)]
-      (if-not (contains? spouts id)
-        (throw (InvalidTopologyException.
-                (str "Transactional bolt " bid " subscribes to invalid transactional spout " id)))
-        ))
-    (doseq [[id spout] spouts
-            :let [common (.get_common spout)]]
-      (.put_to_streams common TRANSACTION-BATCH-STREAM-ID (thrift/output-fields ["txattempt"]))
-      (.put_to_streams common TRANSACTION-COMMIT-STREAM-ID (thrift/output-fields ["txattempt"]))
-      (.put_to_inputs common (GlobalStreamId. id TRANSACTION-BATCH-STREAM-ID) (thrift/mk-all-grouping)))
-    (doseq [[_ bolt] bolts
-            :let [common (.get_common bolt)
-                  sids (.get_transactional_spouts bolt)
-                  sids (if (empty? sids) (keys spouts) sids)]]
-      (doseq [sid sids]
-        (.put_to_inputs common (GlobalStreamId. sid TRANSACTION-COMMIT-STREAM-ID) (thrift/mk-all-grouping))
-        ))
-    ))
+;; (defn add-transaction-streams! [storm-conf ^StormTopology topology]
+;;   (let [spouts (.get_transactional_spouts topology)
+;;         bolts (.get_transactional_bolts topology)]
+;;     (if (and (= 0 (storm-conf TOPOLOGY-ACKERS)) (not (empty? spouts)))
+;;       (throw (InvalidTopologyException. "Must have at least one acker configured when using transactional spouts")))
+;;     (if (and (empty? spouts) (not (empty? bolts)))
+;;       (throw (InvalidTopologyException. "Cannot have transactional bolts without transactional spouts")))
+;;     (doseq [[bid bolt] bolts
+;;             id (.get_transactional_spouts bolt)]
+;;       (if-not (contains? spouts id)
+;;         (throw (InvalidTopologyException.
+;;                 (str "Transactional bolt " bid " subscribes to invalid transactional spout " id)))
+;;         ))
+;;     (doseq [[id spout] spouts
+;;             :let [common (.get_common spout)]]
+;;       (.put_to_streams common TRANSACTION-BATCH-STREAM-ID (thrift/output-fields ["txattempt"]))
+;;       (.put_to_streams common TRANSACTION-COMMIT-STREAM-ID (thrift/output-fields ["txattempt"]))
+;;       (.put_to_inputs common (GlobalStreamId. id TRANSACTION-BATCH-STREAM-ID) (thrift/mk-all-grouping)))
+;;     (doseq [[_ bolt] bolts
+;;             :let [common (.get_common bolt)
+;;                   sids (.get_transactional_spouts bolt)
+;;                   sids (if (empty? sids) (keys spouts) sids)]]
+;;       (doseq [sid sids]
+;;         (.put_to_inputs common (GlobalStreamId. sid TRANSACTION-COMMIT-STREAM-ID) (thrift/mk-all-grouping))
+;;         ))
+;;     ))
 
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! (storm-conf TOPOLOGY-ACKERS) ret)
     (add-system-streams! ret)
-    (add-transaction-streams! storm-conf ret)
+    ;; (add-transaction-streams! storm-conf ret)
     (validate-structure! ret)
     ret
     ))

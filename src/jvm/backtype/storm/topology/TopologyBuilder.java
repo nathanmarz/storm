@@ -9,8 +9,6 @@ import backtype.storm.generated.NullStruct;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.TransactionalBolt;
-import backtype.storm.generated.TransactionalSpoutSpec;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -91,9 +89,7 @@ public class TopologyBuilder {
         }
         return new StormTopology(new HashMap<String, SpoutSpec>(_spouts),
                                  boltSpecs,
-                                 new HashMap<String, StateSpoutSpec>(_stateSpouts),
-                                 new HashMap<String, TransactionalSpoutSpec>(),
-                                 new HashMap<String, TransactionalBolt>());
+                                 new HashMap<String, StateSpoutSpec>(_stateSpouts));
     }
 
     /**

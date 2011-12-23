@@ -185,9 +185,9 @@
 
 (defn mk-topology
   ([spout-map bolt-map]
-     (StormTopology. spout-map bolt-map {} {} {}))
+     (StormTopology. spout-map bolt-map {}))
   ([spout-map bolt-map state-spout-map]
-     (StormTopology. spout-map bolt-map state-spout-map {} {})))
+     (StormTopology. spout-map bolt-map state-spout-map)))
 
 (defnk coordinated-bolt [bolt :type nil :all-out false]
   (let [source (condp = type
@@ -204,5 +204,4 @@
 (def STORM-TOPOLOGY-FIELDS (-> StormTopology/metaDataMap clojurify-structure keys))
 
 (def SPOUT-FIELDS [StormTopology$_Fields/SPOUTS
-                   StormTopology$_Fields/STATE_SPOUTS
-                   StormTopology$_Fields/TRANSACTIONAL_SPOUTS])
+                   StormTopology$_Fields/STATE_SPOUTS])

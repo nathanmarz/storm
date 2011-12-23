@@ -57,17 +57,12 @@
   (let [spouts (.get_spouts topology)
         bolts (.get_bolts topology)
         state-spouts (.get_state_spouts topology)
-        transactional-spouts (.get_transactional_spouts topology)
-        transactional-bolts (.get_transactional_bolts topology)
         obj (Utils/getSetComponentObject
              (cond
               (contains? spouts component-id) (.get_spout_object (get spouts component-id))
               (contains? bolts component-id) (.get_bolt_object (get bolts component-id))
               (contains? state-spouts component-id) (.get_state_spout_object (get state-spouts component-id))
-              (contains? transactional-spouts component-id) (.get_spout_object (get transactional-spouts component-id))
-              (contains? transactional-bolts component-id) (.get_bolt_object (get transactional-bolts component-id))
               true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
-        ;; TODO: Need to figure out shelling for transactional components
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
                 (ShellSpout. obj)
@@ -75,10 +70,7 @@
               obj )
         obj (if (instance? JavaObject obj)
               (thrift/instantiate-java-object obj)
-              obj )
-        obj (if (instance? ITransactionalBolt obj)
-              (TransactionalBoltExecutor. obj)
-              obj)]
+              obj )]
     obj
     ))
 

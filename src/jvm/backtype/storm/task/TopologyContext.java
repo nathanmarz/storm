@@ -8,8 +8,6 @@ import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
-import backtype.storm.generated.TransactionalBolt;
-import backtype.storm.generated.TransactionalSpoutSpec;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -333,12 +331,6 @@ public class TopologyContext {
                 }
                 if(component instanceof StateSpoutSpec) {
                     return ((StateSpoutSpec) component).get_common();
-                }
-                if(component instanceof TransactionalBolt) {
-                    return ((TransactionalBolt) component).get_common();
-                }
-                if(component instanceof TransactionalSpoutSpec) {
-                    return ((TransactionalSpoutSpec) component).get_common();
                 }
                 throw new RuntimeException("Unreachable code! No get_common conversion for component " + component);
             }

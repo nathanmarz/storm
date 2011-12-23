@@ -1,4 +1,5 @@
 (ns backtype.storm.thrift
+  (:import [java.util HashMap])
   (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology StormTopology$_Fields 
     Bolt Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
     GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
@@ -72,7 +73,7 @@
 (defn mk-component-common [inputs component parallelism-hint]
   (let [getter (OutputFieldsGetter.)
         _ (.declareOutputFields component getter)
-        ret (ComponentCommon. inputs (.getFieldsDeclaration getter))]
+        ret (ComponentCommon. (HashMap. inputs) (HashMap. (.getFieldsDeclaration getter)))]
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
     ret
@@ -96,7 +97,7 @@
       )))
 
 (defn mk-plain-component-common [inputs output-spec parallelism-hint]
-  (let [ret (ComponentCommon. inputs (mk-output-spec output-spec))]
+  (let [ret (ComponentCommon. (HashMap. inputs) (HashMap. (mk-output-spec output-spec)))]
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
     ret
@@ -198,7 +199,9 @@
 
 (def COORD-STREAM Constants/COORDINATED_STREAM_ID)
 
-(def STORM-TOPOLOGY-FIELDS (-> StormTopology/metaDataMap keys))
+;; clojurify-structure is needed or else every element becomes the same after successive calls
+;; don't know why this happens
+(def STORM-TOPOLOGY-FIELDS (-> StormTopology/metaDataMap clojurify-structure keys))
 
 (def SPOUT-FIELDS [StormTopology$_Fields/SPOUTS
                    StormTopology$_Fields/STATE_SPOUTS

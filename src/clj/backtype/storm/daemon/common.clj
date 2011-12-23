@@ -16,6 +16,8 @@
 (def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
 (def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
 
+(def SYSTEM-STREAM-ID "__system")
+
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
@@ -142,6 +144,12 @@
 (defn all-tuple-spouts [^StormTopology topology]
   (merge {}  (.get_spouts topology) (.get_transactional_spouts topology)))
 
+(defn all-components [^StormTopology topology]
+  (apply merge {}
+         (for [f thrift/STORM-TOPOLOGY-FIELDS]
+           (.getFieldValue topology f)
+           )))
+
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)
         spout-ids (.. topology get_spouts keySet)
@@ -186,7 +194,11 @@
     ))
 
 (defn add-system-streams! [^StormTopology topology]
-  )
+  (doseq [[_ component] (all-components topology)
+          :let [common (.get_common component)]]
+    (.put_to_streams common SYSTEM-STREAM-ID (thrift/output-fields ["event"]))
+    ;; TODO: consider adding a stats stream for stats aggregation
+    ))
 
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
@@ -195,7 +207,6 @@
     (add-system-streams! ret)
     ;; TODO: need to set up streams/inputs for transactional spout
     ;; TODO: need to set up streams/inputs for transactional bolts
-    
     (validate-structure! ret)
     ret
     ))

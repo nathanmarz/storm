@@ -213,6 +213,10 @@
                                      this)
                            ))
                        out-tasks)))
+        _ (send-fn (Tuple. topology-context
+                           ["startup"]
+                           (.getThisTaskId topology-context)
+                           SYSTEM-STREAM-ID))
         executor-threads (dofor
                           [exec (with-error-reaction report-error-and-die
                                   (mk-executors task-object storm-conf puller send-fn

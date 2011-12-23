@@ -10,6 +10,8 @@ import backtype.storm.utils.TimeCacheMap;
 import backtype.storm.utils.Utils;
 import java.util.Map;
 
+// TODO: would be helpful to have a non-committing executor that just helps with keeping state
+// separated by transaction attempt
 public class TransactionalBoltExecutor implements IBolt {
     byte[] _boltSer;
     TimeCacheMap<TransactionAttempt, ITransactionalBolt> _openTransactions;
@@ -42,6 +44,7 @@ public class TransactionalBoltExecutor implements IBolt {
         if(bolt!=null) {
             if(input.getSourceStreamId().equals(Constants.TRANSACTION_COMMIT_STREAM_ID)) {
                 bolt.commit(new TransactionTuple(input), _collector);
+                _openTransactions.remove(attempt);
             } else {
                 bolt.execute(input);
             }

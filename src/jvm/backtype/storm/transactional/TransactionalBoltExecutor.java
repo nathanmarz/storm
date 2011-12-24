@@ -37,6 +37,9 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         String stream = input.getSourceStreamId();
         ITransactionalBolt bolt = _openTransactions.get(attempt);
+        // bolt != null && receiving commit message -> this task processed the whole batch for this attempt
+        // this is because: commit message only send when tuple tree acked
+        // if it failed after, then bolt will equal null, if it failed before, then it doesn't get acked
         if(stream.equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
                 if(bolt!=null) {
                     ((ICommittable)bolt).commit();
@@ -64,9 +67,9 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     }
 
     @Override
-    public void finishedId(FinishedTuple id) {
-        _collector.setAnchor(id);
-        ITransactionalBolt bolt = _openTransactions.get((TransactionAttempt) id);
+    public void finishedId(FinishedTuple tup) {
+        _collector.setAnchor(tup);
+        ITransactionalBolt bolt = _openTransactions.get((TransactionAttempt) tup.getId());
         if(bolt!=null) {
             bolt.finishBatch();
         }

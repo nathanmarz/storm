@@ -11,4 +11,5 @@ public interface ITransactionalSpout extends IComponent {
     // must always emit same batch for same transaction id
     // must emit attempt as first field in output tuple (any way to enforce this?)
     void emitBatch(TransactionAttempt tx, TransactionalOutputCollector collector);
+    boolean isDistributed();
 }

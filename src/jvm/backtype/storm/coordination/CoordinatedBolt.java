@@ -136,13 +136,17 @@ public class CoordinatedBolt implements IRichBolt {
         this(delegate, null, null);
     }
 
+    public CoordinatedBolt(IRichBolt delegate, String sourceComponent, SourceArgs sourceArgs, GlobalStreamId idSource) {
+        this(delegate, singleSourceArgs(sourceComponent, sourceArgs), idSource);
+    }
+    
     public CoordinatedBolt(IRichBolt delegate, Map<String, SourceArgs> sourceArgs, GlobalStreamId idSource) {
         _sourceArgs = sourceArgs;
         if(_sourceArgs==null) _sourceArgs = new HashMap<String, SourceArgs>();
         _delegate = delegate;
         _idSource = idSource;
     }
-
+    
     public void prepare(Map config, TopologyContext context, OutputCollector collector) {
         _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.getInt(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
         _collector = collector;
@@ -232,5 +236,11 @@ public class CoordinatedBolt implements IRichBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         _delegate.declareOutputFields(declarer);
         declarer.declareStream(Constants.COORDINATED_STREAM_ID, true, new Fields("id", "count"));
+    }
+
+    private static Map<String, SourceArgs> singleSourceArgs(String sourceComponent, SourceArgs sourceArgs) {
+        Map<String, SourceArgs> ret = new HashMap<String, SourceArgs>();
+        ret.put(sourceComponent, sourceArgs);
+        return ret;
     }
 }

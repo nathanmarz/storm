@@ -16,6 +16,7 @@ import backtype.storm.topology.OutputFieldsGetter;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,13 +72,11 @@ public class LinearDRPCTopologyBuilder {
         for(; i<_components.size();i++) {
             Component component = _components.get(i);
             
-            SourceArgs source;
-            if(i==0) {
-                source = null;
-            } else if (i==1) {
-                source = SourceArgs.single();
-            } else {
-                source = SourceArgs.all();
+            Map<String, SourceArgs> source = new HashMap<String, SourceArgs>();
+            if (i==1) {
+                source.put(boltId(i-1), SourceArgs.single());
+            } else if (i>=2) {
+                source.put(boltId(i-1), SourceArgs.all());
             }
             GlobalStreamId idSource = null;
             if(i==_components.size()-1 && component.bolt instanceof FinishedCallback) {
@@ -90,7 +89,7 @@ public class LinearDRPCTopologyBuilder {
             if(idSource!=null) {
                 declarer.fieldsGrouping(idSource.get_componentId(), PrepareRequest.ID_STREAM, new Fields("request"));
             }
-            if(i==0 && component.declarations.size()==0) {
+            if(i==0 && component.declarations.isEmpty()) {
                 declarer.noneGrouping(PREPARE_ID, PrepareRequest.ARGS_STREAM);
             } else {
                 String prevId;

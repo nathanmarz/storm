@@ -1,12 +1,12 @@
 package backtype.storm.coordination;
 
+import java.util.Map.Entry;
 import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.Values;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.Config;
 import java.util.Collection;
 import backtype.storm.Constants;
-import backtype.storm.drpc.PrepareRequest;
 import backtype.storm.generated.Grouping;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
@@ -29,7 +29,10 @@ import static backtype.storm.utils.Utils.get;
 
 // TODO: need to:
 //   - make this work for non-linear topologies
-//   - move this to its own namespace (backtype.storm.coordination)
+//     - when receive all tuples from all sources, emit coordination tuples...
+//     - need to be able to set SourceArgs per source
+//     - trackinginfo can keep track of aggregate expected/received from non idSource sources
+//     - idSource is treated differently... 
 /**
  * Coordination requires the request ids to be globally unique for awhile. This is so it doesn't get confused
  * in the case of retries.
@@ -90,11 +93,7 @@ public class CoordinatedBolt implements IRichBolt {
         }
 
         public void fail(Tuple tuple) {
-            Object id = tuple.getValue(0);
-            synchronized(_tracked) {
-                _tracked.get(id).receivedTuples++;
-            }
-            checkFinishId(tuple);
+            // don't increment here... don't want to complete in case of failure
             _delegate.fail(tuple);
         }
         
@@ -104,15 +103,17 @@ public class CoordinatedBolt implements IRichBolt {
 
 
         private void updateTaskCounts(Object id, List<Integer> tasks) {
-            Map<Integer, Integer> taskEmittedTuples = _tracked.get(id).taskEmittedTuples;
-            for(Integer task: tasks) {
-                int newCount = get(taskEmittedTuples, task, 0) + 1;
-                taskEmittedTuples.put(task, newCount);
+            synchronized(_tracked) {
+                Map<Integer, Integer> taskEmittedTuples = _tracked.get(id).taskEmittedTuples;
+                for(Integer task: tasks) {
+                    int newCount = get(taskEmittedTuples, task, 0) + 1;
+                    taskEmittedTuples.put(task, newCount);
+                }
             }
         }
     }
 
-    private SourceArgs _sourceArgs;
+    private Map<String, SourceArgs> _sourceArgs;
     private GlobalStreamId _idSource;
     private IRichBolt _delegate;
     private Integer _numSourceReports;
@@ -141,8 +142,9 @@ public class CoordinatedBolt implements IRichBolt {
         this(delegate, null, null);
     }
 
-    public CoordinatedBolt(IRichBolt delegate, SourceArgs sourceArgs, GlobalStreamId idSource) {
+    public CoordinatedBolt(IRichBolt delegate, Map<String, SourceArgs> sourceArgs, GlobalStreamId idSource) {
         _sourceArgs = sourceArgs;
+        if(_sourceArgs==null) _sourceArgs = new HashMap<String, SourceArgs>();
         _delegate = delegate;
         _idSource = idSource;
     }
@@ -159,18 +161,13 @@ public class CoordinatedBolt implements IRichBolt {
                 _countOutTasks.add(task);
             }
         }
-        if(_sourceArgs!=null) {
-            if(_sourceArgs.singleCount) {
-                _numSourceReports = 1;
-            } else {
-                Iterator<GlobalStreamId> it = context.getThisSources().keySet().iterator();
-                while(it.hasNext()) {
-                    String sourceComponent = it.next().get_componentId();
-                    //this works because if it consumes something like PrepareRequest, sourceargs.singlecount is true
-                    if(_idSource==null || !sourceComponent.equals(_idSource.get_componentId())) {
-                        _numSourceReports = context.getComponentTasks(sourceComponent).size();
-                        break;
-                    }
+        if(!_sourceArgs.isEmpty()) {
+            _numSourceReports = 0;
+            for(Entry<String, SourceArgs> entry: _sourceArgs.entrySet()) {
+                if(entry.getValue().singleCount) {
+                    _numSourceReports+=1;
+                } else {
+                    _numSourceReports+=context.getComponentTasks(entry.getKey()).size();
                 }
             }
         }
@@ -182,7 +179,7 @@ public class CoordinatedBolt implements IRichBolt {
             TrackingInfo track = _tracked.get(id);
             if(track!=null
                     && track.receivedId 
-                    && (_sourceArgs==null
+                    && (_sourceArgs.isEmpty()
                         ||
                        track.reportCount==_numSourceReports &&
                        track.expectedTupleCount == track.receivedTuples)) {
@@ -220,7 +217,7 @@ public class CoordinatedBolt implements IRichBolt {
             }
             checkFinishId(tuple);
             _collector.ack(tuple);
-        } else if(_sourceArgs!=null
+        } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
             int count = (Integer) tuple.getValue(1);
             synchronized(_tracked) {

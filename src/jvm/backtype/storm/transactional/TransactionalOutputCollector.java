@@ -3,12 +3,7 @@ package backtype.storm.transactional;
 import backtype.storm.utils.Utils;
 import java.util.List;
 
-public class TransactionalSpoutOutputCollector implements ITransactionalSpoutOutputCollector {
-    ITransactionalSpoutOutputCollector _delegate;
-
-    public TransactionalSpoutOutputCollector(ITransactionalSpoutOutputCollector delegate) {
-        _delegate = delegate;
-    }
+public abstract class TransactionalOutputCollector {
 
     /**
      * Emits a tuple to the default output stream.
@@ -17,9 +12,7 @@ public class TransactionalSpoutOutputCollector implements ITransactionalSpoutOut
         return emit(Utils.DEFAULT_STREAM_ID, tuple);
     }
 
-    public List<Integer> emit(String streamId, List<Object> tuple) {
-        return _delegate.emit(Utils.DEFAULT_STREAM_ID, tuple);
-    }
+    public abstract List<Integer> emit(String streamId, List<Object> tuple);
     
     /**
      * Emits a tuple to the specified task on the default output stream. This output
@@ -30,7 +23,5 @@ public class TransactionalSpoutOutputCollector implements ITransactionalSpoutOut
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, tuple);
     }
     
-    public void emitDirect(int taskId, String streamId, List<Object> tuple) {
-        _delegate.emitDirect(taskId, streamId, tuple);
-    }
+    public abstract void emitDirect(int taskId, String streamId, List<Object> tuple);    
 }

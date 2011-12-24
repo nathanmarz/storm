@@ -1,6 +1,5 @@
 package backtype.storm.drpc;
 
-import backtype.storm.tuple.IAnchorable;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.Config;
 import java.util.Collection;
@@ -62,13 +61,13 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate = delegate;
         }
 
-        public List<Integer> emit(String stream, Collection<IAnchorable> anchors, List<Object> tuple) {
+        public List<Integer> emit(String stream, Collection<Tuple> anchors, List<Object> tuple) {
             List<Integer> tasks = _delegate.emit(stream, anchors, tuple);
             updateTaskCounts(tuple.get(0), tasks);
             return tasks;
         }
 
-        public void emitDirect(int task, String stream, Collection<IAnchorable> anchors, List<Object> tuple) {
+        public void emitDirect(int task, String stream, Collection<Tuple> anchors, List<Object> tuple) {
             updateTaskCounts(tuple.get(0), Arrays.asList(task));
             _delegate.emitDirect(task, stream, anchors, tuple);
         }
@@ -237,5 +236,4 @@ public class CoordinatedBolt implements IRichBolt {
         _delegate.declareOutputFields(declarer);
         declarer.declareStream(Constants.COORDINATED_STREAM_ID, true, new Fields("id", "count"));
     }
-
 }

@@ -1,15 +1,14 @@
 package backtype.storm.transactional;
 
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.IComponent;
 import java.util.Map;
 
-// TODO: acts identically to a bolt EXCEPT for the coordinator task which:
-//  -- keeps track of open transactions
-//  -- persists the state of committed transactions
-//  -- sends out batch and commit tuples
-public interface ITransactionalSpout {
-    void open(Map conf);
+public interface ITransactionalSpout extends IComponent {
+    ITransactionState getState();
+    void open(Map conf, TopologyContext context);
     void close();
-    void setTransactionId(long txid);
-    long getTransactionId();
-    void emitBatch(TransactionAttempt tx, TransactionalSpoutOutputCollector collector);
+    // must always emit same batch for same transaction id
+    // must emit attempt as first field in output tuple (any way to enforce this?)
+    void emitBatch(TransactionAttempt tx, TransactionalOutputCollector collector);
 }

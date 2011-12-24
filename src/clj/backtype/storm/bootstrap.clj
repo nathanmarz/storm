@@ -11,7 +11,7 @@
      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
      (import (quote [backtype.storm.task IBolt IOutputCollector
                      OutputCollector OutputCollectorImpl IInternalOutputCollector
-                     TopologyContext ShellBolt BoltEmitter IBoltEmitter]))
+                     TopologyContext ShellBolt]))
      (import (quote [backtype.storm.transactional ITransactionalBolt TransactionalBoltExecutor]))
      (import (quote [backtype.storm.drpc CoordinatedBolt
                      CoordinatedBolt$SourceArgs KeyedFairBolt]))

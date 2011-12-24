@@ -5,6 +5,7 @@ import backtype.storm.ILocalDRPC;
 import backtype.storm.coordination.CoordinatedBolt;
 import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
+import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.topology.BasicBoltExecutor;
@@ -78,16 +79,16 @@ public class LinearDRPCTopologyBuilder {
             } else {
                 source = SourceArgs.all();
             }
-            String idComponent = null;
+            GlobalStreamId idSource = null;
             if(i==_components.size()-1 && component.bolt instanceof FinishedCallback) {
-                idComponent = PREPARE_ID;
+                idSource = new GlobalStreamId(PREPARE_ID, PrepareRequest.ID_STREAM);
             }
             InputDeclarer declarer = builder.setBolt(
                     boltId(i),
-                    new CoordinatedBolt(component.bolt, source, idComponent),
+                    new CoordinatedBolt(component.bolt, source, idSource),
                     component.parallelism);
-            if(idComponent!=null) {
-                declarer.fieldsGrouping(idComponent, PrepareRequest.ID_STREAM, new Fields("request"));
+            if(idSource!=null) {
+                declarer.fieldsGrouping(idSource.get_componentId(), PrepareRequest.ID_STREAM, new Fields("request"));
             }
             if(i==0 && component.declarations.size()==0) {
                 declarer.noneGrouping(PREPARE_ID, PrepareRequest.ARGS_STREAM);

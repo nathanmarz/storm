@@ -6,8 +6,6 @@
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
-  (:import [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs])
-  (:import [backtype.storm.drpc KeyedFairBolt])
   (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
@@ -188,16 +186,6 @@
      (StormTopology. spout-map bolt-map {}))
   ([spout-map bolt-map state-spout-map]
      (StormTopology. spout-map bolt-map state-spout-map)))
-
-(defnk coordinated-bolt [bolt :type nil :all-out false]
-  (let [source (condp = type
-                   nil nil
-                   :all (CoordinatedBolt$SourceArgs/all)
-                   :single (CoordinatedBolt$SourceArgs/single))]
-    (CoordinatedBolt. bolt source all-out)
-    ))
-
-(def COORD-STREAM Constants/COORDINATED_STREAM_ID)
 
 ;; clojurify-structure is needed or else every element becomes the same after successive calls
 ;; don't know why this happens

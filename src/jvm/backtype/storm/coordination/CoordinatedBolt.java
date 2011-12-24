@@ -27,12 +27,6 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import static backtype.storm.utils.Utils.get;
 
-// TODO: need to:
-//   - make this work for non-linear topologies
-//     - when receive all tuples from all sources, emit coordination tuples...
-//     - need to be able to set SourceArgs per source
-//     - trackinginfo can keep track of aggregate expected/received from non idSource sources
-//     - idSource is treated differently... 
 /**
  * Coordination requires the request ids to be globally unique for awhile. This is so it doesn't get confused
  * in the case of retries.

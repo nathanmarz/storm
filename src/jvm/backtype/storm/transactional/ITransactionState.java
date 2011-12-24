@@ -7,5 +7,5 @@ public interface ITransactionState {
     void open(Map conf, TopologyContext context);
     void close();
     void setTransactionId(int txid);
-    int getTransactionId();    
+    int getTransactionId();
 }

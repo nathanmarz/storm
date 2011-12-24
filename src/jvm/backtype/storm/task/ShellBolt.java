@@ -1,6 +1,7 @@
 package backtype.storm.task;
 
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
@@ -149,7 +150,7 @@ public class ShellBolt implements IBolt {
                     if(stream==null) stream = Utils.DEFAULT_STREAM_ID;
                     Long task = (Long) action.get("task");
                     List<Object> tuple = (List) action.get("tuple");
-                    List<Tuple> anchors = new ArrayList<Tuple>();
+                    List<IAnchorable> anchors = new ArrayList<IAnchorable>();
                     Object anchorObj = action.get("anchors");
                     if(anchorObj!=null) {
                         if(anchorObj instanceof Long) {

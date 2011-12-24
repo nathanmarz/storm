@@ -1,7 +1,8 @@
 package backtype.storm.transactional;
 
 import backtype.storm.Config;
-import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.FinishedTuple;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
@@ -39,10 +40,10 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         if(stream.equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
                 if(bolt!=null) {
                     ((ICommittable)bolt).commit();
-                    _collector.ack();
+                    _collector.ack(input);
                     _openTransactions.remove(attempt);
                 } else {
-                    _collector.fail();
+                    _collector.fail(input);
                 }
         } else {
             if(bolt==null) {
@@ -54,7 +55,7 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
             if(!stream.equals(TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)) {
                 bolt.execute(input);
             }       
-            _collector.ack();
+            _collector.ack(input);
         }
     }
 
@@ -63,9 +64,8 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     }
 
     @Override
-    public void finishedId(Object id) {
-        // TODO: need coordinated bolt to provide something to anchor on
-        // _collector.setAnchor(...);
+    public void finishedId(FinishedTuple id) {
+        _collector.setAnchor(id);
         ITransactionalBolt bolt = _openTransactions.get((TransactionAttempt) id);
         if(bolt!=null) {
             bolt.finishBatch();

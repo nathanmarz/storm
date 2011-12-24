@@ -1,8 +1,8 @@
 (ns backtype.storm.drpc-test
   (:use [clojure test])
   (:import [backtype.storm.drpc ReturnResults DRPCSpout
-            LinearDRPCTopologyBuilder
-            CoordinatedBolt$FinishedCallback])
+            LinearDRPCTopologyBuilder])
+  (:import [backtype.storm.coordination CoordinatedBolt$FinishedCallback])
   (:import [backtype.storm LocalDRPC LocalCluster])
   (:import [backtype.storm.tuple Fields])
   (:use [backtype.storm bootstrap testing])
@@ -79,7 +79,7 @@
                 ))
      CoordinatedBolt$FinishedCallback
      (finishedId [this id]
-                 (emit-bolt! collector [id (get @counts id 0)])
+                 (emit-bolt! collector [(.getId id) (get @counts (.getId id) 0)])
                  ))
     ))
 
@@ -98,7 +98,7 @@
                 ))
      CoordinatedBolt$FinishedCallback
      (finishedId [this id]
-                 (emit-bolt! collector [id (get @counts id 0)])
+                 (emit-bolt! collector [(.getId id) (get @counts (.getId id) 0)])
                  ))
     ))
 
@@ -149,7 +149,7 @@
             )
    CoordinatedBolt$FinishedCallback
    (finishedId [this id]
-               (emit-bolt! collector [id "done"])
+               (emit-bolt! collector [(.getId id) "done"])
                )))
 
 (deftest test-drpc-coordination-tricky

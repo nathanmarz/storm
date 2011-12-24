@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * Implement ICommittable to receive commits from the TransactionSpout
+ * Implement ICommittable to receive commits from the TransactionSpout.
  */
 public interface ITransactionalBolt extends Serializable, IComponent {
     void prepare(Map conf, TopologyContext context, TransactionalOutputCollector collector, TransactionAttempt attempt);

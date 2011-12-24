@@ -6,8 +6,8 @@
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
-  (:import [backtype.storm.drpc CoordinatedBolt CoordinatedBolt$SourceArgs
-            KeyedFairBolt])
+  (:import [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs])
+  (:import [backtype.storm.drpc KeyedFairBolt])
   (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])

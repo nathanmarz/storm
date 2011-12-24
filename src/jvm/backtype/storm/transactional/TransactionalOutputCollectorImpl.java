@@ -1,18 +1,19 @@
 package backtype.storm.transactional;
 
 import backtype.storm.task.OutputCollector;
+import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.Tuple;
 import java.util.List;
 
 public class TransactionalOutputCollectorImpl extends TransactionalOutputCollector {
     OutputCollector _collector;
-    Tuple _anchor;
+    IAnchorable _anchor;
     
     public TransactionalOutputCollectorImpl(OutputCollector collector) {
         _collector = collector;
     }
     
-    public void setAnchor(Tuple anchor) {
+    public void setAnchor(IAnchorable anchor) {
         _anchor = anchor;
     }
 
@@ -26,11 +27,11 @@ public class TransactionalOutputCollectorImpl extends TransactionalOutputCollect
         _collector.emitDirect(taskId, streamId, _anchor, tuple);
     }
     
-    public void ack() {
-        _collector.ack(_anchor);
+    public void ack(Tuple tup) {
+        _collector.ack(tup);
     }
     
-    public void fail() {
-        _collector.fail(_anchor);
+    public void fail(Tuple tup) {
+        _collector.fail(tup);
     }
 }

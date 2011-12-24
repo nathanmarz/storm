@@ -1,6 +1,7 @@
 package backtype.storm.clojure;
 
-import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.FinishedTuple;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
@@ -78,7 +79,7 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
     }
 
     @Override
-    public void finishedId(Object id) {
+    public void finishedId(FinishedTuple id) {
         if(_bolt instanceof FinishedCallback) {
             ((FinishedCallback) _bolt).finishedId(id);
         }

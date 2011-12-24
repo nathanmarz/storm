@@ -13,8 +13,8 @@
                      OutputCollector OutputCollectorImpl IInternalOutputCollector
                      TopologyContext ShellBolt]))
      (import (quote [backtype.storm.transactional ITransactionalBolt TransactionalBoltExecutor]))
-     (import (quote [backtype.storm.drpc CoordinatedBolt
-                     CoordinatedBolt$SourceArgs KeyedFairBolt]))
+     (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs]))
+     (import (quote [backtype.storm.drpc KeyedFairBolt]))
      (import (quote [backtype.storm.daemon Shutdownable]))
      (require (quote [backtype.storm.messaging.loader :as msg-loader]))
      (require (quote [backtype.storm.messaging.protocol :as msg]))

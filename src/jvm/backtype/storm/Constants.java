@@ -1,6 +1,6 @@
 package backtype.storm;
 
-import backtype.storm.drpc.CoordinatedBolt;
+import backtype.storm.coordination.CoordinatedBolt;
 
 
 public class Constants {

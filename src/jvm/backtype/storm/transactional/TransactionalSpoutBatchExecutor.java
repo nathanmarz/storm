@@ -25,7 +25,7 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     public void execute(Tuple input) {
         _collector.setAnchor(input);
         _spout.emitBatch((TransactionAttempt) input.getValue(0), _collector);
-        _collector.ack();
+        _collector.ack(input);
     }
 
     @Override

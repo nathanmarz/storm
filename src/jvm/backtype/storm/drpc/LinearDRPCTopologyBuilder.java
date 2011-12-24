@@ -2,8 +2,9 @@ package backtype.storm.drpc;
 
 import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
-import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
-import backtype.storm.drpc.CoordinatedBolt.SourceArgs;
+import backtype.storm.coordination.CoordinatedBolt;
+import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.topology.BasicBoltExecutor;

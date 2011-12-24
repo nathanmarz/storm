@@ -1,9 +1,12 @@
-package backtype.storm.drpc;
+package backtype.storm.coordination;
 
+import backtype.storm.tuple.IAnchorable;
+import backtype.storm.tuple.Values;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.Config;
 import java.util.Collection;
 import backtype.storm.Constants;
+import backtype.storm.drpc.PrepareRequest;
 import backtype.storm.generated.Grouping;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
@@ -23,14 +26,19 @@ import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
 import static backtype.storm.utils.Utils.get;
-import static backtype.storm.utils.Utils.tuple;
 
-
+// TODO: need to:
+//   - make this work for non-linear topologies
+//   - move this to its own namespace (backtype.storm.coordination)
+/**
+ * Coordination requires the request ids to be globally unique for awhile. This is so it doesn't get confused
+ * in the case of retries.
+ */
 public class CoordinatedBolt implements IRichBolt {
     public static Logger LOG = Logger.getLogger(CoordinatedBolt.class);
 
     public static interface FinishedCallback {
-        void finishedId(Object id);
+        void finishedId(FinishedTuple id);
     }
 
     public static class SourceArgs implements Serializable {
@@ -61,33 +69,33 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate = delegate;
         }
 
-        public List<Integer> emit(String stream, Collection<Tuple> anchors, List<Object> tuple) {
+        public List<Integer> emit(String stream, Collection<IAnchorable> anchors, List<Object> tuple) {
             List<Integer> tasks = _delegate.emit(stream, anchors, tuple);
             updateTaskCounts(tuple.get(0), tasks);
             return tasks;
         }
 
-        public void emitDirect(int task, String stream, Collection<Tuple> anchors, List<Object> tuple) {
+        public void emitDirect(int task, String stream, Collection<IAnchorable> anchors, List<Object> tuple) {
             updateTaskCounts(tuple.get(0), Arrays.asList(task));
             _delegate.emitDirect(task, stream, anchors, tuple);
         }
 
         public void ack(Tuple tuple) {
-            _delegate.ack(tuple);
             Object id = tuple.getValue(0);
             synchronized(_tracked) {
                 _tracked.get(id).receivedTuples++;
             }
-            checkFinishId(id);
+            checkFinishId(tuple);
+            _delegate.ack(tuple);
         }
 
         public void fail(Tuple tuple) {
-            _delegate.fail(tuple);
             Object id = tuple.getValue(0);
             synchronized(_tracked) {
                 _tracked.get(id).receivedTuples++;
             }
-            checkFinishId(id);
+            checkFinishId(tuple);
+            _delegate.fail(tuple);
         }
         
         public void reportError(Throwable error) {
@@ -167,7 +175,8 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
 
-    private void checkFinishId(Object id) {
+    private void checkFinishId(Tuple tup) {
+        Object id = tup.getValue(0);
         synchronized(_tracked) {
             TrackingInfo track = _tracked.get(id);
             if(track!=null
@@ -177,13 +186,13 @@ public class CoordinatedBolt implements IRichBolt {
                        track.reportCount==_numSourceReports &&
                        track.expectedTupleCount == track.receivedTuples)) {
                 if(_delegate instanceof FinishedCallback) {
-                    ((FinishedCallback)_delegate).finishedId(id);
+                    ((FinishedCallback)_delegate).finishedId(new FinishedTupleImpl(tup));
                 }
                 Iterator<Integer> outTasks = _countOutTasks.iterator();
                 while(outTasks.hasNext()) {
                     int task = outTasks.next();
                     int numTuples = get(track.taskEmittedTuples, task, 0);
-                    _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tuple(id, numTuples));
+                    _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, new Values(id, numTuples));
                 }
                 _tracked.remove(id);
             }
@@ -202,14 +211,13 @@ public class CoordinatedBolt implements IRichBolt {
             }
         }
         
-        boolean checkFinish = false;
         if(_idComponent!=null
                 && tuple.getSourceComponent().equals(_idComponent)
                 && tuple.getSourceStreamId().equals(PrepareRequest.ID_STREAM)) {
             synchronized(_tracked) {
                 track.receivedId = true;
             }
-            checkFinish = true;
+            checkFinishId(tuple);
             _collector.ack(tuple);
         } else if(_sourceArgs!=null
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
@@ -218,13 +226,10 @@ public class CoordinatedBolt implements IRichBolt {
                 track.reportCount++;
                 track.expectedTupleCount+=count;
             }
-            checkFinish = true;
+            checkFinishId(tuple);
             _collector.ack(tuple);
         } else {            
             _delegate.execute(tuple);
-        }
-        if(checkFinish) {
-            checkFinishId(id);
         }
     }
 

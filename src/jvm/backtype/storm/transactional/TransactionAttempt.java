@@ -27,4 +27,9 @@ public class TransactionAttempt {
         TransactionAttempt other = (TransactionAttempt) o;
         return _txid == other._txid && _attemptId == other._attemptId;
     }
+
+    @Override
+    public String toString() {
+        return "" + _txid + ": " + _attemptId;
+    }    
 }

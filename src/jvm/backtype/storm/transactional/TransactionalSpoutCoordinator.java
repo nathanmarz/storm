@@ -123,6 +123,11 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             this.attempt = attempt;
             this.status = AttemptStatus.PROCESSING;
         }
+
+        @Override
+        public String toString() {
+            return attempt.toString() + " <" + status.toString() + ">";
+        }        
     }
     
     private int nextTransactionId(int id) {

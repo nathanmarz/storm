@@ -76,8 +76,8 @@
 
 (defn cancel-timer [timer]
   (check-active! timer)
-  (reset! (:active timer) false)
   (locking (:lock timer)
+    (reset! (:active timer) false)
     (.interrupt (:timer-thread timer)))
   (.acquire (:cancel-notifier timer)))
 

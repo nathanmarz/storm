@@ -95,12 +95,6 @@
     nil
     ))
 
-;; there's a minor problem where rebalancing is scheduled over and over until it finally happens
-;; can fix this by either:
-;; 1. detecting whether it's scheduled or not...
-;; 2. not using monitor event, but rather some sort of "on startup" event
-;; 3. generating a "rebalance id" and only rebalancing if current status has that id
-
 (defn state-transitions [nimbus storm-id status]
   {:active {:monitor (reassign-transition nimbus storm-id)
             :inactivate :inactive            
@@ -114,7 +108,7 @@
               :rebalance (rebalance-transition nimbus storm-id status)
               :kill (kill-transition nimbus storm-id)
               }
-   :killed {:monitor (fn [] (delay-event nimbus
+   :killed {:startup (fn [] (delay-event nimbus
                                          storm-id
                                          (:kill-time-secs status)
                                          :remove))
@@ -125,7 +119,7 @@
                                       storm-id)
                       nil)
             }
-   :rebalancing {:monitor (fn [] (delay-event nimbus
+   :rebalancing {:startup (fn [] (delay-event nimbus
                                               storm-id
                                               (:delay-secs status)
                                               :do-rebalance))
@@ -136,14 +130,15 @@
                  }})
 
 (defn topology-status [nimbus storm-id]
-  (:status (.storm-base (:storm-cluster-state nimbus) storm-id nil)))
+  (-> nimbus :storm-cluster-state (.storm-base storm-id nil) :status))
 
 (defn transition!
   ([nimbus storm-id event]
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
      (locking (:submit-lock nimbus)
-       (let [[event & event-args] (if (keyword? event) [event] event)
+       (let [system-events #{:startup :monitor}
+             [event & event-args] (if (keyword? event) [event] event)
              status (topology-status nimbus storm-id)]
          ;; handles the case where event was scheduled but topology has been removed
          (if-not status
@@ -156,8 +151,10 @@
                                               " storm-id: " storm-id)]
                                  (if error-on-no-transition?
                                    (throw-runtime msg)
-                                   (do (log-message msg) nil)
-                                   ))))
+                                   (do (when-not (contains? system-events event)
+                                         (log-message msg))
+                                       nil))
+                                 )))
                  transition (-> (state-transitions nimbus storm-id status)
                                 (get (:type status))
                                 (get-event event))
@@ -619,16 +616,27 @@
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
+(defn cleanup-corrupt-topologies! [nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        code-ids (set (code-ids (:conf nimbus)))
+        active-topologies (set (.active-storms storm-cluster-state))
+        corrupt-topologies (set/difference active-topologies code-ids)]
+    (doseq [corrupt corrupt-topologies]
+      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+      (.remove-storm! storm-cluster-state corrupt)
+      )))
 
 (defserverfn service-handler [conf]
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf)]
+    (cleanup-corrupt-topologies! nimbus)
+    (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
+      (transition! nimbus storm-id :startup))
     (schedule-recurring (:timer nimbus)
                         0
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
-                          (doseq [storm-id (.active-storms
-                                            (:storm-cluster-state nimbus))]
+                          (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
                             (transition! nimbus storm-id :monitor))
                           (do-cleanup nimbus)
                           ))

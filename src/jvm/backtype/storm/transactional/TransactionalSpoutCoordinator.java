@@ -91,7 +91,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     
     private void sync() {
         TransactionStatus maybeCommit = _activeTx.get(_currTransaction);
-        if(maybeCommit!=null && maybeCommit.status ==AttemptStatus.PROCESSED) {
+        if(maybeCommit!=null && maybeCommit.status == AttemptStatus.PROCESSED) {
             maybeCommit.status = AttemptStatus.COMMITTING;
             _collector.emit(TRANSACTION_COMMIT_STREAM_ID, new Values(maybeCommit.attempt), maybeCommit.attempt);
         }

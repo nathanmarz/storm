@@ -63,7 +63,8 @@ public class TransactionalTopologyBuilder {
                                              coordinator,
                                              null,
                                              null),
-                        _spoutParallelism);
+                        _spoutParallelism)
+                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);
         for(String id: _bolts.keySet()) {
             Component component = _bolts.get(id);
             Map<String, SourceArgs> coordinatedArgs = new HashMap<String, SourceArgs>();
@@ -83,6 +84,9 @@ public class TransactionalTopologyBuilder {
             }
             if(component.committer) {
                 input.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);
+                
+                // this is to guarantee that they create the transactionalbolt for every attempt
+                input.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);
             }
         }
         return builder.createTopology();

@@ -8,12 +8,10 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
-// TODO: need a way to override max spout pending with max batc pending conf
+// TODO: need a way to override max spout pending with max batch pending conf
 public class TransactionalSpoutCoordinator implements IRichSpout {
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
@@ -21,7 +19,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private ITransactionalSpout _spout;
     private ITransactionState _state;
     
-    TreeMap<TransactionAttempt, AttemptStatus> _activeTx = new TreeMap<TransactionAttempt, AttemptStatus>();
+    Map<Integer, TransactionStatus> _activeTx = new HashMap<Integer, TransactionStatus>();
     
     private SpoutOutputCollector _collector;
     int _currTransaction;
@@ -54,11 +52,15 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     @Override
     public void ack(Object msgId) {
         TransactionAttempt tx = (TransactionAttempt) msgId;
-        AttemptStatus status = _activeTx.get(tx);
-        if(status==AttemptStatus.PROCESSING) {
-            _activeTx.put(tx, AttemptStatus.PROCESSED);
-        } else if(status==AttemptStatus.COMMITTING) {
-            _activeTx.remove(tx);
+        TransactionStatus status = _activeTx.get(tx.getTransactionId());
+        if(!tx.equals(status.attempt)) {
+            throw new IllegalStateException("Coordinator got into a bad state: acked transaction " +
+                    tx.toString() + " does not match up with stored attempt: " + status);
+        }
+        if(status.status==AttemptStatus.PROCESSING) {
+            status.status = AttemptStatus.PROCESSED;
+        } else if(status.status==AttemptStatus.COMMITTING) {
+            _activeTx.remove(tx.getTransactionId());
             _currTransaction = nextTransactionId(tx.getTransactionId());
             _state.setTransactionId(_currTransaction);
         }
@@ -68,7 +70,11 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     @Override
     public void fail(Object msgId) {
         TransactionAttempt tx = (TransactionAttempt) msgId;
-        _activeTx.remove(tx);
+        TransactionStatus stored = _activeTx.remove(tx.getTransactionId());
+        if(!tx.equals(stored.attempt)) {
+            throw new IllegalStateException("Coordinator got into a bad state: failed transaction " +
+                    tx.toString() + " does not match up with stored attempt: " + stored);
+        }
         sync();
     }
 
@@ -84,23 +90,18 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     }
     
     private void sync() {
-        TransactionAttempt first = _activeTx.firstKey();
-        if(_activeTx.get(first)==AttemptStatus.PROCESSED &&
-            first.getTransactionId()==_currTransaction) {
-            _activeTx.put(first, AttemptStatus.COMMITTING);
-            _collector.emit(TRANSACTION_COMMIT_STREAM_ID, new Values(first), first);
+        TransactionStatus maybeCommit = _activeTx.get(_currTransaction);
+        if(maybeCommit!=null && maybeCommit.status ==AttemptStatus.PROCESSED) {
+            maybeCommit.status = AttemptStatus.COMMITTING;
+            _collector.emit(TRANSACTION_COMMIT_STREAM_ID, new Values(maybeCommit.attempt), maybeCommit.attempt);
         }
         
         if(_activeTx.size() < _maxTransactionActive) {
-            Set<Integer> activeTxid = new HashSet<Integer>();
-            for(TransactionAttempt attempt: _activeTx.keySet()) {
-                activeTxid.add(attempt.getTransactionId());
-            }
             int curr = _currTransaction;
             for(int i=0; i<_maxTransactionActive; i++) {
-                if(!activeTxid.contains(curr)) {
+                if(!_activeTx.containsKey(curr)) {
                     TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
-                    _activeTx.put(attempt, AttemptStatus.PROCESSING);
+                    _activeTx.put(curr, new TransactionStatus(attempt));
                     _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt), attempt);
                 }
                 curr = nextTransactionId(curr);
@@ -112,6 +113,16 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         PROCESSING,
         PROCESSED,
         COMMITTING
+    }
+    
+    private static class TransactionStatus {
+        TransactionAttempt attempt;
+        AttemptStatus status;
+        
+        public TransactionStatus(TransactionAttempt attempt) {
+            this.attempt = attempt;
+            this.status = AttemptStatus.PROCESSING;
+        }
     }
     
     private int nextTransactionId(int id) {

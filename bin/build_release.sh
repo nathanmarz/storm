@@ -19,6 +19,8 @@ mkdir $DIR/lib
 cp storm*jar $DIR/
 cp lib/*.jar $DIR/lib
 
+echo $RELEASE > $DIR/RELEASE
+
 cp -R log4j $DIR/
 mkdir $DIR/logs
 

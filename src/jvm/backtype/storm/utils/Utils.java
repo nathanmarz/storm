@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.thrift7.TException;
 import org.yaml.snakeyaml.Yaml;
 
@@ -193,5 +194,9 @@ public class Utils {
         } else {
             throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
         }
+    }
+    
+    public static long randomLong() {
+        return UUID.randomUUID().getLeastSignificantBits();
     }
 }

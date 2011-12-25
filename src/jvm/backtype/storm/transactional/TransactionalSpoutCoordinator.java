@@ -1,16 +1,19 @@
 package backtype.storm.transactional;
 
+import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Values;
+import backtype.storm.utils.Utils;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.TreeMap;
 
+// TODO: need a way to override max spout pending with max batc pending conf
 public class TransactionalSpoutCoordinator implements IRichSpout {
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
@@ -18,9 +21,12 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private ITransactionalSpout _spout;
     private ITransactionState _state;
     
-    private Set<TransactionAttempt> _activeTx = new HashSet<TransactionAttempt>();
-    private SortedSet<Integer> _completedTx = new TreeSet<Integer>();
+    TreeMap<TransactionAttempt, AttemptStatus> _activeTx = new TreeMap<TransactionAttempt, AttemptStatus>();
+    
     private SpoutOutputCollector _collector;
+    int _currTransaction;
+    int _maxTransactionActive;
+    
     
     public TransactionalSpoutCoordinator(ITransactionalSpout spout) {
         _spout = spout;
@@ -31,6 +37,8 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _state = _spout.getState();
         _state.open(conf, context);
         _collector = collector;
+        _currTransaction = _state.getTransactionId();
+        _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_TRANSACTION_ACTIVE));
     }
 
     @Override
@@ -40,17 +48,20 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
 
     @Override
     public void nextTuple() {
-        // TODO: implement TOPOLOGY-MAX-BATCH-PENDING?? this conflicts with max spout pending...
-        // need a way to override default confs?
         sync();
     }
 
     @Override
     public void ack(Object msgId) {
-        // TODO: this is wrong... need to distinguish between committing and batching
         TransactionAttempt tx = (TransactionAttempt) msgId;
-        _completedTx.add(tx.getTransactionId());
-        _activeTx.remove(tx);
+        AttemptStatus status = _activeTx.get(tx);
+        if(status==AttemptStatus.PROCESSING) {
+            _activeTx.put(tx, AttemptStatus.PROCESSED);
+        } else if(status==AttemptStatus.COMMITTING) {
+            _activeTx.remove(tx);
+            _currTransaction = nextTransactionId(tx.getTransactionId());
+            _state.setTransactionId(_currTransaction);
+        }
         sync();
     }
 
@@ -73,7 +84,38 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     }
     
     private void sync() {
-        // go through completedTx and officially commit them to state if its time
-        // add next missing transaction (whether redo or pipelined)
+        TransactionAttempt first = _activeTx.firstKey();
+        if(_activeTx.get(first)==AttemptStatus.PROCESSED &&
+            first.getTransactionId()==_currTransaction) {
+            _activeTx.put(first, AttemptStatus.COMMITTING);
+            _collector.emit(TRANSACTION_COMMIT_STREAM_ID, new Values(first), first);
+        }
+        
+        if(_activeTx.size() < _maxTransactionActive) {
+            Set<Integer> activeTxid = new HashSet<Integer>();
+            for(TransactionAttempt attempt: _activeTx.keySet()) {
+                activeTxid.add(attempt.getTransactionId());
+            }
+            int curr = _currTransaction;
+            for(int i=0; i<_maxTransactionActive; i++) {
+                if(!activeTxid.contains(curr)) {
+                    TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
+                    _activeTx.put(attempt, AttemptStatus.PROCESSING);
+                    _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt), attempt);
+                }
+                curr = nextTransactionId(curr);
+            }
+        }        
+    }
+    
+    private static enum AttemptStatus {
+        PROCESSING,
+        PROCESSED,
+        COMMITTING
+    }
+    
+    private int nextTransactionId(int id) {
+        long next = ((long) id) + 1;
+        return (int) (next % Integer.MAX_VALUE);
     }
 }

@@ -17,7 +17,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
 
     private ITransactionalSpout _spout;
-    private ITransactionState _state;
+    private ICoordinatorState _state;
     
     Map<Integer, TransactionStatus> _activeTx = new HashMap<Integer, TransactionStatus>();
     

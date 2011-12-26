@@ -3,7 +3,7 @@ package backtype.storm.transactional;
 import backtype.storm.task.TopologyContext;
 import java.util.Map;
 
-public interface ITransactionState {
+public interface ICoordinatorState {
     void open(Map conf, TopologyContext context);
     void close();
     void setTransactionId(int txid);

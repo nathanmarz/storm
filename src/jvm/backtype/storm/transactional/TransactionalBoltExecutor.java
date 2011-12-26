@@ -74,6 +74,7 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     public void finishedId(FinishedTuple tup) {
         _collector.setAnchor(tup);
         ITransactionalBolt bolt = _openTransactions.get((TransactionAttempt) tup.getId());
+        // can equal null if the TimeCacheMap expired it
         if(bolt!=null) {
             bolt.finishBatch();
         }

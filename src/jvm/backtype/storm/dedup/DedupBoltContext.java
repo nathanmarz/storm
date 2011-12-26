@@ -1,6 +1,7 @@
 package backtype.storm.dedup;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -31,17 +32,29 @@ public class DedupBoltContext implements IDedupContext {
   /**
    * key-value state
    */
+  private IStateStore stateStore;
+  private String storeKey;
+  
   private Map<String, String> stateMap;
-  private boolean stateChange;
+  private Map<String, String> newState;
   
   private class Output {
-    public Output(int streamId, List<Object> tuple) {
+    public String streamId;
+    public List<Object> tuple;
+    
+    public Output(String streamId, List<Object> tuple) {
       this.streamId = streamId;
       this.tuple = tuple;
     }
     
-    public int streamId;
-    public List<Object> tuple;
+    @Override
+    public String toString() {
+      return streamId + ":" + tuple.toString();
+    }
+    
+    public void fromString(String str) {
+      
+    }
   }
   /**
    * message id => tuple
@@ -55,7 +68,11 @@ public class DedupBoltContext implements IDedupContext {
     this.context = context;
     this.collector = collector;
     
+    this.stateStore = new HBaseStateStore();
+    this.storeKey = context.getThisComponentId();
+    
     this.stateMap = new HashMap<String, String>();
+    this.newState = new HashMap<String, String>();
     this.outputMap = new HashMap<String, Output>();
     this.newOutput = new HashMap<String, Output>();
   }
@@ -72,7 +89,7 @@ public class DedupBoltContext implements IDedupContext {
   public void execute(IDedupBolt bolt, Tuple input) {
     this.currentInput = input;
     this.currentOutputIndex = 0;
-    this.stateChange = false;
+    this.newState.clear();
     this.newOutput.clear();
     
     List<Object> list = input.select(new Fields(DedupConstants.TUPLE_ID_FIELD, 
@@ -81,19 +98,31 @@ public class DedupBoltContext implements IDedupContext {
     DedupConstants.TUPLE_TYPE type = 
       DedupConstants.TUPLE_TYPE.valueOf((String)list.get(1));
     if (DedupConstants.TUPLE_TYPE.NORMAL == type) {
+      // call user bolt
       bolt.execute(this, input);
-      if (stateChange || newOutput.size() > 0) {
-        for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
-          outputMap.put(entry.getKey(), entry.getValue());
+      
+      // persistent user bolt set state and output tuple
+      if (newState.size() > 0 || newOutput.size() > 0) {
+        Map<String, Map<String, String>> updateMap = 
+          new HashMap<String, Map<String, String>>();
+        if (newState.size() > 0) {
+          updateMap.put(IStateStore.STATEMAP, newState);
         }
-        // TODO persistent state and output to KV store
-        
-        // really emit output
-        for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
-          collector.emit(entry.getValue().streamId, input, 
-              entry.getValue().tuple);
+        if (newOutput.size() > 0) {
+          Map<String, String> map = new HashMap<String, String>();
+          for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().toString());
+          }
+          updateMap.put(IStateStore.OUTPUTMAP, map);
         }
-        collector.ack(input);
+        stateStore.set(storeKey, updateMap);
+        updateMap.clear();
+      }
+      
+      // really emit output
+      for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
+        collector.emit(entry.getValue().streamId, input, 
+            entry.getValue().tuple);
       }
     } else if (DedupConstants.TUPLE_TYPE.DUPLICATE == type) {
       String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
@@ -106,17 +135,34 @@ public class DedupBoltContext implements IDedupContext {
       }
     } else if (DedupConstants.TUPLE_TYPE.NOTICE == type) {
       String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
-      for (String tupleid : outputMap.keySet()) {
-        if (tupleid.startsWith(prefix)) {
-          // TODO to remove
-          newOutput.remove(tupleid);
+      Map<String, String> deleteMap = new HashMap<String, String>();
+      Iterator<Map.Entry<String, Output>> it = outputMap.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<String, Output> entry = it.next();
+        if (entry.getKey().startsWith(prefix)) {
+          // add to delete map
+          deleteMap.put(entry.getKey(), entry.getValue().toString());
+          // remove from memory
+          it.remove();
         }
+      }
+      // remove from persistent store
+      if (deleteMap.size() > 0) {
+        Map<String, Map<String, String>> delete = 
+          new HashMap<String, Map<String,String>>();
+        delete.put(IStateStore.OUTPUTMAP, deleteMap);
+        stateStore.delete(storeKey, delete);
       }
     } else {
       LOG.warn("unknown type " + type);
     }
+
+    // ack the input tuple
+    collector.ack(input);
     
     this.currentInput = null;
+    this.newState.clear();
+    this.newOutput.clear();
   }
   
   
@@ -130,7 +176,7 @@ public class DedupBoltContext implements IDedupContext {
   }
 
   @Override
-  public void emit(int streamId, List<Object> tuple) {
+  public void emit(String streamId, List<Object> tuple) {
     String tupleid = currentInputID + DedupConstants.TUPLE_ID_SEP + 
       context.getThisComponentId() + 
       DedupConstants.TUPLE_ID_SUB_SEP + 
@@ -141,8 +187,10 @@ public class DedupBoltContext implements IDedupContext {
     // add tuple type to tuple
     tuple.add(DedupConstants.TUPLE_TYPE.NORMAL.toString());
     
-    // add tuple to new output buffer
-    newOutput.put(tupleid, new Output(streamId, tuple));
+    // add tuple to output buffer
+    Output output = new Output(streamId, tuple);
+    newOutput.put(tupleid, output);
+    outputMap.put(tupleid, output);
   }
 
   @Override
@@ -157,8 +205,8 @@ public class DedupBoltContext implements IDedupContext {
 
   @Override
   public boolean setState(String key, String value) {
+    newState.put(key, value);
     stateMap.put(key, value);
-    stateChange = true;
     return true;
   }
 
@@ -183,13 +231,13 @@ public class DedupBoltContext implements IDedupContext {
   }
 
   @Override
-  public void declareStream(int streamId, Fields fields) {
+  public void declareStream(String streamId, Fields fields) {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void declareStream(int streamId, boolean direct, Fields fields) {
+  public void declareStream(String streamId, boolean direct, Fields fields) {
     // TODO Auto-generated method stub
 
   }

@@ -36,5 +36,5 @@ public interface IDedupContext extends OutputFieldsDeclarer {
    * @param streamId
    * @param tuple
    */
-  public void emit(int streamId, List<Object> tuple);
+  public void emit(String streamId, List<Object> tuple);
 }

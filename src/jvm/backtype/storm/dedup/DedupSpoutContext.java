@@ -29,16 +29,19 @@ public class DedupSpoutContext implements IDedupContext {
   /**
    * key-value state
    */
+  private IStateStore stateStore;
+  private String storeKey;
+  
   private Map<String, String> stateMap;
-  private boolean stateChange;
+  private Map<String, String> newState;
   
   private class Output {
-    public Output(int streamId, List<Object> tuple) {
+    public Output(String streamId, List<Object> tuple) {
       this.streamId = streamId;
       this.tuple = tuple;
     }
     
-    public int streamId;
+    public String streamId;
     public List<Object> tuple;
   }
   /**
@@ -54,7 +57,12 @@ public class DedupSpoutContext implements IDedupContext {
     this.collector = collector;
     
     this.globalID = new AtomicLong(0);
+    
+    this.stateStore = new HBaseStateStore();
+    this.storeKey = context.getThisComponentId();
+    
     this.stateMap = new HashMap<String, String>();
+    this.newState = new HashMap<String, String>();
     this.outputMap = new HashMap<Long, Output>();
     this.newOutput = new HashMap<Long, Output>();
   }
@@ -69,23 +77,34 @@ public class DedupSpoutContext implements IDedupContext {
   }
   
   public void beforeNextTuple() {
-    stateChange = false;
+    newState.clear();
     newOutput.clear();
   }
   
   public void afterNextTuple() {
-    if (stateChange || newOutput.size() > 0) {
-      for (Map.Entry<Long, Output> entry : newOutput.entrySet()) {
-        outputMap.put(entry.getKey(), entry.getValue());
+    // persistent user bolt set state and output tuple
+    if (newState.size() > 0 || newOutput.size() > 0) {
+      Map<String, Map<String, String>> updateMap = 
+        new HashMap<String, Map<String, String>>();
+      if (newState.size() > 0) {
+        updateMap.put(IStateStore.STATEMAP, newState);
       }
-      // TODO first persistent state and output to KV store
-      
-      // then really emit tuple
-      for (Map.Entry<Long, Output> entry : newOutput.entrySet()) {
-        collector.emit(entry.getValue().streamId, 
-                       entry.getValue().tuple,
-                       entry.getKey());
+      if (newOutput.size() > 0) {
+        Map<String, String> map = new HashMap<String, String>();
+        for (Map.Entry<Long, Output> entry : newOutput.entrySet()) {
+          map.put(entry.getKey().toString(), entry.getValue().toString());
+        }
+        updateMap.put(IStateStore.OUTPUTMAP, map);
       }
+      stateStore.set(storeKey, updateMap);
+      updateMap.clear();
+    }
+    
+    // then really emit tuple
+    for (Map.Entry<Long, Output> entry : newOutput.entrySet()) {
+      collector.emit(entry.getValue().streamId, 
+                     entry.getValue().tuple,
+                     entry.getKey());
     }
   }
   
@@ -96,7 +115,16 @@ public class DedupSpoutContext implements IDedupContext {
       String tupleId = (String)tuple.get(tuple.size() - 2);
       Values notice =
         new Values(tupleId, DedupConstants.TUPLE_TYPE.NOTICE.toString());
-      collector.emit(DedupConstants.DEDUP_STREAM, notice);
+      collector.emit(DedupConstants.DEDUP_STREAM_ID, notice);
+      
+      // delete from state store
+      Map<String, Map<String, String>> deleteMap = 
+        new HashMap<String, Map<String, String>>();
+      Map<String, String> delete = new HashMap<String, String>();
+      delete.put(messageId.toString(), tuple.toString());
+      deleteMap.put(IStateStore.OUTPUTMAP, delete);
+      stateStore.delete(storeKey, deleteMap);
+      
       LOG.debug("acked known message " + messageId);
     } else {
       LOG.warn("not ack unknown message " + messageId);
@@ -112,6 +140,13 @@ public class DedupSpoutContext implements IDedupContext {
       messageId = globalID.getAndIncrement();
       outputMap.put(messageId, item);
       // TODO persistent to KV store
+      Map<String, Map<String, String>> updateMap = 
+        new HashMap<String, Map<String, String>>();
+      Map<String, String> update = new HashMap<String, String>();
+      update.put(((Long)msgId).toString(), null);
+      update.put(messageId.toString(), item.toString());
+      updateMap.put(IStateStore.OUTPUTMAP, update);
+      stateStore.delete(storeKey, updateMap);
       
       // re-send tuple use new message id
       collector.emit(item.streamId, item.tuple, messageId);
@@ -136,7 +171,7 @@ public class DedupSpoutContext implements IDedupContext {
   }
 
   @Override
-  public void emit(int streamId, List<Object> tuple) {
+  public void emit(String streamId, List<Object> tuple) {
     Long tupleid = globalID.getAndIncrement();
     // add tuple id to tuple
     tuple.add(tupleid.toString());
@@ -145,6 +180,7 @@ public class DedupSpoutContext implements IDedupContext {
     
     // add tuple to new output buffer
     newOutput.put(tupleid, new Output(streamId, tuple));
+    outputMap.put(tupleid, new Output(streamId, tuple));
   }
 
   @Override
@@ -159,8 +195,8 @@ public class DedupSpoutContext implements IDedupContext {
 
   @Override
   public boolean setState(String key, String value) {
+    newState.put(key, value);
     stateMap.put(key, value);
-    stateChange = true;
     return true;
   }
   
@@ -177,7 +213,7 @@ public class DedupSpoutContext implements IDedupContext {
     fieldList.add(DedupConstants.TUPLE_TYPE_FIELD);
     declarer.declare(new Fields(fieldList));
     // declare DEDUP_STREAM with to fields
-    declarer.declareStream(DedupConstants.DEDUP_STREAM, 
+    declarer.declareStream(DedupConstants.DEDUP_STREAM_ID, 
         new Fields(DedupConstants.TUPLE_ID_FIELD, 
             DedupConstants.TUPLE_TYPE_FIELD));
   }
@@ -189,13 +225,13 @@ public class DedupSpoutContext implements IDedupContext {
   }
 
   @Override
-  public void declareStream(int streamId, Fields fields) {
+  public void declareStream(String streamId, Fields fields) {
     // TODO Auto-generated method stub
     
   }
 
   @Override
-  public void declareStream(int streamId, boolean direct, Fields fields) {
+  public void declareStream(String streamId, boolean direct, Fields fields) {
     // TODO Auto-generated method stub
     
   }

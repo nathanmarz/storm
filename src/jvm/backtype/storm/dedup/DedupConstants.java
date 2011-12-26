@@ -4,7 +4,7 @@ public interface DedupConstants {
   /**
    * dedup message stream
    */
-  public static final int DEDUP_STREAM = Integer.MAX_VALUE / 2;
+  public static final String DEDUP_STREAM_ID = "_DEDUP_STREAM_ID_";
   
   /**
    * tuple id field

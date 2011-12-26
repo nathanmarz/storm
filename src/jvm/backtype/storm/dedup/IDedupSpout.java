@@ -1,7 +1,5 @@
 package backtype.storm.dedup;
 
-import backtype.storm.topology.IComponent;
-
 public interface IDedupSpout {
   /**
    * declare output fields

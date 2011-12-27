@@ -23,6 +23,7 @@ nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 
 ui.port: 8080
+ui.context.path: "/"
 
 drpc.port: 3772
 

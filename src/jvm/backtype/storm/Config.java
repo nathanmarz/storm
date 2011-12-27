@@ -141,7 +141,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * Storm UI context path
      */
-    public static String UI_CONTEXT_PATH=null;
+    public static String UI_CONTEXT_PATH="ui.context.path";
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.

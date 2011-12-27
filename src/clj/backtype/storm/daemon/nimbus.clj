@@ -616,10 +616,20 @@
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
+(defn cleanup-corrupt-topologies! [nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        code-ids (set (code-ids (:conf nimbus)))
+        active-topologies (set (.active-storms storm-cluster-state))
+        corrupt-topologies (set/difference active-topologies code-ids)]
+    (doseq [corrupt corrupt-topologies]
+      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+      (.remove-storm! storm-cluster-state corrupt)
+      )))
 
 (defserverfn service-handler [conf]
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf)]
+    (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))
     (schedule-recurring (:timer nimbus)

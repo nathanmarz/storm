@@ -137,6 +137,11 @@ public class Config extends HashMap<String, Object> {
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";
+   
+    /**
+     * Storm UI context path
+     */
+    public static String UI_CONTEXT_PATH=null;
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.

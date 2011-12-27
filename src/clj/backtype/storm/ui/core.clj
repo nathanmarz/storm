@@ -658,22 +658,28 @@
        [[:h2 "Errors"]]
        (errors-table task)
        ))))
-
-
+(defn normalize-context-path [^String path]
+  (cond
+    (not (.startsWith path "/")) (recur (str "/" path))
+    (not (.endsWith path "/")) (recur (str path "/"))
+    :else
+    path))
+    
+(def *CONTEXT-PATH* (normalize-context-path (or (*STORM-CONF* UI-CONTEXT-PATH) "/")))
 (defroutes main-routes
-  (GET "/" []
+  (GET *CONTEXT-PATH* []
        (-> (main-page)
            ui-template))
-  (GET "/topology/:id" [id & m]
+  (GET (str *CONTEXT-PATH* "topology/:id") [id & m]
        (-> (topology-page id (:window m))
            ui-template))
-  (GET "/topology/:id/component/:component" [id component & m]
+  (GET (str *CONTEXT-PATH* "topology/:id/component/:component") [id component & m]
        (-> (component-page id component (:window m))
            ui-template))
-  (GET "/topology/:id/task/:task" [id task & m]
+  (GET (str *CONTEXT-PATH* "topology/:id/task/:task") [id task & m]
        (-> (task-page id (Integer/parseInt task) (:window m))
            ui-template))
-  (route/resources "/")
+  (route/resources *CONTEXT-PATH*)
   (route/not-found "Page not found"))
 
 (def app

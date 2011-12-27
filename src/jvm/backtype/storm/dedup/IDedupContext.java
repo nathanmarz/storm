@@ -7,24 +7,30 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 public interface IDedupContext extends OutputFieldsDeclarer {
   /**
    * get configuration
-   * @param confName configuration name
+   * @param key configuration name
    * @return configuration value
    */
-  public String getConf(String confName);
+  public String getConf(String key);
+  /**
+   * get configuration
+   * @param key configuration name
+   * @return configuration value
+   */
+  public byte[] getConf(byte[] key);
   
   /**
    * get state by key
    * @param key
    * @return
    */
-  public String getState(String key);
+  public byte[] getState(byte[] key);
   /**
    * set state by key
    * @param key
    * @param value
    * @return
    */
-  public boolean setState(String key, String value);
+  public boolean setState(byte[] key, byte[] value);
  
   /**
    * emit a tuple

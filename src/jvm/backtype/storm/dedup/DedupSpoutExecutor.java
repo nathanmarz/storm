@@ -1,5 +1,6 @@
 package backtype.storm.dedup;
 
+import java.io.IOException;
 import java.util.Map;
 
 import backtype.storm.spout.SpoutOutputCollector;
@@ -27,7 +28,11 @@ public class DedupSpoutExecutor implements IRichSpout {
   public void open(Map conf, TopologyContext context,
       SpoutOutputCollector collector) {
     // create DedupSpoutContext
-    this.context = new DedupSpoutContext(conf, context, collector);
+    try {
+      this.context = new DedupSpoutContext(conf, context, collector);
+    } catch (IOException e) {
+      System.exit(1);
+    }
     // open user spout and offer DedupSpoutContext
     spout.open(this.context);
   }
@@ -44,18 +49,28 @@ public class DedupSpoutExecutor implements IRichSpout {
 
   @Override
   public void nextTuple() {
-    context.beforeNextTuple();
-    spout.nextTuple(context);
-    context.afterNextTuple();
+    try {
+      context.nextTuple(spout);
+    } catch (IOException e) {
+      System.exit(2);
+    }
   }
 
   @Override
   public void ack(Object msgId) {
-    context.ack(msgId);
+    try {
+      context.ack(msgId);
+    } catch (IOException e) {
+      System.exit(3);
+    }
   }
 
   @Override
   public void fail(Object msgId) {
-    context.fail(msgId);
+    try {
+      context.fail(msgId);
+    } catch (IOException e) {
+      System.exit(4);
+    }
   }
 }

@@ -1,5 +1,6 @@
 package backtype.storm.dedup;
 
+import java.io.IOException;
 import java.util.Map;
 
 import backtype.storm.task.OutputCollector;
@@ -27,7 +28,11 @@ public class DedupBotExecutor implements IRichBolt {
   @Override
   public void prepare(Map stormConf, TopologyContext context,
       OutputCollector collector) {
-    this.context = new DedupBoltContext(stormConf, context, collector);
+    try {
+      this.context = new DedupBoltContext(stormConf, context, collector);
+    } catch (IOException e) {
+      System.exit(1);
+    }
     bolt.prepare(this.context);
   }
   
@@ -38,7 +43,11 @@ public class DedupBotExecutor implements IRichBolt {
 
   @Override
   public void execute(Tuple input) {
-    context.execute(bolt, input);
+    try {
+      context.execute(bolt, input);
+    } catch (IOException e) {
+      System.exit(2);
+    }
   }
 
 }

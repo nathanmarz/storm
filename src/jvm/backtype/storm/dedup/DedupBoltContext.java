@@ -1,5 +1,7 @@
 package backtype.storm.dedup;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -33,10 +35,10 @@ public class DedupBoltContext implements IDedupContext {
    * key-value state
    */
   private IStateStore stateStore;
-  private String storeKey;
+  private byte[] storeKey;
   
-  private Map<String, String> stateMap;
-  private Map<String, String> newState;
+  private Map<byte[], byte[]> stateMap;
+  private Map<byte[], byte[]> newState;
   
   private class Output {
     public String streamId;
@@ -47,9 +49,8 @@ public class DedupBoltContext implements IDedupContext {
       this.tuple = tuple;
     }
     
-    @Override
-    public String toString() {
-      return streamId + ":" + tuple.toString();
+    public byte[] getBytes() {
+      return null; // TODO
     }
     
     public void fromString(String str) {
@@ -63,16 +64,17 @@ public class DedupBoltContext implements IDedupContext {
   private Map<String, Output> newOutput;
   
   public DedupBoltContext(Map stormConf, TopologyContext context,
-      OutputCollector collector) {
+      OutputCollector collector) throws IOException {
     this.conf = stormConf;
     this.context = context;
     this.collector = collector;
     
-    this.stateStore = new HBaseStateStore();
-    this.storeKey = context.getThisComponentId();
+    this.stateStore = new HBaseStateStore(context.getStormId());
+    stateStore.open();
+    this.storeKey = Bytes.toBytes(context.getThisComponentId());
     
-    this.stateMap = new HashMap<String, String>();
-    this.newState = new HashMap<String, String>();
+    this.stateMap = new HashMap<byte[], byte[]>();
+    this.newState = new HashMap<byte[], byte[]>();
     this.outputMap = new HashMap<String, Output>();
     this.newOutput = new HashMap<String, Output>();
   }
@@ -86,7 +88,7 @@ public class DedupBoltContext implements IDedupContext {
     this.declarer = declarer;
   }
   
-  public void execute(IDedupBolt bolt, Tuple input) {
+  public void execute(IDedupBolt bolt, Tuple input) throws IOException {
     this.currentInput = input;
     this.currentOutputIndex = 0;
     this.newState.clear();
@@ -103,17 +105,18 @@ public class DedupBoltContext implements IDedupContext {
       
       // persistent user bolt set state and output tuple
       if (newState.size() > 0 || newOutput.size() > 0) {
-        Map<String, Map<String, String>> updateMap = 
-          new HashMap<String, Map<String, String>>();
+        Map<byte[], Map<byte[], byte[]>> updateMap = 
+          new HashMap<byte[], Map<byte[], byte[]>>();
         if (newState.size() > 0) {
-          updateMap.put(IStateStore.STATEMAP, newState);
+          updateMap.put(Bytes.toBytes(IStateStore.STATEMAP), newState);
         }
         if (newOutput.size() > 0) {
-          Map<String, String> map = new HashMap<String, String>();
+          Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
           for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
-            map.put(entry.getKey(), entry.getValue().toString());
+            map.put(Bytes.toBytes(entry.getKey()), 
+                entry.getValue().getBytes());
           }
-          updateMap.put(IStateStore.OUTPUTMAP, map);
+          updateMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), map);
         }
         stateStore.set(storeKey, updateMap);
         updateMap.clear();
@@ -135,22 +138,23 @@ public class DedupBoltContext implements IDedupContext {
       }
     } else if (DedupConstants.TUPLE_TYPE.NOTICE == type) {
       String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
-      Map<String, String> deleteMap = new HashMap<String, String>();
+      Map<byte[], byte[]> deleteMap = new HashMap<byte[], byte[]>();
       Iterator<Map.Entry<String, Output>> it = outputMap.entrySet().iterator();
       while (it.hasNext()) {
         Map.Entry<String, Output> entry = it.next();
         if (entry.getKey().startsWith(prefix)) {
           // add to delete map
-          deleteMap.put(entry.getKey(), entry.getValue().toString());
+          deleteMap.put(Bytes.toBytes(entry.getKey()), 
+              entry.getValue().getBytes());
           // remove from memory
           it.remove();
         }
       }
       // remove from persistent store
       if (deleteMap.size() > 0) {
-        Map<String, Map<String, String>> delete = 
-          new HashMap<String, Map<String,String>>();
-        delete.put(IStateStore.OUTPUTMAP, deleteMap);
+        Map<byte[], Map<byte[], byte[]>> delete = 
+          new HashMap<byte[], Map<byte[],byte[]>>();
+        delete.put(Bytes.toBytes(IStateStore.OUTPUTMAP), deleteMap);
         stateStore.delete(storeKey, delete);
       }
     } else {
@@ -197,14 +201,23 @@ public class DedupBoltContext implements IDedupContext {
   public String getConf(String confName) {
     return conf.get(confName);
   }
+  
+  @Override
+  public byte[] getConf(byte[] key) {
+    try {
+      return conf.get(new String(key, "UTF8")).getBytes("UTF8");
+    } catch (UnsupportedEncodingException e) {
+      return null;
+    }
+  }
 
   @Override
-  public String getState(String key) {
+  public byte[] getState(byte[] key) {
     return stateMap.get(key);
   }
 
   @Override
-  public boolean setState(String key, String value) {
+  public boolean setState(byte[] key, byte[] value) {
     newState.put(key, value);
     stateMap.put(key, value);
     return true;

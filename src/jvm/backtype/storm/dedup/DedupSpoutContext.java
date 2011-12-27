@@ -1,5 +1,7 @@
 package backtype.storm.dedup;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,15 +32,19 @@ public class DedupSpoutContext implements IDedupContext {
    * key-value state
    */
   private IStateStore stateStore;
-  private String storeKey;
+  private byte[] storeKey;
   
-  private Map<String, String> stateMap;
-  private Map<String, String> newState;
+  private Map<byte[], byte[]> stateMap;
+  private Map<byte[], byte[]> newState;
   
   private class Output {
     public Output(String streamId, List<Object> tuple) {
       this.streamId = streamId;
       this.tuple = tuple;
+    }
+    
+    public byte[] getBytes() {
+      return null; // TODO
     }
     
     public String streamId;
@@ -51,18 +57,19 @@ public class DedupSpoutContext implements IDedupContext {
   private Map<Long, Output> newOutput;
   
   public DedupSpoutContext(Map conf, TopologyContext context,
-      SpoutOutputCollector collector) {
+      SpoutOutputCollector collector) throws IOException {
     this.conf = conf;
     this.context = context;
     this.collector = collector;
     
     this.globalID = new AtomicLong(0);
     
-    this.stateStore = new HBaseStateStore();
-    this.storeKey = context.getThisComponentId();
+    this.stateStore = new HBaseStateStore(context.getStormId());
+    stateStore.open();
+    this.storeKey = Bytes.toBytes(context.getThisComponentId());
     
-    this.stateMap = new HashMap<String, String>();
-    this.newState = new HashMap<String, String>();
+    this.stateMap = new HashMap<byte[], byte[]>();
+    this.newState = new HashMap<byte[], byte[]>();
     this.outputMap = new HashMap<Long, Output>();
     this.newOutput = new HashMap<Long, Output>();
   }
@@ -76,25 +83,27 @@ public class DedupSpoutContext implements IDedupContext {
     this.declarer = declarer;
   }
   
-  public void beforeNextTuple() {
+  public void nextTuple(IDedupSpout spout) throws IOException {
     newState.clear();
     newOutput.clear();
-  }
-  
-  public void afterNextTuple() {
+    
+    // call user spout
+    spout.nextTuple(this);
+    
     // persistent user bolt set state and output tuple
     if (newState.size() > 0 || newOutput.size() > 0) {
-      Map<String, Map<String, String>> updateMap = 
-        new HashMap<String, Map<String, String>>();
+      Map<byte[], Map<byte[], byte[]>> updateMap = 
+        new HashMap<byte[], Map<byte[], byte[]>>();
       if (newState.size() > 0) {
-        updateMap.put(IStateStore.STATEMAP, newState);
+        updateMap.put(Bytes.toBytes(IStateStore.STATEMAP), newState);
       }
       if (newOutput.size() > 0) {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
         for (Map.Entry<Long, Output> entry : newOutput.entrySet()) {
-          map.put(entry.getKey().toString(), entry.getValue().toString());
+          map.put(Bytes.toBytes(entry.getKey().toString()), 
+              entry.getValue().getBytes());
         }
-        updateMap.put(IStateStore.OUTPUTMAP, map);
+        updateMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), map);
       }
       stateStore.set(storeKey, updateMap);
       updateMap.clear();
@@ -108,7 +117,7 @@ public class DedupSpoutContext implements IDedupContext {
     }
   }
   
-  public void ack(Object msgId) {
+  public void ack(Object msgId) throws IOException {
     Long messageId = (Long)msgId;
     if (outputMap.containsKey(messageId)) {
       List<Object> tuple = outputMap.remove(messageId).tuple;
@@ -118,11 +127,12 @@ public class DedupSpoutContext implements IDedupContext {
       collector.emit(DedupConstants.DEDUP_STREAM_ID, notice);
       
       // delete from state store
-      Map<String, Map<String, String>> deleteMap = 
-        new HashMap<String, Map<String, String>>();
-      Map<String, String> delete = new HashMap<String, String>();
-      delete.put(messageId.toString(), tuple.toString());
-      deleteMap.put(IStateStore.OUTPUTMAP, delete);
+      Map<byte[], Map<byte[], byte[]>> deleteMap = 
+        new HashMap<byte[], Map<byte[], byte[]>>();
+      Map<byte[], byte[]> delete = new HashMap<byte[], byte[]>();
+      delete.put(Bytes.toBytes(messageId.toString()), 
+          tuple.toString().getBytes()); // TODO
+      deleteMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), delete);
       stateStore.delete(storeKey, deleteMap);
       
       LOG.debug("acked known message " + messageId);
@@ -132,7 +142,7 @@ public class DedupSpoutContext implements IDedupContext {
     // TODO ack for NOTICE message ?
   }
   
-  public void fail(Object msgId) {
+  public void fail(Object msgId) throws IOException {
     Long messageId = (Long)msgId;
     if (outputMap.containsKey(messageId)) {
       Output item = outputMap.remove(messageId);
@@ -140,12 +150,12 @@ public class DedupSpoutContext implements IDedupContext {
       messageId = globalID.getAndIncrement();
       outputMap.put(messageId, item);
       // TODO persistent to KV store
-      Map<String, Map<String, String>> updateMap = 
-        new HashMap<String, Map<String, String>>();
-      Map<String, String> update = new HashMap<String, String>();
-      update.put(((Long)msgId).toString(), null);
-      update.put(messageId.toString(), item.toString());
-      updateMap.put(IStateStore.OUTPUTMAP, update);
+      Map<byte[], Map<byte[], byte[]>> updateMap = 
+        new HashMap<byte[], Map<byte[], byte[]>>();
+      Map<byte[], byte[]> update = new HashMap<byte[], byte[]>();
+      update.put(Bytes.toBytes(((Long)msgId).toString()), new byte[0]); // TODO
+      update.put(Bytes.toBytes(messageId.toString()), item.getBytes());
+      updateMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), update);
       stateStore.delete(storeKey, updateMap);
       
       // re-send tuple use new message id
@@ -184,17 +194,26 @@ public class DedupSpoutContext implements IDedupContext {
   }
 
   @Override
-  public String getConf(String confName) {
-    return conf.get(confName);
+  public String getConf(String key) {
+    return conf.get(key);
+  }
+  
+  @Override
+  public byte[] getConf(byte[] key) {
+    try {
+      return conf.get(new String(key, "UTF8")).getBytes("UTF8");
+    } catch (UnsupportedEncodingException e) {
+      return null;
+    }
   }
 
   @Override
-  public String getState(String key) {
+  public byte[] getState(byte[] key) {
     return stateMap.get(key);
   }
 
   @Override
-  public boolean setState(String key, String value) {
+  public boolean setState(byte[] key, byte[] value) {
     newState.put(key, value);
     stateMap.put(key, value);
     return true;

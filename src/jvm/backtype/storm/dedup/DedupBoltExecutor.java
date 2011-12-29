@@ -9,13 +9,13 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
-public class DedupBotExecutor implements IRichBolt {
+public class DedupBoltExecutor implements IRichBolt {
 
   private DedupBoltContext context;
   
   private IDedupBolt bolt;
   
-  public DedupBotExecutor(IDedupBolt bolt) {
+  public DedupBoltExecutor(IDedupBolt bolt) {
     this.bolt = bolt;
   }
 

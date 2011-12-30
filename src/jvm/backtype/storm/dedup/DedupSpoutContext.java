@@ -15,7 +15,6 @@ import org.apache.commons.logging.LogFactory;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
@@ -27,7 +26,6 @@ public class DedupSpoutContext implements IDedupContext {
   private Map<String, String> conf;
   private TopologyContext context;
   private SpoutOutputCollector collector;
-  private OutputFieldsDeclarer declarer;
   
   private AtomicLong globalID;
   
@@ -97,10 +95,6 @@ public class DedupSpoutContext implements IDedupContext {
   /**
    * DedupSpoutContext specific method
    */
-  
-  public void setOutputFieldsDeclarer(OutputFieldsDeclarer declarer) {
-    this.declarer = declarer;
-  }
   
   public void nextTuple(IDedupSpout spout) throws IOException {
     newState.clear();
@@ -237,41 +231,4 @@ public class DedupSpoutContext implements IDedupContext {
     stateMap.put(key, value);
     return true;
   }
-  
-  
-  /**
-   * implement OutputFieldsDeclarer method
-   */
-
-  @Override
-  public void declare(Fields fields) {
-    // add tow fields to original fields
-    List<String> fieldList = fields.toList();
-    fieldList.add(DedupConstants.TUPLE_ID_FIELD);
-    fieldList.add(DedupConstants.TUPLE_TYPE_FIELD);
-    declarer.declare(new Fields(fieldList));
-    // declare DEDUP_STREAM with to fields
-    declarer.declareStream(DedupConstants.DEDUP_STREAM_ID, 
-        new Fields(DedupConstants.TUPLE_ID_FIELD, 
-            DedupConstants.TUPLE_TYPE_FIELD));
-  }
-
-  @Override
-  public void declare(boolean direct, Fields fields) {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public void declareStream(String streamId, Fields fields) {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public void declareStream(String streamId, boolean direct, Fields fields) {
-    // TODO Auto-generated method stub
-    
-  }
-
 }

@@ -1,7 +1,10 @@
 package backtype.storm.dedup;
 
+import java.io.Serializable;
+
 import backtype.storm.Config;
 import backtype.storm.StormSubmitter;
+import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -12,7 +15,7 @@ public class WordTopTopology {
    * GenerateSpout
    *
    */
-  public static class GenerateSpout implements IDedupSpout {
+  public static class GenerateSpout implements IDedupSpout, Serializable {
 
     @Override
     public void ack(long messageId) {
@@ -25,8 +28,8 @@ public class WordTopTopology {
     }
 
     @Override
-    public void declareOutputFields(IDedupContext context) {
-      context.declare(new Fields("LINE"));
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      declarer.declare(new Fields("LINE"));
     }
 
     @Override
@@ -52,7 +55,7 @@ public class WordTopTopology {
    * SplitBolt
    *
    */
-  public static class SplitBolt implements IDedupBolt {
+  public static class SplitBolt implements IDedupBolt, Serializable {
 
     @Override
     public void cleanup(IDedupContext context) {
@@ -60,8 +63,8 @@ public class WordTopTopology {
     }
 
     @Override
-    public void declareOutputFields(IDedupContext context) {
-      context.declare(new Fields("WORD"));
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      declarer.declare(new Fields("WORD"));
     }
 
     @Override
@@ -85,7 +88,7 @@ public class WordTopTopology {
   /**
    * CountBolt
    */
-  public static class CountBolt implements IDedupBolt {
+  public static class CountBolt implements IDedupBolt, Serializable {
 
     @Override
     public void cleanup(IDedupContext context) {
@@ -93,8 +96,8 @@ public class WordTopTopology {
     }
 
     @Override
-    public void declareOutputFields(IDedupContext context) {
-      context.declare(new Fields("WORD", "COUNT"));
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      declarer.declare(new Fields("WORD", "COUNT"));
     }
 
     @Override

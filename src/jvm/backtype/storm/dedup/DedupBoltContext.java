@@ -1,6 +1,7 @@
 package backtype.storm.dedup;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,8 +27,6 @@ public class DedupBoltContext implements IDedupContext {
   private TopologyContext context;
   private OutputCollector collector;
   
-  private OutputFieldsDeclarer declarer;
-  
   private Tuple currentInput;
   private String currentInputID;
   private int currentOutputIndex;
@@ -41,7 +40,7 @@ public class DedupBoltContext implements IDedupContext {
   private Map<byte[], byte[]> stateMap;
   private Map<byte[], byte[]> newState;
   
-  private class Output {
+  private static class Output implements Serializable {
     public String streamId;
     public List<Object> tuple;
     
@@ -95,10 +94,6 @@ public class DedupBoltContext implements IDedupContext {
   /**
    * DedupSpoutContext specific method
    */
-  
-  public void setOutputFieldsDeclarer(OutputFieldsDeclarer declarer) {
-    this.declarer = declarer;
-  }
   
   public void execute(IDedupBolt bolt, Tuple input) throws IOException {
     this.currentInput = input;
@@ -241,37 +236,4 @@ public class DedupBoltContext implements IDedupContext {
     stateMap.put(key, value);
     return true;
   }
-
-  
-  /**
-   * implement OutputFieldsDeclarer method
-   */
-  
-  @Override
-  public void declare(Fields fields) {
-    // add tow fields to original fields
-    List<String> fieldList = fields.toList();
-    fieldList.add(DedupConstants.TUPLE_ID_FIELD);
-    fieldList.add(DedupConstants.TUPLE_TYPE_FIELD);
-    declarer.declare(new Fields(fieldList));
-  }
-
-  @Override
-  public void declare(boolean direct, Fields fields) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void declareStream(String streamId, Fields fields) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void declareStream(String streamId, boolean direct, Fields fields) {
-    // TODO Auto-generated method stub
-
-  }
-
 }

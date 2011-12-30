@@ -4,7 +4,7 @@ import java.util.List;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 
-public interface IDedupContext extends OutputFieldsDeclarer {
+public interface IDedupContext {
   /**
    * get configuration
    * @param key configuration name

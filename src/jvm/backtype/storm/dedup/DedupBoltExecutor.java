@@ -1,6 +1,7 @@
 package backtype.storm.dedup;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -10,12 +11,15 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
-public class DedupBoltExecutor implements IRichBolt {
+public class DedupBoltExecutor implements IRichBolt, OutputFieldsDeclarer {
   
   private static final Log LOG = LogFactory.getLog(DedupBoltExecutor.class);
 
+  private OutputFieldsDeclarer declarer;
+  
   private DedupBoltContext context;
   
   private IDedupBolt bolt;
@@ -26,8 +30,8 @@ public class DedupBoltExecutor implements IRichBolt {
 
   @Override
   public void declareOutputFields(OutputFieldsDeclarer declarer) {
-    context.setOutputFieldsDeclarer(declarer);
-    bolt.declareOutputFields(context);
+    this.declarer = declarer;
+    bolt.declareOutputFields(this);
   }
 
   @Override
@@ -55,6 +59,37 @@ public class DedupBoltExecutor implements IRichBolt {
       LOG.warn("process tuple error", e);
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * impl OutputFieldsDeclarer
+   */
+  
+  @Override
+  public void declare(Fields fields) {
+    // add tow fields to original fields
+    List<String> fieldList = fields.toList();
+    fieldList.add(DedupConstants.TUPLE_ID_FIELD);
+    fieldList.add(DedupConstants.TUPLE_TYPE_FIELD);
+    declarer.declare(new Fields(fieldList));
+  }
+
+  @Override
+  public void declare(boolean direct, Fields fields) {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void declareStream(String streamId, Fields fields) {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void declareStream(String streamId, boolean direct, Fields fields) {
+    // TODO Auto-generated method stub
+    
   }
 
 }

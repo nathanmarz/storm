@@ -1,5 +1,6 @@
 package backtype.storm.dedup;
 
+import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
 public interface IDedupBolt {
@@ -7,7 +8,7 @@ public interface IDedupBolt {
    * declare output fields
    * @param context execution context
    */
-  void declareOutputFields(IDedupContext context);
+  void declareOutputFields(OutputFieldsDeclarer declarer);
   
   /**
    * start bolt

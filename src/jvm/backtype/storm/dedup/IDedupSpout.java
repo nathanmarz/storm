@@ -1,11 +1,13 @@
 package backtype.storm.dedup;
 
+import backtype.storm.topology.OutputFieldsDeclarer;
+
 public interface IDedupSpout {
   /**
    * declare output fields
    * @param context execution context
    */
-  void declareOutputFields(IDedupContext context);
+  void declareOutputFields(OutputFieldsDeclarer declarer);
   
   /**
    * start spout

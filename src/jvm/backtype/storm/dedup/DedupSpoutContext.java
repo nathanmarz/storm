@@ -1,10 +1,13 @@
 package backtype.storm.dedup;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
@@ -37,14 +40,10 @@ public class DedupSpoutContext implements IDedupContext {
   private Map<byte[], byte[]> stateMap;
   private Map<byte[], byte[]> newState;
   
-  private class Output {
+  private static class Output {
     public Output(String streamId, List<Object> tuple) {
       this.streamId = streamId;
       this.tuple = tuple;
-    }
-    
-    public byte[] getBytes() {
-      return null; // TODO
     }
     
     public String streamId;
@@ -64,14 +63,34 @@ public class DedupSpoutContext implements IDedupContext {
     
     this.globalID = new AtomicLong(0);
     
-    this.stateStore = new HBaseStateStore(context.getStormId());
-    stateStore.open();
-    this.storeKey = Bytes.toBytes(context.getThisComponentId());
-    
     this.stateMap = new HashMap<byte[], byte[]>();
     this.newState = new HashMap<byte[], byte[]>();
     this.outputMap = new HashMap<Long, Output>();
     this.newOutput = new HashMap<Long, Output>();
+    
+
+    this.storeKey = Bytes.toBytes(context.getThisComponentId());
+    
+    this.stateStore = new HBaseStateStore(context.getStormId());
+    stateStore.open();
+    // read saved data
+    Map<byte[], Map<byte[], byte[]>> storeMap = stateStore.get(storeKey);
+    if (storeMap != null) {
+      Map<byte[], byte[]> map = storeMap.get(IStateStore.STATEMAP);
+      if (map != null) {
+        for (Entry<byte[], byte[]> entry : map.entrySet()) {
+          stateMap.put(entry.getKey(), entry.getValue());
+        }
+      }
+      
+      map = storeMap.get(IStateStore.OUTPUTMAP);
+      if (map != null) {
+        for (Entry<byte[], byte[]> entry : map.entrySet()) {
+          outputMap.put(Long.parseLong(Bytes.toString(entry.getKey())), 
+              (Output)Utils.deserialize(entry.getValue()));
+        }
+      }
+    }
   }
   
   
@@ -95,15 +114,15 @@ public class DedupSpoutContext implements IDedupContext {
       Map<byte[], Map<byte[], byte[]>> updateMap = 
         new HashMap<byte[], Map<byte[], byte[]>>();
       if (newState.size() > 0) {
-        updateMap.put(Bytes.toBytes(IStateStore.STATEMAP), newState);
+        updateMap.put(IStateStore.STATEMAP, newState);
       }
       if (newOutput.size() > 0) {
         Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
         for (Map.Entry<Long, Output> entry : newOutput.entrySet()) {
           map.put(Bytes.toBytes(entry.getKey().toString()), 
-              entry.getValue().getBytes());
+              Utils.serialize(entry.getValue()));
         }
-        updateMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), map);
+        updateMap.put(IStateStore.OUTPUTMAP, map);
       }
       stateStore.set(storeKey, updateMap);
       updateMap.clear();
@@ -132,7 +151,7 @@ public class DedupSpoutContext implements IDedupContext {
       Map<byte[], byte[]> delete = new HashMap<byte[], byte[]>();
       delete.put(Bytes.toBytes(messageId.toString()), 
           tuple.toString().getBytes()); // TODO
-      deleteMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), delete);
+      deleteMap.put(IStateStore.OUTPUTMAP, delete);
       stateStore.delete(storeKey, deleteMap);
       
       LOG.debug("acked known message " + messageId);
@@ -147,22 +166,22 @@ public class DedupSpoutContext implements IDedupContext {
     if (outputMap.containsKey(messageId)) {
       Output item = outputMap.remove(messageId);
       // new message id
-      messageId = globalID.getAndIncrement();
-      outputMap.put(messageId, item);
+      Long newMessageId = globalID.getAndIncrement();
+      outputMap.put(newMessageId, item);
       // TODO persistent to KV store
       Map<byte[], Map<byte[], byte[]>> updateMap = 
         new HashMap<byte[], Map<byte[], byte[]>>();
       Map<byte[], byte[]> update = new HashMap<byte[], byte[]>();
-      update.put(Bytes.toBytes(((Long)msgId).toString()), new byte[0]); // TODO
-      update.put(Bytes.toBytes(messageId.toString()), item.getBytes());
-      updateMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), update);
-      stateStore.delete(storeKey, updateMap);
+      update.put(Bytes.toBytes(messageId.toString()), new byte[0]); // TODO
+      update.put(Bytes.toBytes(newMessageId.toString()), Utils.serialize(item));
+      updateMap.put(IStateStore.OUTPUTMAP, update);
+      stateStore.set(storeKey, updateMap);
       
       // re-send tuple use new message id
-      collector.emit(item.streamId, item.tuple, messageId);
+      collector.emit(item.streamId, item.tuple, newMessageId);
       String tupleId = (String)item.tuple.get(item.tuple.size() - 2);
       LOG.warn("re-send tuple " + tupleId + " and message id switch " + 
-          messageId + " -> " + (Long)msgId);
+          messageId + " -> " + newMessageId);
     } else {
       LOG.warn("not fail unknown message " + messageId);
     }

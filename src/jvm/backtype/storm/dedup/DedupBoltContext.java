@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -48,14 +49,6 @@ public class DedupBoltContext implements IDedupContext {
       this.streamId = streamId;
       this.tuple = tuple;
     }
-    
-    public byte[] getBytes() {
-      return null; // TODO
-    }
-    
-    public void fromString(String str) {
-      
-    }
   }
   /**
    * message id => tuple
@@ -68,15 +61,34 @@ public class DedupBoltContext implements IDedupContext {
     this.conf = stormConf;
     this.context = context;
     this.collector = collector;
-    
-    this.stateStore = new HBaseStateStore(context.getStormId());
-    stateStore.open();
-    this.storeKey = Bytes.toBytes(context.getThisComponentId());
-    
+
     this.stateMap = new HashMap<byte[], byte[]>();
     this.newState = new HashMap<byte[], byte[]>();
     this.outputMap = new HashMap<String, Output>();
     this.newOutput = new HashMap<String, Output>();
+
+    this.storeKey = Bytes.toBytes(context.getThisComponentId());
+    
+    this.stateStore = new HBaseStateStore(context.getStormId());
+    stateStore.open();
+    // read saved data
+    Map<byte[], Map<byte[], byte[]>> storeMap = stateStore.get(storeKey);
+    if (storeMap != null) {
+      Map<byte[], byte[]> map = storeMap.get(IStateStore.STATEMAP);
+      if (map != null) {
+        for (Entry<byte[], byte[]> entry : map.entrySet()) {
+          stateMap.put(entry.getKey(), entry.getValue());
+        }
+      }
+      
+      map = storeMap.get(IStateStore.OUTPUTMAP);
+      if (map != null) {
+        for (Entry<byte[], byte[]> entry : map.entrySet()) {
+          outputMap.put(Bytes.toString(entry.getKey()), 
+              (Output)Utils.deserialize(entry.getValue()));
+        }
+      }
+    }
   }
   
   
@@ -94,12 +106,27 @@ public class DedupBoltContext implements IDedupContext {
     this.newState.clear();
     this.newOutput.clear();
     
-    List<Object> list = input.select(new Fields(DedupConstants.TUPLE_ID_FIELD, 
-        DedupConstants.TUPLE_TYPE_FIELD));
-    this.currentInputID = (String)list.get(0);
+    this.currentInputID = input.getStringByField(DedupConstants.TUPLE_ID_FIELD);
     DedupConstants.TUPLE_TYPE type = 
-      DedupConstants.TUPLE_TYPE.valueOf((String)list.get(1));
-    if (DedupConstants.TUPLE_TYPE.NORMAL == type) {
+      DedupConstants.TUPLE_TYPE.valueOf(
+          input.getStringByField(DedupConstants.TUPLE_TYPE_FIELD));
+
+    boolean needProcess = true;
+    if (DedupConstants.TUPLE_TYPE.DUPLICATE == type || 
+        DedupConstants.TUPLE_TYPE.NORMAL == type) {
+      String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
+      for (String tupleid : outputMap.keySet()) {
+        if (tupleid.startsWith(prefix)) {
+          // just re-send output
+          Output output = outputMap.get(tupleid);
+          collector.emit(output.streamId, input, output.tuple);
+          needProcess = false;
+        }
+      }
+    }
+    
+    if (DedupConstants.TUPLE_TYPE.DUPLICATE == type || 
+        DedupConstants.TUPLE_TYPE.NORMAL == type && needProcess) {
       // call user bolt
       bolt.execute(this, input);
       
@@ -108,15 +135,15 @@ public class DedupBoltContext implements IDedupContext {
         Map<byte[], Map<byte[], byte[]>> updateMap = 
           new HashMap<byte[], Map<byte[], byte[]>>();
         if (newState.size() > 0) {
-          updateMap.put(Bytes.toBytes(IStateStore.STATEMAP), newState);
+          updateMap.put(IStateStore.STATEMAP, newState);
         }
         if (newOutput.size() > 0) {
           Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
           for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
             map.put(Bytes.toBytes(entry.getKey()), 
-                entry.getValue().getBytes());
+                Utils.serialize(entry.getValue()));
           }
-          updateMap.put(Bytes.toBytes(IStateStore.OUTPUTMAP), map);
+          updateMap.put(IStateStore.OUTPUTMAP, map);
         }
         stateStore.set(storeKey, updateMap);
         updateMap.clear();
@@ -127,15 +154,6 @@ public class DedupBoltContext implements IDedupContext {
         collector.emit(entry.getValue().streamId, input, 
             entry.getValue().tuple);
       }
-    } else if (DedupConstants.TUPLE_TYPE.DUPLICATE == type) {
-      String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
-      for (String tupleid : outputMap.keySet()) {
-        if (tupleid.startsWith(prefix)) {
-          // just re-send output
-          Output output = outputMap.get(tupleid);
-          collector.emit(output.streamId, input, output.tuple);
-        }
-      }
     } else if (DedupConstants.TUPLE_TYPE.NOTICE == type) {
       String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
       Map<byte[], byte[]> deleteMap = new HashMap<byte[], byte[]>();
@@ -145,7 +163,7 @@ public class DedupBoltContext implements IDedupContext {
         if (entry.getKey().startsWith(prefix)) {
           // add to delete map
           deleteMap.put(Bytes.toBytes(entry.getKey()), 
-              entry.getValue().getBytes());
+              Utils.serialize(entry.getValue()));
           // remove from memory
           it.remove();
         }
@@ -154,7 +172,7 @@ public class DedupBoltContext implements IDedupContext {
       if (deleteMap.size() > 0) {
         Map<byte[], Map<byte[], byte[]>> delete = 
           new HashMap<byte[], Map<byte[],byte[]>>();
-        delete.put(Bytes.toBytes(IStateStore.OUTPUTMAP), deleteMap);
+        delete.put(IStateStore.OUTPUTMAP, deleteMap);
         stateStore.delete(storeKey, delete);
       }
     } else {
@@ -181,6 +199,7 @@ public class DedupBoltContext implements IDedupContext {
 
   @Override
   public void emit(String streamId, List<Object> tuple) {
+    // tupleid : component1-outindex_component2-outindex
     String tupleid = currentInputID + DedupConstants.TUPLE_ID_SEP + 
       context.getThisComponentId() + 
       DedupConstants.TUPLE_ID_SUB_SEP + 

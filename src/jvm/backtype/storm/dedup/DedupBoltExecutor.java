@@ -3,6 +3,9 @@ package backtype.storm.dedup;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
@@ -10,6 +13,8 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
 public class DedupBoltExecutor implements IRichBolt {
+  
+  private static final Log LOG = LogFactory.getLog(DedupBoltExecutor.class);
 
   private DedupBoltContext context;
   
@@ -31,7 +36,8 @@ public class DedupBoltExecutor implements IRichBolt {
     try {
       this.context = new DedupBoltContext(stormConf, context, collector);
     } catch (IOException e) {
-      System.exit(1);
+      LOG.warn("create DedupBoltContext error", e);
+      throw new RuntimeException(e);
     }
     bolt.prepare(this.context);
   }
@@ -46,7 +52,8 @@ public class DedupBoltExecutor implements IRichBolt {
     try {
       context.execute(bolt, input);
     } catch (IOException e) {
-      System.exit(2);
+      LOG.warn("process tuple error", e);
+      throw new RuntimeException(e);
     }
   }
 

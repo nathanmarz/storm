@@ -10,8 +10,8 @@ import java.util.Map;
  */
 public interface IStateStore {
   
-  public static final String STATEMAP = "STATEMAP";
-  public static final String OUTPUTMAP = "OUTPUTMAP";
+  public static final byte[] STATEMAP = Bytes.toBytes("STATE");
+  public static final byte[] OUTPUTMAP = Bytes.toBytes("OUTPUT");
   
   /**
    * open the state store

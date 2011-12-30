@@ -126,12 +126,10 @@ public class WordTopTopology {
     builder.setSpout("generate spout", new GenerateSpout(), 1);
     
     builder.setBolt("split bolt", new SplitBolt(), 4)
-      .shuffleGrouping("generate spout")
-      .directGrouping("generate spout", DedupConstants.DEDUP_STREAM_ID);
+      .shuffleGrouping("generate spout");
     
     builder.setBolt("count bolt", new CountBolt(), 8)
-      .fieldsGrouping("split bolt", new Fields("WORD"))
-      .directGrouping("generate spout", DedupConstants.DEDUP_STREAM_ID);
+      .fieldsGrouping("split bolt", new Fields("WORD"));
     
     Config conf = new Config();
     conf.setDebug(true);

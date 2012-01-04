@@ -144,10 +144,14 @@ public class Config extends HashMap<String, Object> {
     public static String DRPC_SERVERS = "drpc.servers";
 
     /**
-     * Storm DRPC binds to this port.
+     * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     public static String DRPC_PORT = "drpc.port";
     
+    /**
+     * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
+     */
+    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";    
     
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and

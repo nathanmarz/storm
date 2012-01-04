@@ -25,6 +25,7 @@ nimbus.file.copy.expiration.secs: 600
 ui.port: 8080
 
 drpc.port: 3772
+drpc.invocations.port: 3773
 
 ### supervisor.* configs are for node supervisors
 # Define the amount of workers that can be run on this machine. Each worker is assigned a port to use for communication

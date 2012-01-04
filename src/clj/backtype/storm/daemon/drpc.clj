@@ -3,7 +3,9 @@
   (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift7 TException])
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
-  (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor DRPCRequest DRPCExecutionException])
+  (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
+            DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
+            DistributedRPCInvocations$Processor])
   (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
@@ -69,6 +71,7 @@
               (throw result)
               result
               ))))
+      DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
         (let [^Semaphore sem (@id->sem id)]
           (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
@@ -98,17 +101,24 @@
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
-          service-handler (service-handler)     
-          options (-> (TNonblockingServerSocket. (int (conf DRPC-PORT)))
-                    (THsHaServer$Args.)
-                    (.workerThreads 64)
-                    (.protocolFactory (TBinaryProtocol$Factory.))
-                    (.processor (DistributedRPC$Processor. service-handler))
-                    )
-          server (THsHaServer. options)]
-      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
-      (log-message "Starting Distributed RPC server...")
-      (.serve server))))
+          service-handler (service-handler)    
+          handler-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-PORT)))
+                                             (THsHaServer$Args.)
+                                             (.workerThreads 64)
+                                             (.protocolFactory (TBinaryProtocol$Factory.))
+                                             (.processor (DistributedRPC$Processor. service-handler))
+                                             ))
+          invoke-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-INVOCATIONS-PORT)))
+                                             (THsHaServer$Args.)
+                                             (.workerThreads 64)
+                                             (.protocolFactory (TBinaryProtocol$Factory.))
+                                             (.processor (DistributedRPCInvocations$Processor. service-handler))
+                                             ))]
+      
+      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
+      (log-message "Starting Distributed RPC servers...")
+      (future (.serve invoke-server))
+      (.serve handler-server))))
 
 (defn -main []
   (launch-server!))

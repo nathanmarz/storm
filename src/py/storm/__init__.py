@@ -1,1 +1,1 @@
-__all__ = ['ttypes', 'constants', 'Nimbus', 'DistributedRPC']
+__all__ = ['ttypes', 'constants', 'Nimbus', 'DistributedRPC', 'DistributedRPCInvocations']

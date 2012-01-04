@@ -4,13 +4,14 @@ import backtype.storm.Config;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPC;
+import backtype.storm.generated.DistributedRPCInvocations;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.DRPCClient;
+import backtype.storm.utils.DRPCInvocationsClient;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public class DRPCSpout implements IRichSpout {
     public static Logger LOG = Logger.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
-    List<DRPCClient> _clients = new ArrayList<DRPCClient>();
+    List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
     String _function;
     String _local_drpc_id = null;
     
@@ -62,18 +63,18 @@ public class DRPCSpout implements IRichSpout {
             int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
             int index = context.getThisTaskIndex();
 
-            int port = Utils.getInt(conf.get(Config.DRPC_PORT));
+            int port = Utils.getInt(conf.get(Config.DRPC_INVOCATIONS_PORT));
             List<String> servers = (List<String>) conf.get(Config.DRPC_SERVERS);
             if(servers.isEmpty()) {
                 throw new RuntimeException("No DRPC servers configured for topology");   
             }
             if(numTasks < servers.size()) {
                 for(String s: servers) {
-                    _clients.add(new DRPCClient(s, port));
+                    _clients.add(new DRPCInvocationsClient(s, port));
                 }
             } else {
                 int i = index % servers.size();
-                _clients.add(new DRPCClient(servers.get(i), port));
+                _clients.add(new DRPCInvocationsClient(servers.get(i), port));
             }
         }
         
@@ -81,7 +82,7 @@ public class DRPCSpout implements IRichSpout {
 
     @Override
     public void close() {
-        for(DRPCClient client: _clients) {
+        for(DRPCInvocationsClient client: _clients) {
             client.close();
         }
     }
@@ -91,7 +92,7 @@ public class DRPCSpout implements IRichSpout {
         boolean gotRequest = false;
         if(_local_drpc_id==null) {
             for(int i=0; i<_clients.size(); i++) {
-                DRPCClient client = _clients.get(i);
+                DRPCInvocationsClient client = _clients.get(i);
                 try {
                     DRPCRequest req = client.fetchRequest(_function);
                     if(req.get_request_id().length() > 0) {
@@ -108,7 +109,7 @@ public class DRPCSpout implements IRichSpout {
                 }
             }
         } else {
-            DistributedRPC.Iface drpc = (DistributedRPC.Iface) ServiceRegistry.getService(_local_drpc_id);
+            DistributedRPCInvocations.Iface drpc = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(_local_drpc_id);
             try {
                 DRPCRequest req = drpc.fetchRequest(_function);
                 if(req.get_request_id().length() > 0) {
@@ -135,12 +136,12 @@ public class DRPCSpout implements IRichSpout {
     @Override
     public void fail(Object msgId) {
         DRPCMessageId did = (DRPCMessageId) msgId;
-        DistributedRPC.Iface client;
+        DistributedRPCInvocations.Iface client;
         
         if(_local_drpc_id == null) {
             client = _clients.get(did.index);
         } else {
-            client = (DistributedRPC.Iface) ServiceRegistry.getService(_local_drpc_id);
+            client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(_local_drpc_id);
         }
         try {
             client.failRequest(did.id);

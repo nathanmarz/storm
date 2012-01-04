@@ -12,12 +12,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 // TODO: need a way to override max spout pending with max batch pending conf
-public class TransactionalSpoutCoordinator implements IRichSpout {
+public class TransactionalSpoutCoordinator implements IRichSpout {    
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
 
+    private static final String CURRENT_TX = "currtx";
+    private static final String META_PATH = "meta";
+    
     private ITransactionalSpout _spout;
-    private ICoordinatorState _state;
+    private ITransactionalState _state;
     
     Map<Integer, TransactionStatus> _activeTx = new HashMap<Integer, TransactionStatus>();
     
@@ -133,5 +136,9 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private int nextTransactionId(int id) {
         long next = ((long) id) + 1;
         return (int) (next % Integer.MAX_VALUE);
+    }
+    
+    private String txMetaPath(int txid) {
+        return META_PATH + "/" + txid;
     }
 }

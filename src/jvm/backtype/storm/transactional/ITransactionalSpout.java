@@ -5,7 +5,7 @@ import backtype.storm.topology.IComponent;
 import java.util.Map;
 
 public interface ITransactionalSpout extends IComponent {
-    ICoordinatorState getState();
+    ITransactionalState getState();
     void open(Map conf, TopologyContext context);
     void close();
     // must always emit same batch for same transaction id

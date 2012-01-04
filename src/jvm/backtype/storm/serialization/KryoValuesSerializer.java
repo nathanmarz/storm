@@ -2,6 +2,7 @@ package backtype.storm.serialization;
 
 import backtype.storm.utils.ListDelegate;
 import com.esotericsoftware.kryo.ObjectBuffer;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -23,5 +24,11 @@ public class KryoValuesSerializer {
         // Doing this lets us deserialize as ArrayList and avoid writing the class here
         _delegate.setDelegate(values);
         _kryo.writeObject(out, _delegate);        
+    }
+    
+    public byte[] serialize(List<Object> values) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        serializeInto(values, out);
+        return out.toByteArray();
     }
 }

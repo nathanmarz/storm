@@ -101,7 +101,11 @@
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
-          service-handler (service-handler)    
+          service-handler (service-handler)
+          ;; requests and returns need to be on separate thread pools, since calls to
+          ;; "execute" don't unblock until other thrift methods are called. So if 
+          ;; 64 threads are calling execute, the server won't accept the result
+          ;; invocations that will unblock those threads
           handler-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-PORT)))
                                              (THsHaServer$Args.)
                                              (.workerThreads 64)

@@ -15,8 +15,14 @@
             [compojure.handler :as handler]
             [backtype.storm [thrift :as thrift]])
   (:gen-class))
-
+(defn normalize-context-path [^String path]
+  (cond
+    (not (.startsWith path "/")) (recur (str "/" path))
+    (not (.endsWith path "/")) (recur (str path "/"))
+    :else
+    path))
 (def *STORM-CONF* (read-storm-config))
+(def *CONTEXT-PATH* (normalize-context-path (or (*STORM-CONF* UI-CONTEXT-PATH) "/")))
 
 (defmacro with-nimbus [nimbus-sym & body]
   `(thrift/with-nimbus-connection [~nimbus-sym "localhost" (*STORM-CONF* NIMBUS-THRIFT-PORT)]
@@ -32,9 +38,9 @@
   (html
    [:head
     [:title "Storm UI"]
-    (include-css "/css/bootstrap-1.1.0.css")
-    (include-js "/js/jquery-1.6.2.min.js")
-    (include-js "/js/jquery.tablesorter.min.js")
+    (include-css (str *CONTEXT-PATH* "css/bootstrap-1.1.0.css"))
+    (include-js  (str *CONTEXT-PATH*"js/jquery-1.6.2.min.js"))
+    (include-js  (str *CONTEXT-PATH*"js/jquery.tablesorter.min.js"))
     ]
    [:script "$.tablesorter.addParser({ 
         id: 'stormtimestr', 
@@ -65,7 +71,7 @@
         type: 'numeric' 
     }); "]
    [:body
-    [:h1 (link-to "/" "Storm UI")]
+    [:h1 (link-to *CONTEXT-PATH* "Storm UI")]
     (seq body)
     ]))
 
@@ -89,7 +95,7 @@
 (defn topology-link
   ([id] (topology-link id id))
   ([id content]
-     (link-to (format "/topology/%s" id) content)))
+     (link-to (format (str *CONTEXT-PATH* "topology/%s") id) content)))
 
 (defn main-topology-summary-table [summs]
   ;; make the id clickable
@@ -310,7 +316,7 @@
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
-                 (format "/topology/%s?window=%s" id k)
+                 (format (str *CONTEXT-PATH* "topology/%s?window=%s") id k)
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
@@ -345,7 +351,7 @@
       )))
 
 (defn component-link [storm-id id]
-  (link-to (format "/topology/%s/component/%s" storm-id id) id))
+  (link-to (format (str *CONTEXT-PATH* "topology/%s/component/%s") storm-id id) id))
 
 (defn spout-comp-table [top-id summ-map window]
   (sorted-table
@@ -427,7 +433,7 @@
     ))
 
 (defnk task-link [topology-id id :suffix ""]
-  (link-to (format "/topology/%s/task/%s%s" topology-id id suffix)
+  (link-to (format  (str *CONTEXT-PATH* "topology/%s/task/%s%s") topology-id id suffix)
            id))
 
 (defn spout-summary-table [topology-id id stats window]
@@ -439,7 +445,7 @@
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
-                 (format "/topology/%s/component/%s?window=%s" topology-id id k)
+                 (format (str *CONTEXT-PATH* "topology/%s/component/%s?window=%s") topology-id id k)
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
@@ -572,7 +578,7 @@
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
-                 (format "/topology/%s/component/%s?window=%s" topology-id id k)
+                 (format (str *CONTEXT-PATH* "topology/%s/component/%s?window=%s") topology-id id k)
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
@@ -658,22 +664,21 @@
        [[:h2 "Errors"]]
        (errors-table task)
        ))))
-
-
+    
 (defroutes main-routes
-  (GET "/" []
+  (GET *CONTEXT-PATH* []
        (-> (main-page)
            ui-template))
-  (GET "/topology/:id" [id & m]
+  (GET (str *CONTEXT-PATH* "topology/:id") [id & m]
        (-> (topology-page id (:window m))
            ui-template))
-  (GET "/topology/:id/component/:component" [id component & m]
+  (GET (str *CONTEXT-PATH* "topology/:id/component/:component") [id component & m]
        (-> (component-page id component (:window m))
            ui-template))
-  (GET "/topology/:id/task/:task" [id task & m]
+  (GET (str *CONTEXT-PATH* "topology/:id/task/:task") [id task & m]
        (-> (task-page id (Integer/parseInt task) (:window m))
            ui-template))
-  (route/resources "/")
+  (route/resources *CONTEXT-PATH*)
   (route/not-found "Page not found"))
 
 (def app

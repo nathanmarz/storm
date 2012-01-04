@@ -23,7 +23,8 @@
 (defn mk-distributed-cluster-state [conf]
   (let [zk (zk/mk-client (mk-zk-connect-string (assoc conf STORM-ZOOKEEPER-ROOT "/")))]
     (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
-    (.close zk)
+    (if (.isStarted zk) 
+      (.close zk))
     )
   (let [callbacks (atom {})
         active (atom true)
@@ -35,7 +36,7 @@
                     (when @active
                       (when-not (= :connected state)
                         (log-message "Zookeeper disconnected. Attempting to reconnect")
-                        (reset! zk (mk-zk this))
+                       ; (reset! zk (mk-zk this)) ;we don't need to reset it anymore,curator will take care of it.
                         )
                       (when-not (= :none type)
                         (doseq [callback (vals @callbacks)]                          
@@ -83,7 +84,8 @@
      
      (close [this]
             (reset! active false)
-            (.close @zk))
+            (if (.isStarted @zk)
+              (.close @zk)))
      )))
 
 (defprotocol StormClusterState

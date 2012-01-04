@@ -314,18 +314,18 @@
   (ReentrantReadWriteLock.))
 
 (defmacro read-locked [rw-lock & body]
-  `(let [rlock# (.readLock ~rw-lock)]
-      (try
-        (.lock rlock#)
-        ~@body
-      (finally (.unlock rlock#)))))
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [rlock# (.readLock ~lock)]
+       (try (.lock rlock#)
+            ~@body
+            (finally (.unlock rlock#))))))
 
 (defmacro write-locked [rw-lock & body]
-  `(let [wlock# (.writeLock ~rw-lock)]
-      (try
-        (.lock wlock#)
-        ~@body
-      (finally (.unlock wlock#)))))
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [wlock# (.writeLock ~lock)]
+       (try (.lock wlock#)
+            ~@body
+            (finally (.unlock wlock#))))))
 
 (defn wait-for-condition [apredicate]
   (while (not (apredicate))

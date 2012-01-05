@@ -15,3 +15,9 @@
 
 (defmacro log-warn [& args]
   `(log/warn (str ~@args)))
+
+(defn log-capture! [& args]
+  (apply log/log-capture! args))
+
+(defn log-stream [& args]
+  (apply log/log-stream args))

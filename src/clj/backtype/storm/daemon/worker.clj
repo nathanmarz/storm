@@ -76,6 +76,8 @@
 (defserverfn mk-worker [conf mq-context storm-id supervisor-id port worker-id]
   (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id
                " and conf " conf)
+  (if-not (local-mode? conf)
+    (redirect-stdio-to-log4j!))
   (let [active (atom true)
         storm-active-atom (atom false)
         cluster-state (cluster/mk-distributed-cluster-state conf)

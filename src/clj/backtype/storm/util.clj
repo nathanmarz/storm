@@ -13,7 +13,7 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
-  (:import [java.util Timer])
+  (:import [clojure.lang RT])
   (:require [clojure.contrib [str-utils2 :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
@@ -568,3 +568,13 @@
             (cond ~@guards
                   true (throw ~error-local)
                   )))))
+
+(defn redirect-stdio-to-log4j! []
+  ;; set-var-root doesn't work with *out* and *err*, so digging deeper here
+  (.set RT/OUT (java.io.OutputStreamWriter.
+                 (log-stream :info "STDIO")))
+  (.set RT/ERR (PrintWriter.
+                 (java.io.OutputStreamWriter.
+                   (log-stream :error "STDIO"))
+                   true))
+  (log-capture! "STDIO"))

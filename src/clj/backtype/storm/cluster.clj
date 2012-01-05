@@ -23,26 +23,20 @@
 (defn mk-distributed-cluster-state [conf]
   (let [zk (zk/mk-client (mk-zk-connect-string (assoc conf STORM-ZOOKEEPER-ROOT "/")))]
     (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
-    (if (.isStarted zk) 
-      (.close zk))
-    )
+    (.close zk))
   (let [callbacks (atom {})
         active (atom true)
         mk-zk #(zk/mk-client (mk-zk-connect-string conf)
                              (conf STORM-ZOOKEEPER-SESSION-TIMEOUT)
                              %)
-        zk (atom nil)
-        watcher (fn this [state type path]
+        zk (mk-zk (fn [state type path]
                     (when @active
                       (when-not (= :connected state)
-                        (log-message "Zookeeper disconnected. Attempting to reconnect")
-                       ; (reset! zk (mk-zk this)) ;we don't need to reset it anymore,curator will take care of it.
-                        )
+                        (log-warn "Received event " state ":" type ":" path " with disconnected Zookeeper."))
                       (when-not (= :none type)
                         (doseq [callback (vals @callbacks)]                          
                           (callback type path))))
-                      )]
-    (reset! zk (mk-zk watcher))
+                      ))]
     (reify
      ClusterState
      (register [this callback]
@@ -53,39 +47,38 @@
      (unregister [this id]
                  (swap! callbacks dissoc id))
      (set-ephemeral-node [this path data]
-                         (zk/mkdirs @zk (parent-path path))
-                         (if (zk/exists @zk path false)
-                           (zk/set-data @zk path data) ; should verify that it's ephemeral
-                           (zk/create-node @zk path data :ephemeral)
+                         (zk/mkdirs zk (parent-path path))
+                         (if (zk/exists zk path false)
+                           (zk/set-data zk path data) ; should verify that it's ephemeral
+                           (zk/create-node zk path data :ephemeral)
                            ))
      
      (set-data [this path data]
                ;; note: this does not turn off any existing watches
-               (if (zk/exists @zk path false)
-                 (zk/set-data @zk path data)
+               (if (zk/exists zk path false)
+                 (zk/set-data zk path data)
                  (do
-                   (zk/mkdirs @zk (parent-path path))
-                   (zk/create-node @zk path data :persistent)
+                   (zk/mkdirs zk (parent-path path))
+                   (zk/create-node zk path data :persistent)
                    )))
      
      (delete-node [this path]
-                  (zk/delete-recursive @zk path)
+                  (zk/delete-recursive zk path)
                   )
      
      (get-data [this path watch?]
-               (zk/get-data @zk path watch?)
+               (zk/get-data zk path watch?)
                )
      
      (get-children [this path watch?]
-                   (zk/get-children @zk path watch?))
+                   (zk/get-children zk path watch?))
      
      (mkdirs [this path]
-             (zk/mkdirs @zk path))
+             (zk/mkdirs zk path))
      
      (close [this]
             (reset! active false)
-            (if (.isStarted @zk)
-              (.close @zk)))
+            (.close zk))
      )))
 
 (defprotocol StormClusterState

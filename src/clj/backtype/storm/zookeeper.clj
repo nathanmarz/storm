@@ -35,7 +35,7 @@
                session-timeout
                15000
                ;;TODO: make retry times could be configured.
-               (RetryNTimes. 5 1000))]   
+               (RetryNTimes. 5 1000))]
       (.. fk (getCuratorListenable) (addListener (reify CuratorListener
                                                    (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
                                                                         (let [^WatchedEvent event (.getWatchedEvent e)]

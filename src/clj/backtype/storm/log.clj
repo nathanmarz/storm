@@ -12,3 +12,6 @@
 
 (defmacro log-warn-error [e & args]
   `(log/warn (str ~@args) ~e))
+
+(defmacro log-warn [& args]
+  `(log/warn (str ~@args)))

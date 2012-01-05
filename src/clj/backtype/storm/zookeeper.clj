@@ -1,6 +1,6 @@
 (ns backtype.storm.zookeeper
   (:import [com.netflix.curator.retry RetryNTimes])
-  (:import [com.netflix.curator.framework.api CuratorEvent CuratorListener])
+  (:import [com.netflix.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
   (:import [com.netflix.curator.framework CuratorFramework CuratorFrameworkFactory])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
@@ -27,32 +27,42 @@
   })
 
 
-;; TODO: make this block until session is established (wait until a flag is triggered by watcher)
 (defn mk-client
   ([conn-str session-timeout watcher]
-    (let [fk (CuratorFrameworkFactory/newClient
+     (let [fk (CuratorFrameworkFactory/newClient
                conn-str
                session-timeout
                15000
-               ;;TODO: make retry times could be configured.
+               ;;TODO: consider making this configurable
                (RetryNTimes. 5 1000))]
-      (.. fk (getCuratorListenable) (addListener (reify CuratorListener
-                                                   (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
-                                                                        (let [^WatchedEvent event (.getWatchedEvent e)]
-                                                                          (watcher (zk-keeper-states (.getState event))
-                                                                                   (zk-event-types (.getType event))
-                                                                                   (.getPath event)))))))
-      (.start fk)                                                                               
-      fk))
+       (.. fk
+           (getCuratorListenable)
+           (addListener
+            (reify CuratorListener
+              (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
+                (when (= (.getType e) CuratorEventType/WATCHED)                  
+                  (let [^WatchedEvent event (.getWatchedEvent e)]
+                    (watcher (zk-keeper-states (.getState event))
+                             (zk-event-types (.getType event))
+                             (.getPath event))))))))
+       (.. fk
+           (getUnhandledErrorListenable)
+           (addListener
+            (reify UnhandledErrorListener
+              (unhandledError [this msg error]
+                (log-error error "Unrecoverable Zookeeper error, halting process: " msg)
+                (halt-process! 1 "Unrecoverable Zookeeper error")))))
+       (.start fk)
+       fk))
   ([conn-str watcher]
-    (mk-client conn-str 10000 watcher))
+     (mk-client conn-str 10000 watcher))
   ([conn-str]
-    ;; this constructor is intended for debugging
-    (mk-client
+     ;; this constructor is intended for debugging
+     (mk-client
       conn-str
       (fn [state type path]
         (log-message "Zookeeper state update: " state type path)))
-      ))
+     ))
 
 (def zk-create-modes
   {:ephemeral CreateMode/EPHEMERAL

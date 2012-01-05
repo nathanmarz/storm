@@ -367,8 +367,11 @@
     :distributed [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]
     (let [stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
+          storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (.replaceAll (conf WORKER-CHILDOPTS) "%ID%" (str port))
+          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+                                 "%ID%"
+                                 (str port))
           logfilename (str "worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)

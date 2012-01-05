@@ -112,7 +112,6 @@
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
                                                 (storm-conf ZMQ-LINGER-MILLIS)
-                                                (storm-conf ZMQ-HIGH-WATER-MARK)
                                                 (= (conf STORM-CLUSTER-MODE) "local")))
         outbound-tasks (worker-outbound-tasks task->component mk-topology-context task-ids)
         endpoint-socket-lock (mk-rw-lock)

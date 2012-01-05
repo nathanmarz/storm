@@ -60,7 +60,7 @@
   [^ZMQ$Socket socket hwm]
   (if hwm
     (doto socket
-      (.setHwm (long hwm)))
+      (.setHWM (long hwm)))
     socket
     ))
 

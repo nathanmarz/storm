@@ -571,11 +571,15 @@
                   )))))
 
 (defn redirect-stdio-to-log4j! []
-  ;; set-var-root doesn't work with *out* and *err*, so digging deeper here
-  (.set RT/OUT (java.io.OutputStreamWriter.
-                 (log-stream :info "STDIO")))
-  (.set RT/ERR (PrintWriter.
-                 (java.io.OutputStreamWriter.
-                   (log-stream :error "STDIO"))
-                   true))
+  ;; set-var-root doesn't work with *out* and *err*, so digging much deeper here
+  ;; Unfortunately, this code seems to work at the REPL but not when spawned as worker processes
+  ;; it might have something to do with being a child process
+  ;; (set! (. (.getThreadBinding RT/OUT) val)
+  ;;       (java.io.OutputStreamWriter.
+  ;;         (log-stream :info "STDIO")))
+  ;; (set! (. (.getThreadBinding RT/ERR) val)
+  ;;       (PrintWriter.
+  ;;         (java.io.OutputStreamWriter.
+  ;;           (log-stream :error "STDIO"))
+  ;;         true))
   (log-capture! "STDIO"))

@@ -1,13 +1,13 @@
 package backtype.storm.drpc;
 
 import backtype.storm.Config;
-import backtype.storm.generated.DistributedRPC;
+import backtype.storm.generated.DistributedRPCInvocations;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.DRPCClient;
+import backtype.storm.utils.DRPCInvocationsClient;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ public class ReturnResults implements IRichBolt {
     OutputCollector _collector;
     boolean local;
 
-    Map<List, DRPCClient> _clients = new HashMap<List, DRPCClient>();
+    Map<List, DRPCInvocationsClient> _clients = new HashMap<List, DRPCInvocationsClient>();
 
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
@@ -39,9 +39,9 @@ public class ReturnResults implements IRichBolt {
             final String host = (String) retMap.get("host");
             final int port = Utils.getInt(retMap.get("port"));
             String id = (String) retMap.get("id");
-            DistributedRPC.Iface client;
+            DistributedRPCInvocations.Iface client;
             if(local) {
-                client = (DistributedRPC.Iface) ServiceRegistry.getService(host);
+                client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
             } else {
                 List server = new ArrayList() {{
                     add(host);
@@ -49,7 +49,7 @@ public class ReturnResults implements IRichBolt {
                 }};
             
                 if(!_clients.containsKey(server)) {
-                    _clients.put(server, new DRPCClient(host, port));
+                    _clients.put(server, new DRPCInvocationsClient(host, port));
                 }
                 client = _clients.get(server);
             }
@@ -65,7 +65,7 @@ public class ReturnResults implements IRichBolt {
     }    
 
     public void cleanup() {
-        for(DRPCClient c: _clients.values()) {
+        for(DRPCInvocationsClient c: _clients.values()) {
             c.close();
         }
     }

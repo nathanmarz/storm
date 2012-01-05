@@ -24,14 +24,6 @@
             assignment))
     ))
 
-(defn- read-storm-cache [conf storm-id]
-  (let [stormroot (supervisor-stormdist-root conf storm-id)
-        conf-path (supervisor-stormconf-path stormroot)
-        topology-path (supervisor-stormcode-path stormroot)]
-    [(merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
-     (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))]
-    ))
-
 (defn do-heartbeat [conf worker-id port storm-id task-ids]
   (.put (worker-state conf worker-id)
         LS-WORKER-HEARTBEAT
@@ -97,7 +89,8 @@
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
-        [storm-conf topology] (read-storm-cache conf storm-id)        
+        storm-conf (read-supervisor-storm-conf conf storm-id)
+        topology (read-supervisor-topology conf storm-id)
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)

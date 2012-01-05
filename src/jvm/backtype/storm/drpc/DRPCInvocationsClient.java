@@ -1,4 +1,4 @@
-package backtype.storm.utils;
+package backtype.storm.drpc;
 
 import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPCInvocations;

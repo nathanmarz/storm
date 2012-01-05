@@ -17,7 +17,7 @@
     (.close socket)
     ))
 
-(deftype ZMQContext [context linger-ms ipc?]
+(deftype ZMQContext [context linger-ms hwm ipc?]
   Context
   (bind [this virtual-port]
     (-> context
@@ -32,6 +32,7 @@
       (-> context
           (mq/socket mq/push)
           (mq/set-linger linger-ms)
+          (mq/set-hwm hwm)
           (mq/connect url)
           (ZMQConnection.))))
   (send-local-task-empty [this virtual-port]
@@ -45,6 +46,6 @@
     context))
 
 
-(defn mk-zmq-context [num-threads linger local?]
-  (ZMQContext. (mq/context num-threads) linger local?))
+(defn mk-zmq-context [num-threads linger hwm local?]
+  (ZMQContext. (mq/context num-threads) linger hwm local?))
 

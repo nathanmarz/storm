@@ -54,6 +54,7 @@ task.refresh.poll.secs: 10
 
 zmq.threads: 1
 zmq.linger.millis: 5000
+zmq.high.water.mark: null
 
 ### topology.* configs are for specific executing storms
 topology.debug: false
@@ -68,4 +69,4 @@ topology.max.spout.pending: null
 topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
-topology.worker.childopts: nil
+topology.worker.childopts: null

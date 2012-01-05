@@ -342,7 +342,14 @@ public class Config extends HashMap<String, Object> {
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static String ZMQ_THREADS = "zmq.threads";
-
+    
+    /**
+     * The high water mark for the underlying push sockets used to send messages. If downstream 
+     * tasks to a producer are overloaded, the producer will block until the downstream tasks
+     * have consumed messages. This configuration can be used to prevent overloading in topologies
+     * that use unreliable spouts and are thus not controllable with TOPOLOGY_MAX_SPOUT_PENDING.
+     */
+    public static String ZMQ_HIGH_WATER_MARK = "zmq.high.water.mark";
 
     /**
      * How long a connection should retry sending messages to a target host when

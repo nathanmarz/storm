@@ -17,9 +17,9 @@ public class DedupSpoutExecutor implements IRichSpout, OutputFieldsDeclarer {
   
   private static final Log LOG = LogFactory.getLog(DedupSpoutExecutor.class);
 
-  private OutputFieldsDeclarer declarer;
+  private transient OutputFieldsDeclarer declarer;
   
-  private DedupSpoutContext context;
+  private transient DedupSpoutContext context;
   
   private IDedupSpout spout;
   

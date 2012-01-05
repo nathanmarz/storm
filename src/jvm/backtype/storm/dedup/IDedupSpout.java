@@ -1,8 +1,10 @@
 package backtype.storm.dedup;
 
+import java.io.Serializable;
+
 import backtype.storm.topology.OutputFieldsDeclarer;
 
-public interface IDedupSpout {
+public interface IDedupSpout extends Serializable {
   /**
    * declare output fields
    * @param context execution context

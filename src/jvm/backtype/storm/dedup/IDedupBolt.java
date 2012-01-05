@@ -1,9 +1,11 @@
 package backtype.storm.dedup;
 
+import java.io.Serializable;
+
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
-public interface IDedupBolt {
+public interface IDedupBolt extends Serializable {
   /**
    * declare output fields
    * @param context execution context

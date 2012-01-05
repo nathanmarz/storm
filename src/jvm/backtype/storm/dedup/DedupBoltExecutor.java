@@ -18,9 +18,9 @@ public class DedupBoltExecutor implements IRichBolt, OutputFieldsDeclarer {
   
   private static final Log LOG = LogFactory.getLog(DedupBoltExecutor.class);
 
-  private OutputFieldsDeclarer declarer;
+  private transient OutputFieldsDeclarer declarer;
   
-  private DedupBoltContext context;
+  private transient DedupBoltContext context;
   
   private IDedupBolt bolt;
   

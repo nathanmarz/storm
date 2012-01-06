@@ -14,8 +14,6 @@ import org.apache.commons.logging.LogFactory;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 
@@ -26,6 +24,8 @@ public class DedupBoltContext implements IDedupContext {
   private Map<String, String> conf;
   private TopologyContext context;
   private OutputCollector collector;
+  
+  private String uniqID;
   
   private Tuple currentInput;
   private String currentInputID;
@@ -60,13 +60,15 @@ public class DedupBoltContext implements IDedupContext {
     this.conf = stormConf;
     this.context = context;
     this.collector = collector;
+    
+    this.uniqID = context.getThisComponentId() + ":" + context.getThisTaskId();
 
     this.stateMap = new HashMap<byte[], byte[]>();
     this.newState = new HashMap<byte[], byte[]>();
     this.outputMap = new HashMap<String, Output>();
     this.newOutput = new HashMap<String, Output>();
 
-    this.storeKey = Bytes.toBytes(context.getThisComponentId());
+    this.storeKey = Bytes.toBytes(uniqID);
     
     this.stateStore = new HBaseStateStore(context.getStormId());
     stateStore.open();
@@ -196,7 +198,7 @@ public class DedupBoltContext implements IDedupContext {
   public void emit(String streamId, List<Object> tuple) {
     // tupleid : component1-outindex_component2-outindex
     String tupleid = currentInputID + DedupConstants.TUPLE_ID_SEP + 
-      context.getThisComponentId() + 
+      uniqID + 
       DedupConstants.TUPLE_ID_SUB_SEP + 
       currentOutputIndex;
     currentOutputIndex++;

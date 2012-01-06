@@ -1,8 +1,7 @@
 package backtype.storm.dedup;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +14,6 @@ import org.apache.commons.logging.LogFactory;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 
@@ -26,6 +24,8 @@ public class DedupSpoutContext implements IDedupContext {
   private Map<String, String> conf;
   private TopologyContext context;
   private SpoutOutputCollector collector;
+  
+  private String uniqID;
   
   private AtomicLong globalID;
   
@@ -38,7 +38,7 @@ public class DedupSpoutContext implements IDedupContext {
   private Map<byte[], byte[]> stateMap;
   private Map<byte[], byte[]> newState;
   
-  private static class Output {
+  private static class Output implements Serializable {
     public Output(String streamId, List<Object> tuple) {
       this.streamId = streamId;
       this.tuple = tuple;
@@ -61,13 +61,15 @@ public class DedupSpoutContext implements IDedupContext {
     
     this.globalID = new AtomicLong(0);
     
+    this.uniqID = context.getThisComponentId() + ":" + context.getThisTaskId();
+    
     this.stateMap = new HashMap<byte[], byte[]>();
     this.newState = new HashMap<byte[], byte[]>();
     this.outputMap = new HashMap<Long, Output>();
     this.newOutput = new HashMap<Long, Output>();
     
 
-    this.storeKey = Bytes.toBytes(context.getThisComponentId());
+    this.storeKey = Bytes.toBytes(uniqID);
     
     this.stateStore = new HBaseStateStore(context.getStormId());
     stateStore.open();

@@ -40,14 +40,16 @@ public class HBaseStateStore implements IStateStore {
     
     Map<byte[], Map<byte[], byte[]>> map = 
       new HashMap<byte[], Map<byte[],byte[]>>();
-    for (Entry<byte[], NavigableMap<byte[], byte[]>> family : 
-      sortMap.entrySet()) {
-      Map<byte[], byte[]> columnMap = map.get(family.getKey());
-      if (columnMap == null) {
-        columnMap = new HashMap<byte[], byte[]>();
-        map.put(family.getKey(), columnMap);
-        for (Entry<byte[], byte[]> column : family.getValue().entrySet()) {
-          columnMap.put(column.getKey(), column.getValue());
+    if (sortMap != null) {
+      for (Entry<byte[], NavigableMap<byte[], byte[]>> family : 
+        sortMap.entrySet()) {
+        Map<byte[], byte[]> columnMap = map.get(family.getKey());
+        if (columnMap == null) {
+          columnMap = new HashMap<byte[], byte[]>();
+          map.put(family.getKey(), columnMap);
+          for (Entry<byte[], byte[]> column : family.getValue().entrySet()) {
+            columnMap.put(column.getKey(), column.getValue());
+          }
         }
       }
     }

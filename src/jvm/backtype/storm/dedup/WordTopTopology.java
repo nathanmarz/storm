@@ -108,7 +108,7 @@ public class WordTopTopology {
 
     @Override
     public void execute(IDedupContext context, Tuple input) {
-      String word = input.getString(0);
+      String word = input.getStringByField("WORD");
       long count = 0;
       byte[] bytes = context.getState(Bytes.toBytes(word));
       if (bytes != null) {

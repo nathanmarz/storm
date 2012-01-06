@@ -37,8 +37,8 @@ public class DedupBoltContext implements IDedupContext {
   private IStateStore stateStore;
   private byte[] storeKey;
   
-  private Map<byte[], byte[]> stateMap;
-  private Map<byte[], byte[]> newState;
+  private Map<BytesArrayRef, byte[]> stateMap;
+  private Map<BytesArrayRef, byte[]> newState;
   
   private static class Output implements Serializable {
     public String streamId;
@@ -63,8 +63,8 @@ public class DedupBoltContext implements IDedupContext {
     
     this.uniqID = context.getThisComponentId() + ":" + context.getThisTaskId();
 
-    this.stateMap = new HashMap<byte[], byte[]>();
-    this.newState = new HashMap<byte[], byte[]>();
+    this.stateMap = new HashMap<BytesArrayRef, byte[]>();
+    this.newState = new HashMap<BytesArrayRef, byte[]>();
     this.outputMap = new HashMap<String, Output>();
     this.newOutput = new HashMap<String, Output>();
 
@@ -78,7 +78,7 @@ public class DedupBoltContext implements IDedupContext {
       Map<byte[], byte[]> map = storeMap.get(IStateStore.STATEMAP);
       if (map != null) {
         for (Entry<byte[], byte[]> entry : map.entrySet()) {
-          stateMap.put(entry.getKey(), entry.getValue());
+          stateMap.put(new BytesArrayRef(entry.getKey()), entry.getValue());
         }
       }
       
@@ -132,7 +132,11 @@ public class DedupBoltContext implements IDedupContext {
         Map<byte[], Map<byte[], byte[]>> updateMap = 
           new HashMap<byte[], Map<byte[], byte[]>>();
         if (newState.size() > 0) {
-          updateMap.put(IStateStore.STATEMAP, newState);
+          Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
+          for (Map.Entry<BytesArrayRef, byte[]> entry : newState.entrySet()) {
+            map.put(entry.getKey().getBytes(), entry.getValue());
+          }
+          updateMap.put(IStateStore.STATEMAP, map);
         }
         if (newOutput.size() > 0) {
           Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
@@ -229,13 +233,13 @@ public class DedupBoltContext implements IDedupContext {
 
   @Override
   public byte[] getState(byte[] key) {
-    return stateMap.get(key);
+    return stateMap.get(new BytesArrayRef(key));
   }
 
   @Override
   public boolean setState(byte[] key, byte[] value) {
-    newState.put(key, value);
-    stateMap.put(key, value);
+    newState.put(new BytesArrayRef(key), value);
+    stateMap.put(new BytesArrayRef(key), value);
     return true;
   }
 }

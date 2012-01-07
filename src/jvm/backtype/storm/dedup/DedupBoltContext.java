@@ -2,7 +2,7 @@ package backtype.storm.dedup;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -75,18 +75,21 @@ public class DedupBoltContext implements IDedupContext {
     // read saved data
     Map<byte[], Map<byte[], byte[]>> storeMap = stateStore.get(storeKey);
     if (storeMap != null) {
-      Map<byte[], byte[]> map = storeMap.get(IStateStore.STATEMAP);
-      if (map != null) {
-        for (Entry<byte[], byte[]> entry : map.entrySet()) {
-          stateMap.put(new BytesArrayRef(entry.getKey()), entry.getValue());
-        }
-      }
-      
-      map = storeMap.get(IStateStore.OUTPUTMAP);
-      if (map != null) {
-        for (Entry<byte[], byte[]> entry : map.entrySet()) {
-          outputMap.put(Bytes.toString(entry.getKey()), 
-              (Output)Utils.deserialize(entry.getValue()));
+      for (Entry<byte[], Map<byte[], byte[]>> entry : storeMap.entrySet()) {
+        if (Arrays.equals(IStateStore.STATEMAP, entry.getKey())) {
+          for (Entry<byte[], byte[]> stateEntry : entry.getValue().entrySet()) {
+            stateMap.put(new BytesArrayRef(stateEntry.getKey()), 
+                stateEntry.getValue());
+            LOG.info(uniqID + " load STATEMAP");
+          }
+        } else if (Arrays.equals(IStateStore.OUTPUTMAP, entry.getKey())) {
+          for (Entry<byte[], byte[]> outEntry : entry.getValue().entrySet()) {
+            outputMap.put(Bytes.toString(outEntry.getKey()), 
+                (Output)Utils.deserialize(outEntry.getValue()));
+            LOG.info(uniqID + " load OUTPUTMAP");
+          }
+        } else {
+          LOG.warn("unknown state " + Bytes.toString(entry.getKey()));
         }
       }
     }
@@ -100,13 +103,12 @@ public class DedupBoltContext implements IDedupContext {
   public void execute(IDedupBolt bolt, Tuple input) throws IOException {
     this.currentInput = input;
     this.currentOutputIndex = 0;
-    this.newState.clear();
-    this.newOutput.clear();
     
     this.currentInputID = input.getStringByField(DedupConstants.TUPLE_ID_FIELD);
     DedupConstants.TUPLE_TYPE type = 
       DedupConstants.TUPLE_TYPE.valueOf(
           input.getStringByField(DedupConstants.TUPLE_TYPE_FIELD));
+    LOG.info(uniqID + " receive " + type + " input tuple " + currentInputID);
 
     boolean needProcess = true;
     if (DedupConstants.TUPLE_TYPE.DUPLICATE == type || 
@@ -117,6 +119,8 @@ public class DedupBoltContext implements IDedupContext {
           // just re-send output
           Output output = outputMap.get(tupleid);
           collector.emit(output.streamId, input, output.tuple);
+          LOG.warn(uniqID + " re-emit output for input tuple " + 
+              currentInputID + " to " + output.streamId);
           needProcess = false;
         }
       }
@@ -147,6 +151,7 @@ public class DedupBoltContext implements IDedupContext {
           updateMap.put(IStateStore.OUTPUTMAP, map);
         }
         stateStore.set(storeKey, updateMap);
+        LOG.info(uniqID + " store " + currentInputID);
         updateMap.clear();
       }
       
@@ -154,6 +159,8 @@ public class DedupBoltContext implements IDedupContext {
       for (Map.Entry<String, Output> entry : newOutput.entrySet()) {
         collector.emit(entry.getValue().streamId, input, 
             entry.getValue().tuple);
+        LOG.info(uniqID + " real emit tuple " + currentInputID + " to " + 
+            entry.getValue().streamId);
       }
     } else if (DedupConstants.TUPLE_TYPE.NOTICE == type) {
       String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
@@ -175,13 +182,15 @@ public class DedupBoltContext implements IDedupContext {
           new HashMap<byte[], Map<byte[],byte[]>>();
         delete.put(IStateStore.OUTPUTMAP, deleteMap);
         stateStore.delete(storeKey, delete);
+        LOG.info(uniqID + " delete output for input tuple " + currentInputID);
       }
     } else {
-      LOG.warn("unknown type " + type);
+      LOG.warn(uniqID + " unknown type " + type);
     }
 
     // ack the input tuple
     collector.ack(input);
+    LOG.info(uniqID + " ack input tuple " + currentInputID);
     
     this.currentInput = null;
     this.newState.clear();
@@ -215,6 +224,7 @@ public class DedupBoltContext implements IDedupContext {
     Output output = new Output(streamId, tuple);
     newOutput.put(tupleid, output);
     outputMap.put(tupleid, output);
+    LOG.info(uniqID + " user emit " + tupleid + " to " + streamId);
   }
 
   @Override
@@ -224,11 +234,7 @@ public class DedupBoltContext implements IDedupContext {
   
   @Override
   public byte[] getConf(byte[] key) {
-    try {
-      return conf.get(new String(key, "UTF8")).getBytes("UTF8");
-    } catch (UnsupportedEncodingException e) {
-      return null;
-    }
+    return Bytes.toBytes(conf.get(Bytes.toString(key)));
   }
 
   @Override
@@ -240,6 +246,8 @@ public class DedupBoltContext implements IDedupContext {
   public boolean setState(byte[] key, byte[] value) {
     newState.put(new BytesArrayRef(key), value);
     stateMap.put(new BytesArrayRef(key), value);
+    LOG.info(uniqID + " set state " + 
+        Bytes.toString(key) + " : " + Bytes.toString(value));
     return true;
   }
 }

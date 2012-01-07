@@ -3,6 +3,7 @@ package backtype.storm.dedup;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,18 +77,21 @@ public class DedupSpoutContext implements IDedupContext {
     // read saved data
     Map<byte[], Map<byte[], byte[]>> storeMap = stateStore.get(storeKey);
     if (storeMap != null) {
-      Map<byte[], byte[]> map = storeMap.get(IStateStore.STATEMAP);
-      if (map != null) {
-        for (Entry<byte[], byte[]> entry : map.entrySet()) {
-          stateMap.put(new BytesArrayRef(entry.getKey()), entry.getValue());
-        }
-      }
-      
-      map = storeMap.get(IStateStore.OUTPUTMAP);
-      if (map != null) {
-        for (Entry<byte[], byte[]> entry : map.entrySet()) {
-          outputMap.put(Long.parseLong(Bytes.toString(entry.getKey())), 
-              (Output)Utils.deserialize(entry.getValue()));
+      for (Entry<byte[], Map<byte[], byte[]>> entry : storeMap.entrySet()) {
+        if (Arrays.equals(IStateStore.STATEMAP, entry.getKey())) {
+          for (Entry<byte[], byte[]> stateEntry : entry.getValue().entrySet()) {
+            stateMap.put(new BytesArrayRef(stateEntry.getKey()), 
+                stateEntry.getValue());
+            LOG.info(uniqID + " load STATEMAP");
+          }
+        } else if (Arrays.equals(IStateStore.OUTPUTMAP, entry.getKey())) {
+          for (Entry<byte[], byte[]> outEntry : entry.getValue().entrySet()) {
+            outputMap.put(Long.parseLong(Bytes.toString(outEntry.getKey())), 
+                (Output)Utils.deserialize(outEntry.getValue()));
+            LOG.info(uniqID + " load OUTPUTMAP");
+          }
+        } else {
+          LOG.warn(uniqID + " unknown state " + Bytes.toString(entry.getKey()));
         }
       }
     }
@@ -99,9 +103,6 @@ public class DedupSpoutContext implements IDedupContext {
    */
   
   public void nextTuple(IDedupSpout spout) throws IOException {
-    newState.clear();
-    newOutput.clear();
-    
     // call user spout
     spout.nextTuple(this);
     
@@ -125,6 +126,7 @@ public class DedupSpoutContext implements IDedupContext {
         updateMap.put(IStateStore.OUTPUTMAP, map);
       }
       stateStore.set(storeKey, updateMap);
+      LOG.info(uniqID + " store " + globalID.get());
       updateMap.clear();
     }
     
@@ -133,7 +135,13 @@ public class DedupSpoutContext implements IDedupContext {
       collector.emit(entry.getValue().streamId, 
                      entry.getValue().tuple,
                      entry.getKey());
+      LOG.info(uniqID + " real emit tuple " + entry.getKey() + " to " + 
+          entry.getValue().streamId);
     }
+    
+    // clean new state and output buffer
+    newState.clear();
+    newOutput.clear();
   }
   
   public void ack(Object msgId) throws IOException {
@@ -154,9 +162,9 @@ public class DedupSpoutContext implements IDedupContext {
       deleteMap.put(IStateStore.OUTPUTMAP, delete);
       stateStore.delete(storeKey, deleteMap);
       
-      LOG.debug("acked known message " + messageId);
+      LOG.info(uniqID + " acked known message " + messageId);
     } else {
-      LOG.warn("not ack unknown message " + messageId);
+      LOG.warn(uniqID + " not ack unknown message " + messageId);
     }
     // TODO ack for NOTICE message ?
   }
@@ -180,10 +188,10 @@ public class DedupSpoutContext implements IDedupContext {
       // re-send tuple use new message id
       collector.emit(item.streamId, item.tuple, newMessageId);
       String tupleId = (String)item.tuple.get(item.tuple.size() - 2);
-      LOG.warn("re-send tuple " + tupleId + " and message id switch " + 
-          messageId + " -> " + newMessageId);
+      LOG.warn(uniqID + " re emit tuple " + tupleId + " and message id switch " 
+          + messageId + " -> " + newMessageId);
     } else {
-      LOG.warn("not fail unknown message " + messageId);
+      LOG.warn(uniqID + " NOT fail unknown message " + messageId);
     }
     // TODO fail for NOTICE message ?
   }
@@ -210,6 +218,7 @@ public class DedupSpoutContext implements IDedupContext {
     // add tuple to new output buffer
     newOutput.put(tupleid, new Output(streamId, tuple));
     outputMap.put(tupleid, new Output(streamId, tuple));
+    LOG.info(uniqID + " user emit tuple " + tupleid + " to stream " + streamId);
   }
 
   @Override
@@ -219,11 +228,7 @@ public class DedupSpoutContext implements IDedupContext {
   
   @Override
   public byte[] getConf(byte[] key) {
-    try {
-      return conf.get(new String(key, "UTF8")).getBytes("UTF8");
-    } catch (UnsupportedEncodingException e) {
-      return null;
-    }
+    return Bytes.toBytes(conf.get(Bytes.toString(key)));
   }
 
   @Override
@@ -235,6 +240,8 @@ public class DedupSpoutContext implements IDedupContext {
   public boolean setState(byte[] key, byte[] value) {
     newState.put(new BytesArrayRef(key), value);
     stateMap.put(new BytesArrayRef(key), value);
+    LOG.info(uniqID + " set state " + 
+        Bytes.toString(key) + " : " + Bytes.toString(value));
     return true;
   }
 }

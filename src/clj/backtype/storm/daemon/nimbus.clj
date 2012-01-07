@@ -194,6 +194,7 @@
 
 
 (defmulti setup-jar cluster-mode)
+(defmulti clean-inbox cluster-mode)
 
 ;; status types
 ;; -- killed (:kill-time-secs)
@@ -640,6 +641,13 @@
                             (transition! nimbus storm-id :monitor))
                           (do-cleanup nimbus)
                           ))
+    ;; Schedule Nimbus inbox cleaner
+    (schedule-recurring (:timer nimbus)
+                        0
+                        (conf NIMBUS-CLEANUP-FREQ-SECS)
+                        (fn []
+                          (clean-inbox conf (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
+                          ))
     (reify Nimbus$Iface
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
@@ -857,9 +865,31 @@
              (FileUtils/copyFile src-file (File. (master-stormjar-path stormroot)))
              ))
 
+(defn- file-older-than? [now seconds file]
+  (<= (+ (.lastModified file) (* seconds 1000)) now))
+
+(defn- is-jar? [f]
+  (-> f .getName (.endsWith ".jar")))
+
+(defmethod clean-inbox :distributed [conf dir-location seconds]
+  "Deletes jar files in dir older than seconds."
+  (let [now (Time/currentTimeMillis)
+        pred #(and (is-jar? %) (file-older-than? now seconds %))
+        files (filter pred (file-seq (File. dir-location)))]
+    (doseq [f files]
+      (if (.delete f)
+        (log-message "Cleaning inbox ... deleted: " (.getName f))
+        ;; This should never happen
+        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        ))))
+
 ;; local implementation
 
 (defmethod setup-jar :local [conf & args]
+  nil
+  )
+
+(defmethod clean-inbox :local [conf & args]
   nil
   )
 

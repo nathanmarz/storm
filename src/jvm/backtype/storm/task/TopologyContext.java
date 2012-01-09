@@ -10,6 +10,7 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -310,31 +311,10 @@ public class TopologyContext {
      * Gets a list of all component ids in this topology
      */
     public Set<String> getComponentIds() {
-        Set<String> ret = new HashSet<String>();
-        for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
-            Map<String, Object> componentMap = (Map<String, Object>) getRawTopology().getFieldValue(f);
-            ret.addAll(componentMap.keySet());
-        }
-        return ret;
+        return ThriftTopologyUtils.getComponentIds(getRawTopology());
     }
 
     public ComponentCommon getComponentCommon(String componentId) {
-        for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
-            Map<String, Object> componentMap = (Map<String, Object>) getRawTopology().getFieldValue(f);
-            if(componentMap.containsKey(componentId)) {
-                Object component = componentMap.get(componentId);
-                if(component instanceof Bolt) {
-                    return ((Bolt) component).get_common();
-                }
-                if(component instanceof SpoutSpec) {
-                    return ((SpoutSpec) component).get_common();
-                }
-                if(component instanceof StateSpoutSpec) {
-                    return ((StateSpoutSpec) component).get_common();
-                }
-                throw new RuntimeException("Unreachable code! No get_common conversion for component " + component);
-            }
-        }
-        throw new IllegalArgumentException("Could not find component common for " + componentId);
+        return ThriftTopologyUtils.getComponentCommon(getRawTopology(), componentId);
     }
 }

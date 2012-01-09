@@ -560,15 +560,25 @@
        (apply merge)
        ))
 
-(defn normalize-conf [conf storm-conf]
+(defn normalize-conf [conf storm-conf ^StormTopology topology]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
-  (let [sers (storm-conf TOPOLOGY-KRYO-REGISTER)
-        sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
-        sers (mapify-serializations sers)
+  (let [base-sers (storm-conf TOPOLOGY-KRYO-REGISTER)
+        base-sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
+        component-sers (mapcat                        
+                        #(-> %
+                             ThriftTopologyUtils/getComponentCommon
+                             .get_json_conf
+                             from-json
+                             (get TOPOLOGY-KRYO-REGISTER))
+                        (ThriftTopologyUtils/getComponentIds topology))
         total-conf (merge conf storm-conf)]
-    (merge storm-conf {TOPOLOGY-KRYO-REGISTER sers
-                       TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
+    ;; topology level serialization registrations take priority
+    ;; that way, if there's a conflict, a user can force which serialization to use
+    (merge storm-conf
+           {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
+                                          (mapify-serializations sers))
+            TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
     ))
 
 (defn do-cleanup [nimbus]
@@ -621,7 +631,8 @@
                           (-> serializedConf
                               from-json
                               (assoc STORM-ID storm-id)
-                              ))
+                              )
+                          topology)
               total-storm-conf (merge conf storm-conf)
               topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
                          (optimize-topology topology)

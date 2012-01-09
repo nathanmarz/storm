@@ -94,6 +94,9 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate.reportError(error);
         }
 
+        public TopologyContext getContext() {
+            return _delegate.getContext();
+        }
 
         private void updateTaskCounts(Object id, List<Integer> tasks) {
             Map<Integer, Integer> taskEmittedTuples = _tracked.get(id).taskEmittedTuples;

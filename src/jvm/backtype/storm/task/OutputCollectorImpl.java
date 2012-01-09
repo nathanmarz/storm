@@ -2,6 +2,7 @@ package backtype.storm.task;
 
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.task.TopologyContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,6 +30,10 @@ public class OutputCollectorImpl extends OutputCollector {
     public OutputCollectorImpl(TopologyContext context, IInternalOutputCollector collector) {
         _context = context;
         _collector = collector;
+    }
+
+    public TopologyContext getContext() {
+        return _context;
     }
     
     public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {

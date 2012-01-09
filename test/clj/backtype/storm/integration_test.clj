@@ -184,6 +184,28 @@
       (is (ms= [["david_nathan_lalala"] ["adam_nathan_lalala"]] (read-tuples results "4")))
       )))
 
+(defbolt punctuator-bolt ["word" "period" "question" "exclamation"]
+  [tuple collector]
+  (let [ res (assoc tuple :period (str (:word tuple) "."))
+         res (assoc res :exclamation (str (:word tuple) "!"))
+         res (assoc res :question (str (:word tuple) "?")) ]
+    (emit-bolt! collector res)
+    (ack! collector tuple)))
+
+(deftest test-map-emit
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [topology (thrift/mk-topology
+                      {"words" (thrift/mk-spout-spec (TestWordSpout. false))}
+                      {"out" (thrift/mk-bolt-spec {"words" :shuffle}
+                                              punctuator-bolt)}
+                      )
+          results (complete-topology cluster
+                                     topology
+                                     :mock-sources {"words" [["foo"]]}
+                                     )]
+      (is (= [["foo" "foo." "foo?" "foo!"]] (read-tuples results "out"))))))
+  
+
 (defn ack-tracking-feeder [fields]
   (let [tracker (AckTracker.)]
     [(doto (feeder-spout fields)

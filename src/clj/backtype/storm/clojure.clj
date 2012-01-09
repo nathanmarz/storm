@@ -156,16 +156,25 @@
          ~definer
          ))))
 
-(defnk emit-bolt! [^OutputCollector collector ^List values
+(defn- mk-tuple-values
+  [^OutputCollector collector stream values]
+  (if (map? values)
+    (let [ fields (.. collector getContext (getThisOutputFields stream)) ]
+      (map values fields))
+    values))
+
+(defnk emit-bolt! [^OutputCollector collector values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emit collector stream anchor values)
+  (let [^List anchor (collectify anchor)
+        tuple-values (mk-tuple-values collector stream values) ]
+    (.emit collector stream anchor tuple-values)
     ))
 
-(defnk emit-direct-bolt! [^OutputCollector collector task ^List values
+(defnk emit-direct-bolt! [^OutputCollector collector task values
                           :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emitDirect collector task stream anchor values)
+  (let [^List anchor (collectify anchor)
+        tuple-values (mk-tuple-values collector stream values) ]
+    (.emitDirect collector task stream anchor tuple-values)
     ))
 
 (defn ack! [^OutputCollector collector ^Tuple tuple]

@@ -39,7 +39,7 @@ import clojure.lang.RT;
  * use another type, you'll need to implement and register a serializer for that type.
  * See {@link http://github.com/nathanmarz/storm/wiki/Serialization} for more info.
  */
-public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPersistentMap, Map {
+public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMeta {
     private List<Object> values;
     private int taskId;
     private String streamId;
@@ -49,6 +49,7 @@ public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPer
 
     //needs to get taskId explicitly b/c could be in a different task than where it was created
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
+        super();
         this.values = values;
         this.taskId = taskId;
         this.streamId = streamId;
@@ -306,24 +307,6 @@ public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPer
         return null;
     }
 
-    @Override
-    public Object valAt(Object o, Object def) {
-        Object ret = valAt(o);
-        if(ret==null) ret = def;
-        return ret;
-    }
-
-    /* IFn */
-    @Override
-    public Object invoke(Object o) {
-        return valAt(o);
-    }
-
-    @Override
-    public Object invoke(Object o, Object notfound) {
-        return valAt(o, notfound);
-    }
-
     /* Seqable */
     public ISeq seq() {
         if(values.size() > 0) {
@@ -405,88 +388,10 @@ public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPer
         return new PersistentArrayMap(array);
     }
 
-    /* IPersistentMap */
-    /* Naive implementation, but it might be good enough */
-    public IPersistentMap assoc(Object k, Object v) {
-        if(k instanceof Keyword) return assoc(((Keyword) k).getName(), v);
-        
-        return toMap().assoc(k, v);
+    public IPersistentMap getMap() {
+        if(_map==null) {
+            setMap(toMap());
+        }
+        return _map;
     }
-
-    public IPersistentMap assocEx(Object k, Object v) throws Exception {
-        if(k instanceof Keyword) return assocEx(((Keyword) k).getName(), v);
-
-        return toMap().assocEx(k, v);
-    }
-
-    public IPersistentMap without(Object k) throws Exception {
-        if(k instanceof Keyword) return without(((Keyword) k).getName());
-
-        return toMap().without(k);
-    }
-
-    public boolean containsKey(Object k) {
-        if(k instanceof Keyword) return containsKey(((Keyword) k).getName());
-        return toMap().containsKey(k);
-    }
-
-    public IMapEntry entryAt(Object k) {
-        if(k instanceof Keyword) return entryAt(((Keyword) k).getName());
-
-        return toMap().entryAt(k);
-    }
-
-    public IPersistentCollection cons(Object o) {
-        return toMap().cons(o);
-    }
-
-    public IPersistentCollection empty() {
-        return PersistentArrayMap.EMPTY;
-    }
-
-    public boolean equiv(Object o) {
-        return toMap().equiv(o);
-    }
-
-    public Iterator iterator() {
-        return toMap().iterator();
-    }
-
-    /* Map */
-    public boolean containsValue(Object v) {
-        return values.contains(v);
-    }
-
-    public Set entrySet() {
-        return toMap().entrySet();
-    }
-
-    public Object get(Object k) {
-        return valAt(k);
-    }
-
-    public boolean isEmpty() {
-        return values.size() == 0;
-    }
-
-    public Set keySet() {
-        return toMap().keySet();
-    }
-
-    public Collection values() {
-        return values;
-    }
-    
-    /* Not implemented */
-    public void clear() {
-    }
-    public Object put(Object k, Object v) {
-        return null;
-    }
-    public void putAll(Map m) {
-    }
-    public Object remove(Object k) {
-        return null;
-    }
-
 }

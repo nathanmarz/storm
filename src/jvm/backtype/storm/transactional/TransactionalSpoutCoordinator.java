@@ -34,10 +34,12 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        _state = _spout.getState();
+        // TODO: make this zk specific
+        //_state = _spout.getState();
         _state.open(conf, context);
         _collector = collector;
-        _currTransaction = _state.getTransactionId();
+        // TODO: Make this zookeeper specific
+//        _currTransaction = _state.getTransactionId();
         _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
     }
 
@@ -64,7 +66,8 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         } else if(status.status==AttemptStatus.COMMITTING) {
             _activeTx.remove(tx.getTransactionId());
             _currTransaction = nextTransactionId(tx.getTransactionId());
-            _state.setTransactionId(_currTransaction);
+            // TODO: make this zookeeper specific
+            // _state.setTransactionId(_currTransaction);
         }
         sync();
     }

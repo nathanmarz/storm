@@ -11,7 +11,8 @@
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
-  (:import [backtype.storm.tuple Fields])
+  (:import [backtype.storm.tuple Fields Tuple])
+  (:import [backtype.storm.task TopologyContext])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
             SpoutTracker BoltTracker])
@@ -458,3 +459,13 @@
           (Thread/sleep 5))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
+
+(defn ^{:dirty-hack true} fake-tuple [fields values]
+  (let [ task->component {1 "1"}
+         topo (mk-topology
+                {"1" (mk-spout-spec
+                       (feeder-spout fields))}
+                {}) 
+         context (TopologyContext. topo task->component "fake" "" "" 1)]
+    (Tuple. context values 1 "default")
+  ))

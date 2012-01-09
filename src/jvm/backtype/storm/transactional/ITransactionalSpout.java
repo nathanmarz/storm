@@ -5,7 +5,13 @@ import backtype.storm.topology.IComponent;
 import java.util.Map;
 
 public interface ITransactionalSpout extends IComponent {
-    ITransactionalState getState();
+    // this is used to store the state of this transactionalspout in zookeeper
+    // it would be very dangerous to have 2 topologies active with the same id in the same cluster
+    String getId();
+    
+    // this would be things like "# of partitions" when doing a kafka spout
+    Object computeNewTransactionMetadata();
+    
     void open(Map conf, TopologyContext context);
     void close();
     // must always emit same batch for same transaction id

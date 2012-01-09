@@ -38,7 +38,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _state.open(conf, context);
         _collector = collector;
         _currTransaction = _state.getTransactionId();
-        _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_TRANSACTION_ACTIVE));
+        _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
     }
 
     @Override

@@ -290,7 +290,7 @@
     (let [common (.get_common spec)
           declared (thrift/parallelism-hint common)
           storm-conf (merge storm-conf
-                            (read-json (.get_json_conf common)))
+                            (from-json (.get_json_conf common)))
           max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
           parallelism (if max-parallelism
                         (min declared max-parallelism)
@@ -564,10 +564,9 @@
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
   (let [base-sers (storm-conf TOPOLOGY-KRYO-REGISTER)
-        base-sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
+        base-sers (if base-sers base-sers (conf TOPOLOGY-KRYO-REGISTER))
         component-sers (mapcat                        
-                        #(-> %
-                             ThriftTopologyUtils/getComponentCommon
+                        #(-> (ThriftTopologyUtils/getComponentCommon topology %)
                              .get_json_conf
                              from-json
                              (get TOPOLOGY-KRYO-REGISTER))
@@ -577,7 +576,7 @@
     ;; that way, if there's a conflict, a user can force which serialization to use
     (merge storm-conf
            {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
-                                          (mapify-serializations sers))
+                                          (mapify-serializations base-sers))
             TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
     ))
 

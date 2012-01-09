@@ -89,7 +89,7 @@
       (let [task-info (storm-component-info state "storm2")]
         (is (= 12 (count (task-info "1"))))
         (is (= 6 (count (task-info "2"))))
-        (is (= 1 (count (task-info "3"))))
+        (is (= 8 (count (task-info "3"))))
         (is (= 4 (count (task-info "4"))))
         (is (= 8 (storm-num-workers state "storm2")))
         )

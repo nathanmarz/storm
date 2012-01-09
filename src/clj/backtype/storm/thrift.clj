@@ -71,9 +71,12 @@
 (defn mk-component-common [inputs component parallelism-hint]
   (let [getter (OutputFieldsGetter.)
         _ (.declareOutputFields component getter)
-        ret (ComponentCommon. (HashMap. inputs) (HashMap. (.getFieldsDeclaration getter)))]
+        ret (ComponentCommon. (HashMap. inputs) (HashMap. (.getFieldsDeclaration getter)))
+        component-conf (.getComponentConfiguration component)]
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
+    (when component-conf
+      (.set_json_conf ret (to-json component-conf)))
     ret
     ))
 

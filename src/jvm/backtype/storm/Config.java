@@ -340,12 +340,16 @@ public class Config extends HashMap<String, Object> {
      * Whether or not to use Java serialization in a topology.
      */
     public static String TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION="topology.fall.back.on.java.serialization";
+
+    /**
+     * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
+     */
+    public static String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
     
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static String ZMQ_THREADS = "zmq.threads";
-
 
     /**
      * How long a connection should retry sending messages to a target host when

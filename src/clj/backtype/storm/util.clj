@@ -13,7 +13,7 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
-  (:import [java.util Timer])
+  (:import [clojure.lang RT])
   (:require [clojure.contrib [str-utils2 :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
@@ -204,7 +204,8 @@
     ))
 
 (defnk launch-process [command :environment {}]
-  (let [command (seq (.split command " "))
+  (let [command (->> (seq (.split command " "))
+                     (filter (complement empty?)))
         builder (ProcessBuilder. (cons "nohup" command))
         process-env (.environment builder)]
     (doseq [[k v] environment]
@@ -574,3 +575,16 @@
                   true (throw ~error-local)
                   )))))
 
+(defn redirect-stdio-to-log4j! []
+  ;; set-var-root doesn't work with *out* and *err*, so digging much deeper here
+  ;; Unfortunately, this code seems to work at the REPL but not when spawned as worker processes
+  ;; it might have something to do with being a child process
+  ;; (set! (. (.getThreadBinding RT/OUT) val)
+  ;;       (java.io.OutputStreamWriter.
+  ;;         (log-stream :info "STDIO")))
+  ;; (set! (. (.getThreadBinding RT/ERR) val)
+  ;;       (PrintWriter.
+  ;;         (java.io.OutputStreamWriter.
+  ;;           (log-stream :error "STDIO"))
+  ;;         true))
+  (log-capture! "STDIO"))

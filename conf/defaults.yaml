@@ -69,3 +69,4 @@ topology.max.transaction.active: 1
 topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
+topology.worker.childopts: null

@@ -113,9 +113,22 @@
                        ACKER-ACK-STREAM-ID))
       )))
 
+(defn- component-conf [storm-conf topology-context component-id]
+  (let [to-remove (disj (set ALL-CONFIGS)
+                        TOPOLOGY-DEBUG
+                        TOPOLOGY-MAX-SPOUT-PENDING
+                        TOPOLOGY-MAX-TASK-PARALLELISM)
+        spec-conf (-> topology-context
+                      (.getComponentCommon component-id)
+                      .get_json_conf
+                      from-json)]    
+    (merge storm-conf (apply disj spec-conf to-remove))
+    ))
+
 (defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
+        storm-conf (component-conf storm-conf topology-context component-id)
         _ (log-message "Loading task " component-id ":" task-id)
         task-info (.getTaskToComponent topology-context)
         active (atom true)

@@ -318,7 +318,7 @@ public class TopologyContext {
         return ret;
     }
 
-    private ComponentCommon getComponentCommon(String componentId) {
+    public ComponentCommon getComponentCommon(String componentId) {
         for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
             Map<String, Object> componentMap = (Map<String, Object>) getRawTopology().getFieldValue(f);
             if(componentMap.containsKey(componentId)) {

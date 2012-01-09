@@ -36,5 +36,10 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         _spout.declareOutputFields(declarer);
-    }    
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return _spout.getComponentConfiguration();
+    }
 }

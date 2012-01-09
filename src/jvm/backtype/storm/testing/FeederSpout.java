@@ -8,6 +8,7 @@ import backtype.storm.topology.IRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.InprocMessaging;
 import backtype.storm.utils.Utils;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -66,5 +67,10 @@ public class FeederSpout implements IRichSpout {
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(_outFields);
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return new HashMap<String, Object>();
     }
 }

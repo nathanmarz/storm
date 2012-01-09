@@ -6,10 +6,10 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Fields;
 import java.util.Map;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.base.BaseRichBolt;
 
 
-public class TestPlannerBolt implements IRichBolt {
+public class TestPlannerBolt extends BaseRichBolt {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
 
     }
@@ -17,11 +17,7 @@ public class TestPlannerBolt implements IRichBolt {
     public void execute(Tuple input) {
 
     }
-    
-    public void cleanup() {
         
-    }
-    
     public Fields getOutputFields() {
         return new Fields("field1", "field2");
     }

@@ -1,18 +1,18 @@
 package backtype.storm.testing;
 
+import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Fields;
 import java.util.Map;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
 import java.util.HashMap;
 import org.apache.log4j.Logger;
 import static backtype.storm.utils.Utils.tuple;
 
 
-public class TestAggregatesCounter implements IRichBolt {
+public class TestAggregatesCounter extends BaseRichBolt {
     public static Logger LOG = Logger.getLogger(TestWordCounter.class);
 
     Map<String, Integer> _counts;

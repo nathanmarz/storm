@@ -1,5 +1,6 @@
 package backtype.storm.clojure;
 
+import backtype.storm.Config;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.spout.ISpout;
 import backtype.storm.spout.SpoutOutputCollector;
@@ -11,6 +12,7 @@ import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,10 +33,6 @@ public class ClojureSpout implements IRichSpout {
         _fields = fields;
     }
     
-    @Override
-    public boolean isDistributed() {
-        return _isDistributed;
-    }
 
     @Override
     public void open(final Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
@@ -106,4 +104,13 @@ public class ClojureSpout implements IRichSpout {
         }
     }
     
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        //TODO: expose this completely in clojure API
+        Map<String, Object> ret = new HashMap<String, Object>();
+        if(!_isDistributed) {
+            ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
+        }
+        return ret;
+    }    
 }

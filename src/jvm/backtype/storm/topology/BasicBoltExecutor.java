@@ -3,6 +3,7 @@ package backtype.storm.topology;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import java.util.HashMap;
 import java.util.Map;
 
 public class BasicBoltExecutor implements IRichBolt {
@@ -32,5 +33,9 @@ public class BasicBoltExecutor implements IRichBolt {
 
     public void cleanup() {
         _bolt.cleanup();
+    }
+
+    public Map<String, Object> getComponentConfiguration() {
+        return _bolt.getComponentConfiguration();
     }
 }

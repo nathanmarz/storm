@@ -10,6 +10,7 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.KeyedRoundRobinQueue;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -67,5 +68,10 @@ public class KeyedFairBolt implements IRichBolt, FinishedCallback {
         if(_callback!=null) {
             _callback.finishedId(id);
         }
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return new HashMap<String, Object>();
     }
 }

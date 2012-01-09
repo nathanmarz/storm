@@ -2,8 +2,8 @@ package backtype.storm.drpc;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.Tuple;
@@ -15,7 +15,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 
-public class JoinResult implements IRichBolt {
+public class JoinResult extends BaseRichBolt {
     public static Logger LOG = Logger.getLogger(JoinResult.class);
 
     String returnComponent;
@@ -52,12 +52,7 @@ public class JoinResult implements IRichBolt {
         }
     }
 
-    public void cleanup() {
-    }
-
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("result", "return-info"));
     }
-
-
 }

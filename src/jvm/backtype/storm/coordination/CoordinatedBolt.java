@@ -238,6 +238,11 @@ public class CoordinatedBolt implements IRichBolt {
         declarer.declareStream(Constants.COORDINATED_STREAM_ID, true, new Fields("id", "count"));
     }
 
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return _delegate.getComponentConfiguration();
+    }
+    
     private static Map<String, SourceArgs> singleSourceArgs(String sourceComponent, SourceArgs sourceArgs) {
         Map<String, SourceArgs> ret = new HashMap<String, SourceArgs>();
         ret.put(sourceComponent, sourceArgs);

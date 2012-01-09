@@ -731,6 +731,7 @@ class ComponentCommon:
    - inputs
    - streams
    - parallelism_hint
+   - json_conf
   """
 
   thrift_spec = (
@@ -738,12 +739,14 @@ class ComponentCommon:
     (1, TType.MAP, 'inputs', (TType.STRUCT,(GlobalStreamId, GlobalStreamId.thrift_spec),TType.STRUCT,(Grouping, Grouping.thrift_spec)), None, ), # 1
     (2, TType.MAP, 'streams', (TType.STRING,None,TType.STRUCT,(StreamInfo, StreamInfo.thrift_spec)), None, ), # 2
     (3, TType.I32, 'parallelism_hint', None, None, ), # 3
+    (4, TType.STRING, 'json_conf', None, None, ), # 4
   )
 
-  def __init__(self, inputs=None, streams=None, parallelism_hint=None,):
+  def __init__(self, inputs=None, streams=None, parallelism_hint=None, json_conf=None,):
     self.inputs = inputs
     self.streams = streams
     self.parallelism_hint = parallelism_hint
+    self.json_conf = json_conf
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -784,6 +787,11 @@ class ComponentCommon:
           self.parallelism_hint = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRING:
+          self.json_conf = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -814,6 +822,10 @@ class ComponentCommon:
       oprot.writeFieldBegin('parallelism_hint', TType.I32, 3)
       oprot.writeI32(self.parallelism_hint)
       oprot.writeFieldEnd()
+    if self.json_conf is not None:
+      oprot.writeFieldBegin('json_conf', TType.STRING, 4)
+      oprot.writeString(self.json_conf.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -841,20 +853,17 @@ class SpoutSpec:
   Attributes:
    - spout_object
    - common
-   - distributed
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'spout_object', (ComponentObject, ComponentObject.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'common', (ComponentCommon, ComponentCommon.thrift_spec), None, ), # 2
-    (3, TType.BOOL, 'distributed', None, None, ), # 3
   )
 
-  def __init__(self, spout_object=None, common=None, distributed=None,):
+  def __init__(self, spout_object=None, common=None,):
     self.spout_object = spout_object
     self.common = common
-    self.distributed = distributed
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -877,11 +886,6 @@ class SpoutSpec:
           self.common.read(iprot)
         else:
           iprot.skip(ftype)
-      elif fid == 3:
-        if ftype == TType.BOOL:
-          self.distributed = iprot.readBool();
-        else:
-          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -900,10 +904,6 @@ class SpoutSpec:
       oprot.writeFieldBegin('common', TType.STRUCT, 2)
       self.common.write(oprot)
       oprot.writeFieldEnd()
-    if self.distributed is not None:
-      oprot.writeFieldBegin('distributed', TType.BOOL, 3)
-      oprot.writeBool(self.distributed)
-      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -912,8 +912,6 @@ class SpoutSpec:
       raise TProtocol.TProtocolException(message='Required field spout_object is unset!')
     if self.common is None:
       raise TProtocol.TProtocolException(message='Required field common is unset!')
-    if self.distributed is None:
-      raise TProtocol.TProtocolException(message='Required field distributed is unset!')
     return
 
 

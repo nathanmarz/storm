@@ -27,16 +27,19 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
   private static final org.apache.thrift7.protocol.TField INPUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("inputs", org.apache.thrift7.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift7.protocol.TField STREAMS_FIELD_DESC = new org.apache.thrift7.protocol.TField("streams", org.apache.thrift7.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift7.protocol.TField PARALLELISM_HINT_FIELD_DESC = new org.apache.thrift7.protocol.TField("parallelism_hint", org.apache.thrift7.protocol.TType.I32, (short)3);
+  private static final org.apache.thrift7.protocol.TField JSON_CONF_FIELD_DESC = new org.apache.thrift7.protocol.TField("json_conf", org.apache.thrift7.protocol.TType.STRING, (short)4);
 
   private Map<GlobalStreamId,Grouping> inputs; // required
   private Map<String,StreamInfo> streams; // required
   private int parallelism_hint; // required
+  private String json_conf; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     INPUTS((short)1, "inputs"),
     STREAMS((short)2, "streams"),
-    PARALLELISM_HINT((short)3, "parallelism_hint");
+    PARALLELISM_HINT((short)3, "parallelism_hint"),
+    JSON_CONF((short)4, "json_conf");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -57,6 +60,8 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
           return STREAMS;
         case 3: // PARALLELISM_HINT
           return PARALLELISM_HINT;
+        case 4: // JSON_CONF
+          return JSON_CONF;
         default:
           return null;
       }
@@ -113,6 +118,8 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, StreamInfo.class))));
     tmpMap.put(_Fields.PARALLELISM_HINT, new org.apache.thrift7.meta_data.FieldMetaData("parallelism_hint", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.JSON_CONF, new org.apache.thrift7.meta_data.FieldMetaData("json_conf", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ComponentCommon.class, metaDataMap);
   }
@@ -166,6 +173,9 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       this.streams = __this__streams;
     }
     this.parallelism_hint = other.parallelism_hint;
+    if (other.is_set_json_conf()) {
+      this.json_conf = other.json_conf;
+    }
   }
 
   public ComponentCommon deepCopy() {
@@ -178,6 +188,7 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     this.streams = null;
     set_parallelism_hint_isSet(false);
     this.parallelism_hint = 0;
+    this.json_conf = null;
   }
 
   public int get_inputs_size() {
@@ -270,6 +281,29 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     __isset_bit_vector.set(__PARALLELISM_HINT_ISSET_ID, value);
   }
 
+  public String get_json_conf() {
+    return this.json_conf;
+  }
+
+  public void set_json_conf(String json_conf) {
+    this.json_conf = json_conf;
+  }
+
+  public void unset_json_conf() {
+    this.json_conf = null;
+  }
+
+  /** Returns true if field json_conf is set (has been assigned a value) and false otherwise */
+  public boolean is_set_json_conf() {
+    return this.json_conf != null;
+  }
+
+  public void set_json_conf_isSet(boolean value) {
+    if (!value) {
+      this.json_conf = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case INPUTS:
@@ -296,6 +330,14 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       }
       break;
 
+    case JSON_CONF:
+      if (value == null) {
+        unset_json_conf();
+      } else {
+        set_json_conf((String)value);
+      }
+      break;
+
     }
   }
 
@@ -309,6 +351,9 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
 
     case PARALLELISM_HINT:
       return Integer.valueOf(get_parallelism_hint());
+
+    case JSON_CONF:
+      return get_json_conf();
 
     }
     throw new IllegalStateException();
@@ -327,6 +372,8 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       return is_set_streams();
     case PARALLELISM_HINT:
       return is_set_parallelism_hint();
+    case JSON_CONF:
+      return is_set_json_conf();
     }
     throw new IllegalStateException();
   }
@@ -371,6 +418,15 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
         return false;
     }
 
+    boolean this_present_json_conf = true && this.is_set_json_conf();
+    boolean that_present_json_conf = true && that.is_set_json_conf();
+    if (this_present_json_conf || that_present_json_conf) {
+      if (!(this_present_json_conf && that_present_json_conf))
+        return false;
+      if (!this.json_conf.equals(that.json_conf))
+        return false;
+    }
+
     return true;
   }
 
@@ -392,6 +448,11 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     builder.append(present_parallelism_hint);
     if (present_parallelism_hint)
       builder.append(parallelism_hint);
+
+    boolean present_json_conf = true && (is_set_json_conf());
+    builder.append(present_json_conf);
+    if (present_json_conf)
+      builder.append(json_conf);
 
     return builder.toHashCode();
   }
@@ -430,6 +491,16 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
     }
     if (is_set_parallelism_hint()) {
       lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.parallelism_hint, typedOther.parallelism_hint);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_json_conf()).compareTo(typedOther.is_set_json_conf());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_json_conf()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.json_conf, typedOther.json_conf);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -500,6 +571,13 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 4: // JSON_CONF
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.json_conf = iprot.readString();
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -544,6 +622,13 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       oprot.writeI32(this.parallelism_hint);
       oprot.writeFieldEnd();
     }
+    if (this.json_conf != null) {
+      if (is_set_json_conf()) {
+        oprot.writeFieldBegin(JSON_CONF_FIELD_DESC);
+        oprot.writeString(this.json_conf);
+        oprot.writeFieldEnd();
+      }
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -572,6 +657,16 @@ public class ComponentCommon implements org.apache.thrift7.TBase<ComponentCommon
       if (!first) sb.append(", ");
       sb.append("parallelism_hint:");
       sb.append(this.parallelism_hint);
+      first = false;
+    }
+    if (is_set_json_conf()) {
+      if (!first) sb.append(", ");
+      sb.append("json_conf:");
+      if (this.json_conf == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.json_conf);
+      }
       first = false;
     }
     sb.append(")");

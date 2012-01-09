@@ -64,13 +64,14 @@ struct ComponentCommon {
   // topology.kryo.register // this is the only additive one
   
   // component specific configuration
-  4: optional string jsonConf;
+  4: optional string json_conf;
 }
 
 struct SpoutSpec {
   1: required ComponentObject spout_object;
   2: required ComponentCommon common;
-  3: required bool distributed;
+  // can force a spout to be non-distributed by overriding the component configuration
+  // and setting TOPOLOGY_MAX_TASK_PARALLELISM to 1
 }
 
 struct Bolt {

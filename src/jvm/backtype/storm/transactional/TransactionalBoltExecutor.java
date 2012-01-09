@@ -85,6 +85,11 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         newTransactionalBolt().declareOutputFields(declarer);
     }
     
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return newTransactionalBolt().getComponentConfiguration();
+    }
+
     private ITransactionalBolt newTransactionalBolt() {
         return (ITransactionalBolt) Utils.deserialize(_boltSer);
     }

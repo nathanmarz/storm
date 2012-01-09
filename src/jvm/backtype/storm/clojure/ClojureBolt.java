@@ -14,6 +14,7 @@ import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,5 +84,11 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
         if(_bolt instanceof FinishedCallback) {
             ((FinishedCallback) _bolt).finishedId(id);
         }
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        //TODO: expose this in clojure API
+        return new HashMap<String, Object>();
     }
 }

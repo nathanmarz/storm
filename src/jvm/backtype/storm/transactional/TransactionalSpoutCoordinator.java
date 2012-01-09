@@ -111,6 +111,11 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             }
         }        
     }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return _spout.getComponentConfiguration();
+    }
     
     private static enum AttemptStatus {
         PROCESSING,

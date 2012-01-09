@@ -13,11 +13,14 @@ import clojure.lang.ASeq;
 import clojure.lang.AFn;
 import clojure.lang.IPersistentMap;
 import clojure.lang.PersistentArrayMap;
+import clojure.lang.IMapEntry;
+import clojure.lang.IPersistentCollection;
 import clojure.lang.Obj;
 import clojure.lang.IMeta;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
 import clojure.lang.MapEntry;
+import java.util.Iterator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +37,7 @@ import clojure.lang.RT;
  * use another type, you'll need to implement and register a serializer for that type.
  * See {@link http://github.com/nathanmarz/storm/wiki/Serialization} for more info.
  */
-public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta {
+public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPersistentMap {
     private List<Object> values;
     private int taskId;
     private String streamId;
@@ -390,4 +393,60 @@ public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta {
         return _meta;
     }
 
+    private IPersistentMap toMap() {
+        Object array[] = new Object[values.size()*2];
+        List<String> fields = getFields().toList();
+        for(int i=0; i < values.size(); i++) {
+            array[i] = fields.get(i);
+            array[i+1] = values.get(i);
+        }
+        return new PersistentArrayMap(array);
+    }
+
+    /* IPersistentMap */
+    /* Naive implementation, but it might be good enough */
+    public IPersistentMap assoc(Object k, Object v) {
+        if(k instanceof Keyword) return assoc(((Keyword) k).getName(), v);
+        
+        return toMap().assoc(k, v);
+    }
+
+    public IPersistentMap assocEx(Object k, Object v) throws Exception {
+        if(k instanceof Keyword) return assocEx(((Keyword) k).getName(), v);
+
+        return toMap().assocEx(k, v);
+    }
+
+    public IPersistentMap without(Object k) throws Exception {
+        if(k instanceof Keyword) return without(((Keyword) k).getName());
+
+        return toMap().without(k);
+    }
+
+    public boolean containsKey(Object k) {
+        if(k instanceof Keyword) return containsKey(((Keyword) k).getName());
+        return toMap().containsKey(k);
+    }
+
+    public IMapEntry entryAt(Object k) {
+        if(k instanceof Keyword) return entryAt(((Keyword) k).getName());
+
+        return toMap().entryAt(k);
+    }
+
+    public IPersistentCollection cons(Object o) {
+        return toMap().cons(o);
+    }
+
+    public IPersistentCollection empty() {
+        return PersistentArrayMap.EMPTY;
+    }
+
+    public boolean equiv(Object o) {
+        return toMap().equiv(o);
+    }
+
+    public Iterator iterator() {
+        return toMap().iterator();
+    }
 }

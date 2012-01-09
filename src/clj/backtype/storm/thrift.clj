@@ -105,8 +105,7 @@
   ;; for backwards compatibility
   (let [parallelism-hint (if p p parallelism-hint)]
     (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
-                (mk-component-common {} spout parallelism-hint)
-                (.isDistributed spout))
+                (mk-component-common {} spout parallelism-hint))
     ))
 
 (defn mk-shuffle-grouping []

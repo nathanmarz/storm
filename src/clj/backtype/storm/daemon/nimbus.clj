@@ -279,34 +279,22 @@
      all-slots)
     ))
 
-(defn common-parallelism [spec]
-  (-> spec .get_common thrift/parallelism-hint))
-
-(defn- spout-parallelism [spout-spec]
-  (if (.is_distributed spout-spec)
-    (-> spout-spec .get_common thrift/parallelism-hint)
-    1 ))
-
-(defn bolt-parallelism [bolt-spec]
-  (let [hint (-> bolt-spec .get_common thrift/parallelism-hint)
-        fully-global? (every?
-                       thrift/global-grouping?
-                       (vals (-> bolt-spec .get_common .get_inputs)))]
-    (if (and (pos? hint) fully-global?)
-      1
-      hint
-      )))
-
 (defn- optimize-topology [topology]
   ;; TODO: create new topology by collapsing bolts into CompoundSpout
   ;; and CompoundBolt
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn mk-task-maker [max-parallelism parallelism-func id-counter]
+(defn mk-task-maker [storm-conf id-counter]
   (fn [[component-id spec]]
-    (let [parallelism (parallelism-func spec)
-          parallelism (if max-parallelism (min parallelism max-parallelism) parallelism)]
+    (let [common (.get_common spec)
+          declared (thrift/parallelism-hint common)
+          storm-conf (merge storm-conf
+                            (read-json (.get_json_conf common)))
+          max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+          parallelism (if max-parallelism
+                        (min declared max-parallelism)
+                        declared)]
       (for-times parallelism
                  [(id-counter) component-id])
       )))
@@ -331,16 +319,14 @@
 ;; public so it can be mocked in tests
 (defn mk-task-component-assignments [conf storm-id]
   (let [storm-conf (read-storm-conf conf storm-id)
-        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
         topology (system-topology! storm-conf (read-storm-topology conf storm-id))
-        slots-to-use (storm-conf TOPOLOGY-WORKERS)
         counter (mk-counter)
         tasks (concat
-               (mapcat (mk-task-maker max-parallelism bolt-parallelism counter)
+               (mapcat (mk-task-maker storm-conf counter)
                        (.get_bolts topology))
-               (mapcat (mk-task-maker max-parallelism spout-parallelism counter)
+               (mapcat (mk-task-maker storm-conf counter)
                        (.get_spouts topology))
-               (mapcat (mk-task-maker max-parallelism common-parallelism counter)
+               (mapcat (mk-task-maker storm-conf counter)
                        (.get_state_spouts topology))
                )]
     (into {}

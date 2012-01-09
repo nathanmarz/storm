@@ -121,7 +121,7 @@
         spec-conf (-> topology-context
                       (.getComponentCommon component-id)
                       .get_json_conf
-                      from-json)]    
+                      from-json)]
     (merge storm-conf (apply disj spec-conf to-remove))
     ))
 

@@ -1,5 +1,6 @@
 package backtype.storm.testing;
 
+import backtype.storm.Config;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import java.util.Map;
 import backtype.storm.spout.SpoutOutputCollector;
@@ -7,6 +8,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+import java.util.HashMap;
 
 
 public class TestPlannerSpout extends BaseRichSpout {
@@ -15,11 +17,7 @@ public class TestPlannerSpout extends BaseRichSpout {
     public TestPlannerSpout(boolean isDistributed) {
         _isDistributed = isDistributed;
     }
-    
-    public boolean isDistributed() {
-        return _isDistributed;
-    }
-    
+        
     public Fields getOutputFields() {
         return new Fields("field1", "field2");
     }
@@ -48,5 +46,13 @@ public class TestPlannerSpout extends BaseRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(getOutputFields());
     }
-    
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        Map<String, Object> ret = new HashMap<String, Object>();
+        if(!_isDistributed) {
+            ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
+        }
+        return ret;
+    }       
 }

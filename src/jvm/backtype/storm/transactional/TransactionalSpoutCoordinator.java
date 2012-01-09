@@ -79,11 +79,6 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         }
         sync();
     }
-
-    @Override
-    public boolean isDistributed() {
-        return false;
-    }    
     
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
@@ -117,6 +112,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         if(!ret.containsKey(Config.TOPOLOGY_MAX_SPOUT_PENDING)) {
             ret.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 1);
         }
+        ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
         return ret;
     }
     

@@ -366,8 +366,11 @@
   (JSONValue/toJSONString m))
 
 (defn from-json [^String str]
-  (clojurify-structure
-    (JSONValue/parse str)))
+  (if str
+    (clojurify-structure
+     (JSONValue/parse str))
+    nil
+    ))
 
 (defmacro letlocals [& body]
    (let [[tobind lexpr] (split-at (dec (count body)) body)

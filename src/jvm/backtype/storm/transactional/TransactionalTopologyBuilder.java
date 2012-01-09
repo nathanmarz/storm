@@ -28,7 +28,6 @@ public class TransactionalTopologyBuilder {
     public TransactionalTopologyBuilder(String spoutId, ITransactionalSpout spout, Integer spoutParallelism) {
         _spoutId = spoutId;
         _spout = spout;
-        if(!spout.isDistributed()) spoutParallelism = 1;
         _spoutParallelism = spoutParallelism;
     }
     

@@ -32,10 +32,6 @@ public class FeederSpout implements IRichSpout {
         InprocMessaging.sendMessage(_id, tuple);
     }
 
-    public boolean isDistributed() {
-        return true;
-    }
-
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
     }

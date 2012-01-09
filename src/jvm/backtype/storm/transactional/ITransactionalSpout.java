@@ -26,5 +26,4 @@ public interface ITransactionalSpout extends IComponent {
     //  - from new partition)
     //  - maybe the coordinator needs to set this up and send it with the batch emit?
     //  - then the coordinator can manage cleanup too...
-    boolean isDistributed();
 }

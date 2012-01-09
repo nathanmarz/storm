@@ -382,8 +382,8 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
         Object array[] = new Object[values.size()*2];
         List<String> fields = getFields().toList();
         for(int i=0; i < values.size(); i++) {
-            array[i] = fields.get(i);
-            array[i+1] = values.get(i);
+            array[i*2] = fields.get(i);
+            array[(i*2)+1] = values.get(i);
         }
         return new PersistentArrayMap(array);
     }

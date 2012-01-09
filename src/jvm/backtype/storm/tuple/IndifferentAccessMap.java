@@ -156,13 +156,15 @@ public class IndifferentAccessMap extends AFn implements ILookup, IPersistentMap
     
     /* Not implemented */
     public void clear() {
+        throw new UnsupportedOperationException();
     }
     public Object put(Object k, Object v) {
-        return null;
+        throw new UnsupportedOperationException();
     }
     public void putAll(Map m) {
+        throw new UnsupportedOperationException();
     }
     public Object remove(Object k) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 }

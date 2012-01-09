@@ -31,4 +31,10 @@ public class KryoValuesSerializer {
         serializeInto(values, out);
         return out.toByteArray();
     }
+    
+    public byte[] serializeObject(Object obj) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        _kryo.writeClassAndObject(out, obj);
+        return out.toByteArray();
+    }
 }

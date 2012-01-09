@@ -22,4 +22,8 @@ public class KryoValuesDeserializer {
     public List<Object> deserialize(byte[] ser) throws IOException {
         return deserializeFrom(new ByteArrayInputStream(ser));
     }
+    
+    public Object deserializeObject(byte[] ser) throws IOException {
+        return _kryo.readClassAndObject(new ByteArrayInputStream(ser));
+    }
 }

@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
+import java.util.Set;
 import clojure.lang.RT;
 
 /**
@@ -37,7 +39,7 @@ import clojure.lang.RT;
  * use another type, you'll need to implement and register a serializer for that type.
  * See {@link http://github.com/nathanmarz/storm/wiki/Serialization} for more info.
  */
-public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPersistentMap {
+public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPersistentMap, Map {
     private List<Object> values;
     private int taskId;
     private String streamId;
@@ -393,7 +395,7 @@ public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPer
         return _meta;
     }
 
-    private IPersistentMap toMap() {
+    private PersistentArrayMap toMap() {
         Object array[] = new Object[values.size()*2];
         List<String> fields = getFields().toList();
         for(int i=0; i < values.size(); i++) {
@@ -449,4 +451,42 @@ public class Tuple extends AFn implements ILookup, Seqable, Indexed, IMeta, IPer
     public Iterator iterator() {
         return toMap().iterator();
     }
+
+    /* Map */
+    public boolean containsValue(Object v) {
+        return values.contains(v);
+    }
+
+    public Set entrySet() {
+        return toMap().entrySet();
+    }
+
+    public Object get(Object k) {
+        return valAt(k);
+    }
+
+    public boolean isEmpty() {
+        return values.size() == 0;
+    }
+
+    public Set keySet() {
+        return toMap().keySet();
+    }
+
+    public Collection values() {
+        return values;
+    }
+    
+    /* Not implemented */
+    public void clear() {
+    }
+    public Object put(Object k, Object v) {
+        return null;
+    }
+    public void putAll(Map m) {
+    }
+    public Object remove(Object k) {
+        return null;
+    }
+
 }

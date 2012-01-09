@@ -408,6 +408,15 @@
 ;;       )))
 
 
+(deftest test-component-specific-config
+  ;; test that java api can override confs (both via IComponent and fluent interface)
+  ;; test that fluent interface has highest priority
+  ;; test which serialization is chosen
+  ;;   - make the component specific one throw an error, but the topology one work fine
+  ;;   - use something that's only serializable via component specific serialization
+  ;; check that max spout pending is correct
+  )
+
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology
   )

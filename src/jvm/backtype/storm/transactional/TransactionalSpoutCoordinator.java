@@ -11,7 +11,6 @@ import backtype.storm.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
 
-// TODO: need a way to override max spout pending with max batch pending conf
 public class TransactionalSpoutCoordinator implements IRichSpout {    
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
@@ -114,7 +113,11 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return _spout.getComponentConfiguration();
+        Map<String, Object> ret = new HashMap<String, Object>(_spout.getComponentConfiguration());
+        if(!ret.containsKey(Config.TOPOLOGY_MAX_SPOUT_PENDING)) {
+            ret.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 1);
+        }
+        return ret;
     }
     
     private static enum AttemptStatus {

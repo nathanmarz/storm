@@ -65,7 +65,6 @@ topology.message.timeout.secs: 30
 topology.skip.missing.kryo.registrations: false
 topology.max.task.parallelism: null
 topology.max.spout.pending: null
-topology.max.transaction.active: 1
 topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true

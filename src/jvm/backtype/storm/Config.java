@@ -314,16 +314,7 @@ public class Config extends HashMap<String, Object> {
      * Note that this config parameter has no effect for unreliable spouts that don't tag 
      * their tuples with a message id.
      */
-    public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
-
-    /**
-     * The maximum number of transactions that can be active in a transactional topology. This value defaults
-     * to 1.
-     * 
-     * This value should be increased when multiple transactions can be pipelined. Transactions will 
-     * still be committed in order.
-     */
-    public static String TOPOLOGY_MAX_TRANSACTION_ACTIVE="topology.max.transaction.active";    
+    public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
     
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests

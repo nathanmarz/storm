@@ -122,7 +122,7 @@
                       (.getComponentCommon component-id)
                       .get_json_conf
                       from-json)]
-    (merge storm-conf (apply disj spec-conf to-remove))
+    (merge storm-conf (apply dissoc spec-conf to-remove))
     ))
 
 (defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]

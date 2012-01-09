@@ -213,9 +213,10 @@ public class TopologyBuilder {
     
     private void initCommon(String id, IComponent component, Integer parallelism) {
         ComponentCommon common = new ComponentCommon();
-        common.set_parallelism_hint(parallelism);
+        common.set_inputs(new HashMap<GlobalStreamId, Grouping>());
+        if(parallelism!=null) common.set_parallelism_hint(parallelism);
         Map conf = component.getComponentConfiguration();
-        common.set_json_conf(JSONValue.toJSONString(conf));
+        if(conf!=null) common.set_json_conf(JSONValue.toJSONString(conf));
         _commons.put(id, common);
     }
 

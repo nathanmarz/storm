@@ -186,11 +186,16 @@
 
 (defbolt punctuator-bolt ["word" "period" "question" "exclamation"]
   [tuple collector]
-  (let [ res (assoc tuple :period (str (:word tuple) "."))
-         res (assoc res :exclamation (str (:word tuple) "!"))
-         res (assoc res :question (str (:word tuple) "?")) ]
-    (emit-bolt! collector res)
-    (ack! collector tuple)))
+  (if (= (:word tuple) "bar")
+    (do 
+      (emit-bolt! collector {:word "bar" :period "bar" :question "bar"
+                            "exclamation" "bar"})
+      (ack! collector tuple))
+    (let [ res (assoc tuple :period (str (:word tuple) "."))
+           res (assoc res :exclamation (str (:word tuple) "!"))
+           res (assoc res :question (str (:word tuple) "?")) ]
+      (emit-bolt! collector res)
+      (ack! collector tuple))))
 
 (deftest test-map-emit
   (with-simulated-time-local-cluster [cluster :supervisors 4]
@@ -201,9 +206,10 @@
                       )
           results (complete-topology cluster
                                      topology
-                                     :mock-sources {"words" [["foo"]]}
+                                     :mock-sources {"words" [["foo"] ["bar"]]}
                                      )]
-      (is (= [["foo" "foo." "foo?" "foo!"]] (read-tuples results "out"))))))
+      (is (ms= [["foo" "foo." "foo?" "foo!"]
+                ["bar" "bar" "bar" "bar"]   ] (read-tuples results "out"))))))
   
 
 (defn ack-tracking-feeder [fields]

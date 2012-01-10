@@ -242,7 +242,22 @@ public class TopologyBuilder {
             Map configMap = new HashMap();
             configMap.put(config, value);
             return addConfigurations(configMap);
-        }        
+        }
+
+        @Override
+        public T setDebug(boolean debug) {
+            return addConfiguration(Config.TOPOLOGY_DEBUG, debug);
+        }
+
+        @Override
+        public T setMaxTaskParallelism(Integer val) {
+            return addConfiguration(Config.TOPOLOGY_MAX_TASK_PARALLELISM, val);
+        }
+
+        @Override
+        public T setMaxSpoutPending(Integer val) {
+            return addConfiguration(Config.TOPOLOGY_MAX_SPOUT_PENDING, val);
+        }
     }
     
     protected class SpoutGetter extends ConfigGetter<SpoutDeclarer> implements SpoutDeclarer {

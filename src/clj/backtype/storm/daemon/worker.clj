@@ -25,13 +25,15 @@
     ))
 
 (defn do-heartbeat [conf worker-id port storm-id task-ids]
+  (let [hb (WorkerHeartbeat.
+             (current-time-secs)
+             storm-id
+             task-ids
+             port)]
+  (log-debug "Doing heartbeat " (pr-str hb))
   (.put (worker-state conf worker-id)
         LS-WORKER-HEARTBEAT
-        (WorkerHeartbeat.
-          (current-time-secs)
-          storm-id
-          task-ids
-          port)))
+        hb)))
 
 (defn worker-outbound-tasks
   "Returns seq of task-ids that receive messages from this worker"
@@ -172,6 +174,7 @@
                             ;; this @active check handles the case where it's started after shutdown* joins to the thread
                             ;; if the thread is started after the join, then @active must be false. So there's no risk 
                             ;; of writing heartbeat after it's been shut down.
+                            (log-debug "In heartbeat thread")
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY)

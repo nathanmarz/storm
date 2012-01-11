@@ -105,7 +105,7 @@
                            :timed-out
                          true
                            :valid)]
-              (log-debug "Worker " id " is " state ": " hb " at supervisor time-secs " now)
+              (log-debug "Worker " id " is " state ": " (pr-str hb) " at supervisor time-secs " now)
               [id [state hb]]
               ))
      )))

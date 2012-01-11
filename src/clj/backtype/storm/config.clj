@@ -22,7 +22,7 @@
 
 (def ALL-CONFIGS
   (dofor [f (seq (.getFields Config))]
-         (clojure-config-name (.getName f))
+         (.get f nil)
          ))
 
 (defn cluster-mode [conf & args]

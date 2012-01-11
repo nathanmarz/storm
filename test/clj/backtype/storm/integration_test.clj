@@ -1,6 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.topology TopologyBuilder])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestConfBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   )
@@ -409,13 +410,52 @@
 
 
 (deftest test-component-specific-config
-  ;; test that java api can override confs (both via IComponent and fluent interface)
-  ;; test that fluent interface has highest priority
-  ;; test which serialization is chosen
-  ;;   - make the component specific one throw an error, but the topology one work fine
-  ;;   - use something that's only serializable via component specific serialization
-  ;; check that max spout pending is correct
-  )
+  (with-simulated-time-local-cluster [cluster
+                                      :daemon-conf {TOPOLOGY-OPTIMIZE false
+                                                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true}]
+    (letlocals
+     (bind builder (TopologyBuilder.))
+     (.setSpout builder "1" (TestWordSpout.))
+     (-> builder
+         (.setBolt "2"
+                   (TestConfBolt.
+                    {"fake.config" 123
+                     TOPOLOGY-MAX-TASK-PARALLELISM 20
+                     TOPOLOGY-MAX-SPOUT-PENDING 30
+                     TOPOLOGY-OPTIMIZE true
+                     TOPOLOGY-KRYO-REGISTER [{"fake.type" "bad.serializer"}
+                                             {"fake.type2" "a.serializer"}]
+                     }))
+         (.shuffleGrouping "1")
+         (.setMaxTaskParallelism 2)
+         (.addConfiguration "fake.config2" 987)
+         )
+     
+
+     (bind results
+           (complete-topology cluster
+                              (.createTopology builder)
+                              :storm-conf {TOPOLOGY-KRYO-REGISTER [{"fake.type" "good.serializer" "fake.type3" "a.serializer3"}]}
+                              :mock-sources {"1" [["fake.config"]
+                                                  [TOPOLOGY-MAX-TASK-PARALLELISM]
+                                                  [TOPOLOGY-MAX-SPOUT-PENDING]
+                                                  [TOPOLOGY-OPTIMIZE]
+                                                  ["fake.config2"]
+                                                  [TOPOLOGY-KRYO-REGISTER]
+                                                  ]}))
+     (is (= {"fake.config" 123
+             "fake.config2" 987
+             TOPOLOGY-MAX-TASK-PARALLELISM 2
+             TOPOLOGY-MAX-SPOUT-PENDING 30
+             TOPOLOGY-OPTIMIZE false
+             TOPOLOGY-KRYO-REGISTER {"fake.type" "good.serializer"
+                                     "fake.type2" "a.serializer"
+                                     "fake.type3" "a.serializer3"}}
+            (->> (read-tuples results "2")
+                 (apply concat)
+                 (apply hash-map))
+            ))
+     )))
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

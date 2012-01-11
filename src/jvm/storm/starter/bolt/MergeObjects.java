@@ -76,7 +76,7 @@ public class MergeObjects implements IBasicBolt {
 
         long currentTime = System.currentTimeMillis();
         if(_lastTime==null || currentTime >= _lastTime + 2000) {
-            collector.emit(new Values(_rankings));
+            collector.emit(new Values(new ArrayList(_rankings)));
             LOG.info("Rankings: " + _rankings);
             _lastTime = currentTime;
         }

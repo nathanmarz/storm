@@ -457,6 +457,39 @@
             ))
      )))
 
+(defbolt conf-query-bolt ["conf" "val"] {:prepare true :params [conf] :conf conf}
+  [conf context collector]
+  (bolt
+   (execute [tuple]
+            (let [name (.getValue tuple 0)]
+              (emit-bolt! collector [name (get conf name)] :anchor tuple))
+            )))
+
+(deftest test-component-specific-config-clojure
+  (with-simulated-time-local-cluster [cluster]
+    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])))
+                              }
+                             {"2" (bolt-spec {"1" :shuffle}
+                                             (conf-query-bolt {"fake.config" 1
+                                                               TOPOLOGY-MAX-TASK-PARALLELISM 2
+                                                               TOPOLOGY-MAX-SPOUT-PENDING 10})
+                                             :conf {TOPOLOGY-MAX-SPOUT-PENDING 3})
+                              })
+          results (complete-topology cluster
+                                     topology
+                                     :storm-conf {TOPOLOGY-MAX-TASK-PARALLELISM 10}
+                                     :mock-sources {"1" [["fake.config"]
+                                                         [TOPOLOGY-MAX-TASK-PARALLELISM]
+                                                         [TOPOLOGY-MAX-SPOUT-PENDING]
+                                                         ]})]
+      (is (= {"fake.config" 1
+              TOPOLOGY-MAX-TASK-PARALLELISM 2
+              TOPOLOGY-MAX-SPOUT-PENDING 3}
+             (->> (read-tuples results "2")
+                  (apply concat)
+                  (apply hash-map))
+             )))))
+
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology
   )

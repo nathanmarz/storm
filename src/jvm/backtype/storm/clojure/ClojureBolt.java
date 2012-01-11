@@ -14,29 +14,28 @@ import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 public class ClojureBolt implements IRichBolt, FinishedCallback {
     Map<String, StreamInfo> _fields;
-    String _namespace;
-    String _fnName;
+    List<String> _fnSpec;
+    List<String> _confSpec;
     List<Object> _params;
     
     IBolt _bolt;
     
-    public ClojureBolt(String namespace, String fnName, List<Object> params, Map<String, StreamInfo> fields) {
-        _namespace = namespace;
-        _fnName = fnName;
+    public ClojureBolt(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
+        _fnSpec = fnSpec;
+        _confSpec = confSpec;
         _params = params;
         _fields = fields;
     }
 
     @Override
     public void prepare(final Map stormConf, final TopologyContext context, final OutputCollector collector) {
-        IFn hof = Utils.loadClojureFn(_namespace, _fnName);
+        IFn hof = Utils.loadClojureFn(_fnSpec.get(0), _fnSpec.get(1));
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
             List<Object> args = new ArrayList<Object>() {{
@@ -88,7 +87,11 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        //TODO: expose this in clojure API
-        return new HashMap<String, Object>();
+        IFn hof = Utils.loadClojureFn(_confSpec.get(0), _confSpec.get(1));
+        try {
+            return (Map) hof.applyTo(RT.seq(_params));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

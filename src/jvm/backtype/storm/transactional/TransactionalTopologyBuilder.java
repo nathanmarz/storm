@@ -3,6 +3,8 @@ package backtype.storm.transactional;
 import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
+import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.BasicBoltExecutor;
@@ -348,6 +350,22 @@ public class TransactionalTopologyBuilder {
             return this;
         }
 
+        @Override
+        public InputDeclarer grouping(final GlobalStreamId stream, final Grouping grouping) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(InputDeclarer declarer) {
+                    declarer.grouping(stream, grouping);
+                }                
+
+                @Override
+                public String getComponent() {
+                    return stream.get_componentId();
+                }                
+            });
+            return this;
+        }
+        
         private void addDeclaration(InputDeclaration declaration) {
             _component.declarations.add(declaration);
         }

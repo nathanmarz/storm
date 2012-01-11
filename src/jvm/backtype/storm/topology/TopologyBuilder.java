@@ -229,7 +229,7 @@ public class TopologyBuilder {
         
         @Override
         public T addConfigurations(Map conf) {
-            if(conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
+            if(conf!=null && conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
                 throw new IllegalArgumentException("Cannot set serializations for a component using fluent API");
             }
             String currConf = _commons.get(_id).get_json_conf();
@@ -335,6 +335,11 @@ public class TopologyBuilder {
         @Override
         public InputDeclarer customGrouping(String componentId, String streamId, CustomStreamGrouping grouping) {
             return grouping(componentId, streamId, Grouping.custom_serialized(Utils.serialize(grouping)));
+        }
+
+        @Override
+        public InputDeclarer grouping(GlobalStreamId id, Grouping grouping) {
+            return grouping(id.get_componentId(), id.get_streamId(), grouping);
         }        
     }
     
@@ -345,7 +350,7 @@ public class TopologyBuilder {
     
     private static String mergeIntoJson(Map into, Map newMap) {
         Map res = new HashMap(into);
-        res.putAll(newMap);
+        if(newMap!=null) res.putAll(newMap);
         return JSONValue.toJSONString(res);
     }
 }

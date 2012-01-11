@@ -1,6 +1,5 @@
 package backtype.storm.clojure;
 
-import backtype.storm.Config;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.spout.ISpout;
 import backtype.storm.spout.SpoutOutputCollector;
@@ -12,23 +11,20 @@ import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ClojureSpout implements IRichSpout {
-    private boolean _isDistributed;
     Map<String, StreamInfo> _fields;
-    String _namespace;
-    String _fnName;
+    List<String> _fnSpec;
+    List<String> _confSpec;
     List<Object> _params;
     
     ISpout _spout;
     
-    public ClojureSpout(String namespace, String fnName, List<Object> params, Map<String, StreamInfo> fields, boolean isDistributed) {
-        _isDistributed = isDistributed;
-        _namespace = namespace;
-        _fnName = fnName;
+    public ClojureSpout(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
+        _fnSpec = fnSpec;
+        _confSpec = confSpec;
         _params = params;
         _fields = fields;
     }
@@ -36,7 +32,7 @@ public class ClojureSpout implements IRichSpout {
 
     @Override
     public void open(final Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
-        IFn hof = Utils.loadClojureFn(_namespace, _fnName);
+        IFn hof = Utils.loadClojureFn(_fnSpec.get(0), _fnSpec.get(1));
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
             List<Object> args = new ArrayList<Object>() {{
@@ -106,11 +102,11 @@ public class ClojureSpout implements IRichSpout {
     
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        //TODO: expose this completely in clojure API
-        Map<String, Object> ret = new HashMap<String, Object>();
-        if(!_isDistributed) {
-            ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
+        IFn hof = Utils.loadClojureFn(_confSpec.get(0), _confSpec.get(1));
+        try {
+            return (Map) hof.applyTo(RT.seq(_params));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return ret;
     }    
 }

@@ -1,5 +1,7 @@
 package backtype.storm.topology;
 
+import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.generated.Grouping;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 
@@ -25,5 +27,7 @@ public interface InputDeclarer {
 
     public InputDeclarer customGrouping(String componentId, CustomStreamGrouping grouping);
     public InputDeclarer customGrouping(String componentId, String streamId, CustomStreamGrouping grouping);
+    
+    public InputDeclarer grouping(GlobalStreamId id, Grouping grouping);
 
 }

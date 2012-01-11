@@ -6,7 +6,8 @@
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
-  (:import [backtype.storm.topology OutputFieldsGetter IBasicBolt BasicBoltExecutor])
+  (:import [backtype.storm.topology TopologyBuilder])
+  (:import [backtype.storm.clojure RichShellBolt])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config])
@@ -68,18 +69,6 @@
      (with-nimbus-connection [~client-sym host# port#]
        ~@body )))
 
-(defn mk-component-common [inputs component parallelism-hint]
-  (let [getter (OutputFieldsGetter.)
-        _ (.declareOutputFields component getter)
-        ret (ComponentCommon. (HashMap. inputs) (HashMap. (.getFieldsDeclaration getter)))
-        component-conf (.getComponentConfiguration component)]
-    (when parallelism-hint
-      (.set_parallelism_hint ret parallelism-hint))
-    (when component-conf
-      (.set_json_conf ret (to-json component-conf)))
-    ret
-    ))
-
 (defn direct-output-fields [fields]
   (StreamInfo. fields true))
 
@@ -104,12 +93,9 @@
     ret
     ))
 
-(defnk mk-spout-spec [spout :parallelism-hint nil :p nil]
-  ;; for backwards compatibility
-  (let [parallelism-hint (if p p parallelism-hint)]
-    (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
-                (mk-component-common {} spout parallelism-hint))
-    ))
+(defnk mk-spout-spec* [spout outputs :p nil]
+  (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
+              (mk-plain-component-common {} outputs p)))
 
 (defn mk-shuffle-grouping []
   (Grouping/shuffle (NullStruct.)))
@@ -138,7 +124,7 @@
 (defn serialize-component-object [obj]
   (ComponentObject/serialized_java (Utils/serialize obj)))
 
-(defn mk-grouping [grouping-spec]
+(defn- mk-grouping [grouping-spec]
   (cond (nil? grouping-spec) (mk-none-grouping)
         (instance? Grouping grouping-spec) grouping-spec
         (instance? CustomStreamGrouping grouping-spec) (Grouping/custom_serialized (Utils/serialize grouping-spec))
@@ -157,7 +143,7 @@
     (for [[stream-id grouping-spec] inputs]
       [(if (sequential? stream-id)
          (GlobalStreamId. (first stream-id) (second stream-id))
-         (GlobalStreamId. stream-id (Utils/DEFAULT_STREAM_ID)))
+         (GlobalStreamId. stream-id Utils/DEFAULT_STREAM_ID))
        (mk-grouping grouping-spec)]
       )))
 
@@ -166,28 +152,35 @@
     (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
            common )))
 
-(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil]
-  ;; for backwards compatibility
-  (let [parallelism-hint (if p p parallelism-hint)
-        bolt (if (instance? IBasicBolt bolt) (BasicBoltExecutor. bolt) bolt)]
-    (Bolt.     
-     (ComponentObject/serialized_java (Utils/serialize bolt))
-     (mk-component-common (mk-inputs inputs) bolt parallelism-hint)
-     )))
-
-(defnk mk-shell-bolt-spec [inputs command script output-spec :parallelism-hint nil :p nil]
-  ;; for backwards compatibility
+(defnk mk-spout-spec [spout :parallelism-hint nil :p nil :conf nil]
   (let [parallelism-hint (if p p parallelism-hint)]
-    (Bolt.     
-     (ComponentObject/shell (ShellComponent. command script))
-     (mk-plain-component-common (mk-inputs inputs) output-spec parallelism-hint)
-     )))
+    {:obj spout :p parallelism-hint :conf conf}
+    ))
+
+(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil :conf nil]
+  (let [parallelism-hint (if p p parallelism-hint)]
+    {:obj bolt :inputs inputs :p parallelism-hint :conf conf}
+    ))
+
+(defn mk-shell-bolt-spec [inputs command script output-spec & kwargs]
+  (apply mk-bolt-spec inputs (RichShellBolt. command script (mk-output-spec output-spec)) kwargs))
+
+(defn- add-inputs [declarer inputs]
+  (doseq [[id grouping] (mk-inputs inputs)]
+    (.grouping declarer id grouping)
+    ))
 
 (defn mk-topology
   ([spout-map bolt-map]
-     (StormTopology. spout-map bolt-map {}))
+    (let [builder (TopologyBuilder.)]
+      (doseq [[name {spout :obj p :p conf :conf}] spout-map]
+        (-> builder (.setSpout name spout p) (.addConfigurations conf)))
+      (doseq [[name {bolt :obj p :p conf :conf inputs :inputs}] bolt-map]
+        (-> builder (.setBolt name bolt p) (.addConfigurations conf) (add-inputs inputs)))
+      (.createTopology builder)
+      ))
   ([spout-map bolt-map state-spout-map]
-     (StormTopology. spout-map bolt-map state-spout-map)))
+     (mk-topology spout-map bolt-map)))
 
 ;; clojurify-structure is needed or else every element becomes the same after successive calls
 ;; don't know why this happens

@@ -13,13 +13,23 @@ import java.util.HashMap;
 
 public class TestPlannerSpout extends BaseRichSpout {
     boolean _isDistributed;
+    Fields _outFields;
     
-    public TestPlannerSpout(boolean isDistributed) {
+    public TestPlannerSpout(Fields outFields, boolean isDistributed) {
         _isDistributed = isDistributed;
+        _outFields = outFields;
+    }
+
+    public TestPlannerSpout(boolean isDistributed) {
+        this(new Fields("field1", "field2"), isDistributed);
     }
         
+    public TestPlannerSpout(Fields outFields) {
+        this(outFields, true);
+    }
+    
     public Fields getOutputFields() {
-        return new Fields("field1", "field2");
+        return _outFields;
     }
 
     

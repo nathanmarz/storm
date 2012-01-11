@@ -415,7 +415,7 @@
                                                     TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true}]
     (letlocals
      (bind builder (TopologyBuilder.))
-     (.setSpout builder "1" (TestWordSpout.))
+     (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
      (-> builder
          (.setBolt "2"
                    (TestConfBolt.

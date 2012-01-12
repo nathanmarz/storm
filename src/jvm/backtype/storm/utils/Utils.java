@@ -1,10 +1,14 @@
 package backtype.storm.utils;
 
+import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
 import clojure.lang.IFn;
 import clojure.lang.RT;
+import com.netflix.curator.framework.CuratorFramework;
+import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.retry.RetryNTimes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -23,6 +27,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
 import org.yaml.snakeyaml.Yaml;
 
@@ -198,5 +205,48 @@ public class Utils {
     
     public static long randomLong() {
         return UUID.randomUUID().getLeastSignificantBits();
+    }
+    
+    public static CuratorFramework newCurator(Map conf, String root) {
+        List<String> serverPorts = new ArrayList<String>();
+        for(String zkServer: (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS)) {
+            serverPorts.add(zkServer + Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT)));
+        }
+        String zkStr = StringUtils.join(serverPorts, ",") + root; 
+        try {
+            CuratorFramework ret =  CuratorFrameworkFactory.newClient(zkStr,
+                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+                                        15000, new RetryNTimes(5, 1000));
+            ret.start();
+            return ret;
+        } catch (IOException e) {
+           throw new RuntimeException(e);
+        }
+    }
+
+    public static CuratorFramework newCurator(Map conf) {
+        return newCurator(conf, "");
+    }
+    
+    /**
+     * Returns the minimal distance between the two numbers,
+     * assuming they're arranged on a ring so Integer.MIN_INT
+     * is next to Integer.MAX_INT
+     * 
+     * For "normal" cases it returns i2 - i1
+     */
+    public static int intDistance(int i1, int i2) {
+        if(i2 < i1) return -1 * intDistance(i2, i1);
+        long l1 = i1;
+        long l2 = i2;
+        
+        long cand1 = l2 - l1;        
+        long cand2 = (long) Integer.MAX_VALUE - l2 + 1 + l1 - Integer.MIN_VALUE;
+        
+        if(cand1 < cand2) {
+            return (int) cand1;
+        } else {
+            return -1 * (int) cand2;
+        }
     }
 }

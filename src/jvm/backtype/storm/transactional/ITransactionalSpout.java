@@ -10,7 +10,7 @@ public interface ITransactionalSpout extends IComponent {
     String getId();
     
     // this would be things like "# of partitions" when doing a kafka spout
-    Object computeNewTransactionMetadata();
+    Object computeNewTransactionMetadata(Object prevMetadata);
     
     void open(Map conf, TopologyContext context);
     void close();

@@ -5,6 +5,7 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
@@ -19,7 +20,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private static final String META_PATH = "meta";
     
     private ITransactionalSpout _spout;
-    private ITransactionalState _state;
+    private TransactionalState _state;
     
     Map<Integer, TransactionStatus> _activeTx = new HashMap<Integer, TransactionStatus>();
     
@@ -34,11 +35,9 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        // TODO: make this zk specific
-        //_state = _spout.getState();
-        _state.open(conf, context);
+        _state = TransactionalState.newCoordinatorState(conf, _spout);
         _collector = collector;
-        // TODO: Make this zookeeper specific
+        // TODO:
 //        _currTransaction = _state.getTransactionId();
         _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
     }
@@ -85,7 +84,10 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx"));
+        // in partitioned example, in case an emitter task receives a later transaction than it's emitted so far,
+        // when it sees the earlier txid it should know to emit nothing
+        // should only clean up after the tx plus many after (MAX_SPOUT_PENDING) have been cleaned up
+        declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx", "tx-meta"));
         declarer.declareStream(TRANSACTION_COMMIT_STREAM_ID, new Fields("tx"));
     }
     

@@ -220,7 +220,7 @@ public class TopologyBuilder {
         _commons.put(id, common);
     }
 
-    protected class ConfigGetter<T extends ComponentConfigurationDeclarer> implements ComponentConfigurationDeclarer<T> {
+    protected class ConfigGetter<T extends ComponentConfigurationDeclarer> extends BaseConfigurationDeclarer<T> {
         String _id;
         
         public ConfigGetter(String id) {
@@ -235,28 +235,6 @@ public class TopologyBuilder {
             String currConf = _commons.get(_id).get_json_conf();
             _commons.get(_id).set_json_conf(mergeIntoJson(parseJson(currConf), conf));
             return (T) this;
-        }
-
-        @Override
-        public T addConfiguration(String config, Object value) {
-            Map configMap = new HashMap();
-            configMap.put(config, value);
-            return addConfigurations(configMap);
-        }
-
-        @Override
-        public T setDebug(boolean debug) {
-            return addConfiguration(Config.TOPOLOGY_DEBUG, debug);
-        }
-
-        @Override
-        public T setMaxTaskParallelism(Integer val) {
-            return addConfiguration(Config.TOPOLOGY_MAX_TASK_PARALLELISM, val);
-        }
-
-        @Override
-        public T setMaxSpoutPending(Integer val) {
-            return addConfiguration(Config.TOPOLOGY_MAX_SPOUT_PENDING, val);
         }
     }
     

@@ -8,7 +8,9 @@ import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
+import backtype.storm.topology.BaseConfigurationDeclarer;
 import backtype.storm.topology.BasicBoltExecutor;
+import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.InputDeclarer;
@@ -82,10 +84,15 @@ public class LinearDRPCTopologyBuilder {
             if(i==_components.size()-1 && component.bolt instanceof FinishedCallback) {
                 idSource = new GlobalStreamId(PREPARE_ID, PrepareRequest.ID_STREAM);
             }
-            InputDeclarer declarer = builder.setBolt(
+            BoltDeclarer declarer = builder.setBolt(
                     boltId(i),
                     new CoordinatedBolt(component.bolt, source, idSource),
                     component.parallelism);
+            
+            for(Map conf: component.componentConfs) {
+                declarer.addConfigurations(conf);
+            }
+            
             if(idSource!=null) {
                 declarer.fieldsGrouping(idSource.get_componentId(), PrepareRequest.ID_STREAM, new Fields("request"));
             }
@@ -136,11 +143,13 @@ public class LinearDRPCTopologyBuilder {
     private static class Component {
         public IRichBolt bolt;
         public int parallelism;
+        public List<Map> componentConfs;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
         
         public Component(IRichBolt bolt, int parallelism) {
             this.bolt = bolt;
             this.parallelism = parallelism;
+            this.componentConfs = new ArrayList();
         }
     }
     
@@ -148,7 +157,7 @@ public class LinearDRPCTopologyBuilder {
         public void declare(String prevComponent, InputDeclarer declarer);
     }
     
-    private class InputDeclarerImpl implements LinearDRPCInputDeclarer {
+    private class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
         Component _component;
         
         public InputDeclarerImpl(Component component) {
@@ -289,6 +298,12 @@ public class LinearDRPCTopologyBuilder {
         
         private void addDeclaration(InputDeclaration declaration) {
             _component.declarations.add(declaration);
-        }        
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer addConfigurations(Map conf) {
+            _component.componentConfs.add(conf);
+            return this;
+        }
     }
 }

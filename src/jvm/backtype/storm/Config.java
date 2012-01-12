@@ -336,6 +336,12 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
      */
     public static String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
+
+    
+    /**
+     * The root directory in ZooKeeper for metadata about TransactionalSpouts.
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
     
     /**
      * The number of threads that should be used by the zeromq context in each worker process.

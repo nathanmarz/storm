@@ -7,10 +7,13 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
+import backtype.storm.topology.BaseConfigurationDeclarer;
 import backtype.storm.topology.BasicBoltExecutor;
+import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.InputDeclarer;
+import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
@@ -25,6 +28,7 @@ public class TransactionalTopologyBuilder {
     ITransactionalSpout _spout;
     Map<String, Component> _bolts;
     Integer _spoutParallelism;
+    List<Map> _spoutConfs = new ArrayList();
     
     
     public TransactionalTopologyBuilder(String spoutId, ITransactionalSpout spout, Integer spoutParallelism) {
@@ -33,32 +37,39 @@ public class TransactionalTopologyBuilder {
         _spoutParallelism = spoutParallelism;
     }
     
-    public InputDeclarer setBolt(String id, ITransactionalBolt bolt) {
+    public SpoutDeclarer getSpoutDeclarer() {
+        return new SpoutDeclarerImpl();
+    }
+    
+    public BoltDeclarer setBolt(String id, ITransactionalBolt bolt) {
         return setBolt(id, bolt, null);
     }
     
-    public InputDeclarer setBolt(String id, ITransactionalBolt bolt, Integer parallelism) {
+    public BoltDeclarer setBolt(String id, ITransactionalBolt bolt, Integer parallelism) {
         return setBolt(id, new TransactionalBoltExecutor(bolt), parallelism, bolt instanceof ICommittable);
     }
 
-    public InputDeclarer setBolt(String id, IBasicBolt bolt) {
+    public BoltDeclarer setBolt(String id, IBasicBolt bolt) {
         return setBolt(id, bolt, null);
     }    
     
-    public InputDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism) {
+    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism) {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism, false);
     }
     
-    private InputDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism, boolean committer) {
+    private BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism, boolean committer) {
         Component component = new Component(bolt, parallelism, committer);
         _bolts.put(id, component);
-        return new InputDeclarerImpl(component);
+        return new BoltDeclarerImpl(component);
     }
     
     public StormTopology buildTopology() {
         String coordinator = _spoutId + "/coordinator";
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout(coordinator, new TransactionalSpoutCoordinator(_spout));
+        SpoutDeclarer declarer = builder.setSpout(coordinator, new TransactionalSpoutCoordinator(_spout));
+        for(Map conf: _spoutConfs) {
+            declarer.addConfigurations(conf);
+        }
         builder.setBolt(_spoutId,
                         new CoordinatedBolt(new TransactionalSpoutBatchExecutor(_spout),
                                              coordinator,
@@ -72,11 +83,14 @@ public class TransactionalTopologyBuilder {
             for(String c: componentBoltSubscriptions(component)) {
                 coordinatedArgs.put(c, SourceArgs.all());
             }
-            InputDeclarer input = builder.setBolt(id,
+            BoltDeclarer input = builder.setBolt(id,
                                                   new CoordinatedBolt(component.bolt,
                                                                       coordinatedArgs,
                                                                       null),
                                                   component.parallelism);
+            for(Map conf: component.componentConfs) {
+                input.addConfigurations(conf);
+            }
             for(String c: componentBoltSubscriptions(component)) {
                 input.directGrouping(c, Constants.COORDINATED_STREAM_ID);
             }
@@ -105,6 +119,7 @@ public class TransactionalTopologyBuilder {
         public IRichBolt bolt;
         public int parallelism;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
+        public List<Map> componentConfs = new ArrayList<Map>();
         public boolean committer;
         
         public Component(IRichBolt bolt, int parallelism, boolean committer) {
@@ -119,10 +134,18 @@ public class TransactionalTopologyBuilder {
         String getComponent();
     }
     
-    private class InputDeclarerImpl implements InputDeclarer {
+    private class SpoutDeclarerImpl extends BaseConfigurationDeclarer<SpoutDeclarer> implements SpoutDeclarer {
+        @Override
+        public SpoutDeclarer addConfigurations(Map conf) {
+            _spoutConfs.add(conf);
+            return this;
+        }        
+    }
+    
+    private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
         Component _component;
         
-        public InputDeclarerImpl(Component component) {
+        public BoltDeclarerImpl(Component component) {
             _component = component;
         }
         
@@ -368,6 +391,12 @@ public class TransactionalTopologyBuilder {
         
         private void addDeclaration(InputDeclaration declaration) {
             _component.declarations.add(declaration);
+        }
+
+        @Override
+        public BoltDeclarer addConfigurations(Map conf) {
+            _component.componentConfs.add(conf);
+            return this;
         }
     }
 }

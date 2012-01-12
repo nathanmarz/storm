@@ -28,8 +28,12 @@
                             (let [[time-secs _ _ :as elem] (.peek queue)]
                               (if elem
                                 (if (>= (current-time-secs) time-secs)
-                                  (locking lock
-                                    ((second (.poll queue))))
+                                  ;; can't hold the lock while executing the task function, or else
+                                  ;; deadlocks are possible (if the task function locks another lock
+                                  ;; and another thread locks that other lock before trying to schedule
+                                  ;; something on the timer)
+                                  (let [exec-fn (locking lock (second (.poll queue)))]
+                                    (exec-fn))
                                   (Time/sleepUntil (to-millis time-secs))
                                   )
                                 (Time/sleep 10000)

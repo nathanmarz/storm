@@ -64,6 +64,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             status.status = AttemptStatus.PROCESSED;
         } else if(status.status==AttemptStatus.COMMITTING) {
             _activeTx.remove(tx.getTransactionId());
+            _spout.cleanupTransaction(_currTransaction);
             _currTransaction = nextTransactionId(tx.getTransactionId());
             // TODO: make this zookeeper specific
             // _state.setTransactionId(_currTransaction);
@@ -86,7 +87,6 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // in partitioned example, in case an emitter task receives a later transaction than it's emitted so far,
         // when it sees the earlier txid it should know to emit nothing
-        // should only clean up after the tx plus many after (MAX_SPOUT_PENDING) have been cleaned up
         declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx", "tx-meta"));
         declarer.declareStream(TRANSACTION_COMMIT_STREAM_ID, new Fields("tx"));
     }

@@ -12,6 +12,8 @@ public interface ITransactionalSpout extends IComponent {
     // this would be things like "# of partitions" when doing a kafka spout
     // can also do things like initialize user state in zk
     Object initializeTransaction(int txid, Object prevMetadata);
+    //can do things like cleanup user state in zk
+    void cleanupTransaction(int txid);
     
     void open(Map conf, TopologyContext context);
     void close();
@@ -19,8 +21,6 @@ public interface ITransactionalSpout extends IComponent {
     // must emit attempt as first field in output tuple (any way to enforce this?)
     void emitBatch(TransactionAttempt tx, TransactionalOutputCollector collector);
     
-    //can do things like cleanup user state in zk
-    void cleanupTransaction(int txid);
     // TODO: is there a way for this to automatically manage the getting, saving, and cleaning
     // of the batch paramaters for each transaction? how to deal with partitioning?
     // make a "partitionedtransactionalspout"? -- needs to be able to adjust partitions dynamically

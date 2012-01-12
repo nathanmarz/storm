@@ -17,7 +17,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
 
     private static final String CURRENT_TX = "currtx";
-    private static final String META_PATH = "meta";
+    private static final String META_DIR = "meta";
     
     private ITransactionalSpout _spout;
     private TransactionalState _state;
@@ -37,8 +37,9 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _state = TransactionalState.newCoordinatorState(conf, _spout);
         _collector = collector;
+        _spout.open(conf, context);
         // TODO:
-//        _currTransaction = _state.getTransactionId();
+        _currTransaction = getStoredCurrTransaction(_state);   
         _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
     }
 
@@ -66,8 +67,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             _activeTx.remove(tx.getTransactionId());
             _spout.cleanupTransaction(_currTransaction);
             _currTransaction = nextTransactionId(tx.getTransactionId());
-            // TODO: make this zookeeper specific
-            // _state.setTransactionId(_currTransaction);
+            _state.setData(CURRENT_TX, _currTransaction);
         }
         sync();
     }
@@ -148,6 +148,17 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     }
     
     private String txMetaPath(int txid) {
-        return META_PATH + "/" + txid;
+        return META_DIR + "/" + txid;
+    }
+    
+    private int getStoredCurrTransaction(TransactionalState state) {
+        Integer ret = (Integer) state.getData(CURRENT_TX);
+        if(ret==null) return 0;
+        else return ret;
+    }
+    
+    private Object getTransactionMeta(int txid) {
+        String path = txMetaPath(txid);
+        Object ret = _state.getData(path);
     }
 }

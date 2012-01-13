@@ -659,7 +659,7 @@
     ;; Schedule Nimbus inbox cleaner
     (schedule-recurring (:timer nimbus)
                         0
-                        (conf NIMBUS-CLEANUP-FREQ-SECS)
+                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))

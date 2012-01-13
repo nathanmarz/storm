@@ -34,14 +34,17 @@ public class Time {
     
     public static void sleepUntil(long targetTimeMs) throws InterruptedException {
         if(simulating.get()) {
-            synchronized(sleepTimesLock) {
-                threadSleepTimes.put(Thread.currentThread(), new AtomicLong(targetTimeMs));
-            }
-            while(simulatedCurrTimeMs.get() < targetTimeMs) {
-                Thread.sleep(10);
-            }
-            synchronized(sleepTimesLock) {
-                threadSleepTimes.remove(Thread.currentThread());
+            try {
+                synchronized(sleepTimesLock) {
+                    threadSleepTimes.put(Thread.currentThread(), new AtomicLong(targetTimeMs));
+                }
+                while(simulatedCurrTimeMs.get() < targetTimeMs) {
+                    Thread.sleep(10);
+                }
+            } finally {
+                synchronized(sleepTimesLock) {
+                    threadSleepTimes.remove(Thread.currentThread());
+                }
             }
         } else {
             long sleepTime = targetTimeMs-currentTimeMillis();

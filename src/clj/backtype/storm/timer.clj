@@ -65,7 +65,8 @@
         ^PriorityQueue queue (:queue timer)]
     (locking (:lock timer)
       (.add queue [(+ (current-time-secs) delay-secs) afn id])
-      (when (= id (nth (.peek queue) 2))
+      (when (and (not= (:timer-thread timer) (Thread/currentThread))
+                 (= id (nth (.peek queue) 2)))
         (.interrupt ^Thread (:timer-thread timer)))
       )))
 
@@ -85,5 +86,5 @@
     (.interrupt (:timer-thread timer)))
   (.acquire (:cancel-notifier timer)))
 
-(defn timer-waiting? [timer]  
+(defn timer-waiting? [timer] 
   (Time/isThreadWaiting (:timer-thread timer)))

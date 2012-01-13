@@ -1,0 +1,59 @@
+## 0.6.1
+
+ * storm client "activate" and "deactivate" commands
+ * storm client "rebalance" command
+ * Nimbus will automatically detect and cleanup corrupt topologies (this would previously give an error of the form "file storm...ser cannot be found").
+ * "storm" client will not run unless it's being used from a release. 
+ * Topology jar path now passed in using a java property rather than an environment variable.
+ * LD\_LIBRARY\_PATH environment variable is now set on worker processes appropriately.
+ * Replaced jvyaml with snakeyaml. UTF-8 YAML files should now work properly. 
+ * Upgraded httpclient, httpcore, and commons-codec dependencies.
+
+## 0.6.0
+
+ * New serialization system based on Kryo:
+ * Component and stream ids are now strings
+ * Pluggable stream groupings
+ * Storm now chooses an unused port for Zookeeper in local mode instead of crashing when 2181 was in use.
+ * Better support for defining topologies in non-JVM languages. The Thrift structure for topologies now allows you to specify components using a Java class name and a list of arguments to that class's constructor.
+ * Bug fix: errors during the preparation phase of spouts or bolts will be reported to the Storm UI 
+ * Bug fix: Fixed bugs related to LinearDRPC topologies where the last bolt implements FinishedCallback 
+ * Bug fix: String greater than 64K will now serialize properly 
+ * Generalized type of anchors in OutputCollector methods to Collection from List. 
+ * Improved logging throughout.
+ * In the "worker.childopts" config, %ID% will be replaced by the worker port. 
+ * Significant internal refactorings to clean up the codebase. 
+
+## 0.5.4
+
+ * LinearDRPCTopologyBuilder, a polished DRPC implementation, 
+ * Improved custom serialization support. no longer need to provide "token" ids. 
+ * Fallback on Java serialization by default. Can be turned off by setting "topology.fall.back.on.java.serialization" to false. 
+ * Improved "storm kill" command. Can override the wait time with "-w" flag.
+ * Display topology status in Storm UI
+ * Changed Thrift namespace to avoid conflicts
+ * Better error messages throughout
+ * Storm UI port is configurable through "ui.port" 
+ * Minor improvements to Clojure DSL 
+
+## 0.5.3
+
+ * Nimbus and supervisor daemons can now share a local dir. 
+ * Greatly improved Clojure DSL for creating topologies.
+ * Increased the default timeouts for startup of workers and tasks.
+ * Added the commands "localconfvalue", "remoteconfvalue", and "repl" to the storm script.
+ * Better error message when "storm jar" can't find the nimbus host in the configuration. 
+
+## 0.5.2
+
+ * No longer need any native dependencies to run Storm in local mode. Storm now uses a pure Java messaging system in local mode
+ * Fixed logging configurations so that logging is no longer suppressed when including the Storm release jars on the classpath in local mode. 
+
+## 0.5.1
+
+ * Changed ISerialization's "accept" interface to not annotate the Class with the generic type
+ * Made Config class implement Map and added helper methods for setting common configs
+ 
+## 0.5.0
+ 
+ * Initial release!

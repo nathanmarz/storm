@@ -71,7 +71,6 @@
       )))
 
 (defn schedule-recurring [timer delay-secs recur-secs afn]
-  (check-active! timer)
   (schedule timer
             delay-secs
             (fn this []

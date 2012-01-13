@@ -26,19 +26,14 @@
                         (while @active
                           (try
                             (let [[time-secs _ _ :as elem] (.peek queue)]
-                              (if elem
-                                (if (>= (current-time-secs) time-secs)
-                                  ;; can't hold the lock while executing the task function, or else
-                                  ;; deadlocks are possible (if the task function locks another lock
-                                  ;; and another thread locks that other lock before trying to schedule
-                                  ;; something on the timer)
-                                  (let [exec-fn (locking lock (second (.poll queue)))]
-                                    (exec-fn))
-                                  (Time/sleepUntil (to-millis time-secs))
-                                  )
-                                (Time/sleep 10000)
+                              (if (and elem (>= (current-time-secs) time-secs))
+                                ;; imperative to not run the function inside the timer lock
+                                ;; otherwise, it's possible to deadlock if function deals with other locks
+                                ;; (like the submit lock)
+                                (let [afn (locking lock (second (.poll queue)))]
+                                  (afn))
+                                (Time/sleep 1000)
                                 ))
-
                             (catch InterruptedException e
                               )
                             (catch Throwable t
@@ -65,9 +60,6 @@
         ^PriorityQueue queue (:queue timer)]
     (locking (:lock timer)
       (.add queue [(+ (current-time-secs) delay-secs) afn id])
-      (when (and (not= (:timer-thread timer) (Thread/currentThread))
-                 (= id (nth (.peek queue) 2)))
-        (.interrupt ^Thread (:timer-thread timer)))
       )))
 
 (defn schedule-recurring [timer delay-secs recur-secs afn]

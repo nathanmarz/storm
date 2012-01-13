@@ -76,6 +76,6 @@ public class Time {
         synchronized(sleepTimesLock) {
             time = threadSleepTimes.get(t);
         }
-        return time!=null && currentTimeMillis() < time.longValue();
+        return !t.isAlive() || time!=null && currentTimeMillis() < time.longValue();
     }    
 }

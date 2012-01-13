@@ -2,7 +2,7 @@
   (:import [backtype.storm.utils Time])
   (:import [java.util PriorityQueue Comparator])
   (:import [java.util.concurrent Semaphore])
-  (:use [backtype.storm util])
+  (:use [backtype.storm util log])
   (:use [clojure.contrib.def :only [defnk]])
   )
 
@@ -77,5 +77,5 @@
     (.interrupt (:timer-thread timer)))
   (.acquire (:cancel-notifier timer)))
 
-(defn timer-waiting? [timer] 
+(defn timer-waiting? [timer]
   (Time/isThreadWaiting (:timer-thread timer)))

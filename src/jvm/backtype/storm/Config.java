@@ -109,7 +109,7 @@ public class Config extends HashMap<String, Object> {
      * How often nimbus should wake the cleanup thread to clean the inbox.
      * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
      */
-    public static String NIMBUS_CLEANUP_FREQ_SECS = "nimbus.cleanup.freq.secs";
+    public static String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
 
     /**
      * The length of time a jar file lives in the inbox before being deleted by the cleanup thread.

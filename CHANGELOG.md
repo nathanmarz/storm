@@ -3,7 +3,7 @@
  * Automatically delete old files in Nimbus's inbox. Configurable with "nimbus.cleanup.inbox.freq.secs" and "nimbus.inbox.jar.expiration.secs"
  * Redirect System.out and System.err to log4j
  * Added "topology.worker.child.opts" config, for topology-configurable worker options.
- * Use Netflix'x Curator library for Zookeeper communication. Workers now reconnect to Zookeeper rather than crash when there's a disconnection.
+ * Use Netflix's Curator library for Zookeeper communication. Workers now reconnect to Zookeeper rather than crash when there's a disconnection.
  * Bug fix: DRPC server no longer hangs with too many concurrent requests. DPRC server now requires two ports: "drpc.port" and "drpc.invocations.port"
  * Bug fix: Fix race condition in unit testing where time simulation fails to detect that Storm cluster is waiting due to threads that are not alive
 

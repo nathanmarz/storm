@@ -28,13 +28,12 @@
 
 
 (defn mk-client
-  ([conn-str session-timeout watcher]
+  ([conn-str session-timeout watcher retry-times retry-interval]
      (let [fk (CuratorFrameworkFactory/newClient
                conn-str
                session-timeout
                15000
-               ;;TODO: consider making this configurable
-               (RetryNTimes. 5 1000))]
+               (RetryNTimes. retry-times retry-interval))]
        (.. fk
            (getCuratorListenable)
            (addListener
@@ -54,6 +53,8 @@
                 (halt-process! 1 "Unrecoverable Zookeeper error")))))
        (.start fk)
        fk))
+  ([conn-str session-timeout watcher]
+       (mk-client conn-str 10000 watcher 5 1000))
   ([conn-str watcher]
      (mk-client conn-str 10000 watcher))
   ([conn-str]

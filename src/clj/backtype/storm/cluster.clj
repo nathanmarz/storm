@@ -28,7 +28,9 @@
         active (atom true)
         mk-zk #(zk/mk-client (mk-zk-connect-string conf)
                              (conf STORM-ZOOKEEPER-SESSION-TIMEOUT)
-                             %)
+                             %
+                             (conf STORM-ZOOKEEPER-RETRY-TIMES)
+                             (conf STORM-ZOOKEEPER-RETRY-INTERVAL))
         zk (mk-zk (fn [state type path]
                     (when @active
                       (when-not (= :connected state)

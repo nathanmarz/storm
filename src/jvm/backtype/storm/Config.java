@@ -105,6 +105,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_MONITOR_FREQ_SECS = "nimbus.monitor.freq.secs";
 
+    /**
+     * How often nimbus should wake the cleanup thread to clean the inbox.
+     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     */
+    public static String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
+
+    /**
+     * The length of time a jar file lives in the inbox before being deleted by the cleanup thread.
+     *
+     * Probably keep this value greater than or equal to NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS.
+     * Note that the time it takes to delete an inbox jar file is going to be somewhat more than
+     * NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS (depending on how often NIMBUS_CLEANUP_FREQ_SECS
+     * is set to).
+     * @see NIMBUS_CLEANUP_FREQ_SECS
+     */
+    public static String NIMBUS_INBOX_JAR_EXPIRATION_SECS = "nimbus.inbox.jar.expiration.secs";
 
     /**
      * How long before a supervisor can go without heartbeating before nimbus considers it dead

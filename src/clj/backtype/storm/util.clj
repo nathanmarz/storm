@@ -591,3 +591,7 @@
   ;;           (log-stream :error "STDIO"))
   ;;         true))
   (log-capture! "STDIO"))
+
+(defn spy [prefix val]
+  (log-message prefix ": " val)
+  val)

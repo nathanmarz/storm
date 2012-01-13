@@ -105,7 +105,7 @@
                            :timed-out
                          true
                            :valid)]
-              (log-debug "Worker " id " is " state ": " hb)
+              (log-debug "Worker " id " is " state ": " (pr-str hb) " at supervisor time-secs " now)
               [id [state hb]]
               ))
      )))
@@ -312,7 +312,7 @@
                            (when @active (conf SUPERVISOR-MONITOR-FREQUENCY-SECS))
                            )
                          :priority Thread/MAX_PRIORITY)]))]
-    (log-message "Starting supervisor with id " supervisor-id)
+    (log-message "Starting supervisor with id " supervisor-id " at host " my-hostname)
     (reify
      Shutdownable
      (shutdown [this]

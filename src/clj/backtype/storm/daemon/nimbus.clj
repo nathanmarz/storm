@@ -194,6 +194,7 @@
 
 
 (defmulti setup-jar cluster-mode)
+(defmulti clean-inbox cluster-mode)
 
 ;; status types
 ;; -- killed (:kill-time-secs)
@@ -595,6 +596,21 @@
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
+(defn- file-older-than? [now seconds file]
+  (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
+
+(defn clean-inbox [dir-location seconds]
+  "Deletes jar files in dir older than seconds."
+  (let [now (current-time-secs)
+        pred #(and (.isFile %) (file-older-than? now seconds %))
+        files (filter pred (file-seq (File. dir-location)))]
+    (doseq [f files]
+      (if (.delete f)
+        (log-message "Cleaning inbox ... deleted: " (.getName f))
+        ;; This should never happen
+        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        ))))
+
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         code-ids (set (code-ids (:conf nimbus)))
@@ -618,6 +634,13 @@
                           (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
                             (transition! nimbus storm-id :monitor))
                           (do-cleanup nimbus)
+                          ))
+    ;; Schedule Nimbus inbox cleaner
+    (schedule-recurring (:timer nimbus)
+                        0
+                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
+                        (fn []
+                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))
     (reify Nimbus$Iface
       (^void submitTopology

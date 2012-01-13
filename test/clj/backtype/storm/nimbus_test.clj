@@ -451,15 +451,15 @@
        (doseq [fs [["a.jar" 20] ["b.jar" 20] ["c.jar" 0]]]
          (apply mk-file fs))
        (assert-files-in-dir ["a.jar" "b.jar" "c.jar"])
-       (nimbus/clean-inbox {STORM-CLUSTER-MODE "distributed"} dir-location 10)
+       (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir ["c.jar"])
        ;; Cleanit again, c.jar should stay
        (advance-time-secs! 5)
-       (nimbus/clean-inbox {STORM-CLUSTER-MODE "distributed"} dir-location 10)
+       (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir ["c.jar"])
        ;; Advance time, clean again, c.jar should be deleted.
        (advance-time-secs! 5)
-       (nimbus/clean-inbox {STORM-CLUSTER-MODE "distributed"} dir-location 10)
+       (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
        )))
 

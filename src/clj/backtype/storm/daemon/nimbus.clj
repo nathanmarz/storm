@@ -617,6 +617,21 @@
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
+(defn- file-older-than? [now seconds file]
+  (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
+
+(defn clean-inbox [dir-location seconds]
+  "Deletes jar files in dir older than seconds."
+  (let [now (current-time-secs)
+        pred #(and (.isFile %) (file-older-than? now seconds %))
+        files (filter pred (file-seq (File. dir-location)))]
+    (doseq [f files]
+      (if (.delete f)
+        (log-message "Cleaning inbox ... deleted: " (.getName f))
+        ;; This should never happen
+        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        ))))
+
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         code-ids (set (code-ids (:conf nimbus)))
@@ -646,7 +661,7 @@
                         0
                         (conf NIMBUS-CLEANUP-FREQ-SECS)
                         (fn []
-                          (clean-inbox conf (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
+                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))
     (reify Nimbus$Iface
       (^void submitTopology
@@ -865,31 +880,9 @@
              (FileUtils/copyFile src-file (File. (master-stormjar-path stormroot)))
              ))
 
-(defn- file-older-than? [now seconds file]
-  (<= (+ (.lastModified file) (* seconds 1000)) now))
-
-(defn- is-jar? [f]
-  (-> f .getName (.endsWith ".jar")))
-
-(defmethod clean-inbox :distributed [conf dir-location seconds]
-  "Deletes jar files in dir older than seconds."
-  (let [now (Time/currentTimeMillis)
-        pred #(and (is-jar? %) (file-older-than? now seconds %))
-        files (filter pred (file-seq (File. dir-location)))]
-    (doseq [f files]
-      (if (.delete f)
-        (log-message "Cleaning inbox ... deleted: " (.getName f))
-        ;; This should never happen
-        (log-error "Cleaning inbox ... error deleting: " (.getName f))
-        ))))
-
 ;; local implementation
 
 (defmethod setup-jar :local [conf & args]
-  nil
-  )
-
-(defmethod clean-inbox :local [conf & args]
   nil
   )
 

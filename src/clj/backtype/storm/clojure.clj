@@ -156,28 +156,33 @@
          ~definer
          ))))
 
-(defn- mk-tuple-values
-  [^OutputCollector collector stream values]
-  (if (map? values)
+(defprotocol TupleValues
+  (tuple-values [values collector stream]))
+
+(extend-protocol TupleValues
+  java.util.Map
+  (tuple-values [this ^OutputCollector collector ^String stream]
     (let [ fields (.. collector getContext (getThisOutputFields stream) toList) ]
       (vec (map (into 
-                  (empty values) (for [[k v] values] 
+                  (empty this) (for [[k v] this] 
                                    [(if (keyword? k) (name k) k) v])) 
-                fields)))
-    values))
+                fields))))
+  java.util.List
+  (tuple-values [this collector stream]
+    this))
 
-(defnk emit-bolt! [^OutputCollector collector values
+(defnk emit-bolt! [^OutputCollector collector ^TupleValues values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]
   (let [^List anchor (collectify anchor)
-        tuple-values (mk-tuple-values collector stream values) ]
-    (.emit collector stream anchor tuple-values)
+        values (tuple-values values collector stream) ]
+    (.emit collector stream anchor values)
     ))
 
-(defnk emit-direct-bolt! [^OutputCollector collector task values
+(defnk emit-direct-bolt! [^OutputCollector collector task ^TupleValues values
                           :stream Utils/DEFAULT_STREAM_ID :anchor []]
   (let [^List anchor (collectify anchor)
-        tuple-values (mk-tuple-values collector stream values) ]
-    (.emitDirect collector task stream anchor tuple-values)
+        values (tuple-values values collector stream) ]
+    (.emitDirect collector task stream anchor values)
     ))
 
 (defn ack! [^OutputCollector collector ^Tuple tuple]

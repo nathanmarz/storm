@@ -1,7 +1,6 @@
 (ns backtype.storm.clojure
   (:use [clojure.contrib.def :only [defnk defalias]])
   (:use [backtype.storm bootstrap util])
-  (:use [clojure walk])
   (:import [backtype.storm StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
@@ -161,7 +160,10 @@
   [^OutputCollector collector stream values]
   (if (map? values)
     (let [ fields (.. collector getContext (getThisOutputFields stream) toList) ]
-      (vec (map (stringify-keys values) fields)))
+      (vec (map (into 
+                  (empty values) (for [[k v] values] 
+                                   [(if (keyword? k) (name k) k) v])) 
+                fields)))
     values))
 
 (defnk emit-bolt! [^OutputCollector collector values

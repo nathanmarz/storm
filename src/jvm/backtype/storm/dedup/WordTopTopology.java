@@ -18,7 +18,7 @@ public class WordTopTopology {
   public static class GenerateSpout implements IDedupSpout, Serializable {
 
     @Override
-    public void ack(long messageId) {
+    public void ack(String messageId) {
       // nothing
     }
 
@@ -33,7 +33,7 @@ public class WordTopTopology {
     }
 
     @Override
-    public void fail(long messageId) {
+    public void fail(String messageId) {
       // nothing
     }
 
@@ -125,6 +125,35 @@ public class WordTopTopology {
     }
     
   }
+  
+  /**
+   * TopBolt
+   */
+  public static class TopBolt implements IDedupBolt, Serializable {
+
+    @Override
+    public void cleanup(IDedupContext context) {
+      // nothing
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      // nothing
+    }
+
+    @Override
+    public void execute(IDedupContext context, Tuple input) {
+      String word = input.getStringByField("WORD");
+      Long count = input.getLongByField("COUNT");
+      context.setState(Bytes.toBytes(word), Bytes.toBytes(count.toString()));
+    }
+
+    @Override
+    public void prepare(IDedupContext context) {
+      // nothing
+    }
+    
+  }
 
   /**
    * @param args
@@ -132,13 +161,16 @@ public class WordTopTopology {
   public static void main(String[] args) throws Exception {
     DedupTopologyBuilder builder = new DedupTopologyBuilder();
     
-    builder.setSpout("generate spout", new GenerateSpout(), 1);
+    builder.setSpout("generate spout", new GenerateSpout(), 2);
     
     builder.setBolt("split bolt", new SplitBolt(), 4)
       .shuffleGrouping("generate spout");
     
     builder.setBolt("count bolt", new CountBolt(), 8)
       .fieldsGrouping("split bolt", new Fields("WORD"));
+    
+    builder.setBolt("top bolt", new TopBolt(), 1)
+    .fieldsGrouping("count bolt", new Fields("WORD"));
     
     Config conf = new Config();
     conf.setDebug(true);

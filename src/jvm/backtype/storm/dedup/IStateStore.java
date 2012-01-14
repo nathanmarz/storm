@@ -4,14 +4,20 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * a special key-value state store share the bigtable data model.
- *  key : column family : column => value
- *
+ * <p>a special key-value state store share the bigtable data model.
+ *  <h3>key : column family : column => value</h2>
+ *  
+ * <p>support two operations: 
+ * <ol>
+ *  <li>get all data of a key</li>
+ *  <li>update and/or delete data of a key (atomic operation is preferred)</li>
+ * </ol>
  */
 public interface IStateStore {
   
   public static final byte[] STATEMAP = Bytes.toBytes("STATE");
   public static final byte[] OUTPUTMAP = Bytes.toBytes("OUTPUT");
+  public static final byte[] SYSTEMMAP = Bytes.toBytes("SYSTEM");
   
   /**
    * open the state store
@@ -33,24 +39,23 @@ public interface IStateStore {
    * @param key key-value pair key
    * @return
    */
-  public Map<byte[], Map<byte[], byte[]>> get(byte[] key)
-  throws IOException;
+  public Map<byte[], Map<byte[], byte[]>> get(byte[] key) throws IOException;
   
   /**
-   * update a key-value
+   * update key-value
    * 
    * @param key key-value pair key
    * @param valueMap to update value map
    */
-  public void set(byte[] key, Map<byte[], Map<byte[], byte[]>> valueMap)
-  throws IOException;
+  public void set(byte[] key, 
+      Map<byte[], Map<byte[], byte[]>> valueMap) throws IOException;
   
   /**
-   * delete a key-value
+   * delete key-value
    * 
-   * @param key key-value key
+   * @param key key-value pair key
    * @param valueMap to delete value map
    */
-  public void delete(byte[] key, Map<byte[], Map<byte[], byte[]>> valueMap)
-  throws IOException;
+  public void delete(byte[] key, 
+      Map<byte[], Map<byte[], byte[]>> valueMap) throws IOException;
 }

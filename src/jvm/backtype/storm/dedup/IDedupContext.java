@@ -2,21 +2,22 @@ package backtype.storm.dedup;
 
 import java.util.List;
 
-import backtype.storm.topology.OutputFieldsDeclarer;
-
+/**
+ * the interface that user spout/bolt should use to 
+ * <ul>
+ *   <li>get configuration</li>
+ *   <li>set or get persistent state</li>
+ *   <li>emit tuple</li>
+ * </ul>
+ *
+ */
 public interface IDedupContext {
   /**
    * get configuration
    * @param key configuration name
    * @return configuration value
    */
-  public String getConf(String key);
-  /**
-   * get configuration
-   * @param key configuration name
-   * @return configuration value
-   */
-  public byte[] getConf(byte[] key);
+  public Object getConf(Object key);
   
   /**
    * get state by key
@@ -30,10 +31,10 @@ public interface IDedupContext {
    * @param value
    * @return
    */
-  public boolean setState(byte[] key, byte[] value);
+  public void setState(byte[] key, byte[] value);
  
   /**
-   * emit a tuple
+   * emit a tuple to default stream
    * @param tuple
    */
   public void emit(List<Object> tuple);

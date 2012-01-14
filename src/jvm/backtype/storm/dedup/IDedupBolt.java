@@ -5,6 +5,9 @@ import java.io.Serializable;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
+/**
+ * the interface that user bolt should implement.
+ */
 public interface IDedupBolt extends Serializable {
   /**
    * declare output fields

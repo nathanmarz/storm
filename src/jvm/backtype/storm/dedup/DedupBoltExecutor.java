@@ -49,6 +49,12 @@ public class DedupBoltExecutor implements IRichBolt, OutputFieldsDeclarer {
   @Override
   public void cleanup() {
     bolt.cleanup(context);
+    try {
+      context.close();
+    } catch (IOException e) {
+      LOG.warn("close error", e);
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -67,10 +73,9 @@ public class DedupBoltExecutor implements IRichBolt, OutputFieldsDeclarer {
   
   @Override
   public void declare(Fields fields) {
-    // add tow fields to original fields
+    // add TUPLE_ID_FIELD to original fields
     List<String> fieldList = fields.toList();
     fieldList.add(DedupConstants.TUPLE_ID_FIELD);
-    fieldList.add(DedupConstants.TUPLE_TYPE_FIELD);
     declarer.declare(new Fields(fieldList));
   }
 

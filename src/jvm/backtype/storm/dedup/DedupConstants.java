@@ -12,14 +12,12 @@ public interface DedupConstants {
   public static final String TUPLE_ID_FIELD = "_TUPLE_ID_";
   
   /**
-   * tuple type field
+   * state store name
    */
-  public static final String TUPLE_TYPE_FIELD = "_TUPLE_TYPE_";
-  /**
-   * tuple type enum
-   */
-  public enum TUPLE_TYPE {NORMAL, DUPLICATE, NOTICE};
+  public static final String STATE_STORE_NAME = "storm.dedup.state.store.name";
   
   public static final String TUPLE_ID_SEP = "_";
   public static final String TUPLE_ID_SUB_SEP = "-";
+  
+  public static final String COLON = ":";
 }

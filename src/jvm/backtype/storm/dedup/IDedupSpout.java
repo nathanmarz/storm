@@ -4,6 +4,9 @@ import java.io.Serializable;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 
+/**
+ * the interface that user spout should implement.
+ */
 public interface IDedupSpout extends Serializable {
   /**
    * declare output fields
@@ -38,11 +41,11 @@ public interface IDedupSpout extends Serializable {
    * message fully handled
    * @param messageId
    */
-  void ack(long messageId);
+  void ack(String messageId);
   
   /**
    * message not fully handle in timeout
    * @param messageId
    */
-  void fail(long messageId);
+  void fail(String messageId);
 }

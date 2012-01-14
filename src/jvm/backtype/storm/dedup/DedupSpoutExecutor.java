@@ -31,6 +31,10 @@ public class DedupSpoutExecutor implements IRichSpout, OutputFieldsDeclarer {
   public void declareOutputFields(OutputFieldsDeclarer declarer) {
     this.declarer = declarer;
     spout.declareOutputFields(this);
+
+    // declare DEDUP_STREAM with to fields
+    declarer.declareStream(DedupConstants.DEDUP_STREAM_ID, 
+        new Fields(DedupConstants.TUPLE_ID_FIELD));
   }
 
   @Override
@@ -55,6 +59,12 @@ public class DedupSpoutExecutor implements IRichSpout, OutputFieldsDeclarer {
   @Override
   public void close() {
     spout.close(context);
+    try {
+      context.close();
+    } catch (IOException e) {
+      LOG.warn("close error", e);
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -96,12 +106,7 @@ public class DedupSpoutExecutor implements IRichSpout, OutputFieldsDeclarer {
     // add tow fields to original fields
     List<String> fieldList = fields.toList();
     fieldList.add(DedupConstants.TUPLE_ID_FIELD);
-    fieldList.add(DedupConstants.TUPLE_TYPE_FIELD);
     declarer.declare(new Fields(fieldList));
-    // declare DEDUP_STREAM with to fields
-    declarer.declareStream(DedupConstants.DEDUP_STREAM_ID, 
-        new Fields(DedupConstants.TUPLE_ID_FIELD, 
-            DedupConstants.TUPLE_TYPE_FIELD));
   }
 
   @Override

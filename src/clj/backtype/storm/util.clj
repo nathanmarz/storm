@@ -5,6 +5,7 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask])
   (:import [java.util UUID])
+  (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
   (:import [java.io File RandomAccessFile StringWriter PrintWriter])
@@ -587,3 +588,8 @@
 (defn spy [prefix val]
   (log-message prefix ": " val)
   val)
+
+(defn zip-contains-dir? [zipfile target]
+  (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
+    (some? #(.startsWith % (str target "/")) entries)
+    ))

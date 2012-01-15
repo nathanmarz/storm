@@ -5,27 +5,18 @@ import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
 import clojure.lang.IFn;
 import clojure.lang.RT;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import org.apache.commons.io.FileUtils;
+import org.apache.thrift7.TException;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.*;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import org.apache.thrift7.TException;
-import org.yaml.snakeyaml.Yaml;
+import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
@@ -205,6 +196,50 @@ public class Utils {
             return ((Short) o).intValue();
         } else {
             throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
+        }
+    }
+    
+    public static void copyResourcesFromJar(File jar, String resources, File destination) {
+        JarInputStream jarInputStream = null;
+
+        try {
+            jarInputStream = new JarInputStream(new FileInputStream(jar));
+            JarEntry jarEntry = null;
+            while ((jarEntry = jarInputStream.getNextJarEntry()) != null) {
+                if (jarEntry.isDirectory()) {
+                    continue;
+                }
+                if (jarEntry.getName().startsWith(resources)) {
+                    int size = (int) jarEntry.getSize();
+                    byte[] b = new byte[(int) size];
+                    int rb = 0;
+                    int chunk = 0;
+                    while ((size - rb) > 0) {
+                        chunk = jarInputStream.read(b, rb, size - rb);
+                        if (chunk == -1) {
+                            break;
+                        }
+                        rb += chunk;
+                    }
+
+                    String fileName = jarEntry.getName();
+                    String toFileName = destination.getPath() + File.separator + fileName;
+
+                    FileOutputStream fileOutputStream = FileUtils.openOutputStream(new File(toFileName));
+                    fileOutputStream.write(b);
+                    fileOutputStream.close();
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (jarInputStream != null) {
+                try {
+                    jarInputStream.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 }

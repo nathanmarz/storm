@@ -386,7 +386,7 @@
 ;; local implementation
 
 (defn resources-jar []
-  (->> (.split (current-classpath) ":")
+  (->> (.split (current-classpath) File/pathSeparator)
        (filter #(.endsWith  % ".jar"))
        (filter #(zip-contains-dir? % RESOURCES-SUBDIR))
        first ))

@@ -1,7 +1,8 @@
 (ns backtype.storm.daemon.supervisor
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
-  (:require [backtype.storm.daemon [worker :as worker]])
+  (:require [backtype.storm.daemon [worker :as worker]]
+             [clojure.string :as str])
   (:gen-class))
 
 (bootstrap)
@@ -390,13 +391,15 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
-            ;; should detect if it was run with "storm jar" and copy or extract appropriately
             url (.getResource classloader RESOURCES-SUBDIR)
             target-dir (str stormroot "/" RESOURCES-SUBDIR)]
-            (when url
-              (log-message "Copying resources at " (str url) " to " target-dir)
-              (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
-              ))))
+      (log-message "Copying resources at " (str url) " to " target-dir)
+      (if (.startsWith (str url) "jar:")
+        (let [realfile (str/replace (str url) #"jar:|file:" "")]
+          (Utils/copyResourcesFromJar (File. (get (.split realfile "!") 0)) RESOURCES-SUBDIR (File. target-dir)))
+        (when url
+          (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
+          )))))
 
 (defmethod launch-worker
     :local [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]

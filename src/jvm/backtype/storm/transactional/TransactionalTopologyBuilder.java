@@ -15,6 +15,8 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.InputDeclarer;
 import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout;
+import backtype.storm.transactional.partitioned.PartitionedTransactionalSpoutExecutor;
 import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +38,10 @@ public class TransactionalTopologyBuilder {
         _spout = spout;
         _spoutParallelism = spoutParallelism;
     }
+    
+    public TransactionalTopologyBuilder(String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
+        this(spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
+    }    
     
     public SpoutDeclarer getSpoutDeclarer() {
         return new SpoutDeclarerImpl();

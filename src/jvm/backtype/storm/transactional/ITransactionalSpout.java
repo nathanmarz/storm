@@ -16,7 +16,7 @@ public interface ITransactionalSpout extends IComponent {
         // must always emit same batch for same transaction id
         // must emit attempt as first field in output tuple (any way to enforce this?)
         // for kafka: get up to X tuples, emit, store number of tuples for that partition in zk
-        Object emitBatch(TransactionAttempt tx, TransactionalOutputCollector collector);
+        void emitBatch(TransactionAttempt tx, Object coordinatorMeta, TransactionalOutputCollector collector);
         //can do things like cleanup user state in zk
         void cleanupBefore(BigInteger txid);
         void close();

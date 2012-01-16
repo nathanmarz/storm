@@ -18,25 +18,23 @@ public class RotatingTransactionalState {
 
     private TransactionalState _state;
     private String _subdir;
-    private StateInitializer _init;
     private boolean _strictOrder;
     
     private TreeMap<BigInteger, Object> _curr = new TreeMap<BigInteger, Object>();
     
-    public RotatingTransactionalState(TransactionalState state, String subdir, StateInitializer init, boolean strictOrder) {
+    public RotatingTransactionalState(TransactionalState state, String subdir, boolean strictOrder) {
         _state = state;
         _subdir = subdir;
-        _init = init;
         _strictOrder = strictOrder;
         state.mkdir(subdir);
         sync();
     }
 
-    public RotatingTransactionalState(TransactionalState state, String subdir, StateInitializer init) {
-        this(state, subdir, init, false);
+    public RotatingTransactionalState(TransactionalState state, String subdir) {
+        this(state, subdir, false);
     }    
     
-    public Object getState(BigInteger txid) {
+    public Object getState(BigInteger txid, StateInitializer init) {
         if(!_curr.containsKey(txid)) {
             SortedMap<BigInteger, Object> prevMap = _curr.headMap(txid);
             SortedMap<BigInteger, Object> afterMap = _curr.tailMap(txid);            
@@ -63,7 +61,7 @@ public class RotatingTransactionalState {
                 } else {
                     prevData = null;
                 }
-                data = _init.init(txid, prevData);
+                data = init.init(txid, prevData);
             } else {
                 data = null;
             }
@@ -71,6 +69,18 @@ public class RotatingTransactionalState {
             _state.setData(txPath(txid), data);
         }
         return _curr.get(txid);
+    }
+    
+    /**
+     * Returns null if it was created, the value otherwise.
+     */
+    public Object getStateOrCreate(BigInteger txid, StateInitializer init) {
+        if(_curr.containsKey(txid)) {
+            return _curr.get(txid);
+        } else {
+            getState(txid, init);
+            return null;
+        }
     }
     
     public void commit(BigInteger txid) {

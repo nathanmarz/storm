@@ -31,7 +31,7 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
             _emitter.cleanupBefore(attempt.getTransactionId());
         } else {
             _collector.setAnchor(input);
-            _emitter.emitBatch((TransactionAttempt) input.getValue(0), _collector);
+            _emitter.emitBatch(attempt, input.getValue(1), _collector);
             _collector.ack(input);
         }
     }

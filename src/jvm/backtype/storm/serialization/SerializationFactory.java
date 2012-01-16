@@ -10,7 +10,9 @@ import carbonite.JavaBridge;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.ObjectBuffer;
 import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.serialize.BigIntegerSerializer;
 import com.esotericsoftware.kryo.serialize.SerializableSerializer;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,6 +51,7 @@ public class SerializationFactory {
         k.register(HashMap.class);
         k.register(HashSet.class);
         k.register(TransactionAttempt.class);
+        k.register(BigInteger.class, new BigIntegerSerializer());
         JavaBridge clojureSerializersBridge = new JavaBridge();
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);

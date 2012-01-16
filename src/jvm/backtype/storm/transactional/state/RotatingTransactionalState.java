@@ -31,6 +31,10 @@ public class RotatingTransactionalState {
         state.mkdir(subdir);
         sync();
     }
+
+    public RotatingTransactionalState(TransactionalState state, String subdir, StateInitializer init) {
+        this(state, subdir, init, false);
+    }    
     
     public Object getState(BigInteger txid) {
         if(!_curr.containsKey(txid)) {
@@ -46,15 +50,23 @@ public class RotatingTransactionalState {
             if(_strictOrder && prev!=null && !prev.equals(txid.subtract(ONE))) {
                 throw new IllegalStateException("Expecting previous txid state to be the previous transaction");
             }
-            
-            
-            Object prevData;
-            if(prev!=null) {
-                prevData = _curr.get(prev);
-            } else {
-                prevData = null;
+            if(_strictOrder && !afterMap.isEmpty()) {
+                throw new IllegalStateException("Expecting tx state to be initialized in strict order but there are txids after that have state");                
             }
-            Object data = _init.init(txid, prevData);
+            
+            
+            Object data;
+            if(afterMap.isEmpty()) {
+                Object prevData;
+                if(prev!=null) {
+                    prevData = _curr.get(prev);
+                } else {
+                    prevData = null;
+                }
+                data = _init.init(txid, prevData);
+            } else {
+                data = null;
+            }
             _curr.put(txid, data);
             _state.setData(txPath(txid), data);
         }

@@ -76,7 +76,10 @@ public class TransactionalTopologyBuilder {
                                              null,
                                              null),
                         _spoutParallelism)
-                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);
+                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)
+                // TODO: can optimize by using a separate cleanup stream and emitting 
+                // unanchored tuples to it
+                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);
         for(String id: _bolts.keySet()) {
             Component component = _bolts.get(id);
             Map<String, SourceArgs> coordinatedArgs = new HashMap<String, SourceArgs>();

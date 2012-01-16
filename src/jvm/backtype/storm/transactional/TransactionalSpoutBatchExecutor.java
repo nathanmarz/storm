@@ -10,6 +10,7 @@ import java.util.Map;
 public class TransactionalSpoutBatchExecutor implements IRichBolt {    
     TransactionalOutputCollectorImpl _collector;
     ITransactionalSpout _spout;
+    ITransactionalSpout.Emitter _emitter;
 
     public TransactionalSpoutBatchExecutor(ITransactionalSpout spout) {
         _spout = spout;
@@ -18,19 +19,26 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = new TransactionalOutputCollectorImpl(collector);
-        _spout.open(conf, context);
+        _emitter = _spout.getEmitter(conf, context);
     }
 
     @Override
     public void execute(Tuple input) {
-        _collector.setAnchor(input);
-        _spout.emitBatch((TransactionAttempt) input.getValue(0), _collector);
-        _collector.ack(input);
+        TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
+        if(input.getSourceStreamId().equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
+            _collector.ack(input);
+            // can ack before since it doesn't matter if this fails, since it will just cleanup the next commit
+            _emitter.cleanupBefore(attempt.getTransactionId());
+        } else {
+            _collector.setAnchor(input);
+            _emitter.emitBatch((TransactionAttempt) input.getValue(0), _collector);
+            _collector.ack(input);
+        }
     }
 
     @Override
     public void cleanup() {
-        _spout.close();
+        _emitter.close();
     }
 
     @Override

@@ -14,9 +14,6 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
-// TODO: should coordinator versus batch be distinguished? transactionalspout is
-// a factory for a coordinator as well as an emitter?
-// TODO: how to cleanup transaction state in batch tasks...
 public class TransactionalSpoutCoordinator implements IRichSpout { 
     public static final BigInteger INIT_TXID = new BigInteger("1");
     
@@ -28,6 +25,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private static final String META_DIR = "meta";
     
     private ITransactionalSpout _spout;
+    private ITransactionalSpout.Coordinator _coordinator;
     private TransactionalState _state;
     private RotatingTransactionalState _coordinatorState;
     
@@ -47,7 +45,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _state = TransactionalState.newCoordinatorState(conf, _spout);
         _coordinatorState = new RotatingTransactionalState(_state, META_DIR, new StateInitializer(), true);
         _collector = collector;        
-        _spout.open(conf, context);
+        _coordinator = _spout.getCoordinator(conf, context);
         _currTransaction = getStoredCurrTransaction(_state);   
         _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
     }
@@ -74,7 +72,6 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             status.status = AttemptStatus.PROCESSED;
         } else if(status.status==AttemptStatus.COMMITTING) {
             _activeTx.remove(tx.getTransactionId());
-            _spout.cleanupTransaction(_currTransaction);
             _coordinatorState.commit(tx.getTransactionId());
             _currTransaction = nextTransactionId(tx.getTransactionId());
             _state.setData(CURRENT_TX, _currTransaction);
@@ -167,7 +164,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private class StateInitializer implements RotatingTransactionalState.StateInitializer {
         @Override
         public Object init(BigInteger txid, Object lastState) {
-            return _spout.initializeTransaction(txid, lastState);
-        }        
+            return _coordinator.initialize(txid, lastState);
+        }
     }
 }

@@ -353,7 +353,7 @@
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/forceMkdir (File. tmproot))      
+      (FileUtils/forceMkdir (File. tmproot))
       
       (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
       (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
@@ -385,18 +385,31 @@
 
 ;; local implementation
 
+(defn resources-jar []
+  (->> (.split (current-classpath) File/pathSeparator)
+       (filter #(.endsWith  % ".jar"))
+       (filter #(zip-contains-dir? % RESOURCES-SUBDIR))
+       first ))
+
 (defmethod download-storm-code
     :local [conf storm-id master-code-dir]
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
-            ;; TODO: should detect if it was run with "storm jar" and copy or extract appropriately
+            resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
             target-dir (str stormroot "/" RESOURCES-SUBDIR)]
-            (when url
-              (log-message "Copying resources at " (str url) " to " target-dir)
-              (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
-              ))))
+            (cond
+              resources-jar
+              (do
+                (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
+                (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
+              url
+              (do
+                (log-message "Copying resources at " (str url) " to " target-dir)
+                (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
+                ))
+            )))
 
 (defmethod launch-worker
     :local [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]

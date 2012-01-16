@@ -164,7 +164,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private class StateInitializer implements RotatingTransactionalState.StateInitializer {
         @Override
         public Object init(BigInteger txid, Object lastState) {
-            return _coordinator.initialize(txid, lastState);
+            return _coordinator.initializeTransaction(txid, lastState);
         }
     }
 }

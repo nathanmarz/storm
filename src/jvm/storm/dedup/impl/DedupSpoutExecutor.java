@@ -1,4 +1,4 @@
-package backtype.storm.dedup;
+package storm.dedup.impl;
 
 import java.io.IOException;
 import java.util.List;
@@ -6,6 +6,9 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import storm.dedup.DedupConstants;
+import storm.dedup.IDedupSpout;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;

@@ -1,4 +1,4 @@
-package backtype.storm.dedup;
+package storm.dedup.impl;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -11,6 +11,8 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+
+import storm.dedup.IStateStore;
 
 public class HBaseStateStore implements IStateStore {
   

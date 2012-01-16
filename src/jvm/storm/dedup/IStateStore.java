@@ -1,7 +1,8 @@
-package backtype.storm.dedup;
+package storm.dedup;
 
 import java.io.IOException;
 import java.util.Map;
+
 
 /**
  * <p>a special key-value state store share the bigtable data model.

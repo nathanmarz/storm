@@ -1,4 +1,4 @@
-package backtype.storm.dedup;
+package storm.dedup.impl;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -10,6 +10,11 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import storm.dedup.Bytes;
+import storm.dedup.DedupConstants;
+import storm.dedup.IDedupContext;
+import storm.dedup.IStateStore;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.Utils;

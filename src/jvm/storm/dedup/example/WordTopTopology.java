@@ -1,6 +1,13 @@
-package backtype.storm.dedup;
+package storm.dedup.example;
 
 import java.io.Serializable;
+
+import storm.dedup.Bytes;
+import storm.dedup.DedupConstants;
+import storm.dedup.DedupTopologyBuilder;
+import storm.dedup.IDedupBolt;
+import storm.dedup.IDedupContext;
+import storm.dedup.IDedupSpout;
 
 import backtype.storm.Config;
 import backtype.storm.StormSubmitter;
@@ -42,10 +49,9 @@ public class WordTopTopology {
       // TODO real tuple
       context.emit(new Values("this is the text line"));
       try {
-        Thread.sleep(10 * 1000);
+        Thread.sleep(1000);
       } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        // nothing
       }
     }
 

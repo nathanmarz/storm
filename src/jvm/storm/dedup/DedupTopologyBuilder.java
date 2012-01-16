@@ -1,7 +1,10 @@
-package backtype.storm.dedup;
+package storm.dedup;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import storm.dedup.impl.DedupBoltExecutor;
+import storm.dedup.impl.DedupSpoutExecutor;
 
 import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.InputDeclarer;

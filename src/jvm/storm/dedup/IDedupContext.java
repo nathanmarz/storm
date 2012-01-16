@@ -1,4 +1,4 @@
-package backtype.storm.dedup;
+package storm.dedup;
 
 import java.util.List;
 

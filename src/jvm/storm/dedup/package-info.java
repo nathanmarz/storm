@@ -25,15 +25,15 @@
 
 <p>The Java API
   <ul>
-    <li>{@link backtype.storm.dedup.IDedupSpout} 
+    <li>{@link storm.dedup.IDedupSpout} 
         User spout should implement this interface. 
         The main method is declareOutputFields and nextTuple.
     </li>
-    <li>{@link backtype.storm.dedup.IDedupBolt} 
+    <li>{@link storm.dedup.IDedupBolt} 
         User bolt should implement this interface. 
         The main method is declareOutputFields and execute.
     </li>
-    <li>{@link backtype.storm.dedup.IDedupContext} 
+    <li>{@link storm.dedup.IDedupContext} 
         User spout/bolt can use it to perform the operations
       <ul>
         <li>get configuration through getConf()</li>
@@ -41,16 +41,16 @@
         <li>emit tuple through emit()</li>
       </ul>
     </li>
-    <li>{@link backtype.storm.dedup.IStateStore} 
+    <li>{@link storm.dedup.IStateStore} 
         The storage to persistent user and system state. A default HBase
-        implementation {@link backtype.storm.dedup.HBaseStateStore} is provided.
+        implementation {@link storm.dedup.HBaseStateStore} is provided.
     </li>
   </ul>
 </p>
 
 <h2><a href="#usage">How to Use</a></h2>
 
-<p>A example {@link backtype.storm.dedup.WordTopTopology} 
+<p>A example {@link storm.dedup.example.WordTopTopology} 
    is provided in the package. The key points to use the framework
   <ol>
     <li>implement IDedupSpout to create spout</li>
@@ -118,4 +118,4 @@
 
 */
 
-package backtype.storm.dedup;
+package storm.dedup;

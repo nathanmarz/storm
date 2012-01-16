@@ -1,6 +1,8 @@
-package backtype.storm.dedup;
+package storm.dedup.impl;
 
 import java.util.Arrays;
+
+import storm.dedup.Bytes;
 
 public class BytesArrayRef {
   private byte[] bytes;

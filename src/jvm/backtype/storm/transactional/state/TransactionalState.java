@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.zookeeper.CreateMode;
 
 public class TransactionalState {
@@ -62,6 +64,14 @@ public class TransactionalState {
         }        
     }
     
+    public void delete(String path) {
+        try {
+            _curator.delete().forPath(path);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
     public List<String> list(String path) {
         try {
             if(_curator.checkExists().forPath(path)==null) {
@@ -72,6 +82,10 @@ public class TransactionalState {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }   
+    }
+    
+    public void mkdir(String path) {
+        setData(path, 7);
     }
     
     public Object getData(String path) {

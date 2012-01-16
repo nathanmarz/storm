@@ -2,6 +2,7 @@ package backtype.storm.transactional;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IComponent;
+import java.math.BigInteger;
 import java.util.Map;
 
 public interface ITransactionalSpout extends IComponent {
@@ -11,9 +12,9 @@ public interface ITransactionalSpout extends IComponent {
     
     // this would be things like "# of partitions" when doing a kafka spout
     // can also do things like initialize user state in zk
-    Object initializeTransaction(int txid, Object prevMetadata);
+    Object initializeTransaction(BigInteger txid, Object prevMetadata);
     //can do things like cleanup user state in zk
-    void cleanupTransaction(int txid);
+    void cleanupTransaction(BigInteger txid);
     
     void open(Map conf, TopologyContext context);
     void close();

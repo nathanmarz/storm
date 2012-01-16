@@ -1,0 +1,88 @@
+package backtype.storm.transactional.state;
+
+import backtype.storm.transactional.TransactionalSpoutCoordinator;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+/**
+ * A map from txid to a value. Automatically deletes txids that have been committed. 
+ */
+public class RotatingTransactionalState {
+    public static interface StateInitializer {
+        Object init(BigInteger txid, Object lastState);
+    }
+    
+    private static final BigInteger ONE = new BigInteger("1");
+
+    private TransactionalState _state;
+    private String _subdir;
+    private StateInitializer _init;
+    private boolean _strictOrder;
+    
+    private TreeMap<BigInteger, Object> _curr = new TreeMap<BigInteger, Object>();
+    
+    public RotatingTransactionalState(TransactionalState state, String subdir, StateInitializer init, boolean strictOrder) {
+        _state = state;
+        _subdir = subdir;
+        _init = init;
+        _strictOrder = strictOrder;
+        state.mkdir(subdir);
+        sync();
+    }
+    
+    public Object getState(BigInteger txid) {
+        if(!_curr.containsKey(txid)) {
+            SortedMap<BigInteger, Object> prevMap = _curr.headMap(txid);
+            SortedMap<BigInteger, Object> afterMap = _curr.tailMap(txid);            
+            
+            BigInteger prev = null;
+            if(!prevMap.isEmpty()) prev = prevMap.lastKey();
+            
+            if(prev==null && !txid.equals(TransactionalSpoutCoordinator.INIT_TXID)) {
+                throw new IllegalStateException("Trying to initialize transaction for which there should be a previous state");
+            }
+            if(_strictOrder && prev!=null && !prev.equals(txid.subtract(ONE))) {
+                throw new IllegalStateException("Expecting previous txid state to be the previous transaction");
+            }
+            
+            
+            Object prevData;
+            if(prev!=null) {
+                prevData = _curr.get(prev);
+            } else {
+                prevData = null;
+            }
+            Object data = _init.init(txid, prevData);
+            _curr.put(txid, data);
+            _state.setData(txPath(txid), data);
+        }
+        return _curr.get(txid);
+    }
+    
+    public void commit(BigInteger txid) {
+        SortedMap<BigInteger, Object> toDelete = _curr.headMap(txid);
+        for(BigInteger tx: toDelete.keySet()) {
+            _curr.remove(tx);
+            _state.delete(txPath(tx));
+        }
+    }
+    
+    private void sync() {
+        List<String> txids = _state.list(_subdir);
+        for(String txid_s: txids) {
+            Object data = _state.getData(txPath(txid_s));
+            _curr.put(new BigInteger(txid_s), data);
+        }
+    }
+    
+    private String txPath(BigInteger tx) {
+        return txPath(tx.toString());
+    }
+
+    private String txPath(String tx) {
+        return _subdir + "/" + tx;
+    }    
+    
+}

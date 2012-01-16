@@ -5,24 +5,22 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.transactional.state.RotatingTransactionalState;
 import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
-import com.esotericsoftware.kryo.serialize.BigIntegerSerializer;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * TODO:
- * Need a utility for reading transactional information
- * 
- * 
- * Probably shouldn't ever repeat a transaction id... (for things where you store the txid for long periods of time, like "first time seeing an item")
- * Should use a bigint and have an efficient serializer for it
- */
-
-public class TransactionalSpoutCoordinator implements IRichSpout {    
+// TODO: should coordinator versus batch be distinguished? transactionalspout is
+// a factory for a coordinator as well as an emitter?
+// TODO: how to cleanup transaction state in batch tasks...
+public class TransactionalSpoutCoordinator implements IRichSpout { 
+    public static final BigInteger INIT_TXID = new BigInteger("1");
+    
+    
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";
     public static final String TRANSACTION_COMMIT_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/commit";
 
@@ -31,11 +29,12 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     
     private ITransactionalSpout _spout;
     private TransactionalState _state;
+    private RotatingTransactionalState _coordinatorState;
     
-    Map<Integer, TransactionStatus> _activeTx = new HashMap<Integer, TransactionStatus>();
+    Map<BigInteger, TransactionStatus> _activeTx = new HashMap<BigInteger, TransactionStatus>();
     
     private SpoutOutputCollector _collector;
-    int _currTransaction;
+    BigInteger _currTransaction;
     int _maxTransactionActive;
     
     
@@ -46,9 +45,9 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _state = TransactionalState.newCoordinatorState(conf, _spout);
-        _collector = collector;
+        _coordinatorState = new RotatingTransactionalState(_state, META_DIR, new StateInitializer(), true);
+        _collector = collector;        
         _spout.open(conf, context);
-        // TODO:
         _currTransaction = getStoredCurrTransaction(_state);   
         _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
     }
@@ -76,6 +75,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         } else if(status.status==AttemptStatus.COMMITTING) {
             _activeTx.remove(tx.getTransactionId());
             _spout.cleanupTransaction(_currTransaction);
+            _coordinatorState.commit(tx.getTransactionId());
             _currTransaction = nextTransactionId(tx.getTransactionId());
             _state.setData(CURRENT_TX, _currTransaction);
         }
@@ -109,12 +109,12 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         }
         
         if(_activeTx.size() < _maxTransactionActive) {
-            int curr = _currTransaction;
+            BigInteger curr = _currTransaction;
             for(int i=0; i<_maxTransactionActive; i++) {
                 if(!_activeTx.containsKey(curr)) {
                     TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
                     _activeTx.put(curr, new TransactionStatus(attempt));
-                    _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt), attempt);
+                    _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, _coordinatorState.getState(curr)), attempt);
                 }
                 curr = nextTransactionId(curr);
             }
@@ -152,23 +152,22 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         }        
     }
     
-    private int nextTransactionId(int id) {
-        long next = ((long) id) + 1;
-        return (int) (next % Integer.MAX_VALUE);
+    
+    private static final BigInteger ONE = new BigInteger("1");
+    private BigInteger nextTransactionId(BigInteger id) {
+        return id.add(ONE);
     }
     
-    private String txMetaPath(int txid) {
-        return META_DIR + "/" + txid;
-    }
-    
-    private int getStoredCurrTransaction(TransactionalState state) {
-        Integer ret = (Integer) state.getData(CURRENT_TX);
-        if(ret==null) return 0;
+    private BigInteger getStoredCurrTransaction(TransactionalState state) {
+        BigInteger ret = (BigInteger) state.getData(CURRENT_TX);
+        if(ret==null) return ONE;
         else return ret;
     }
     
-    private Object getTransactionMeta(int txid) {
-        String path = txMetaPath(txid);
-        Object ret = _state.getData(path);
+    private class StateInitializer implements RotatingTransactionalState.StateInitializer {
+        @Override
+        public Object init(BigInteger txid, Object lastState) {
+            return _spout.initializeTransaction(txid, lastState);
+        }        
     }
 }

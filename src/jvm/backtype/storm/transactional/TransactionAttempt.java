@@ -1,15 +1,17 @@
 package backtype.storm.transactional;
 
+import java.math.BigInteger;
+
 public class TransactionAttempt {
-    int _txid;
+    BigInteger _txid;
     long _attemptId;
     
-    public TransactionAttempt(int txid, long attemptId) {
+    public TransactionAttempt(BigInteger txid, long attemptId) {
         _txid = txid;
         _attemptId = attemptId;
     }
     
-    public int getTransactionId() {
+    public BigInteger getTransactionId() {
         return _txid;
     }
     
@@ -19,13 +21,13 @@ public class TransactionAttempt {
 
     @Override
     public int hashCode() {
-        return 13 * _txid + (int) _attemptId;
+        return _txid.hashCode();
     }
 
     @Override
     public boolean equals(Object o) {
         TransactionAttempt other = (TransactionAttempt) o;
-        return _txid == other._txid && _attemptId == other._attemptId;
+        return _txid.equals(other._txid) && _attemptId == other._attemptId;
     }
 
     @Override

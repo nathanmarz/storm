@@ -227,26 +227,4 @@ public class Utils {
     public static CuratorFramework newCurator(Map conf) {
         return newCurator(conf, "");
     }
-    
-    /**
-     * Returns the minimal distance between the two numbers,
-     * assuming they're arranged on a ring so Integer.MIN_INT
-     * is next to Integer.MAX_INT
-     * 
-     * For "normal" cases it returns i2 - i1
-     */
-    public static int intDistance(int i1, int i2) {
-        if(i2 < i1) return -1 * intDistance(i2, i1);
-        long l1 = i1;
-        long l2 = i2;
-        
-        long cand1 = l2 - l1;        
-        long cand2 = (long) Integer.MAX_VALUE - l2 + 1 + l1 - Integer.MIN_VALUE;
-        
-        if(cand1 < cand2) {
-            return (int) cand1;
-        } else {
-            return -1 * (int) cand2;
-        }
-    }
 }

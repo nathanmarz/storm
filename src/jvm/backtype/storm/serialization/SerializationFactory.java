@@ -50,8 +50,8 @@ public class SerializationFactory {
         k.register(ArrayList.class);
         k.register(HashMap.class);
         k.register(HashSet.class);
-        k.register(TransactionAttempt.class);
         k.register(BigInteger.class, new BigIntegerSerializer());
+        k.register(TransactionAttempt.class);
         JavaBridge clojureSerializersBridge = new JavaBridge();
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);

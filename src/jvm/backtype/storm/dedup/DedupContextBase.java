@@ -177,9 +177,9 @@ public abstract class DedupContextBase implements IDedupContext {
     return outputMap.get(id);
   }
   
-  protected void deleteOutput(String tupleid, byte[] value) {
-    outputMap.remove(tupleid);
-    newDelete.put(new BytesArrayRef(Bytes.toBytes(tupleid)), value);
+  protected void deleteOutput(String tupleid) {
+    Output output = outputMap.remove(tupleid);
+    newDelete.put(new BytesArrayRef(Bytes.toBytes(tupleid)), new byte[0]);
   }
   
   protected byte[] getSystemState(byte[] key) {

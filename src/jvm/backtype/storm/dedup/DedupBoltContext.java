@@ -1,7 +1,9 @@
 package backtype.storm.dedup;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -43,17 +45,17 @@ public class DedupBoltContext extends DedupContextBase {
     
     if (DedupConstants.DEDUP_STREAM_ID.equals(sourceStream)) {
       String prefix = currentInputID + DedupConstants.TUPLE_ID_SEP;
-      Iterator<Map.Entry<String, Output>> it = 
-        getOutputMap().entrySet().iterator();
-      while (it.hasNext()) {
-        Map.Entry<String, Output> entry = it.next();
-        if (entry.getKey().startsWith(prefix)) {
-          // add to delete map
-          deleteOutput(entry.getKey(), Utils.serialize(entry.getValue()));
-          // remove from memory
-          it.remove();
+      
+      List<String> toDelete = new ArrayList<String>();
+      for (String tupleid : getOutputMap().keySet()) {
+        if (tupleid.startsWith(prefix)) {
+          toDelete.add(tupleid);
         }
       }
+      for (String tupleid : toDelete) {
+        deleteOutput(tupleid);
+      }
+      
       // remove from persistent store
       saveChanges();
       LOG.info(getIdentifier() + 

@@ -70,7 +70,7 @@ public class DedupSpoutContext extends DedupContextBase {
       collector.emit(DedupConstants.DEDUP_STREAM_ID, notice);
       
       // delete from state store
-      deleteOutput(messageId.toString(), Utils.serialize(output.tuple));
+      deleteOutput(messageId.toString());
       
       // remove from persistent store
       saveChanges();
@@ -102,7 +102,7 @@ public class DedupSpoutContext extends DedupContextBase {
       collector.emit(output.streamId, output.tuple, newMessageId);
       
       // persistent delete old tuple to state store after re-emit
-      deleteOutput(messageId.toString(), Utils.serialize(output.tuple));
+      deleteOutput(messageId.toString());
       saveChanges();
       
       LOG.warn(getIdentifier() + " re emit tuple " + getTupleID(output.tuple) + 

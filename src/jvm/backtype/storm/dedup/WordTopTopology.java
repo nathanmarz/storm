@@ -161,22 +161,23 @@ public class WordTopTopology {
   public static void main(String[] args) throws Exception {
     DedupTopologyBuilder builder = new DedupTopologyBuilder();
     
-    builder.setSpout("generate spout", new GenerateSpout(), 2);
+    builder.setSpout("generate-spout", new GenerateSpout(), 2);
     
-    builder.setBolt("split bolt", new SplitBolt(), 4)
-      .shuffleGrouping("generate spout");
+    builder.setBolt("split-bolt", new SplitBolt(), 4)
+      .shuffleGrouping("generate-spout");
     
-    builder.setBolt("count bolt", new CountBolt(), 8)
-      .fieldsGrouping("split bolt", new Fields("WORD"));
+    builder.setBolt("count-bolt", new CountBolt(), 8)
+      .fieldsGrouping("split-bolt", new Fields("WORD"));
     
-    builder.setBolt("top bolt", new TopBolt(), 1)
-    .fieldsGrouping("count bolt", new Fields("WORD"));
+    builder.setBolt("top-bolt", new TopBolt(), 1)
+    .fieldsGrouping("count-bolt", new Fields("WORD"));
     
     Config conf = new Config();
     conf.setDebug(true);
     
-    if (args != null && args.length > 2) {
+    if (args != null && args.length > 3) {
       conf.setNumWorkers(Integer.parseInt(args[1]));
+      conf.put(DedupConstants.STATE_STORE_NAME, args[2]);
       StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }
   }

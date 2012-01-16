@@ -299,7 +299,7 @@ public abstract class DedupContextBase implements IDedupContext {
   }
   
   protected String getTupleID(List<Object> tuple) {
-    return (String) tuple.get(tuple.size() - 2);
+    return (String) tuple.get(tuple.size() - 1);
   }
   
   protected abstract String getNextTupleID();

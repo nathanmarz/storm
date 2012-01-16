@@ -1,6 +1,3 @@
-
-package backtype.storm.dedup;
-
 /**
 <h1>De-duplication Framework</h1>
 <ul>
@@ -120,6 +117,5 @@ package backtype.storm.dedup;
 </p>
 
 */
-class X {
-  
-}
+
+package backtype.storm.dedup;

@@ -26,6 +26,8 @@ public class DedupSpoutContext extends DedupContextBase {
   public DedupSpoutContext(Map conf, TopologyContext context,
       SpoutOutputCollector collector) throws IOException {
     super(conf, context);
+    this.collector = collector;
+    
     byte[] bytes = getSystemState(Bytes.toBytes(GLOBAL_ID));
     if (bytes != null) {
       this.globalID = new AtomicLong(Long.parseLong(Bytes.toString(bytes)));

@@ -9,8 +9,18 @@ import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
+import com.esotericsoftware.kryo.serialize.BigIntegerSerializer;
 import java.util.HashMap;
 import java.util.Map;
+
+/**
+ * TODO:
+ * Need a utility for reading transactional information
+ * 
+ * 
+ * Probably shouldn't ever repeat a transaction id... (for things where you store the txid for long periods of time, like "first time seeing an item")
+ * Should use a bigint and have an efficient serializer for it
+ */
 
 public class TransactionalSpoutCoordinator implements IRichSpout {    
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";

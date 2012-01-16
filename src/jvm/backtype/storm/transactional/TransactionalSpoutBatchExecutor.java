@@ -30,7 +30,6 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
             // can ack before since it doesn't matter if this fails, since it will just cleanup the next commit
             _emitter.cleanupBefore(attempt.getTransactionId());
         } else {
-            _collector.setAnchor(input);
             _emitter.emitBatch(attempt, input.getValue(1), _collector);
             _collector.ack(input);
         }

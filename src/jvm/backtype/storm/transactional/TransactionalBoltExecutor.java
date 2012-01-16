@@ -33,7 +33,6 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
 
     @Override
     public void execute(Tuple input) {
-        _collector.setAnchor(input);
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         String stream = input.getSourceStreamId();
         ITransactionalBolt bolt = _openTransactions.get(attempt);
@@ -72,7 +71,6 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
 
     @Override
     public void finishedId(FinishedTuple tup) {
-        _collector.setAnchor(tup);
         ITransactionalBolt bolt = _openTransactions.get((TransactionAttempt) tup.getId());
         // can equal null if the TimeCacheMap expired it
         if(bolt!=null) {

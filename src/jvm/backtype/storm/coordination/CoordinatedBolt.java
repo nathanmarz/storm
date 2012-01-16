@@ -184,6 +184,10 @@ public class CoordinatedBolt implements IRichBolt {
                 if(_delegate instanceof FinishedCallback) {
                     ((FinishedCallback)_delegate).finishedId(new FinishedTupleImpl(tup));
                 }
+                if(!_sourceArgs.isEmpty() &&
+                        !tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
+                    throw new IllegalStateException("Coordination condition met on a non-coordinating tuple. Should be impossible");
+                }
                 Iterator<Integer> outTasks = _countOutTasks.iterator();
                 while(outTasks.hasNext()) {
                     int task = outTasks.next();

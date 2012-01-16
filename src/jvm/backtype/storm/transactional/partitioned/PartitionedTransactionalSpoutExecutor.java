@@ -68,6 +68,10 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
                         return _emitter.emitPartitionBatchNew(tx, collector, partition, lastState);
                     }
                 });
+                // it's null if one of:
+                //   a) a later transaction batch was emitted before this, so we should skip this batch
+                //   b) if didn't exist and was created (in which case the StateInitializer was invoked and 
+                //      it was emitted
                 if(meta!=null) {
                     _emitter.emitPartitionBatch(tx, collector, partition, meta);
                 }

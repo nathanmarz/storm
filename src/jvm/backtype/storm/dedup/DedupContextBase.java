@@ -44,8 +44,8 @@ public abstract class DedupContextBase implements IDedupContext {
   
   private static final Log LOG = LogFactory.getLog(DedupContextBase.class);
   
-  private static final String UPTIME = "uptime";
-  private static final String EMIT_COUNT = "emit count";
+  private static final byte[] UPTIME = Bytes.toBytes("uptime");
+  private static final byte[] EMIT_COUNT = Bytes.toBytes("emit count");
   
   /**
    * storm conf and context
@@ -81,7 +81,7 @@ public abstract class DedupContextBase implements IDedupContext {
   /**
    * to delete
    */
-  private Map<BytesArrayRef, byte[]> deleteMap;
+  private Map<BytesArrayRef, byte[]> newDelete;
 
   /**
    * state storage
@@ -106,7 +106,7 @@ public abstract class DedupContextBase implements IDedupContext {
     this.newSystem = new HashMap<BytesArrayRef, byte[]>();
     this.outputMap = new HashMap<String, Output>();
     this.newOutput = new HashMap<String, Output>();
-    this.deleteMap = new HashMap<BytesArrayRef, byte[]>();
+    this.newDelete = new HashMap<BytesArrayRef, byte[]>();
     
     // create state store
     this.storeKey = Bytes.toBytes(identifier);
@@ -148,6 +148,12 @@ public abstract class DedupContextBase implements IDedupContext {
         }
       }
     }
+    
+    // set uptime
+    setSystemState(UPTIME, 
+        Bytes.toBytes(Long.toString(System.currentTimeMillis())));
+    saveChanges();
+    clearChanges();
   }
   
   public void close() throws IOException {
@@ -173,19 +179,18 @@ public abstract class DedupContextBase implements IDedupContext {
   
   protected void deleteOutput(String tupleid, byte[] value) {
     outputMap.remove(tupleid);
-    deleteMap.put(new BytesArrayRef(Bytes.toBytes(tupleid)), value);
+    newDelete.put(new BytesArrayRef(Bytes.toBytes(tupleid)), value);
   }
   
   protected byte[] getSystemState(byte[] key) {
     return systemMap.get(new BytesArrayRef(key));
   }
 
-  protected boolean setSystemState(byte[] key, byte[] value) {
+  protected void setSystemState(byte[] key, byte[] value) {
     newSystem.put(new BytesArrayRef(key), value);
     systemMap.put(new BytesArrayRef(key), value);
     LOG.info(identifier + " set system state " + 
         Bytes.toString(key) + " : " + Bytes.toString(value));
-    return true;
   }
   
   
@@ -220,11 +225,11 @@ public abstract class DedupContextBase implements IDedupContext {
       updateMap.clear();
     }
     
-    if (deleteMap.size() > 0) {
+    if (newDelete.size() > 0) {
       Map<byte[], Map<byte[], byte[]>> updateMap = 
         new HashMap<byte[], Map<byte[], byte[]>>();
       Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
-      for (Map.Entry<BytesArrayRef, byte[]> entry : deleteMap.entrySet()) {
+      for (Map.Entry<BytesArrayRef, byte[]> entry : newDelete.entrySet()) {
         map.put(entry.getKey().getBytes(), entry.getValue());
       }
       updateMap.put(IStateStore.OUTPUTMAP, map);
@@ -236,7 +241,7 @@ public abstract class DedupContextBase implements IDedupContext {
     newState.clear();
     newSystem.clear();
     newOutput.clear();
-    deleteMap.clear();
+    newDelete.clear();
   }
 
 
@@ -283,6 +288,14 @@ public abstract class DedupContextBase implements IDedupContext {
     outputMap.put(tupleid, output);
     LOG.info(identifier + 
         " user emit tuple " + tupleid + " to stream " + streamId);
+    byte[] bytes = getSystemState(EMIT_COUNT);
+    Long emitCount = 0L;
+    if (bytes == null) {
+      emitCount = 0L;
+    } else {
+      emitCount++;
+    }
+    setSystemState(EMIT_COUNT, Bytes.toBytes(emitCount.toString()));
   }
   
   protected String getTupleID(List<Object> tuple) {

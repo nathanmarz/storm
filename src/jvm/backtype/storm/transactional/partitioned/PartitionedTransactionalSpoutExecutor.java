@@ -54,7 +54,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         @Override
         public void emitBatch(final TransactionAttempt tx, final Object coordinatorMeta,
                 final TransactionalOutputCollector collector) {
-            int partitions = (int) coordinatorMeta;
+            int partitions = (Integer) coordinatorMeta;
             for(int i=_index; i < partitions; i+=_numTasks) {
                 if(!_partitionStates.containsKey(i)) {
                     _partitionStates.put(i, new RotatingTransactionalState(_state, "" + i));

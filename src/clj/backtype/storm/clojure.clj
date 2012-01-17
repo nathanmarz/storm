@@ -49,7 +49,7 @@
 (defmethod hinted-args 'open [_ [conf context collector]]
            [(hint conf 'java.util.Map)
             (hint context 'backtype.storm.task.TopologyContext)
-            (hint collector 'backtype.storm.task.OutputCollector)]
+            (hint collector 'backtype.storm.spout.SpoutOutputCollector)]
            )
 
 (defmethod hinted-args 'nextTuple [_ []]

@@ -99,12 +99,12 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
     }
 
     @Override
-    public Coordinator getCoordinator(Map conf, TopologyContext context) {
+    public ITransactionalSpout.Coordinator getCoordinator(Map conf, TopologyContext context) {
         return new Coordinator(conf, context);
     }
 
     @Override
-    public Emitter getEmitter(Map conf, TopologyContext context) {
+    public ITransactionalSpout.Emitter getEmitter(Map conf, TopologyContext context) {
         return new Emitter(conf, context);
     }
 

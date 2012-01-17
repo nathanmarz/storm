@@ -32,10 +32,6 @@ public class OutputCollectorImpl extends OutputCollector {
         _collector = collector;
     }
 
-    public TopologyContext getContext() {
-        return _context;
-    }
-    
     public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
         return _collector.emit(anchorTuple(anchors, streamId, tuple));
     }

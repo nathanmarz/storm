@@ -14,9 +14,4 @@ public interface IOutputCollector {
     void ack(Tuple input);
     void fail(Tuple input);
     void reportError(Throwable error);
-
-    /**
-     * Returns the topology context if it is available
-     */
-    TopologyContext getContext();
 }

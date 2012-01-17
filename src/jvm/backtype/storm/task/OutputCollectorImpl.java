@@ -2,7 +2,6 @@ package backtype.storm.task;
 
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.task.TopologyContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

@@ -22,6 +22,13 @@
             (hint collector 'backtype.storm.task.OutputCollector)]
            )
 
+; Special case for clojure where we use a closure instead of the prepare
+; method
+(defmethod hinted-args 'prepare-fn [_ [conf context collector]]
+  [(hint conf 'java.util.Map)
+   (hint context 'backtype.storm.task.TopologyContext)
+   (hint collector 'java.util.Map)])
+
 (defmethod hinted-args 'execute [_ [tuple]]
            [(hint tuple 'backtype.storm.tuple.Tuple)]
            )
@@ -34,6 +41,11 @@
            []
            )
 
+(defmethod hinted-args 'open-fn [_ [conf context collector]]
+           [(hint conf 'java.util.Map)
+            (hint context 'backtype.storm.task.TopologyContext)
+            (hint collector 'java.util.Map)]
+           )
 (defmethod hinted-args 'open [_ [conf context collector]]
            [(hint conf 'java.util.Map)
             (hint context 'backtype.storm.task.TopologyContext)
@@ -112,7 +124,7 @@
                     (let [[args & impl-body] impl
                           coll-sym (nth args 1)
                           args (vec (take 1 args))
-                          prepargs (hinted-args 'prepare [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs (hinted-args 'prepare-fn [(gensym "conf") (gensym "context") coll-sym])]
                       `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
@@ -140,7 +152,7 @@
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (first args)
-                          prepargs (hinted-args 'open [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs (hinted-args 'open-fn [(gensym "conf") (gensym "context") coll-sym])]
                       `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]

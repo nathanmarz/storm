@@ -25,6 +25,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * TODO: check to see if there are two topologies active with the same transactional id 
+ * essentially want to implement a file lock on top of zk (use ephemeral nodes?)
+ * 
+ * Testing TODO:
+ * 
+ * 1. Test that commits are strongly ordered
+ * 2. Test that commits are strongly ordered even in the case of failure
+ * 3. Test that batch emitters emit nothing when a future batch has been emitted and its state saved
+ * 4. Test that transactionalbolts only commit when they've received the whole batch for that attempt,
+ *    not a partial batch
+ * 5. Test that transactions are properly pipelined
+ * 6. Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
+ * 7. Test that batch isn't considered processed until the entire tuple tree has been completed
+ * 8. Test that it picks up where it left off when restarting the topology
+ * 9. Test that coordinator and partitioned state are cleaned up properly (and not too early)
+ */
 public class TransactionalTopologyBuilder {
     String _spoutId;
     ITransactionalSpout _spout;

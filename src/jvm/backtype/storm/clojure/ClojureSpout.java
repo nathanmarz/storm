@@ -9,6 +9,9 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
+import clojure.lang.PersistentArrayMap;
+import clojure.lang.Keyword;
+import clojure.lang.Symbol;
 import clojure.lang.RT;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,10 +44,13 @@ public class ClojureSpout implements IRichSpout {
         IFn hof = Utils.loadClojureFn(_namespace, _fnName);
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
+            final Map<Keyword,Object> collectorMap = new PersistentArrayMap( new Object[] {
+                Keyword.intern(Symbol.create("output-collector")), collector,
+                Keyword.intern(Symbol.create("context")), context});
             List<Object> args = new ArrayList<Object>() {{
                 add(conf);
                 add(context);
-                add(collector);
+                add(collectorMap);
             }};
             
             _spout = (ISpout) preparer.applyTo(RT.seq(args));

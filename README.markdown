@@ -1,0 +1,1 @@
+storm-kafka provides a TransactionalSpout implementation for Apache Kafka. This is currently unfinished, and TransactionalSpout won't be available in Storm until 0.7.0.

@@ -43,9 +43,9 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        _state = TransactionalState.newCoordinatorState(conf, _spout);
+        _state = TransactionalState.newCoordinatorState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), _spout);
         _coordinatorState = new RotatingTransactionalState(_state, META_DIR, true);
-        _collector = collector;        
+        _collector = collector;
         _coordinator = _spout.getCoordinator(conf, context);
         _currTransaction = getStoredCurrTransaction(_state);   
         _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));

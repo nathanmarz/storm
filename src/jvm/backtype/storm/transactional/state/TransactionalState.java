@@ -17,15 +17,15 @@ public class TransactionalState {
     KryoValuesSerializer _ser;
     KryoValuesDeserializer _des;
     
-    public static TransactionalState newUserState(Map conf, ITransactionalSpout spout) {
-        return new TransactionalState(conf, spout, "user");
+    public static TransactionalState newUserState(Map conf, String id, ITransactionalSpout spout) {
+        return new TransactionalState(conf, id, spout, "user");
     }
     
-    public static TransactionalState newCoordinatorState(Map conf, ITransactionalSpout spout) {
-        return new TransactionalState(conf, spout, "coordinator");        
+    public static TransactionalState newCoordinatorState(Map conf, String id, ITransactionalSpout spout) {
+        return new TransactionalState(conf, id, spout, "coordinator");        
     }
     
-    protected TransactionalState(Map conf, ITransactionalSpout spout, String subroot) {
+    protected TransactionalState(Map conf, String id, ITransactionalSpout spout, String subroot) {
         try {
             conf = new HashMap(conf);
             // ensure that the serialization registrations are consistent with the declarations in this spout
@@ -33,7 +33,7 @@ public class TransactionalState {
                     spout.getComponentConfiguration()
                          .get(Config.TOPOLOGY_KRYO_REGISTER));
 
-            String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + spout.getId() + "/" + subroot;
+            String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;
             CuratorFramework initter = Utils.newCurator(conf);
             initter.create().creatingParentsIfNeeded().forPath(rootDir);
             initter.close();

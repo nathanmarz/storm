@@ -22,9 +22,6 @@ public interface ITransactionalSpout extends IComponent {
         void close();
     }
     
-    // this is used to store the state of this transactionalspout in zookeeper
-    // it would be very dangerous to have 2 topologies active with the same id in the same cluster
-    String getId();
     Coordinator getCoordinator(Map conf, TopologyContext context);
     Emitter getEmitter(Map conf, TopologyContext context);    
 }

@@ -353,6 +353,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
 
+    /**
+     * This config is available for TransactionalSpouts, and contains the id ( a String) for
+     * the transactional topology. This id is used to store the state of the transactional
+     * topology in Zookeeper.
+     */
+    public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
     
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.

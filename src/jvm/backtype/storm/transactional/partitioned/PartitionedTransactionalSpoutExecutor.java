@@ -1,5 +1,6 @@
 package backtype.storm.transactional.partitioned;
 
+import backtype.storm.Config;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.ITransactionalSpout;
@@ -46,7 +47,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         
         public Emitter(Map conf, TopologyContext context) {
             _emitter = _spout.getEmitter(conf, context);
-            _state = TransactionalState.newUserState(conf, PartitionedTransactionalSpoutExecutor.this); 
+            _state = TransactionalState.newUserState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), PartitionedTransactionalSpoutExecutor.this); 
             _index = context.getThisTaskIndex();
             _numTasks = context.getComponentTasks(context.getThisComponentId()).size();
         }
@@ -91,12 +92,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
             _state.close();
             _emitter.close();
         }
-    }
-    
-    @Override
-    public String getId() {
-        return _spout.getId();
-    }
+    }    
 
     @Override
     public ITransactionalSpout.Coordinator getCoordinator(Map conf, TopologyContext context) {

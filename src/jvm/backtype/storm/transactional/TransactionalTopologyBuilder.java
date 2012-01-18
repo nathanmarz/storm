@@ -1,5 +1,6 @@
 package backtype.storm.transactional;
 
+import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
@@ -31,33 +32,39 @@ import java.util.Set;
  * 
  * Testing TODO:
  * 
- * 1. Test that commits are strongly ordered
- * 2. Test that commits are strongly ordered even in the case of failure
- * 3. Test that batch emitters emit nothing when a future batch has been emitted and its state saved
+ * 1. Test that commits are strongly ordered - test coordinator on its own
+ * 2. Test that commits are strongly ordered even in the case of failure - test coordinator on its own
+ * 3. Test that batch emitters emit nothing when a future batch has been emitted and its state saved - test batch emitter on its own?
  * 4. Test that transactionalbolts only commit when they've received the whole batch for that attempt,
- *    not a partial batch
- * 5. Test that transactions are properly pipelined
+ *    not a partial batch - test on its own
+ * 5. Test that transactions are properly pipelined - test coordinator on its own
  * 6. Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
+ *       - test the full topology (this is a test of acking/anchoring)
  * 7. Test that batch isn't considered processed until the entire tuple tree has been completed
+ *       - test the full topology (this is a test of acking/anchoring)
  * 8. Test that it picks up where it left off when restarting the topology
- * 9. Test that coordinator and partitioned state are cleaned up properly (and not too early)
+ *       - run topology and restart it
+ * 9. Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
  */
 public class TransactionalTopologyBuilder {
+    String _id;
     String _spoutId;
     ITransactionalSpout _spout;
     Map<String, Component> _bolts;
     Integer _spoutParallelism;
     List<Map> _spoutConfs = new ArrayList();
     
-    
-    public TransactionalTopologyBuilder(String spoutId, ITransactionalSpout spout, Integer spoutParallelism) {
+    // id is used to store the state of this transactionalspout in zookeeper
+    // it would be very dangerous to have 2 topologies active with the same id in the same cluster    
+    public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout, Integer spoutParallelism) {
+        _id = id;
         _spoutId = spoutId;
         _spout = spout;
         _spoutParallelism = spoutParallelism;
     }
     
-    public TransactionalTopologyBuilder(String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
-        this(spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
+    public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
+        this(id, spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
     }    
     
     public SpoutDeclarer getSpoutDeclarer() {
@@ -93,6 +100,8 @@ public class TransactionalTopologyBuilder {
         for(Map conf: _spoutConfs) {
             declarer.addConfigurations(conf);
         }
+        declarer.addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
+
         builder.setBolt(_spoutId,
                         new CoordinatedBolt(new TransactionalSpoutBatchExecutor(_spout),
                                              coordinator,
@@ -102,7 +111,8 @@ public class TransactionalTopologyBuilder {
                 .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)
                 // TODO: can optimize by using a separate cleanup stream and emitting 
                 // unanchored tuples to it
-                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);
+                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)
+                .addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
         for(String id: _bolts.keySet()) {
             Component component = _bolts.get(id);
             Map<String, SourceArgs> coordinatedArgs = new HashMap<String, SourceArgs>();
@@ -176,7 +186,7 @@ public class TransactionalTopologyBuilder {
         }
         
         @Override
-        public InputDeclarer fieldsGrouping(final String component, final Fields fields) {
+        public BoltDeclarer fieldsGrouping(final String component, final Fields fields) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -192,7 +202,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer fieldsGrouping(final String component, final String streamId, final Fields fields) {
+        public BoltDeclarer fieldsGrouping(final String component, final String streamId, final Fields fields) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -208,7 +218,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer globalGrouping(final String component) {
+        public BoltDeclarer globalGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -224,7 +234,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer globalGrouping(final String component, final String streamId) {
+        public BoltDeclarer globalGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -240,7 +250,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer shuffleGrouping(final String component) {
+        public BoltDeclarer shuffleGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -256,7 +266,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer shuffleGrouping(final String component, final String streamId) {
+        public BoltDeclarer shuffleGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -272,7 +282,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer noneGrouping(final String component) {
+        public BoltDeclarer noneGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -288,7 +298,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer noneGrouping(final String component, final String streamId) {
+        public BoltDeclarer noneGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -304,7 +314,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer allGrouping(final String component) {
+        public BoltDeclarer allGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -320,7 +330,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer allGrouping(final String component, final String streamId) {
+        public BoltDeclarer allGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -336,7 +346,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer directGrouping(final String component) {
+        public BoltDeclarer directGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -352,7 +362,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer directGrouping(final String component, final String streamId) {
+        public BoltDeclarer directGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -368,7 +378,7 @@ public class TransactionalTopologyBuilder {
         }
         
         @Override
-        public InputDeclarer customGrouping(final String component, final CustomStreamGrouping grouping) {
+        public BoltDeclarer customGrouping(final String component, final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -384,7 +394,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer customGrouping(final String component, final String streamId, final CustomStreamGrouping grouping) {
+        public BoltDeclarer customGrouping(final String component, final String streamId, final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -400,7 +410,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public InputDeclarer grouping(final GlobalStreamId stream, final Grouping grouping) {
+        public BoltDeclarer grouping(final GlobalStreamId stream, final Grouping grouping) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {

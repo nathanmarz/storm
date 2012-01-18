@@ -185,39 +185,11 @@
     ;; TODO: consider adding a stats stream for stats aggregation
     ))
 
-;; (defn add-transaction-streams! [storm-conf ^StormTopology topology]
-;;   (let [spouts (.get_transactional_spouts topology)
-;;         bolts (.get_transactional_bolts topology)]
-;;     (if (and (= 0 (storm-conf TOPOLOGY-ACKERS)) (not (empty? spouts)))
-;;       (throw (InvalidTopologyException. "Must have at least one acker configured when using transactional spouts")))
-;;     (if (and (empty? spouts) (not (empty? bolts)))
-;;       (throw (InvalidTopologyException. "Cannot have transactional bolts without transactional spouts")))
-;;     (doseq [[bid bolt] bolts
-;;             id (.get_transactional_spouts bolt)]
-;;       (if-not (contains? spouts id)
-;;         (throw (InvalidTopologyException.
-;;                 (str "Transactional bolt " bid " subscribes to invalid transactional spout " id)))
-;;         ))
-;;     (doseq [[id spout] spouts
-;;             :let [common (.get_common spout)]]
-;;       (.put_to_streams common TRANSACTION-BATCH-STREAM-ID (thrift/output-fields ["txattempt"]))
-;;       (.put_to_streams common TRANSACTION-COMMIT-STREAM-ID (thrift/output-fields ["txattempt"]))
-;;       (.put_to_inputs common (GlobalStreamId. id TRANSACTION-BATCH-STREAM-ID) (thrift/mk-all-grouping)))
-;;     (doseq [[_ bolt] bolts
-;;             :let [common (.get_common bolt)
-;;                   sids (.get_transactional_spouts bolt)
-;;                   sids (if (empty? sids) (keys spouts) sids)]]
-;;       (doseq [sid sids]
-;;         (.put_to_inputs common (GlobalStreamId. sid TRANSACTION-COMMIT-STREAM-ID) (thrift/mk-all-grouping))
-;;         ))
-;;     ))
-
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! (storm-conf TOPOLOGY-ACKERS) ret)
     (add-system-streams! ret)
-    ;; (add-transaction-streams! storm-conf ret)
     (validate-structure! ret)
     ret
     ))

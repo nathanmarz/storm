@@ -23,5 +23,5 @@ public interface ITransactionalSpout extends IComponent {
     }
     
     Coordinator getCoordinator(Map conf, TopologyContext context);
-    Emitter getEmitter(Map conf, TopologyContext context);    
+    Emitter getEmitter(Map conf, TopologyContext context);
 }

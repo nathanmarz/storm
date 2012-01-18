@@ -8,9 +8,13 @@ import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.transactional.TransactionalOutputCollector;
 import backtype.storm.transactional.state.RotatingTransactionalState;
 import backtype.storm.transactional.state.TransactionalState;
+import backtype.storm.utils.Utils;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 
 public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpout {
@@ -56,7 +60,18 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         public void emitBatch(final TransactionAttempt tx, final Object coordinatorMeta,
                 final TransactionalOutputCollector collector) {
             int partitions = (Integer) coordinatorMeta;
-            for(int i=_index; i < partitions; i+=_numTasks) {
+            TreeMap<Integer, Integer> allocationsMap = Utils.integerDivided(partitions, _numTasks);
+            List<Integer> allocations = new ArrayList<Integer>();
+            for(Integer amt: allocationsMap.descendingKeySet()) {
+                for(int i=0; i<allocationsMap.get(amt); i++) {
+                    allocations.add(amt);
+                }
+            }
+            int startPartition = 0;
+            for(int i=0; i<_index; i++) {
+                startPartition += allocations.get(i);
+            }
+            for(int i=startPartition; i < startPartition + allocations.get(_index); i+=1) {
                 if(!_partitionStates.containsKey(i)) {
                     _partitionStates.put(i, new RotatingTransactionalState(_state, "" + i));
                 }

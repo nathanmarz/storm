@@ -26,9 +26,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
 import org.yaml.snakeyaml.Yaml;
@@ -226,5 +225,32 @@ public class Utils {
 
     public static CuratorFramework newCurator(Map conf) {
         return newCurator(conf, "");
+    }
+    
+    /**
+     *
+(defn integer-divided [sum num-pieces]
+  (let [base (int (/ sum num-pieces))
+        num-inc (mod sum num-pieces)
+        num-bases (- num-pieces num-inc)]
+    (if (= num-inc 0)
+      {base num-bases}
+      {base num-bases (inc base) num-inc}
+      )))
+     * @param sum
+     * @param numPieces
+     * @return 
+     */
+    
+    public static TreeMap<Integer, Integer> integerDivided(int sum, int numPieces) {
+        int base = sum / numPieces;
+        int numInc = sum % numPieces;
+        int numBases = numPieces - numInc;
+        TreeMap<Integer, Integer> ret = new TreeMap<Integer, Integer>();
+        ret.put(base, numBases);
+        if(numInc!=0) {
+            ret.put(base+1, numInc);
+        }
+        return ret;
     }
 }

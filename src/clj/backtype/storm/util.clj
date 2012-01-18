@@ -3,7 +3,7 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time Container ClojureTimerTask])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils])
   (:import [java.util UUID])
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
@@ -352,13 +352,7 @@
   (Integer/parseInt str))
 
 (defn integer-divided [sum num-pieces]
-  (let [base (int (/ sum num-pieces))
-        num-inc (mod sum num-pieces)
-        num-bases (- num-pieces num-inc)]
-    (if (= num-inc 0)
-      {base num-bases}
-      {base num-bases (inc base) num-inc}
-      )))
+  (clojurify-structure (Utils/integerDivided sum num-pieces)))
 
 (defn collectify [obj]
   (if (or (sequential? obj) (instance? Collection obj)) obj [obj]))

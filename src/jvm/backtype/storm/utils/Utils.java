@@ -253,4 +253,10 @@ public class Utils {
         }
         return ret;
     }
+
+    public static byte[] toByteArray(ByteBuffer buffer) {
+        byte[] ret = new byte[buffer.remaining()];
+        buffer.get(ret, 0, ret.length);
+        return ret;
+    }
 }

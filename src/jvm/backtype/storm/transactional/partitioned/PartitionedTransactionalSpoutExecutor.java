@@ -8,23 +8,19 @@ import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.transactional.TransactionalOutputCollector;
 import backtype.storm.transactional.state.RotatingTransactionalState;
 import backtype.storm.transactional.state.TransactionalState;
-import backtype.storm.utils.Utils;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 
-public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpout {
+public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpout<Integer> {
     IPartitionedTransactionalSpout _spout;
     
     public PartitionedTransactionalSpoutExecutor(IPartitionedTransactionalSpout spout) {
         _spout = spout;
     }
     
-    class Coordinator implements ITransactionalSpout.Coordinator {
+    class Coordinator implements ITransactionalSpout.Coordinator<Integer> {
         private IPartitionedTransactionalSpout.Coordinator _coordinator;
         
         public Coordinator(Map conf, TopologyContext context) {
@@ -32,7 +28,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         }
         
         @Override
-        public Object initializeTransaction(BigInteger txid, Object prevMetadata) {
+        public Integer initializeTransaction(BigInteger txid, Integer prevMetadata) {
             return _coordinator.numPartitions();
         }
 
@@ -42,7 +38,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         }        
     }
     
-    class Emitter implements ITransactionalSpout.Emitter {
+    class Emitter implements ITransactionalSpout.Emitter<Integer> {
         private IPartitionedTransactionalSpout.Emitter _emitter;
         private TransactionalState _state;
         private Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<Integer, RotatingTransactionalState>();
@@ -57,21 +53,9 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         }
 
         @Override
-        public void emitBatch(final TransactionAttempt tx, final Object coordinatorMeta,
+        public void emitBatch(final TransactionAttempt tx, final Integer partitions,
                 final TransactionalOutputCollector collector) {
-            int partitions = (Integer) coordinatorMeta;
-            TreeMap<Integer, Integer> allocationsMap = Utils.integerDivided(partitions, _numTasks);
-            List<Integer> allocations = new ArrayList<Integer>();
-            for(Integer amt: allocationsMap.descendingKeySet()) {
-                for(int i=0; i<allocationsMap.get(amt); i++) {
-                    allocations.add(amt);
-                }
-            }
-            int startPartition = 0;
-            for(int i=0; i<_index; i++) {
-                startPartition += allocations.get(i);
-            }
-            for(int i=startPartition; i < startPartition + allocations.get(_index); i+=1) {
+            for(int i=_index; i < partitions; i+=_numTasks) {
                 if(!_partitionStates.containsKey(i)) {
                     _partitionStates.put(i, new RotatingTransactionalState(_state, "" + i));
                 }

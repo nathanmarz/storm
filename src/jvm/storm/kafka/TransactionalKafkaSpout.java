@@ -145,11 +145,6 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
     private int computeNumPartitions() {
         return _config.hosts.size() * _config.partitionsPerHost;        
     }
-
-    public static class BatchMeta {
-        long offset;
-        long nextOffset;        
-    }
     
     @Override
     public Map<String, Object> getComponentConfiguration() {

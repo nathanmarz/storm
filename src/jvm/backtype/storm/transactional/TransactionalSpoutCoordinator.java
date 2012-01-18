@@ -74,7 +74,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             status.status = AttemptStatus.PROCESSED;
         } else if(status.status==AttemptStatus.COMMITTING) {
             _activeTx.remove(tx.getTransactionId());
-            _coordinatorState.commit(tx.getTransactionId());
+            _coordinatorState.cleanupBefore(tx.getTransactionId());
             _currTransaction = nextTransactionId(tx.getTransactionId());
             _state.setData(CURRENT_TX, _currTransaction);
         }

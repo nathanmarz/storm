@@ -83,7 +83,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         @Override
         public void cleanupBefore(BigInteger txid) {
             for(RotatingTransactionalState state: _partitionStates.values()) {
-                state.commit(txid);
+                state.cleanupBefore(txid);
             }
         }
 

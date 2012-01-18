@@ -83,7 +83,7 @@ public class RotatingTransactionalState {
         }
     }
     
-    public void commit(BigInteger txid) {
+    public void cleanupBefore(BigInteger txid) {
         SortedMap<BigInteger, Object> toDelete = _curr.headMap(txid);
         for(BigInteger tx: toDelete.keySet()) {
             _curr.remove(tx);

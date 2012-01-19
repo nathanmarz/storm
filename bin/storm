@@ -111,7 +111,7 @@ def supervisor():
 
 def ui():
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    childopts = confvalue("ui.childopts", cpppaths) + " -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
+    childopts = confvalue("ui.childopts", cppaths) + " -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.ui.core", jvmtype="-server", childopts=childopts, extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
 
 def drpc():

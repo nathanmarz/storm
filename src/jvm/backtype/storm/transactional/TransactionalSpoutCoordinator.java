@@ -101,6 +101,8 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     }
     
     private void sync() {
+        // TODO: this code might be redundant. can just find the next transaction that needs a batch or commit tuple
+        // and emit that, instead of iterating through (MAX_SPOUT_PENDING should take care of things)
         TransactionStatus maybeCommit = _activeTx.get(_currTransaction);
         if(maybeCommit!=null && maybeCommit.status == AttemptStatus.PROCESSED) {
             maybeCommit.status = AttemptStatus.COMMITTING;

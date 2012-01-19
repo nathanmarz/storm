@@ -29,10 +29,11 @@ public class TransactionalState {
         try {
             conf = new HashMap(conf);
             // ensure that the serialization registrations are consistent with the declarations in this spout
-            conf.put(Config.TOPOLOGY_KRYO_REGISTER,
-                    spout.getComponentConfiguration()
-                         .get(Config.TOPOLOGY_KRYO_REGISTER));
-
+            if(spout.getComponentConfiguration()!=null) {
+                conf.put(Config.TOPOLOGY_KRYO_REGISTER,
+                         spout.getComponentConfiguration()
+                              .get(Config.TOPOLOGY_KRYO_REGISTER));
+            }
             String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;
             CuratorFramework initter = Utils.newCurator(conf);
             initter.create().creatingParentsIfNeeded().forPath(rootDir);
@@ -47,6 +48,7 @@ public class TransactionalState {
     }
     
     public void setData(String path, Object obj) {
+        path = "/" + path;
         byte[] ser = _ser.serializeObject(obj);
         try {
             if(_curator.checkExists().forPath(path)!=null) {
@@ -63,6 +65,7 @@ public class TransactionalState {
     }
     
     public void delete(String path) {
+        path = "/" + path;
         try {
             _curator.delete().forPath(path);
         } catch (Exception e) {
@@ -71,6 +74,7 @@ public class TransactionalState {
     }
     
     public List<String> list(String path) {
+        path = "/" + path;
         try {
             if(_curator.checkExists().forPath(path)==null) {
                 return new ArrayList<String>();
@@ -87,6 +91,7 @@ public class TransactionalState {
     }
     
     public Object getData(String path) {
+        path = "/" + path;
         try {
             if(_curator.checkExists().forPath(path)!=null) {
                 return _des.deserializeObject(_curator.getData().forPath(path));

@@ -29,6 +29,7 @@ import java.util.Set;
 /**
  * TODO: check to see if there are two topologies active with the same transactional id 
  * essentially want to implement a file lock on top of zk (use ephemeral nodes?)
+ * or just use the topology name?
  * 
  * Testing TODO:
  * 
@@ -45,6 +46,7 @@ import java.util.Set;
  * 8. Test that it picks up where it left off when restarting the topology
  *       - run topology and restart it
  * 9. Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
+ * 10. Test that it repeats the meta on a fail instead of recmoputing (for both partition state and coordinator state)
  */
 public class TransactionalTopologyBuilder {
     String _id;

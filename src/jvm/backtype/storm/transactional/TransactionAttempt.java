@@ -32,6 +32,6 @@ public class TransactionAttempt {
 
     @Override
     public String toString() {
-        return "" + _txid + ": " + _attemptId;
+        return "" + _txid + ":" + _attemptId;
     }    
 }

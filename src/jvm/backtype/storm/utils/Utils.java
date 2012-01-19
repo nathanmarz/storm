@@ -209,7 +209,7 @@ public class Utils {
     public static CuratorFramework newCurator(Map conf, String root) {
         List<String> serverPorts = new ArrayList<String>();
         for(String zkServer: (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS)) {
-            serverPorts.add(zkServer + Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT)));
+            serverPorts.add(zkServer + ":" + Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT)));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root; 
         try {

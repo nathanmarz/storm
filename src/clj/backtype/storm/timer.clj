@@ -25,7 +25,7 @@
                       (fn []
                         (while @active
                           (try
-                            (let [[time-secs _ _ :as elem] (.peek queue)]
+                            (let [[time-secs _ _ :as elem] (locking lock (.peek queue))]
                               (if (and elem (>= (current-time-secs) time-secs))
                                 ;; imperative to not run the function inside the timer lock
                                 ;; otherwise, it's possible to deadlock if function deals with other locks

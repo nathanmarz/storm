@@ -9,6 +9,24 @@
 
 (bootstrap)
 
+;; Testing TODO:
+;; 
+;; * Test that batch emitters emit nothing when a future batch has been emitted and its state saved - test batch emitter on its own?
+;; * Test that transactionalbolts only commit when they've received the whole batch for that attempt,
+;;   not a partial batch - test on its own
+;; * Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
+;;      - test the full topology (this is a test of acking/anchoring)
+;; * Test that batch isn't considered processed until the entire tuple tree has been completed
+;;      - test the full topology (this is a test of acking/anchoring)
+;; * Test that it picks up where it left off when restarting the topology
+;;      - run topology and restart it
+;; * Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
+
+
+;; * Test that commits are strongly ordered - test coordinator on its own
+;; * Test that commits are strongly ordered even in the case of failure - test coordinator on its own
+;; * Test that it repeats the meta on a fail instead of recmoputing (for both partition state and coordinator state)
+;; * Test that transactions are properly pipelined - test coordinator on its own
 (defn mk-coordinator-state-changer [atom]
   (TransactionalSpoutCoordinator.
     (reify ITransactionalSpout
@@ -50,7 +68,22 @@
                (mk-spout-capture emit-capture))
         (reset! coordinator-state 10)
         (.nextTuple coordinator)
-        (.nextTuple coordinator)
-        (.nextTuple coordinator)
+        ;; check that there are 4 separate transaction attempts in there, with different ids
+        ;; now fail the second one
+        ;; check that it gets restarted
+        ;; ack the second transaction id
+        ;; check that no commit
+        ;; ack the first one
+        ;; check commit
+        ;; ack the commit
+        ;; check that the second one commits and a new batch added
+        ;; ack the third one
+        ;; check commit
+        ;; ack the 4th one
+        ;; check no commit on 4th
+        ;; fail the commit
+        ;; check that batch is retried and no commit on 4th
+        ;; ack the 3rd + ack the commit
+        ;; check that 4th is committed
         (println @emit-capture)
         ))))

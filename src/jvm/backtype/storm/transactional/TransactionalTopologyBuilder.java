@@ -31,23 +31,8 @@ import java.util.Set;
  * essentially want to implement a file lock on top of zk (use ephemeral nodes?)
  * or just use the topology name?
  * 
- * Testing TODO:
- * 
- * 1. Test that commits are strongly ordered - test coordinator on its own
- * 2. Test that commits are strongly ordered even in the case of failure - test coordinator on its own
- * 3. Test that batch emitters emit nothing when a future batch has been emitted and its state saved - test batch emitter on its own?
- * 4. Test that transactionalbolts only commit when they've received the whole batch for that attempt,
- *    not a partial batch - test on its own
- * 5. Test that transactions are properly pipelined - test coordinator on its own
- * 6. Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
- *       - test the full topology (this is a test of acking/anchoring)
- * 7. Test that batch isn't considered processed until the entire tuple tree has been completed
- *       - test the full topology (this is a test of acking/anchoring)
- * 8. Test that it picks up where it left off when restarting the topology
- *       - run topology and restart it
- * 9. Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
- * 10. Test that it repeats the meta on a fail instead of recmoputing (for both partition state and coordinator state)
- */
+ * /
+
 public class TransactionalTopologyBuilder {
     String _id;
     String _spoutId;

@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     byte[] _boltSer;
-    TimeCacheMap<TransactionAttempt, ITransactionalBolt> _openTransactions;
+    TimeCacheMap<TransactionAttempt, OpenTransaction> _openTransactions;
     Map _conf;
     TopologyContext _context;
     TransactionalOutputCollectorImpl _collector;
@@ -28,14 +28,14 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         _conf = conf;
         _context = context;
         _collector = new TransactionalOutputCollectorImpl(collector);
-        _openTransactions = new TimeCacheMap<TransactionAttempt, ITransactionalBolt>(Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+        _openTransactions = new TimeCacheMap<TransactionAttempt, OpenTransaction>(Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
     }
 
     @Override
     public void execute(Tuple input) {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         String stream = input.getSourceStreamId();
-        ITransactionalBolt bolt = _openTransactions.get(attempt);
+        OpenTransaction tx = _openTransactions.get(attempt);
         // bolt != null && receiving commit message -> this task processed the whole batch for this attempt
         // this is because: commit message only sent when tuple tree acked
         // if it failed after, then bolt will equal null, if it failed before, then it doesn't get acked
@@ -43,23 +43,23 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         // this task processed the whole batch for this attempt && receiving commit message-> bolt != null
         // because the batch tuple is sent, guaranteeing that it sees at least one tuple for the batch
         if(stream.equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
-                if(bolt!=null) {
-                    ((ICommittable)bolt).commit();
+                if(tx!=null && tx.finished) {
+                    ((ICommittable)tx.bolt).commit();
                     _collector.ack(input);
                     _openTransactions.remove(attempt);
                 } else {
                     _collector.fail(input);
                 }
         } else {
-            if(bolt==null) {
-                bolt = newTransactionalBolt();
-                bolt.prepare(_conf, _context, _collector, attempt);
-                _openTransactions.put(attempt, bolt);            
+            if(tx==null) {
+                tx = new OpenTransaction();
+                tx.bolt.prepare(_conf, _context, _collector, attempt);
+                _openTransactions.put(attempt, tx);            
             }
 
             // it is sent the batch id to guarantee that it creates the TransactionalBolt for the attempt before commit
             if(!stream.equals(TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)) {
-                bolt.execute(input);
+                tx.bolt.execute(input);
             }       
             _collector.ack(input);
         }
@@ -72,13 +72,14 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     @Override
     public void finishedId(FinishedTuple tup) {
         TransactionAttempt attempt = (TransactionAttempt) tup.getId();
-        ITransactionalBolt bolt = _openTransactions.get(attempt);
+        OpenTransaction tx = _openTransactions.get(attempt);
         // can equal null if the TimeCacheMap expired it
-        if(bolt!=null) {
-            if(!(bolt instanceof ICommittable)) {
+        if(tx!=null) {
+            if(!(tx instanceof ICommittable)) {
                 _openTransactions.remove(attempt);
             }
-            bolt.finishBatch();
+            tx.bolt.finishBatch();
+            tx.finished = true;
         }
     }
 
@@ -90,6 +91,11 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         return newTransactionalBolt().getComponentConfiguration();
+    }
+    
+    private class OpenTransaction {
+        public boolean finished = false;
+        public ITransactionalBolt bolt = newTransactionalBolt();
     }
 
     private ITransactionalBolt newTransactionalBolt() {

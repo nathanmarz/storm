@@ -11,8 +11,6 @@
 
 ;; Testing TODO:
 ;; 
-;; * Test that transactionalbolts only commit when they've received the whole batch for that attempt,
-;;   not a partial batch - test on its own
 ;; * Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
 ;;      - test the full topology (this is a test of acking/anchoring)
 ;; * Test that batch isn't considered processed until the entire tuple tree has been completed
@@ -143,3 +141,9 @@
         (.ack coordinator commit-id)
         (verify-and-reset! {COMMIT-STREAM [[4]] BATCH-STREAM [[7 12]]} emit-capture)
         ))))
+
+
+(deftest no-partial-commit
+  ;; * Test that transactionalbolts only commit when they've received the whole batch for that attempt,
+  ;;   not a partial batch - test on its own
+  )

@@ -108,7 +108,7 @@ public class CoordinatedBolt implements IRichBolt {
     }
 
     private Map<String, SourceArgs> _sourceArgs;
-    private GlobalStreamId _idSource;
+    private IdStreamSpec _idStreamSpec;
     private IRichBolt _delegate;
     private Integer _numSourceReports;
     private List<Integer> _countOutTasks = new ArrayList<Integer>();;
@@ -132,19 +132,41 @@ public class CoordinatedBolt implements IRichBolt {
     }
 
     
+    public static class IdStreamSpec {
+        GlobalStreamId _id;
+        boolean _passTupleThrough = false;
+        
+        public static IdStreamSpec makePassThroughSpec(String component, String stream) {
+            return new IdStreamSpec(component, stream, true);
+        }
+        
+        public GlobalStreamId getGlobalStreamId() {
+            return _id;
+        }
+
+        public static IdStreamSpec makeDetectSpec(String component, String stream) {
+            return new IdStreamSpec(component, stream, false);
+        }        
+        
+        protected IdStreamSpec(String component, String stream, boolean passTupleThrough) {
+            _id = new GlobalStreamId(component, stream);
+            _passTupleThrough = passTupleThrough;
+        }
+    }
+    
     public CoordinatedBolt(IRichBolt delegate) {
         this(delegate, null, null);
     }
 
-    public CoordinatedBolt(IRichBolt delegate, String sourceComponent, SourceArgs sourceArgs, GlobalStreamId idSource) {
-        this(delegate, singleSourceArgs(sourceComponent, sourceArgs), idSource);
+    public CoordinatedBolt(IRichBolt delegate, String sourceComponent, SourceArgs sourceArgs, IdStreamSpec idStreamSpec) {
+        this(delegate, singleSourceArgs(sourceComponent, sourceArgs), idStreamSpec);
     }
     
-    public CoordinatedBolt(IRichBolt delegate, Map<String, SourceArgs> sourceArgs, GlobalStreamId idSource) {
+    public CoordinatedBolt(IRichBolt delegate, Map<String, SourceArgs> sourceArgs, IdStreamSpec idStreamSpec) {
         _sourceArgs = sourceArgs;
         if(_sourceArgs==null) _sourceArgs = new HashMap<String, SourceArgs>();
         _delegate = delegate;
-        _idSource = idSource;
+        _idStreamSpec = idStreamSpec;
     }
     
     public void prepare(Map config, TopologyContext context, OutputCollector collector) {
@@ -206,19 +228,24 @@ public class CoordinatedBolt implements IRichBolt {
             track = _tracked.get(id);
             if(track==null) {
                 track = new TrackingInfo();
-                if(_idSource==null) track.receivedId = true;
+                if(_idStreamSpec==null) track.receivedId = true;
                 _tracked.put(id, track);
             }
         }
         
-        if(_idSource!=null
-                && tuple.getSourceComponent().equals(_idSource.get_componentId())
-                && tuple.getSourceStreamId().equals(_idSource.get_streamId())) {
+        if(_idStreamSpec!=null
+                && tuple.getSourceGlobalStreamid().equals(_idStreamSpec._id)) {
             synchronized(_tracked) {
                 track.receivedId = true;
             }
+            if(_idStreamSpec._passTupleThrough) {
+                _delegate.execute(tuple);
+            }
             checkFinishId(tuple);
-            _collector.ack(tuple);
+            
+            if(!_idStreamSpec._passTupleThrough) {
+                _collector.ack(tuple);
+            }
         } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
             int count = (Integer) tuple.getValue(1);

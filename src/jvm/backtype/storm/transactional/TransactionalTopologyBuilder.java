@@ -3,6 +3,7 @@ package backtype.storm.transactional;
 import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt;
+import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
@@ -106,14 +107,15 @@ public class TransactionalTopologyBuilder {
             for(String c: componentBoltSubscriptions(component)) {
                 coordinatedArgs.put(c, SourceArgs.all());
             }
-            GlobalStreamId idStream = null;
+            
+            IdStreamSpec idSpec = null;
             if(component.committer) {
-                idStream = new GlobalStreamId(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);          
+                idSpec = IdStreamSpec.makePassThroughSpec(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);          
             }
             BoltDeclarer input = builder.setBolt(id,
                                                   new CoordinatedBolt(component.bolt,
                                                                       coordinatedArgs,
-                                                                      idStream),
+                                                                      idSpec),
                                                   component.parallelism);
             for(Map conf: component.componentConfs) {
                 input.addConfigurations(conf);

@@ -4,6 +4,7 @@ import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.coordination.CoordinatedBolt;
 import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.StormTopology;
@@ -80,21 +81,21 @@ public class LinearDRPCTopologyBuilder {
             } else if (i>=2) {
                 source.put(boltId(i-1), SourceArgs.all());
             }
-            GlobalStreamId idSource = null;
+            IdStreamSpec idSpec = null;
             if(i==_components.size()-1 && component.bolt instanceof FinishedCallback) {
-                idSource = new GlobalStreamId(PREPARE_ID, PrepareRequest.ID_STREAM);
+                idSpec = IdStreamSpec.makeDetectSpec(PREPARE_ID, PrepareRequest.ID_STREAM);
             }
             BoltDeclarer declarer = builder.setBolt(
                     boltId(i),
-                    new CoordinatedBolt(component.bolt, source, idSource),
+                    new CoordinatedBolt(component.bolt, source, idSpec),
                     component.parallelism);
             
             for(Map conf: component.componentConfs) {
                 declarer.addConfigurations(conf);
             }
             
-            if(idSource!=null) {
-                declarer.fieldsGrouping(idSource.get_componentId(), PrepareRequest.ID_STREAM, new Fields("request"));
+            if(idSpec!=null) {
+                declarer.fieldsGrouping(idSpec.getGlobalStreamId().get_componentId(), PrepareRequest.ID_STREAM, new Fields("request"));
             }
             if(i==0 && component.declarations.isEmpty()) {
                 declarer.noneGrouping(PREPARE_ID, PrepareRequest.ARGS_STREAM);

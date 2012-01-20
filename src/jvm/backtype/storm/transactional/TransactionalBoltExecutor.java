@@ -11,8 +11,11 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.TimeCacheMap;
 import backtype.storm.utils.Utils;
 import java.util.Map;
+import org.apache.log4j.Logger;
 
 public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
+    public static Logger LOG = Logger.getLogger(TransactionalBoltExecutor.class);    
+
     byte[] _boltSer;
     TimeCacheMap<TransactionAttempt, OpenTransaction> _openTransactions;
     Map _conf;
@@ -43,11 +46,15 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         // this task processed the whole batch for this attempt && receiving commit message-> bolt != null
         // because the batch tuple is sent, guaranteeing that it sees at least one tuple for the batch
         if(stream.equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
+                // tx.finished is really just a sanity check, as it should always equal true at this point
+                // the check is in there so that partial batches never being committed is independent from 
+                // the acking mechanism
                 if(tx!=null && tx.finished) {
                     ((ICommittable)tx.bolt).commit();
                     _collector.ack(input);
                     _openTransactions.remove(attempt);
                 } else {
+                    LOG.info("Failing transaction attempt: " + attempt + " with state " + tx);
                     _collector.fail(input);
                 }
         } else {
@@ -96,6 +103,11 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
     private class OpenTransaction {
         public boolean finished = false;
         public ITransactionalBolt bolt = newTransactionalBolt();
+
+        @Override
+        public String toString() {
+            return "finished: " + finished;
+        }        
     }
 
     private ITransactionalBolt newTransactionalBolt() {

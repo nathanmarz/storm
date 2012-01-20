@@ -11,7 +11,6 @@
 
 ;; Testing TODO:
 ;; 
-;; * Test that batch emitters emit nothing when a future batch has been emitted and its state saved - test batch emitter on its own?
 ;; * Test that transactionalbolts only commit when they've received the whole batch for that attempt,
 ;;   not a partial batch - test on its own
 ;; * Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
@@ -21,12 +20,9 @@
 ;; * Test that it picks up where it left off when restarting the topology
 ;;      - run topology and restart it
 ;; * Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
+;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
+;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
 
-
-;; * Test that commits are strongly ordered - test coordinator on its own
-;; * Test that commits are strongly ordered even in the case of failure - test coordinator on its own
-;; * Test that it repeats the meta on a fail instead of recmoputing (for both partition state and coordinator state)
-;; * Test that transactions are properly pipelined - test coordinator on its own
 (defn mk-coordinator-state-changer [atom]
   (TransactionalSpoutCoordinator.
     (reify ITransactionalSpout
@@ -40,6 +36,9 @@
             )))
     )))
 
+(def BATCH-STREAM TransactionalSpoutCoordinator/TRANSACTION_BATCH_STREAM_ID)
+(def COMMIT-STREAM TransactionalSpoutCoordinator/TRANSACTION_COMMIT_STREAM_ID)
+
 (defn mk-spout-capture [capturer]
   (SpoutOutputCollector.
     (reify ISpoutOutputCollector
@@ -48,6 +47,33 @@
           (fn [oldval] (concat oldval [{:tuple tuple :id message-id}])))
         []
         ))))
+
+(defn verify-and-reset! [expected-map emitted-map-atom]
+  (let [results @emitted-map-atom]
+    (dorun
+     (map-val
+      (fn [tuples]
+        (doseq [t tuples]
+          (is (= (-> t :tuple first) (:id t)))
+          ))
+      results))
+    (is (= expected-map
+           (map-val
+            (fn [tuples]
+              (map (comp #(update % 0 (memfn getTransactionId))
+                         vec
+                         :tuple)
+                   tuples))
+            results
+            )))
+    (reset! emitted-map-atom {})
+    ))
+
+(defn get-attempts [capture-atom stream]
+  (map :id (get @capture-atom stream)))
+
+(defn get-commit [capture-atom]
+  (-> @capture-atom (get COMMIT-STREAM) first :id))
 
 (deftest test-coordinator
   (let [zk-port (available-port 2181)
@@ -68,22 +94,52 @@
                (mk-spout-capture emit-capture))
         (reset! coordinator-state 10)
         (.nextTuple coordinator)
-        ;; check that there are 4 separate transaction attempts in there, with different ids
-        ;; now fail the second one
-        ;; check that it gets restarted
-        ;; ack the second transaction id
-        ;; check that no commit
-        ;; ack the first one
-        ;; check commit
-        ;; ack the commit
-        ;; check that the second one commits and a new batch added
-        ;; ack the third one
-        ;; check commit
-        ;; ack the 4th one
-        ;; check no commit on 4th
-        ;; fail the commit
-        ;; check that batch is retried and no commit on 4th
-        ;; ack the 3rd + ack the commit
-        ;; check that 4th is committed
-        (println @emit-capture)
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (verify-and-reset! {BATCH-STREAM [[1 10] [2 10] [3 10] [4 10]]}
+                           emit-capture)
+
+        (.nextTuple coordinator)
+        (verify-and-reset! {} emit-capture)
+        
+        (.fail coordinator (second attempts))
+        (bind new-second-attempt (first (get-attempts emit-capture BATCH-STREAM)))
+        (verify-and-reset! {BATCH-STREAM [[2 10]]} emit-capture)
+        (is (not= new-second-attempt (second attempts)))
+        (.ack coordinator new-second-attempt)
+        (verify-and-reset! {} emit-capture)
+        (.ack coordinator (first attempts))
+        (bind commit-id (get-commit emit-capture))
+        (verify-and-reset! {COMMIT-STREAM [[1]]} emit-capture)
+
+        (reset! coordinator-state 12)
+        (.ack coordinator commit-id)
+        (bind commit-id (get-commit emit-capture))
+        (verify-and-reset! {COMMIT-STREAM [[2]] BATCH-STREAM [[5 12]]} emit-capture)
+        (.ack coordinator commit-id)
+        (verify-and-reset! {BATCH-STREAM [[6 12]]} emit-capture)
+
+        (.fail coordinator (nth attempts 2))
+        (bind new-third-attempt (first (get-attempts emit-capture BATCH-STREAM)))
+        (verify-and-reset! {BATCH-STREAM [[3 10]]} emit-capture)
+
+        (.ack coordinator new-third-attempt)
+        (bind commit-id (get-commit emit-capture))
+        (verify-and-reset! {COMMIT-STREAM [[3]]} emit-capture)
+
+        (.ack coordinator (nth attempts 3))
+        (verify-and-reset! {} emit-capture)
+
+        (.fail coordinator commit-id)
+        (bind new-third-attempt (first (get-attempts emit-capture BATCH-STREAM)))
+        (verify-and-reset! {BATCH-STREAM [[3 10]]} emit-capture)
+
+        (.ack coordinator new-third-attempt)
+        (bind commit-id (get-commit emit-capture))
+        (verify-and-reset! {COMMIT-STREAM [[3]]} emit-capture)
+
+        (.nextTuple coordinator)
+        (verify-and-reset! {} emit-capture)
+        
+        (.ack coordinator commit-id)
+        (verify-and-reset! {COMMIT-STREAM [[4]] BATCH-STREAM [[7 12]]} emit-capture)
         ))))

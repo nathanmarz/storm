@@ -27,3 +27,5 @@ You must not remove this notice, or any other, from this software.
 * Jason Jackson ([@jason_j](http://twitter.com/jason_j))
 * Christopher Bertels ([@bakkdoor](http://twitter.com/bakkdoor))
 * Michael Montano ([@michaelmontano](http://twitter.com/michaelmontano))
+* Dennis Zhuang ([@killme2008](https://github.com/killme2008))
+* Trevor Smith ([@trevorsummerssmith](https://github.com/trevorsummerssmith))

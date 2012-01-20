@@ -31,7 +31,7 @@ import java.util.Set;
  * essentially want to implement a file lock on top of zk (use ephemeral nodes?)
  * or just use the topology name?
  * 
- * /
+ */
 
 public class TransactionalTopologyBuilder {
     String _id;

@@ -106,10 +106,14 @@ public class TransactionalTopologyBuilder {
             for(String c: componentBoltSubscriptions(component)) {
                 coordinatedArgs.put(c, SourceArgs.all());
             }
+            GlobalStreamId idStream = null;
+            if(component.committer) {
+                idStream = new GlobalStreamId(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);          
+            }
             BoltDeclarer input = builder.setBolt(id,
                                                   new CoordinatedBolt(component.bolt,
                                                                       coordinatedArgs,
-                                                                      null),
+                                                                      idStream),
                                                   component.parallelism);
             for(Map conf: component.componentConfs) {
                 input.addConfigurations(conf);

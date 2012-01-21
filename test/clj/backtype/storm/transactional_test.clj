@@ -143,7 +143,26 @@
         ))))
 
 
+(defn mk-bolt-capture [capturer]
+  (BoltOutputCollector.
+    (reify IOutputCollector
+      (emit [this stream-id anchors values]
+        (swap! capturer update-in [stream-id]
+               (fn [oldval] (concat oldval [values])))
+        []
+        )
+      (ack [this tuple]
+        )
+      (fail [this tuple]
+        )
+      )))
+
 (deftest no-partial-commit
   ;; * Test that transactionalbolts only commit when they've received the whole batch for that attempt,
-  ;;   not a partial batch - test on its own
+  ;;   not a partial batch - test on its own.
+  ;;   test that it fails before finishBatch has been called, (with no tuples or with tuples for the attempt), commits otherwise
+  
+  ;;  what about testing that the coordination is done properly?
+  ;;  can check that it receives all the prior tuples before finishbatch is called in the full topology
+  ;;  should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
   )

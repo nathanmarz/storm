@@ -13,8 +13,12 @@
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
-  (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
-            SpoutTracker BoltTracker NonRichBoltTracker])
+  (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
+            TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
+            TestWordSpout])
+  (:import [backtype.storm.tuple Tuple])
+  (:import [backtype.storm.generated StormTopology])
+  (:import [backtype.storm.task TopologyContext])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
@@ -459,3 +463,18 @@
           (Thread/sleep 5))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
+
+(defnk test-tuple [values
+                   :stream Utils/DEFAULT_STREAM_ID
+                   :component "component"
+                   :fields nil]
+  (let [fields (or fields
+                   (->> (iterate inc 1)
+                        (take (count values))
+                        (map #(str "field" %))))
+        spout-spec (mk-spout-spec* (TestWordSpout.)
+                                   {stream fields})
+        topology (StormTopology. {component spout-spec} {} {})
+        context (TopologyContext. topology {1 component} "test-storm-id" nil nil 1)]
+    (Tuple. context values 1 stream)
+    ))

@@ -54,6 +54,7 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
                     _collector.ack(input);
                     _openTransactions.remove(attempt);
                 } else {
+                    // TODO: does this even do anything, given that the tuple is unanchored?
                     LOG.info("Failing transaction attempt: " + attempt + " with state " + tx);
                     _collector.fail(input);
                 }
@@ -82,7 +83,7 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         OpenTransaction tx = _openTransactions.get(attempt);
         // can equal null if the TimeCacheMap expired it
         if(tx!=null) {
-            if(!(tx instanceof ICommittable)) {
+            if(!(tx.bolt instanceof ICommittable)) {
                 _openTransactions.remove(attempt);
             }
             tx.bolt.finishBatch();

@@ -26,6 +26,7 @@ public class TransactionAttempt {
 
     @Override
     public boolean equals(Object o) {
+        if(!(o instanceof TransactionAttempt)) return false;
         TransactionAttempt other = (TransactionAttempt) o;
         return _txid.equals(other._txid) && _attemptId == other._attemptId;
     }

@@ -11,6 +11,7 @@ import backtype.storm.utils.Utils;
 import clojure.lang.ILookup;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,24 +33,6 @@ public class Tuple implements ILookup, IAnchorableImpl {
     private String streamId;
     private TopologyContext context;
     private MessageId id;
-
-    public static Tuple makeTestTuple(Fields fields, List<Object> values) {
-        return makeTestTuple(fields, Utils.DEFAULT_STREAM_ID, values);
-    }
-
-    public static Tuple makeTestTuple(Fields fields, String stream, List<Object> values) {
-        Map<Integer, String> taskToComponent = new HashMap<Integer, String>();
-        taskToComponent.put(1, "test-component");
-        Map<String, SpoutSpec> spouts = new HashMap<String, SpoutSpec>();
-        Map<String, StreamInfo> streams = new HashMap<String, StreamInfo>();
-        streams.put(stream, new StreamInfo(fields.toList(), false));
-        SpoutSpec spout = new SpoutSpec(ComponentObject.serialized_java(new byte[0]), new ComponentCommon(new HashMap(), streams));
-        spouts.put("test-component", spout);
-        StormTopology topology = new StormTopology(spouts, new HashMap(), new HashMap());
-        TopologyContext context = new TopologyContext(topology, taskToComponent, "test-storm-id", null, null, 1);
-        
-        return new Tuple(context, values, 1, stream);
-    }    
     
     //needs to get taskId explicitly b/c could be in a different task than where it was created
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {

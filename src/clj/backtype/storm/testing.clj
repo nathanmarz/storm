@@ -305,16 +305,29 @@
 
 (defprotocol CompletableSpout
   (total-tuples [this] "Returns the total number of tuples this spout is going to emit")
-  (completed-tuples [this] "Returns the number of tuples that have been completed by this spout so far"))
+  (completed-tuples [this] "Returns the number of tuples that have been completed by this spout so far")
+  (cleanup [this] "Cleanup any global state kept"))
 
-;; TODO: extend protocol to FixedTupleSpout
+(extend-type FixedTupleSpout
+  CompletableSpout
+  (total-tuples [this]
+    (-> this .getSourceTuples count)
+    )
+  (completed-tuples [this]
+    (.getCompleted this))
+  (cleanup [this]
+    (.cleanup this)))
+
 ;; TODO: extend protocol to TransactionalSpoutCoordinator (and have it delegate to FixedTransactionalSpout within - which should be a partitioned spout)
+
+(defn spout-objects [spec-map]
+  (for [[_ spout-spec] spec-map]
+    (-> spout-spec
+        .get_spout_object
+        deserialized-component-object)))
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
 (defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
-  ;; TODO: generalize this to work with transactional topologies
-  ;; instead of direclty calling FixedTupleSpout interface, want a function (or a protocol) that can get (total tuples planned) and (total tuples done) from the spout
-
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [storm-name (str "topologytest-" (uuid))
@@ -338,9 +351,9 @@
       (let [spout-spec (get spouts id)]
         (.set_spout_object spout-spec (serialize-component-object spout))
         ))
-    (doseq [[_ spout-spec] (clojurify-structure spouts)]
-      (when-not (instance? FixedTupleSpout (deserialized-component-object (.get_spout_object spout-spec)))
-        (throw (RuntimeException. "Cannot complete topology unless every spout is a FixedTupleSpout (or mocked to be)"))
+    (doseq [spout (spout-objects spouts)]
+      (when-not (extends? CompletableSpout (.getClass spout))
+        (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))
         ))
     
     (.set_bolts topology
@@ -353,26 +366,19 @@
                                               nil))
                   ))
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
-
     
     
-    (let [num-source-tuples (reduce +
-                                    (for [[_ spout-spec] spouts]
-                                      (-> (.get_spout_object spout-spec)
-                                          deserialized-component-object
-                                          .getSourceTuples
-                                          count)
-                                      ))
+    (let [num-source-tuples (reduce + (map total-tuples (spout-objects spouts)))
           storm-id (common/get-storm-id state storm-name)]
-      (while (< (+ (FixedTupleSpout/getNumAcked storm-id)
-                   (FixedTupleSpout/getNumFailed storm-id))
+      (while (< (reduce + (map completed-tuples (spout-objects spouts)))
                 num-source-tuples)
         (simulate-wait cluster-map))
 
       (.killTopology (:nimbus cluster-map) storm-name)
       (while (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))
-      (FixedTupleSpout/clear storm-id))
+      (doseq [spout (spout-objects spouts)]
+        (cleanup spout)))
 
     (.getResults capturer)
     ))

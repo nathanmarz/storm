@@ -35,15 +35,16 @@
         (FileUtils/forceDelete (File. t))
         ))))
 
-(defmacro with-local-tmp [[& tmp-syms] & body]
-  (let [tmp-paths (mapcat (fn [t] [t `(local-temp-path)]) tmp-syms)]
-    `(let [~@tmp-paths]
-      (try
-        ~@body
-      (finally
-       (delete-all ~(vec tmp-syms)))
-      ))
-    ))
+(defn with-local-tmp* [n afn]
+  (let [tmp-paths (take n (repeatedly local-temp-path))]
+    (try (apply afn tmp-paths)
+         (finally
+          (delete-all tmp-paths)))))
+
+(defmacro with-local-tmp
+  [[& tmp-syms] & body]
+  `(with-local-tmp* ~(count tmp-syms)
+     (fn [~@tmp-syms] ~@body)))
 
 (defn start-simulating-time! []
   (Time/startSimulating))
@@ -51,20 +52,20 @@
 (defn stop-simulating-time! []
   (Time/stopSimulating))
 
+(defn simulated-time-call [f]
+  (do (start-simulating-time!)
+      (let [ret (f)]
+        (stop-simulating-time!)
+        ret)))
+
 (defmacro with-simulated-time [& body]
-  `(do
-     (start-simulating-time!)
-     (let [ret# (do ~@body)]
-       (stop-simulating-time!)
-       ret#
-       )))
+  `(simulated-time-call (fn [] ~@body)))
 
 (defn advance-time-ms! [ms]
   (Time/advanceTime ms))
 
 (defn advance-time-secs! [secs]
   (advance-time-ms! (* (long secs) 1000)))
-
 
 (defnk add-supervisor [cluster-map :ports 2 :conf {} :id nil]
   (let [tmp-dir (local-temp-path)
@@ -156,7 +157,6 @@
     (rmr t)
     ))
 
-
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
   [cluster-map]
@@ -185,31 +185,35 @@
     (advance-cluster-time cluster-map secs 1)
     ))
 
+(defn with-local-cluster* [f & cluster-args]
+  (let [cluster (apply mk-local-storm-cluster cluster-args)]
+    (try (f cluster)
+         (catch Throwable t
+           (log-error t "Error in cluster"))
+         (finally
+          (kill-local-storm-cluster cluster)))))
+
 (defmacro with-local-cluster [[cluster-sym & args] & body]
-  `(let [~cluster-sym (mk-local-storm-cluster ~@args)]
-     (try
-       ~@body
-     (catch Throwable t#
-       (log-error t# "Error in cluster")
-       )
-     (finally
-       (kill-local-storm-cluster ~cluster-sym)))
-       ))
+  `(with-local-cluster*
+     (fn [~cluster-sym] ~@body)
+     ~@args))
 
 (defmacro with-simulated-time-local-cluster [& args]
   `(with-simulated-time
-    (with-local-cluster ~@args)))
+     (with-local-cluster ~@args)))
 
 ;; TODO: should take in a port symbol and find available port automatically
+
+(defn with-inprocess-zookeeper* [f port]
+  (with-local-tmp [tmp]
+    (let [zks (zk/mk-inprocess-zookeeper tmp port)]
+      (try (f)
+           (finally (zk/shutdown-inprocess-zookeeper zks))))))
+
 (defmacro with-inprocess-zookeeper [port & body]
-  `(with-local-tmp [tmp#]
-     (let [zks# (zk/mk-inprocess-zookeeper tmp# ~port)]
-       (try
-         ~@body
-       (finally
-         (zk/shutdown-inprocess-zookeeper zks#)
-         ))
-       )))
+  `(with-inprocess-zookeeper*
+     (fn [] ~@body)
+     ~port))
 
 (defn submit-local-topology [nimbus storm-name conf topology]
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
@@ -248,21 +252,30 @@
         (existing-fn conf supervisor-id worker-id worker-thread-pids-atom)
         ))))
 
+(defmacro capture-changed-workers* [f]
+  (let [launch-captured   (atom {})
+        shutdown-captured (atom {})]
+    (with-var-roots [supervisor/launch-worker (mk-capture-launch-fn launch-captured)
+                     supervisor/shutdown-worker (mk-capture-shutdown-fn
+                                                 shutdown-captured)]
+      (f)
+      {:launched @launch-captured
+       :shutdown @shutdown-captured})))
+
+(def capture-launched-workers*
+  (comp :launched capture-changed-workers*))
+
+(def capture-shutdown-workers*
+  (comp :shutdown capture-changed-workers*))
+
 (defmacro capture-changed-workers [& body]
-  `(let [launch-captured# (atom {})
-         shutdown-captured# (atom {})]
-    (with-var-roots [supervisor/launch-worker (mk-capture-launch-fn launch-captured#)
-                     supervisor/shutdown-worker (mk-capture-shutdown-fn shutdown-captured#)]
-      ~@body
-      {:launched @launch-captured#
-       :shutdown @shutdown-captured#}
-      )))
+  `(capture-change-workers* (fn [] ~@body)))
 
 (defmacro capture-launched-workers [& body]
-  `(:launched (capture-changed-workers ~@body)))
+  `(capture-launched-workers* (fn [] ~@body)))
 
 (defmacro capture-shutdown-workers [& body]
-  `(:shutdown (capture-changed-workers ~@body)))
+  `(capture-shutdown-workers* (fn [] ~@body)))
 
 (defnk aggregated-stat [cluster-map storm-name stat-key :component-ids nil]
   (let [state (:storm-cluster-state cluster-map)
@@ -415,32 +428,36 @@
       .get
       ))
 
+(defn with-tracked-cluster* [f & cluster-args]
+  (let [id (uuid)]
+    (RegisteredGlobalState/setState
+     id
+     (doto (ConcurrentHashMap.)
+       (.put "spout-emitted" (AtomicInteger. 0))
+       (.put "transferred" (AtomicInteger. 0))
+       (.put "processed" (AtomicInteger. 0))))
+    (with-var-roots [acker/mk-acker-bolt
+                     (let [old acker/mk-acker-bolt]
+                       (fn [& args]
+                         (BoltTracker. (apply old args) id)))
+                      
+                     worker/mk-transfer-fn
+                     (let [old worker/mk-transfer-fn]
+                       (fn [& args]
+                         (let [transferrer (apply old args)]
+                           (fn [& transfer-args]
+                             ;; (log-message "Transferring: " transfer-args#)
+                             (increment-global! id "transferred")
+                             (apply transferrer transfer-args)))))]
+      (apply with-local-cluster*
+             (comp f #(assoc-track-id % id))
+             cluster-args))
+    (RegisteredGlobalState/clearState id)))
+
 (defmacro with-tracked-cluster [[cluster-sym & cluster-args] & body]
-  `(let [id# (uuid)]
-     (RegisteredGlobalState/setState id#
-                                     (doto (ConcurrentHashMap.)
-                                       (.put "spout-emitted" (AtomicInteger. 0))
-                                       (.put "transferred" (AtomicInteger. 0))
-                                       (.put "processed" (AtomicInteger. 0))))
-     (with-var-roots [acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
-                                            (fn [& args#]
-                                              (BoltTracker. (apply old# args#) id#)
-                                              ))
-                      worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
-                                              (fn [& args#]
-                                                (let [transferrer# (apply old# args#)]
-                                                  (fn [& transfer-args#]
-                                                    ;; (log-message "Transferring: " transfer-args#)
-                                                    (increment-global! id# "transferred")
-                                                    (apply transferrer# transfer-args#)
-                                                    ))))
-                      ]
-       (with-local-cluster [~cluster-sym ~@cluster-args]
-         (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
-           ~@body)
-         ))
-     (RegisteredGlobalState/clearState id#)
-     ))
+  `(with-tracked-cluster*
+     (fn [~cluster-sym] ~@body)
+     ~@cluster-args))
 
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."

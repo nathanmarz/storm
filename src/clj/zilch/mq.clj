@@ -16,10 +16,8 @@
   (:refer-clojure :exclude [send])
   )
 
-(defmacro zeromq-imports []
-  '(do
-    (import '[org.zeromq ZMQ ZMQ$Context ZMQ$Socket])
-    ))
+(defn zeromq-imports []
+  (import '[org.zeromq ZMQ ZMQ$Context ZMQ$Socket]))
 
 (zeromq-imports)
 

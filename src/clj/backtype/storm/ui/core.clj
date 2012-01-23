@@ -18,10 +18,16 @@
 
 (def *STORM-CONF* (read-storm-config))
 
+(defn with-nimbus-connection* [f host port]
+  (let [[^Nimbus$Client client ^TTransport conn] (nimbus-client-and-conn host port)]
+    (try (f client)
+         (finally (.close conn)))))
+
+(defn with-nimbus* [f]
+  (thrift/with-nimbus-connection f "localhost" (*STORM-CONF* NIMBUS-THRIFT-PORT)))
+
 (defmacro with-nimbus [nimbus-sym & body]
-  `(thrift/with-nimbus-connection [~nimbus-sym "localhost" (*STORM-CONF* NIMBUS-THRIFT-PORT)]
-     ~@body
-     ))
+  `(with-nimbus* (fn [~nimbus-sym] ~@body)))
 
 (defn get-filled-stats [summs]
   (->> summs

@@ -29,3 +29,4 @@ You must not remove this notice, or any other, from this software.
 * Michael Montano ([@michaelmontano](http://twitter.com/michaelmontano))
 * Dennis Zhuang ([@killme2008](https://github.com/killme2008))
 * Trevor Smith ([@trevorsummerssmith](https://github.com/trevorsummerssmith))
+* Sam Ritchie ([@sritchie09](https://github.com/sritchie09))

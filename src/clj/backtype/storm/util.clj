@@ -49,17 +49,18 @@
                     true x))
            s))
 
+(defn with-file-lock* [f path]
+  (let [file (doto (File. path)
+               (.createNewFile))
+        rf   (RandomAccessFile. file "rw")
+        lock (-> rf .getChannel .lock)]
+    (try (f)
+         (finally
+          (.release lock)
+          (.close rf)))))
+
 (defmacro with-file-lock [path & body]
-  `(let [f# (File. ~path)
-         _# (.createNewFile f#)
-         rf# (RandomAccessFile. f# "rw")
-         lock# (.. rf# (getChannel) (lock))]
-      (try
-        ~@body
-        (finally
-          (.release lock#)
-          (.close rf#))
-        )))
+  `(with-file-lock* (fn [] ~@body) ~path))
 
 (defn tokenize-path [^String path]
   (let [toks (.split path "/")]
@@ -470,6 +471,11 @@
   (and (>= val lower)
        (<= val upper)))
 
+(defmacro benchmark [f]
+  (time
+   (doseq [_ (range 1000000)]
+     (f))))
+
 (defmacro benchmark [& body]
   `(time
     (doseq [i# (range 1000000)]
@@ -521,9 +527,13 @@
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))
 
+(defn with-error-reaction* [try-fn error-fn]
+  (try (try-fn)
+       (catch Throwable t# (error-fn t#))))
+
 (defmacro with-error-reaction [afn & body]
-  `(try ~@body
-     (catch Throwable t# (~afn t#))))
+  `(try (fn [] ~@body)
+        (catch Throwable t# (~afn t#))))
 
 (defn container []
   (Container.))

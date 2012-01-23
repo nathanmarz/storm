@@ -55,19 +55,24 @@
         (.open transport)
         [client transport] ))
 
+(defn with-nimbus-connection* [f host port]
+  (let [[^Nimbus$Client client ^TTransport conn] (nimbus-client-and-conn host port)]
+    (try (f client)
+         (finally (.close conn)))))
+
+(defn with-configured-nimbus-onnection* [f]
+  `(let [conf (read-storm-config)
+         host (conf NIMBUS-HOST)
+         port (conf NIMBUS-THRIFT-PORT)]
+     (with-nimbus-connection* f host port)))
+
 (defmacro with-nimbus-connection [[client-sym host port] & body]
-  `(let [[^Nimbus$Client ~client-sym ^TTransport conn#] (nimbus-client-and-conn ~host ~port)]
-      (try
-        ~@body
-      (finally (.close conn#)))
-      ))
+  `(with-nimbus-connection*
+     (fn [~client-sym] ~@body) ~host ~port))
 
 (defmacro with-configured-nimbus-connection [client-sym & body]
-  `(let [conf# (read-storm-config)
-         host# (conf# NIMBUS-HOST)
-         port# (conf# NIMBUS-THRIFT-PORT)]
-     (with-nimbus-connection [~client-sym host# port#]
-       ~@body )))
+  `(with-configured-nimbus-connection*
+     (fn [~client-sym] ~@body)))
 
 (defn mk-component-common [component parallelism-hint]
   (let [getter (OutputFieldsGetter.)

@@ -10,18 +10,19 @@
             [compojure.handler :as handler]))
 
 (defn split-divide [val divider]
-  [(int (/ val divider)) (mod val divider)]
-  )
+  [(int (/ val divider)) (mod val divider)])
 
 (def PRETTY-SEC-DIVIDERS
-     [["s" 60]
-      ["m" 60]
-      ["h" 24]
-      ["d" nil]])
+  [["s" 60]
+   ["m" 60]
+   ["h" 24]
+   ["d" nil]])
+
+
 
 (def PRETTY-MS-DIVIDERS
-     (cons ["ms" 1000]
-           PRETTY-SEC-DIVIDERS))
+  (cons ["ms" 1000]
+        PRETTY-SEC-DIVIDERS))
 
 (defn pretty-uptime-str* [val dividers]
   (let [val (if (string? val) (Integer/parseInt val) val)

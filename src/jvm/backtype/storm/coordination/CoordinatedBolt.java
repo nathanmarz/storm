@@ -79,15 +79,25 @@ public class CoordinatedBolt implements IRichBolt {
 
         public void ack(Tuple tuple) {
             Object id = tuple.getValue(0);
+            boolean failed = false;
             synchronized(_tracked) {
-                _tracked.get(id).receivedTuples++;
+                TrackingInfo info = _tracked.get(id);
+                info.receivedTuples++;
+                failed = info.failedTuples > 0;
             }
             checkFinishId(tuple);
-            _delegate.ack(tuple);
+            if(failed) {
+                _delegate.fail(tuple);
+            } else {
+                _delegate.ack(tuple);
+            }
         }
 
         public void fail(Tuple tuple) {
-            // don't increment here... don't want to complete in case of failure
+            Object id = tuple.getValue(0);
+            synchronized(_tracked) {
+                _tracked.get(id).failedTuples++;
+            }
             _delegate.fail(tuple);
         }
         
@@ -119,6 +129,7 @@ public class CoordinatedBolt implements IRichBolt {
         int reportCount = 0;
         int expectedTupleCount = 0;
         int receivedTuples = 0;
+        int failedTuples = 0;
         Map<Integer, Integer> taskEmittedTuples = new HashMap<Integer, Integer>();
         boolean receivedId = false;
         
@@ -127,12 +138,13 @@ public class CoordinatedBolt implements IRichBolt {
             return "reportCount: " + reportCount + "\n" +
                    "expectedTupleCount: " + expectedTupleCount + "\n" +
                    "receivedTuples: " + receivedTuples + "\n" +
+                   "failedTuples: " + failedTuples + "\n" +
                    taskEmittedTuples.toString();
         }
     }
 
     
-    public static class IdStreamSpec {
+    public static class IdStreamSpec implements Serializable {
         GlobalStreamId _id;
         boolean _passTupleThrough = false;
         
@@ -224,6 +236,7 @@ public class CoordinatedBolt implements IRichBolt {
     public void execute(Tuple tuple) {
         Object id = tuple.getValue(0);
         TrackingInfo track;
+        boolean failed = false;
         synchronized(_tracked) {
             track = _tracked.get(id);
             if(track==null) {
@@ -231,6 +244,7 @@ public class CoordinatedBolt implements IRichBolt {
                 if(_idStreamSpec==null) track.receivedId = true;
                 _tracked.put(id, track);
             }
+            failed = track.failedTuples > 0;
         }
         
         if(_idStreamSpec!=null
@@ -244,7 +258,11 @@ public class CoordinatedBolt implements IRichBolt {
             checkFinishId(tuple);
             
             if(!_idStreamSpec._passTupleThrough) {
-                _collector.ack(tuple);
+                if(failed) {
+                    _collector.fail(tuple);
+                } else {
+                    _collector.ack(tuple);
+                }
             }
         } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
@@ -254,7 +272,11 @@ public class CoordinatedBolt implements IRichBolt {
                 track.expectedTupleCount+=count;
             }
             checkFinishId(tuple);
-            _collector.ack(tuple);
+            if(failed) {
+                _collector.fail(tuple);
+            } else {
+                _collector.ack(tuple);
+            }
         } else {            
             _delegate.execute(tuple);
         }

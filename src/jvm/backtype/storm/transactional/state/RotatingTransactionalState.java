@@ -2,6 +2,7 @@ package backtype.storm.transactional.state;
 
 import backtype.storm.transactional.TransactionalSpoutCoordinator;
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -42,14 +43,16 @@ public class RotatingTransactionalState {
             BigInteger prev = null;
             if(!prevMap.isEmpty()) prev = prevMap.lastKey();
             
-            if(prev==null && !txid.equals(TransactionalSpoutCoordinator.INIT_TXID)) {
-                throw new IllegalStateException("Trying to initialize transaction for which there should be a previous state");
-            }
-            if(_strictOrder && prev!=null && !prev.equals(txid.subtract(ONE))) {
-                throw new IllegalStateException("Expecting previous txid state to be the previous transaction");
-            }
-            if(_strictOrder && !afterMap.isEmpty()) {
-                throw new IllegalStateException("Expecting tx state to be initialized in strict order but there are txids after that have state");                
+            if(_strictOrder) {
+                if(prev==null && !txid.equals(TransactionalSpoutCoordinator.INIT_TXID)) {
+                    throw new IllegalStateException("Trying to initialize transaction for which there should be a previous state");
+                }
+                if(prev!=null && !prev.equals(txid.subtract(ONE))) {
+                    throw new IllegalStateException("Expecting previous txid state to be the previous transaction");
+                }
+                if(!afterMap.isEmpty()) {
+                    throw new IllegalStateException("Expecting tx state to be initialized in strict order but there are txids after that have state");                
+                }                
             }
             
             
@@ -70,7 +73,7 @@ public class RotatingTransactionalState {
         }
         return _curr.get(txid);
     }
-    
+       
     /**
      * Returns null if it was created, the value otherwise.
      */
@@ -85,7 +88,7 @@ public class RotatingTransactionalState {
     
     public void cleanupBefore(BigInteger txid) {
         SortedMap<BigInteger, Object> toDelete = _curr.headMap(txid);
-        for(BigInteger tx: toDelete.keySet()) {
+        for(BigInteger tx: new HashSet<BigInteger>(toDelete.keySet())) {
             _curr.remove(tx);
             _state.delete(txPath(tx));
         }

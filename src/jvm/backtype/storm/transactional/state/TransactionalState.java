@@ -17,21 +17,21 @@ public class TransactionalState {
     KryoValuesSerializer _ser;
     KryoValuesDeserializer _des;
     
-    public static TransactionalState newUserState(Map conf, String id, ITransactionalSpout spout) {
-        return new TransactionalState(conf, id, spout, "user");
+    public static TransactionalState newUserState(Map conf, String id, Map componentConf) {
+        return new TransactionalState(conf, id, componentConf, "user");
     }
     
-    public static TransactionalState newCoordinatorState(Map conf, String id, ITransactionalSpout spout) {
-        return new TransactionalState(conf, id, spout, "coordinator");        
+    public static TransactionalState newCoordinatorState(Map conf, String id, Map componentConf) {
+        return new TransactionalState(conf, id, componentConf, "coordinator");        
     }
     
-    protected TransactionalState(Map conf, String id, ITransactionalSpout spout, String subroot) {
+    protected TransactionalState(Map conf, String id, Map componentConf, String subroot) {
         try {
             conf = new HashMap(conf);
             // ensure that the serialization registrations are consistent with the declarations in this spout
-            if(spout.getComponentConfiguration()!=null) {
+            if(componentConf!=null) {
                 conf.put(Config.TOPOLOGY_KRYO_REGISTER,
-                         spout.getComponentConfiguration()
+                         componentConf
                               .get(Config.TOPOLOGY_KRYO_REGISTER));
             }
             String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;

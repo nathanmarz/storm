@@ -47,7 +47,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         
         public Emitter(Map conf, TopologyContext context) {
             _emitter = _spout.getEmitter(conf, context);
-            _state = TransactionalState.newUserState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), PartitionedTransactionalSpoutExecutor.this); 
+            _state = TransactionalState.newUserState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), getComponentConfiguration()); 
             _index = context.getThisTaskIndex();
             _numTasks = context.getComponentTasks(context.getThisComponentId()).size();
         }

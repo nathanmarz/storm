@@ -2,6 +2,7 @@
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt])
+  (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingTransactionalBolt])
   (:import [backtype.storm.coordination FinishedTupleImpl])
   (:use [backtype.storm bootstrap testing])
@@ -23,8 +24,6 @@
 ;;  can check that it receives all the prior tuples before finishbatch is called in the full topology
 ;;  should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
 
-
-;; * Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
 
 ;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
 ;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
@@ -93,7 +92,7 @@
                (merge (read-default-config)
                        {TOPOLOGY-MAX-SPOUT-PENDING 4
                        TOPOLOGY-TRANSACTIONAL-ID "abc"
-                       STORM-ZOOKEEPER-PORT 2181
+                       STORM-ZOOKEEPER-PORT zk-port
                        STORM-ZOOKEEPER-SERVERS ["localhost"]
                        })
                nil
@@ -148,6 +147,8 @@
         
         (.ack coordinator commit-id)
         (verify-and-reset! {COMMIT-STREAM [[4]] BATCH-STREAM [[7 12]]} emit-capture)
+
+        (.close coordinator)
         ))))
 
 (defn verify-bolt-and-reset! [expected-map emitted-atom]
@@ -252,4 +253,68 @@
                             capture-atom)
   
     ))
+
+(defn mk-state-initializer [atom]
+  (reify RotatingTransactionalState$StateInitializer
+    (init [this txid last-state]
+      @atom
+      )))
+
+
+(defn- to-txid [txid]
+  (BigInteger. (str txid)))
+
+(defn- get-state [state txid initializer]
+  (.getState state (to-txid txid) initializer))
+
+(defn- get-state-or-create [state txid initializer]
+  (.getStateOrCreate state (to-txid txid) initializer))
+
+(defn- cleanup-before [state txid]
+  (.cleanupBefore state (to-txid txid)))
+
+
+
+(deftest test-rotating-transactional-state
+  ;; test strict ordered vs not strict ordered
+  (let [zk-port (available-port 2181)]
+    (with-inprocess-zookeeper zk-port
+      (let [conf (merge (read-default-config)
+                        {STORM-ZOOKEEPER-PORT zk-port
+                         STORM-ZOOKEEPER-SERVERS ["localhost"]
+                         })
+            state (TransactionalState/newUserState conf "id1" {})
+            strict-rotating (RotatingTransactionalState. state "strict" true)
+            unstrict-rotating (RotatingTransactionalState. state "unstrict" false)
+            init (atom 10)
+            initializer (mk-state-initializer init)]
+        (is (= 10 (get-state strict-rotating 1 initializer)))
+        (is (= 10 (get-state strict-rotating 2 initializer)))
+        (reset! init 20)
+        (is (= 20 (get-state strict-rotating 3 initializer)))
+        (is (= 10 (get-state strict-rotating 1 initializer)))
+
+        (is (thrown? Exception (get-state strict-rotating 5 initializer)))
+        (is (= 20 (get-state strict-rotating 4 initializer)))
+        (is (= 4 (count (.list state "strict"))))
+        (cleanup-before strict-rotating 3)
+        (is (= 2 (count (.list state "strict"))))
+
+        (is (nil? (get-state-or-create strict-rotating 5 initializer)))
+        (is (= 20 (get-state-or-create strict-rotating 5 initializer)))
+        (is (nil? (get-state-or-create strict-rotating 6 initializer)))        
+        (cleanup-before strict-rotating 6)
+        (is (= 1 (count (.list state "strict"))))
+
+        (is (= 20 (get-state unstrict-rotating 10 initializer)))
+        (is (= 20 (get-state unstrict-rotating 20 initializer)))
+        (is (nil? (get-state unstrict-rotating 12 initializer)))
+        (is (nil? (get-state unstrict-rotating 19 initializer)))
+        (is (nil? (get-state unstrict-rotating 12 initializer)))
+        (is (= 20 (get-state unstrict-rotating 21 initializer)))
+
+        (.close state)
+        ))))
+
+;; * Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
 

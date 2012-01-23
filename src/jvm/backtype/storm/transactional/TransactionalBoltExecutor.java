@@ -54,7 +54,6 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
                     _collector.ack(input);
                     _openTransactions.remove(attempt);
                 } else {
-                    // TODO: does this even do anything, given that the tuple is unanchored?
                     LOG.info("Failing transaction attempt: " + attempt + " with state " + tx);
                     _collector.fail(input);
                 }

@@ -314,6 +314,9 @@
 (defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
   ;; TODO: generalize this to work with transactional topologies
   ;; instead of direclty calling FixedTupleSpout interface, want a function (or a protocol) that can get (total tuples planned) and (total tuples done) from the spout
+
+  ;; TODO: the idea of mocking for transactional topologies should be done an
+  ;; abstraction level above... should have a complete-transactional-topology for this
   (let [storm-name (str "topologytest-" (uuid))
         state (:storm-cluster-state cluster-map)
         spouts (.get_spouts topology)

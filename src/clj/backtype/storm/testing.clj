@@ -303,8 +303,17 @@
     ))
 
 
+(defprotocol CompletableSpout
+  (total-tuples [this] "Returns the total number of tuples this spout is going to emit")
+  (completed-tuples [this] "Returns the number of tuples that have been completed by this spout so far"))
+
+;; TODO: extend protocol to FixedTupleSpout
+;; TODO: extend protocol to TransactionalSpoutCoordinator (and have it delegate to FixedTransactionalSpout within - which should be a partitioned spout)
+
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
 (defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
+  ;; TODO: generalize this to work with transactional topologies
+  ;; instead of direclty calling FixedTupleSpout interface, want a function (or a protocol) that can get (total tuples planned) and (total tuples done) from the spout
   (let [storm-name (str "topologytest-" (uuid))
         state (:storm-cluster-state cluster-map)
         spouts (.get_spouts topology)

@@ -25,6 +25,11 @@
 ;;  should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
 
 
+;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
+;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
+
+
+
 
 (defn mk-coordinator-state-changer [atom]
   (TransactionalSpoutCoordinator.
@@ -312,5 +317,5 @@
         (.close state)
         ))))
 
-;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
-;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
+
+

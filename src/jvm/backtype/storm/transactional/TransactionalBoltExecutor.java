@@ -39,6 +39,7 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         String stream = input.getSourceStreamId();
         OpenTransaction tx = _openTransactions.get(attempt);
+                
         // bolt != null && receiving commit message -> this task processed the whole batch for this attempt
         // this is because: commit message only sent when tuple tree acked
         // if it failed after, then bolt will equal null, if it failed before, then it doesn't get acked
@@ -50,8 +51,13 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
                 // the check is in there so that partial batches never being committed is independent from 
                 // the acking mechanism
                 if(tx!=null && tx.finished) {
-                    ((ICommittable)tx.bolt).commit();
-                    _collector.ack(input);
+                    try {
+                        ((ICommittable)tx.bolt).commit();
+                        _collector.ack(input);
+                    } catch(FailedTransactionException e) {
+                        LOG.warn("Failed to commit transaction", e);
+                        _collector.fail(input);
+                    }
                     _openTransactions.remove(attempt);
                 } else {
                     LOG.info("Failing transaction attempt: " + attempt + " with state " + tx);
@@ -64,11 +70,16 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
                 _openTransactions.put(attempt, tx);            
             }
 
-            // it is sent the batch id to guarantee that it creates the TransactionalBolt for the attempt before commit
-            if(!stream.equals(TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)) {
-                tx.bolt.execute(input);
-            }       
-            _collector.ack(input);
+            try {
+                // it is sent the batch id to guarantee that it creates the TransactionalBolt for the attempt before commit
+                if(!stream.equals(TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)) {
+                    tx.bolt.execute(input);
+                }
+                _collector.ack(input);
+            } catch(FailedTransactionException e) {
+                LOG.warn("Failed to process tuple in transaction", e);
+                _collector.fail(input);                
+            }
         }
     }
 
@@ -85,6 +96,7 @@ public class TransactionalBoltExecutor implements IRichBolt, FinishedCallback {
             if(!(tx.bolt instanceof ICommittable)) {
                 _openTransactions.remove(attempt);
             }
+            // TODO: need to be able to fail from here... need support from coordinatebolt
             tx.bolt.finishBatch();
             tx.finished = true;
         }

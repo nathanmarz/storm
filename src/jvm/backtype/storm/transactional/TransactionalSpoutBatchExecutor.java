@@ -6,8 +6,11 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import java.util.Map;
+import org.apache.log4j.Logger;
 
-public class TransactionalSpoutBatchExecutor implements IRichBolt {    
+public class TransactionalSpoutBatchExecutor implements IRichBolt {
+    public static Logger LOG = Logger.getLogger(TransactionalSpoutBatchExecutor.class);    
+
     TransactionalOutputCollectorImpl _collector;
     ITransactionalSpout _spout;
     ITransactionalSpout.Emitter _emitter;
@@ -30,8 +33,13 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
             // can ack before since it doesn't matter if this fails, since it will just cleanup the next commit
             _emitter.cleanupBefore(attempt.getTransactionId());
         } else {
-            _emitter.emitBatch(attempt, input.getValue(1), _collector);
-            _collector.ack(input);
+            try {
+                _emitter.emitBatch(attempt, input.getValue(1), _collector);
+                _collector.ack(input);
+            } catch(FailedTransactionException e) {
+                LOG.warn("Failed to emit batch for transaction", e);
+                _collector.fail(input);
+            }
         }
     }
 

@@ -13,8 +13,11 @@ import backtype.storm.utils.Utils;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.log4j.Logger;
 
 public class TransactionalSpoutCoordinator implements IRichSpout { 
+    public static final Logger LOG = Logger.getLogger(TransactionalSpoutCoordinator.class);
+    
     public static final BigInteger INIT_TXID = new BigInteger("1");
     
     
@@ -109,18 +112,22 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
             _collector.emit(TRANSACTION_COMMIT_STREAM_ID, new Values(maybeCommit.attempt), maybeCommit.attempt);
         }
         
-        if(_activeTx.size() < _maxTransactionActive) {
-            BigInteger curr = _currTransaction;
-            for(int i=0; i<_maxTransactionActive; i++) {
-                if(!_activeTx.containsKey(curr)) {
-                    TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
-                    _activeTx.put(curr, new TransactionStatus(attempt));
-                    Object state = _coordinatorState.getState(curr, _initializer);
-                    _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state), attempt);
+        try {
+            if(_activeTx.size() < _maxTransactionActive) {
+                BigInteger curr = _currTransaction;
+                for(int i=0; i<_maxTransactionActive; i++) {
+                    if(!_activeTx.containsKey(curr)) {
+                        TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
+                        Object state = _coordinatorState.getState(curr, _initializer);
+                        _activeTx.put(curr, new TransactionStatus(attempt));
+                        _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state), attempt);
+                    }
+                    curr = nextTransactionId(curr);
                 }
-                curr = nextTransactionId(curr);
-            }
-        }        
+            }     
+        } catch(FailedTransactionException e) {
+            LOG.warn("Failed to get metadata for a transaction", e);
+        }
     }
 
     @Override

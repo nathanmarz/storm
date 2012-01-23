@@ -25,8 +25,6 @@
 ;;  should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
 
 
-;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
-;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
 
 (defn mk-coordinator-state-changer [atom]
   (TransactionalSpoutCoordinator.
@@ -273,8 +271,6 @@
 (defn- cleanup-before [state txid]
   (.cleanupBefore state (to-txid txid)))
 
-
-
 (deftest test-rotating-transactional-state
   ;; test strict ordered vs not strict ordered
   (let [zk-port (available-port 2181)]
@@ -316,5 +312,5 @@
         (.close state)
         ))))
 
-;; * Test that coordinator and partitioned state are cleaned up properly (and not too early) - test rotatingtransactionalstate
-
+;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
+;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)

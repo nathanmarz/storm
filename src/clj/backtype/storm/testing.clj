@@ -365,8 +365,8 @@
                               mock-sources)
         all-streams (apply concat
                            (for [[id spec] (merge (clojurify-structure spouts) (clojurify-structure bolts))]
-                             (for [[stream _] (.. spec get_common get_streams)]
-                               (GlobalStreamId. id stream))))
+                             (for [[stream info] (.. spec get_common get_streams)]
+                               [(GlobalStreamId. id stream) (.is_direct info)])))
         capturer (TupleCaptureBolt. storm-name)
         ]
     (doseq [[id spout] replacements]
@@ -383,7 +383,11 @@
                   (uuid)
                   (Bolt.                   
                    (serialize-component-object capturer)
-                   (mk-plain-component-common (into {} (for [id all-streams] [id (mk-global-grouping)]))
+                   ;; TODO need to do a direct subscription for direct streams...
+                   (mk-plain-component-common (into {} (for [[id direct?] all-streams]
+                                                         [id (if direct?
+                                                               (mk-direct-grouping)
+                                                               (mk-global-grouping))]))
                                               {}
                                               nil))
                   ))

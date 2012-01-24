@@ -117,7 +117,8 @@
   (let [to-remove (disj (set ALL-CONFIGS)
                         TOPOLOGY-DEBUG
                         TOPOLOGY-MAX-SPOUT-PENDING
-                        TOPOLOGY-MAX-TASK-PARALLELISM)
+                        TOPOLOGY-MAX-TASK-PARALLELISM
+                        TOPOLOGY-TRANSACTIONAL-ID)
         spec-conf (-> topology-context
                       (.getComponentCommon component-id)
                       .get_json_conf

@@ -3,7 +3,6 @@ package backtype.storm.transactional.state;
 import backtype.storm.Config;
 import backtype.storm.serialization.KryoValuesDeserializer;
 import backtype.storm.serialization.KryoValuesSerializer;
-import backtype.storm.transactional.ITransactionalSpout;
 import backtype.storm.utils.Utils;
 import com.netflix.curator.framework.CuratorFramework;
 import java.util.ArrayList;
@@ -11,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 
 public class TransactionalState {
     CuratorFramework _curator;
@@ -36,7 +36,12 @@ public class TransactionalState {
             }
             String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;
             CuratorFramework initter = Utils.newCurator(conf);
-            initter.create().creatingParentsIfNeeded().forPath(rootDir);
+            try {
+                initter.create().creatingParentsIfNeeded().forPath(rootDir);
+            } catch(KeeperException.NodeExistsException e)  {
+                
+            }
+            
             initter.close();
                                     
             _curator = Utils.newCurator(conf, rootDir);

@@ -10,7 +10,7 @@ import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout.E
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.RegisteredGlobalState;
 import backtype.storm.utils.Utils;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +29,8 @@ import java.util.Map;
 //   - get the start offset for each partition using that txid
 //   - num tuples left is (size of partition queue - that offset)
 public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<MemoryTransactionalSpoutMeta> {
+    public static String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
+    
     private String _id;
     private String _finishedPartitionsId;
     private int _takeAmt;
@@ -88,9 +90,9 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
             int total = queue.size();
             int left = total - index;
             int toTake = Math.min(left, _takeAmt);
-            for(int i=index; i < index + toTake; i++) {
-                collector.emit(queue.get(i));
-            }
+            
+            MemoryTransactionalSpoutMeta ret = new MemoryTransactionalSpoutMeta(index, toTake);
+            emitPartitionBatch(tx, collector, partition, ret);
             if(toTake==0) {
                 // this is a pretty hacky way to determine when all the partitions have been committed
                 // wait until we've emitted max-spout-pending empty partitions for the partition
@@ -100,17 +102,19 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
                     getFinishedStatuses().put(partition, true);
                 }
             }
-            return new MemoryTransactionalSpoutMeta(index, toTake);            
+            return ret;   
         }
 
         @Override
         public void emitPartitionBatch(TransactionAttempt tx, TransactionalOutputCollector collector, int partition, MemoryTransactionalSpoutMeta partitionMeta) {
             List<List<Object>> queue = getQueues().get(partition);
             for(int i=partitionMeta.index; i < partitionMeta.index + partitionMeta.amt; i++) {
-                collector.emit(queue.get(i));                
+                List<Object> toEmit = new ArrayList<Object>(queue.get(i));
+                toEmit.add(0, tx);
+                collector.emit(toEmit);                
             }
         }
-        
+                
         @Override
         public void close() {
         }        
@@ -128,7 +132,9 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(_outFields);
+        List<String> toDeclare = new ArrayList<String>(_outFields.toList());
+        toDeclare.add(0, TX_FIELD);
+        declarer.declare(new Fields(toDeclare));
     }
 
     @Override

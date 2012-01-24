@@ -18,4 +18,8 @@ public class FixedTuple implements Serializable {
         this.values = values;
     }
 
+    @Override
+    public String toString() {
+        return stream + ":" + "<" + values.toString() + ">";
+    }
 }

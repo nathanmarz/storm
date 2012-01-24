@@ -6,6 +6,12 @@ public class TransactionAttempt {
     BigInteger _txid;
     long _attemptId;
     
+    
+    // for kryo compatibility
+    public TransactionAttempt() {
+        
+    }
+    
     public TransactionAttempt(BigInteger txid, long attemptId) {
         _txid = txid;
         _attemptId = attemptId;

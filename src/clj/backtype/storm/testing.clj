@@ -15,7 +15,9 @@
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
             TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
-            TestWordSpout])
+            TestWordSpout MemoryTransactionalSpout])
+  (:import [backtype.storm.transactional PartitionedTransactionalSpoutExecutor
+            TransactionalSpoutCoordinator])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.task TopologyContext])
@@ -304,21 +306,40 @@
 
 
 (defprotocol CompletableSpout
-  (total-tuples [this] "Returns the total number of tuples this spout is going to emit")
-  (completed-tuples [this] "Returns the number of tuples that have been completed by this spout so far")
+  (exhausted? [this] "Whether all the tuples for this spout have been completed.")
   (cleanup [this] "Cleanup any global state kept"))
 
 (extend-type FixedTupleSpout
   CompletableSpout
-  (total-tuples [this]
-    (-> this .getSourceTuples count)
-    )
-  (completed-tuples [this]
-    (.getCompleted this))
+  (exhausted? [this]
+    (= (-> this .getSourceTuples count)
+       (.getCompleted this)))
   (cleanup [this]
     (.cleanup this)))
 
-;; TODO: extend protocol to TransactionalSpoutCoordinator (and have it delegate to FixedTransactionalSpout within - which should be a partitioned spout)
+(extend-type TransactionalSpoutCoordinator
+  CompletableSpout
+  (exhausted? [this]
+    (exhausted? (.getSpout this)))
+  (cleanup [this]
+    (cleanup (.getSpout this))
+    ))
+
+(extend-type PartitionedTransactionalSpoutExecutor
+  CompletableSpout
+  (exhausted? [this]
+    (exhausted? (.getPartitionedSpout this)))
+  (cleanup [this]
+    (cleanup (.getPartitionedSpout this))
+    ))
+
+(extend-type MemoryTransactionalSpout
+  CompletableSpout
+  (exhausted? [this]
+    (.isExhaustedTuples this))
+  (cleanup [this]
+    (.cleanup this)
+    ))
 
 (defn spout-objects [spec-map]
   (for [[_ spout-spec] spec-map]
@@ -368,10 +389,8 @@
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
     
     
-    (let [num-source-tuples (reduce + (map total-tuples (spout-objects spouts)))
-          storm-id (common/get-storm-id state storm-name)]
-      (while (< (reduce + (map completed-tuples (spout-objects spouts)))
-                num-source-tuples)
+    (let [storm-id (common/get-storm-id state storm-name)]
+      (while (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
       (.killTopology (:nimbus cluster-map) storm-name)

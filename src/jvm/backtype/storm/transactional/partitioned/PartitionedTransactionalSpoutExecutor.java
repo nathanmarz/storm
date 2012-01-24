@@ -20,6 +20,10 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         _spout = spout;
     }
     
+    public IPartitionedTransactionalSpout getPartitionedSpout() {
+        return _spout;
+    }
+    
     class Coordinator implements ITransactionalSpout.Coordinator<Integer> {
         private IPartitionedTransactionalSpout.Coordinator _coordinator;
         

@@ -44,6 +44,10 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _spout = spout;
     }
     
+    public ITransactionalSpout getSpout() {
+        return _spout;
+    }
+    
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _state = TransactionalState.newCoordinatorState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), _spout.getComponentConfiguration());

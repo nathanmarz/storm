@@ -16,8 +16,8 @@
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
             TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
             TestWordSpout MemoryTransactionalSpout])
-  (:import [backtype.storm.transactional PartitionedTransactionalSpoutExecutor
-            TransactionalSpoutCoordinator])
+  (:import [backtype.storm.transactional TransactionalSpoutCoordinator])
+  (:import [backtype.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.task TopologyContext])

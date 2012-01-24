@@ -1,9 +1,10 @@
 (ns backtype.storm.transactional-test
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt])
+  (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
+            TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
-  (:import [backtype.storm.testing CountingTransactionalBolt])
+  (:import [backtype.storm.testing CountingTransactionalBolt MemoryTransactionalSpout])
   (:import [backtype.storm.coordination FinishedTupleImpl])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
@@ -13,12 +14,6 @@
 
 ;; Testing TODO:
 ;; 
-;; * Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
-;;      - test the full topology (this is a test of acking/anchoring)
-;; * Test that batch isn't considered processed until the entire tuple tree has been completed
-;;      - test the full topology (this is a test of acking/anchoring)
-;; * Test that it picks up where it left off when restarting the topology
-;;      - run topology and restart it
 
 ;;  what about testing that the coordination is done properly?
 ;;  can check that it receives all the prior tuples before finishbatch is called in the full topology
@@ -319,3 +314,53 @@
 
 
 
+;; * Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
+;;      - test the full topology (this is a test of acking/anchoring)
+;; * Test that batch isn't considered processed until the entire tuple tree has been completed
+;;      - test the full topology (this is a test of acking/anchoring)
+;; * Test that it picks up where it left off when restarting the topology
+;;      - run topology and restart it
+
+
+(defn mk-transactional-source []
+  (HashMap.))
+
+(defn add-transactional-data [source partition-map]
+  (doseq [[p data] partition-map]
+    (if-not (contains? source p)
+      (.put source p (Collections/synchronizedList (ArrayList.))))
+    (-> source (.get p) (.addAll data))
+    ))
+
+;; cluster-map topology :mock-sources {} :storm-conf {}
+(deftest test-transactional-topology
+  (with-simulated-time-local-cluster [cluster]
+    (letlocals
+     (bind data (mk-transactional-source))
+     (bind builder (TransactionalTopologyBuilder.
+                    "id"
+                    "spout"
+                    (MemoryTransactionalSpout. data
+                                               (Fields. ["word" "amt"])
+                                               3)
+                    2))
+
+
+     (add-transactional-data data
+                             {0 [["dog" 3]
+                                 ["cat" 4]
+                                 ["apple" 1]
+                                 ["dog" 3]
+                                 ["banana" 0]]
+                              1 [["cat" 1]
+                                 ["mango" 4]]
+                              2 [["happy" 11]
+                                 ["mango" 2]
+                                 ["zebra" 1]]})
+     (bind results
+           (complete-topology cluster
+                              (.buildTopology builder)
+                              :storm-conf {TOPOLOGY-DEBUG true}))
+     (println results)
+
+     )))

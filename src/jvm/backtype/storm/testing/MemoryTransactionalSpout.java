@@ -37,17 +37,15 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
     public MemoryTransactionalSpout(Map<Integer, List<List<Object>>> partitions, Fields outFields, int takeAmt) {
         _id = RegisteredGlobalState.registerState(partitions);
         Map<Integer, Boolean> finished = Collections.synchronizedMap(new HashMap<Integer, Boolean>());
-        for(Integer partition: partitions.keySet()) {
-            finished.put(partition, false);
-        }
         _finishedPartitionsId = RegisteredGlobalState.registerState(finished);
         _takeAmt = takeAmt;
         _outFields = outFields;
     }
     
     public boolean isExhaustedTuples() {
+        Map<Integer, Boolean> statuses = getFinishedStatuses();
         for(Integer partition: getQueues().keySet()) {
-            if(!getFinishedStatuses().get(partition)) {
+            if(!statuses.containsKey(partition) || !getFinishedStatuses().get(partition)) {
                 return false;
             }
         }
@@ -72,8 +70,9 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         Map<Integer, Integer> _emptyPartitions = new HashMap<Integer, Integer>();
         
         public Emitter(Map conf) {
-            _maxSpoutPending = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
-            if(_maxSpoutPending==null) _maxSpoutPending = 1;            
+            Object c = conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING);
+            if(c==null) _maxSpoutPending = 1;
+            else _maxSpoutPending = Utils.getInt(c);
         }
         
         

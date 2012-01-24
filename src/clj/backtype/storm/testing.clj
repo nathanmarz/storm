@@ -105,7 +105,8 @@
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
-                            STORM-ZOOKEEPER-PORT zk-port})
+                            STORM-ZOOKEEPER-PORT zk-port
+                            STORM-ZOOKEEPER-SERVERS ["localhost"]})
         nimbus-tmp (local-temp-path)
         zk-tmp (local-temp-path)
         zk-handle (zk/mk-inprocess-zookeeper zk-tmp zk-port)

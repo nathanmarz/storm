@@ -38,7 +38,6 @@
                      TaskInfo SupervisorInfo WorkerHeartbeat TaskHeartbeat]))
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
      (import (quote [java.io File FileOutputStream FileInputStream]))
-     (import (quote [java.util List Random Map HashMap]))
+     (import (quote [java.util List Random Map HashMap Collections ArrayList]))
      (import (quote [org.apache.commons.io FileUtils]))
-     (import (quote [java.util ArrayList]))
      ))

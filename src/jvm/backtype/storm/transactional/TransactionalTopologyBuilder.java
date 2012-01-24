@@ -38,7 +38,7 @@ public class TransactionalTopologyBuilder {
     String _id;
     String _spoutId;
     ITransactionalSpout _spout;
-    Map<String, Component> _bolts;
+    Map<String, Component> _bolts = new HashMap<String, Component>();
     Integer _spoutParallelism;
     List<Map> _spoutConfs = new ArrayList();
     
@@ -91,8 +91,9 @@ public class TransactionalTopologyBuilder {
         declarer.addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
 
         builder.setBolt(_spoutId,
+                // TODO: receiving the commit stream should not make it send out coordinated tuples
+                // to consumers... ***********************************
                         new CoordinatedBolt(new TransactionalSpoutBatchExecutor(_spout),
-                                             coordinator,
                                              null,
                                              null),
                         _spoutParallelism)

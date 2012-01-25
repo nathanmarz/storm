@@ -58,7 +58,7 @@ struct ComponentCommon {
   2: required map<string, StreamInfo> streams; //key is stream id
   3: optional i32 parallelism_hint; //how many threads across the cluster should be dedicated to this component
 
-  // component specific configutation respects:
+  // component specific configuration respects:
   // topology.debug: false
   // topology.max.task.parallelism: null // can replace isDistributed with this
   // topology.max.spout.pending: null

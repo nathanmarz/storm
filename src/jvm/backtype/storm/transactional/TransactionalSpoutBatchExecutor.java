@@ -5,6 +5,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import java.math.BigInteger;
 import java.util.Map;
 import org.apache.log4j.Logger;
 
@@ -28,19 +29,14 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     @Override
     public void execute(Tuple input) {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
-        if(input.getSourceStreamId().equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
+        try {
+            _emitter.emitBatch(attempt, input.getValue(1), _collector);
             _collector.ack(input);
-            // can ack before since it doesn't matter if this fails, since it will just cleanup the next commit
-            _emitter.cleanupBefore(attempt.getTransactionId());
-        } else {
-            try {
-                _emitter.emitBatch(attempt, input.getValue(1), _collector);
-                _collector.ack(input);
-            } catch(FailedTransactionException e) {
-                LOG.warn("Failed to emit batch for transaction", e);
-                _collector.fail(input);
-            }
+        } catch(FailedTransactionException e) {
+            LOG.warn("Failed to emit batch for transaction", e);
+            _collector.fail(input);
         }
+        _emitter.cleanupBefore((BigInteger) input.getValue(2));
     }
 
     @Override

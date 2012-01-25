@@ -4,7 +4,7 @@
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
-  (:import [backtype.storm.testing CountingTransactionalBolt MemoryTransactionalSpout])
+  (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout])
   (:import [backtype.storm.coordination FinishedTupleImpl])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
@@ -65,6 +65,7 @@
             (fn [tuples]
               (map (comp #(update % 0 (memfn getTransactionId))
                          vec
+                         #(take 2 %)
                          :tuple)
                    tuples))
             results
@@ -181,8 +182,8 @@
 (defn finish! [bolt id]
   (.finishedId bolt (FinishedTupleImpl. (test-tuple [id]))))
 
-(deftest test-transactional-bolt
-  (let [bolt (TransactionalBoltExecutor. (CountingTransactionalBolt.))
+(deftest test-batch-bolt
+  (let [bolt (BatchBoltExecutor. (CountingBatchBolt.))
         capture-atom (atom {})
         attempt1-1 (mk-attempt 1 1)
         attempt1-2 (mk-attempt 1 2)
@@ -191,11 +192,10 @@
         attempt4 (mk-attempt 4 1)
         attempt5 (mk-attempt 5 1)
         attempt6 (mk-attempt 6 1)]
-    (.prepare bolt {TOPOLOGY-MESSAGE-TIMEOUT-SECS 1000} nil (mk-bolt-capture capture-atom))
+    (.prepare bolt {} nil (mk-bolt-capture capture-atom))
 
 
     ;; test that transactions are independent
-    ;; test that batch stream does not get passed along to transactionalbolt (but initializes the transaction)
     
     (.execute bolt (test-tuple [attempt1-1]))
     (.execute bolt (test-tuple [attempt1-1]))
@@ -218,38 +218,7 @@
 
     (finish! bolt attempt1-2)
     (verify-bolt-and-reset! {"batch" [[attempt1-2 2]]}
-                            capture-atom)
-
-    
-    (.execute bolt (test-tuple [attempt3] :stream TransactionalSpoutCoordinator/TRANSACTION_BATCH_STREAM_ID))
-    (finish! bolt attempt3)
-    (verify-bolt-and-reset! {"batch" [[attempt3 0]]
-                             :ack [[attempt3]]}
-                            capture-atom)
-
-    (.execute bolt (test-tuple [attempt4]))
-    (.execute bolt (test-tuple [attempt4] :stream TransactionalSpoutCoordinator/TRANSACTION_BATCH_STREAM_ID))
-    (.execute bolt (test-tuple [attempt4]))
-    (finish! bolt attempt4)
-    (verify-bolt-and-reset! {"batch" [[attempt4 2]]
-                             :ack [[attempt4] [attempt4] [attempt4]]}
-                            capture-atom)
-
-    (.execute bolt (test-tuple [attempt1-2] :stream TransactionalSpoutCoordinator/TRANSACTION_COMMIT_STREAM_ID))
-    (verify-bolt-and-reset! {"commit" [[attempt1-2 2]]
-                             :ack [[attempt1-2]]}
-                            capture-atom)
-
-    (.execute bolt (test-tuple [attempt5] :stream TransactionalSpoutCoordinator/TRANSACTION_COMMIT_STREAM_ID))
-    (verify-bolt-and-reset! {:fail [[attempt5]]}
-                            capture-atom)
-
-    (.execute bolt (test-tuple [attempt6]))
-    (.execute bolt (test-tuple [attempt6] :stream TransactionalSpoutCoordinator/TRANSACTION_COMMIT_STREAM_ID))
-    (verify-bolt-and-reset! {:ack [[attempt6]]
-                             :fail [[attempt6]]}
-                            capture-atom)
-  
+                            capture-atom)  
     ))
 
 (defn mk-state-initializer [atom]
@@ -333,7 +302,7 @@
     ))
 
 ;; cluster-map topology :mock-sources {} :storm-conf {}
-(deftest test-transactional-topology
+#_(deftest test-transactional-topology
   (with-simulated-time-local-cluster [cluster]
     (letlocals
      (bind data (mk-transactional-source))

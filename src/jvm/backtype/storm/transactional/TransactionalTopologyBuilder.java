@@ -59,14 +59,22 @@ public class TransactionalTopologyBuilder {
         return new SpoutDeclarerImpl();
     }
     
-    public BoltDeclarer setBolt(String id, ITransactionalBolt bolt) {
+    public BoltDeclarer setBolt(String id, IBatchBolt bolt) {
         return setBolt(id, bolt, null);
     }
     
-    public BoltDeclarer setBolt(String id, ITransactionalBolt bolt, Integer parallelism) {
-        return setBolt(id, new TransactionalBoltExecutor(bolt), parallelism, bolt instanceof ICommittable);
-    }
+    public BoltDeclarer setBolt(String id, IBatchBolt bolt, Integer parallelism) {
+        return setBolt(id, new BatchBoltExecutor(bolt), parallelism, false);
+    }  
 
+    public BoltDeclarer setBolt(String id, ICommitterBolt bolt) {
+        return setBolt(id, bolt, null);
+    }
+    
+    public BoltDeclarer setBolt(String id, ICommitterBolt bolt, Integer parallelism) {
+        return setBolt(id, new CommitterBoltExecutor(bolt), parallelism, true);
+    }      
+    
     public BoltDeclarer setBolt(String id, IBasicBolt bolt) {
         return setBolt(id, bolt, null);
     }    
@@ -91,16 +99,11 @@ public class TransactionalTopologyBuilder {
         declarer.addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
 
         builder.setBolt(_spoutId,
-                // TODO: receiving the commit stream should not make it send out coordinated tuples
-                // to consumers... ***********************************
                         new CoordinatedBolt(new TransactionalSpoutBatchExecutor(_spout),
                                              null,
                                              null),
                         _spoutParallelism)
                 .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)
-                // TODO: can optimize by using a separate cleanup stream and emitting 
-                // unanchored tuples to it
-                .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)
                 .addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
         for(String id: _bolts.keySet()) {
             Component component = _bolts.get(id);
@@ -111,7 +114,7 @@ public class TransactionalTopologyBuilder {
             
             IdStreamSpec idSpec = null;
             if(component.committer) {
-                idSpec = IdStreamSpec.makePassThroughSpec(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);          
+                idSpec = IdStreamSpec.makeDetectSpec(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);          
             }
             BoltDeclarer input = builder.setBolt(id,
                                                   new CoordinatedBolt(component.bolt,
@@ -128,10 +131,7 @@ public class TransactionalTopologyBuilder {
                 d.declare(input);
             }
             if(component.committer) {
-                input.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);
-                
-                // this is to guarantee that they create the transactionalbolt for every attempt
-                input.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID);
+                input.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);                
             }
         }
         return builder.createTopology();

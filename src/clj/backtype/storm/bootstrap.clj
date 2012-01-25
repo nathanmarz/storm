@@ -13,7 +13,8 @@
      (import (quote [backtype.storm.task IBolt IOutputCollector
                      OutputCollector OutputCollectorImpl IInternalOutputCollector
                      TopologyContext ShellBolt]))
-     (import (quote [backtype.storm.transactional ITransactionalBolt TransactionalBoltExecutor]))
+     (import (quote [backtype.storm.transactional IBatchBolt BatchBoltExecutor ICommitterBolt
+                     CommitterBoltExecutor]))
      (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs]))
      (import (quote [backtype.storm.drpc KeyedFairBolt]))
      (import (quote [backtype.storm.daemon Shutdownable]))

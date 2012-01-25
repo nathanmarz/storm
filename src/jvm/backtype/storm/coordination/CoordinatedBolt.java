@@ -38,6 +38,11 @@ public class CoordinatedBolt implements IRichBolt {
         void finishedId(FinishedTuple id);
     }
 
+    public static interface TimeoutCallback {
+        void failId(Object id);
+    }
+    
+    
     public static class SourceArgs implements Serializable {
         public boolean singleCount;
 
@@ -182,7 +187,12 @@ public class CoordinatedBolt implements IRichBolt {
     }
     
     public void prepare(Map config, TopologyContext context, OutputCollector collector) {
-        _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.getInt(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+        // TODO: when something expires, should call failedId on the delegate
+        TimeCacheMap.ExpiredCallback<Object, TrackingInfo> callback = null;
+        if(_delegate instanceof TimeoutCallback) {
+            callback = new TimeoutItems();
+        }
+        _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.getInt(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)), callback);
         _collector = collector;
         _delegate.prepare(config, context, new CoordinatedOutputCollector(collector));
         for(String component: Utils.get(context.getThisTargets(),
@@ -218,8 +228,10 @@ public class CoordinatedBolt implements IRichBolt {
                 if(_delegate instanceof FinishedCallback) {
                     ((FinishedCallback)_delegate).finishedId(new FinishedTupleImpl(tup));
                 }
-                if(!_sourceArgs.isEmpty() &&
-                        !tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
+                if(!(_sourceArgs.isEmpty() ||
+                     tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID) ||
+                     (_idStreamSpec!=null && tup.getSourceGlobalStreamid().equals(_idStreamSpec._id))
+                     )) {
                     throw new IllegalStateException("Coordination condition met on a non-coordinating tuple. Should be impossible");
                 }
                 Iterator<Integer> outTasks = _countOutTasks.iterator();
@@ -278,7 +290,9 @@ public class CoordinatedBolt implements IRichBolt {
                 _collector.ack(tuple);
             }
         } else {            
-            _delegate.execute(tuple);
+            synchronized(_tracked) {
+                _delegate.execute(tuple);
+            }
         }
     }
 
@@ -301,4 +315,13 @@ public class CoordinatedBolt implements IRichBolt {
         ret.put(sourceComponent, sourceArgs);
         return ret;
     }
+    
+    private class TimeoutItems implements TimeCacheMap.ExpiredCallback<Object, TrackingInfo> {
+        @Override
+        public void expire(Object id, TrackingInfo val) {
+            synchronized(_tracked) {
+                ((TimeoutCallback) _delegate).failId(id);
+            }
+        }
+    } 
 }

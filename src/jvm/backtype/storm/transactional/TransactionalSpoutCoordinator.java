@@ -103,7 +103,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // in partitioned example, in case an emitter task receives a later transaction than it's emitted so far,
         // when it sees the earlier txid it should know to emit nothing
-        declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx", "tx-meta"));
+        declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx", "tx-meta", "curr-txid"));
         declarer.declareStream(TRANSACTION_COMMIT_STREAM_ID, new Fields("tx"));
     }
     
@@ -124,7 +124,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
                         TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
                         Object state = _coordinatorState.getState(curr, _initializer);
                         _activeTx.put(curr, new TransactionStatus(attempt));
-                        _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state), attempt);
+                        _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state, _currTransaction), attempt);
                     }
                     curr = nextTransactionId(curr);
                 }

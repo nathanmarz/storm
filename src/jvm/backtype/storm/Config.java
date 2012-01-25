@@ -155,6 +155,12 @@ public class Config extends HashMap<String, Object> {
     public static String UI_PORT = "ui.port";
 
     /**
+     * Childopts for Storm UI Java process.
+     */
+    public static String UI_CHILDOPTS = "ui.childopts";
+    
+    
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static String DRPC_SERVERS = "drpc.servers";

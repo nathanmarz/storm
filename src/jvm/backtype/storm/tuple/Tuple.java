@@ -1,17 +1,10 @@
 package backtype.storm.tuple;
 
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.generated.SpoutSpec;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.StreamInfo;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.utils.Utils;
 import clojure.lang.ILookup;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

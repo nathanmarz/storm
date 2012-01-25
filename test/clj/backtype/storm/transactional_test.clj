@@ -4,7 +4,8 @@
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
-  (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout])
+  (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
+            KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -312,7 +313,9 @@
                                                (Fields. ["word" "amt"])
                                                3)
                     2))
-
+     (-> builder
+         (.setBolt "count" (KeyedSummingBatchBolt.) 2)
+         (.fieldsGrouping "spout" (Fields. ["word"])))
 
      (add-transactional-data data
                              {0 [["dog" 3]
@@ -329,6 +332,6 @@
            (complete-topology cluster
                               (.buildTopology builder)
                               :storm-conf {TOPOLOGY-DEBUG true}))
-     (println results)
+     (println (read-tuples results "count"))
 
      )))

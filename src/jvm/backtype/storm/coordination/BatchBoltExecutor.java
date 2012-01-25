@@ -1,12 +1,12 @@
-package backtype.storm.transactional;
+package backtype.storm.coordination;
 
 import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.coordination.CoordinatedBolt.TimeoutCallback;
-import backtype.storm.coordination.FinishedTuple;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import java.util.HashMap;

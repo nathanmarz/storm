@@ -1,4 +1,4 @@
-package backtype.storm.transactional;
+package backtype.storm.coordination;
 
 public class FailedBatchException extends RuntimeException {
     public FailedBatchException() {

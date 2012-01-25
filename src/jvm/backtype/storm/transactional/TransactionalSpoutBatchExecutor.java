@@ -1,5 +1,7 @@
 package backtype.storm.transactional;
 
+import backtype.storm.coordination.FailedBatchException;
+import backtype.storm.coordination.BatchOutputCollectorImpl;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;

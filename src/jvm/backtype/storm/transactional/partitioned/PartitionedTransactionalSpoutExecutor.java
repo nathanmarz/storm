@@ -5,7 +5,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.ITransactionalSpout;
 import backtype.storm.transactional.TransactionAttempt;
-import backtype.storm.transactional.BatchOutputCollector;
+import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.transactional.state.RotatingTransactionalState;
 import backtype.storm.transactional.state.TransactionalState;
 import java.math.BigInteger;

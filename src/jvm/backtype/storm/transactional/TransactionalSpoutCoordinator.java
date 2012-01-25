@@ -1,5 +1,6 @@
 package backtype.storm.transactional;
 
+import backtype.storm.coordination.FailedBatchException;
 import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;

@@ -1,4 +1,4 @@
-package backtype.storm.transactional;
+package backtype.storm.coordination;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IComponent;

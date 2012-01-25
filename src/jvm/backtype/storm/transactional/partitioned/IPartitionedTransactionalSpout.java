@@ -3,7 +3,7 @@ package backtype.storm.transactional.partitioned;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IComponent;
 import backtype.storm.transactional.TransactionAttempt;
-import backtype.storm.transactional.BatchOutputCollector;
+import backtype.storm.coordination.BatchOutputCollector;
 import java.util.Map;
 
 public interface IPartitionedTransactionalSpout<T> extends IComponent {

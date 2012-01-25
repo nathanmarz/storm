@@ -1,5 +1,7 @@
 package backtype.storm.transactional;
 
+import backtype.storm.coordination.IBatchBolt;
+import backtype.storm.coordination.BatchBoltExecutor;
 import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt;

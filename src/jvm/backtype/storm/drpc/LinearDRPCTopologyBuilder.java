@@ -2,11 +2,12 @@ package backtype.storm.drpc;
 
 import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
+import backtype.storm.coordination.BatchBoltExecutor;
 import backtype.storm.coordination.CoordinatedBolt;
 import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
-import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.coordination.IBatchBolt;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.topology.BaseConfigurationDeclarer;
@@ -36,6 +37,14 @@ public class LinearDRPCTopologyBuilder {
         _function = function;
     }
         
+    public LinearDRPCInputDeclarer addBolt(IBatchBolt bolt, int parallelism) {
+        return addBolt(new BatchBoltExecutor(bolt), parallelism);
+    }
+    
+    public LinearDRPCInputDeclarer addBolt(IBatchBolt bolt) {
+        return addBolt(bolt, 1);
+    }
+    
     public LinearDRPCInputDeclarer addBolt(IRichBolt bolt, int parallelism) {
         Component component = new Component(bolt, parallelism);
         _components.add(component);

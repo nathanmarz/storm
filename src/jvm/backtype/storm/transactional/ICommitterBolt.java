@@ -1,5 +1,6 @@
 package backtype.storm.transactional;
 
+import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IComponent;
 import backtype.storm.tuple.Tuple;

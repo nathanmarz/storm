@@ -383,7 +383,6 @@
                   (uuid)
                   (Bolt.                   
                    (serialize-component-object capturer)
-                   ;; TODO need to do a direct subscription for direct streams...
                    (mk-plain-component-common (into {} (for [[id direct?] all-streams]
                                                          [id (if direct?
                                                                (mk-direct-grouping)

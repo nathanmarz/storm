@@ -27,7 +27,7 @@ import java.util.Map;
  * use another type, you'll need to implement and register a serializer for that type.
  * See {@link http://github.com/nathanmarz/storm/wiki/Serialization} for more info.
  */
-public class Tuple implements ILookup, IAnchorableImpl {
+public class Tuple implements ILookup {
     private List<Object> values;
     private int taskId;
     private String streamId;
@@ -54,11 +54,6 @@ public class Tuple implements ILookup, IAnchorableImpl {
 
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
-    }
-
-    @Override
-    public Tuple getUnderlyingTuple() {
-        return this;
     }
     
     public Tuple copyWithNewId(long id) {

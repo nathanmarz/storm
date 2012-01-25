@@ -5,7 +5,6 @@
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout])
-  (:import [backtype.storm.coordination FinishedTupleImpl])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -180,7 +179,7 @@
 
 
 (defn finish! [bolt id]
-  (.finishedId bolt (FinishedTupleImpl. (test-tuple [id]))))
+  (.finishedId bolt id))
 
 (deftest test-batch-bolt
   (let [bolt (BatchBoltExecutor. (CountingBatchBolt.))

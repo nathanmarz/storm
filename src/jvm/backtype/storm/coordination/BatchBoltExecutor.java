@@ -52,8 +52,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
     }
 
     @Override
-    public void finishedId(FinishedTuple tup) {
-        Object id = tup.getId();
+    public void finishedId(Object id) {
         IBatchBolt bolt = getBatchBolt(id);
         _openTransactions.remove(id);
         try {
@@ -65,7 +64,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
     }
 
     @Override
-    public void failId(Object attempt) {
+    public void timeoutId(Object attempt) {
         _openTransactions.remove((TransactionAttempt) attempt);        
     }    
     

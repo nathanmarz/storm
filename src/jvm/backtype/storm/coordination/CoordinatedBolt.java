@@ -1,7 +1,6 @@
 package backtype.storm.coordination;
 
 import java.util.Map.Entry;
-import backtype.storm.tuple.IAnchorable;
 import backtype.storm.tuple.Values;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.Config;
@@ -35,11 +34,11 @@ public class CoordinatedBolt implements IRichBolt {
     public static Logger LOG = Logger.getLogger(CoordinatedBolt.class);
 
     public static interface FinishedCallback {
-        void finishedId(FinishedTuple id);
+        void finishedId(Object id);
     }
 
     public static interface TimeoutCallback {
-        void failId(Object id);
+        void timeoutId(Object id);
     }
     
     
@@ -71,13 +70,13 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate = delegate;
         }
 
-        public List<Integer> emit(String stream, Collection<IAnchorable> anchors, List<Object> tuple) {
+        public List<Integer> emit(String stream, Collection<Tuple> anchors, List<Object> tuple) {
             List<Integer> tasks = _delegate.emit(stream, anchors, tuple);
             updateTaskCounts(tuple.get(0), tasks);
             return tasks;
         }
 
-        public void emitDirect(int task, String stream, Collection<IAnchorable> anchors, List<Object> tuple) {
+        public void emitDirect(int task, String stream, Collection<Tuple> anchors, List<Object> tuple) {
             updateTaskCounts(tuple.get(0), Arrays.asList(task));
             _delegate.emitDirect(task, stream, anchors, tuple);
         }
@@ -226,7 +225,7 @@ public class CoordinatedBolt implements IRichBolt {
                        track.reportCount==_numSourceReports &&
                        track.expectedTupleCount == track.receivedTuples)) {
                 if(_delegate instanceof FinishedCallback) {
-                    ((FinishedCallback)_delegate).finishedId(new FinishedTupleImpl(tup));
+                    ((FinishedCallback)_delegate).finishedId(id);
                 }
                 if(!(_sourceArgs.isEmpty() ||
                      tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID) ||
@@ -320,7 +319,7 @@ public class CoordinatedBolt implements IRichBolt {
         @Override
         public void expire(Object id, TrackingInfo val) {
             synchronized(_tracked) {
-                ((TimeoutCallback) _delegate).failId(id);
+                ((TimeoutCallback) _delegate).timeoutId(id);
             }
         }
     } 

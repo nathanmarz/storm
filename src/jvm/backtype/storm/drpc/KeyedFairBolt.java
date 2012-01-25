@@ -1,7 +1,6 @@
 package backtype.storm.drpc;
 
 import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
-import backtype.storm.coordination.FinishedTuple;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicBoltExecutor;
@@ -64,7 +63,7 @@ public class KeyedFairBolt implements IRichBolt, FinishedCallback {
         _delegate.declareOutputFields(declarer);
     }
 
-    public void finishedId(FinishedTuple id) {
+    public void finishedId(Object id) {
         if(_callback!=null) {
             _callback.finishedId(id);
         }

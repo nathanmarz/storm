@@ -79,7 +79,7 @@
                 ))
      CoordinatedBolt$FinishedCallback
      (finishedId [this id]
-                 (emit-bolt! collector [(.getId id) (get @counts (.getId id) 0)])
+                 (emit-bolt! collector [id (get @counts id 0)])
                  ))
     ))
 
@@ -98,7 +98,7 @@
                 ))
      CoordinatedBolt$FinishedCallback
      (finishedId [this id]
-                 (emit-bolt! collector [(.getId id) (get @counts (.getId id) 0)])
+                 (emit-bolt! collector [id (get @counts id 0)])
                  ))
     ))
 
@@ -149,7 +149,7 @@
             )
    CoordinatedBolt$FinishedCallback
    (finishedId [this id]
-               (emit-bolt! collector [(.getId id) "done"])
+               (emit-bolt! collector [id "done"])
                )))
 
 (deftest test-drpc-coordination-tricky

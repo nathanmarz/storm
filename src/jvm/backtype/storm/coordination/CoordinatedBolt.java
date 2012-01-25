@@ -136,6 +136,7 @@ public class CoordinatedBolt implements IRichBolt {
         int failedTuples = 0;
         Map<Integer, Integer> taskEmittedTuples = new HashMap<Integer, Integer>();
         boolean receivedId = false;
+        boolean finished = false;
         
         @Override
         public String toString() {
@@ -232,6 +233,7 @@ public class CoordinatedBolt implements IRichBolt {
                     int numTuples = get(track.taskEmittedTuples, task, 0);
                     _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tup, new Values(id, numTuples));
                 }
+                track.finished = true;
                 _tracked.remove(id);
             }
         }
@@ -308,7 +310,11 @@ public class CoordinatedBolt implements IRichBolt {
         @Override
         public void expire(Object id, TrackingInfo val) {
             synchronized(_tracked) {
-                ((TimeoutCallback) _delegate).timeoutId(id);
+                // make sure we don't time out something that has been finished. the combination of 
+                // the flag and the lock ensure this
+                if(!val.finished) {
+                    ((TimeoutCallback) _delegate).timeoutId(id);
+                }
             }
         }
     } 

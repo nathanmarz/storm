@@ -38,6 +38,8 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
             LOG.warn("Failed to emit batch for transaction", e);
             _collector.fail(input);
         }
+        // this is valid here because the batch has been successfully emitted, 
+        // so we can safely delete metadata for prior transactions
         _emitter.cleanupBefore((BigInteger) input.getValue(2));
     }
 

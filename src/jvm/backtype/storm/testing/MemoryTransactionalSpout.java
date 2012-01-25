@@ -16,18 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
-// TODO:
-//   - needs to be restartable
-//   - needs to not advance past transactions it shouldn't be advancing to...
-//   - don't make it dependent on the actual txid
-// have it read form a source of partitions (passed in and registered)
-// don't modify the source before calling complete-topology.
-// total-tuples is just the number of tuples across all partitions
-// to implement completed-tuples need to know the current offset for each partition in zookeeper...
-//   - get the current txid from zk.
-//   - get the start offset for each partition using that txid
-//   - num tuples left is (size of partition queue - that offset)
 public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<MemoryTransactionalSpoutMeta> {
     public static String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
     

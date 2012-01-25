@@ -180,7 +180,6 @@ public class CoordinatedBolt implements IRichBolt {
     }
     
     public void prepare(Map config, TopologyContext context, OutputCollector collector) {
-        // TODO: when something expires, should call failedId on the delegate
         TimeCacheMap.ExpiredCallback<Object, TrackingInfo> callback = null;
         if(_delegate instanceof TimeoutCallback) {
             callback = new TimeoutItems();

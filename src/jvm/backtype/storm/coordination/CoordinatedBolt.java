@@ -150,23 +150,17 @@ public class CoordinatedBolt implements IRichBolt {
     
     public static class IdStreamSpec implements Serializable {
         GlobalStreamId _id;
-        boolean _passTupleThrough = false;
-        
-        public static IdStreamSpec makePassThroughSpec(String component, String stream) {
-            return new IdStreamSpec(component, stream, true);
-        }
         
         public GlobalStreamId getGlobalStreamId() {
             return _id;
         }
 
         public static IdStreamSpec makeDetectSpec(String component, String stream) {
-            return new IdStreamSpec(component, stream, false);
+            return new IdStreamSpec(component, stream);
         }        
         
-        protected IdStreamSpec(String component, String stream, boolean passTupleThrough) {
+        protected IdStreamSpec(String component, String stream) {
             _id = new GlobalStreamId(component, stream);
-            _passTupleThrough = passTupleThrough;
         }
     }
     
@@ -263,18 +257,14 @@ public class CoordinatedBolt implements IRichBolt {
             synchronized(_tracked) {
                 track.receivedId = true;
             }
-            if(_idStreamSpec._passTupleThrough) {
-                _delegate.execute(tuple);
-            }
             checkFinishId(tuple);
             
-            if(!_idStreamSpec._passTupleThrough) {
-                if(failed) {
-                    _collector.fail(tuple);
-                } else {
-                    _collector.ack(tuple);
-                }
+            if(failed) {
+                _collector.fail(tuple);
+            } else {
+                _collector.ack(tuple);
             }
+            
         } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
             int count = (Integer) tuple.getValue(1);

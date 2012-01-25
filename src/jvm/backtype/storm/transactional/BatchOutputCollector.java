@@ -3,7 +3,7 @@ package backtype.storm.transactional;
 import backtype.storm.utils.Utils;
 import java.util.List;
 
-public abstract class TransactionalOutputCollector {
+public abstract class BatchOutputCollector {
 
     /**
      * Emits a tuple to the default output stream.

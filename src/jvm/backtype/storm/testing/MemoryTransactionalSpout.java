@@ -4,7 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.TransactionAttempt;
-import backtype.storm.transactional.TransactionalOutputCollector;
+import backtype.storm.transactional.BatchOutputCollector;
 import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout;
 import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout.Emitter;
 import backtype.storm.tuple.Fields;
@@ -79,7 +79,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         
         
         @Override
-        public MemoryTransactionalSpoutMeta emitPartitionBatchNew(TransactionAttempt tx, TransactionalOutputCollector collector, int partition, MemoryTransactionalSpoutMeta lastPartitionMeta) {
+        public MemoryTransactionalSpoutMeta emitPartitionBatchNew(TransactionAttempt tx, BatchOutputCollector collector, int partition, MemoryTransactionalSpoutMeta lastPartitionMeta) {
             int index;
             if(lastPartitionMeta==null) {
                 index = 0;
@@ -106,7 +106,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         }
 
         @Override
-        public void emitPartitionBatch(TransactionAttempt tx, TransactionalOutputCollector collector, int partition, MemoryTransactionalSpoutMeta partitionMeta) {
+        public void emitPartitionBatch(TransactionAttempt tx, BatchOutputCollector collector, int partition, MemoryTransactionalSpoutMeta partitionMeta) {
             List<List<Object>> queue = getQueues().get(partition);
             for(int i=partitionMeta.index; i < partitionMeta.index + partitionMeta.amt; i++) {
                 List<Object> toEmit = new ArrayList<Object>(queue.get(i));

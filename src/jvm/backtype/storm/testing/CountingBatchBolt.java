@@ -4,7 +4,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBatchBolt;
 import backtype.storm.transactional.TransactionAttempt;
-import backtype.storm.transactional.TransactionalOutputCollector;
+import backtype.storm.transactional.BatchOutputCollector;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -13,14 +13,14 @@ import java.util.Map;
 public class CountingBatchBolt extends BaseBatchBolt {
     public static final String BATCH_STREAM = "batch";
     
-    TransactionalOutputCollector _collector;
-    TransactionAttempt _attempt;
+    BatchOutputCollector _collector;
+    Object _id;
     int _count = 0;
     
     @Override
-    public void prepare(Map conf, TopologyContext context, TransactionalOutputCollector collector, TransactionAttempt attempt) {
+    public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
         _collector = collector;
-        _attempt = attempt;
+        _id = id;
     }
 
     @Override
@@ -30,7 +30,7 @@ public class CountingBatchBolt extends BaseBatchBolt {
 
     @Override
     public void finishBatch() {
-        _collector.emit(BATCH_STREAM, new Values(_attempt, _count));        
+        _collector.emit(BATCH_STREAM, new Values(_id, _count));        
     }   
 
     @Override

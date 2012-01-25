@@ -6,11 +6,8 @@ import backtype.storm.tuple.Tuple;
 import java.io.Serializable;
 import java.util.Map;
 
-/**
- * Implement ICommittable to receive commits from the TransactionSpout.
- */
 public interface IBatchBolt extends Serializable, IComponent {
-    void prepare(Map conf, TopologyContext context, TransactionalOutputCollector collector, TransactionAttempt attempt);
+    void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id);
     void execute(Tuple tuple);
     void finishBatch();
 }

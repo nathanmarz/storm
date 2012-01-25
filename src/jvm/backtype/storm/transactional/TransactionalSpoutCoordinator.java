@@ -129,7 +129,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
                     curr = nextTransactionId(curr);
                 }
             }     
-        } catch(FailedTransactionException e) {
+        } catch(FailedBatchException e) {
             LOG.warn("Failed to get metadata for a transaction", e);
         }
     }

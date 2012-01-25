@@ -5,7 +5,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.ITransactionalSpout;
 import backtype.storm.transactional.TransactionAttempt;
-import backtype.storm.transactional.TransactionalOutputCollector;
+import backtype.storm.transactional.BatchOutputCollector;
 import backtype.storm.transactional.state.RotatingTransactionalState;
 import backtype.storm.transactional.state.TransactionalState;
 import java.math.BigInteger;
@@ -58,7 +58,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
 
         @Override
         public void emitBatch(final TransactionAttempt tx, final Integer partitions,
-                final TransactionalOutputCollector collector) {
+                final BatchOutputCollector collector) {
             for(int i=_index; i < partitions; i+=_numTasks) {
                 if(!_partitionStates.containsKey(i)) {
                     _partitionStates.put(i, new RotatingTransactionalState(_state, "" + i));

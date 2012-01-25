@@ -8,5 +8,5 @@ import java.util.Map;
 public interface ICommitterBolt extends IComponent {
     void prepare(Map conf, TopologyContext context, TransactionAttempt attempt);
     void execute(Tuple tuple);
-    void commit(TransactionalOutputCollector collector);
+    void commit(BatchOutputCollector collector);
 }

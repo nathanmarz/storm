@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
 public class TransactionalSpoutBatchExecutor implements IRichBolt {
     public static Logger LOG = Logger.getLogger(TransactionalSpoutBatchExecutor.class);    
 
-    TransactionalOutputCollectorImpl _collector;
+    BatchOutputCollectorImpl _collector;
     ITransactionalSpout _spout;
     ITransactionalSpout.Emitter _emitter;
 
@@ -22,7 +22,7 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
-        _collector = new TransactionalOutputCollectorImpl(collector);
+        _collector = new BatchOutputCollectorImpl(collector);
         _emitter = _spout.getEmitter(conf, context);
     }
 
@@ -32,7 +32,7 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
         try {
             _emitter.emitBatch(attempt, input.getValue(1), _collector);
             _collector.ack(input);
-        } catch(FailedTransactionException e) {
+        } catch(FailedBatchException e) {
             LOG.warn("Failed to emit batch for transaction", e);
             _collector.fail(input);
         }

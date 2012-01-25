@@ -4,10 +4,10 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.tuple.Tuple;
 import java.util.List;
 
-public class TransactionalOutputCollectorImpl extends TransactionalOutputCollector {
+public class BatchOutputCollectorImpl extends BatchOutputCollector {
     OutputCollector _collector;
     
-    public TransactionalOutputCollectorImpl(OutputCollector collector) {
+    public BatchOutputCollectorImpl(OutputCollector collector) {
         _collector = collector;
     }
     

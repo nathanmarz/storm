@@ -17,10 +17,10 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
     public static Logger LOG = Logger.getLogger(BatchBoltExecutor.class);    
 
     byte[] _boltSer;
-    Map<TransactionAttempt, IBatchBolt> _openTransactions;
+    Map<Object, IBatchBolt> _openTransactions;
     Map _conf;
     TopologyContext _context;
-    TransactionalOutputCollectorImpl _collector;
+    BatchOutputCollectorImpl _collector;
     
     public BatchBoltExecutor(IBatchBolt bolt) {
         _boltSer = Utils.serialize(bolt);
@@ -30,19 +30,19 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _conf = conf;
         _context = context;
-        _collector = new TransactionalOutputCollectorImpl(collector);
-        _openTransactions = new HashMap<TransactionAttempt, IBatchBolt>();
+        _collector = new BatchOutputCollectorImpl(collector);
+        _openTransactions = new HashMap<Object, IBatchBolt>();
     }
 
     @Override
     public void execute(Tuple input) {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
-        IBatchBolt bolt = getTransactionalBolt(attempt);
+        IBatchBolt bolt = getBatchBolt(attempt);
         try {
              bolt.execute(input);
             _collector.ack(input);
-        } catch(FailedTransactionException e) {
-            LOG.warn("Failed to process tuple in transaction", e);
+        } catch(FailedBatchException e) {
+            LOG.warn("Failed to process tuple in batch", e);
             _collector.fail(input);                
         }
     }
@@ -53,12 +53,12 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
 
     @Override
     public void finishedId(FinishedTuple tup) {
-        TransactionAttempt attempt = (TransactionAttempt) tup.getId();
-        IBatchBolt bolt = getTransactionalBolt(attempt);
-        _openTransactions.remove(attempt);
+        Object id = tup.getId();
+        IBatchBolt bolt = getBatchBolt(id);
+        _openTransactions.remove(id);
         try {
             bolt.finishBatch();
-        } catch(FailedTransactionException e) {
+        } catch(FailedBatchException e) {
             // TODO: need to be able to fail from here... need support from coordinatedbolt
             throw e;
         }
@@ -80,12 +80,12 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
         return newTransactionalBolt().getComponentConfiguration();
     }
     
-    private IBatchBolt getTransactionalBolt(TransactionAttempt attempt) {
-        IBatchBolt bolt = _openTransactions.get(attempt);
+    private IBatchBolt getBatchBolt(Object id) {
+        IBatchBolt bolt = _openTransactions.get(id);
         if(bolt==null) {
             bolt = newTransactionalBolt();
-            bolt.prepare(_conf, _context, _collector, attempt);
-            _openTransactions.put(attempt, bolt);            
+            bolt.prepare(_conf, _context, _collector, id);
+            _openTransactions.put(id, bolt);            
         }
         return bolt;
     }

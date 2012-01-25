@@ -301,7 +301,7 @@
     ))
 
 ;; cluster-map topology :mock-sources {} :storm-conf {}
-#_(deftest test-transactional-topology
+(deftest test-transactional-topology
   (with-simulated-time-local-cluster [cluster]
     (letlocals
      (bind data (mk-transactional-source))

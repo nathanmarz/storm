@@ -107,8 +107,7 @@
     (toks->path (conj toks name))
     ))
 
-(defn not-nil? [o]
-  (not (nil? o)))
+(def not-nil? (complement nil?))
 
 (defn barr [& vals]
   (byte-array (map byte vals)))
@@ -517,7 +516,7 @@
     ))
 
 (defn nil-to-zero [v]
-  (if v v 0))
+  (or v 0))
 
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))

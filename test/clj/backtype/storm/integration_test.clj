@@ -247,18 +247,21 @@
           [feeder3 checker3] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
                    cluster
-                   {"1" [feeder1]
-                    "2" [feeder2]
-                    "3" [feeder3]}
-                   {"4" [{"1" :shuffle} (branching-bolt 2)]
-                    "5" [{"2" :shuffle} (branching-bolt 4)]
-                    "6" [{"3" :shuffle} (branching-bolt 1)]
-                    "7" [{"4" :shuffle
-                        "5" :shuffle
-                        "6" :shuffle} (agg-bolt 3)]
-                    "8" [{"7" :shuffle} (branching-bolt 2)]
-                    "9" [{"8" :shuffle} ack-bolt]}
-                   )]
+                   (topology
+                     {"1" (spout-spec feeder1)
+                      "2" (spout-spec feeder2)
+                      "3" (spout-spec feeder3)}
+                     {"4" (bolt-spec {"1" :shuffle} (branching-bolt 2))
+                      "5" (bolt-spec {"2" :shuffle} (branching-bolt 4))
+                      "6" (bolt-spec {"3" :shuffle} (branching-bolt 1))
+                      "7" (bolt-spec
+                            {"4" :shuffle
+                            "5" :shuffle
+                            "6" :shuffle}
+                            (agg-bolt 3))
+                      "8" (bolt-spec {"7" :shuffle} (branching-bolt 2))
+                      "9" (bolt-spec {"8" :shuffle} ack-bolt)}
+                     ))]
       (submit-local-topology (:nimbus cluster)
                              "acking-test1"
                              {TOPOLOGY-DEBUG true}
@@ -293,11 +296,14 @@
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
                    cluster
-                   {"1" [feeder]}
-                   {"2" [{"1" :shuffle} identity-bolt]
-                    "3" [{"1" :shuffle} identity-bolt]
-                    "4" [{"2" :shuffle
-                          "3" :shuffle} (agg-bolt 4)]})]
+                   (topology
+                     {"1" (spout-spec feeder)}
+                     {"2" (bolt-spec {"1" :shuffle} identity-bolt)
+                      "3" (bolt-spec {"1" :shuffle} identity-bolt)
+                      "4" (bolt-spec
+                            {"2" :shuffle
+                             "3" :shuffle}
+                             (agg-bolt 4))}))]
       (submit-local-topology (:nimbus cluster)
                              "test-acking2"
                              {}
@@ -320,9 +326,10 @@
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
                    cluster
-                   {"1" [feeder]}
-                   {"2" [{"1" :shuffle} dup-anchor]
-                    "3" [{"2" :shuffle} ack-bolt]})]
+                   (topology
+                     {"1" (spout-spec feeder)}
+                     {"2" (bolt-spec {"1" :shuffle} dup-anchor)
+                      "3" (bolt-spec {"2" :shuffle} ack-bolt)}))]
       (submit-local-topology (:nimbus cluster)
                              "test"
                              {}

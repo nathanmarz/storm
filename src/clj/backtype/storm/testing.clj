@@ -424,28 +424,24 @@
 
 (def TRACKER-BOLT-ID "+++tracker-bolt")
 
+;; TODO:  should override system-topology! and wrap everything there
 (defn mk-tracked-topology
-  "Spouts are of form [spout & options], bolts are of form [inputs bolt & options]"
-  [tracked-cluster spouts-map bolts-map]
-  (let [track-id (::track-id tracked-cluster)        
-        spouts-map (into {}
-                         (for [[id [spout & options]] spouts-map]
-                           [id
-                            (apply mk-spout-spec
-                                   (SpoutTracker. spout track-id)
-                                   options)]))
-        bolts-map (into {}
-                        (for [[id [inputs bolt & options]] bolts-map]
-                          [id
-                           (apply mk-bolt-spec
-                                  inputs
-                                  (BoltTracker. bolt track-id)
-                                  options)]))
-        ]
-    {:topology (mk-topology spouts-map bolts-map)
-     :last-spout-emit (atom 0)
-     :cluster tracked-cluster
-     }))
+  ([tracked-cluster topology]
+     (let [track-id (::track-id tracked-cluster)
+           ret (.deepCopy topology)]
+       (dofor [[_ bolt] (.get_bolts ret)
+               :let [obj (deserialized-component-object (.get_bolt_object bolt))]]
+              (.set_bolt_object bolt (serialize-component-object
+                                      (BoltTracker. obj track-id))))
+       (dofor [[_ spout] (.get_spouts ret)
+               :let [obj (deserialized-component-object (.get_spout_object spout))]]
+              (.set_spout_object spout (serialize-component-object
+                                        (SpoutTracker. obj track-id))))
+       {:topology ret
+        :last-spout-emit (atom 0)
+        :cluster tracked-cluster
+        }
+       )))
 
 (defn assoc-track-id [cluster track-id]
   (assoc cluster ::track-id track-id))

@@ -340,7 +340,7 @@
                       "spout"
                       (MemoryTransactionalSpout. data
                                                  (Fields. ["word" "amt"])
-                                                 3)
+                                                 2)
                       2))
        
        (-> builder

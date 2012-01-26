@@ -84,14 +84,6 @@ public class TransactionalTopologyBuilder {
     public BoltDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism) {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism, false);
     }
-
-    public BoltDeclarer setBolt(String id, IRichBolt bolt) {
-        return setBolt(id, bolt, null);
-    }    
-    
-    public BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism) {
-        return setBolt(id, bolt, parallelism, false);
-    }    
     
     private BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism, boolean committer) {
         Component component = new Component(bolt, parallelism, committer);

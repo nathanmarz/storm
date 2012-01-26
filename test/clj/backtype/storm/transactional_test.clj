@@ -52,6 +52,9 @@
         []
         ))))
 
+(defn normalize-tx-tuple [values]
+  (-> values vec (update 0 (memfn getTransactionId))))
+
 (defn verify-and-reset! [expected-map emitted-map-atom]
   (let [results @emitted-map-atom]
     (dorun
@@ -64,8 +67,7 @@
     (is (= expected-map
            (map-val
             (fn [tuples]
-              (map (comp #(update % 0 (memfn getTransactionId))
-                         vec
+              (map (comp normalize-tx-tuple
                          #(take 2 %)
                          :tuple)
                    tuples))
@@ -393,20 +395,48 @@
                                TOPOLOGY-DEBUG true}
                               (:topology topo-info))
 
+       (bind ack-tx (fn [txid]
+                      (let [[to-ack not-to-ack] (separate
+                                                 #(-> %
+                                                      (.getValue 0)
+                                                      .getTransactionId
+                                                      (= txid))
+                                                 @tuples)]
+                        (reset! tuples not-to-ack)
+                        (doseq [t to-ack]
+                          (.ack @collector t)))))
+
+       ;; only check default streams
+       (bind verify! (fn [expected]
+                       (let [results (-> topo-info :capturer .getResults)]
+                         (doseq [[component tuples] expected
+                                 :let [emitted (->> (read-tuples results
+                                                                 component
+                                                                 "default")
+                                                    (map normalize-tx-tuple))]]
+                           (is (ms= tuples emitted)))
+                         (.clear results)
+                         )))
+
        (tracked-wait topo-info 2)
        (println "Controlled: " @tuples)
        (println "Captured:" (-> topo-info :capturer .getResults))
-       ;; make a complex topology, and then make a final bolt at the end that doesn't ack (and lets me manipulate its tuples from here)
-
-       ;; let it go to completion
-       ;; make sure there are no commits
-       ;; ack tuples for txid = 2
-       ;; make sure there are no commits
-       ;; ack tuples for txid = 1, let it run
-       ;; make sure there are 2 commits + 2 more batch emits
-       ;; extract the code to add a capturing bolt and transform the topology
+       ;; check that batch tuples have been emitted for tx 1 and 2
+       ;; check the outputs of all the bolts
+       ;; ack the ack the first batch
+       ;; check that first batch commits
+       ;; ack the commit
+       ;; check that third batch is emitted
+       ;; ack the third batch
+       ;; check that the fourth batch is emitted
+       ;; ack the second batch
+       ;; check that the second batch is committed
+       ;; fail the commit
+       ;; check that second batch is emitted again
+       ;; ack the second batch
+       ;; commit the second batch...
+       ;; check that third batch is committed
        
-
-;;       (println (read-tuples results "count"))
-
+       ;;       (println (read-tuples results "count"))
+       (-> topo-info :capturer .getAndClearResults)
        ))))

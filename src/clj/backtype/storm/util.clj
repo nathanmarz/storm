@@ -110,6 +110,9 @@
        amap
        )))
 
+(defn separate [pred aseq]
+  [(filter pred aseq) (filter (complement pred) aseq)])
+
 (defn full-path [parent name]
   (let [toks (tokenize-path parent)]
     (toks->path (conj toks name))

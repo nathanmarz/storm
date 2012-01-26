@@ -348,36 +348,16 @@
         .get_spout_object
         deserialized-component-object)))
 
-;; TODO: mock-sources needs to be able to mock out state spouts as well
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
-  ;; TODO: the idea of mocking for transactional topologies should be done an
-  ;; abstraction level above... should have a complete-transactional-topology for this
-  (let [storm-name (str "topologytest-" (uuid))
-        state (:storm-cluster-state cluster-map)
+(defn capture-topology [topology]
+  (let [topology (.deepCopy topology)
         spouts (.get_spouts topology)
         bolts (.get_bolts topology)
-        replacements (map-val (fn [v]
-                                (FixedTupleSpout.
-                                 (for [tup v]
-                                   (if (map? tup)
-                                     (FixedTuple. (:stream tup) (:values tup))
-                                     tup))))
-                              mock-sources)
         all-streams (apply concat
-                           (for [[id spec] (merge (clojurify-structure spouts) (clojurify-structure bolts))]
+                           (for [[id spec] (merge (clojurify-structure spouts)
+                                                  (clojurify-structure bolts))]
                              (for [[stream info] (.. spec get_common get_streams)]
                                [(GlobalStreamId. id stream) (.is_direct info)])))
-        capturer (TupleCaptureBolt. storm-name)
-        ]
-    (doseq [[id spout] replacements]
-      (let [spout-spec (get spouts id)]
-        (.set_spout_object spout-spec (serialize-component-object spout))
-        ))
-    (doseq [spout (spout-objects spouts)]
-      (when-not (extends? CompletableSpout (.getClass spout))
-        (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))
-        ))
-    
+        capturer (TupleCaptureBolt.)]
     (.set_bolts topology
                 (assoc (clojurify-structure bolts)
                   (uuid)
@@ -390,6 +370,38 @@
                                               {}
                                               nil))
                   ))
+    {:topology topology
+     :capturer capturer}
+    ))
+
+;; TODO: mock-sources needs to be able to mock out state spouts as well
+(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
+  ;; TODO: the idea of mocking for transactional topologies should be done an
+  ;; abstraction level above... should have a complete-transactional-topology for this
+  (let [{topology :topology capturer :capturer} (capture-topology topology)
+        storm-name (str "topologytest-" (uuid))
+        state (:storm-cluster-state cluster-map)
+        spouts (.get_spouts topology)
+        replacements (map-val (fn [v]
+                                (FixedTupleSpout.
+                                 (for [tup v]
+                                   (if (map? tup)
+                                     (FixedTuple. (:stream tup) (:values tup))
+                                     tup))))
+                              mock-sources)
+        
+
+        ]
+    (doseq [[id spout] replacements]
+      (let [spout-spec (get spouts id)]
+        (.set_spout_object spout-spec (serialize-component-object spout))
+        ))
+    (doseq [spout (spout-objects spouts)]
+      (when-not (extends? CompletableSpout (.getClass spout))
+        (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))
+        ))
+    
+    
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
     
     
@@ -403,7 +415,7 @@
       (doseq [spout (spout-objects spouts)]
         (cleanup spout)))
 
-    (.getResults capturer)
+    (.getAndClearResults capturer)
     ))
 
 (defn read-tuples

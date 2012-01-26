@@ -317,6 +317,16 @@
          (.setBolt "count" (KeyedSummingBatchBolt.) 2)
          (.fieldsGrouping "spout" (Fields. ["word"])))
 
+     ;; make a complex topology, and then make a final bolt at the end that doesn't ack (and lets me manipulate its tuples from here)
+
+     ;; let it go to completion
+     ;; make sure there are no commits
+     ;; ack tuples for txid = 2
+     ;; make sure there are no commits
+     ;; ack tuples for txid = 1, let it run
+     ;; make sure there are 2 commits + 2 more batch emits
+     ;; extract the code to add a capturing bolt and transform the topology
+     
      (add-transactional-data data
                              {0 [["dog" 3]
                                  ["cat" 4]

@@ -8,18 +8,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 
 public class TupleCaptureBolt implements IBolt {
     public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
 
     private String _name;
-    private Map<String, List<FixedTuple>> _results = null;
     private OutputCollector _collector;
 
-    public TupleCaptureBolt(String name) {
-        _name = name;
-        emitted_tuples.put(name, new HashMap<String, List<FixedTuple>>());
+    public TupleCaptureBolt() {
+        _name = UUID.randomUUID().toString();
+        emitted_tuples.put(_name, new HashMap<String, List<FixedTuple>>());
     }
 
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
@@ -37,13 +37,14 @@ public class TupleCaptureBolt implements IBolt {
     }
 
     public Map<String, List<FixedTuple>> getResults() {
-        if(_results==null) {
-            _results = emitted_tuples.remove(_name);
-        }
-        return _results;
+        return emitted_tuples.get(_name);
     }
 
     public void cleanup() {
+    }
+    
+    public Map<String, List<FixedTuple>> getAndClearResults() {
+        return emitted_tuples.remove(_name);
     }
 
 }

@@ -6,7 +6,7 @@
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
             KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
-            IdentityBolt])
+            IdentityBolt CountingCommitBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -210,17 +210,17 @@
 
     (verify-bolt-and-reset! {:ack [[attempt1-1] [attempt1-1] [attempt1-2]
                                    [attempt2-1] [attempt1-1]]
-                             "batch" [[attempt1-1 3]]}
+                             "default" [[attempt1-1 3]]}
                             capture-atom)
 
     (.execute bolt (test-tuple [attempt1-2]))
     (finish! bolt attempt2-1)
     (verify-bolt-and-reset! {:ack [[attempt1-2]]
-                             "batch" [[attempt2-1 1]]}
+                             "default" [[attempt2-1 1]]}
                             capture-atom)
 
     (finish! bolt attempt1-2)
-    (verify-bolt-and-reset! {"batch" [[attempt1-2 2]]}
+    (verify-bolt-and-reset! {"default" [[attempt1-2 2]]}
                             capture-atom)  
     ))
 
@@ -322,7 +322,6 @@
      (RegisteredGlobalState/clearState id#)
     ))
 
-
 (deftest test-transactional-topology
   (with-tracked-cluster [cluster]
     (with-controller-bolt [controller collector tuples]
@@ -343,6 +342,14 @@
        (-> builder
            (.setBolt "id2" (IdentityBolt. (Fields. ["tx" "word" "amt"])) 3)
            (.shuffleGrouping "spout"))
+
+       (-> builder
+           (.setBolt "global" (CountingBatchBolt.) 1)
+           (.globalGrouping "spout"))
+
+       (-> builder
+           (.setBolt "gcommit" (CountingCommitBolt.) 1)
+           (.globalGrouping "spout"))
        
        (-> builder
            (.setBolt "sum" (KeyedSummingBatchBolt.) 2)
@@ -426,7 +433,10 @@
                         [2 "dog" 3]
                         [2 "zebra" 1]]
                  "count" []
-                 "count2" []})
+                 "count2" []
+                 "global" [[1 6]
+                           [2 3]]
+                 "gcommit" []})
        (ack-tx! 1)
        (tracked-wait topo-info 1)
        (verify! {"sum" []
@@ -437,7 +447,9 @@
                  "count2" [[1 "dog" 2]
                            [1 "cat" 2]
                            [1 "mango" 2]
-                           [1 "happy" 2]]})
+                           [1 "happy" 2]]
+                 "global" []
+                 "gcommit" [[1 6]]})
 
        (add-transactional-data data
                                {0 [["a" 1]
@@ -458,7 +470,9 @@
                         [3 "c" 1]
                         [3 "e" 7]]
                  "count" []
-                 "count2" []})
+                 "count2" []
+                 "global" [[3 7]]
+                 "gcommit" []})
        (ack-tx! 3)
        (ack-tx! 2)
        (tracked-wait topo-info 1)
@@ -468,7 +482,9 @@
                           [2 "zebra" 1]]
                  "count2" [[2 "apple" 2]
                            [2 "dog" 2]
-                           [2 "zebra" 2]]})
+                           [2 "zebra" 2]]
+                 "global" []
+                 "gcommit" [[2 3]]})
 
        (fail-tx! 2)
        (tracked-wait topo-info 1)
@@ -477,7 +493,9 @@
                         [2 "dog" 3]
                         [2 "zebra" 1]]
                  "count" []
-                 "count2" []})
+                 "count2" []
+                 "global" [[2 3]]
+                 "gcommit" []})
        (ack-tx! 2)
        (tracked-wait topo-info 1)
        
@@ -487,7 +505,9 @@
                           [2 "zebra" 1]]
                  "count2" [[2 "apple" 2]
                            [2 "dog" 2]
-                           [2 "zebra" 2]]})
+                           [2 "zebra" 2]]
+                 "global" []
+                 "gcommit" [[2 3]]})
        
        (ack-tx! 2)
 
@@ -502,11 +522,33 @@
                            [3 "b" 2]
                            [3 "d" 2]
                            [3 "c" 2]
-                           [3 "e" 2]]})
+                           [3 "e" 2]]
+                 "global" [[4 2]]
+                 "gcommit" [[3 7]]})
+
+       (ack-tx! 4)
+       (ack-tx! 3)
+       (tracked-wait topo-info 2)
+       (verify! {"sum" []
+                 "count" [[4 "c" 2]]
+                 "count2" [[4 "c" 2]]
+                 "global" [[5 0]]
+                 "gcommit" [[4 2]]})
+
+       (ack-tx! 5)
+       (ack-tx! 4)
+       (tracked-wait topo-info 2)
+       (verify! {"sum" []
+                 "count" []
+                 "count2" []
+                 "global" [[6 0]]
+                 "gcommit" [[5 0]]})
 
        (-> topo-info :capturer .getAndClearResults)
        ))))
 
-;; TODO: should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
+
+
+
 ;; TODO: ;; * Test that it picks up where it left off when restarting the topology
 ;;      - run topology and restart it

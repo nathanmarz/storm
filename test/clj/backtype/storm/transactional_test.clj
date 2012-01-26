@@ -14,13 +14,6 @@
 (bootstrap)
 
 ;; Testing TODO:
-;; 
-
-;;  what about testing that the coordination is done properly?
-;;  can check that it receives all the prior tuples before finishbatch is called in the full topology
-;;  
-
-
 ;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
 ;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
 

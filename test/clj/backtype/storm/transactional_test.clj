@@ -18,7 +18,7 @@
 
 ;;  what about testing that the coordination is done properly?
 ;;  can check that it receives all the prior tuples before finishbatch is called in the full topology
-;;  should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
+;;  
 
 
 ;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
@@ -284,16 +284,6 @@
         (.close state)
         ))))
 
-
-
-;; * Test that commit isn't considered successful until the entire tree has been completed (including tuples emitted from commit method)
-;;      - test the full topology (this is a test of acking/anchoring)
-;; * Test that batch isn't considered processed until the entire tuple tree has been completed
-;;      - test the full topology (this is a test of acking/anchoring)
-;; * Test that it picks up where it left off when restarting the topology
-;;      - run topology and restart it
-
-
 (defn mk-transactional-source []
   (HashMap.))
 
@@ -332,7 +322,7 @@
      (RegisteredGlobalState/clearState id#)
     ))
 
-;; cluster-map topology :mock-sources {} :storm-conf {}
+
 (deftest test-transactional-topology
   (with-tracked-cluster [cluster]
     (with-controller-bolt [controller collector tuples]
@@ -378,8 +368,7 @@
                                {0 [["dog" 3]
                                    ["cat" 4]
                                    ["apple" 1]
-                                   ["dog" 3]
-                                   ["banana" 0]]
+                                   ["dog" 3]]
                                 1 [["cat" 1]
                                    ["mango" 4]]
                                 2 [["happy" 11]
@@ -405,6 +394,17 @@
                          (doseq [t to-ack]
                            (.ack @collector t)))))
 
+       (bind fail-tx! (fn [txid]
+                        (let [[to-fail not-to-fail] (separate
+                                                     #(-> %
+                                                          (.getValue 0)
+                                                          .getTransactionId
+                                                          (= txid))
+                                                     @tuples)]
+                          (reset! tuples not-to-fail)
+                          (doseq [t to-fail]
+                            (.fail @collector t)))))
+
        ;; only check default streams
        (bind verify! (fn [expected]
                        (let [results (-> topo-info :capturer .getResults)]
@@ -418,8 +418,6 @@
                          )))
 
        (tracked-wait topo-info 2)
-       (println "Controlled: " @tuples)
-       (println "Captured:" (-> topo-info :capturer .getResults))
        (verify! {"sum" [[1 "dog" 3]
                         [1 "cat" 5]
                         [1 "mango" 6]
@@ -440,31 +438,75 @@
                            [1 "cat" 2]
                            [1 "mango" 2]
                            [1 "happy" 2]]})
+
+       (add-transactional-data data
+                               {0 [["a" 1]
+                                   ["b" 2]
+                                   ["c" 3]]
+                                1 [["d" 4]
+                                   ["c" 1]]
+                                2 [["a" 2]
+                                   ["e" 7]
+                                   ["c" 11]]
+                                3 [["a" 2]]})
+       
        (ack-tx! 1)
+       (tracked-wait topo-info 1)
+       (verify! {"sum" [[3 "a" 5]
+                        [3 "b" 2]
+                        [3 "d" 4]
+                        [3 "c" 1]
+                        [3 "e" 7]]
+                 "count" []
+                 "count2" []})
+       (ack-tx! 3)
+       (ack-tx! 2)
+       (tracked-wait topo-info 1)
+       (verify! {"sum" []
+                 "count" [[2 "apple" 1]
+                          [2 "dog" 1]
+                          [2 "zebra" 1]]
+                 "count2" [[2 "apple" 2]
+                           [2 "dog" 2]
+                           [2 "zebra" 2]]})
+
+       (fail-tx! 2)
+       (tracked-wait topo-info 1)
+
+       (verify! {"sum" [[2 "apple" 1]
+                        [2 "dog" 3]
+                        [2 "zebra" 1]]
+                 "count" []
+                 "count2" []})
+       (ack-tx! 2)
+       (tracked-wait topo-info 1)
        
-       ;; ack the commit
-       ;; check that third batch is emitted
-       ;; ack the third batch
-       ;; check that the fourth batch is emitted
-       ;; ack the second batch
-       ;; check that the second batch is committed
-       ;; fail the commit
-       ;; check that second batch is emitted again
-       ;; ack the second batch
-       ;; commit the second batch...
-       ;; check that third batch is committed
+       (verify! {"sum" []
+                 "count" [[2 "apple" 1]
+                          [2 "dog" 1]
+                          [2 "zebra" 1]]
+                 "count2" [[2 "apple" 2]
+                           [2 "dog" 2]
+                           [2 "zebra" 2]]})
        
-       ;;       (println (read-tuples results "count"))
+       (ack-tx! 2)
+
+       (tracked-wait topo-info 2)
+       (verify! {"sum" [[4 "c" 14]]
+                 "count" [[3 "a" 3]
+                          [3 "b" 1]
+                          [3 "d" 1]
+                          [3 "c" 1]
+                          [3 "e" 1]]
+                 "count2" [[3 "a" 2]
+                           [3 "b" 2]
+                           [3 "d" 2]
+                           [3 "c" 2]
+                           [3 "e" 2]]})
+
        (-> topo-info :capturer .getAndClearResults)
        ))))
 
-{0 [["dog" 3]
-    ["cat" 4]
-    ["apple" 1]
-    ["dog" 3]
-    ["banana" 0]]
- 1 [["cat" 1]
-    ["mango" 4]]
- 2 [["happy" 11]
-    ["mango" 2]
-    ["zebra" 1]]}
+;; TODO: should test that it commits even when receiving no tuples (and test that finishBatch is called before commit in this case)
+;; TODO: ;; * Test that it picks up where it left off when restarting the topology
+;;      - run topology and restart it

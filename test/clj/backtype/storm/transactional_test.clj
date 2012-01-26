@@ -17,8 +17,7 @@
 ;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)
 ;; * Test that partitioned state emits nothing for the partition if it has seen a future transaction for that partition (test partitioned emitter on its own)
 
-
-
+;; TODO: test that FailedBatchException works
 
 (defn mk-coordinator-state-changer [atom]
   (TransactionalSpoutCoordinator.
@@ -540,8 +539,52 @@
        (-> topo-info :capturer .getAndClearResults)
        ))))
 
+(deftest test-transactional-topology-restart
+  (with-simulated-time-local-cluster [cluster]
+    (letlocals
+     (bind data (mk-transactional-source))
+     (bind builder (TransactionalTopologyBuilder.
+                    "id"
+                    "spout"
+                    (MemoryTransactionalSpout. data
+                                               (Fields. ["word"])
+                                               3)
+                    2))
 
+     (-> builder
+         (.setBolt "count" (CountingCommitBolt.) 2)
+         (.globalGrouping "spout"))
 
+     (add-transactional-data data
+                             {0 [["a"]
+                                 ["b"]
+                                 ["c"]
+                                 ["d"]]
+                              1 [["d"]
+                                 ["c"]]
+                              })
+     
+     (bind results (complete-topology cluster
+                                      (.buildTopology builder)
+                                      :cleanup-state false))
 
-;; TODO: ;; * Test that it picks up where it left off when restarting the topology
-;;      - run topology and restart it
+     (is (ms= [[5] [0] [1] [0]] (->> (read-tuples results "count")
+                                     (take 4)
+                                     (map (partial drop 1))
+                                     )))
+
+     (add-transactional-data data
+                             {0 [["a"]
+                                 ["b"]]
+                              })
+     
+     (bind results (complete-topology cluster (.buildTopology builder)))
+
+     (println results)
+     ;; need to do it this way (check for nothing transaction) because there is one transaction already saved up before that emits nothing (because of how memorytransctionalspout detects partition completion)
+     (is (ms= [[0] [0] [2] [0]] (->> (read-tuples results "count")
+                             (take 4)
+                             (map (partial drop 1))
+                             )))
+     )))
+

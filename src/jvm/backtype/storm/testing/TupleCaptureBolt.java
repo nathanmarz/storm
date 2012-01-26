@@ -44,10 +44,16 @@ public class TupleCaptureBolt implements IRichBolt {
     public void cleanup() {
     }
     
-    public Map<String, List<FixedTuple>> getAndClearResults() {
+    public Map<String, List<FixedTuple>> getAndRemoveResults() {
         return emitted_tuples.remove(_name);
     }
 
+    public Map<String, List<FixedTuple>> getAndClearResults() {
+        Map<String, List<FixedTuple>> ret = new HashMap<String, List<FixedTuple>>(emitted_tuples.get(_name));
+        emitted_tuples.get(_name).clear();
+        return ret;
+    }
+    
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
     }

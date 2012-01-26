@@ -308,7 +308,8 @@
 
 (defprotocol CompletableSpout
   (exhausted? [this] "Whether all the tuples for this spout have been completed.")
-  (cleanup [this] "Cleanup any global state kept"))
+  (cleanup [this] "Cleanup any global state kept")
+  (startup [this] "Prepare the spout (globally) before starting the topology"))
 
 (extend-type FixedTupleSpout
   CompletableSpout
@@ -316,22 +317,27 @@
     (= (-> this .getSourceTuples count)
        (.getCompleted this)))
   (cleanup [this]
-    (.cleanup this)))
+    (.cleanup this))
+  (startup [this]
+    ))
 
 (extend-type TransactionalSpoutCoordinator
   CompletableSpout
   (exhausted? [this]
     (exhausted? (.getSpout this)))
   (cleanup [this]
-    (cleanup (.getSpout this))
-    ))
+    (cleanup (.getSpout this)))
+  (startup [this]
+    (startup (.getSpout this))))
 
 (extend-type PartitionedTransactionalSpoutExecutor
   CompletableSpout
   (exhausted? [this]
     (exhausted? (.getPartitionedSpout this)))
   (cleanup [this]
-    (cleanup (.getPartitionedSpout this))
+    (cleanup (.getPartitionedSpout this)))
+  (startup [this]
+    (startup (.getPartitionedSpout this))
     ))
 
 (extend-type MemoryTransactionalSpout
@@ -339,8 +345,9 @@
   (exhausted? [this]
     (.isExhaustedTuples this))
   (cleanup [this]
-    (.cleanup this)
-    ))
+    (.cleanup this))
+  (startup [this]
+    (.startup this)))
 
 (defn spout-objects [spec-map]
   (for [[_ spout-spec] spec-map]
@@ -375,7 +382,7 @@
     ))
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
+(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
@@ -400,7 +407,9 @@
       (when-not (extends? CompletableSpout (.getClass spout))
         (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))
         ))
-    
+
+    (doseq [spout (spout-objects spouts)]
+      (startup spout))
     
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
     
@@ -412,10 +421,13 @@
       (.killTopology (:nimbus cluster-map) storm-name)
       (while (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))
-      (doseq [spout (spout-objects spouts)]
-        (cleanup spout)))
+      (when cleanup-state
+        (doseq [spout (spout-objects spouts)]
+          (cleanup spout))))
 
-    (.getAndClearResults capturer)
+    (if cleanup-state
+      (.getAndRemoveResults capturer)
+      (.getAndClearResults capturer))
     ))
 
 (defn read-tuples

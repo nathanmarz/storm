@@ -132,6 +132,10 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         return conf;
     }
     
+    public void startup() {
+        getFinishedStatuses().clear();
+    }
+    
     public void cleanup() {
         RegisteredGlobalState.clearState(_id);
         RegisteredGlobalState.clearState(_finishedPartitionsId);

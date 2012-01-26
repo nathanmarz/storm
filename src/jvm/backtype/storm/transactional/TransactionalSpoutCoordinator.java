@@ -56,10 +56,11 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _collector = collector;
         _coordinator = _spout.getCoordinator(conf, context);
         _currTransaction = getStoredCurrTransaction(_state);
-        if(!conf.containsKey(Config.TOPOLOGY_MAX_SPOUT_PENDING)) {
+        Object active = conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING);
+        if(active==null) {
             _maxTransactionActive = 1;
         } else {
-            _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
+            _maxTransactionActive = Utils.getInt(active);
         }
         _initializer = new StateInitializer();
     }
@@ -113,8 +114,10 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     }
     
     private void sync() {
-        // TODO: this code might be redundant. can just find the next transaction that needs a batch or commit tuple
-        // and emit that, instead of iterating through (MAX_SPOUT_PENDING should take care of things)
+        // note that sometimes the tuples active may be less than max_spout_pending, e.g.
+        // max_spout_pending = 3
+        // tx 1, 2, 3 active, tx 2 is acked. there won't be a commit for tx 2 (because tx 1 isn't committed yet),
+        // and there won't be a batch for tx 4 because there's max_spout_pending tx active
         TransactionStatus maybeCommit = _activeTx.get(_currTransaction);
         if(maybeCommit!=null && maybeCommit.status == AttemptStatus.PROCESSED) {
             maybeCommit.status = AttemptStatus.COMMITTING;

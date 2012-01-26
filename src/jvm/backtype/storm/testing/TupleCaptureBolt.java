@@ -1,8 +1,9 @@
 package backtype.storm.testing;
 
-import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 
-public class TupleCaptureBolt implements IBolt {
+public class TupleCaptureBolt implements IRichBolt {
     public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
 
     private String _name;
@@ -45,6 +46,15 @@ public class TupleCaptureBolt implements IBolt {
     
     public Map<String, List<FixedTuple>> getAndClearResults() {
         return emitted_tuples.remove(_name);
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return null;
     }
 
 }

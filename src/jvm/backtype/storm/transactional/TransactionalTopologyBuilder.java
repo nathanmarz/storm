@@ -84,6 +84,14 @@ public class TransactionalTopologyBuilder {
     public BoltDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism) {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism, false);
     }
+
+    public BoltDeclarer setBolt(String id, IRichBolt bolt) {
+        return setBolt(id, bolt, null);
+    }    
+    
+    public BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism) {
+        return setBolt(id, bolt, parallelism, false);
+    }    
     
     private BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism, boolean committer) {
         Component component = new Component(bolt, parallelism, committer);
@@ -91,7 +99,7 @@ public class TransactionalTopologyBuilder {
         return new BoltDeclarerImpl(component);
     }
     
-    public StormTopology buildTopology() {
+    public TopologyBuilder buildTopologyBuilder() {
         String coordinator = _spoutId + "/coordinator";
         TopologyBuilder builder = new TopologyBuilder();
         SpoutDeclarer declarer = builder.setSpout(coordinator, new TransactionalSpoutCoordinator(_spout));
@@ -136,7 +144,11 @@ public class TransactionalTopologyBuilder {
                 input.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);                
             }
         }
-        return builder.createTopology();
+        return builder;
+    }
+    
+    public StormTopology buildTopology() {
+        return buildTopologyBuilder().createTopology();
     }
     
     private Set<String> componentBoltSubscriptions(Component component) {

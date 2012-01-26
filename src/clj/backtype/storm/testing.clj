@@ -509,7 +509,10 @@
                                  (global-amt track-id "processed"))
                            ))]
         (while (waiting?)
-          (Thread/sleep 5))
+          ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
+          ;; (println "Processed: " (global-amt track-id "processed"))
+          ;; (println "Transferred: " (global-amt track-id "transferred"))
+          (Thread/sleep 500))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
 

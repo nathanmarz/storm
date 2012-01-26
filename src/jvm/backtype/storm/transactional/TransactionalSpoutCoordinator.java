@@ -55,8 +55,12 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _coordinatorState = new RotatingTransactionalState(_state, META_DIR, true);
         _collector = collector;
         _coordinator = _spout.getCoordinator(conf, context);
-        _currTransaction = getStoredCurrTransaction(_state);   
-        _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
+        _currTransaction = getStoredCurrTransaction(_state);
+        if(!conf.containsKey(Config.TOPOLOGY_MAX_SPOUT_PENDING)) {
+            _maxTransactionActive = 0;
+        } else {
+            _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
+        }
         _initializer = new StateInitializer();
     }
 
@@ -138,9 +142,6 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         Map<String, Object> ret = new HashMap<String, Object>(_spout.getComponentConfiguration());
-        if(!ret.containsKey(Config.TOPOLOGY_MAX_SPOUT_PENDING)) {
-            ret.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 1);
-        }
         ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
         return ret;
     }

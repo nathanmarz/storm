@@ -301,47 +301,93 @@
     (-> source (.get p) (.addAll data))
     ))
 
+(defn tracked-captured-topology [cluster topology]
+  (let [{captured :capturer topology :topology} (capture-topology topology)
+        tracked (mk-tracked-topology cluster topology)]
+    (assoc tracked :capturer captured)
+    ))
+
+;; puts its collector and tuples into the global state to be used externally
+(defbolt controller-bolt {} {:prepare true :params [state-id]}
+  [conf context collector]
+  (let [{tuples :tuples
+         collector-atom :collector} (RegisteredGlobalState/getState state-id)]
+    (reset! collector-atom collector)
+    (reset! tuples [])
+    (bolt
+     (execute [tuple]
+              (swap! tuples conj tuple))
+     )))
+
+(defmacro with-controller-bolt [[bolt collector-atom tuples-atom] & body]
+  `(let [~collector-atom (atom nil)
+         ~tuples-atom (atom [])
+         id# (RegisteredGlobalState/registerState {:collector ~collector-atom
+                                                   :tuples ~tuples-atom})
+         ~bolt (controller-bolt id#)]
+     ~@body
+     (RegisteredGlobalState/clearState id#)
+    ))
+
 ;; cluster-map topology :mock-sources {} :storm-conf {}
 (deftest test-transactional-topology
-  (with-simulated-time-local-cluster [cluster]
-    (letlocals
-     (bind data (mk-transactional-source))
-     (bind builder (TransactionalTopologyBuilder.
-                    "id"
-                    "spout"
-                    (MemoryTransactionalSpout. data
-                                               (Fields. ["word" "amt"])
-                                               3)
-                    2))
-     (-> builder
-         (.setBolt "count" (KeyedSummingBatchBolt.) 2)
-         (.fieldsGrouping "spout" (Fields. ["word"])))
+  (with-tracked-cluster [cluster]
+    (with-controller-bolt [controller collector tuples]
+      (letlocals
+       (bind data (mk-transactional-source))
+       (bind builder (TransactionalTopologyBuilder.
+                      "id"
+                      "spout"
+                      (MemoryTransactionalSpout. data
+                                                 (Fields. ["word" "amt"])
+                                                 3)
+                      2))
+       
+       (-> builder
+           (.setBolt "count" (KeyedSummingBatchBolt.) 2)
+           (.fieldsGrouping "spout" (Fields. ["word"])))
 
-     ;; make a complex topology, and then make a final bolt at the end that doesn't ack (and lets me manipulate its tuples from here)
+       (bind builder (.buildTopologyBuilder builder))
+       
+       (-> builder
+           (.setBolt "controller" controller 1)
+           (.directGrouping "count" Constants/COORDINATED_STREAM_ID))
 
-     ;; let it go to completion
-     ;; make sure there are no commits
-     ;; ack tuples for txid = 2
-     ;; make sure there are no commits
-     ;; ack tuples for txid = 1, let it run
-     ;; make sure there are 2 commits + 2 more batch emits
-     ;; extract the code to add a capturing bolt and transform the topology
-     
-     (add-transactional-data data
-                             {0 [["dog" 3]
-                                 ["cat" 4]
-                                 ["apple" 1]
-                                 ["dog" 3]
-                                 ["banana" 0]]
-                              1 [["cat" 1]
-                                 ["mango" 4]]
-                              2 [["happy" 11]
-                                 ["mango" 2]
-                                 ["zebra" 1]]})
-     (bind results
-           (complete-topology cluster
-                              (.buildTopology builder)
-                              :storm-conf {TOPOLOGY-DEBUG true}))
-     (println (read-tuples results "count"))
+       (add-transactional-data data
+                               {0 [["dog" 3]
+                                   ["cat" 4]
+                                   ["apple" 1]
+                                   ["dog" 3]
+                                   ["banana" 0]]
+                                1 [["cat" 1]
+                                   ["mango" 4]]
+                                2 [["happy" 11]
+                                   ["mango" 2]
+                                   ["zebra" 1]]})
+       
+       (bind topo-info (tracked-captured-topology
+                        cluster
+                        (.createTopology builder)))
+       (submit-local-topology (:nimbus cluster)
+                              "transactional-test"
+                              {TOPOLOGY-MAX-SPOUT-PENDING 2
+                               TOPOLOGY-DEBUG true}
+                              (:topology topo-info))
 
-     )))
+       (tracked-wait topo-info 2)
+       (println "Controlled: " @tuples)
+       (println "Captured:" (-> topo-info :capturer .getResults))
+       ;; make a complex topology, and then make a final bolt at the end that doesn't ack (and lets me manipulate its tuples from here)
+
+       ;; let it go to completion
+       ;; make sure there are no commits
+       ;; ack tuples for txid = 2
+       ;; make sure there are no commits
+       ;; ack tuples for txid = 1, let it run
+       ;; make sure there are 2 commits + 2 more batch emits
+       ;; extract the code to add a capturing bolt and transform the topology
+       
+
+;;       (println (read-tuples results "count"))
+
+       ))))

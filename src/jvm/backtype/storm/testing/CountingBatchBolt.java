@@ -3,7 +3,6 @@ package backtype.storm.testing;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBatchBolt;
-import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;

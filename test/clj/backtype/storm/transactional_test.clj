@@ -5,7 +5,8 @@
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
-            KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt])
+            KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
+            IdentityBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -342,16 +343,34 @@
                                                  (Fields. ["word" "amt"])
                                                  2)
                       2))
+
+       (-> builder
+           (.setBolt "id1" (IdentityBolt. (Fields. ["tx" "word" "amt"])) 3)
+           (.shuffleGrouping "spout"))
+
+       (-> builder
+           (.setBolt "id2" (IdentityBolt. (Fields. ["tx" "word" "amt"])) 3)
+           (.shuffleGrouping "spout"))
        
        (-> builder
-           (.setBolt "count" (KeyedSummingBatchBolt.) 2)
-           (.fieldsGrouping "spout" (Fields. ["word"])))
+           (.setBolt "sum" (KeyedSummingBatchBolt.) 2)
+           (.fieldsGrouping "id1" (Fields. ["word"])))
+
+       (-> builder
+           (.setBolt "count" (KeyedCountingCommitterBolt.) 2)
+           (.fieldsGrouping "id2" (Fields. ["word"])))
+
+       (-> builder
+           (.setBolt "count2" (KeyedCountingCommitterBolt.) 3)
+           (.fieldsGrouping "sum" (Fields. ["key"]))
+           (.fieldsGrouping "count" (Fields. ["key"])))
 
        (bind builder (.buildTopologyBuilder builder))
        
        (-> builder
            (.setBolt "controller" controller 1)
-           (.directGrouping "count" Constants/COORDINATED_STREAM_ID))
+           (.directGrouping "count2" Constants/COORDINATED_STREAM_ID)
+           (.directGrouping "sum" Constants/COORDINATED_STREAM_ID))
 
        (add-transactional-data data
                                {0 [["dog" 3]

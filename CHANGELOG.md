@@ -1,3 +1,8 @@
+## SNAPSHOT
+
+ * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts
+ * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
+
 ## 0.6.2
 
  * Automatically delete old files in Nimbus's inbox. Configurable with "nimbus.cleanup.inbox.freq.secs" and "nimbus.inbox.jar.expiration.secs"

@@ -580,7 +580,6 @@
      
      (bind results (complete-topology cluster (.buildTopology builder)))
 
-     (println results)
      ;; need to do it this way (check for nothing transaction) because there is one transaction already saved up before that emits nothing (because of how memorytransctionalspout detects partition completion)
      (is (ms= [[0] [0] [2] [0]] (->> (read-tuples results "count")
                              (take 4)

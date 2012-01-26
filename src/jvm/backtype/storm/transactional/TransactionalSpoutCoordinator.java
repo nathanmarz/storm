@@ -57,7 +57,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
         _coordinator = _spout.getCoordinator(conf, context);
         _currTransaction = getStoredCurrTransaction(_state);
         if(!conf.containsKey(Config.TOPOLOGY_MAX_SPOUT_PENDING)) {
-            _maxTransactionActive = 0;
+            _maxTransactionActive = 1;
         } else {
             _maxTransactionActive = Utils.getInt(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
         }

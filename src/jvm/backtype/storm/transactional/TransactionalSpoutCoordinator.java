@@ -141,8 +141,8 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> ret = new HashMap<String, Object>(_spout.getComponentConfiguration());
-        ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
+        Config ret = new Config();
+        ret.setMaxTaskParallelism(1);
         return ret;
     }
     

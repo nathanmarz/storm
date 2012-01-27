@@ -144,7 +144,7 @@
     (rmpath (worker-pids-root conf id))
     (rmpath (worker-root conf id))
   (catch RuntimeException e
-    (log-error e "Failed to cleanup worker " id ". Will retry later")
+    (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
 
 (defn shutdown-worker [conf supervisor-id id worker-thread-pids-atom]

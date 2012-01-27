@@ -6,8 +6,8 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BasePartitionedTransactionalSpout;
 import backtype.storm.transactional.TransactionAttempt;
-import backtype.storm.transactional.TransactionalOutputCollector;
 import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout;
+import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import java.io.Serializable;
@@ -63,7 +63,7 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
         Map<Integer, SimpleConsumer> _kafka = new HashMap<Integer, SimpleConsumer>();
         
         @Override
-        public BatchMeta emitPartitionBatchNew(TransactionAttempt attempt, TransactionalOutputCollector collector, int partition, BatchMeta lastMeta) {
+        public BatchMeta emitPartitionBatchNew(TransactionAttempt attempt, BatchOutputCollector collector, int partition, BatchMeta lastMeta) {
             SimpleConsumer consumer = connect(partition);
 
             long offset = 0;
@@ -84,7 +84,7 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
         }
 
         @Override
-        public void emitPartitionBatch(TransactionAttempt attempt, TransactionalOutputCollector collector, int partition, BatchMeta meta) {
+        public void emitPartitionBatch(TransactionAttempt attempt, BatchOutputCollector collector, int partition, BatchMeta meta) {
             SimpleConsumer consumer = connect(partition);
                         
             ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition % _config.partitionsPerHost, meta.offset, _config.fetchSizeBytes));
@@ -100,7 +100,7 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
             }            
         }
         
-        private void emit(TransactionAttempt attempt, TransactionalOutputCollector collector, Message msg) {
+        private void emit(TransactionAttempt attempt, BatchOutputCollector collector, Message msg) {
                 List<Object> values = _config.scheme.deserialize(Utils.toByteArray(msg.payload()));
                 List<Object> toEmit = new ArrayList<Object>();
                 toEmit.add(attempt);

@@ -372,6 +372,18 @@ public class Config extends HashMap<String, Object> {
     public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
     
     /**
+     * The list of zookeeper servers in which to keep the transactional state. If null (which is default),
+     * will use storm.zookeeper.servers
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_SERVERS="transactional.zookeeper.servers";
+
+    /**
+     * The port to use to connect to the transactional zookeeper servers. If null (which is default),
+     * will use storm.zookeeper.port
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
+    
+    /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static String ZMQ_THREADS = "zmq.threads";

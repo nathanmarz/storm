@@ -35,7 +35,10 @@ public class TransactionalState {
                               .get(Config.TOPOLOGY_KRYO_REGISTER));
             }
             String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;
-            CuratorFramework initter = Utils.newCurator(conf);
+            List<String> servers = (List<String>) getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Config.STORM_ZOOKEEPER_SERVERS);
+            Object port = getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_PORT, Config.STORM_ZOOKEEPER_PORT);
+            Object sessionTimeout = conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT);
+            CuratorFramework initter = Utils.newCurator(servers, port, sessionTimeout);
             try {
                 initter.create().creatingParentsIfNeeded().forPath(rootDir);
             } catch(KeeperException.NodeExistsException e)  {
@@ -44,7 +47,7 @@ public class TransactionalState {
             
             initter.close();
                                     
-            _curator = Utils.newCurator(conf, rootDir);
+            _curator = Utils.newCurator(servers, port, sessionTimeout, rootDir);
             _ser = new KryoValuesSerializer(conf);
             _des = new KryoValuesDeserializer(conf);
         } catch (Exception e) {
@@ -110,5 +113,11 @@ public class TransactionalState {
     
     public void close() {
         _curator.close();
+    }
+    
+    private Object getWithBackup(Map amap, Object primary, Object backup) {
+        Object ret = amap.get(primary);
+        if(ret==null) return amap.get(backup);
+        return ret;
     }
 }

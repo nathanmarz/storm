@@ -1,6 +1,5 @@
 package backtype.storm.utils;
 
-import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
@@ -206,15 +205,15 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
-    public static CuratorFramework newCurator(Map conf, String root) {
+    public static CuratorFramework newCurator(List<String> servers, Object port, Object sessionTimeout, String root) {
         List<String> serverPorts = new ArrayList<String>();
-        for(String zkServer: (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS)) {
-            serverPorts.add(zkServer + ":" + Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT)));
+        for(String zkServer: (List<String>) servers) {
+            serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root; 
         try {
             CuratorFramework ret =  CuratorFrameworkFactory.newClient(zkStr,
-                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+                                        Utils.getInt(sessionTimeout),
                                         15000, new RetryNTimes(5, 1000));
             ret.start();
             return ret;
@@ -223,8 +222,8 @@ public class Utils {
         }
     }
 
-    public static CuratorFramework newCurator(Map conf) {
-        return newCurator(conf, "");
+    public static CuratorFramework newCurator(List<String> servers, Object port, Object sessionTimeout) {
+        return newCurator(servers, port, sessionTimeout, "");
     }
     
     /**

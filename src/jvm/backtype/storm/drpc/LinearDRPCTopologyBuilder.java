@@ -45,12 +45,14 @@ public class LinearDRPCTopologyBuilder {
         return addBolt(bolt, 1);
     }
     
+    @Deprecated
     public LinearDRPCInputDeclarer addBolt(IRichBolt bolt, int parallelism) {
         Component component = new Component(bolt, parallelism);
         _components.add(component);
         return new InputDeclarerImpl(component);
     }
     
+    @Deprecated
     public LinearDRPCInputDeclarer addBolt(IRichBolt bolt) {
         return addBolt(bolt, 1);
     }

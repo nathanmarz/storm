@@ -6,7 +6,6 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import java.util.HashMap;
@@ -36,8 +35,8 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
 
     @Override
     public void execute(Tuple input) {
-        TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
-        IBatchBolt bolt = getBatchBolt(attempt);
+        Object id = input.getValue(0);
+        IBatchBolt bolt = getBatchBolt(id);
         try {
              bolt.execute(input);
             _collector.ack(input);
@@ -60,7 +59,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
 
     @Override
     public void timeoutId(Object attempt) {
-        _openTransactions.remove((TransactionAttempt) attempt);        
+        _openTransactions.remove(attempt);        
     }    
     
 

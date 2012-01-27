@@ -55,6 +55,14 @@ public class TransactionalTopologyBuilder {
     
     public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
         this(id, spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
+    }
+
+    public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout) {
+        this(id, spoutId, spout, null);
+    }
+    
+    public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout) {
+        this(id, spoutId, spout, null);
     }    
     
     public SpoutDeclarer getSpoutDeclarer() {

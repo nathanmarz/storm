@@ -66,15 +66,15 @@ public class TransactionalTopologyBuilder {
     }
     
     public BoltDeclarer setBolt(String id, IBatchBolt bolt, Integer parallelism) {
-        return setBolt(id, new BatchBoltExecutor(bolt), parallelism, false);
-    }  
+        return setBolt(id, new BatchBoltExecutor(bolt), parallelism, bolt instanceof ICommitter);
+    }
 
-    public BoltDeclarer setBolt(String id, ICommitterBolt bolt) {
-        return setBolt(id, bolt, null);
+    public BoltDeclarer setCommitterBolt(String id, IBatchBolt bolt) {
+        return setCommitterBolt(id, bolt, null);
     }
     
-    public BoltDeclarer setBolt(String id, ICommitterBolt bolt, Integer parallelism) {
-        return setBolt(id, new BatchBoltExecutor(new CommitterBoltExecutor(bolt)), parallelism, true);
+    public BoltDeclarer setCommitterBolt(String id, IBatchBolt bolt, Integer parallelism) {
+        return setBolt(id, new BatchBoltExecutor(bolt), parallelism, true);
     }      
     
     public BoltDeclarer setBolt(String id, IBasicBolt bolt) {

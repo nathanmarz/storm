@@ -346,7 +346,7 @@
            (.fieldsGrouping "id1" (Fields. ["word"])))
 
        (-> builder
-           (.setBolt "count" (KeyedCountingCommitterBolt.) 2)
+           (.setCommitterBolt "count" (KeyedCountingBatchBolt.) 2)
            (.fieldsGrouping "id2" (Fields. ["word"])))
 
        (-> builder

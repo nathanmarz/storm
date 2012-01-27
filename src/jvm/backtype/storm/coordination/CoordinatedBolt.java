@@ -83,13 +83,10 @@ public class CoordinatedBolt implements IRichBolt {
 
         public void ack(Tuple tuple) {
             Object id = tuple.getValue(0);
-            boolean failed = false;
             synchronized(_tracked) {
-                TrackingInfo info = _tracked.get(id);
-                info.receivedTuples++;
-                failed = info.failedTuples > 0;
+                _tracked.get(id).receivedTuples++;
             }
-            checkFinishId(tuple);
+            boolean failed = checkFinishId(tuple);
             if(failed) {
                 _delegate.fail(tuple);
             } else {
@@ -100,7 +97,7 @@ public class CoordinatedBolt implements IRichBolt {
         public void fail(Tuple tuple) {
             Object id = tuple.getValue(0);
             synchronized(_tracked) {
-                _tracked.get(id).failedTuples++;
+                _tracked.get(id).failed = true;
             }
             _delegate.fail(tuple);
         }
@@ -133,7 +130,7 @@ public class CoordinatedBolt implements IRichBolt {
         int reportCount = 0;
         int expectedTupleCount = 0;
         int receivedTuples = 0;
-        int failedTuples = 0;
+        boolean failed = false;
         Map<Integer, Integer> taskEmittedTuples = new HashMap<Integer, Integer>();
         boolean receivedId = false;
         boolean finished = false;
@@ -143,7 +140,7 @@ public class CoordinatedBolt implements IRichBolt {
             return "reportCount: " + reportCount + "\n" +
                    "expectedTupleCount: " + expectedTupleCount + "\n" +
                    "receivedTuples: " + receivedTuples + "\n" +
-                   "failedTuples: " + failedTuples + "\n" +
+                   "failed: " + failed + "\n" +
                    taskEmittedTuples.toString();
         }
     }
@@ -208,41 +205,51 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
 
-    private void checkFinishId(Tuple tup) {
+    private boolean checkFinishId(Tuple tup) {
+        boolean ret = false;
         Object id = tup.getValue(0);
         synchronized(_tracked) {
             TrackingInfo track = _tracked.get(id);
-            if(track!=null
-                    && track.receivedId 
-                    && (_sourceArgs.isEmpty()
-                        ||
-                       track.reportCount==_numSourceReports &&
-                       track.expectedTupleCount == track.receivedTuples)) {
-                if(_delegate instanceof FinishedCallback) {
-                    ((FinishedCallback)_delegate).finishedId(id);
+            try {
+                // if it timed out, then obviously it failed (hence the null check)
+                if(track==null || track.failed) ret = true;
+                if(track!=null
+                        && !track.failed
+                        && track.receivedId 
+                        && (_sourceArgs.isEmpty()
+                            ||
+                           track.reportCount==_numSourceReports &&
+                           track.expectedTupleCount == track.receivedTuples)) {
+                    if(_delegate instanceof FinishedCallback) {
+                        ((FinishedCallback)_delegate).finishedId(id);
+                    }
+                    if(!(_sourceArgs.isEmpty() ||
+                         tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID) ||
+                         (_idStreamSpec!=null && tup.getSourceGlobalStreamid().equals(_idStreamSpec._id))
+                         )) {
+                        throw new IllegalStateException("Coordination condition met on a non-coordinating tuple. Should be impossible");
+                    }
+                    Iterator<Integer> outTasks = _countOutTasks.iterator();
+                    while(outTasks.hasNext()) {
+                        int task = outTasks.next();
+                        int numTuples = get(track.taskEmittedTuples, task, 0);
+                        _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tup, new Values(id, numTuples));
+                    }
+                    track.finished = true;
+                    _tracked.remove(id);
                 }
-                if(!(_sourceArgs.isEmpty() ||
-                     tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID) ||
-                     (_idStreamSpec!=null && tup.getSourceGlobalStreamid().equals(_idStreamSpec._id))
-                     )) {
-                    throw new IllegalStateException("Coordination condition met on a non-coordinating tuple. Should be impossible");
-                }
-                Iterator<Integer> outTasks = _countOutTasks.iterator();
-                while(outTasks.hasNext()) {
-                    int task = outTasks.next();
-                    int numTuples = get(track.taskEmittedTuples, task, 0);
-                    _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tup, new Values(id, numTuples));
-                }
-                track.finished = true;
-                _tracked.remove(id);
+            } catch(FailedBatchException e) {
+                LOG.error("Failed to finish batch", e);
+                track.failed = true;
+                ret = true;
             }
         }
+        return ret;
     }
 
     public void execute(Tuple tuple) {
         Object id = tuple.getValue(0);
         TrackingInfo track;
-        boolean failed = false;
         synchronized(_tracked) {
             track = _tracked.get(id);
             if(track==null) {
@@ -250,7 +257,6 @@ public class CoordinatedBolt implements IRichBolt {
                 if(_idStreamSpec==null) track.receivedId = true;
                 _tracked.put(id, track);
             }
-            failed = track.failedTuples > 0;
         }
         
         if(_idStreamSpec!=null
@@ -258,8 +264,7 @@ public class CoordinatedBolt implements IRichBolt {
             synchronized(_tracked) {
                 track.receivedId = true;
             }
-            checkFinishId(tuple);
-            
+            boolean failed = checkFinishId(tuple);
             if(failed) {
                 _collector.fail(tuple);
             } else {
@@ -273,7 +278,7 @@ public class CoordinatedBolt implements IRichBolt {
                 track.reportCount++;
                 track.expectedTupleCount+=count;
             }
-            checkFinishId(tuple);
+            boolean failed = checkFinishId(tuple);
             if(failed) {
                 _collector.fail(tuple);
             } else {

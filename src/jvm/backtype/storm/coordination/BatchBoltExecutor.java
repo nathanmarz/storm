@@ -42,7 +42,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
              bolt.execute(input);
             _collector.ack(input);
         } catch(FailedBatchException e) {
-            LOG.warn("Failed to process tuple in batch", e);
+            LOG.error("Failed to process tuple in batch", e);
             _collector.fail(input);                
         }
     }
@@ -55,12 +55,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
     public void finishedId(Object id) {
         IBatchBolt bolt = getBatchBolt(id);
         _openTransactions.remove(id);
-        try {
-            bolt.finishBatch();
-        } catch(FailedBatchException e) {
-            // TODO: need to be able to fail from here... need support from coordinatedbolt
-            throw e;
-        }
+        bolt.finishBatch();
     }
 
     @Override

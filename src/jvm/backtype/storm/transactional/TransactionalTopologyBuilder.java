@@ -161,12 +161,12 @@ public class TransactionalTopologyBuilder {
 
     private static class Component {
         public IRichBolt bolt;
-        public int parallelism;
+        public Integer parallelism;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
         public List<Map> componentConfs = new ArrayList<Map>();
         public boolean committer;
         
-        public Component(IRichBolt bolt, int parallelism, boolean committer) {
+        public Component(IRichBolt bolt, Integer parallelism, boolean committer) {
             this.bolt = bolt;
             this.parallelism = parallelism;
             this.committer = committer;

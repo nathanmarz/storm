@@ -1,11 +1,8 @@
 package backtype.storm.task;
 
-import backtype.storm.generated.Bolt;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
-import backtype.storm.generated.SpoutSpec;
-import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.state.ISubscribedState;
@@ -15,7 +12,6 @@ import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +34,7 @@ public class TopologyContext {
     private String _codeDir;
     private String _pidDir;
     private String _stormId;
+    private Object _taskData = null;
 
     public TopologyContext(StormTopology topology, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
         _topology = topology;
@@ -316,5 +313,13 @@ public class TopologyContext {
 
     public ComponentCommon getComponentCommon(String componentId) {
         return ThriftTopologyUtils.getComponentCommon(getRawTopology(), componentId);
+    }
+    
+    public void setTaskData(Object data) {
+        _taskData = data;
+    }
+    
+    public Object getTaskData() {
+        return _taskData;
     }
 }

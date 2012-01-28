@@ -1,5 +1,6 @@
 package backtype.storm.coordination;
 
+import backtype.storm.topology.FailedException;
 import java.util.Map.Entry;
 import backtype.storm.tuple.Values;
 import backtype.storm.generated.GlobalStreamId;
@@ -238,7 +239,7 @@ public class CoordinatedBolt implements IRichBolt {
                     track.finished = true;
                     _tracked.remove(id);
                 }
-            } catch(FailedBatchException e) {
+            } catch(FailedException e) {
                 LOG.error("Failed to finish batch", e);
                 track.failed = true;
                 ret = true;

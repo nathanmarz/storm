@@ -1,9 +1,9 @@
 package backtype.storm.transactional;
 
-import backtype.storm.coordination.FailedBatchException;
 import backtype.storm.coordination.BatchOutputCollectorImpl;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
@@ -34,7 +34,7 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
         try {
             _emitter.emitBatch(attempt, input.getValue(1), _collector);
             _collector.ack(input);
-        } catch(FailedBatchException e) {
+        } catch(FailedException e) {
             LOG.warn("Failed to emit batch for transaction", e);
             _collector.fail(input);
         }

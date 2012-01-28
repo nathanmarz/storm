@@ -4,6 +4,7 @@ import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.coordination.CoordinatedBolt.TimeoutCallback;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
@@ -40,7 +41,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
         try {
              bolt.execute(input);
             _collector.ack(input);
-        } catch(FailedBatchException e) {
+        } catch(FailedException e) {
             LOG.error("Failed to process tuple in batch", e);
             _collector.fail(input);                
         }

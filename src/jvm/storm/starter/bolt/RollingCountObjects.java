@@ -2,8 +2,8 @@ package storm.starter.bolt;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class RollingCountObjects implements IRichBolt {
+public class RollingCountObjects extends BaseRichBolt {
 
     private HashMap<Object, long[]> _objectCounts = new HashMap<Object, long[]>();
     private int _numBuckets;
@@ -101,9 +101,6 @@ public class RollingCountObjects implements IRichBolt {
             _collector.emit(new Values(obj, totalObjects(obj)));
             _collector.ack(tuple);
         }
-    }
-
-    public void cleanup() {
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

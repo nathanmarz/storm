@@ -3,8 +3,8 @@ package storm.starter.bolt;
 import org.apache.log4j.Logger;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -14,7 +14,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-public class MergeObjects implements IBasicBolt {
+public class MergeObjects extends BaseBasicBolt {
     public static Logger LOG = Logger.getLogger(MergeObjects.class);
 
     private List<List> _rankings = new ArrayList();
@@ -48,11 +48,6 @@ public class MergeObjects implements IBasicBolt {
         return null;
     }
 
-
-    public void prepare(Map stormConf, TopologyContext context) {
-
-    }
-
     public void execute(Tuple tuple, BasicOutputCollector collector) {
         List<List> merging = (List) tuple.getValue(0);
         for(List pair : merging) {
@@ -80,9 +75,6 @@ public class MergeObjects implements IBasicBolt {
             LOG.info("Rankings: " + _rankings);
             _lastTime = currentTime;
         }
-    }
-
-    public void cleanup() {
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

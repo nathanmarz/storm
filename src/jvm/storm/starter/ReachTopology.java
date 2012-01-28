@@ -4,14 +4,16 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
-import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.BatchOutputCollector;
+import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.base.BaseBatchBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -57,11 +59,7 @@ public class ReachTopology {
         put("john", Arrays.asList("alice", "nathan", "jim", "mike", "bob"));
     }};
     
-    public static class GetTweeters implements IBasicBolt {
-        @Override
-        public void prepare(Map conf, TopologyContext context) {
-        }
-
+    public static class GetTweeters extends BaseBasicBolt {
         @Override
         public void execute(Tuple tuple, BasicOutputCollector collector) {
             Object id = tuple.getValue(0);
@@ -75,20 +73,12 @@ public class ReachTopology {
         }
 
         @Override
-        public void cleanup() {
-        }
-
-        @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("id", "tweeter"));
         }        
     }
     
-    public static class GetFollowers implements IBasicBolt {
-        @Override
-        public void prepare(Map conf, TopologyContext context) {
-        }
-
+    public static class GetFollowers extends BaseBasicBolt {
         @Override
         public void execute(Tuple tuple, BasicOutputCollector collector) {
             Object id = tuple.getValue(0);
@@ -102,50 +92,30 @@ public class ReachTopology {
         }
 
         @Override
-        public void cleanup() {
-        }
-
-        @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("id", "follower"));
         }
     }
     
-    public static class PartialUniquer implements IRichBolt, FinishedCallback {
-        OutputCollector _collector;
-        Map<Object, Set<String>> _sets = new HashMap<Object, Set<String>>();
+    public static class PartialUniquer extends BaseBatchBolt {
+        BatchOutputCollector _collector;
+        Object _id;
+        Set<String> _followers = new HashSet<String>();
         
         @Override
-        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
             _collector = collector;
+            _id = id;
         }
 
         @Override
         public void execute(Tuple tuple) {
-            Object id = tuple.getValue(0);
-            Set<String> curr = _sets.get(id);
-            if(curr==null) {
-                curr = new HashSet<String>();
-                _sets.put(id, curr);
-            }
-            curr.add(tuple.getString(1));
-            _collector.ack(tuple);
+            _followers.add(tuple.getString(1));
         }
-
+        
         @Override
-        public void cleanup() {
-        }
-
-        @Override
-        public void finishedId(Object id) {
-            Set<String> curr = _sets.remove(id);
-            int count;
-            if(curr!=null) {
-                count = curr.size();
-            } else {
-                count = 0;
-            }
-            _collector.emit(new Values(id, count));
+        public void finishBatch() {
+            _collector.emit(new Values(_id, _followers.size()));
         }
 
         @Override
@@ -154,42 +124,31 @@ public class ReachTopology {
         }
     }
     
-    public static class CountAggregator implements IRichBolt, FinishedCallback {
-        Map<Object, Integer> _counts = new HashMap<Object, Integer>();
-        OutputCollector _collector;
+    public static class CountAggregator extends BaseBatchBolt {
+        BatchOutputCollector _collector;
+        Object _id;
+        int _count = 0;
         
         @Override
-        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
             _collector = collector;
+            _id = id;
         }
 
         @Override
         public void execute(Tuple tuple) {
-            Object id = tuple.getValue(0);
-            int partial = tuple.getInteger(1);
-            
-            Integer curr = _counts.get(id);
-            if(curr==null) curr = 0;
-            _counts.put(id, curr + partial);
-            _collector.ack(tuple);
+            _count+=tuple.getInteger(1);
         }
-
+        
         @Override
-        public void cleanup() {
-        }
-
-        @Override
-        public void finishedId(Object id) {
-            Integer reach = _counts.get(id);
-            if(reach==null) reach = 0;
-            _collector.emit(new Values(id, reach));
+        public void finishBatch() {
+            _collector.emit(new Values(_id, _count));
         }
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("id", "reach"));
         }
-        
     }
     
     public static LinearDRPCTopologyBuilder construct() {

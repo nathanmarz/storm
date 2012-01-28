@@ -4,3 +4,5 @@ lib/
 .classpath
 .project
 *.jar
+.lein-deps-sum
+

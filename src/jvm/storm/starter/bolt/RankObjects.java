@@ -2,8 +2,8 @@ package storm.starter.bolt;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class RankObjects implements IBasicBolt {
+public class RankObjects extends BaseBasicBolt {
     List<List> _rankings = new ArrayList<List>();
 
     int _count;
@@ -47,9 +47,6 @@ public class RankObjects implements IBasicBolt {
         return null;
     }
 
-    public void prepare(Map stormConf, TopologyContext context) {
-    }
-
     public void execute(Tuple tuple, BasicOutputCollector collector) {
         Object tag = tuple.getValue(0);
         Integer existingIndex = _find(tag);
@@ -71,9 +68,6 @@ public class RankObjects implements IBasicBolt {
             collector.emit(new Values(new ArrayList(_rankings)));
             _lastTime = currentTime;
         }
-    }
-
-    public void cleanup() {
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

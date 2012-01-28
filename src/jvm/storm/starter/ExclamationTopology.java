@@ -6,9 +6,9 @@ import backtype.storm.StormSubmitter;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.TestWordSpout;
-import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public class ExclamationTopology {
     
-    public static class ExclamationBolt implements IRichBolt {
+    public static class ExclamationBolt extends BaseRichBolt {
         OutputCollector _collector;
 
         @Override
@@ -32,10 +32,6 @@ public class ExclamationTopology {
         public void execute(Tuple tuple) {
             _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
             _collector.ack(tuple);
-        }
-
-        @Override
-        public void cleanup() {
         }
 
         @Override

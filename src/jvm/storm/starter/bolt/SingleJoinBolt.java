@@ -4,8 +4,8 @@ import backtype.storm.Config;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.TimeCacheMap;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SingleJoinBolt implements IRichBolt {
+public class SingleJoinBolt extends BaseRichBolt {
     OutputCollector _collector;
     Fields _idFields;
     Fields _outFields;
@@ -80,10 +80,6 @@ public class SingleJoinBolt implements IRichBolt {
                 _collector.ack(part);
             }
         }
-    }
-
-    @Override
-    public void cleanup() {
     }
 
     @Override

@@ -8,7 +8,6 @@ import backtype.storm.testing.MemoryTransactionalSpout;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
-import backtype.storm.topology.base.BaseBatchBolt;
 import backtype.storm.topology.base.BaseTransactionalBolt;
 import backtype.storm.transactional.ICommitter;
 import backtype.storm.transactional.TransactionAttempt;
@@ -22,9 +21,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TransactionalTopWords {
+
+public class TransactionalWords {
+    public static class CountValue {
+        Integer prev_count = null;
+        int count = 0;
+        BigInteger txid = null;
+    }
+
+    public static class BucketValue {
+        int count = 0;
+        BigInteger txid;
+    }
+    
+    public static final int BUCKET_SIZE = 10;
+        
+    public static Map<String, CountValue> COUNT_DATABASE = new HashMap<String, CountValue>();
+    public static Map<Integer, BucketValue> BUCKET_DATABASE = new HashMap<Integer, BucketValue>();
+    
+    
     public static final int PARTITION_TAKE_PER_BATCH = 3;
-    public static final int TOP_AMOUNT = 10;
     
     public static final Map<Integer, List<List<Object>>> DATA = new HashMap<Integer, List<List<Object>>>() {{
         put(0, new ArrayList<List<Object>>() {{
@@ -53,15 +69,7 @@ public class TransactionalTopWords {
             add(new Values("dog"));
         }});
     }};
-    
-    public static class Value {
-        int count = 0;
-        BigInteger txid;
-    }
-
-    public static Map<String, Value> DATABASE = new HashMap<String, Value>();
-    public static String TOP_KEY = "__TOP";
-        
+            
     public static class KeyedCountUpdater extends BaseTransactionalBolt implements ICommitter {
         Map<String, Integer> _counts = new HashMap<String, Integer>();
         BatchOutputCollector _collector;
@@ -77,7 +85,7 @@ public class TransactionalTopWords {
 
         @Override
         public void execute(Tuple tuple) {
-            String key = tuple.getString(0);
+            String key = tuple.getString(1);
             Integer curr = _counts.get(key);
             if(curr==null) curr = 0;
             _counts.put(key, curr + 1);
@@ -86,93 +94,100 @@ public class TransactionalTopWords {
         @Override
         public void finishBatch() {
             for(String key: _counts.keySet()) {
-                Value val = DATABASE.get(key);
-                if(!val.txid.equals(_id)) {
-                    val.txid = _id.getTransactionId();
-                    val.count = val.count + _counts.get(key);
-                    DATABASE.put(key, val);
+                CountValue val = COUNT_DATABASE.get(key);
+                CountValue newVal;
+                if(val==null || !val.txid.equals(_id)) {
+                    newVal = new CountValue();
+                    newVal.txid = _id.getTransactionId();
+                    if(val!=null) {
+                        newVal.prev_count = val.count;
+                        newVal.count = val.count;
+                    }
+                    newVal.count = newVal.count + _counts.get(key);
+                    COUNT_DATABASE.put(key, val);
+                } else {
+                    newVal = val;
                 }
-                _collector.emit(new Values(_id, key, val.count));
+                _collector.emit(new Values(_id, key, newVal.count, newVal.prev_count));
             }
         }
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("id", "key", "count"));
+            declarer.declare(new Fields("id", "key", "count", "prev-count"));
         }        
     }
     
-    public static class RankN extends BaseBatchBolt {
-        BatchOutputCollector _collector;
-        Object _id;
-        int _n;
-        
-        public RankN(int n) {
-            _n = n;
-        }
-        
-        @Override
-        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
-            _collector = collector;
-            _id = id;
-        }
-
-        @Override
-        public void execute(Tuple tuple) {
-            // TODO: finish
-        }
-
-        @Override
-        public void finishBatch() {
-            // TODO: finish
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("id", "list"));
-        }
-    }
-    
-    public static class MergeN extends BaseBatchBolt {
-        BatchOutputCollector _collector;
-        Object _id;
-        int _n;
-        
-        public MergeN(int n) {
-            _n = n;
-        }
-        
-        @Override
-        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
-            _collector = collector;
-            _id = id;
-        }
-
-        @Override
-        public void execute(Tuple tuple) {
-            // TODO: finish
-        }
-
-        @Override
-        public void finishBatch() {
-            // TODO: finish
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("id", "list"));
-        }
-    }
-    
-    public static class WriteTopN extends BaseBasicBolt {
-
+    public static class Bucketize extends BaseBasicBolt {
         @Override
         public void execute(Tuple tuple, BasicOutputCollector collector) {
-            // TODO: get and merge with the list from the database
+            TransactionAttempt attempt = (TransactionAttempt) tuple.getValue(0);
+            int curr = tuple.getInteger(2);
+            Integer prev = tuple.getInteger(3);
+
+            int currBucket = curr / BUCKET_SIZE;
+            Integer prevBucket = null;
+            if(prev!=null) {
+                prevBucket = prev / BUCKET_SIZE;
+            }
+            
+            if(prevBucket==null) {
+                collector.emit(new Values(attempt, currBucket, 1));                
+            } else if(currBucket != prevBucket) {
+                collector.emit(new Values(attempt, currBucket, 1));
+                collector.emit(new Values(attempt, prevBucket, -1));
+            }
+        }
+        
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("attempt", "bucket", "delta"));
+        }
+    }
+    
+    public static class BucketCountUpdater extends BaseTransactionalBolt {
+        Map<Integer, Integer> _accum = new HashMap<Integer, Integer>();
+        BatchOutputCollector _collector;
+        TransactionAttempt _attempt;
+        
+        int _count = 0;
+
+        @Override
+        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, TransactionAttempt attempt) {
+            _collector = collector;
+            _attempt = attempt;
+        }
+
+        @Override
+        public void execute(Tuple tuple) {
+            Integer bucket = tuple.getInteger(1);
+            Integer delta = tuple.getInteger(2);
+            Integer curr = _accum.get(bucket);
+            if(curr==null) curr = 0;
+            _accum.put(bucket, curr + delta);
+        }
+
+        @Override
+        public void finishBatch() {
+            for(Integer bucket: _accum.keySet()) {
+                BucketValue currVal = BUCKET_DATABASE.get(bucket);
+                BucketValue newVal;
+                if(currVal==null || !currVal.txid.equals(_attempt.getTransactionId())) {
+                    newVal = new BucketValue();
+                    newVal.txid = _attempt.getTransactionId();
+                    newVal.count = _accum.get(bucket);
+                    if(currVal!=null) newVal.count += currVal.count;
+                    BUCKET_DATABASE.put(bucket, newVal);
+                } else {
+                    newVal = currVal;
+                }
+                _collector.emit(new Values(_attempt, bucket, newVal.count));
+            }
         }
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("id", "bucket", "count"));
         }        
     }
     
@@ -181,12 +196,11 @@ public class TransactionalTopWords {
         TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("top-n-words", "spout", spout, 2);
         builder.setBolt("count", new KeyedCountUpdater(), 5)
                 .fieldsGrouping("spout", new Fields("word"));
-        builder.setBolt("rank", new RankN(TOP_AMOUNT), 5)
-                .shuffleGrouping("count");
-        builder.setBolt("merge", new MergeN(TOP_AMOUNT))
-                .globalGrouping("rank");
-        builder.setBolt("write-top-n", new WriteTopN())
-                .shuffleGrouping("merge");
+        builder.setBolt("bucketize", new Bucketize())
+                .noneGrouping("count");
+        builder.setBolt("buckets", new BucketCountUpdater(), 5)
+                .fieldsGrouping("bucketize", new Fields("bucket"));
+        
         
         LocalCluster cluster = new LocalCluster();
         

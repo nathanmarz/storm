@@ -2,22 +2,18 @@ package storm.starter.spout;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.Random;
 
-public class RandomSentenceSpout implements IRichSpout {
+public class RandomSentenceSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
     Random _rand;    
     
-    @Override
-    public boolean isDistributed() {
-        return true;
-    }
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -36,13 +32,7 @@ public class RandomSentenceSpout implements IRichSpout {
             "i am at two with nature"};
         String sentence = sentences[_rand.nextInt(sentences.length)];
         _collector.emit(new Values(sentence));
-    }
-    
-    
-    @Override
-    public void close() {        
-    }
-
+    }        
 
     @Override
     public void ack(Object id) {

@@ -1,12 +1,13 @@
 package storm.starter.spout;
 
+import backtype.storm.Config;
 import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
@@ -16,7 +17,7 @@ import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 
-public class TwitterSampleSpout implements IRichSpout {
+public class TwitterSampleSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
     LinkedBlockingQueue<Status> queue = null;
     TwitterStream _twitterStream;
@@ -29,11 +30,6 @@ public class TwitterSampleSpout implements IRichSpout {
         _pwd = pwd;
     }
     
-    @Override
-    public boolean isDistributed() {
-        return false;
-    }
-
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         queue = new LinkedBlockingQueue<Status>(1000);
@@ -82,6 +78,13 @@ public class TwitterSampleSpout implements IRichSpout {
     public void close() {
         _twitterStream.shutdown();
     }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        Config ret = new Config();
+        ret.setMaxTaskParallelism(1);
+        return ret;
+    }    
 
     @Override
     public void ack(Object id) {

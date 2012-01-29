@@ -5,9 +5,7 @@ import backtype.storm.LocalCluster;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.MemoryTransactionalSpout;
-import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.topology.base.BaseBatchBolt;
 import backtype.storm.topology.base.BaseTransactionalBolt;
 import backtype.storm.transactional.ICommitter;
@@ -22,6 +20,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This is a basic example of a transactional topology. It keeps a count of the number of tuples seen so far 
+ * in a database. The source of data and the databases are mocked out as in memory maps for demonstration
+ * purposes. This class is defined in depth on the wiki at https://github.com/nathanmarz/storm/wiki/Transactional-topologies
+ */
 public class TransactionalGlobalCount {
     public static final int PARTITION_TAKE_PER_BATCH = 3;
     public static final Map<Integer, List<List<Object>>> DATA = new HashMap<Integer, List<List<Object>>>() {{

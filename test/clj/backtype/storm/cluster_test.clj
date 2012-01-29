@@ -68,9 +68,7 @@
       (is (Arrays/equals (barr 1) (.get-data state2 "/a" false)))
       (.close state1)
       (is (= nil (.get-data state2 "/a" false)))
-      (.close state1)
       (.close state2)
-      (.close state3)
       )))
 
 (defn mk-callback-tester []
@@ -224,7 +222,6 @@
       (.disconnect state2)
       (is (= #{"1"} (set (.supervisors state1 nil))))
       (.disconnect state1)
-      (.disconnect state2)
       )))
 
 (deftest test-storm-state-callbacks

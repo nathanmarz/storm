@@ -213,7 +213,10 @@ exception DRPCExecutionException {
 
 service DistributedRPC {
   string execute(1: string functionName, 2: string funcArgs) throws (1: DRPCExecutionException e);
+}
+
+service DistributedRPCInvocations {
   void result(1: string id, 2: string result);
   DRPCRequest fetchRequest(1: string functionName);
-  void failRequest(1: string id);
+  void failRequest(1: string id);  
 }

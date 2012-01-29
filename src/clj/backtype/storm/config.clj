@@ -128,6 +128,18 @@
 (defn ^LocalState supervisor-state [conf]
   (LocalState. (str (supervisor-local-dir conf) "/localstate")))
 
+(defn read-supervisor-storm-conf [conf storm-id]
+  (let [stormroot (supervisor-stormdist-root conf storm-id)
+        conf-path (supervisor-stormconf-path stormroot)
+        topology-path (supervisor-stormcode-path stormroot)]
+    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
+    ))
+
+(defn read-supervisor-topology [conf storm-id]
+  (let [stormroot (supervisor-stormdist-root conf storm-id)
+        topology-path (supervisor-stormcode-path stormroot)]
+    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
+    ))
 
 (defn worker-root
   ([conf]

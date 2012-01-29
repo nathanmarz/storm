@@ -105,6 +105,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_MONITOR_FREQ_SECS = "nimbus.monitor.freq.secs";
 
+    /**
+     * How often nimbus should wake the cleanup thread to clean the inbox.
+     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     */
+    public static String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
+
+    /**
+     * The length of time a jar file lives in the inbox before being deleted by the cleanup thread.
+     *
+     * Probably keep this value greater than or equal to NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS.
+     * Note that the time it takes to delete an inbox jar file is going to be somewhat more than
+     * NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS (depending on how often NIMBUS_CLEANUP_FREQ_SECS
+     * is set to).
+     * @see NIMBUS_CLEANUP_FREQ_SECS
+     */
+    public static String NIMBUS_INBOX_JAR_EXPIRATION_SECS = "nimbus.inbox.jar.expiration.secs";
 
     /**
      * How long before a supervisor can go without heartbeating before nimbus considers it dead
@@ -139,15 +155,25 @@ public class Config extends HashMap<String, Object> {
     public static String UI_PORT = "ui.port";
 
     /**
+     * Childopts for Storm UI Java process.
+     */
+    public static String UI_CHILDOPTS = "ui.childopts";
+    
+    
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static String DRPC_SERVERS = "drpc.servers";
 
     /**
-     * Storm DRPC binds to this port.
+     * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     public static String DRPC_PORT = "drpc.port";
     
+    /**
+     * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
+     */
+    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";    
     
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
@@ -328,12 +354,16 @@ public class Config extends HashMap<String, Object> {
      * Whether or not to use Java serialization in a topology.
      */
     public static String TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION="topology.fall.back.on.java.serialization";
+
+    /**
+     * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
+     */
+    public static String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
     
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static String ZMQ_THREADS = "zmq.threads";
-
 
     /**
      * How long a connection should retry sending messages to a target host when

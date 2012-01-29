@@ -108,7 +108,7 @@
               :rebalance (rebalance-transition nimbus storm-id status)
               :kill (kill-transition nimbus storm-id)
               }
-   :killed {:monitor (fn [] (delay-event nimbus
+   :killed {:startup (fn [] (delay-event nimbus
                                          storm-id
                                          (:kill-time-secs status)
                                          :remove))
@@ -119,7 +119,7 @@
                                       storm-id)
                       nil)
             }
-   :rebalancing {:monitor (fn [] (delay-event nimbus
+   :rebalancing {:startup (fn [] (delay-event nimbus
                                               storm-id
                                               (:delay-secs status)
                                               :do-rebalance))
@@ -130,14 +130,15 @@
                  }})
 
 (defn topology-status [nimbus storm-id]
-  (:status (.storm-base (:storm-cluster-state nimbus) storm-id nil)))
+  (-> nimbus :storm-cluster-state (.storm-base storm-id nil) :status))
 
 (defn transition!
   ([nimbus storm-id event]
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
      (locking (:submit-lock nimbus)
-       (let [[event & event-args] (if (keyword? event) [event] event)
+       (let [system-events #{:startup :monitor}
+             [event & event-args] (if (keyword? event) [event] event)
              status (topology-status nimbus storm-id)]
          ;; handles the case where event was scheduled but topology has been removed
          (if-not status
@@ -150,8 +151,10 @@
                                               " storm-id: " storm-id)]
                                  (if error-on-no-transition?
                                    (throw-runtime msg)
-                                   (log-message msg)
-                                   ))))
+                                   (do (when-not (contains? system-events event)
+                                         (log-message msg))
+                                       nil))
+                                 )))
                  transition (-> (state-transitions nimbus storm-id status)
                                 (get (:type status))
                                 (get-event event))
@@ -191,6 +194,7 @@
 
 
 (defmulti setup-jar cluster-mode)
+(defmulti clean-inbox cluster-mode)
 
 ;; status types
 ;; -- killed (:kill-time-secs)
@@ -613,18 +617,51 @@
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
+(defn- file-older-than? [now seconds file]
+  (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
+
+(defn clean-inbox [dir-location seconds]
+  "Deletes jar files in dir older than seconds."
+  (let [now (current-time-secs)
+        pred #(and (.isFile %) (file-older-than? now seconds %))
+        files (filter pred (file-seq (File. dir-location)))]
+    (doseq [f files]
+      (if (.delete f)
+        (log-message "Cleaning inbox ... deleted: " (.getName f))
+        ;; This should never happen
+        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        ))))
+
+(defn cleanup-corrupt-topologies! [nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        code-ids (set (code-ids (:conf nimbus)))
+        active-topologies (set (.active-storms storm-cluster-state))
+        corrupt-topologies (set/difference active-topologies code-ids)]
+    (doseq [corrupt corrupt-topologies]
+      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+      (.remove-storm! storm-cluster-state corrupt)
+      )))
 
 (defserverfn service-handler [conf]
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf)]
+    (cleanup-corrupt-topologies! nimbus)
+    (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
+      (transition! nimbus storm-id :startup))
     (schedule-recurring (:timer nimbus)
                         0
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
-                          (doseq [storm-id (.active-storms
-                                            (:storm-cluster-state nimbus))]
+                          (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
                             (transition! nimbus storm-id :monitor))
                           (do-cleanup nimbus)
+                          ))
+    ;; Schedule Nimbus inbox cleaner
+    (schedule-recurring (:timer nimbus)
+                        0
+                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
+                        (fn []
+                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))
     (reify Nimbus$Iface
       (^void submitTopology

@@ -23,6 +23,13 @@ else:
 CONF_DIR = os.path.expanduser("~/.storm")
 STORM_DIR = "/".join(os.path.abspath( __file__ ).split("/")[:-2])
 
+if not os.path.exists(STORM_DIR + "/RELEASE"):
+  print "******************************************"
+  print "The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code."
+  print "\nYou can download a Storm release at https://github.com/nathanmarz/storm/downloads"
+  print "******************************************"
+  sys.exit(1)  
+
 def get_jars_full(adir):
     files = os.listdir(adir)
     ret = []
@@ -46,7 +53,7 @@ def confvalue(name, extrapaths):
     for line in lines:
         tokens = line.split(" ")
         if tokens[0] == "VALUE:":
-            return tokens[1]
+            return " ".join(tokens[1:])
 
 def print_localconfvalue(name):
   print name + ": " + confvalue(name, [CONF_DIR])
@@ -99,11 +106,12 @@ def nimbus():
 
 def supervisor():
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    childopts = confvalue("nimbus.childopts", cppaths) + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
+    childopts = confvalue("supervisor.childopts", cppaths) + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.daemon.supervisor", jvmtype="-server", extrajars=cppaths, childopts=childopts)
 
 def ui():
-    childopts = "-Xmx768m -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
+    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    childopts = confvalue("ui.childopts", cppaths) + " -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.ui.core", jvmtype="-server", childopts=childopts, extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
 
 def drpc():
@@ -113,21 +121,22 @@ def drpc():
 def print_classpath():
   print get_classpath([])
 
-COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
-            "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
-            "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
-            "activate": activate, "deactivate": deactivate, "rebalance": rebalance}
-
 def print_commands():
     global COMMANDS
     cmds = COMMANDS.keys()
     cmds.sort()
-    print "Commands:\n\t", reduce(lambda x,y: x + ', ' + y, cmds[1:], cmds[0])
+    print "Commands:\n\t", reduce(lambda x,y: x + '\n\t' + y, cmds[1:], cmds[0])
+    print "\nDocumentation for the storm client can be found at https://github.com/nathanmarz/storm/wiki/Command-line-client\n"
 
 def print_usage(msg=None):
     if msg != None:
         print msg
     print_commands()
+
+COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
+            "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
+            "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
+            "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage}
 
 def main():
     if len(sys.argv) <= 1:
@@ -136,7 +145,7 @@ def main():
 
     COMMAND = sys.argv[1]
     ARGS = sys.argv[2:]
-    COMMANDS[COMMAND](*ARGS)
+    (COMMANDS.get(COMMAND, "help"))(*ARGS)
     
 if __name__ == "__main__":
     main()

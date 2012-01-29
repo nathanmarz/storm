@@ -13,7 +13,7 @@ from thrift.transport import TSocket
 from thrift.transport import THttpClient
 from thrift.protocol import TBinaryProtocol
 
-import DistributedRPC
+import DistributedRPCInvocations
 from ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
@@ -21,7 +21,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print 'Usage: ' + sys.argv[0] + ' [-h host:port] [-u url] [-f[ramed]] function [arg1 [arg2...]]'
   print ''
   print 'Functions:'
-  print '  string execute(string functionName, string funcArgs)'
+  print '  void result(string id, string result)'
+  print '  DRPCRequest fetchRequest(string functionName)'
+  print '  void failRequest(string id)'
   print ''
   sys.exit(0)
 
@@ -69,14 +71,26 @@ else:
   else:
     transport = TTransport.TBufferedTransport(socket)
 protocol = TBinaryProtocol.TBinaryProtocol(transport)
-client = DistributedRPC.Client(protocol)
+client = DistributedRPCInvocations.Client(protocol)
 transport.open()
 
-if cmd == 'execute':
+if cmd == 'result':
   if len(args) != 2:
-    print 'execute requires 2 args'
+    print 'result requires 2 args'
     sys.exit(1)
-  pp.pprint(client.execute(args[0],args[1],))
+  pp.pprint(client.result(args[0],args[1],))
+
+elif cmd == 'fetchRequest':
+  if len(args) != 1:
+    print 'fetchRequest requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.fetchRequest(args[0],))
+
+elif cmd == 'failRequest':
+  if len(args) != 1:
+    print 'failRequest requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.failRequest(args[0],))
 
 else:
   print 'Unrecognized method %s' % cmd

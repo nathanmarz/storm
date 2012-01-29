@@ -1,5 +1,11 @@
-## SNAPSHOT
+## 0.7.0-SNAPSHOT
 
+ * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most most computations. Documented on the wiki.
+ * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 
+ * Optimized tuple trees for batch processing in DRPC and transactional topologies. Only the coordination tuples are anchored. OutputCollector#fail still works because CoordinatedBolt will propagate the fail to all other tuples in the batch. 
+ * Introduction of base classes for various bolt and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods
+ * 
+ * Can customize the JVM options for Storm UI with new ui.childopts config
  * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts
  * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
 

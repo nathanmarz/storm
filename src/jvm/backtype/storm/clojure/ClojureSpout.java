@@ -15,30 +15,24 @@ import java.util.List;
 import java.util.Map;
 
 public class ClojureSpout implements IRichSpout {
-    private boolean _isDistributed;
     Map<String, StreamInfo> _fields;
-    String _namespace;
-    String _fnName;
+    List<String> _fnSpec;
+    List<String> _confSpec;
     List<Object> _params;
     
     ISpout _spout;
     
-    public ClojureSpout(String namespace, String fnName, List<Object> params, Map<String, StreamInfo> fields, boolean isDistributed) {
-        _isDistributed = isDistributed;
-        _namespace = namespace;
-        _fnName = fnName;
+    public ClojureSpout(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
+        _fnSpec = fnSpec;
+        _confSpec = confSpec;
         _params = params;
         _fields = fields;
     }
     
-    @Override
-    public boolean isDistributed() {
-        return _isDistributed;
-    }
 
     @Override
     public void open(final Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
-        IFn hof = Utils.loadClojureFn(_namespace, _fnName);
+        IFn hof = Utils.loadClojureFn(_fnSpec.get(0), _fnSpec.get(1));
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
             List<Object> args = new ArrayList<Object>() {{
@@ -106,4 +100,13 @@ public class ClojureSpout implements IRichSpout {
         }
     }
     
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        IFn hof = Utils.loadClojureFn(_confSpec.get(0), _confSpec.get(1));
+        try {
+            return (Map) hof.applyTo(RT.seq(_params));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }    
 }

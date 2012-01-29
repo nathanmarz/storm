@@ -3,13 +3,16 @@ package backtype.storm.serialization;
 import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.utils.ListDelegate;
 import backtype.storm.utils.Utils;
 import carbonite.JavaBridge;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.ObjectBuffer;
 import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.serialize.BigIntegerSerializer;
 import com.esotericsoftware.kryo.serialize.SerializableSerializer;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,15 +50,14 @@ public class SerializationFactory {
         k.register(ArrayList.class);
         k.register(HashMap.class);
         k.register(HashSet.class);
+        k.register(BigInteger.class, new BigIntegerSerializer());
+        k.register(TransactionAttempt.class);
         JavaBridge clojureSerializersBridge = new JavaBridge();
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);
         
-        Map<String, String> registrations = (Map<String, String>) conf.get(Config.TOPOLOGY_KRYO_REGISTER);
-        if(registrations==null) registrations = new HashMap<String, String>();
+        Map<String, String> registrations = normalizeKryoRegister(conf);
 
-        //ensure always same order for registrations with TreeMap
-        registrations = new TreeMap<String, String>(registrations);
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
         for(String klassName: registrations.keySet()) {
             String serializerClassName = registrations.get(klassName);
@@ -121,5 +123,26 @@ public class SerializationFactory {
             }
             return ret;
         }
-    }    
+    }
+    
+    private static Map<String, String> normalizeKryoRegister(Map conf) {
+        // TODO: de-duplicate this logic with the code in nimbus
+        Object res = conf.get(Config.TOPOLOGY_KRYO_REGISTER);
+        if(res==null) return new TreeMap<String, String>();
+        Map<String, String> ret = new HashMap<String, String>();
+        if(res instanceof Map) {
+            ret = (Map<String, String>) res;
+        } else {
+            for(Object o: (List) res) {
+                if(o instanceof Map) {
+                    ret.putAll((Map) o);
+                } else {
+                    ret.put((String) o, null);
+                }
+            }
+        }
+
+        //ensure always same order for registrations with TreeMap
+        return new TreeMap<String, String>(ret);
+    }
 }

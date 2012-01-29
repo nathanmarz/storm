@@ -1,6 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.topology TopologyBuilder])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestConfBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   )
@@ -100,6 +101,26 @@
         (is (= [[1] [2] [3] [4]]
                (read-tuples results "4")))
         ))))
+
+(defbolt identity-bolt ["num"]
+  [tuple collector]
+  (emit-bolt! collector (.getValues tuple) :anchor tuple)
+  (ack! collector tuple))
+
+(deftest test-system-stream
+  ;; this test works because mocking a spout splits up the tuples evenly among the tasks
+  (with-simulated-time-local-cluster [cluster]
+      (let [topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestWordSpout. true) :p 3)}
+                      {"2" (thrift/mk-bolt-spec {"1" ["word"] ["1" "__system"] :global} identity-bolt :p 1)
+                       })
+            results (complete-topology cluster
+                                       topology
+                                       :mock-sources {"1" [["a"] ["b"] ["c"]]}
+                                       :storm-conf {TOPOLOGY-WORKERS 2})]
+        (is (ms= [["a"] ["b"] ["c"] ["startup"] ["startup"] ["startup"]]
+                 (read-tuples results "2")))
+        )))
 
 (deftest test-shuffle
   (with-simulated-time-local-cluster [cluster :supervisors 4]
@@ -219,11 +240,6 @@
   [tuple collector]
   (ack! collector tuple))
 
-(defbolt identity-bolt ["num"]
-  [tuple collector]
-  (emit-bolt! collector (.getValues tuple) :anchor tuple)
-  (ack! collector tuple))
-
 (deftest test-acking
   (with-tracked-cluster [cluster]
     (let [[feeder1 checker1] (ack-tracking-feeder ["num"])
@@ -231,18 +247,21 @@
           [feeder3 checker3] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
                    cluster
-                   {"1" [feeder1]
-                    "2" [feeder2]
-                    "3" [feeder3]}
-                   {"4" [{"1" :shuffle} (branching-bolt 2)]
-                    "5" [{"2" :shuffle} (branching-bolt 4)]
-                    "6" [{"3" :shuffle} (branching-bolt 1)]
-                    "7" [{"4" :shuffle
-                        "5" :shuffle
-                        "6" :shuffle} (agg-bolt 3)]
-                    "8" [{"7" :shuffle} (branching-bolt 2)]
-                    "9" [{"8" :shuffle} ack-bolt]}
-                   )]
+                   (topology
+                     {"1" (spout-spec feeder1)
+                      "2" (spout-spec feeder2)
+                      "3" (spout-spec feeder3)}
+                     {"4" (bolt-spec {"1" :shuffle} (branching-bolt 2))
+                      "5" (bolt-spec {"2" :shuffle} (branching-bolt 4))
+                      "6" (bolt-spec {"3" :shuffle} (branching-bolt 1))
+                      "7" (bolt-spec
+                            {"4" :shuffle
+                            "5" :shuffle
+                            "6" :shuffle}
+                            (agg-bolt 3))
+                      "8" (bolt-spec {"7" :shuffle} (branching-bolt 2))
+                      "9" (bolt-spec {"8" :shuffle} ack-bolt)}
+                     ))]
       (submit-local-topology (:nimbus cluster)
                              "acking-test1"
                              {TOPOLOGY-DEBUG true}
@@ -277,11 +296,14 @@
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
                    cluster
-                   {"1" [feeder]}
-                   {"2" [{"1" :shuffle} identity-bolt]
-                    "3" [{"1" :shuffle} identity-bolt]
-                    "4" [{"2" :shuffle
-                          "3" :shuffle} (agg-bolt 4)]})]
+                   (topology
+                     {"1" (spout-spec feeder)}
+                     {"2" (bolt-spec {"1" :shuffle} identity-bolt)
+                      "3" (bolt-spec {"1" :shuffle} identity-bolt)
+                      "4" (bolt-spec
+                            {"2" :shuffle
+                             "3" :shuffle}
+                             (agg-bolt 4))}))]
       (submit-local-topology (:nimbus cluster)
                              "test-acking2"
                              {}
@@ -304,9 +326,10 @@
     (let [[feeder checker] (ack-tracking-feeder ["num"])
           tracked (mk-tracked-topology
                    cluster
-                   {"1" [feeder]}
-                   {"2" [{"1" :shuffle} dup-anchor]
-                    "3" [{"2" :shuffle} ack-bolt]})]
+                   (topology
+                     {"1" (spout-spec feeder)}
+                     {"2" (bolt-spec {"1" :shuffle} dup-anchor)
+                      "3" (bolt-spec {"2" :shuffle} ack-bolt)}))]
       (submit-local-topology (:nimbus cluster)
                              "test"
                              {}
@@ -392,6 +415,87 @@
 ;;       (Thread/sleep 10000)
 ;;       )))
 
+
+(deftest test-component-specific-config
+  (with-simulated-time-local-cluster [cluster
+                                      :daemon-conf {TOPOLOGY-OPTIMIZE false
+                                                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true}]
+    (letlocals
+     (bind builder (TopologyBuilder.))
+     (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
+     (-> builder
+         (.setBolt "2"
+                   (TestConfBolt.
+                    {"fake.config" 123
+                     TOPOLOGY-MAX-TASK-PARALLELISM 20
+                     TOPOLOGY-MAX-SPOUT-PENDING 30
+                     TOPOLOGY-OPTIMIZE true
+                     TOPOLOGY-KRYO-REGISTER [{"fake.type" "bad.serializer"}
+                                             {"fake.type2" "a.serializer"}]
+                     }))
+         (.shuffleGrouping "1")
+         (.setMaxTaskParallelism 2)
+         (.addConfiguration "fake.config2" 987)
+         )
+     
+
+     (bind results
+           (complete-topology cluster
+                              (.createTopology builder)
+                              :storm-conf {TOPOLOGY-KRYO-REGISTER [{"fake.type" "good.serializer" "fake.type3" "a.serializer3"}]}
+                              :mock-sources {"1" [["fake.config"]
+                                                  [TOPOLOGY-MAX-TASK-PARALLELISM]
+                                                  [TOPOLOGY-MAX-SPOUT-PENDING]
+                                                  [TOPOLOGY-OPTIMIZE]
+                                                  ["fake.config2"]
+                                                  [TOPOLOGY-KRYO-REGISTER]
+                                                  ]}))
+     (is (= {"fake.config" 123
+             "fake.config2" 987
+             TOPOLOGY-MAX-TASK-PARALLELISM 2
+             TOPOLOGY-MAX-SPOUT-PENDING 30
+             TOPOLOGY-OPTIMIZE false
+             TOPOLOGY-KRYO-REGISTER {"fake.type" "good.serializer"
+                                     "fake.type2" "a.serializer"
+                                     "fake.type3" "a.serializer3"}}
+            (->> (read-tuples results "2")
+                 (apply concat)
+                 (apply hash-map))
+            ))
+     )))
+
+(defbolt conf-query-bolt ["conf" "val"] {:prepare true :params [conf] :conf conf}
+  [conf context collector]
+  (bolt
+   (execute [tuple]
+            (let [name (.getValue tuple 0)]
+              (emit-bolt! collector [name (get conf name)] :anchor tuple))
+            )))
+
+(deftest test-component-specific-config-clojure
+  (with-simulated-time-local-cluster [cluster]
+    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])))
+                              }
+                             {"2" (bolt-spec {"1" :shuffle}
+                                             (conf-query-bolt {"fake.config" 1
+                                                               TOPOLOGY-MAX-TASK-PARALLELISM 2
+                                                               TOPOLOGY-MAX-SPOUT-PENDING 10})
+                                             :conf {TOPOLOGY-MAX-SPOUT-PENDING 3})
+                              })
+          results (complete-topology cluster
+                                     topology
+                                     :storm-conf {TOPOLOGY-MAX-TASK-PARALLELISM 10}
+                                     :mock-sources {"1" [["fake.config"]
+                                                         [TOPOLOGY-MAX-TASK-PARALLELISM]
+                                                         [TOPOLOGY-MAX-SPOUT-PENDING]
+                                                         ]})]
+      (is (= {"fake.config" 1
+              TOPOLOGY-MAX-TASK-PARALLELISM 2
+              TOPOLOGY-MAX-SPOUT-PENDING 3}
+             (->> (read-tuples results "2")
+                  (apply concat)
+                  (apply hash-map))
+             )))))
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

@@ -9,6 +9,8 @@ import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.topology.base.BaseBatchBolt;
+import backtype.storm.topology.base.BaseTransactionalBolt;
+import backtype.storm.transactional.ICommitter;
 import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.transactional.TransactionalTopologyBuilder;
 import backtype.storm.tuple.Fields;
@@ -86,16 +88,16 @@ public class TransactionalGlobalCount {
         }        
     }
     
-    public static class BatchSum extends BaseBatchBolt {
-        Object _id;
+    public static class UpdateGlobalCount extends BaseTransactionalBolt implements ICommitter {
+        TransactionAttempt _attempt;
         BatchOutputCollector _collector;
         
         int _sum = 0;
 
         @Override
-        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
+        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, TransactionAttempt attempt) {
             _collector = collector;
-            _id = id;
+            _attempt = attempt;
         }
 
         @Override
@@ -105,7 +107,21 @@ public class TransactionalGlobalCount {
 
         @Override
         public void finishBatch() {
-            _collector.emit(new Values(_id, _sum));
+            Value val = DATABASE.get(GLOBAL_COUNT_KEY);
+            Value newval;
+            if(val == null || !val.txid.equals(_attempt.getTransactionId())) {
+                newval = new Value();
+                newval.txid = _attempt.getTransactionId();
+                if(val==null) {
+                    newval.count = _sum;
+                } else {
+                    newval.count = _sum + val.count;
+                }
+                DATABASE.put(GLOBAL_COUNT_KEY, newval);
+            } else {
+                newval = val;
+            }
+            _collector.emit(new Values(_attempt, newval.count));
         }
 
         @Override
@@ -114,46 +130,13 @@ public class TransactionalGlobalCount {
         }        
     }
     
-    public static class CommitToDB extends BaseBasicBolt {
-
-        @Override
-        public void execute(Tuple tuple, BasicOutputCollector collector) {
-            BigInteger txid = ((TransactionAttempt) tuple.getValue(0)).getTransactionId();
-            int sum = tuple.getInteger(1);
-            
-            Value val = DATABASE.get(GLOBAL_COUNT_KEY);
-            Value newval;
-            if(val == null || !val.txid.equals(txid)) {
-                newval = new Value();
-                newval.txid = txid;
-                if(val==null) {
-                    newval.count = sum;
-                } else {
-                    newval.count = sum + val.count;
-                }
-                DATABASE.put(GLOBAL_COUNT_KEY, newval);
-            } else {
-                newval = val;
-            }
-            collector.emit(new Values(tuple.getValue(0), newval.count));
-            
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("attempt", "global-count"));
-        }
-    }
-    
     public static void main(String[] args) throws Exception {
         MemoryTransactionalSpout spout = new MemoryTransactionalSpout(DATA, new Fields("word"), PARTITION_TAKE_PER_BATCH);
-        TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("global-count", "spout", spout, 2);
+        TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("global-count", "spout", spout, 3);
         builder.setBolt("partial-count", new BatchCount(), 5)
-                .shuffleGrouping("spout");
-        builder.setCommitterBolt("sum", new BatchSum())
+                .noneGrouping("spout");
+        builder.setBolt("sum", new UpdateGlobalCount())
                 .globalGrouping("partial-count");
-        builder.setBolt("to-db", new CommitToDB())
-                .shuffleGrouping("sum");
         
         LocalCluster cluster = new LocalCluster();
         

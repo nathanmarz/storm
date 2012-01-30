@@ -12,7 +12,6 @@ import java.util.List;
  * form of stream processing, see IBasicBolt and BasicOutputCollector.
  */
 public abstract class OutputCollector implements IOutputCollector {
-
     /**
      * Emits a new tuple to a specific stream with a single anchor.
      *
@@ -26,7 +25,7 @@ public abstract class OutputCollector implements IOutputCollector {
     }
 
     /**
-     * Emits a new unanchored tuple to the specified stream. Beacuse it's unanchored,
+     * Emits a new unanchored tuple to the specified stream. Because it's unanchored,
      * if a failure happens downstream, this new tuple won't affect whether any
      * spout tuples are considered failed or not.
      * 

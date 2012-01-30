@@ -1,8 +1,9 @@
 package backtype.storm.drpc;
 
+import backtype.storm.topology.ComponentConfigurationDeclarer;
 import backtype.storm.tuple.Fields;
 
-public interface LinearDRPCInputDeclarer {
+public interface LinearDRPCInputDeclarer extends ComponentConfigurationDeclarer<LinearDRPCInputDeclarer> {
     public LinearDRPCInputDeclarer fieldsGrouping(Fields fields);
     public LinearDRPCInputDeclarer fieldsGrouping(String streamId, Fields fields);
 

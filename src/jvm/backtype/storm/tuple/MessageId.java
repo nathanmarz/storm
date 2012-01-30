@@ -1,5 +1,6 @@
 package backtype.storm.tuple;
 
+import backtype.storm.utils.Utils;
 import backtype.storm.utils.WritableUtils;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -8,13 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.UUID;
 
 public class MessageId {
     private Map<Long, Long> _anchorsToIds;
     
     public static long generateId() {
-        return UUID.randomUUID().getLeastSignificantBits();
+        return Utils.randomLong();
     }
 
     public static MessageId makeUnanchored() {

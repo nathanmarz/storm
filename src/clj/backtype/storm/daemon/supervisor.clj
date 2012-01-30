@@ -144,7 +144,7 @@
     (rmpath (worker-pids-root conf id))
     (rmpath (worker-root conf id))
   (catch RuntimeException e
-    (log-error e "Failed to cleanup worker " id ". Will retry later")
+    (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
 
 (defn shutdown-worker [conf supervisor-id id worker-thread-pids-atom]
@@ -177,7 +177,7 @@
         sync-processes (fn []
                          (let [assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
                                allocated (read-allocated-workers conf local-state assigned-tasks)
-                               keepers (filter-map-val
+                               keepers (filter-val
                                         (fn [[state _]] (= state :valid))
                                         allocated)
                                keep-ports (set (for [[id [_ hb]] keepers] (:port hb)))

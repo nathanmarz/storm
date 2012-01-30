@@ -56,10 +56,12 @@
 (defn- get-task-object [topology component-id]
   (let [spouts (.get_spouts topology)
         bolts (.get_bolts topology)
+        state-spouts (.get_state_spouts topology)
         obj (Utils/getSetComponentObject
              (cond
               (contains? spouts component-id) (.get_spout_object (get spouts component-id))
               (contains? bolts component-id) (.get_bolt_object (get bolts component-id))
+              (contains? state-spouts component-id) (.get_state_spout_object (get state-spouts component-id))
               true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
@@ -79,7 +81,9 @@
   (let [output-groupings (clojurify-structure (.getThisTargets topology-context))]
      (into {}
        (for [[stream-id component->grouping] output-groupings
-             :let [out-fields (.getThisOutputFields topology-context stream-id)]]
+             :let [out-fields (.getThisOutputFields topology-context stream-id)
+                   component->grouping (filter-key #(pos? (count (.getComponentTasks topology-context %)))
+                                       component->grouping)]]         
          [stream-id
           (into {}
                 (for [[component tgrouping] component->grouping]
@@ -109,9 +113,23 @@
                        ACKER-ACK-STREAM-ID))
       )))
 
+(defn- component-conf [storm-conf topology-context component-id]
+  (let [to-remove (disj (set ALL-CONFIGS)
+                        TOPOLOGY-DEBUG
+                        TOPOLOGY-MAX-SPOUT-PENDING
+                        TOPOLOGY-MAX-TASK-PARALLELISM
+                        TOPOLOGY-TRANSACTIONAL-ID)
+        spec-conf (-> topology-context
+                      (.getComponentCommon component-id)
+                      .get_json_conf
+                      from-json)]
+    (merge storm-conf (apply dissoc spec-conf to-remove))
+    ))
+
 (defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
   (let [task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
+        storm-conf (component-conf storm-conf topology-context component-id)
         _ (log-message "Loading task " component-id ":" task-id)
         task-info (.getTaskToComponent topology-context)
         active (atom true)
@@ -161,10 +179,7 @@
                      (let [target-component (.getComponentId topology-context out-task-id)
                            component->grouping (stream->component->grouper (.getSourceStreamId tuple))
                            grouping (get component->grouping target-component)
-                           out-task-id (if (or grouping
-                                               ;; this is needed because ackers send direct to spouts
-                                               (system-component? component-id))
-                                         out-task-id)]
+                           out-task-id (if grouping out-task-id)]
                        (when (and (not-nil? grouping) (not= :direct grouping))
                          (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))
                        (when out-task-id
@@ -214,6 +229,10 @@
                                      this)
                            ))
                        out-tasks)))
+        _ (send-fn (Tuple. topology-context
+                           ["startup"]
+                           (.getThisTaskId topology-context)
+                           SYSTEM-STREAM-ID))
         executor-threads (dofor
                           [exec (with-error-reaction report-error-and-die
                                   (mk-executors task-object storm-conf puller send-fn

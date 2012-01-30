@@ -53,7 +53,7 @@ def confvalue(name, extrapaths):
     for line in lines:
         tokens = line.split(" ")
         if tokens[0] == "VALUE:":
-            return tokens[1]
+            return " ".join(tokens[1:])
 
 def print_localconfvalue(name):
   print name + ": " + confvalue(name, [CONF_DIR])
@@ -106,11 +106,12 @@ def nimbus():
 
 def supervisor():
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    childopts = confvalue("nimbus.childopts", cppaths) + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
+    childopts = confvalue("supervisor.childopts", cppaths) + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.daemon.supervisor", jvmtype="-server", extrajars=cppaths, childopts=childopts)
 
 def ui():
-    childopts = "-Xmx768m -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
+    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    childopts = confvalue("ui.childopts", cppaths) + " -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class("backtype.storm.ui.core", jvmtype="-server", childopts=childopts, extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
 
 def drpc():
@@ -119,11 +120,6 @@ def drpc():
 
 def print_classpath():
   print get_classpath([])
-
-COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
-            "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
-            "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
-            "activate": activate, "deactivate": deactivate, "rebalance": rebalance}
 
 def print_commands():
     global COMMANDS
@@ -137,6 +133,11 @@ def print_usage(msg=None):
         print msg
     print_commands()
 
+COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
+            "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
+            "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
+            "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage}
+
 def main():
     if len(sys.argv) <= 1:
         print_usage()
@@ -144,7 +145,7 @@ def main():
 
     COMMAND = sys.argv[1]
     ARGS = sys.argv[2:]
-    COMMANDS[COMMAND](*ARGS)
+    (COMMANDS.get(COMMAND, "help"))(*ARGS)
     
 if __name__ == "__main__":
     main()

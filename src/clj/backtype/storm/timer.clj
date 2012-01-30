@@ -34,12 +34,12 @@
                                   (afn))
                                 (Time/sleep 1000)
                                 ))
-                            (catch InterruptedException e
-                              )
                             (catch Throwable t
-                              (kill-fn t)
-                              (reset! active false)
-                              (throw t)
+                              ;; because the interrupted exception can be wrapped in a runtimeexception
+                              (when-not (exception-cause? InterruptedException t)
+                                (kill-fn t)
+                                (reset! active false)
+                                (throw t))
                               )))
                         (.release notifier)))]
     (.setDaemon timer-thread true)

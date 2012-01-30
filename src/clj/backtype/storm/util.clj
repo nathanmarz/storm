@@ -3,7 +3,7 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time Container ClojureTimerTask])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils])
   (:import [java.util UUID])
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
@@ -101,6 +101,17 @@
         (afn v))
        amap
        )))
+
+(defn filter-key [afn amap]
+  (into {}
+    (filter
+      (fn [[k v]]
+        (afn k))
+       amap
+       )))
+
+(defn separate [pred aseq]
+  [(filter pred aseq) (filter (complement pred) aseq)])
 
 (defn full-path [parent name]
   (let [toks (tokenize-path parent)]
@@ -264,9 +275,6 @@
         ))
       ))
 
-(defn filter-map-val [afn amap]
-  (into {} (filter (fn [[k v]] (afn v)) amap)))
-
 (defn exists-file? [path]
   (.exists (File. path)))
 
@@ -346,13 +354,7 @@
   (Integer/parseInt str))
 
 (defn integer-divided [sum num-pieces]
-  (let [base (int (/ sum num-pieces))
-        num-inc (mod sum num-pieces)
-        num-bases (- num-pieces num-inc)]
-    (if (= num-inc 0)
-      {base num-bases}
-      {base num-bases (inc base) num-inc}
-      )))
+  (clojurify-structure (Utils/integerDivided sum num-pieces)))
 
 (defn collectify [obj]
   (if (or (sequential? obj) (instance? Collection obj)) obj [obj]))
@@ -361,8 +363,11 @@
   (JSONValue/toJSONString m))
 
 (defn from-json [^String str]
-  (clojurify-structure
-    (JSONValue/parse str)))
+  (if str
+    (clojurify-structure
+     (JSONValue/parse str))
+    nil
+    ))
 
 (defmacro letlocals [& body]
    (let [[tobind lexpr] (split-at (dec (count body)) body)

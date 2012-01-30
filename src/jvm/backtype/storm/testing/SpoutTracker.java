@@ -5,13 +5,14 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.utils.RegisteredGlobalState;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class SpoutTracker implements IRichSpout {
+public class SpoutTracker extends BaseRichSpout {
     IRichSpout _delegate;
     SpoutTrackOutputCollector _tracker;
     String _trackId;
@@ -48,10 +49,6 @@ public class SpoutTracker implements IRichSpout {
     public SpoutTracker(IRichSpout delegate, String trackId) {
         _delegate = delegate;
         _trackId = trackId;
-    }
-
-    public boolean isDistributed() {
-        return _delegate.isDistributed();
     }
 
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {

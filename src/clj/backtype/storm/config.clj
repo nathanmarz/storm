@@ -9,13 +9,21 @@
 
 (def RESOURCES-SUBDIR "resources")
 
+(defn- clojure-config-name [name]
+  (.replace (.toUpperCase name) "_" "-"))
+
 ;; define clojure constants for every configuration parameter
 (doseq [f (seq (.getFields Config))]
   (let [name (.getName f)
-        new-name (.replace (.toUpperCase name) "_" "-")]
+        new-name (clojure-config-name name)]
     (eval
       `(def ~(symbol new-name) (. Config ~(symbol name))))
       ))
+
+(def ALL-CONFIGS
+  (dofor [f (seq (.getFields Config))]
+         (.get f nil)
+         ))
 
 (defn cluster-mode [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))

@@ -1,2 +1,2 @@
 mkdir -p doc
-javadoc -d doc/ `find src -name "*.java" | grep -v generated`
+javadoc -d doc-$1/ `find src -name "*.java" | grep -v generated`

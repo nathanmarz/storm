@@ -1,9 +1,7 @@
 package backtype.storm.tuple;
 
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.generated.Grouping;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.utils.Utils;
 import clojure.lang.ILookup;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
@@ -28,7 +26,7 @@ public class Tuple implements ILookup {
     private String streamId;
     private TopologyContext context;
     private MessageId id;
-
+    
     //needs to get taskId explicitly b/c could be in a different task than where it was created
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
         this.values = values;
@@ -50,7 +48,7 @@ public class Tuple implements ILookup {
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }
-
+    
     public Tuple copyWithNewId(long id) {
         Map<Long, Long> newIds = new HashMap<Long, Long>();
         for(Long anchor: this.id.getAnchorsToIds().keySet()) {

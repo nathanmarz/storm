@@ -56,22 +56,24 @@
 (defn direct-stream [fields]
   (StreamInfo. fields true))
 
-(defn clojure-bolt* [output-spec fn-var args]
+(defn to-spec [avar]
+  (let [m (meta avar)]
+    [(str (:ns m)) (str (:name m))]))
+
+(defn clojure-bolt* [output-spec fn-var conf-fn-var args]
+  (ClojureBolt. (to-spec fn-var) (to-spec conf-fn-var) args (thrift/mk-output-spec output-spec)))
+
+(defmacro clojure-bolt [output-spec fn-sym conf-fn-sym args]
+  `(clojure-bolt* ~output-spec (var ~fn-sym) (var ~conf-fn-sym) ~args))
+
+
+(defn clojure-spout* [output-spec fn-var conf-var args]
   (let [m (meta fn-var)]
-    (ClojureBolt. (str (:ns m)) (str (:name m)) args (thrift/mk-output-spec output-spec))
+    (ClojureSpout. (to-spec fn-var) (to-spec conf-var) args (thrift/mk-output-spec output-spec))
     ))
 
-(defmacro clojure-bolt [output-spec fn-sym args]
-  `(clojure-bolt* ~output-spec (var ~fn-sym) ~args))
-
-
-(defn clojure-spout* [output-spec distributed? fn-var args]
-  (let [m (meta fn-var)]
-    (ClojureSpout. (str (:ns m)) (str (:name m)) args (thrift/mk-output-spec output-spec) distributed?)
-    ))
-
-(defmacro clojure-spout [output-spec distributed? fn-sym args]
-  `(clojure-spout* ~output-spec ~distributed? (var ~fn-sym) ~args))
+(defmacro clojure-spout [output-spec fn-sym conf-sym args]
+  `(clojure-spout* ~output-spec (var ~fn-sym) (var ~conf-sym) ~args))
 
 (defn hint-fns [body]
   (for [[name args & impl] body
@@ -106,7 +108,9 @@
   (if-not (map? opts)
     `(defbolt ~name ~output-spec {} ~@all)
     (let [worker-name (symbol (str name "__"))
+          conf-fn-name (symbol (str name "__conf__"))
           params (:params opts)
+          conf-code (:conf opts)
           fn-body (if (:prepare opts)
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
@@ -116,12 +120,15 @@
                       `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
-                       (clojure-bolt ~output-spec ~worker-name args#))
+                       (clojure-bolt ~output-spec ~worker-name ~conf-fn-name args#))
                     `(def ~name
-                       (clojure-bolt ~output-spec ~worker-name []))
+                       (clojure-bolt ~output-spec ~worker-name ~conf-fn-name []))
                     )
           ]
       `(do
+         (defn ~conf-fn-name ~(if params params [])
+           ~conf-code
+           )
          (defn ~worker-name ~(if params params [])
            ~fn-body
            )
@@ -132,8 +139,9 @@
   (if-not (map? opts)
     `(defspout ~name ~output-spec {} ~@all)
     (let [worker-name (symbol (str name "__"))
+          conf-fn-name (symbol (str name "__conf__"))
           params (:params opts)
-          distributed? (get opts :distributed true)
+          conf-code (:conf opts)
           prepare? (:prepare opts)
           prepare? (if (nil? prepare?) true prepare?)
           fn-body (if prepare?
@@ -144,12 +152,15 @@
                       `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
-                       (clojure-spout ~output-spec ~distributed? ~worker-name args#))
+                       (clojure-spout ~output-spec ~worker-name ~conf-fn-name args#))
                     `(def ~name
-                       (clojure-spout ~output-spec ~distributed? ~worker-name []))
+                       (clojure-spout ~output-spec ~worker-name ~conf-fn-name []))
                     )
           ]
       `(do
+         (defn ~conf-fn-name ~(if params params [])
+           ~conf-code
+           )
          (defn ~worker-name ~(if params params [])
            ~fn-body
            )

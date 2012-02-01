@@ -22,6 +22,13 @@
             (hint collector 'backtype.storm.task.OutputCollector)]
            )
 
+; Special case for clojure where we use a closure instead of the prepare
+; method
+(defmethod hinted-args 'prepare-fn [_ [conf context collector]]
+  [(hint conf 'java.util.Map)
+   (hint context 'backtype.storm.task.TopologyContext)
+   (hint collector 'java.util.Map)])
+
 (defmethod hinted-args 'execute [_ [tuple]]
            [(hint tuple 'backtype.storm.tuple.Tuple)]
            )
@@ -34,6 +41,11 @@
            []
            )
 
+(defmethod hinted-args 'open-fn [_ [conf context collector]]
+           [(hint conf 'java.util.Map)
+            (hint context 'backtype.storm.task.TopologyContext)
+            (hint collector 'java.util.Map)]
+           )
 (defmethod hinted-args 'open [_ [conf context collector]]
            [(hint conf 'java.util.Map)
             (hint context 'backtype.storm.task.TopologyContext)
@@ -116,7 +128,7 @@
                     (let [[args & impl-body] impl
                           coll-sym (nth args 1)
                           args (vec (take 1 args))
-                          prepargs (hinted-args 'prepare [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs (hinted-args 'prepare-fn [(gensym "conf") (gensym "context") coll-sym])]
                       `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
@@ -148,7 +160,7 @@
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (first args)
-                          prepargs (hinted-args 'open [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs (hinted-args 'open-fn [(gensym "conf") (gensym "context") coll-sym])]
                       `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
@@ -167,31 +179,50 @@
          ~definer
          ))))
 
-(defnk emit-bolt! [^OutputCollector collector ^List values
+(defprotocol TupleValues
+  (tuple-values [values collector stream]))
+
+(extend-protocol TupleValues
+  java.util.Map
+  (tuple-values [this collector ^String stream]
+    (let [ fields (.. (:context collector) (getThisOutputFields stream) toList) ]
+      (vec (map (into 
+                  (empty this) (for [[k v] this] 
+                                   [(if (keyword? k) (name k) k) v])) 
+                fields))))
+  java.util.List
+  (tuple-values [this collector stream]
+    this))
+
+(defnk emit-bolt! [collector ^TupleValues values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emit collector stream anchor values)
+  (let [^List anchor (collectify anchor)
+        values (tuple-values values collector stream) ]
+    (.emit (:output-collector collector) stream anchor values)
     ))
 
-(defnk emit-direct-bolt! [^OutputCollector collector task ^List values
+(defnk emit-direct-bolt! [collector task ^TupleValues values
                           :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emitDirect collector task stream anchor values)
+  (let [^List anchor (collectify anchor)
+        values (tuple-values values collector stream) ]
+    (.emitDirect (:output-collector collector) task stream anchor values)
     ))
 
-(defn ack! [^OutputCollector collector ^Tuple tuple]
-  (.ack collector tuple))
+(defn ack! [collector ^Tuple tuple]
+  (.ack (:output-collector collector) tuple))
 
-(defn fail! [^OutputCollector collector ^Tuple tuple]
-  (.fail collector tuple))
+(defn fail! [collector ^Tuple tuple]
+  (.fail (:output-collector collector) tuple))
 
-(defnk emit-spout! [^SpoutOutputCollector collector ^List values
+(defnk emit-spout! [collector ^TupleValues values
                     :stream Utils/DEFAULT_STREAM_ID :id nil]
-  (.emit collector stream values id))
+  (let [values (tuple-values values collector stream)]
+    (.emit (:output-collector collector) stream values id)))
 
-(defnk emit-direct-spout! [^SpoutOutputCollector collector task ^List values
+(defnk emit-direct-spout! [collector task ^TupleValues values
                            :stream Utils/DEFAULT_STREAM_ID :id nil]
-  (.emitDirect collector task stream values id))
+  (let [values (tuple-values values collector stream)]
+    (.emitDirect (:output-collector collector) task stream values id)))
 
 (defalias topology thrift/mk-topology)
 (defalias bolt-spec thrift/mk-bolt-spec)

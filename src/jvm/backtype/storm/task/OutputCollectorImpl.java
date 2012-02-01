@@ -30,7 +30,7 @@ public class OutputCollectorImpl extends OutputCollector {
         _context = context;
         _collector = collector;
     }
-    
+
     public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
         return _collector.emit(anchorTuple(anchors, streamId, tuple));
     }

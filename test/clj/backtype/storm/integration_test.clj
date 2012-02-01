@@ -153,8 +153,8 @@
 
 (defbolt lalala-bolt1 ["word"] [tuple collector]
   (let [ret (-> (.getValue tuple 0) (str "lalala"))]
-    (.emit collector tuple [ret])
-    (.ack collector tuple)
+    (.emit (:output-collector collector) tuple [ret])
+    (.ack (:output-collector collector) tuple)
     ))
 
 (defbolt lalala-bolt2 ["word"] {:prepare true}
@@ -164,8 +164,8 @@
     (bolt
       (execute [tuple]
         (let [ret (-> (.getValue tuple 0) (str @state))]
-                (.emit collector tuple [ret])
-                (.ack collector tuple)
+                (.emit (:output-collector collector) tuple [ret])
+                (.ack (:output-collector collector) tuple)
                 ))
       )))
       
@@ -177,8 +177,8 @@
         (reset! state (str prefix "lalala")))
       (execute [tuple]
         (let [ret (-> (.getValue tuple 0) (str @state))]
-          (.emit collector tuple [ret])
-          (.ack collector tuple)
+          (.emit (:output-collector collector) tuple [ret])
+          (.ack (:output-collector collector) tuple)
           )))
     ))
 
@@ -204,6 +204,34 @@
       (is (ms= [["davidlalala"] ["adamlalala"]] (read-tuples results "3")))
       (is (ms= [["david_nathan_lalala"] ["adam_nathan_lalala"]] (read-tuples results "4")))
       )))
+
+(defbolt punctuator-bolt ["word" "period" "question" "exclamation"]
+  [tuple collector]
+  (if (= (:word tuple) "bar")
+    (do 
+      (emit-bolt! collector {:word "bar" :period "bar" :question "bar"
+                            "exclamation" "bar"})
+      (ack! collector tuple))
+    (let [ res (assoc tuple :period (str (:word tuple) "."))
+           res (assoc res :exclamation (str (:word tuple) "!"))
+           res (assoc res :question (str (:word tuple) "?")) ]
+      (emit-bolt! collector res)
+      (ack! collector tuple))))
+
+(deftest test-map-emit
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [topology (thrift/mk-topology
+                      {"words" (thrift/mk-spout-spec (TestWordSpout. false))}
+                      {"out" (thrift/mk-bolt-spec {"words" :shuffle}
+                                              punctuator-bolt)}
+                      )
+          results (complete-topology cluster
+                                     topology
+                                     :mock-sources {"words" [["foo"] ["bar"]]}
+                                     )]
+      (is (ms= [["foo" "foo." "foo?" "foo!"]
+                ["bar" "bar" "bar" "bar"]   ] (read-tuples results "out"))))))
+  
 
 (defn ack-tracking-feeder [fields]
   (let [tracker (AckTracker.)]

@@ -1,6 +1,6 @@
 package backtype.storm.clojure;
 
-import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
@@ -22,22 +22,22 @@ import java.util.Map;
 
 public class ClojureBolt implements IRichBolt, FinishedCallback {
     Map<String, StreamInfo> _fields;
-    String _namespace;
-    String _fnName;
+    List<String> _fnSpec;
+    List<String> _confSpec;
     List<Object> _params;
     
     IBolt _bolt;
     
-    public ClojureBolt(String namespace, String fnName, List<Object> params, Map<String, StreamInfo> fields) {
-        _namespace = namespace;
-        _fnName = fnName;
+    public ClojureBolt(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
+        _fnSpec = fnSpec;
+        _confSpec = confSpec;
         _params = params;
         _fields = fields;
     }
 
     @Override
     public void prepare(final Map stormConf, final TopologyContext context, final OutputCollector collector) {
-        IFn hof = Utils.loadClojureFn(_namespace, _fnName);
+        IFn hof = Utils.loadClojureFn(_fnSpec.get(0), _fnSpec.get(1));
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
             final Map<Keyword,Object> collectorMap = new PersistentArrayMap( new Object[] {
@@ -87,6 +87,16 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
     public void finishedId(Object id) {
         if(_bolt instanceof FinishedCallback) {
             ((FinishedCallback) _bolt).finishedId(id);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        IFn hof = Utils.loadClojureFn(_confSpec.get(0), _confSpec.get(1));
+        try {
+            return (Map) hof.applyTo(RT.seq(_params));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

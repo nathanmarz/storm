@@ -25,30 +25,21 @@
     ))
 
 (defn do-heartbeat [conf worker-id port storm-id task-ids]
+  (let [hb (WorkerHeartbeat.
+             (current-time-secs)
+             storm-id
+             task-ids
+             port)]
+  (log-debug "Doing heartbeat " (pr-str hb))
   (.put (worker-state conf worker-id)
         LS-WORKER-HEARTBEAT
-        (WorkerHeartbeat.
-          (current-time-secs)
-          storm-id
-          task-ids
-          port)))
+        hb)))
 
 (defn worker-outbound-tasks
   "Returns seq of task-ids that receive messages from this worker"
-  ;; if this is an acker, needs to talk to the spouts
   [task->component mk-topology-context task-ids]
   (let [topology-context (mk-topology-context nil)
-        spout-components (-> topology-context
-                             .getRawTopology
-                             .get_spouts
-                             keys)
-        contains-acker? (some? (fn [tid]
-                                 (= ACKER-COMPONENT-ID
-                                    (.getComponentId topology-context tid)))
-                               task-ids)
-        components (concat
-                    (if contains-acker? spout-components)
-                    (mapcat
+        components (mapcat
                      (fn [task-id]
                        (let [context (mk-topology-context task-id)]
                          (->> (.getThisTargets context)
@@ -56,10 +47,9 @@
                               (map keys)
                               (apply concat))
                          ))
-                     task-ids))]
+                     task-ids)]
     (set
      (apply concat
-            ;; fix this
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
@@ -96,7 +86,7 @@
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
-        mk-topology-context #(TopologyContext. (system-topology storm-conf topology)
+        mk-topology-context #(TopologyContext. (system-topology! storm-conf topology)
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path
@@ -172,6 +162,7 @@
                             ;; this @active check handles the case where it's started after shutdown* joins to the thread
                             ;; if the thread is started after the join, then @active must be false. So there's no risk 
                             ;; of writing heartbeat after it's been shut down.
+                            (log-debug "In heartbeat thread")
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY)

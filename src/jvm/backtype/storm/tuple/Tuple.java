@@ -1,9 +1,7 @@
 package backtype.storm.tuple;
 
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.generated.Grouping;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.utils.Utils;
 import clojure.lang.ILookup;
 import clojure.lang.Seqable;
 import clojure.lang.Indexed;
@@ -73,7 +71,7 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }
-
+    
     public Tuple copyWithNewId(long id) {
         Map<Long, Long> newIds = new HashMap<Long, Long>();
         for(Long anchor: this.id.getAnchorsToIds().keySet()) {

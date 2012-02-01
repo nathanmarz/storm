@@ -105,6 +105,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_MONITOR_FREQ_SECS = "nimbus.monitor.freq.secs";
 
+    /**
+     * How often nimbus should wake the cleanup thread to clean the inbox.
+     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     */
+    public static String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
+
+    /**
+     * The length of time a jar file lives in the inbox before being deleted by the cleanup thread.
+     *
+     * Probably keep this value greater than or equal to NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS.
+     * Note that the time it takes to delete an inbox jar file is going to be somewhat more than
+     * NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS (depending on how often NIMBUS_CLEANUP_FREQ_SECS
+     * is set to).
+     * @see NIMBUS_CLEANUP_FREQ_SECS
+     */
+    public static String NIMBUS_INBOX_JAR_EXPIRATION_SECS = "nimbus.inbox.jar.expiration.secs";
 
     /**
      * How long before a supervisor can go without heartbeating before nimbus considers it dead
@@ -138,6 +154,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static String UI_PORT = "ui.port";
 
+    /**
+     * Childopts for Storm UI Java process.
+     */
+    public static String UI_CHILDOPTS = "ui.childopts";
+    
+    
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
@@ -314,9 +336,8 @@ public class Config extends HashMap<String, Object> {
      * Note that this config parameter has no effect for unreliable spouts that don't tag 
      * their tuples with a message id.
      */
-    public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
-
-
+    public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
+    
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
@@ -337,6 +358,30 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
      */
     public static String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
+
+    /**
+     * This config is available for TransactionalSpouts, and contains the id ( a String) for
+     * the transactional topology. This id is used to store the state of the transactional
+     * topology in Zookeeper.
+     */
+    public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
+    
+    /**
+     * The root directory in ZooKeeper for metadata about TransactionalSpouts.
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
+    
+    /**
+     * The list of zookeeper servers in which to keep the transactional state. If null (which is default),
+     * will use storm.zookeeper.servers
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_SERVERS="transactional.zookeeper.servers";
+
+    /**
+     * The port to use to connect to the transactional zookeeper servers. If null (which is default),
+     * will use storm.zookeeper.port
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
     
     /**
      * The number of threads that should be used by the zeromq context in each worker process.

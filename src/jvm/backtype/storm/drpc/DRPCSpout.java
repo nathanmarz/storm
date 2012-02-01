@@ -48,12 +48,6 @@ public class DRPCSpout implements IRichSpout {
         _local_drpc_id = drpc.getServiceId();
     }
     
-    
-    @Override
-    public boolean isDistributed() {
-        return true;
-    }
-
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
@@ -152,4 +146,9 @@ public class DRPCSpout implements IRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("args", "return-info"));
     }    
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return new HashMap<String, Object>();
+    }
 }

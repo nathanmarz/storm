@@ -18,14 +18,22 @@ nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60
 nimbus.monitor.freq.secs: 10
+nimbus.cleanup.inbox.freq.secs: 600
+nimbus.inbox.jar.expiration.secs: 3600
 nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 
+### ui.* configs are for the master
 ui.port: 8080
+ui.childopts: "-Xmx768m"
 
 drpc.port: 3772
 drpc.invocations.port: 3773
+
+transactional.zookeeper.root: "/transactional"
+transactional.zookeeper.servers: null
+transactional.zookeeper.port: null
 
 ### supervisor.* configs are for node supervisors
 # Define the amount of workers that can be run on this machine. Each worker is assigned a port to use for communication

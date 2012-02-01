@@ -24,19 +24,16 @@ import org.slf4j.LoggerFactory;
 public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("Bolt");
 
-  private static final org.apache.thrift7.protocol.TField INPUTS_FIELD_DESC = new org.apache.thrift7.protocol.TField("inputs", org.apache.thrift7.protocol.TType.MAP, (short)1);
-  private static final org.apache.thrift7.protocol.TField BOLT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt_object", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
-  private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift7.protocol.TField BOLT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt_object", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
-  private Map<GlobalStreamId,Grouping> inputs; // required
   private ComponentObject bolt_object; // required
   private ComponentCommon common; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    INPUTS((short)1, "inputs"),
-    BOLT_OBJECT((short)2, "bolt_object"),
-    COMMON((short)3, "common");
+    BOLT_OBJECT((short)1, "bolt_object"),
+    COMMON((short)2, "common");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -51,11 +48,9 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // INPUTS
-          return INPUTS;
-        case 2: // BOLT_OBJECT
+        case 1: // BOLT_OBJECT
           return BOLT_OBJECT;
-        case 3: // COMMON
+        case 2: // COMMON
           return COMMON;
         default:
           return null;
@@ -101,10 +96,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.INPUTS, new org.apache.thrift7.meta_data.FieldMetaData("inputs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, GlobalStreamId.class), 
-            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, Grouping.class))));
     tmpMap.put(_Fields.BOLT_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("bolt_object", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentObject.class)));
     tmpMap.put(_Fields.COMMON, new org.apache.thrift7.meta_data.FieldMetaData("common", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
@@ -117,12 +108,10 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   }
 
   public Bolt(
-    Map<GlobalStreamId,Grouping> inputs,
     ComponentObject bolt_object,
     ComponentCommon common)
   {
     this();
-    this.inputs = inputs;
     this.bolt_object = bolt_object;
     this.common = common;
   }
@@ -131,21 +120,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
    * Performs a deep copy on <i>other</i>.
    */
   public Bolt(Bolt other) {
-    if (other.is_set_inputs()) {
-      Map<GlobalStreamId,Grouping> __this__inputs = new HashMap<GlobalStreamId,Grouping>();
-      for (Map.Entry<GlobalStreamId, Grouping> other_element : other.inputs.entrySet()) {
-
-        GlobalStreamId other_element_key = other_element.getKey();
-        Grouping other_element_value = other_element.getValue();
-
-        GlobalStreamId __this__inputs_copy_key = new GlobalStreamId(other_element_key);
-
-        Grouping __this__inputs_copy_value = new Grouping(other_element_value);
-
-        __this__inputs.put(__this__inputs_copy_key, __this__inputs_copy_value);
-      }
-      this.inputs = __this__inputs;
-    }
     if (other.is_set_bolt_object()) {
       this.bolt_object = new ComponentObject(other.bolt_object);
     }
@@ -160,43 +134,8 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   @Override
   public void clear() {
-    this.inputs = null;
     this.bolt_object = null;
     this.common = null;
-  }
-
-  public int get_inputs_size() {
-    return (this.inputs == null) ? 0 : this.inputs.size();
-  }
-
-  public void put_to_inputs(GlobalStreamId key, Grouping val) {
-    if (this.inputs == null) {
-      this.inputs = new HashMap<GlobalStreamId,Grouping>();
-    }
-    this.inputs.put(key, val);
-  }
-
-  public Map<GlobalStreamId,Grouping> get_inputs() {
-    return this.inputs;
-  }
-
-  public void set_inputs(Map<GlobalStreamId,Grouping> inputs) {
-    this.inputs = inputs;
-  }
-
-  public void unset_inputs() {
-    this.inputs = null;
-  }
-
-  /** Returns true if field inputs is set (has been assigned a value) and false otherwise */
-  public boolean is_set_inputs() {
-    return this.inputs != null;
-  }
-
-  public void set_inputs_isSet(boolean value) {
-    if (!value) {
-      this.inputs = null;
-    }
   }
 
   public ComponentObject get_bolt_object() {
@@ -247,14 +186,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case INPUTS:
-      if (value == null) {
-        unset_inputs();
-      } else {
-        set_inputs((Map<GlobalStreamId,Grouping>)value);
-      }
-      break;
-
     case BOLT_OBJECT:
       if (value == null) {
         unset_bolt_object();
@@ -276,9 +207,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case INPUTS:
-      return get_inputs();
-
     case BOLT_OBJECT:
       return get_bolt_object();
 
@@ -296,8 +224,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     }
 
     switch (field) {
-    case INPUTS:
-      return is_set_inputs();
     case BOLT_OBJECT:
       return is_set_bolt_object();
     case COMMON:
@@ -318,15 +244,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public boolean equals(Bolt that) {
     if (that == null)
       return false;
-
-    boolean this_present_inputs = true && this.is_set_inputs();
-    boolean that_present_inputs = true && that.is_set_inputs();
-    if (this_present_inputs || that_present_inputs) {
-      if (!(this_present_inputs && that_present_inputs))
-        return false;
-      if (!this.inputs.equals(that.inputs))
-        return false;
-    }
 
     boolean this_present_bolt_object = true && this.is_set_bolt_object();
     boolean that_present_bolt_object = true && that.is_set_bolt_object();
@@ -353,11 +270,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_inputs = true && (is_set_inputs());
-    builder.append(present_inputs);
-    if (present_inputs)
-      builder.append(inputs);
-
     boolean present_bolt_object = true && (is_set_bolt_object());
     builder.append(present_bolt_object);
     if (present_bolt_object)
@@ -379,16 +291,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     int lastComparison = 0;
     Bolt typedOther = (Bolt)other;
 
-    lastComparison = Boolean.valueOf(is_set_inputs()).compareTo(typedOther.is_set_inputs());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (is_set_inputs()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.inputs, typedOther.inputs);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(is_set_bolt_object()).compareTo(typedOther.is_set_bolt_object());
     if (lastComparison != 0) {
       return lastComparison;
@@ -426,28 +328,7 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
         break;
       }
       switch (field.id) {
-        case 1: // INPUTS
-          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
-            {
-              org.apache.thrift7.protocol.TMap _map17 = iprot.readMapBegin();
-              this.inputs = new HashMap<GlobalStreamId,Grouping>(2*_map17.size);
-              for (int _i18 = 0; _i18 < _map17.size; ++_i18)
-              {
-                GlobalStreamId _key19; // required
-                Grouping _val20; // required
-                _key19 = new GlobalStreamId();
-                _key19.read(iprot);
-                _val20 = new Grouping();
-                _val20.read(iprot);
-                this.inputs.put(_key19, _val20);
-              }
-              iprot.readMapEnd();
-            }
-          } else { 
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
-        case 2: // BOLT_OBJECT
+        case 1: // BOLT_OBJECT
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.bolt_object = new ComponentObject();
             this.bolt_object.read(iprot);
@@ -455,7 +336,7 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 3: // COMMON
+        case 2: // COMMON
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.common = new ComponentCommon();
             this.common.read(iprot);
@@ -476,19 +357,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    if (this.inputs != null) {
-      oprot.writeFieldBegin(INPUTS_FIELD_DESC);
-      {
-        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.STRUCT, this.inputs.size()));
-        for (Map.Entry<GlobalStreamId, Grouping> _iter21 : this.inputs.entrySet())
-        {
-          _iter21.getKey().write(oprot);
-          _iter21.getValue().write(oprot);
-        }
-        oprot.writeMapEnd();
-      }
-      oprot.writeFieldEnd();
-    }
     if (this.bolt_object != null) {
       oprot.writeFieldBegin(BOLT_OBJECT_FIELD_DESC);
       this.bolt_object.write(oprot);
@@ -508,14 +376,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     StringBuilder sb = new StringBuilder("Bolt(");
     boolean first = true;
 
-    sb.append("inputs:");
-    if (this.inputs == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.inputs);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("bolt_object:");
     if (this.bolt_object == null) {
       sb.append("null");
@@ -537,10 +397,6 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public void validate() throws org.apache.thrift7.TException {
     // check for required fields
-    if (!is_set_inputs()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'inputs' is unset! Struct:" + toString());
-    }
-
     if (!is_set_bolt_object()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'bolt_object' is unset! Struct:" + toString());
     }

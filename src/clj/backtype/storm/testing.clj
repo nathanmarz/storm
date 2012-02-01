@@ -14,8 +14,14 @@
   (:import [backtype.storm.tuple Fields Tuple])
   (:import [backtype.storm.task TopologyContext])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
-  (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple TupleCaptureBolt
-            SpoutTracker BoltTracker])
+  (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
+            TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
+            TestWordSpout MemoryTransactionalSpout])
+  (:import [backtype.storm.transactional TransactionalSpoutCoordinator])
+  (:import [backtype.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
+  (:import [backtype.storm.tuple Tuple])
+  (:import [backtype.storm.generated StormTopology])
+  (:import [backtype.storm.task TopologyContext])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
@@ -100,7 +106,8 @@
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
-                            STORM-ZOOKEEPER-PORT zk-port})
+                            STORM-ZOOKEEPER-PORT zk-port
+                            STORM-ZOOKEEPER-SERVERS ["localhost"]})
         nimbus-tmp (local-temp-path)
         zk-tmp (local-temp-path)
         zk-handle (zk/mk-inprocess-zookeeper zk-tmp zk-port)
@@ -300,12 +307,89 @@
     ))
 
 
-;; TODO: mock-sources needs to be able to mock out state spouts as well
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {}]
-  (let [storm-name (str "topologytest-" (uuid))
-        state (:storm-cluster-state cluster-map)
+(defprotocol CompletableSpout
+  (exhausted? [this] "Whether all the tuples for this spout have been completed.")
+  (cleanup [this] "Cleanup any global state kept")
+  (startup [this] "Prepare the spout (globally) before starting the topology"))
+
+(extend-type FixedTupleSpout
+  CompletableSpout
+  (exhausted? [this]
+    (= (-> this .getSourceTuples count)
+       (.getCompleted this)))
+  (cleanup [this]
+    (.cleanup this))
+  (startup [this]
+    ))
+
+(extend-type TransactionalSpoutCoordinator
+  CompletableSpout
+  (exhausted? [this]
+    (exhausted? (.getSpout this)))
+  (cleanup [this]
+    (cleanup (.getSpout this)))
+  (startup [this]
+    (startup (.getSpout this))))
+
+(extend-type PartitionedTransactionalSpoutExecutor
+  CompletableSpout
+  (exhausted? [this]
+    (exhausted? (.getPartitionedSpout this)))
+  (cleanup [this]
+    (cleanup (.getPartitionedSpout this)))
+  (startup [this]
+    (startup (.getPartitionedSpout this))
+    ))
+
+(extend-type MemoryTransactionalSpout
+  CompletableSpout
+  (exhausted? [this]
+    (.isExhaustedTuples this))
+  (cleanup [this]
+    (.cleanup this))
+  (startup [this]
+    (.startup this)))
+
+(defn spout-objects [spec-map]
+  (for [[_ spout-spec] spec-map]
+    (-> spout-spec
+        .get_spout_object
+        deserialized-component-object)))
+
+(defn capture-topology [topology]
+  (let [topology (.deepCopy topology)
         spouts (.get_spouts topology)
         bolts (.get_bolts topology)
+        all-streams (apply concat
+                           (for [[id spec] (merge (clojurify-structure spouts)
+                                                  (clojurify-structure bolts))]
+                             (for [[stream info] (.. spec get_common get_streams)]
+                               [(GlobalStreamId. id stream) (.is_direct info)])))
+        capturer (TupleCaptureBolt.)]
+    (.set_bolts topology
+                (assoc (clojurify-structure bolts)
+                  (uuid)
+                  (Bolt.                   
+                   (serialize-component-object capturer)
+                   (mk-plain-component-common (into {} (for [[id direct?] all-streams]
+                                                         [id (if direct?
+                                                               (mk-direct-grouping)
+                                                               (mk-global-grouping))]))
+                                              {}
+                                              nil))
+                  ))
+    {:topology topology
+     :capturer capturer}
+    ))
+
+;; TODO: mock-sources needs to be able to mock out state spouts as well
+(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true]
+  ;; TODO: the idea of mocking for transactional topologies should be done an
+  ;; abstraction level above... should have a complete-transactional-topology for this
+  (let [{topology :topology capturer :capturer} (capture-topology topology)
+        storm-name (str "topologytest-" (uuid))
+        state (:storm-cluster-state cluster-map)
+        spouts (.get_spouts topology)
         replacements (map-val (fn [v]
                                 (FixedTupleSpout.
                                  (for [tup v]
@@ -313,52 +397,38 @@
                                      (FixedTuple. (:stream tup) (:values tup))
                                      tup))))
                               mock-sources)
-        all-streams (apply concat
-                           (for [[id spec] (merge (clojurify-structure spouts) (clojurify-structure bolts))]
-                             (for [[stream _] (.. spec get_common get_streams)]
-                               (GlobalStreamId. id stream))))
-        capturer (TupleCaptureBolt. storm-name)
+        
+
         ]
     (doseq [[id spout] replacements]
       (let [spout-spec (get spouts id)]
         (.set_spout_object spout-spec (serialize-component-object spout))
         ))
-    (doseq [[_ spout-spec] (clojurify-structure spouts)]
-      (when-not (instance? FixedTupleSpout (deserialized-component-object (.get_spout_object spout-spec)))
-        (throw (RuntimeException. "Cannot complete topology unless every spout is a FixedTupleSpout (or mocked to be)"))
+    (doseq [spout (spout-objects spouts)]
+      (when-not (extends? CompletableSpout (.getClass spout))
+        (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))
         ))
-    
-    (.set_bolts topology
-                (assoc (clojurify-structure bolts)
-                  (uuid)
-                  (Bolt.
-                   (into {} (for [id all-streams] [id (mk-global-grouping)]))
-                   (serialize-component-object capturer)
-                   (mk-plain-component-common {} nil))
-                  ))
-    (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
 
+    (doseq [spout (spout-objects spouts)]
+      (startup spout))
+    
+    (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
     
     
-    (let [num-source-tuples (reduce +
-                                    (for [[_ spout-spec] spouts]
-                                      (-> (.get_spout_object spout-spec)
-                                          deserialized-component-object
-                                          .getSourceTuples
-                                          count)
-                                      ))
-          storm-id (common/get-storm-id state storm-name)]
-      (while (< (+ (FixedTupleSpout/getNumAcked storm-id)
-                   (FixedTupleSpout/getNumFailed storm-id))
-                num-source-tuples)
+    (let [storm-id (common/get-storm-id state storm-name)]
+      (while (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
       (.killTopology (:nimbus cluster-map) storm-name)
       (while (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))
-      (FixedTupleSpout/clear storm-id))
+      (when cleanup-state
+        (doseq [spout (spout-objects spouts)]
+          (cleanup spout))))
 
-    (.getResults capturer)
+    (if cleanup-state
+      (.getAndRemoveResults capturer)
+      (.getAndClearResults capturer))
     ))
 
 (defn read-tuples
@@ -379,28 +449,24 @@
 
 (def TRACKER-BOLT-ID "+++tracker-bolt")
 
+;; TODO:  should override system-topology! and wrap everything there
 (defn mk-tracked-topology
-  "Spouts are of form [spout & options], bolts are of form [inputs bolt & options]"
-  [tracked-cluster spouts-map bolts-map]
-  (let [track-id (::track-id tracked-cluster)        
-        spouts-map (into {}
-                         (for [[id [spout & options]] spouts-map]
-                           [id
-                            (apply mk-spout-spec
-                                   (SpoutTracker. spout track-id)
-                                   options)]))
-        bolts-map (into {}
-                        (for [[id [inputs bolt & options]] bolts-map]
-                          [id
-                           (apply mk-bolt-spec
-                                  inputs
-                                  (BoltTracker. bolt track-id)
-                                  options)]))
-        ]
-    {:topology (mk-topology spouts-map bolts-map)
-     :last-spout-emit (atom 0)
-     :cluster tracked-cluster
-     }))
+  ([tracked-cluster topology]
+     (let [track-id (::track-id tracked-cluster)
+           ret (.deepCopy topology)]
+       (dofor [[_ bolt] (.get_bolts ret)
+               :let [obj (deserialized-component-object (.get_bolt_object bolt))]]
+              (.set_bolt_object bolt (serialize-component-object
+                                      (BoltTracker. obj track-id))))
+       (dofor [[_ spout] (.get_spouts ret)
+               :let [obj (deserialized-component-object (.get_spout_object spout))]]
+              (.set_spout_object spout (serialize-component-object
+                                        (SpoutTracker. obj track-id))))
+       {:topology ret
+        :last-spout-emit (atom 0)
+        :cluster tracked-cluster
+        }
+       )))
 
 (defn assoc-track-id [cluster track-id]
   (assoc cluster ::track-id track-id))
@@ -425,7 +491,7 @@
                                        (.put "processed" (AtomicInteger. 0))))
      (with-var-roots [acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
                                             (fn [& args#]
-                                              (BoltTracker. (apply old# args#) id#)
+                                              (NonRichBoltTracker. (apply old# args#) id#)
                                               ))
                       worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
                                               (fn [& args#]
@@ -456,16 +522,24 @@
                                  (global-amt track-id "processed"))
                            ))]
         (while (waiting?)
-          (Thread/sleep 5))
+          ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
+          ;; (println "Processed: " (global-amt track-id "processed"))
+          ;; (println "Transferred: " (global-amt track-id "transferred"))
+          (Thread/sleep 500))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
 
-(defn ^{:dirty-hack true} fake-tuple [fields values]
-  (let [ task->component {1 "1"}
-         topo (mk-topology
-                {"1" (mk-spout-spec
-                       (feeder-spout fields))}
-                {}) 
-         context (TopologyContext. topo task->component "fake" "" "" 1)]
-    (Tuple. context values 1 "default")
-  ))
+(defnk test-tuple [values
+                   :stream Utils/DEFAULT_STREAM_ID
+                   :component "component"
+                   :fields nil]
+  (let [fields (or fields
+                   (->> (iterate inc 1)
+                        (take (count values))
+                        (map #(str "field" %))))
+        spout-spec (mk-spout-spec* (TestWordSpout.)
+                                   {stream fields})
+        topology (StormTopology. {component spout-spec} {} {})
+        context (TopologyContext. topology {1 component} "test-storm-id" nil nil 1)]
+    (Tuple. context values 1 stream)
+    ))

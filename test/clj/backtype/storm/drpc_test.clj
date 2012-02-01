@@ -1,10 +1,12 @@
 (ns backtype.storm.drpc-test
   (:use [clojure test])
   (:import [backtype.storm.drpc ReturnResults DRPCSpout
-            LinearDRPCTopologyBuilder
-            CoordinatedBolt$FinishedCallback])
+            LinearDRPCTopologyBuilder])
+  (:import [backtype.storm.topology FailedException])
+  (:import [backtype.storm.coordination CoordinatedBolt$FinishedCallback])
   (:import [backtype.storm LocalDRPC LocalCluster])
   (:import [backtype.storm.tuple Fields])
+  (:import [backtype.storm.generated DRPCExecutionException])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm clojure])
@@ -29,7 +31,7 @@
                                 exclamation-bolt)
                    "3" (bolt-spec {"2" :shuffle}
                                 (ReturnResults.))})]
-    (.submitTopology cluster "test" {TOPOLOGY-DEBUG true} topology)
+    (.submitTopology cluster "test" {} topology)
 
     (is (= "aaa!!!" (.execute drpc "test" "aaa")))
     (is (= "b!!!" (.execute drpc "test" "b")))
@@ -55,7 +57,7 @@
     (.addBolt builder exclamation-bolt-drpc 3)
     (.submitTopology cluster
                      "builder-test"
-                     {TOPOLOGY-DEBUG true}
+                     {}
                      (.createLocalTopology builder drpc))
     (is (= "aaa!!!" (.execute drpc "test" "aaa")))
     (is (= "b!!!" (.execute drpc "test" "b")))
@@ -170,6 +172,34 @@
     (is (= "done" (.execute drpc "tricky" "2")))
     (is (= "done" (.execute drpc "tricky" "3")))
     (is (= "done" (.execute drpc "tricky" "4")))
+    (.shutdown cluster)
+    (.shutdown drpc)
+    ))
+
+(defbolt fail-finish-bolt ["request" "result"] {:prepare true}
+  [conf context collector]
+  (bolt
+   (execute [tuple]
+            (ack! collector tuple))
+   CoordinatedBolt$FinishedCallback
+   (finishedId [this id]
+               (throw (FailedException.))
+               )))
+
+(deftest test-drpc-fail-finish
+  (let [drpc (LocalDRPC.)
+        cluster (LocalCluster.)
+        builder (LinearDRPCTopologyBuilder. "fail2")
+        ]
+    (.addBolt builder fail-finish-bolt 3)
+
+    (.submitTopology cluster
+                     "fail2"
+                     {}
+                     (.createLocalTopology builder drpc))
+    
+    (is (thrown? DRPCExecutionException (.execute drpc "fail2" "2")))
+
     (.shutdown cluster)
     (.shutdown drpc)
     ))

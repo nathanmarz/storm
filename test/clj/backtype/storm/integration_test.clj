@@ -153,8 +153,8 @@
 
 (defbolt lalala-bolt1 ["word"] [tuple collector]
   (let [ret (-> (.getValue tuple 0) (str "lalala"))]
-    (.emit (:output-collector collector) tuple [ret])
-    (.ack (:output-collector collector) tuple)
+    (emit-bolt! collector [ret] :anchor tuple)
+    (ack! collector tuple)
     ))
 
 (defbolt lalala-bolt2 ["word"] {:prepare true}
@@ -164,8 +164,8 @@
     (bolt
       (execute [tuple]
         (let [ret (-> (.getValue tuple 0) (str @state))]
-                (.emit (:output-collector collector) tuple [ret])
-                (.ack (:output-collector collector) tuple)
+                (emit-bolt! collector [ret] :anchor tuple)
+                (ack! collector tuple)
                 ))
       )))
       
@@ -177,8 +177,8 @@
         (reset! state (str prefix "lalala")))
       (execute [tuple]
         (let [ret (-> (.getValue tuple 0) (str @state))]
-          (.emit (:output-collector collector) tuple [ret])
-          (.ack (:output-collector collector) tuple)
+          (emit-bolt! collector [ret] :anchor tuple)
+          (ack! collector tuple)
           )))
     ))
 

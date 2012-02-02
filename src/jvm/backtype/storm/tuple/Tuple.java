@@ -1,30 +1,23 @@
 package backtype.storm.tuple;
 
+import backtype.storm.utils.IndifferentAccessMap;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.TopologyContext;
-import clojure.lang.ILookup;
 import clojure.lang.Seqable;
 import clojure.lang.Indexed;
 import clojure.lang.Counted;
 import clojure.lang.ISeq;
 import clojure.lang.ASeq;
-import clojure.lang.AFn;
 import clojure.lang.IPersistentMap;
 import clojure.lang.PersistentArrayMap;
-import clojure.lang.IMapEntry;
-import clojure.lang.IPersistentCollection;
 import clojure.lang.Obj;
 import clojure.lang.IMeta;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
 import clojure.lang.MapEntry;
-import java.util.Iterator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Collection;
-import java.util.Set;
-import clojure.lang.RT;
 
 /**
  * The tuple is the main data structure in Storm. A tuple is a named list of values, 
@@ -43,7 +36,7 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     private String streamId;
     private TopologyContext context;
     private MessageId id;
-    private IPersistentMap _meta;
+    private IPersistentMap _meta = null;
 
     //needs to get taskId explicitly b/c could be in a different task than where it was created
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
@@ -53,10 +46,6 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
         this.streamId = streamId;
         this.id = id;
         this.context = context;
-        this._meta = new PersistentArrayMap( new Object[] {
-            makeKeyword("stream"), getSourceStreamId(), 
-            makeKeyword("component"), getSourceComponent(), 
-            makeKeyword("task"), getSourceTask()});
         
         String componentId = context.getComponentId(taskId);
         Fields schema = context.getComponentOutputFields(componentId, streamId);
@@ -370,9 +359,15 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     public int count() {
         return values.size();
     }
-
+    
     /* IMeta */
     public IPersistentMap meta() {
+        if(_meta==null) {
+            _meta = new PersistentArrayMap( new Object[] {
+            makeKeyword("stream"), getSourceStreamId(), 
+            makeKeyword("component"), getSourceComponent(), 
+            makeKeyword("task"), getSourceTask()});
+        }
         return _meta;
     }
 

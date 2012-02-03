@@ -19,7 +19,7 @@ import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
-import kafka.message.MessageSet;
+import kafka.message.MessageAndOffset;
 
 
 public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<BatchMeta> {
@@ -73,9 +73,9 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
             
             ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition % _config.partitionsPerHost, offset, _config.fetchSizeBytes));
             long endoffset = offset;
-            for(Message msg: msgs) {
-                emit(attempt, collector, msg);
-                endoffset += MessageSet.entrySize(msg);
+            for(MessageAndOffset msg: msgs) {
+                emit(attempt, collector, msg.message());
+                endoffset = msg.offset();
             }
             BatchMeta newMeta = new BatchMeta();
             newMeta.offset = offset;
@@ -88,14 +88,14 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
             SimpleConsumer consumer = connect(partition);
                         
             ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition % _config.partitionsPerHost, meta.offset, _config.fetchSizeBytes));
-            long currOffset = meta.offset;
-            for(Message msg: msgs) {
-                if(currOffset == meta.nextOffset) break;
-                if(currOffset > meta.nextOffset) {
+            long offset = meta.offset;
+            for(MessageAndOffset msg: msgs) {
+                if(offset == meta.nextOffset) break;
+                if(offset > meta.nextOffset) {
                     throw new RuntimeException("Error when re-emitting batch. overshot the end offset");
                 }
-                emit(attempt, collector, msg);
-                currOffset += MessageSet.entrySize(msg);
+                emit(attempt, collector, msg.message());
+                offset = msg.offset();
                 
             }            
         }

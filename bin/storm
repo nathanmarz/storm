@@ -63,7 +63,7 @@ def print_remoteconfvalue(name):
 
 def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
     nativepath = confvalue("java.library.path", extrajars)
-    command = "java " + jvmtype + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
+    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
     print "Running: " + command    
     os.system(command)
 

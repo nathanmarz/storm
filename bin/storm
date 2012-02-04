@@ -262,18 +262,16 @@ def print_commands():
     print "\nHelp:", "\n\thelp", "\n\thelp <command>"
     print "\nDocumentation for the storm client can be found at https://github.com/nathanmarz/storm/wiki/Command-line-client\n"
 
-def print_usage(command=None, msg=None):
+def print_usage(command=None):
     """Print one help message or list of available commands"""
     if command != None:
-        print (
-            COMMANDS[command].__doc__ or 
-            "No documentation provided for <%s>" % command
-        )
-        return 
-
-    if msg != None:
-        print msg
-    print_commands()
+        if COMMANDS.has_key(command):
+            print (COMMANDS[command].__doc__ or 
+                  "No documentation provided for <%s>" % command)
+        else:
+           print "<%s> is not a valid command" % command
+    else:
+        print_commands()
 
 def unknown_command(*args):
     print "Unknown command: [storm %s]" % ' '.join(sys.argv[1:])

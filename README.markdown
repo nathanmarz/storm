@@ -32,3 +32,4 @@ You must not remove this notice, or any other, from this software.
 * Ben Hughes ([@schleyfox](https://github.com/schleyfox))
 * Alexey Kachayev ([@kachayev](https://github.com/kachayev))
 * Haitao Yao ([@haitaoyao](https://github.com/haitaoyao))
+* Dan Dillinger ([@ddillinger](https://github.com/ddillinger))

@@ -67,12 +67,12 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_ZOOKEEPER_SESSION_TIMEOUT = "storm.zookeeper.session.timeout";
     
     /**
-     * The times for clients retry to operates with zookeeper
+     * The number of times to retry a Zookeeper operation.
      */
     public static String STORM_ZOOKEEPER_RETRY_TIMES="storm.zookeeper.retry.times";
     
     /**
-     * The interval for clients retry to operates with zookeeper
+     * The interval between retries of a Zookeeper operation.
      */
     public static String STORM_ZOOKEEPER_RETRY_INTERVAL="storm.zookeeper.retry.interval";
 

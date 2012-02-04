@@ -9,7 +9,9 @@
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxn$Factory])
   (:import [java.net InetSocketAddress])
   (:import [java.io File])
-  (:use [backtype.storm util log config]))
+  (:import [backtype.storm.utils Utils])
+  (:use [backtype.storm util log config])
+  (:use [clojure.contrib.def :only [defnk]]))
 
 (def zk-keeper-states
   {Watcher$Event$KeeperState/Disconnected :disconnected
@@ -26,44 +28,30 @@
    Watcher$Event$EventType/NodeChildrenChanged :node-children-changed
   })
 
+(defn- default-watcher [state type path]
+  (log-message "Zookeeper state update: " state type path))
 
-(defn mk-client
-  ([conn-str session-timeout watcher retry-times retry-interval]
-     (let [fk (CuratorFrameworkFactory/newClient
-               conn-str
-               session-timeout
-               15000
-               (RetryNTimes. retry-times retry-interval))]
-       (.. fk
-           (getCuratorListenable)
-           (addListener
-            (reify CuratorListener
-              (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
-                (when (= (.getType e) CuratorEventType/WATCHED)                  
-                  (let [^WatchedEvent event (.getWatchedEvent e)]
-                    (watcher (zk-keeper-states (.getState event))
-                             (zk-event-types (.getType event))
-                             (.getPath event))))))))
-       (.. fk
-           (getUnhandledErrorListenable)
-           (addListener
-            (reify UnhandledErrorListener
-              (unhandledError [this msg error]
-                (log-error error "Unrecoverable Zookeeper error, halting process: " msg)
-                (halt-process! 1 "Unrecoverable Zookeeper error")))))
-       (.start fk)
-       fk))
-  ([conn-str session-timeout watcher]
-       (mk-client conn-str 10000 watcher 5 1000))
-  ([conn-str watcher]
-     (mk-client conn-str 10000 watcher))
-  ([conn-str]
-     ;; this constructor is intended for debugging
-     (mk-client
-      conn-str
-      (fn [state type path]
-        (log-message "Zookeeper state update: " state type path)))
-     ))
+(defnk mk-client [conf servers port :root "" :watcher default-watcher]
+  (let [fk (Utils/newCurator conf servers port root)]
+    (.. fk
+        (getCuratorListenable)
+        (addListener
+         (reify CuratorListener
+           (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
+             (when (= (.getType e) CuratorEventType/WATCHED)                  
+               (let [^WatchedEvent event (.getWatchedEvent e)]
+                 (watcher (zk-keeper-states (.getState event))
+                          (zk-event-types (.getType event))
+                          (.getPath event))))))))
+    (.. fk
+        (getUnhandledErrorListenable)
+        (addListener
+         (reify UnhandledErrorListener
+           (unhandledError [this msg error]
+             (log-error error "Unrecoverable Zookeeper error, halting process: " msg)
+             (halt-process! 1 "Unrecoverable Zookeeper error")))))
+    (.start fk)
+    fk))
 
 (def zk-create-modes
   {:ephemeral CreateMode/EPHEMERAL

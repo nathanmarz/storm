@@ -65,6 +65,16 @@ public class Config extends HashMap<String, Object> {
      * The timeout for clients to ZooKeeper.
      */
     public static String STORM_ZOOKEEPER_SESSION_TIMEOUT = "storm.zookeeper.session.timeout";
+    
+    /**
+     * The number of times to retry a Zookeeper operation.
+     */
+    public static String STORM_ZOOKEEPER_RETRY_TIMES="storm.zookeeper.retry.times";
+    
+    /**
+     * The interval between retries of a Zookeeper operation.
+     */
+    public static String STORM_ZOOKEEPER_RETRY_INTERVAL="storm.zookeeper.retry.interval";
 
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.

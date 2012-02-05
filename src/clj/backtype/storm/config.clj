@@ -59,17 +59,6 @@
 ; storm.zookeeper.port: 2181
 ; storm.zookeeper.root: "/storm"
 
-(defn mk-zk-connect-string [conf]
-  (let [servers (conf STORM-ZOOKEEPER-SERVERS)
-        port (conf STORM-ZOOKEEPER-PORT)
-        root (conf STORM-ZOOKEEPER-ROOT)]
-    (str
-      (str/join ","
-        (for [s servers]
-          (str s ":" port)))
-      root)
-    ))
-
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
 

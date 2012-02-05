@@ -37,8 +37,7 @@ public class TransactionalState {
             String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;
             List<String> servers = (List<String>) getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Config.STORM_ZOOKEEPER_SERVERS);
             Object port = getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_PORT, Config.STORM_ZOOKEEPER_PORT);
-            Object sessionTimeout = conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT);
-            CuratorFramework initter = Utils.newCurator(servers, port, sessionTimeout);
+            CuratorFramework initter = Utils.newCuratorStarted(conf, servers, port);
             try {
                 initter.create().creatingParentsIfNeeded().forPath(rootDir);
             } catch(KeeperException.NodeExistsException e)  {
@@ -47,7 +46,7 @@ public class TransactionalState {
             
             initter.close();
                                     
-            _curator = Utils.newCurator(servers, port, sessionTimeout, rootDir);
+            _curator = Utils.newCuratorStarted(conf, servers, port, rootDir);
             _ser = new KryoValuesSerializer(conf);
             _des = new KryoValuesDeserializer(conf);
         } catch (Exception e) {

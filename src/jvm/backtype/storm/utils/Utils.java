@@ -1,5 +1,6 @@
 package backtype.storm.utils;
 
+import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
@@ -205,7 +206,7 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
-    public static CuratorFramework newCurator(List<String> servers, Object port, Object sessionTimeout, String root) {
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
         List<String> serverPorts = new ArrayList<String>();
         for(String zkServer: (List<String>) servers) {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
@@ -213,18 +214,30 @@ public class Utils {
         String zkStr = StringUtils.join(serverPorts, ",") + root; 
         try {
             CuratorFramework ret =  CuratorFrameworkFactory.newClient(zkStr,
-                                        Utils.getInt(sessionTimeout),
-                                        15000, new RetryNTimes(5, 1000));
-            ret.start();
+                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+                                        15000, new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                                                               Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
             return ret;
         } catch (IOException e) {
            throw new RuntimeException(e);
         }
     }
 
-    public static CuratorFramework newCurator(List<String> servers, Object port, Object sessionTimeout) {
-        return newCurator(servers, port, sessionTimeout, "");
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port) {
+        return newCurator(conf, servers, port, "");
     }
+
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root) {
+        CuratorFramework ret = newCurator(conf, servers, port, root);
+        ret.start();
+        return ret;
+    }
+
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port) {
+        CuratorFramework ret = newCurator(conf, servers, port);
+        ret.start();
+        return ret;
+    }    
     
     /**
      *

@@ -4,6 +4,7 @@ import os
 import sys
 import random
 import subprocess as sub
+import getopt
 
 def identity(x):
   return x
@@ -63,7 +64,8 @@ def print_remoteconfvalue(name):
 
 def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
     nativepath = confvalue("java.library.path", extrajars)
-    command = "java " + jvmtype + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
+    global CONFIG_OPTS
+    command = "java " + jvmtype + " -Dstorm.options=" + ",".join(CONFIG_OPTS) + " -Dstorm.home=" + STORM_DIR + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
     print "Running: " + command    
     os.system(command)
 
@@ -138,13 +140,19 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage}
 
+CONFIG_OPTS = []
 def main():
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(-1)
-
-    COMMAND = sys.argv[1]
-    ARGS = sys.argv[2:]
+    global CONFIG_OPTS
+    config_list, args = getopt.getopt(sys.argv[1:], "c:")
+    CONFIG_OPTS = []
+    if len(config_list) > 0:
+    	for config in config_list:
+		CONFIG_OPTS.append(config[1])
+    COMMAND = args[0]
+    ARGS = args[1:]
     (COMMANDS.get(COMMAND, "help"))(*ARGS)
     
 if __name__ == "__main__":

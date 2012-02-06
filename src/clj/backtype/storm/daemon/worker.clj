@@ -130,6 +130,7 @@
                                                  [endpoint
                                                   (msg/connect
                                                    mq-context
+                                                   storm-id
                                                    ((:node->host assignment) node)
                                                    port)
                                                   ]

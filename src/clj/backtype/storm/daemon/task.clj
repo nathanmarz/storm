@@ -163,7 +163,7 @@
         stream->component->grouper (outbound-components topology-context)
         component->tasks (reverse-map task-info)
         ;; important it binds to virtual port before function returns
-        puller (msg/bind mq-context task-id)
+        puller (msg/bind mq-context storm-id task-id)
 
         ;; TODO: consider DRYing things up and moving stats / tuple -> multiple components code here
         task-transfer-fn (fn [task ^Tuple tuple]
@@ -250,7 +250,7 @@
         (log-message "Shutting down task " storm-id ":" task-id)
         (reset! active false)
         ;; empty messages are skip messages (this unblocks the socket)
-        (msg/send-local-task-empty mq-context task-id)
+        (msg/send-local-task-empty mq-context storm-id task-id)
         (doseq [t all-threads]
           (.interrupt t)
           (.join t))

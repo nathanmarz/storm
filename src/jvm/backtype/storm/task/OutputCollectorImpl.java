@@ -47,6 +47,7 @@ public class OutputCollectorImpl extends OutputCollector {
         if(anchors!=null) {
             for(Tuple anchor: anchors) {
                 long newId = MessageId.generateId();
+                // TODO: this arraylist op is not thread-safe
                 getExistingOutput(anchor).add(newId);
                 for(long root: anchor.getMessageId().getAnchorsToIds().keySet()) {
                     Long curr = anchorsToIds.get(root);

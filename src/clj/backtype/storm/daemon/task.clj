@@ -358,6 +358,15 @@
       (time-delta-ms start-time))
     ))
 
+(defn get-pending [^Map pending anchor]
+  (let [ret (.get pending anchor)]
+    (if ret
+      ret
+      (let [ret (ArrayList.)]
+        (.put pending anchor ret)
+        ret
+        ))))
+
 (defmethod mk-executors IBolt [^IBolt bolt storm-conf puller tasks-fn transfer-fn storm-active-atom
                                ^TopologyContext topology-context ^TopologyContext user-context
                                task-stats report-error-fn]
@@ -366,16 +375,18 @@
         component-id (.getThisComponentId topology-context)
         tuple-start-times (ConcurrentHashMap.)
         sampler (mk-stats-sampler storm-conf)
+        pending-acks (ConcurrentHashMap.)
         output-collector (reify IOutputCollector
-                           (emit [stream anchors values]
+                           (emit [this stream anchors values]
                              )
-                           (emitDirect [task stream anchors values]
+                           (emitDirect [this task stream anchors values]
                              )
-                           (^void ack [^Tuple tuple]
+                           (^void ack [this ^Tuple tuple]
                              )
-                           (^void fail [^Tuple tuple]
+                           (^void fail [this ^Tuple tuple]
                              )
-                           (reportError [error]
+                           (reportError [this error]
+                             (report-error-fn error)
                              ))
         ]
     (log-message "Preparing bolt " component-id ":" task-id)

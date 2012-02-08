@@ -38,8 +38,8 @@
                    curr (.get pending id)
                    curr (condp = (.getSourceStreamId tuple)
                             ACKER-INIT-STREAM-ID (-> curr
-                                                     (update-ack id)
-                                                     (assoc :spout-task (.getValue tuple 1)))
+                                                     (update-ack (.getValue tuple 1))
+                                                     (assoc :spout-task (.getValue tuple 2)))
                             ACKER-ACK-STREAM-ID (update-ack curr (.getValue tuple 1))
                             ACKER-FAIL-STREAM-ID (assoc curr :failed true))]
                (.put pending id curr)

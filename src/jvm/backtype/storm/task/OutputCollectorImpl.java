@@ -27,6 +27,7 @@ public class OutputCollectorImpl extends OutputCollector {
     private Map<Tuple, List<Long>> _pendingAcks = new ConcurrentHashMap<Tuple, List<Long>>();
     
     public OutputCollectorImpl(TopologyContext context, IInternalOutputCollector collector) {
+        super(null); // TODO: remove
         _context = context;
         _collector = collector;
     }

@@ -53,10 +53,11 @@
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
-(defn mk-transfer-fn [transfer-queue]
-  (fn [task ^Tuple tuple]
-    (.put ^LinkedBlockingQueue transfer-queue [task tuple])
-    ))
+(defn mk-transfer-fn [storm-conf context transfer-queue]
+  (let [^KryoTupleSerializer serializer (KryoTupleSerializer. storm-conf context)]
+    (fn [task ^Tuple tuple]
+      (.put ^LinkedBlockingQueue transfer-queue [task (.serialize serializer tuple)])
+      )))
 
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
@@ -112,7 +113,7 @@
 
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         
-        transfer-fn (mk-transfer-fn transfer-queue)
+        transfer-fn (mk-transfer-fn storm-conf (mk-topology-context nil) transfer-queue)
         refresh-connections (fn this
                               ([]
                                 (this (fn [& ignored] (.add event-manager this))))
@@ -176,22 +177,21 @@
                     (when @active (storm-conf TASK-REFRESH-POLL-SECS))
                     ))
                  (async-loop
-                  (fn [^ArrayList drainer ^KryoTupleSerializer serializer]
+                  (fn [^ArrayList drainer]
                     (let [felem (.take transfer-queue)]
                       (.add drainer felem)
                       (.drainTo transfer-queue drainer))
                     (read-locked endpoint-socket-lock
                       (let [node+port->socket @node+port->socket
                             task->node+port @task->node+port]
-                        (doseq [[task ^Tuple tuple] drainer]
-                          (let [socket (node+port->socket (task->node+port task))
-                                ser-tuple (.serialize serializer tuple)]
+                        (doseq [[task ser-tuple] drainer]
+                          (let [socket (node+port->socket (task->node+port task))]
                             (msg/send socket task ser-tuple)
                             ))
                         ))
                     (.clear drainer)
                     0 )
-                  :args-fn (fn [] [(ArrayList.) (KryoTupleSerializer. storm-conf (mk-topology-context nil))]))
+                  :args-fn (fn [] [(ArrayList.)]))
                  heartbeat-thread]
         virtual-port-shutdown (when (local-mode-zmq? conf)
                                 (log-message "Launching virtual port for " supervisor-id ":" port)

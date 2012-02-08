@@ -155,7 +155,7 @@
                  (fn [ov]
                    (concat ov [newvalue])
                    )))]
-    (DelegateOutputCollector.
+    (OutputCollector.
      (reify IOutputCollector
        (emit [this stream-id anchors values]
          (swap! capturer adder stream-id values)

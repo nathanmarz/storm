@@ -1,6 +1,6 @@
 ## 0.7.0-SNAPSHOT
 
- * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most most computations. Documented on the wiki.
+ * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most computations. Documented on the wiki.
  * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 
  * New batch bolt abstraction that simplifies the processing of batches in DRPC or transactional topologies. A new batch bolt is created per batch and they are automatically cleaned up.
  * Introduction of base classes for various bolt and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods

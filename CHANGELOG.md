@@ -13,6 +13,7 @@
  * Clojure test framework significantly more composable
  * Massive internal refactorings and simplifications, including changes to the Thrift definition for storm topologies.
  * Optimized acking system. Bolts with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
+ * Changed interface of CustomStreamGrouping to receive a List<Object> rather than a Tuple.
  * Added "storm.zookeeper.retry.times" and "storm.zookeeper.retry.interval" configs (thanks killme2008)
  * Added "storm help" and "storm help {cmd}" to storm script (thanks kachayev)
  * Logging now always goes to logs/ in the Storm directory, regardless of where you launched the daemon (thanks haitaoyao)

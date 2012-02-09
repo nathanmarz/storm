@@ -12,8 +12,7 @@
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
      (import (quote [backtype.storm.task IBolt IOutputCollector
-                     OutputCollector OutputCollectorImpl IInternalOutputCollector
-                     TopologyContext ShellBolt]))
+                     OutputCollector TopologyContext ShellBolt]))
      (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
                      IBatchBolt BatchBoltExecutor]))
      (import (quote [backtype.storm.drpc KeyedFairBolt]))

@@ -140,8 +140,7 @@
         spout-ids (.. topology get_spouts keySet)
         spout-inputs (apply merge
                             (for [id spout-ids]
-                              {[id ACKER-INIT-STREAM-ID] ["id"]
-                               [id ACKER-ACK-STREAM-ID] ["id"]}
+                              {[id ACKER-INIT-STREAM-ID] ["id"]}
                               ))
         bolt-inputs (apply merge
                            (for [id bolt-ids]

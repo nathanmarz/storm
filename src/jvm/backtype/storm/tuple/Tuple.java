@@ -60,14 +60,6 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }
-    
-    public Tuple copyWithNewId(long id) {
-        Map<Long, Long> newIds = new HashMap<Long, Long>();
-        for(Long anchor: this.id.getAnchorsToIds().keySet()) {
-            newIds.put(anchor, id);
-        }
-        return new Tuple(this.context, this.values, this.taskId, this.streamId, MessageId.makeId(newIds));
-    }
 
     /**
      * Returns the number of fields in this tuple.

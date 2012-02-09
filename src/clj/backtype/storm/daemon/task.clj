@@ -77,7 +77,7 @@
 
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
-  [topology-context]
+  [^TopologyContext topology-context]
   (let [output-groupings (clojurify-structure (.getThisTargets topology-context))]
      (into {}
        (for [[stream-id component->grouping] output-groupings
@@ -126,7 +126,7 @@
     (merge storm-conf (apply dissoc spec-conf to-remove))
     ))
 
-(defn send-unanchored [^TopologyContext topology-context tasks-fn tranfer-fn stream values]
+(defn send-unanchored [^TopologyContext topology-context tasks-fn transfer-fn stream values]
   (doseq [t (tasks-fn stream values)]
     (transfer-fn t
                  (Tuple. topology-context
@@ -358,14 +358,10 @@
       (time-delta-ms start-time))
     ))
 
-(defn get-pending [^Map pending anchor]
-  (let [ret (.get pending anchor)]
-    (if ret
-      ret
-      (let [ret (ArrayList.)]
-        (.put pending anchor ret)
-        ret
-        ))))
+(defn put-xor! [^Map pending key id]
+  (let [curr (or (.get pending key) (long 0))]
+    ;; TODO: this portion is not thread safe (multiple threads updating same value at same time)
+    (.put pending key (bit-xor curr id))))
 
 (defmethod mk-executors IBolt [^IBolt bolt storm-conf puller tasks-fn transfer-fn storm-active-atom
                                ^TopologyContext topology-context ^TopologyContext user-context
@@ -376,19 +372,56 @@
         tuple-start-times (ConcurrentHashMap.)
         sampler (mk-stats-sampler storm-conf)
         pending-acks (ConcurrentHashMap.)
+        bolt-emit (fn [stream anchors values task]
+                    (let [out-tasks (if task (tasks-fn task stream values) (tasks-fn stream values))]
+                      (doseq [t out-tasks
+                              :let [anchors-to-ids (HashMap.)]]
+                        (doseq [^Tuple a anchors
+                                :let [edge-id (MessageId/generateId)]]
+                          (put-xor! pending-acks a edge-id)
+                          (doseq [root-id (-> a .getMessageId .getAnchorsToIds .keySet)]
+                            (put-xor! anchors-to-ids root-id edge-id))
+                          (transfer-fn t
+                                       (Tuple. topology-context
+                                               values
+                                               task-id
+                                               stream
+                                               (MessageId/makeId anchors-to-ids)))
+                          ))
+                      (or out-tasks [])))
         output-collector (reify IOutputCollector
                            (emit [this stream anchors values]
-                             )
+                             (bolt-emit stream anchors values nil))
                            (emitDirect [this task stream anchors values]
-                             )
+                             (bolt-emit stream anchors values task))
                            (^void ack [this ^Tuple tuple]
-                             )
+                             (let [ack-val (or (.remove pending-acks tuple) (long 0))]
+                               (doseq [[root id] (.. tuple getMessageId getAnchorsToIds)]
+                                 (send-unanchored topology-context tasks-fn transfer-fn
+                                                  ACKER-ACK-STREAM-ID [root (bit-xor id ack-val)])
+                                 ))
+                             (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                               (when delta
+                                 (stats/bolt-acked-tuple! task-stats
+                                                          (.getSourceComponent tuple)
+                                                          (.getSourceStreamId tuple)
+                                                          delta)
+                                 )))
                            (^void fail [this ^Tuple tuple]
-                             )
+                             (.remove pending-acks tuple)
+                             (doseq [root (.. tuple getMessageId getAnchors)]
+                               (send-unanchored topology-context tasks-fn transfer-fn
+                                                ACKER-FAIL-STREAM-ID [root]))
+                             (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                               (when delta
+                                 (stats/bolt-failed-tuple! task-stats
+                                                           (.getSourceComponent tuple)
+                                                           (.getSourceStreamId tuple)
+                                                           delta)
+                                 )))
                            (reportError [this error]
                              (report-error-fn error)
-                             ))
-        ]
+                             ))]
     (log-message "Preparing bolt " component-id ":" task-id)
     (.prepare bolt
               storm-conf
@@ -408,7 +441,7 @@
        ;; or just timeout the sync messages that are coming in until full sync is hit from that task
        ;; need to drop incremental updates from tasks where waiting for sync. otherwise, buffer the incremental updates
        (let [^bytes ser (msg/recv puller)]
-         (when-not (empty? ser)  ; skip empty messages (used during shutdown)
+         (when-not (empty? ser) ; skip empty messages (used during shutdown)
            (log-debug "Processing message")
            (let [tuple (.deserialize deserializer ser)]
              ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
@@ -421,45 +454,6 @@
              (.execute bolt tuple)
              ))))]
     ))
-
-
-#_         output-collector (reify IInternalOutputCollector
-                          (^List emit [this ^Tuple output]
-                                 (send-fn output)
-                                 )
-                          (^void emitDirect [this ^int task-id ^Tuple output]
-                                 (send-fn task-id output)
-                                 )
-                          
-                          (^void ack [this ^Tuple input-tuple ^List generated-ids]
-                                 (send-ack topology-context
-                                           input-tuple
-                                           generated-ids
-                                           send-fn)
-                                 (let [delta (tuple-time-delta! tuple-start-times input-tuple)]
-                                   (when delta
-                                     (stats/bolt-acked-tuple! task-stats
-                                                              (.getSourceComponent input-tuple)
-                                                              (.getSourceStreamId input-tuple)
-                                                              delta)
-                                     )))
-                          (^void fail [this ^Tuple input-tuple]
-                                 (doseq [anchor (.. input-tuple getMessageId getAnchors)]
-                                     (send-fn (Tuple. topology-context
-                                                      [anchor]
-                                                      task-id
-                                                      ACKER-FAIL-STREAM-ID))
-                                     )
-                                 (let [delta (tuple-time-delta! tuple-start-times input-tuple)]
-                                   (when delta
-                                     (stats/bolt-failed-tuple! task-stats
-                                                               (.getSourceComponent input-tuple)
-                                                               (.getSourceStreamId input-tuple)
-                                                               delta)
-                                     )))
-                          (^void reportError [this ^Throwable error]
-                                 (report-error-fn error)
-                                 ))
 
 (defmethod close-component ISpout [spout]
   (.close spout))

@@ -125,7 +125,7 @@
 
     (.submitTopology cluster
                      "squared"
-                     {}
+                     {TOPOLOGY-DEBUG true}
                      (.createLocalTopology builder drpc))
     (is (= "4" (.execute drpc "square" "2")))
     (is (= "100" (.execute drpc "square" "10")))

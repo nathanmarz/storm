@@ -44,7 +44,7 @@
           (mod (.nextInt random) num-tasks))
       :custom-object
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
-          (mk-custom-grouper grouping num-tasks))
+          (mk-custom-grouper grouping out-fields num-tasks))
       :custom-serialized
         (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping))]
           (mk-custom-grouper grouping out-fields num-tasks))
@@ -102,16 +102,6 @@
 
 (defn- get-readable-name [topology-context]
   (.getThisComponentId topology-context))
-
-(defn- send-ack [^TopologyContext topology-context ^Tuple input-tuple
-                 ^List generated-ids send-fn]
-  (let [ack-val (bit-xor-vals generated-ids)]
-    (doseq [[anchor id] (.. input-tuple getMessageId getAnchorsToIds)]
-      (send-fn (Tuple. topology-context
-                       [anchor (bit-xor ack-val id)]
-                       (.getThisTaskId topology-context)
-                       ACKER-ACK-STREAM-ID))
-      )))
 
 (defn- component-conf [storm-conf topology-context component-id]
   (let [to-remove (disj (set ALL-CONFIGS)
@@ -208,7 +198,7 @@
                                        (stream->component->grouper stream))]
                         (when (emit-sampler)
                           (stats/emitted-tuple! task-stats stream)
-                          (stats/transferred-tuples! task-stats stream (count out-tasks)))                        
+                          (stats/transferred-tuples! task-stats stream (count out-tasks)))
                         out-tasks)))
         _ (send-unanchored topology-context tasks-fn transfer-fn SYSTEM-STREAM-ID ["startup"])
         executor-threads (dofor
@@ -284,8 +274,8 @@
                                            (tasks-fn out-stream-id values))
                                root-id (MessageId/generateId)
                                rooted? (and message-id (> (storm-conf TOPOLOGY-ACKERS) 0))
-                               out-ids (for [t out-tasks] (MessageId/generateId))
-                               out-tuples (for [id out-ids]
+                               out-ids (dofor [t out-tasks] (MessageId/generateId))
+                               out-tuples (dofor [id out-ids]
                                             (let [tuple-id (if rooted?
                                                              (MessageId/makeRootId root-id id)
                                                              (MessageId/makeUnanchored))]
@@ -305,8 +295,9 @@
                                                 ACKER-INIT-STREAM-ID
                                                 [root-id (bit-xor-vals out-ids) task-id]))
                              (when message-id
-                               (.add event-queue #(ack-spout-msg spout storm-conf message-id {:stream out-stream-id :values values} nil task-stats)))
-                             )))
+                               (.add event-queue #(ack-spout-msg spout storm-conf message-id {:stream out-stream-id :values values} nil task-stats))))
+                           (or out-tasks [])
+                           ))
         output-collector (reify ISpoutOutputCollector
                            (^List emit [this ^String stream-id ^List tuple ^Object message-id]
                              (send-spout-msg stream-id tuple message-id nil)
@@ -373,21 +364,22 @@
         sampler (mk-stats-sampler storm-conf)
         pending-acks (ConcurrentHashMap.)
         bolt-emit (fn [stream anchors values task]
-                    (let [out-tasks (if task (tasks-fn task stream values) (tasks-fn stream values))]
+                    (let [out-tasks (if task
+                                      (tasks-fn task stream values)
+                                      (tasks-fn stream values))]
                       (doseq [t out-tasks
                               :let [anchors-to-ids (HashMap.)]]
                         (doseq [^Tuple a anchors
                                 :let [edge-id (MessageId/generateId)]]
                           (put-xor! pending-acks a edge-id)
                           (doseq [root-id (-> a .getMessageId .getAnchorsToIds .keySet)]
-                            (put-xor! anchors-to-ids root-id edge-id))
-                          (transfer-fn t
-                                       (Tuple. topology-context
-                                               values
-                                               task-id
-                                               stream
-                                               (MessageId/makeId anchors-to-ids)))
-                          ))
+                            (put-xor! anchors-to-ids root-id edge-id)))
+                        (transfer-fn t
+                                     (Tuple. topology-context
+                                             values
+                                             task-id
+                                             stream
+                                             (MessageId/makeId anchors-to-ids))))
                       (or out-tasks [])))
         output-collector (reify IOutputCollector
                            (emit [this stream anchors values]

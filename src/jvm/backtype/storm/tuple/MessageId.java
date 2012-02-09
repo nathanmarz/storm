@@ -25,9 +25,9 @@ public class MessageId {
         return new MessageId(anchorsToIds);
     }
         
-    public static MessageId makeRootId(long id) {
+    public static MessageId makeRootId(long id, long val) {
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
-        anchorsToIds.put(id, id);
+        anchorsToIds.put(id, val);
         return new MessageId(anchorsToIds);
     }
     

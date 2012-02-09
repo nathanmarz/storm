@@ -3,10 +3,11 @@ package backtype.storm.topology;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
-import java.util.HashMap;
 import java.util.Map;
+import org.apache.log4j.Logger;
 
 public class BasicBoltExecutor implements IRichBolt {
+    public static Logger LOG = Logger.getLogger(BasicBoltExecutor.class);    
     
     private IBasicBolt _bolt;
     private transient BasicOutputCollector _collector;
@@ -27,8 +28,13 @@ public class BasicBoltExecutor implements IRichBolt {
 
     public void execute(Tuple input) {
         _collector.setContext(input);
-        _bolt.execute(input, _collector);
-        _collector.getOutputter().ack(input);
+        try {
+            _bolt.execute(input, _collector);
+            _collector.getOutputter().ack(input);
+        } catch(FailedException e) {
+            LOG.warn("Failed to process tuple", e);
+            _collector.getOutputter().fail(input);
+        }
     }
 
     public void cleanup() {

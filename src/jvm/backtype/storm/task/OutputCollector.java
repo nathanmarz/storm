@@ -11,7 +11,14 @@ import java.util.List;
  * This is the core API for emitting tuples. For a simpler API, and a more restricted
  * form of stream processing, see IBasicBolt and BasicOutputCollector.
  */
-public abstract class OutputCollector implements IOutputCollector {
+public class OutputCollector implements IOutputCollector {
+    private IOutputCollector _delegate;
+    
+    
+    public OutputCollector(IOutputCollector delegate) {
+        _delegate = delegate;
+    }
+    
     /**
      * Emits a new tuple to a specific stream with a single anchor.
      *
@@ -162,5 +169,30 @@ public abstract class OutputCollector implements IOutputCollector {
      */
     public void emitDirect(int taskId, List<Object> tuple) {
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, tuple);
+    }
+
+    @Override
+    public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
+        return _delegate.emit(streamId, anchors, tuple);
+    }
+
+    @Override
+    public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
+        _delegate.emitDirect(taskId, streamId, anchors, tuple);
+    }
+
+    @Override
+    public void ack(Tuple input) {
+        _delegate.ack(input);
+    }
+
+    @Override
+    public void fail(Tuple input) {
+        _delegate.fail(input);
+    }
+
+    @Override
+    public void reportError(Throwable error) {
+        _delegate.reportError(error);
     }
 }

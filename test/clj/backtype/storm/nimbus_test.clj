@@ -402,7 +402,8 @@
       (with-local-tmp [nimbus-dir]
         (letlocals
          (bind conf (merge (read-storm-config)
-                           {STORM-CLUSTER-MODE "local"
+                           {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                            STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-LOCAL-DIR nimbus-dir}))
          (bind cluster-state (cluster/mk-storm-cluster-state conf))

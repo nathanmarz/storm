@@ -29,3 +29,7 @@ You must not remove this notice, or any other, from this software.
 * Michael Montano ([@michaelmontano](http://twitter.com/michaelmontano))
 * Dennis Zhuang ([@killme2008](https://github.com/killme2008))
 * Trevor Smith ([@trevorsummerssmith](https://github.com/trevorsummerssmith))
+* Ben Hughes ([@schleyfox](https://github.com/schleyfox))
+* Alexey Kachayev ([@kachayev](https://github.com/kachayev))
+* Haitao Yao ([@haitaoyao](https://github.com/haitaoyao))
+* Dan Dillinger ([@ddillinger](https://github.com/ddillinger))

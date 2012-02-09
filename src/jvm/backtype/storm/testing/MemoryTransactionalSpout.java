@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This spout only works in local mode.
+ */
 public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<MemoryTransactionalSpoutMeta> {
     public static String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
     

@@ -155,7 +155,7 @@
                  (fn [ov]
                    (concat ov [newvalue])
                    )))]
-    (DelegateOutputCollector.
+    (OutputCollector.
      (reify IOutputCollector
        (emit [this stream-id anchors values]
          (swap! capturer adder stream-id values)
@@ -389,7 +389,7 @@
                                                   @tuples)]
                          (reset! tuples not-to-ack)
                          (doseq [t to-ack]
-                           (.ack @collector t)))))
+                           (ack! @collector t)))))
 
        (bind fail-tx! (fn [txid]
                         (let [[to-fail not-to-fail] (separate
@@ -400,7 +400,7 @@
                                                      @tuples)]
                           (reset! tuples not-to-fail)
                           (doseq [t to-fail]
-                            (.fail @collector t)))))
+                            (fail! @collector t)))))
 
        ;; only check default streams
        (bind verify! (fn [expected]

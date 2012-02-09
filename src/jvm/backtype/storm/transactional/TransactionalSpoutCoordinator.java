@@ -1,9 +1,9 @@
 package backtype.storm.transactional;
 
-import backtype.storm.coordination.FailedBatchException;
 import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.state.RotatingTransactionalState;
@@ -137,7 +137,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
                     curr = nextTransactionId(curr);
                 }
             }     
-        } catch(FailedBatchException e) {
+        } catch(FailedException e) {
             LOG.warn("Failed to get metadata for a transaction", e);
         }
     }

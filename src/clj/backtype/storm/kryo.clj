@@ -1,2 +1,0 @@
-(ns backtype.storm.kryo
-  )

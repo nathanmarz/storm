@@ -21,22 +21,23 @@
   )
 
 (defn mk-distributed-cluster-state [conf]
-  (let [zk (zk/mk-client (mk-zk-connect-string (assoc conf STORM-ZOOKEEPER-ROOT "/")))]
+  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT))]
     (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
     (.close zk))
   (let [callbacks (atom {})
         active (atom true)
-        mk-zk #(zk/mk-client (mk-zk-connect-string conf)
-                             (conf STORM-ZOOKEEPER-SESSION-TIMEOUT)
-                             %)
-        zk (mk-zk (fn [state type path]
-                    (when @active
-                      (when-not (= :connected state)
-                        (log-warn "Received event " state ":" type ":" path " with disconnected Zookeeper."))
-                      (when-not (= :none type)
-                        (doseq [callback (vals @callbacks)]                          
-                          (callback type path))))
-                      ))]
+        zk (zk/mk-client conf
+                         (conf STORM-ZOOKEEPER-SERVERS)
+                         (conf STORM-ZOOKEEPER-PORT)
+                         :root (conf STORM-ZOOKEEPER-ROOT)
+                         :watcher (fn [state type path]
+                                     (when @active
+                                       (when-not (= :connected state)
+                                         (log-warn "Received event " state ":" type ":" path " with disconnected Zookeeper."))
+                                       (when-not (= :none type)
+                                         (doseq [callback (vals @callbacks)]
+                                           (callback type path))))
+                                       ))]
     (reify
      ClusterState
      (register [this callback]

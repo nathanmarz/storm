@@ -2,7 +2,8 @@
   (:use [clojure test])
   (:import [backtype.storm.drpc ReturnResults DRPCSpout
             LinearDRPCTopologyBuilder])
-  (:import [backtype.storm.coordination CoordinatedBolt$FinishedCallback FailedBatchException])
+  (:import [backtype.storm.topology FailedException])
+  (:import [backtype.storm.coordination CoordinatedBolt$FinishedCallback])
   (:import [backtype.storm LocalDRPC LocalCluster])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated DRPCExecutionException])
@@ -182,7 +183,7 @@
             (ack! collector tuple))
    CoordinatedBolt$FinishedCallback
    (finishedId [this id]
-               (throw (FailedBatchException.))
+               (throw (FailedException.))
                )))
 
 (deftest test-drpc-fail-finish

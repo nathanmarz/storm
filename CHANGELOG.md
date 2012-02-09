@@ -1,7 +1,19 @@
-## SNAPSHOT
+## 0.7.0-SNAPSHOT
 
+ * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most most computations. Documented on the wiki.
+ * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 
+ * New batch bolt abstraction that simplifies the processing of batches in DRPC or transactional topologies. A new batch bolt is created per batch and they are automatically cleaned up.
+ * Introduction of base classes for various bolt and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods
+ * CoordinatedBolt generalized to handle non-linear topologies. This will make it easy to implement a non-linear DRPC topology abstraction.
+ * Can customize the JVM options for Storm UI with new ui.childopts config
+ * BigIntegers are now serializable by default
+ * All bolts/spouts now emit a system stream (id "__system"). Currently it only emits startup events, but may emit other events in the future.
+ * Optimized tuple trees for batch processing in DRPC and transactional topologies. Only the coordination tuples are anchored. OutputCollector#fail still works because CoordinatedBolt will propagate the fail to all other tuples in the batch. 
+ * CoordinatedBolt moved to backtype.storm.coordination package
  * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts
  * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
+ * Clojure test framework significantly more composable
+ * Massive internal refactorings and simplifications, including changes to the Thrift definition for storm topologies.
 
 ## 0.6.2
 

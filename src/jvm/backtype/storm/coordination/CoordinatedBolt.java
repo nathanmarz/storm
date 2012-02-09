@@ -1,5 +1,6 @@
 package backtype.storm.coordination;
 
+import backtype.storm.topology.FailedException;
 import java.util.Map.Entry;
 import backtype.storm.tuple.Values;
 import backtype.storm.generated.GlobalStreamId;
@@ -63,7 +64,7 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
 
-    public class CoordinatedOutputCollector extends OutputCollector {
+    public class CoordinatedOutputCollector implements IOutputCollector {
         IOutputCollector _delegate;
 
         public CoordinatedOutputCollector(IOutputCollector delegate) {
@@ -184,7 +185,7 @@ public class CoordinatedBolt implements IRichBolt {
         }
         _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.getInt(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)), callback);
         _collector = collector;
-        _delegate.prepare(config, context, new CoordinatedOutputCollector(collector));
+        _delegate.prepare(config, context, new OutputCollector(new CoordinatedOutputCollector(collector)));
         for(String component: Utils.get(context.getThisTargets(),
                                         Constants.COORDINATED_STREAM_ID,
                                         new HashMap<String, Grouping>())
@@ -238,7 +239,7 @@ public class CoordinatedBolt implements IRichBolt {
                     track.finished = true;
                     _tracked.remove(id);
                 }
-            } catch(FailedBatchException e) {
+            } catch(FailedException e) {
                 LOG.error("Failed to finish batch", e);
                 track.failed = true;
                 ret = true;

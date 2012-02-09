@@ -12,18 +12,17 @@
  * CoordinatedBolt moved to backtype.storm.coordination package
  * Clojure test framework significantly more composable
  * Massive internal refactorings and simplifications, including changes to the Thrift definition for storm topologies.
+ * Optimized acking system. Bolts with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
  * Added "storm.zookeeper.retry.times" and "storm.zookeeper.retry.interval" configs (thanks killme2008)
  * Added "storm help" and "storm help {cmd}" to storm script (thanks kachayev)
  * Logging now always goes to logs/ in the Storm directory, regardless of where you launched the daemon (thanks haitaoyao)
  * Improved Clojure DSL: can emit maps and Tuples implement the appropriate interfaces to integrate with Clojure's seq functions (thanks schleyfox)
  * Added "ui.childopts" config (thanks ddillinger)
- * Optimized acking system. Bolts with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
  * Bug fix: OutputCollector no longer assumes immutable inputs
  * Bug fix: DRPC topologies now throw a proper error when no DRPC servers are configured instead of NPE (thanks danharvey)
  * Bug fix: Fix local mode so multiple topologies can be run on one LocalCluster
- * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts
+ * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts (thanks ddillinger)
  * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
- * Bug fix: "supervisor.childopts" is now used for the supervisor child opts instead of "nimbus.childopts" (thanks ddillinger)
 
 ## 0.6.2
 

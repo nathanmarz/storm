@@ -108,13 +108,17 @@ public class TransactionalTopologyBuilder {
         }
         declarer.addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
 
-        builder.setBolt(_spoutId,
+        BoltDeclarer emitterDeclarer = 
+                builder.setBolt(_spoutId,
                         new CoordinatedBolt(new TransactionalSpoutBatchExecutor(_spout),
                                              null,
                                              null),
                         _spoutParallelism)
                 .allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_BATCH_STREAM_ID)
                 .addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
+        if(_spout instanceof ICommitterTransactionalSpout) {
+            emitterDeclarer.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);
+        }
         for(String id: _bolts.keySet()) {
             Component component = _bolts.get(id);
             Map<String, SourceArgs> coordinatedArgs = new HashMap<String, SourceArgs>();

@@ -33,7 +33,17 @@ public class RotatingTransactionalState {
 
     public RotatingTransactionalState(TransactionalState state, String subdir) {
         this(state, subdir, false);
-    }    
+    }
+    
+    public Object getLastState() {
+        if(_curr.isEmpty()) return null;
+        else return _curr.lastEntry().getValue();
+    }
+    
+    public void overrideState(BigInteger txid, Object state) {
+        _state.setData(txPath(txid), state);
+        _curr.put(txid, state);
+    }
     
     public Object getState(BigInteger txid, StateInitializer init) {
         if(!_curr.containsKey(txid)) {

@@ -9,6 +9,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 public class TransactionalSpoutBatchExecutor implements IRichBolt {
@@ -17,6 +18,8 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     BatchOutputCollectorImpl _collector;
     ITransactionalSpout _spout;
     ITransactionalSpout.Emitter _emitter;
+    
+    TreeMap<BigInteger, TransactionAttempt> _activeTransactions = new TreeMap<BigInteger, TransactionAttempt>();
 
     public TransactionalSpoutBatchExecutor(ITransactionalSpout spout) {
         _spout = spout;
@@ -32,11 +35,26 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
     public void execute(Tuple input) {
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         try {
-            _emitter.emitBatch(attempt, input.getValue(1), _collector);
-            _collector.ack(input);
-            // this is valid here because the batch has been successfully emitted, 
-            // so we can safely delete metadata for prior transactions
-            _emitter.cleanupBefore((BigInteger) input.getValue(2));
+            if(input.getSourceStreamId().equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
+                if(attempt.equals(_activeTransactions.get(attempt.getTransactionId()))) {
+                    ((ICommitterTransactionalSpout.ICommitterEmitter) _emitter).commit(attempt);
+                    _activeTransactions.remove(attempt.getTransactionId());
+                    _collector.ack(input);
+                } else {
+                    _collector.fail(input);
+                }
+            } else { 
+                _emitter.emitBatch(attempt, input.getValue(1), _collector);
+                _activeTransactions.put(attempt.getTransactionId(), attempt);
+                _collector.ack(input);
+                BigInteger committed = (BigInteger) input.getValue(2);
+                if(committed!=null) {
+                    // valid to delete before what's been committed since 
+                    // those batches will never be accessed again
+                    _activeTransactions.headMap(committed).clear();
+                    _emitter.cleanupBefore(committed);
+                }
+            }
         } catch(FailedException e) {
             LOG.warn("Failed to emit batch for transaction", e);
             _collector.fail(input);

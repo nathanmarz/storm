@@ -16,10 +16,11 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.log4j.Logger;
 
+// TODO: Need to change this to replay EVERYTHING after a failure and ignore acks/fails for unknown attempts
 public class TransactionalSpoutCoordinator implements IRichSpout { 
     public static final Logger LOG = Logger.getLogger(TransactionalSpoutCoordinator.class);
     
-    public static final BigInteger INIT_TXID = new BigInteger("1");
+    public static final BigInteger INIT_TXID = BigInteger.ONE;
     
     
     public static final String TRANSACTION_BATCH_STREAM_ID = TransactionalSpoutCoordinator.class.getName() + "/batch";
@@ -132,7 +133,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
                         TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
                         Object state = _coordinatorState.getState(curr, _initializer);
                         _activeTx.put(curr, new TransactionStatus(attempt));
-                        _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state, _currTransaction), attempt);
+                        _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state, previousTransactionId(_currTransaction)), attempt);
                     }
                     curr = nextTransactionId(curr);
                 }
@@ -171,14 +172,21 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     }
     
     
-    private static final BigInteger ONE = new BigInteger("1");
     private BigInteger nextTransactionId(BigInteger id) {
-        return id.add(ONE);
+        return id.add(BigInteger.ONE);
     }
+    
+    private BigInteger previousTransactionId(BigInteger id) {
+        if(id.equals(INIT_TXID)) {
+            return null;
+        } else {
+            return id.subtract(BigInteger.ONE);
+        }
+    }    
     
     private BigInteger getStoredCurrTransaction(TransactionalState state) {
         BigInteger ret = (BigInteger) state.getData(CURRENT_TX);
-        if(ret==null) return ONE;
+        if(ret==null) return INIT_TXID;
         else return ret;
     }
     

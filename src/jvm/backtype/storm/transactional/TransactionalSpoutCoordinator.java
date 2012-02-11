@@ -12,8 +12,8 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 // TODO: Need to change this to replay EVERYTHING after a failure and ignore acks/fails for unknown attempts
@@ -34,7 +34,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     private TransactionalState _state;
     private RotatingTransactionalState _coordinatorState;
     
-    Map<BigInteger, TransactionStatus> _activeTx = new HashMap<BigInteger, TransactionStatus>();
+    TreeMap<BigInteger, TransactionStatus> _activeTx = new TreeMap<BigInteger, TransactionStatus>();
     
     private SpoutOutputCollector _collector;
     BigInteger _currTransaction;
@@ -80,30 +80,27 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public void ack(Object msgId) {
         TransactionAttempt tx = (TransactionAttempt) msgId;
         TransactionStatus status = _activeTx.get(tx.getTransactionId());
-        if(!tx.equals(status.attempt)) {
-            throw new IllegalStateException("Coordinator got into a bad state: acked transaction " +
-                    tx.toString() + " does not match up with stored attempt: " + status);
+        if(tx.equals(status.attempt)) {
+            if(status.status==AttemptStatus.PROCESSING) {
+                status.status = AttemptStatus.PROCESSED;
+            } else if(status.status==AttemptStatus.COMMITTING) {
+                _activeTx.remove(tx.getTransactionId());
+                _coordinatorState.cleanupBefore(tx.getTransactionId());
+                _currTransaction = nextTransactionId(tx.getTransactionId());
+                _state.setData(CURRENT_TX, _currTransaction);
+            }
+            sync();
         }
-        if(status.status==AttemptStatus.PROCESSING) {
-            status.status = AttemptStatus.PROCESSED;
-        } else if(status.status==AttemptStatus.COMMITTING) {
-            _activeTx.remove(tx.getTransactionId());
-            _coordinatorState.cleanupBefore(tx.getTransactionId());
-            _currTransaction = nextTransactionId(tx.getTransactionId());
-            _state.setData(CURRENT_TX, _currTransaction);
-        }
-        sync();
     }
 
     @Override
     public void fail(Object msgId) {
         TransactionAttempt tx = (TransactionAttempt) msgId;
         TransactionStatus stored = _activeTx.remove(tx.getTransactionId());
-        if(!tx.equals(stored.attempt)) {
-            throw new IllegalStateException("Coordinator got into a bad state: failed transaction " +
-                    tx.toString() + " does not match up with stored attempt: " + stored);
+        if(stored!=null && tx.equals(stored.attempt)) {
+            _activeTx.tailMap(tx.getTransactionId()).clear();
+            sync();
         }
-        sync();
     }
     
     @Override

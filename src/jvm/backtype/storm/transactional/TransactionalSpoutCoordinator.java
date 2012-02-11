@@ -80,7 +80,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public void ack(Object msgId) {
         TransactionAttempt tx = (TransactionAttempt) msgId;
         TransactionStatus status = _activeTx.get(tx.getTransactionId());
-        if(tx.equals(status.attempt)) {
+        if(status!=null && tx.equals(status.attempt)) {
             if(status.status==AttemptStatus.PROCESSING) {
                 status.status = AttemptStatus.PROCESSED;
             } else if(status.status==AttemptStatus.COMMITTING) {

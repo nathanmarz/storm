@@ -92,6 +92,7 @@
         (reset! coordinator-state 10)
         (.nextTuple coordinator)
         (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (bind first-attempt (first attempts))
         (verify-and-reset! {BATCH-STREAM [[1 10] [2 10] [3 10] [4 10]]}
                            emit-capture)
 
@@ -99,12 +100,13 @@
         (verify-and-reset! {} emit-capture)
         
         (.fail coordinator (second attempts))
-        (bind new-second-attempt (first (get-attempts emit-capture BATCH-STREAM)))
-        (verify-and-reset! {BATCH-STREAM [[2 10]]} emit-capture)
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (bind new-second-attempt (first attempts))
+        (verify-and-reset! {BATCH-STREAM [[2 10] [3 10] [4 10]]} emit-capture)
         (is (not= new-second-attempt (second attempts)))
         (.ack coordinator new-second-attempt)
         (verify-and-reset! {} emit-capture)
-        (.ack coordinator (first attempts))
+        (.ack coordinator first-attempt)
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[1]]} emit-capture)
 
@@ -115,25 +117,26 @@
         (.ack coordinator commit-id)
         (verify-and-reset! {BATCH-STREAM [[6 12]]} emit-capture)
 
-        (.fail coordinator (nth attempts 2))
-        (bind new-third-attempt (first (get-attempts emit-capture BATCH-STREAM)))
-        (verify-and-reset! {BATCH-STREAM [[3 10]]} emit-capture)
+        (.fail coordinator (nth attempts 1))
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (verify-and-reset! {BATCH-STREAM [[3 10] [4 10] [5 12] [6 12]]} emit-capture)
 
-        (.ack coordinator new-third-attempt)
+        (.ack coordinator (first attempts))
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[3]]} emit-capture)
 
-        (.ack coordinator (nth attempts 3))
+        (.ack coordinator (nth attempts 1))
         (verify-and-reset! {} emit-capture)
 
         (.fail coordinator commit-id)
-        (bind new-third-attempt (first (get-attempts emit-capture BATCH-STREAM)))
-        (verify-and-reset! {BATCH-STREAM [[3 10]]} emit-capture)
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (verify-and-reset! {BATCH-STREAM [[3 10] [4 10] [5 12] [6 12]]} emit-capture)
 
-        (.ack coordinator new-third-attempt)
+        (.ack coordinator (first attempts))
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[3]]} emit-capture)
 
+        (.ack coordinator (second attempts))
         (.nextTuple coordinator)
         (verify-and-reset! {} emit-capture)
         

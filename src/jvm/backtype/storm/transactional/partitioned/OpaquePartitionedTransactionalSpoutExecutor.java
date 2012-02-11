@@ -84,7 +84,7 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
                 Object meta = metas.get(partition);
                 _partitionStates.get(partition).overrideState(txid, meta);
             }
-        }        
+        }
 
         @Override
         public void close() {

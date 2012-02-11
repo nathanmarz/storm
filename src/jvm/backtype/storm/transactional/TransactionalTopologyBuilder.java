@@ -19,7 +19,9 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.InputDeclarer;
 import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.transactional.partitioned.IOpaquePartitionedTransactionalSpout;
 import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout;
+import backtype.storm.transactional.partitioned.OpaquePartitionedTransactionalSpoutExecutor;
 import backtype.storm.transactional.partitioned.PartitionedTransactionalSpoutExecutor;
 import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
@@ -53,17 +55,26 @@ public class TransactionalTopologyBuilder {
         _spoutParallelism = spoutParallelism;
     }
     
-    public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
-        this(id, spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
-    }
-
     public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout) {
         this(id, spoutId, spout, null);
+    }
+
+    public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
+        this(id, spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
     }
     
     public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout) {
         this(id, spoutId, spout, null);
     }    
+    
+    public TransactionalTopologyBuilder(String id, String spoutId, IOpaquePartitionedTransactionalSpout spout, Integer spoutParallelism) {
+        this(id, spoutId, new OpaquePartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
+    }
+    
+    public TransactionalTopologyBuilder(String id, String spoutId, IOpaquePartitionedTransactionalSpout spout) {
+        this(id, spoutId, spout, null);
+    }    
+
     
     public SpoutDeclarer getSpoutDeclarer() {
         return new SpoutDeclarerImpl();

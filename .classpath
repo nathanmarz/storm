@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src/clj"/>
-	<classpathentry kind="src" path="test/multilang"/>
+	<classpathentry kind="src" path="src/jvm"/>
 	<classpathentry kind="src" path="src/ui"/>
 	<classpathentry kind="src" path="src/multilang"/>
 	<classpathentry kind="src" path="src/py"/>
-	<classpathentry kind="src" path="src/jvm"/>
 	<classpathentry kind="src" path="test/clj"/>
+	<classpathentry kind="src" path="test/multilang"/>
 	<classpathentry kind="src" path="src/dev"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/clj-time-0.3.0.jar"/>
@@ -47,5 +47,7 @@
 	<classpathentry kind="lib" path="lib/thriftjava-1.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/tools.macro-0.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/zookeeper-3.3.2.jar"/>
+	<classpathentry kind="lib" path="lib/hbase-0.92.0.jar"/>
+	<classpathentry kind="lib" path="lib/hadoop-core-0.20.205.0.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

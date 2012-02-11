@@ -37,7 +37,7 @@ public class TransactionalSpoutBatchExecutor implements IRichBolt {
         try {
             if(input.getSourceStreamId().equals(TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID)) {
                 if(attempt.equals(_activeTransactions.get(attempt.getTransactionId()))) {
-                    ((ICommitterTransactionalSpout.ICommitterEmitter) _emitter).commit(attempt);
+                    ((ICommitterTransactionalSpout.Emitter) _emitter).commit(attempt);
                     _activeTransactions.remove(attempt.getTransactionId());
                     _collector.ack(input);
                 } else {

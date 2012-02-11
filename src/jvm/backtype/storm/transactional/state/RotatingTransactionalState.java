@@ -13,9 +13,7 @@ import java.util.TreeMap;
 public class RotatingTransactionalState {
     public static interface StateInitializer {
         Object init(BigInteger txid, Object lastState);
-    }
-    
-    private static final BigInteger ONE = new BigInteger("1");
+    }    
 
     private TransactionalState _state;
     private String _subdir;
@@ -44,6 +42,13 @@ public class RotatingTransactionalState {
         _state.setData(txPath(txid), state);
         _curr.put(txid, state);
     }
+
+    public void removeState(BigInteger txid) {
+        if(_curr.containsKey(txid)) {
+            _curr.remove(txid);
+            _state.delete(txPath(txid));
+        }
+    }
     
     public Object getState(BigInteger txid, StateInitializer init) {
         if(!_curr.containsKey(txid)) {
@@ -57,7 +62,7 @@ public class RotatingTransactionalState {
                 if(prev==null && !txid.equals(TransactionalSpoutCoordinator.INIT_TXID)) {
                     throw new IllegalStateException("Trying to initialize transaction for which there should be a previous state");
                 }
-                if(prev!=null && !prev.equals(txid.subtract(ONE))) {
+                if(prev!=null && !prev.equals(txid.subtract(BigInteger.ONE))) {
                     throw new IllegalStateException("Expecting previous txid state to be the previous transaction");
                 }
                 if(!afterMap.isEmpty()) {

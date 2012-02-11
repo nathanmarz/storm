@@ -1,6 +1,6 @@
 ## 0.7.0-SNAPSHOT
 
- * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most most computations. Documented on the wiki.
+ * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most computations. Documented on the wiki.
  * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 
  * New batch bolt abstraction that simplifies the processing of batches in DRPC or transactional topologies. A new batch bolt is created per batch and they are automatically cleaned up.
  * Introduction of base classes for various bolt and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods
@@ -13,6 +13,7 @@
  * Clojure test framework significantly more composable
  * Massive internal refactorings and simplifications, including changes to the Thrift definition for storm topologies.
  * Optimized acking system. Bolts with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
+ * Changed interface of CustomStreamGrouping to receive a List<Object> rather than a Tuple.
  * Added "storm.zookeeper.retry.times" and "storm.zookeeper.retry.interval" configs (thanks killme2008)
  * Added "storm help" and "storm help {cmd}" to storm script (thanks kachayev)
  * Logging now always goes to logs/ in the Storm directory, regardless of where you launched the daemon (thanks haitaoyao)

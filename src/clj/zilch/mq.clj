@@ -56,6 +56,14 @@
   (doto socket
     (.setLinger (long linger-ms))))
 
+(defn set-hwm
+  [^ZMQ$Socket socket hwm]
+  (if hwm
+    (doto socket
+      (.setHWM (long hwm)))
+    socket
+    ))
+
 (defn bind
   [^ZMQ$Socket socket url]
   (doto socket

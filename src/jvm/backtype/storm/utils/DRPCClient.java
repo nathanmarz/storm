@@ -1,7 +1,6 @@
 package backtype.storm.utils;
 
 import backtype.storm.generated.DRPCExecutionException;
-import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPC;
 import org.apache.thrift7.TException;
 import org.apache.thrift7.protocol.TBinaryProtocol;
@@ -47,36 +46,6 @@ public class DRPCClient implements DistributedRPC.Iface {
             client = null;
             throw e;
         } catch(DRPCExecutionException e) {
-            client = null;
-            throw e;
-        }
-    }
-
-    public void result(String id, String result) throws TException {
-        try {
-            if(client==null) connect();
-            client.result(id, result);
-        } catch(TException e) {
-            client = null;
-            throw e;
-        }
-    }
-
-    public DRPCRequest fetchRequest(String func) throws TException {
-        try {
-            if(client==null) connect();
-            return client.fetchRequest(func);
-        } catch(TException e) {
-            client = null;
-            throw e;
-        }
-    }    
-
-    public void failRequest(String id) throws TException {
-        try {
-            if(client==null) connect();
-            client.failRequest(id);
-        } catch(TException e) {
             client = null;
             throw e;
         }

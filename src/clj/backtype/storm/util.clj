@@ -3,8 +3,9 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time Container ClojureTimerTask])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils])
   (:import [java.util UUID])
+  (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
   (:import [java.io File RandomAccessFile StringWriter PrintWriter])
@@ -13,7 +14,7 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
-  (:import [java.util Timer])
+  (:import [clojure.lang RT])
   (:require [clojure.contrib [str-utils2 :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
@@ -101,13 +102,23 @@
        amap
        )))
 
+(defn filter-key [afn amap]
+  (into {}
+    (filter
+      (fn [[k v]]
+        (afn k))
+       amap
+       )))
+
+(defn separate [pred aseq]
+  [(filter pred aseq) (filter (complement pred) aseq)])
+
 (defn full-path [parent name]
   (let [toks (tokenize-path parent)]
     (toks->path (conj toks name))
     ))
 
-(defn not-nil? [o]
-  (not (nil? o)))
+(def not-nil? (complement nil?))
 
 (defn barr [& vals]
   (byte-array (map byte vals)))
@@ -196,7 +207,8 @@
     ))
 
 (defnk launch-process [command :environment {}]
-  (let [command (seq (.split command " "))
+  (let [command (->> (seq (.split command " "))
+                     (filter (complement empty?)))
         builder (ProcessBuilder. (cons "nohup" command))
         process-env (.environment builder)]
     (doseq [[k v] environment]
@@ -263,9 +275,6 @@
         ))
       ))
 
-(defn filter-map-val [afn amap]
-  (into {} (filter (fn [[k v]] (afn v)) amap)))
-
 (defn exists-file? [path]
   (.exists (File. path)))
 
@@ -314,18 +323,18 @@
   (ReentrantReadWriteLock.))
 
 (defmacro read-locked [rw-lock & body]
-  `(let [rlock# (.readLock ~rw-lock)]
-      (try
-        (.lock rlock#)
-        ~@body
-      (finally (.unlock rlock#)))))
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [rlock# (.readLock ~lock)]
+       (try (.lock rlock#)
+            ~@body
+            (finally (.unlock rlock#))))))
 
 (defmacro write-locked [rw-lock & body]
-  `(let [wlock# (.writeLock ~rw-lock)]
-      (try
-        (.lock wlock#)
-        ~@body
-      (finally (.unlock wlock#)))))
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [wlock# (.writeLock ~lock)]
+       (try (.lock wlock#)
+            ~@body
+            (finally (.unlock wlock#))))))
 
 (defn wait-for-condition [apredicate]
   (while (not (apredicate))
@@ -345,13 +354,7 @@
   (Integer/parseInt str))
 
 (defn integer-divided [sum num-pieces]
-  (let [base (int (/ sum num-pieces))
-        num-inc (mod sum num-pieces)
-        num-bases (- num-pieces num-inc)]
-    (if (= num-inc 0)
-      {base num-bases}
-      {base num-bases (inc base) num-inc}
-      )))
+  (clojurify-structure (Utils/integerDivided sum num-pieces)))
 
 (defn collectify [obj]
   (if (or (sequential? obj) (instance? Collection obj)) obj [obj]))
@@ -360,8 +363,11 @@
   (JSONValue/toJSONString m))
 
 (defn from-json [^String str]
-  (clojurify-structure
-    (JSONValue/parse str)))
+  (if str
+    (clojurify-structure
+     (JSONValue/parse str))
+    nil
+    ))
 
 (defmacro letlocals [& body]
    (let [[tobind lexpr] (split-at (dec (count body)) body)
@@ -515,7 +521,7 @@
     ))
 
 (defn nil-to-zero [v]
-  (if v v 0))
+  (or v 0))
 
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))
@@ -568,3 +574,26 @@
             (cond ~@guards
                   true (throw ~error-local)
                   )))))
+
+(defn redirect-stdio-to-log4j! []
+  ;; set-var-root doesn't work with *out* and *err*, so digging much deeper here
+  ;; Unfortunately, this code seems to work at the REPL but not when spawned as worker processes
+  ;; it might have something to do with being a child process
+  ;; (set! (. (.getThreadBinding RT/OUT) val)
+  ;;       (java.io.OutputStreamWriter.
+  ;;         (log-stream :info "STDIO")))
+  ;; (set! (. (.getThreadBinding RT/ERR) val)
+  ;;       (PrintWriter.
+  ;;         (java.io.OutputStreamWriter.
+  ;;           (log-stream :error "STDIO"))
+  ;;         true))
+  (log-capture! "STDIO"))
+
+(defn spy [prefix val]
+  (log-message prefix ": " val)
+  val)
+
+(defn zip-contains-dir? [zipfile target]
+  (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
+    (some? #(.startsWith % (str target "/")) entries)
+    ))

@@ -1,15 +1,14 @@
 package backtype.storm.task;
 
-import backtype.storm.generated.Bolt;
+import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
-import backtype.storm.generated.SpoutSpec;
-import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +35,7 @@ public class TopologyContext {
     private String _codeDir;
     private String _pidDir;
     private String _stormId;
+    private Object _taskData = null;
 
     public TopologyContext(StormTopology topology, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
         _topology = topology;
@@ -237,9 +237,7 @@ public class TopologyContext {
      * @return A map from subscribed component/stream to the grouping subscribed with.
      */
     public Map<GlobalStreamId, Grouping> getSources(String componentId) {
-        Bolt bolt = _topology.get_bolts().get(componentId);
-        if(bolt==null) return null;
-        return bolt.get_inputs();
+        return getComponentCommon(componentId).get_inputs();
     }
 
     /**
@@ -259,13 +257,13 @@ public class TopologyContext {
      */
     public Map<String, Map<String, Grouping>> getTargets(String componentId) {
         Map<String, Map<String, Grouping>> ret = new HashMap<String, Map<String, Grouping>>();
-        for(String otherComponentId: _topology.get_bolts().keySet()) {
-            Bolt bolt = _topology.get_bolts().get(otherComponentId);
-            for(GlobalStreamId id: bolt.get_inputs().keySet()) {
+        for(String otherComponentId: getComponentIds()) {
+            Map<GlobalStreamId, Grouping> inputs = getComponentCommon(otherComponentId).get_inputs();
+            for(GlobalStreamId id: inputs.keySet()) {
                 if(id.get_componentId().equals(componentId)) {
                     Map<String, Grouping> curr = ret.get(id.get_streamId());
                     if(curr==null) curr = new HashMap<String, Grouping>();
-                    curr.put(otherComponentId, bolt.get_inputs().get(id));
+                    curr.put(otherComponentId, inputs.get(id));
                     ret.put(id.get_streamId(), curr);
                 }
             }
@@ -280,22 +278,6 @@ public class TopologyContext {
         // TODO: jsonify StormTopology
         // at the minimum should send source info
         return JSONValue.toJSONString(obj);
-    }
-
-    private ComponentCommon getComponentCommon(String componentId) {
-       Bolt bolt =  _topology.get_bolts().get(componentId);
-       if(bolt!=null) {
-           return bolt.get_common();
-       }
-       SpoutSpec spoutSpec = _topology.get_spouts().get(componentId);
-       if(spoutSpec!=null) {
-           return spoutSpec.get_common();
-       }
-       StateSpoutSpec stateSpoutSpec = _topology.get_state_spouts().get(componentId);
-       if(stateSpoutSpec!=null) {
-           return stateSpoutSpec.get_common();
-       }
-       throw new IllegalArgumentException("Could not find component common for " + componentId);
     }
 
     /**
@@ -321,5 +303,37 @@ public class TopologyContext {
      */
     public Map<Integer, String> getTaskToComponent() {
         return _taskToComponent;
+    }
+    
+    /**
+     * Gets a list of all component ids in this topology
+     */
+    public Set<String> getComponentIds() {
+        return ThriftTopologyUtils.getComponentIds(getRawTopology());
+    }
+
+    public ComponentCommon getComponentCommon(String componentId) {
+        return ThriftTopologyUtils.getComponentCommon(getRawTopology(), componentId);
+    }
+    
+    public void setTaskData(Object data) {
+        _taskData = data;
+    }
+    
+    public Object getTaskData() {
+        return _taskData;
+    }
+    
+    public int maxTopologyMessageTimeout(Map<String, Object> topologyConfig) {
+        Integer max = Utils.getInt(topologyConfig.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+        for(String spout: getRawTopology().get_spouts().keySet()) {
+            ComponentCommon common = getComponentCommon(spout);
+            Map conf = (Map) JSONValue.parse(common.get_json_conf());
+            Object comp = conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS);
+            if(comp!=null) {
+                max = Math.max(Utils.getInt(comp), max);
+            }
+        }
+        return max;
     }
 }

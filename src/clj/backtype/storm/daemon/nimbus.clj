@@ -194,6 +194,7 @@
 
 
 (defmulti setup-jar cluster-mode)
+(defmulti clean-inbox cluster-mode)
 
 ;; status types
 ;; -- killed (:kill-time-secs)
@@ -279,36 +280,23 @@
      all-slots)
     ))
 
-(defn state-spout-parallelism [state-spout-spec]
-  (-> state-spout-spec .get_common thrift/parallelism-hint))
-
-(defn- spout-parallelism [spout-spec]
-  (if (.is_distributed spout-spec)
-    (-> spout-spec .get_common thrift/parallelism-hint)
-    1 ))
-
-(defn bolt-parallelism [bolt-spec]
-  (let [hint (-> bolt-spec .get_common thrift/parallelism-hint)
-        fully-global? (every?
-                       thrift/global-grouping?
-                       (vals (.get_inputs bolt-spec)))]
-    (if fully-global?
-      1
-      hint
-      )))
-
 (defn- optimize-topology [topology]
   ;; TODO: create new topology by collapsing bolts into CompoundSpout
   ;; and CompoundBolt
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn mk-task-maker [max-parallelism parallelism-func id-counter]
+(defn mk-task-maker [storm-conf id-counter]
   (fn [[component-id spec]]
-    (let [parallelism (parallelism-func spec)
-          parallelism (if max-parallelism (min parallelism max-parallelism) parallelism)
-          num-tasks (max 1 parallelism)]
-      (for-times num-tasks
+    (let [common (.get_common spec)
+          declared (thrift/parallelism-hint common)
+          storm-conf (merge storm-conf
+                            (from-json (.get_json_conf common)))
+          max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+          parallelism (if max-parallelism
+                        (min declared max-parallelism)
+                        declared)]
+      (for-times parallelism
                  [(id-counter) component-id])
       )))
 
@@ -332,16 +320,14 @@
 ;; public so it can be mocked in tests
 (defn mk-task-component-assignments [conf storm-id]
   (let [storm-conf (read-storm-conf conf storm-id)
-        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        topology (system-topology storm-conf (read-storm-topology conf storm-id))
-        slots-to-use (storm-conf TOPOLOGY-WORKERS)
+        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
         counter (mk-counter)
         tasks (concat
-               (mapcat (mk-task-maker max-parallelism bolt-parallelism counter)
+               (mapcat (mk-task-maker storm-conf counter)
                        (.get_bolts topology))
-               (mapcat (mk-task-maker max-parallelism spout-parallelism counter)
+               (mapcat (mk-task-maker storm-conf counter)
                        (.get_spouts topology))
-               (mapcat (mk-task-maker max-parallelism state-spout-parallelism counter)
+               (mapcat (mk-task-maker storm-conf counter)
                        (.get_state_spouts topology))
                )]
     (into {}
@@ -564,23 +550,6 @@
     (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
     ))
 
-(defn validate-topology! [topology]
-  (let [bolt-ids (keys (.get_bolts topology))
-        spout-ids (keys (.get_spouts topology))
-        state-spout-ids (keys (.get_state_spouts topology))
-        common (any-intersection bolt-ids spout-ids state-spout-ids)]
-    (when-not (empty? common)
-      (throw
-       (InvalidTopologyException.
-        (str "Cannot use same component id for both spout and bolt: " (vec common))
-        )))
-    (when-not (every? (complement system-component?) (concat bolt-ids spout-ids state-spout-ids))
-      (throw
-       (InvalidTopologyException.
-        "Component ids cannot start with '__'")))
-    ;; TODO: validate that every declared stream is not a system stream
-    ))
-
 (defn extract-status-str [base]
   (let [t (-> base :status :type)]
     (.toUpperCase (name t))
@@ -592,13 +561,24 @@
        (apply merge)
        ))
 
-(defn normalize-conf [conf storm-conf]
+(defn normalize-conf [conf storm-conf ^StormTopology topology]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
-  (let [sers (storm-conf TOPOLOGY-KRYO-REGISTER)
-        sers (if sers sers (conf TOPOLOGY-KRYO-REGISTER))
-        sers (mapify-serializations sers)]
-    (assoc storm-conf TOPOLOGY-KRYO-REGISTER sers)
+  (let [base-sers (storm-conf TOPOLOGY-KRYO-REGISTER)
+        base-sers (if base-sers base-sers (conf TOPOLOGY-KRYO-REGISTER))
+        component-sers (mapcat                        
+                        #(-> (ThriftTopologyUtils/getComponentCommon topology %)
+                             .get_json_conf
+                             from-json
+                             (get TOPOLOGY-KRYO-REGISTER))
+                        (ThriftTopologyUtils/getComponentIds topology))
+        total-conf (merge conf storm-conf)]
+    ;; topology level serialization registrations take priority
+    ;; that way, if there's a conflict, a user can force which serialization to use
+    (merge storm-conf
+           {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
+                                          (mapify-serializations base-sers))
+            TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
     ))
 
 (defn do-cleanup [nimbus]
@@ -616,10 +596,35 @@
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
 
+(defn- file-older-than? [now seconds file]
+  (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
+
+(defn clean-inbox [dir-location seconds]
+  "Deletes jar files in dir older than seconds."
+  (let [now (current-time-secs)
+        pred #(and (.isFile %) (file-older-than? now seconds %))
+        files (filter pred (file-seq (File. dir-location)))]
+    (doseq [f files]
+      (if (.delete f)
+        (log-message "Cleaning inbox ... deleted: " (.getName f))
+        ;; This should never happen
+        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        ))))
+
+(defn cleanup-corrupt-topologies! [nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        code-ids (set (code-ids (:conf nimbus)))
+        active-topologies (set (.active-storms storm-cluster-state))
+        corrupt-topologies (set/difference active-topologies code-ids)]
+    (doseq [corrupt corrupt-topologies]
+      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+      (.remove-storm! storm-cluster-state corrupt)
+      )))
 
 (defserverfn service-handler [conf]
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf)]
+    (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))
     (schedule-recurring (:timer nimbus)
@@ -630,24 +635,31 @@
                             (transition! nimbus storm-id :monitor))
                           (do-cleanup nimbus)
                           ))
+    ;; Schedule Nimbus inbox cleaner
+    (schedule-recurring (:timer nimbus)
+                        0
+                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
+                        (fn []
+                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
+                          ))
     (reify Nimbus$Iface
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (check-storm-active! nimbus storm-name false)
-        (validate-topology! topology)
+        (check-storm-active! nimbus storm-name false)        
         (swap! (:submitted-count nimbus) inc)
         (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
               storm-conf (normalize-conf
                           conf
                           (-> serializedConf
                               from-json
-                              (assoc STORM-ID storm-id)
-                              ))
+                              (assoc STORM-ID storm-id))
+                          topology)
               total-storm-conf (merge conf storm-conf)
               topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
                          (optimize-topology topology)
                          topology)
               storm-cluster-state (:storm-cluster-state nimbus)]
+          (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
           (log-message "Received topology submission for " storm-name " with conf " storm-conf)
           ;; lock protects against multiple topologies being submitted at once and
           ;; cleanup thread killing topology in b/w assignment and starting the topology
@@ -739,7 +751,7 @@
         (to-json (read-storm-conf conf id)))
 
       (^StormTopology getTopology [this ^String id]
-        (system-topology (read-storm-conf conf id) (read-storm-topology conf id)))
+        (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
 
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)

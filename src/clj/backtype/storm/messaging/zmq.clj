@@ -19,13 +19,13 @@
 
 (deftype ZMQContext [context linger-ms ipc?]
   Context
-  (bind [this virtual-port]
+  (bind [this storm-id virtual-port]
     (-> context
         (mq/socket mq/pull)
         (mqvp/virtual-bind virtual-port)
         (ZMQConnection.)
         ))
-  (connect [this host port]
+  (connect [this storm-id host port]
     (let [url (if ipc?
                 (str "ipc://" port ".ipc")
                 (str "tcp://" host ":" port))]
@@ -34,7 +34,7 @@
           (mq/set-linger linger-ms)
           (mq/connect url)
           (ZMQConnection.))))
-  (send-local-task-empty [this virtual-port]
+  (send-local-task-empty [this storm-id virtual-port]
     (let [pusher (-> context (mq/socket mq/push) (mqvp/virtual-connect virtual-port))]
           (mq/send pusher (mq/barr))
           (.close pusher)))

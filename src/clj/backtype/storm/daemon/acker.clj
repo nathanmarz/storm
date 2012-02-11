@@ -2,12 +2,11 @@
   (:import [backtype.storm.task OutputCollector TopologyContext IBolt])
   (:import [backtype.storm.tuple Tuple Fields])
   (:import [backtype.storm.utils TimeCacheMap])
-  (:import [backtype.storm.topology IRichBolt])
   (:import [java.util List Map])
   (:use [backtype.storm config util log])
   (:gen-class
    :init init
-   :implements [backtype.storm.topology.IRichBolt]
+   :implements [backtype.storm.task.IBolt]
    :constructors {[] []}
    :state state ))
 
@@ -28,10 +27,10 @@
 (defn mk-acker-bolt []
   (let [output-collector (atom nil)
         pending (atom nil)]
-    (reify IRichBolt
+    (reify IBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (reset! output-collector collector)
-               (reset! pending (TimeCacheMap. (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))))
+               (reset! pending (TimeCacheMap. (.maxTopologyMessageTimeout context storm-conf)))
                )
       (^void execute [this ^Tuple tuple]
              (let [id (.getValue tuple 0)
@@ -39,8 +38,8 @@
                    curr (.get pending id)
                    curr (condp = (.getSourceStreamId tuple)
                             ACKER-INIT-STREAM-ID (-> curr
-                                                     (update-ack id)
-                                                     (assoc :spout-task (.getValue tuple 1)))
+                                                     (update-ack (.getValue tuple 1))
+                                                     (assoc :spout-task (.getValue tuple 2)))
                             ACKER-ACK-STREAM-ID (update-ack curr (.getValue tuple 1))
                             ACKER-FAIL-STREAM-ID (assoc curr :failed true))]
                (.put pending id curr)
@@ -67,9 +66,6 @@
                ))
       (^void cleanup [this]
              )
-      (declareOutputFields [this declarer]
-        (.declareStream declarer ACKER-ACK-STREAM-ID true (Fields. ["id"]))
-        (.declareStream declarer ACKER-FAIL-STREAM-ID true (Fields. ["id"])))
       )))
 
 (defn -init []
@@ -90,6 +86,3 @@
   (let [^IBolt delegate (container-get (.state this))]
     (.cleanup delegate)
     ))
-
-(defn -declareOutputFields [this declarer]
-  (.declareOutputFields (mk-acker-bolt) declarer))

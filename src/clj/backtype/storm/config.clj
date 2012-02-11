@@ -9,13 +9,21 @@
 
 (def RESOURCES-SUBDIR "resources")
 
+(defn- clojure-config-name [name]
+  (.replace (.toUpperCase name) "_" "-"))
+
 ;; define clojure constants for every configuration parameter
 (doseq [f (seq (.getFields Config))]
   (let [name (.getName f)
-        new-name (.replace (.toUpperCase name) "_" "-")]
+        new-name (clojure-config-name name)]
     (eval
       `(def ~(symbol new-name) (. Config ~(symbol name))))
       ))
+
+(def ALL-CONFIGS
+  (dofor [f (seq (.getFields Config))]
+         (.get f nil)
+         ))
 
 (defn cluster-mode [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
@@ -50,17 +58,6 @@
 ; storm.local.dir: "/mnt/storm"
 ; storm.zookeeper.port: 2181
 ; storm.zookeeper.root: "/storm"
-
-(defn mk-zk-connect-string [conf]
-  (let [servers (conf STORM-ZOOKEEPER-SERVERS)
-        port (conf STORM-ZOOKEEPER-PORT)
-        root (conf STORM-ZOOKEEPER-ROOT)]
-    (str
-      (str/join ","
-        (for [s servers]
-          (str s ":" port)))
-      root)
-    ))
 
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
@@ -128,6 +125,18 @@
 (defn ^LocalState supervisor-state [conf]
   (LocalState. (str (supervisor-local-dir conf) "/localstate")))
 
+(defn read-supervisor-storm-conf [conf storm-id]
+  (let [stormroot (supervisor-stormdist-root conf storm-id)
+        conf-path (supervisor-stormconf-path stormroot)
+        topology-path (supervisor-stormcode-path stormroot)]
+    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
+    ))
+
+(defn read-supervisor-topology [conf storm-id]
+  (let [stormroot (supervisor-stormdist-root conf storm-id)
+        topology-path (supervisor-stormcode-path stormroot)]
+    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
+    ))
 
 (defn worker-root
   ([conf]

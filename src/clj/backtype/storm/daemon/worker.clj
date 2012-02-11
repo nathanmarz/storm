@@ -24,39 +24,22 @@
             assignment))
     ))
 
-(defn- read-storm-cache [conf storm-id]
-  (let [stormroot (supervisor-stormdist-root conf storm-id)
-        conf-path (supervisor-stormconf-path stormroot)
-        topology-path (supervisor-stormcode-path stormroot)]
-    [(merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
-     (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))]
-    ))
-
 (defn do-heartbeat [conf worker-id port storm-id task-ids]
+  (let [hb (WorkerHeartbeat.
+             (current-time-secs)
+             storm-id
+             task-ids
+             port)]
+  (log-debug "Doing heartbeat " (pr-str hb))
   (.put (worker-state conf worker-id)
         LS-WORKER-HEARTBEAT
-        (WorkerHeartbeat.
-          (current-time-secs)
-          storm-id
-          task-ids
-          port)))
+        hb)))
 
 (defn worker-outbound-tasks
   "Returns seq of task-ids that receive messages from this worker"
-  ;; if this is an acker, needs to talk to the spouts
   [task->component mk-topology-context task-ids]
   (let [topology-context (mk-topology-context nil)
-        spout-components (-> topology-context
-                             .getRawTopology
-                             .get_spouts
-                             keys)
-        contains-acker? (some? (fn [tid]
-                                 (= ACKER-COMPONENT-ID
-                                    (.getComponentId topology-context tid)))
-                               task-ids)
-        components (concat
-                    (if contains-acker? spout-components)
-                    (mapcat
+        components (mapcat
                      (fn [task-id]
                        (let [context (mk-topology-context task-id)]
                          (->> (.getThisTargets context)
@@ -64,17 +47,17 @@
                               (map keys)
                               (apply concat))
                          ))
-                     task-ids))]
+                     task-ids)]
     (set
      (apply concat
-            ;; fix this
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
-(defn mk-transfer-fn [transfer-queue]
-  (fn [task ^Tuple tuple]
-    (.put ^LinkedBlockingQueue transfer-queue [task tuple])
-    ))
+(defn mk-transfer-fn [storm-conf context transfer-queue]
+  (let [^KryoTupleSerializer serializer (KryoTupleSerializer. storm-conf context)]
+    (fn [task ^Tuple tuple]
+      (.put ^LinkedBlockingQueue transfer-queue [task (.serialize serializer tuple)])
+      )))
 
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
@@ -84,6 +67,8 @@
 (defserverfn mk-worker [conf mq-context storm-id supervisor-id port worker-id]
   (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id
                " and conf " conf)
+  (if-not (local-mode? conf)
+    (redirect-stdio-to-log4j!))
   (let [active (atom true)
         storm-active-atom (atom false)
         cluster-state (cluster/mk-distributed-cluster-state conf)
@@ -97,11 +82,12 @@
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
-        [storm-conf topology] (read-storm-cache conf storm-id)        
+        storm-conf (read-supervisor-storm-conf conf storm-id)
+        topology (read-supervisor-topology conf storm-id)
         event-manager (event/event-manager true)
         
         task->component (storm-task-info storm-cluster-state storm-id)
-        mk-topology-context #(TopologyContext. (system-topology storm-conf topology)
+        mk-topology-context #(TopologyContext. (system-topology! storm-conf topology)
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path
@@ -127,7 +113,7 @@
 
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         
-        transfer-fn (mk-transfer-fn transfer-queue)
+        transfer-fn (mk-transfer-fn storm-conf (mk-topology-context nil) transfer-queue)
         refresh-connections (fn this
                               ([]
                                 (this (fn [& ignored] (.add event-manager this))))
@@ -145,6 +131,7 @@
                                                  [endpoint
                                                   (msg/connect
                                                    mq-context
+                                                   storm-id
                                                    ((:node->host assignment) node)
                                                    port)
                                                   ]
@@ -177,6 +164,7 @@
                             ;; this @active check handles the case where it's started after shutdown* joins to the thread
                             ;; if the thread is started after the join, then @active must be false. So there's no risk 
                             ;; of writing heartbeat after it's been shut down.
+                            (log-debug "In heartbeat thread")
                             (when @active (heartbeat-fn) (conf WORKER-HEARTBEAT-FREQUENCY-SECS))
                             )
                           :priority Thread/MAX_PRIORITY)
@@ -189,22 +177,21 @@
                     (when @active (storm-conf TASK-REFRESH-POLL-SECS))
                     ))
                  (async-loop
-                  (fn [^ArrayList drainer ^KryoTupleSerializer serializer]
+                  (fn [^ArrayList drainer]
                     (let [felem (.take transfer-queue)]
                       (.add drainer felem)
                       (.drainTo transfer-queue drainer))
                     (read-locked endpoint-socket-lock
                       (let [node+port->socket @node+port->socket
                             task->node+port @task->node+port]
-                        (doseq [[task ^Tuple tuple] drainer]
-                          (let [socket (node+port->socket (task->node+port task))
-                                ser-tuple (.serialize serializer tuple)]
+                        (doseq [[task ser-tuple] drainer]
+                          (let [socket (node+port->socket (task->node+port task))]
                             (msg/send socket task ser-tuple)
                             ))
                         ))
                     (.clear drainer)
                     0 )
-                  :args-fn (fn [] [(ArrayList.) (KryoTupleSerializer. storm-conf (mk-topology-context nil))]))
+                  :args-fn (fn [] [(ArrayList.)]))
                  heartbeat-thread]
         virtual-port-shutdown (when (local-mode-zmq? conf)
                                 (log-message "Launching virtual port for " supervisor-id ":" port)

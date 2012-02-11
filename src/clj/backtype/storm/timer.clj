@@ -2,7 +2,7 @@
   (:import [backtype.storm.utils Time])
   (:import [java.util PriorityQueue Comparator])
   (:import [java.util.concurrent Semaphore])
-  (:use [backtype.storm util])
+  (:use [backtype.storm util log])
   (:use [clojure.contrib.def :only [defnk]])
   )
 
@@ -25,22 +25,21 @@
                       (fn []
                         (while @active
                           (try
-                            (let [[time-secs _ _ :as elem] (.peek queue)]
-                              (if elem
-                                (if (>= (current-time-secs) time-secs)
-                                  (locking lock
-                                    ((second (.poll queue))))
-                                  (Time/sleepUntil (to-millis time-secs))
-                                  )
-                                (Time/sleep 10000)
+                            (let [[time-secs _ _ :as elem] (locking lock (.peek queue))]
+                              (if (and elem (>= (current-time-secs) time-secs))
+                                ;; imperative to not run the function inside the timer lock
+                                ;; otherwise, it's possible to deadlock if function deals with other locks
+                                ;; (like the submit lock)
+                                (let [afn (locking lock (second (.poll queue)))]
+                                  (afn))
+                                (Time/sleep 1000)
                                 ))
-
-                            (catch InterruptedException e
-                              )
                             (catch Throwable t
-                              (kill-fn t)
-                              (reset! active false)
-                              (throw t)
+                              ;; because the interrupted exception can be wrapped in a runtimeexception
+                              (when-not (exception-cause? InterruptedException t)
+                                (kill-fn t)
+                                (reset! active false)
+                                (throw t))
                               )))
                         (.release notifier)))]
     (.setDaemon timer-thread true)
@@ -61,12 +60,9 @@
         ^PriorityQueue queue (:queue timer)]
     (locking (:lock timer)
       (.add queue [(+ (current-time-secs) delay-secs) afn id])
-      (when (= id (nth (.peek queue) 2))
-        (.interrupt ^Thread (:timer-thread timer)))
       )))
 
 (defn schedule-recurring [timer delay-secs recur-secs afn]
-  (check-active! timer)
   (schedule timer
             delay-secs
             (fn this []
@@ -76,10 +72,10 @@
 
 (defn cancel-timer [timer]
   (check-active! timer)
-  (reset! (:active timer) false)
   (locking (:lock timer)
+    (reset! (:active timer) false)
     (.interrupt (:timer-thread timer)))
   (.acquire (:cancel-notifier timer)))
 
-(defn timer-waiting? [timer]  
+(defn timer-waiting? [timer]
   (Time/isThreadWaiting (:timer-thread timer)))

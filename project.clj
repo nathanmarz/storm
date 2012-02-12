@@ -5,6 +5,6 @@
   :dependencies [[storm/kafka "0.7.0-incubating"
                    :exclusions [org.apache.zookeeper/zookeeper
                                 log4j/log4j]]]
-  :dev-dependencies [[storm "0.7.0-SNAPSHOT"]]
+  :dev-dependencies [[storm "0.7.0-rc2-SNAPSHOT"]]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
 )

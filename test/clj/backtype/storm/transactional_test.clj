@@ -480,14 +480,20 @@
                  "gcommit" [[2 3]]})
 
        (fail-tx! 2)
-       (tracked-wait topo-info 1)
+       (tracked-wait topo-info 2)
 
        (verify! {"sum" [[2 "apple" 1]
                         [2 "dog" 3]
-                        [2 "zebra" 1]]
+                        [2 "zebra" 1]
+                        [3 "a" 5]
+                        [3 "b" 2]
+                        [3 "d" 4]
+                        [3 "c" 1]
+                        [3 "e" 7]]
                  "count" []
                  "count2" []
-                 "global" [[2 3]]
+                 "global" [[2 3]
+                           [3 7]]
                  "gcommit" []})
        (ack-tx! 2)
        (tracked-wait topo-info 1)
@@ -503,7 +509,8 @@
                  "gcommit" [[2 3]]})
        
        (ack-tx! 2)
-
+       (ack-tx! 3)
+       
        (tracked-wait topo-info 2)
        (verify! {"sum" [[4 "c" 14]]
                  "count" [[3 "a" 3]
@@ -518,7 +525,7 @@
                            [3 "e" 2]]
                  "global" [[4 2]]
                  "gcommit" [[3 7]]})
-
+       
        (ack-tx! 4)
        (ack-tx! 3)
        (tracked-wait topo-info 2)
@@ -527,7 +534,7 @@
                  "count2" [[4 "c" 2]]
                  "global" [[5 0]]
                  "gcommit" [[4 2]]})
-
+       
        (ack-tx! 5)
        (ack-tx! 4)
        (tracked-wait topo-info 2)
@@ -536,7 +543,7 @@
                  "count2" []
                  "global" [[6 0]]
                  "gcommit" [[5 0]]})
-
+       
        (-> topo-info :capturer .getAndClearResults)
        ))))
 

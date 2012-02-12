@@ -3,6 +3,7 @@ package storm.kafka;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.utils.Utils;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import kafka.api.FetchRequest;
@@ -13,13 +14,23 @@ import kafka.message.MessageAndOffset;
 import kafka.message.MessageSet;
 
 public class KafkaUtils {
+    
+    
      public static BatchMeta emitPartitionBatchNew(KafkaConfig config, int partition, SimpleConsumer consumer, TransactionAttempt attempt, BatchOutputCollector collector, BatchMeta lastMeta) {
          long offset = 0;
          if(lastMeta!=null) {
              offset = lastMeta.nextOffset;
          }
-
-         ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(config.topic, partition % config.partitionsPerHost, offset, config.fetchSizeBytes));
+         ByteBufferMessageSet msgs;
+         try {
+            msgs = consumer.fetch(new FetchRequest(config.topic, partition % config.partitionsPerHost, offset, config.fetchSizeBytes));
+         } catch(Exception e) {
+             if(e instanceof ConnectException) {
+                 throw new FailedFetchException(e);
+             } else {
+                 throw new RuntimeException(e);
+             }
+         }
          long endoffset = offset;
          for(MessageAndOffset msg: msgs) {
              emit(config, attempt, collector, msg.message());

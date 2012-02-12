@@ -10,9 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import kafka.javaapi.consumer.SimpleConsumer;
+import org.apache.log4j.Logger;
 
 
 public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransactionalSpout<BatchMeta> {
+    public static final Logger LOG = Logger.getLogger(OpaqueTransactionalKafkaSpout.class);
+    
     public static final String ATTEMPT_FIELD = OpaqueTransactionalKafkaSpout.class.getCanonicalName() + "/attempt";
 
     KafkaConfig _config;
@@ -49,8 +52,20 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
 
         @Override
         public BatchMeta emitPartitionBatch(TransactionAttempt attempt, BatchOutputCollector collector, int partition, BatchMeta lastMeta) {
-            SimpleConsumer consumer = _connections.getConsumer(partition);
-            return KafkaUtils.emitPartitionBatchNew(_config, partition, consumer, attempt, collector, lastMeta);
+            try {
+                SimpleConsumer consumer = _connections.getConsumer(partition);
+                return KafkaUtils.emitPartitionBatchNew(_config, partition, consumer, attempt, collector, lastMeta);
+            } catch(FailedFetchException e) {
+                LOG.warn("Failed to fetch from partition " + partition);
+                if(lastMeta==null) {
+                    return null;
+                } else {
+                    BatchMeta ret = new BatchMeta();
+                    ret.offset = lastMeta.nextOffset;
+                    ret.nextOffset = lastMeta.nextOffset;
+                    return ret;
+                }
+            }
         }
 
         @Override

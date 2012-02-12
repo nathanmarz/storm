@@ -43,7 +43,7 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
             _index = context.getThisTaskIndex();
             _numTasks = context.getComponentTasks(context.getThisComponentId()).size();
             _state = TransactionalState.newUserState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), getComponentConfiguration()); 
-            List<String> existingPartitions = _state.list("/");
+            List<String> existingPartitions = _state.list("");
             for(String p: existingPartitions) {
                 int partition = Integer.parseInt(p);
                 if((partition - _index) % _numTasks == 0) {

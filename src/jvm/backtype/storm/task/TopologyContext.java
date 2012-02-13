@@ -52,6 +52,10 @@ public class TopologyContext {
             curr.add(task);
             _componentToTasks.put(component, curr);
         }
+        for(String component: _componentToTasks.keySet()) {
+            List<Integer> tasks = _componentToTasks.get(component);
+            Collections.sort(tasks);
+        }
     }
 
     /**

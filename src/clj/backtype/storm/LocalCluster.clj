@@ -1,5 +1,6 @@
 (ns backtype.storm.LocalCluster
   (:use [backtype.storm testing])
+  (:import [backtype.storm StormSubmitter])
   (:gen-class
    :init init
    :implements [backtype.storm.ILocalCluster]
@@ -12,6 +13,8 @@
     ))
 
 (defn -submitTopology [this name conf topology]
+  ; validate the config first
+  (StormSubmitter/validateStormConf conf)
   (submit-local-topology (:nimbus (. this state))
                       name
                       conf

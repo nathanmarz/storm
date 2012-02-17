@@ -65,7 +65,7 @@
         type: 'numeric' 
     });
     $(document).ready(function() {
-        $('input[type="checkbox"]').click(function() {
+        $('input[type=\"checkbox\"]').click(function() {
             $('table tr').each(function() {
                 var ishide = $(this).filter(function() {
                     return /^__/.test($($(this)[0].cells[0]).text());

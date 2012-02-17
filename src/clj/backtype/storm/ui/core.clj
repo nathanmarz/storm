@@ -63,7 +63,19 @@
             return total;
         }, 
         type: 'numeric' 
-    }); "]
+    });
+    $(document).ready(function() {
+        $('input[type="checkbox"]').click(function() {
+            $('table tr').each(function() {
+                var ishide = $(this).filter(function() {
+                    return /^__/.test($($(this)[0].cells[0]).text());
+                });
+                if(ishide.length){
+                    $(this).toggle();
+                }
+            });
+        })
+    });"]
    [:body
     [:h1 (link-to "/" "Storm UI")]
     (seq body)
@@ -409,6 +421,8 @@
        [(topology-summary-table summ)]
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs))
+       
+       [[:input {:type "checkbox"}] "Hide/Show Background Stats"]
        [[:h2 "Spouts (" window-hint ")"]]
        (spout-comp-table id spout-comp-summs window)
        [[:h2 "Bolts (" window-hint ")"]]
@@ -497,6 +511,7 @@
     (concat
      [[:h2 "Spout stats"]]
      (spout-summary-table (.get_id topology-info) component summary window)
+     [[:input {:type "checkbox"}] "Hide/Show Background Stats"]
      [[:h2 "Output stats" window-hint]]
      (spout-output-summary-table stream-summary window)
      [[:h2 "Tasks" window-hint]]
@@ -593,7 +608,8 @@
 
      [[:h2 "Input stats" window-hint]]
      (bolt-input-summary-table stream-summary window)
-     
+
+     [[:input {:type "checkbox"}] "Hide/Show Background Stats"] 
      [[:h2 "Output stats" window-hint]]
      (bolt-output-summary-table stream-summary window)
 

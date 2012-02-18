@@ -1,6 +1,6 @@
 ## 0.7.0-SNAPSHOT
 
- * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most most computations. Documented on the wiki.
+ * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most computations. Documented on the wiki.
  * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 
  * New batch bolt abstraction that simplifies the processing of batches in DRPC or transactional topologies. A new batch bolt is created per batch and they are automatically cleaned up.
  * Introduction of base classes for various bolt and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods
@@ -10,10 +10,20 @@
  * All bolts/spouts now emit a system stream (id "__system"). Currently it only emits startup events, but may emit other events in the future.
  * Optimized tuple trees for batch processing in DRPC and transactional topologies. Only the coordination tuples are anchored. OutputCollector#fail still works because CoordinatedBolt will propagate the fail to all other tuples in the batch. 
  * CoordinatedBolt moved to backtype.storm.coordination package
- * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts
- * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
  * Clojure test framework significantly more composable
  * Massive internal refactorings and simplifications, including changes to the Thrift definition for storm topologies.
+ * Optimized acking system. Bolts with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
+ * Changed interface of CustomStreamGrouping to receive a List<Object> rather than a Tuple.
+ * Added "storm.zookeeper.retry.times" and "storm.zookeeper.retry.interval" configs (thanks killme2008)
+ * Added "storm help" and "storm help {cmd}" to storm script (thanks kachayev)
+ * Logging now always goes to logs/ in the Storm directory, regardless of where you launched the daemon (thanks haitaoyao)
+ * Improved Clojure DSL: can emit maps and Tuples implement the appropriate interfaces to integrate with Clojure's seq functions (thanks schleyfox)
+ * Added "ui.childopts" config (thanks ddillinger)
+ * Bug fix: OutputCollector no longer assumes immutable inputs
+ * Bug fix: DRPC topologies now throw a proper error when no DRPC servers are configured instead of NPE (thanks danharvey)
+ * Bug fix: Fix local mode so multiple topologies can be run on one LocalCluster
+ * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts (thanks ddillinger)
+ * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
 
 ## 0.6.2
 

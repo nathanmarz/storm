@@ -496,13 +496,15 @@
   [conf context collector]
   (bolt
    (execute [tuple]
-            (let [name (.getValue tuple 0)]
-              (emit-bolt! collector [name (get conf name)] :anchor tuple))
+            (let [name (.getValue tuple 0)
+                  val (if (= name "!MAX_MSG_TIMEOUT") (.maxTopologyMessageTimeout context conf) (get conf name))]
+              (emit-bolt! collector [name val] :anchor tuple)
+              (ack! collector tuple))
             )))
 
 (deftest test-component-specific-config-clojure
   (with-simulated-time-local-cluster [cluster]
-    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])))
+    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])) :conf {TOPOLOGY-MESSAGE-TIMEOUT-SECS 40})
                               }
                              {"2" (bolt-spec {"1" :shuffle}
                                              (conf-query-bolt {"fake.config" 1
@@ -512,14 +514,17 @@
                               })
           results (complete-topology cluster
                                      topology
-                                     :storm-conf {TOPOLOGY-MAX-TASK-PARALLELISM 10}
+                                     :storm-conf {TOPOLOGY-MAX-TASK-PARALLELISM 10
+                                                  TOPOLOGY-MESSAGE-TIMEOUT-SECS 30}
                                      :mock-sources {"1" [["fake.config"]
                                                          [TOPOLOGY-MAX-TASK-PARALLELISM]
                                                          [TOPOLOGY-MAX-SPOUT-PENDING]
+                                                         ["!MAX_MSG_TIMEOUT"]
                                                          ]})]
       (is (= {"fake.config" 1
               TOPOLOGY-MAX-TASK-PARALLELISM 2
-              TOPOLOGY-MAX-SPOUT-PENDING 3}
+              TOPOLOGY-MAX-SPOUT-PENDING 3
+              "!MAX_MSG_TIMEOUT" 40}
              (->> (read-tuples results "2")
                   (apply concat)
                   (apply hash-map))

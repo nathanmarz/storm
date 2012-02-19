@@ -23,6 +23,11 @@ else:
 
 CONF_DIR = os.path.expanduser("~/.storm")
 STORM_DIR = "/".join(os.path.abspath( __file__ ).split("/")[:-2])
+CONFIG_OPTS = []
+
+def get_config_opts():
+    global CONFIG_OPTS
+    return "-Dstorm.options=" + ",".join(CONFIG_OPTS)
 
 if not os.path.exists(STORM_DIR + "/RELEASE"):
     print "******************************************"
@@ -47,8 +52,7 @@ def get_classpath(extrajars):
 
 def confvalue(name, extrapaths):
     command = [
-        "java", "-client", "-cp", get_classpath(extrapaths), 
-        "backtype.storm.command.config_value", name
+        "java", "-client", get_config_opts(), "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
@@ -80,8 +84,7 @@ def print_remoteconfvalue(name):
 
 def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
     nativepath = confvalue("java.library.path", extrajars)
-    global CONFIG_OPTS
-    command = "java " + jvmtype + " -Dstorm.options=" + ",".join(CONFIG_OPTS) + " -Dstorm.home=" + STORM_DIR + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
+    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + get_config_opts() + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
     print "Running: " + command    
     os.system(command)
 
@@ -284,7 +287,6 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage}
 
-CONFIG_OPTS = []
 def main():
     if len(sys.argv) <= 1:
         print_usage()

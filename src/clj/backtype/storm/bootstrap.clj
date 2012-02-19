@@ -4,7 +4,7 @@
   '(do
      (import (quote [backtype.storm Constants]))
      (import (quote [backtype.storm.testing FeederSpout TestPlannerBolt TestPlannerSpout
-                     AckFailDelegate AckTracker DelegateOutputCollector]))
+                     AckFailDelegate AckTracker]))
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback BufferFileInputStream
                      RegisteredGlobalState ThriftTopologyUtils]))
@@ -12,8 +12,7 @@
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
      (import (quote [backtype.storm.task IBolt IOutputCollector
-                     OutputCollector OutputCollectorImpl IInternalOutputCollector
-                     TopologyContext ShellBolt]))
+                     OutputCollector TopologyContext ShellBolt]))
      (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
                      IBatchBolt BatchBoltExecutor]))
      (import (quote [backtype.storm.drpc KeyedFairBolt]))

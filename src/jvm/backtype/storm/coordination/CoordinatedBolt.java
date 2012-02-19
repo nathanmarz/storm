@@ -64,7 +64,7 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
 
-    public class CoordinatedOutputCollector extends OutputCollector {
+    public class CoordinatedOutputCollector implements IOutputCollector {
         IOutputCollector _delegate;
 
         public CoordinatedOutputCollector(IOutputCollector delegate) {
@@ -183,9 +183,9 @@ public class CoordinatedBolt implements IRichBolt {
         if(_delegate instanceof TimeoutCallback) {
             callback = new TimeoutItems();
         }
-        _tracked = new TimeCacheMap<Object, TrackingInfo>(Utils.getInt(config.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)), callback);
+        _tracked = new TimeCacheMap<Object, TrackingInfo>(context.maxTopologyMessageTimeout(config), callback);
         _collector = collector;
-        _delegate.prepare(config, context, new CoordinatedOutputCollector(collector));
+        _delegate.prepare(config, context, new OutputCollector(new CoordinatedOutputCollector(collector)));
         for(String component: Utils.get(context.getThisTargets(),
                                         Constants.COORDINATED_STREAM_ID,
                                         new HashMap<String, Grouping>())

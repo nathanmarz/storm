@@ -92,6 +92,7 @@
         (reset! coordinator-state 10)
         (.nextTuple coordinator)
         (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (bind first-attempt (first attempts))
         (verify-and-reset! {BATCH-STREAM [[1 10] [2 10] [3 10] [4 10]]}
                            emit-capture)
 
@@ -99,12 +100,13 @@
         (verify-and-reset! {} emit-capture)
         
         (.fail coordinator (second attempts))
-        (bind new-second-attempt (first (get-attempts emit-capture BATCH-STREAM)))
-        (verify-and-reset! {BATCH-STREAM [[2 10]]} emit-capture)
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (bind new-second-attempt (first attempts))
+        (verify-and-reset! {BATCH-STREAM [[2 10] [3 10] [4 10]]} emit-capture)
         (is (not= new-second-attempt (second attempts)))
         (.ack coordinator new-second-attempt)
         (verify-and-reset! {} emit-capture)
-        (.ack coordinator (first attempts))
+        (.ack coordinator first-attempt)
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[1]]} emit-capture)
 
@@ -115,25 +117,26 @@
         (.ack coordinator commit-id)
         (verify-and-reset! {BATCH-STREAM [[6 12]]} emit-capture)
 
-        (.fail coordinator (nth attempts 2))
-        (bind new-third-attempt (first (get-attempts emit-capture BATCH-STREAM)))
-        (verify-and-reset! {BATCH-STREAM [[3 10]]} emit-capture)
+        (.fail coordinator (nth attempts 1))
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (verify-and-reset! {BATCH-STREAM [[3 10] [4 10] [5 12] [6 12]]} emit-capture)
 
-        (.ack coordinator new-third-attempt)
+        (.ack coordinator (first attempts))
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[3]]} emit-capture)
 
-        (.ack coordinator (nth attempts 3))
+        (.ack coordinator (nth attempts 1))
         (verify-and-reset! {} emit-capture)
 
         (.fail coordinator commit-id)
-        (bind new-third-attempt (first (get-attempts emit-capture BATCH-STREAM)))
-        (verify-and-reset! {BATCH-STREAM [[3 10]]} emit-capture)
+        (bind attempts (get-attempts emit-capture BATCH-STREAM))
+        (verify-and-reset! {BATCH-STREAM [[3 10] [4 10] [5 12] [6 12]]} emit-capture)
 
-        (.ack coordinator new-third-attempt)
+        (.ack coordinator (first attempts))
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[3]]} emit-capture)
 
+        (.ack coordinator (second attempts))
         (.nextTuple coordinator)
         (verify-and-reset! {} emit-capture)
         
@@ -155,7 +158,7 @@
                  (fn [ov]
                    (concat ov [newvalue])
                    )))]
-    (DelegateOutputCollector.
+    (OutputCollector.
      (reify IOutputCollector
        (emit [this stream-id anchors values]
          (swap! capturer adder stream-id values)
@@ -477,14 +480,20 @@
                  "gcommit" [[2 3]]})
 
        (fail-tx! 2)
-       (tracked-wait topo-info 1)
+       (tracked-wait topo-info 2)
 
        (verify! {"sum" [[2 "apple" 1]
                         [2 "dog" 3]
-                        [2 "zebra" 1]]
+                        [2 "zebra" 1]
+                        [3 "a" 5]
+                        [3 "b" 2]
+                        [3 "d" 4]
+                        [3 "c" 1]
+                        [3 "e" 7]]
                  "count" []
                  "count2" []
-                 "global" [[2 3]]
+                 "global" [[2 3]
+                           [3 7]]
                  "gcommit" []})
        (ack-tx! 2)
        (tracked-wait topo-info 1)
@@ -500,7 +509,8 @@
                  "gcommit" [[2 3]]})
        
        (ack-tx! 2)
-
+       (ack-tx! 3)
+       
        (tracked-wait topo-info 2)
        (verify! {"sum" [[4 "c" 14]]
                  "count" [[3 "a" 3]
@@ -515,7 +525,7 @@
                            [3 "e" 2]]
                  "global" [[4 2]]
                  "gcommit" [[3 7]]})
-
+       
        (ack-tx! 4)
        (ack-tx! 3)
        (tracked-wait topo-info 2)
@@ -524,7 +534,7 @@
                  "count2" [[4 "c" 2]]
                  "global" [[5 0]]
                  "gcommit" [[4 2]]})
-
+       
        (ack-tx! 5)
        (ack-tx! 4)
        (tracked-wait topo-info 2)
@@ -533,7 +543,7 @@
                  "count2" []
                  "global" [[6 0]]
                  "gcommit" [[5 0]]})
-
+       
        (-> topo-info :capturer .getAndClearResults)
        ))))
 

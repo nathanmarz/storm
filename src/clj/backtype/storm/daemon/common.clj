@@ -140,8 +140,7 @@
         spout-ids (.. topology get_spouts keySet)
         spout-inputs (apply merge
                             (for [id spout-ids]
-                              {[id ACKER-INIT-STREAM-ID] ["id"]
-                               [id ACKER-ACK-STREAM-ID] ["id"]}
+                              {[id ACKER-INIT-STREAM-ID] ["id"]}
                               ))
         bolt-inputs (apply merge
                            (for [id bolt-ids]
@@ -166,8 +165,7 @@
     (dofor [[_ spout] (.get_spouts ret)
             :let [common (.get_common spout)]]
       (do
-        (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "spout-task"]))
-        (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
+        (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "init-val" "spout-task"]))
         (.put_to_inputs common
                         (GlobalStreamId. ACKER-COMPONENT-ID ACKER-ACK-STREAM-ID)
                         (thrift/mk-direct-grouping))

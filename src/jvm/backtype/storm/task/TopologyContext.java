@@ -1,5 +1,6 @@
 package backtype.storm.task;
 
+import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
@@ -50,6 +51,10 @@ public class TopologyContext {
             if(curr==null) curr = new ArrayList<Integer>();
             curr.add(task);
             _componentToTasks.put(component, curr);
+        }
+        for(String component: _componentToTasks.keySet()) {
+            List<Integer> tasks = _componentToTasks.get(component);
+            Collections.sort(tasks);
         }
     }
 
@@ -321,5 +326,18 @@ public class TopologyContext {
     
     public Object getTaskData() {
         return _taskData;
+    }
+    
+    public int maxTopologyMessageTimeout(Map<String, Object> topologyConfig) {
+        Integer max = Utils.getInt(topologyConfig.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+        for(String spout: getRawTopology().get_spouts().keySet()) {
+            ComponentCommon common = getComponentCommon(spout);
+            Map conf = (Map) JSONValue.parse(common.get_json_conf());
+            Object comp = conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS);
+            if(comp!=null) {
+                max = Math.max(Utils.getInt(comp), max);
+            }
+        }
+        return max;
     }
 }

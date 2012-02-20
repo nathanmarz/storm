@@ -152,14 +152,22 @@
     (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
            common )))
 
-(defnk mk-spout-spec [spout :parallelism-hint nil :p nil :conf nil]
+(defn- debug-conf [conf debug]
+  (if debug (assoc conf TOPOLOGY-DEBUG true) conf))
+
+(defnk mk-spout-spec [spout :parallelism-hint nil :p nil :conf nil :debug nil]
   (let [parallelism-hint (if p p parallelism-hint)]
-    {:obj spout :p parallelism-hint :conf conf}
+    {:obj spout
+     :p parallelism-hint
+     :conf (debug-conf conf debug)}
     ))
 
-(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil :conf nil]
+(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil :conf nil :debug nil]
   (let [parallelism-hint (if p p parallelism-hint)]
-    {:obj bolt :inputs inputs :p parallelism-hint :conf conf}
+    {:obj bolt
+     :inputs inputs
+     :p parallelism-hint
+     :conf (debug-conf conf debug)}
     ))
 
 (defn mk-shell-bolt-spec [inputs command script output-spec & kwargs]

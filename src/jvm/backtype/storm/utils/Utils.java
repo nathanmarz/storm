@@ -111,23 +111,23 @@ public class Utils {
         return findAndReadConfigFile("defaults.yaml", true);
     }
 
-    public static Map readStormConfig() {
-        Map ret = readDefaultConfig();
-        Map storm = findAndReadConfigFile("storm.yaml", false);
-        ret.putAll(storm);
-        String commandOptions = System.getProperty("storm.options");
-        if(commandOptions != null){
-	    commandOptions = commandOptions.replaceAll("%%%%", " ");
-       	    String[] configs = commandOptions.split(",");
-            for (String config : configs) {
-                String[] options = config.split("=");
-        	if (options.length == 2) {
-        	    ret.put(options[0], options[1]);
-        	}
-            }
-        }
-        return ret;
-    }
+	public static Map readStormConfig() {
+		Map ret = readDefaultConfig();
+		Map storm = findAndReadConfigFile("storm.yaml", false);
+		ret.putAll(storm);
+		String commandOptions = System.getProperty("storm.options");
+		if (commandOptions != null) {
+			commandOptions = commandOptions.replaceAll("%%%%", " ");
+			String[] configs = commandOptions.split(",");
+			for (String config : configs) {
+				String[] options = config.split("=");
+				if (options.length == 2) {
+					ret.put(options[0], options[1]);
+				}
+			}
+		}
+		return ret;
+	}
 
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {

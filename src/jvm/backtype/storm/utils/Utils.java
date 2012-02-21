@@ -117,13 +117,14 @@ public class Utils {
         ret.putAll(storm);
         String commandOptions = System.getProperty("storm.options");
         if(commandOptions != null){
-        	    String[] configs = commandOptions.split(",");
-        	    for (String config : configs) {
-        	    	    String[] options = config.split("=");
-        	    	    if (options.length == 2) {
-        	    	        ret.put(options[0], options[1]);
-        	    	    }
-        	    }
+	    commandOptions = commandOptions.replaceAll("%%%%", " ");
+       	    String[] configs = commandOptions.split(",");
+            for (String config : configs) {
+                String[] options = config.split("=");
+        	if (options.length == 2) {
+        	    ret.put(options[0], options[1]);
+        	}
+            }
         }
         return ret;
     }

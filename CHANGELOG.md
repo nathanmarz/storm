@@ -25,6 +25,7 @@
  * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts (thanks ddillinger)
  * Bug fix: supervisor.childopts and nimbus.childopts can now contain whitespace. Previously only the first token was taken from the string
  * Bug fix: Make TopologyContext "getThisTaskIndex" and "getComponentTasks" consistent
+ * Bug fix: Fix NoNodeException that would pop up with task heartbeating under heavy load
 
 ## 0.6.2
 

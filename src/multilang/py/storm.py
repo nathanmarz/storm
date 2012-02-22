@@ -1,6 +1,7 @@
 import sys
 import os
 import traceback
+from collections import deque
 
 try:
     import cjson
@@ -26,6 +27,36 @@ ANCHOR_TUPLE = None
 def readMsg():
     return json_decode(readStringMsg())
 
+#queue up commands we read while trying to read taskids
+pending_commands = deque()
+
+def readTaskIds():
+    if pending_taskids:
+        return pending_taskids.popleft()
+    else:
+        msg = readMsg()
+        while type(msg) is not list:
+            pending_commands.append(msg)
+            msg = readMsg()
+        return msg
+
+#queue up taskids we read while trying to read commands/tuples
+pending_taskids = deque()
+
+def readCommand():
+    if pending_commands:
+        return pending_commands.popleft()
+    else:
+        msg = readMsg()
+        while type(msg) is list:
+            pending_taskids.append(msg)
+            msg = readMsg()
+        return msg
+
+def readTuple():
+    cmd = readCommand()
+    return Tuple(cmd["id"], cmd["comp"], cmd["stream"], cmd["task"], cmd["tuple"])
+
 def sendToParent(s):
     print s
     print "end"
@@ -37,8 +68,7 @@ def sync():
 
 def sendpid(heartbeatdir):
     pid = os.getpid()
-    print pid
-    sys.stdout.flush()
+    sendToParent(pid)
     open(heartbeatdir + "/" + str(pid), "w").close()    
 
 def sendMsgToParent(amap):
@@ -80,10 +110,6 @@ def readenv():
     context = readMsg()
     return [conf, context]
 
-def readtuple():
-    tupmap = readMsg()
-    return Tuple(tupmap["id"], tupmap["comp"], tupmap["stream"], tupmap["task"], tupmap["tuple"])
-
 def initbolt():
     heartbeatdir = readStringMsg()
     sendpid(heartbeatdir)
@@ -114,9 +140,8 @@ class Bolt:
         self.initialize(conf, context)
         try:
             while True:
-                tup = readtuple()
+                tup = readTuple()
                 self.process(tup)
-                sync()
         except Exception, e:
             log(traceback.format_exc(e))        
 
@@ -133,11 +158,10 @@ class BasicBolt:
         self.initialize(conf, context)
         try:
             while True:
-                tup = readtuple()
+                tup = readTuple()
                 ANCHOR_TUPLE = tup
                 self.process(tup)
                 ack(tup)
-                sync()
         except Exception, e:
             log(traceback.format_exc(e))
 

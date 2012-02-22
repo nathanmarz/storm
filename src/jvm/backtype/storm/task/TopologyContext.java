@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
 import org.json.simple.JSONValue;
+import org.json.simple.JSONAware;
 
 /**
  * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
@@ -29,7 +30,7 @@ import org.json.simple.JSONValue;
  * <p>The TopologyContext is also used to declare ISubscribedState objects to
  * synchronize state with StateSpouts this object is subscribed to.</p>
  */
-public class TopologyContext {
+public class TopologyContext implements JSONAware {
     private StormTopology _topology;
     private Map<Integer, String> _taskToComponent;
     private Integer _taskId;

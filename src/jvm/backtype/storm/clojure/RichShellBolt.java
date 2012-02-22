@@ -10,8 +10,8 @@ import java.util.Map;
 public class RichShellBolt extends ShellBolt implements IRichBolt {
     private Map<String, StreamInfo> _outputs;
     
-    public RichShellBolt(String script, String command, Map<String, StreamInfo> outputs) {
-        super(script, command);
+    public RichShellBolt(String[] command, Map<String, StreamInfo> outputs) {
+        super(command);
         _outputs = outputs;
     }
     

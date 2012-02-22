@@ -65,7 +65,7 @@
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                       {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
-                      {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "python" "tester.py" ["word"] :parallelism-hint 1)}
+                      {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} ["python" "tester.py"] ["word"] :parallelism-hint 1)}
                       )]
       (submit-local-topology nimbus
                           "test"

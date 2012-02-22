@@ -229,6 +229,7 @@
 (defalias bolt-spec thrift/mk-bolt-spec)
 (defalias spout-spec thrift/mk-spout-spec)
 (defalias shell-bolt-spec thrift/mk-shell-bolt-spec)
+(defalias shell-spout-spec thrift/mk-shell-spout-spec)
 
 (defn submit-remote-topology [name conf topology]
   (StormSubmitter/submitTopology name conf topology))

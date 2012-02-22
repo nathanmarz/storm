@@ -7,7 +7,7 @@
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.clojure RichShellBolt])
+  (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config])
@@ -175,6 +175,11 @@
   (let [[command output-spec kwargs]
         (shell-component-params command script-or-output-spec kwargs)]
     (apply mk-bolt-spec inputs (RichShellBolt. command (mk-output-spec output-spec)) kwargs)))
+
+(defn mk-shell-spout-spec [command script-or-output-spec & kwargs]
+  (let [[command output-spec kwargs]
+        (shell-component-params command script-or-output-spec kwargs)]
+   (apply mk-spout-spec (RichShellSpout. command (mk-output-spec output-spec)) kwargs)))
 
 (defn- add-inputs [declarer inputs]
   (doseq [[id grouping] (mk-inputs inputs)]

@@ -21,6 +21,7 @@ def readStringMsg():
         msg = msg + line + "\n"
     return msg[0:-1]
 
+MODE = None
 ANCHOR_TUPLE = None
 
 #reads lines and reconstructs newlines appropriately
@@ -74,7 +75,22 @@ def sendpid(heartbeatdir):
 def sendMsgToParent(amap):
     sendToParent(json_encode(amap))
 
-def emittuple(tup, stream=None, anchors = [], directTask=None):
+def emit(*args, **kwargs):
+    __emit(*args, **kwargs)
+    return readTaskIds()
+
+def emitDirect(task, *args, **kwargs):
+    kwargs[directTask] = task
+    __emit(*args, **kwargs)
+
+def __emit(*args, **kwargs):
+    global MODE
+    if MODE == Bolt:
+        emitBolt(*args, **kwargs)
+    elif MODE == Spout:
+        emitSpout(*args, **kwargs)
+
+def emitBolt(tup, stream=None, anchors = [], directTask=None):
     global ANCHOR_TUPLE
     if ANCHOR_TUPLE is not None:
         anchors = [ANCHOR_TUPLE]
@@ -87,13 +103,16 @@ def emittuple(tup, stream=None, anchors = [], directTask=None):
     m["tuple"] = tup
     sendMsgToParent(m)
     
-def emit(tup, stream=None, anchors = []):
-    emittuple(tup, stream=stream, anchors=anchors)
-    #read back task ids
-    return readMsg()
-    
-def emitDirect(task, tup, stream=None, anchors = []):
-    emittuple(tup, stream=stream, anchors=anchors, directTask=task)
+def emitSpout(tup, stream=None, id=None, directTask=None):
+    m = {"command": "emit"}
+    if id is not None:
+        m["id"] = id
+    if stream is not None:
+        m["stream"] = stream
+    if directTask is not None:
+        m["task"] = directTask
+    m["tuple"] = tup
+    sendMsgToParent(m)
 
 def ack(tup):
     sendMsgToParent({"command": "ack", "id": tup.id})
@@ -110,7 +129,7 @@ def readenv():
     context = readMsg()
     return [conf, context]
 
-def initbolt():
+def initComponent():
     heartbeatdir = readStringMsg()
     sendpid(heartbeatdir)
     return readenv()
@@ -136,7 +155,9 @@ class Bolt:
         pass
     
     def run(self):
-        conf, context = initbolt()
+        global MODE
+        MODE = Bolt
+        conf, context = initComponent()
         self.initialize(conf, context)
         try:
             while True:
@@ -153,8 +174,10 @@ class BasicBolt:
         pass
     
     def run(self):
+        global MODE
+        MODE = Bolt
         global ANCHOR_TUPLE
-        conf, context = initbolt()
+        conf, context = initComponent()
         self.initialize(conf, context)
         try:
             while True:
@@ -166,7 +189,32 @@ class BasicBolt:
             log(traceback.format_exc(e))
 
 class Spout:
-    pass
+    def initialize(self, conf, context):
+        pass
 
+    def ack(self, id):
+        pass
 
+    def fail(self, id):
+        pass
 
+    def nextTuple(self):
+        pass
+
+    def run(self):
+        global MODE
+        MODE = Spout
+        conf, context = initComponent()
+        self.initialize(conf, context)
+        try:
+            while True:
+                msg = readCommand()
+                if msg["command"] == "next":
+                    self.nextTuple()
+                if msg["command"] == "ack":
+                    self.ack(msg["id"])
+                if msg["command"] == "fail":
+                    self.fail(msg["id"])
+                sync()
+        except Exception, e:
+            log(traceback.format_exc(e))

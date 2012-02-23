@@ -18,17 +18,17 @@
         running (atom true)
         runner (Thread.
                   (fn []
-                    (while @running
-                      (try-cause
+                    (try-cause
+                      (while @running
                         (let [r (.take queue)]
                           (r)
-                          (swap! processed inc))
-                      (catch InterruptedException t
-                        (log-message "Event manager interrupted"))
-                      (catch Throwable t
-                        (log-error t "Error when processing event")
-                        (halt-process! 20 "Error when processing an event"))
-                        ))))]
+                          (swap! processed inc)))
+                    (catch InterruptedException t
+                      (log-message "Event manager interrupted"))
+                    (catch Throwable t
+                      (log-error t "Error when processing event")
+                      (halt-process! 20 "Error when processing an event"))
+                      )))]
     (.setDaemon runner daemon?)
     (.start runner)
     (reify

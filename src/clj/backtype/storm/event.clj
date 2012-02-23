@@ -21,18 +21,14 @@
                     (while @running
                       (try-cause
                         (let [r (.take queue)]
-                          (try-cause
-                            (r)
-                            (swap! processed inc)
-                          (catch InterruptedException t
-                            (throw t))
-                          (catch Throwable t
-                            (log-error t "Error when processing event " r)
-                            (halt-process! 20 "Error when processing an event"))
-                            ))
+                          (r)
+                          (swap! processed inc))
                       (catch InterruptedException t
-                          (log-message "Event manager interrupted")))
-                          )))]
+                        (log-message "Event manager interrupted"))
+                      (catch Throwable t
+                        (log-error t "Error when processing event")
+                        (halt-process! 20 "Error when processing an event"))
+                        ))))]
     (.setDaemon runner daemon?)
     (.start runner)
     (reify

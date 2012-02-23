@@ -1,6 +1,6 @@
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat])
-  (:import [org.apache.zookeeper KeeperException])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
   (:use [clojure.contrib.core :only [dissoc-in]])
@@ -50,7 +50,12 @@
      (set-ephemeral-node [this path data]
                          (zk/mkdirs zk (parent-path path))
                          (if (zk/exists zk path false)
-                           (zk/set-data zk path data) ; should verify that it's ephemeral
+                           (try-cause
+                             (zk/set-data zk path data) ; should verify that it's ephemeral
+                             (catch KeeperException$NoNodeException e
+                               (log-warn-error e "Ephemeral node disappeared between checking for existing and setting data")
+                               (zk/create-node zk path data :ephemeral)
+                               ))
                            (zk/create-node zk path data :ephemeral)
                            ))
      
@@ -269,7 +274,7 @@
         )
 
       (task-heartbeat! [this storm-id task-id info]
-        (set-ephemeral-node cluster-state (taskbeat-path storm-id task-id) (Utils/serialize info))
+        (set-data cluster-state (taskbeat-path storm-id task-id) (Utils/serialize info))
         )
 
       (remove-task-heartbeat! [this storm-id task-id]

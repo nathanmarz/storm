@@ -76,7 +76,7 @@
   (let [path (normalize-path path)]
     (when-not (or (= path "/") (exists-node? zk path false))
       (mkdirs zk (parent-path path))
-      (try
+      (try-cause
         (create-node zk path (barr 7) :persistent)
         (catch KeeperException$NodeExistsException e
           ;; this can happen when multiple clients doing mkdir at same time
@@ -85,7 +85,7 @@
 
 (defn get-data [^CuratorFramework zk ^String path watch?]
   (let [path (normalize-path path)]
-    (try
+    (try-cause
       (if (exists-node? zk path watch?)
         (if watch?
           (.. zk (getData) (watched) (forPath path))

@@ -57,10 +57,12 @@ public class TestWordSpout extends BaseRichSpout {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> ret = new HashMap<String, Object>();
         if(!_isDistributed) {
+            Map<String, Object> ret = new HashMap<String, Object>();
             ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
+            return ret;
+        } else {
+            return null;
         }
-        return ret;
     }    
 }

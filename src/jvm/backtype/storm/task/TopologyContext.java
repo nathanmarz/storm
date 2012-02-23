@@ -332,10 +332,13 @@ public class TopologyContext {
         Integer max = Utils.getInt(topologyConfig.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
         for(String spout: getRawTopology().get_spouts().keySet()) {
             ComponentCommon common = getComponentCommon(spout);
-            Map conf = (Map) JSONValue.parse(common.get_json_conf());
-            Object comp = conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS);
-            if(comp!=null) {
-                max = Math.max(Utils.getInt(comp), max);
+            String jsonConf = common.get_json_conf();
+            if(jsonConf!=null) {
+                Map conf = (Map) JSONValue.parse(jsonConf);
+                Object comp = conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS);
+                if(comp!=null) {
+                    max = Math.max(Utils.getInt(comp), max);
+                }
             }
         }
         return max;

@@ -19,7 +19,7 @@
         runner (Thread.
                   (fn []
                     (while @running
-                      (try
+                      (try-cause
                         (let [r (.take queue)]
                           (try-cause
                             (r)

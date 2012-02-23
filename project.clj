@@ -15,6 +15,6 @@
                  [org.twitter4j/twitter4j-stream "2.2.5-SNAPSHOT"]
                  ]
 
-  :dev-dependencies [[storm "0.7.0-SNAPSHOT"]
+  :dev-dependencies [[storm "0.7.0-rc"]
                      ])
 

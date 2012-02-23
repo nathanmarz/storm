@@ -149,6 +149,6 @@ public class DRPCSpout implements IRichSpout {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return new HashMap<String, Object>();
+        return null;
     }
 }

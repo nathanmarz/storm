@@ -22,6 +22,35 @@
   (:use [clojure.contrib.def :only [defnk]])
   )
 
+(defn exception-cause? [klass ^Throwable t]
+  (->> (iterate #(.getCause ^Throwable %) t)
+       (take-while identity)
+       (some (partial instance? klass))
+       boolean))
+
+(defmacro forcat [[args aseq] & body]
+  `(mapcat (fn [~args]
+             ~@body)
+           ~aseq))
+
+(defmacro try-cause [& body]
+  (let [checker (fn [form]
+                  (or (not (sequential? form))
+                      (not= 'catch (first form))))
+        [code guards] (split-with checker body)
+        error-local (gensym "t")
+        guards (forcat [[_ klass local & guard-body] guards]
+                 `((exception-cause? ~klass ~error-local)
+                   (let [~local ~error-local]
+                     ~@guard-body
+                     )))
+        ]
+    `(try ~@code
+          (catch Throwable ~error-local
+            (cond ~@guards
+                  true (throw ~error-local)
+                  )))))
+
 (defn local-hostname []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
 
@@ -192,7 +221,7 @@
     ))
 
 (defn extract-dir-from-jar [jarpath dir destdir]
-  (try
+  (try-cause
     (exec-command! (str "unzip -qq " jarpath " " dir "/** -d " destdir))
   (catch ExecuteException e
     (log-message "Error when trying to extract " dir " from " jarpath))
@@ -200,7 +229,7 @@
 
 (defn ensure-process-killed! [pid]
   ;; TODO: should probably do a ps ax of some sort to make sure it was killed
-  (try
+  (try-cause
     (exec-command! (str "kill -9 " pid))
   (catch ExecuteException e
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
@@ -237,7 +266,7 @@
                    :start true]
   (let [thread (Thread.
                 (fn []
-                  (try
+                  (try-cause
                     (let [args (args-fn)]
                       (loop []
                         (let [sleep-time (apply afn args)]
@@ -249,13 +278,8 @@
                       (log-message "Async loop interrupted!")
                       )
                     (catch Throwable t
-                      ;; work around clojure wrapping exceptions
-                      (if (instance? InterruptedException (.getCause t))
-                        (log-message "Async loop interrupted!")
-                        (do
-                          (log-error t "Async loop died!")
-                          (kill-fn t)
-                          ))
+                      (log-error t "Async loop died!")
+                      (kill-fn t)
                       ))
                   ))]
     (.setDaemon thread daemon)
@@ -545,35 +569,6 @@
 
 (defn throw-runtime [& strs]
   (throw (RuntimeException. (apply str strs))))
-
-(defn exception-cause? [klass ^Throwable t]
-  (->> (iterate #(.getCause ^Throwable %) t)
-       (take-while identity)
-       (some (partial instance? klass))
-       boolean))
-
-(defmacro forcat [[args aseq] & body]
-  `(mapcat (fn [~args]
-             ~@body)
-           ~aseq))
-
-(defmacro try-cause [& body]
-  (let [checker (fn [form]
-                  (or (not (sequential? form))
-                      (not= 'catch (first form))))
-        [code guards] (split-with checker body)
-        error-local (gensym "t")
-        guards (forcat [[_ klass local & guard-body] guards]
-                 `((exception-cause? ~klass ~error-local)
-                   (let [~local ~error-local]
-                     ~@guard-body
-                     )))
-        ]
-    `(try ~@code
-          (catch Throwable ~error-local
-            (cond ~@guards
-                  true (throw ~error-local)
-                  )))))
 
 (defn redirect-stdio-to-log4j! []
   ;; set-var-root doesn't work with *out* and *err*, so digging much deeper here

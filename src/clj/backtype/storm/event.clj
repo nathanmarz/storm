@@ -21,7 +21,7 @@
                     (while @running
                       (try
                         (let [r (.take queue)]
-                          (try
+                          (try-cause
                             (r)
                             (swap! processed inc)
                           (catch InterruptedException t

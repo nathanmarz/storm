@@ -47,7 +47,7 @@ public class ShellBolt implements IBolt {
     public static Logger LOG = Logger.getLogger(ShellBolt.class);
     Process _subprocess;
     OutputCollector _collector;
-    Map<Long, Tuple> _inputs = new ConcurrentHashMap<Long, Tuple>();
+    Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
 
     private String[] _command;
     private ShellProcess _process;
@@ -126,7 +126,7 @@ public class ShellBolt implements IBolt {
 
     public void execute(Tuple input) {
         //just need an id
-        long genId = MessageId.generateId();
+        String genId = Long.toString(MessageId.generateId());
         _inputs.put(genId, input);
         try {
             JSONObject obj = new JSONObject();
@@ -148,7 +148,7 @@ public class ShellBolt implements IBolt {
     }
 
     private void handleAck(Map action) {
-        Long id = (Long) action.get("id");
+        String id = (String) action.get("id");
         Tuple acked = _inputs.remove(id);
         if(acked==null) {
             throw new RuntimeException("Acked a non-existent or already acked/failed id: " + id);
@@ -157,7 +157,7 @@ public class ShellBolt implements IBolt {
     }
 
     private void handleFail(Map action) {
-        Long id = (Long) action.get("id");
+        String id = (String) action.get("id");
         Tuple failed = _inputs.remove(id);
         if(failed==null) {
             throw new RuntimeException("Failed a non-existent or already acked/failed id: " + id);
@@ -173,11 +173,11 @@ public class ShellBolt implements IBolt {
         List<Tuple> anchors = new ArrayList<Tuple>();
         Object anchorObj = action.get("anchors");
         if(anchorObj!=null) {
-            if(anchorObj instanceof Long) {
+            if(anchorObj instanceof String) {
                 anchorObj = Arrays.asList(anchorObj);
             }
             for(Object o: (List) anchorObj) {
-                Tuple t = _inputs.get((Long) o);
+                Tuple t = _inputs.get((String) o);
                 if (t == null) {
                     throw new RuntimeException("Anchored onto " + o + " after ack/fail");
                 }

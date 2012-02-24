@@ -51,7 +51,10 @@
              (if (or (exception-cause? InterruptedException error)
                      (exception-cause? java.nio.channels.ClosedByInterruptException error))
                (do (log-warn-error error "Zookeeper exception " msg)
-                   (throw error))
+                   (let [to-throw (InterruptedException.)]
+                     (.initCause to-throw error)
+                     (throw to-throw)
+                     ))
                (do (log-error error "Unrecoverable Zookeeper error " msg)
                    (halt-process! 1 "Unrecoverable Zookeeper error")))
              ))))

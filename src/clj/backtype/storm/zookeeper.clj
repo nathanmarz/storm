@@ -48,8 +48,13 @@
         (addListener
          (reify UnhandledErrorListener
            (unhandledError [this msg error]
-             (log-error error "Unrecoverable Zookeeper error, halting process: " msg)
-             (halt-process! 1 "Unrecoverable Zookeeper error")))))
+             (if (or (exception-cause? InterruptedException error)
+                     (exception-cause? java.nio.channels.ClosedByInterruptException error))
+               (do (log-warn-error error "Zookeeper exception " msg)
+                   (throw error))
+               (do (log-error error "Unrecoverable Zookeeper error " msg)
+                   (halt-process! 1 "Unrecoverable Zookeeper error")))
+             ))))
     (.start fk)
     fk))
 

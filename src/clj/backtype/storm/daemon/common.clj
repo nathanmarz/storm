@@ -91,8 +91,10 @@
 (defmacro defserverfn [name & body]
   `(let [exec-fn# (fn ~@body)]
     (defn ~name [& args#]
-      (try
+      (try-cause
         (apply exec-fn# args#)
+      (catch InterruptedException e#
+        (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
         (halt-process! 13 "Error on initialization")

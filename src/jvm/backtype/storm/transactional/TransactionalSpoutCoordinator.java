@@ -107,7 +107,7 @@ public class TransactionalSpoutCoordinator implements IRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // in partitioned example, in case an emitter task receives a later transaction than it's emitted so far,
         // when it sees the earlier txid it should know to emit nothing
-        declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx", "tx-meta", "curr-txid"));
+        declarer.declareStream(TRANSACTION_BATCH_STREAM_ID, new Fields("tx", "tx-meta", "committed-txid"));
         declarer.declareStream(TRANSACTION_COMMIT_STREAM_ID, new Fields("tx"));
     }
     

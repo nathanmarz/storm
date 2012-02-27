@@ -18,7 +18,7 @@ public class TestTopology {
 
         @Override
         public void execute(Tuple tuple, BasicOutputCollector collector) {
-            System.out.println(tuple);
+            System.out.println(tuple.toString());
         }
         
     }

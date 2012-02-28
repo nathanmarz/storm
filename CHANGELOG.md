@@ -1,4 +1,4 @@
-## 0.7.0-SNAPSHOT
+## 0.7.0
 
  * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most computations. Documented on the wiki.
  * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 

@@ -10,6 +10,7 @@ lein pom
 scp storm*jar pom.xml clojars@clojars.org:
 
 rm *jar
+rm -rf classes
 rm conf/log4j.properties
 lein jar
 mv pom.xml old-pom.xml

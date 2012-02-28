@@ -1,5 +1,10 @@
 package backtype.storm.utils;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import backtype.storm.generated.DRPCExecutionException;
 import backtype.storm.generated.DistributedRPC;
 import org.apache.thrift7.TException;
@@ -13,6 +18,7 @@ public class DRPCClient implements DistributedRPC.Iface {
     private DistributedRPC.Client client;
     private String host;
     private int port;    
+    private ExecutorService executor;
 
     public DRPCClient(String host, int port) {
         try {
@@ -22,6 +28,16 @@ public class DRPCClient implements DistributedRPC.Iface {
         } catch(TException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    public DRPCClient(String host, int port, int threadCount){
+    		this(host, port);
+    		this.executor = Executors.newFixedThreadPool(threadCount);
+    }
+    
+    public DRPCClient(String host, int port, ExecutorService executor){
+    		this(host, port);
+    		this.executor = executor;
     }
     
     private void connect() throws TException {
@@ -50,8 +66,21 @@ public class DRPCClient implements DistributedRPC.Iface {
             throw e;
         }
     }
+    
+    public Future<String> executeAsync(final String func, final String args) throws TException, DRPCExecutionException {
+    		Future<String> future = this.executor.submit(new Callable<String>(){
+
+				@Override
+				public String call() throws Exception {
+					return execute(func, args);
+				}
+    			
+    		});
+    		return future;
+    }
 
     public void close() {
         conn.close();
+        this.executor.shutdown();
     }
 }

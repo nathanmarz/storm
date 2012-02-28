@@ -21,7 +21,7 @@ else:
     normclasspath = identity
 
 CONF_DIR = os.path.expanduser("~/.storm")
-STORM_DIR = "/".join(os.path.abspath( __file__ ).split("/")[:-2])
+STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 
 if not os.path.exists(STORM_DIR + "/RELEASE"):
     print "******************************************"

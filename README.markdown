@@ -18,8 +18,16 @@ java -cp `lein classpath` storm.starter.ExclamationTopology
 
 ## Maven
 
-Maven is an alternative to Leiningen. storm-starter contains m2-pom.xml which can be used with Maven using the -f option, e.g.:
+Maven is an alternative to Leiningen. storm-starter contains m2-pom.xml which can be used with Maven using the -f option. For example, to compile and run `WordCountTopology` in local mode, use this command:
+
+```
+mvn -f m2-pom.xml compile exec:java -Dexec.classpathScope=compile -Dexec.mainClass=storm.starter.WordCountTopology
+```
+
+You can package a jar suitable for submitting to a cluster with this command:
 
 ```
 mvn -f m2-pom.xml package
 ```
+
+This will package your code and all the non-Storm dependencies into a single "uberjar" at the path `target/storm-starter-{version}-jar-with-dependencies.jar`.

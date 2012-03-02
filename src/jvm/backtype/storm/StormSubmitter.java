@@ -8,6 +8,7 @@ import backtype.storm.utils.BufferFileInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
@@ -39,6 +40,8 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
+        stormConf = new HashMap(stormConf);
+        stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
         try {

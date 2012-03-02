@@ -12,7 +12,7 @@ public class DRPCClient implements DistributedRPC.Iface {
     private TTransport conn;
     private DistributedRPC.Client client;
     private String host;
-    private int port;    
+    private int port;
 
     public DRPCClient(String host, int port) {
         try {

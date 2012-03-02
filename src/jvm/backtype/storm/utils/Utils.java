@@ -110,24 +110,30 @@ public class Utils {
     public static Map readDefaultConfig() {
         return findAndReadConfigFile("defaults.yaml", true);
     }
+    
+    public static Map readCommandLineOpts() {
+        Map ret = new HashMap();
+        String commandOptions = System.getProperty("storm.options");
+        if(commandOptions != null) {
+            commandOptions = commandOptions.replaceAll("%%%%", " ");
+            String[] configs = commandOptions.split(",");
+            for (String config : configs) {
+                String[] options = config.split("=");
+                if (options.length == 2) {
+                    ret.put(options[0], options[1]);
+                }
+            }
+        }
+        return ret;
+    }
 
-	public static Map readStormConfig() {
-		Map ret = readDefaultConfig();
-		Map storm = findAndReadConfigFile("storm.yaml", false);
-		ret.putAll(storm);
-		String commandOptions = System.getProperty("storm.options");
-		if (commandOptions != null) {
-			commandOptions = commandOptions.replaceAll("%%%%", " ");
-			String[] configs = commandOptions.split(",");
-			for (String config : configs) {
-				String[] options = config.split("=");
-				if (options.length == 2) {
-					ret.put(options[0], options[1]);
-				}
-			}
-		}
-		return ret;
-	}
+    public static Map readStormConfig() {
+        Map ret = readDefaultConfig();
+        Map storm = findAndReadConfigFile("storm.yaml", false);
+        ret.putAll(storm);
+        ret.putAll(readCommandLineOpts());
+        return ret;
+    }
 
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {

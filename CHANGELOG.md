@@ -1,3 +1,7 @@
+## Unreleased
+
+ * Added ability to override configs at the command line. These config definitions have the highest priority.
+
 ## 0.7.0
 
  * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most computations. Documented on the wiki.

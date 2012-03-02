@@ -290,15 +290,15 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
 def parse_config(config_list):
     global CONFIG_OPTS
     if len(config_list) > 0:
-    	for config in config_list:
-		CONFIG_OPTS.append(config[1])
+        for config in config_list:
+            CONFIG_OPTS.append(config[1])
 	
 def main():
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(-1)
     global CONFIG_OPTS
-    config_list, args = getopt.getopt(sys.argv[1:], "c:")
+    config_list, args = getopt.gnu_getopt(sys.argv[1:], "c:")
     parse_config(config_list)
     COMMAND = args[0]
     ARGS = args[1:]

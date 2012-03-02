@@ -1,6 +1,7 @@
 ## Unreleased
 
  * Added ability to override configs at the command line. These config definitions have the highest priority.
+ * Error thrown if invalid (not json-serializable) topology conf used.
 
 ## 0.7.0
 

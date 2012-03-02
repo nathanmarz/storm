@@ -220,6 +220,8 @@
        )))
 
 (defn submit-local-topology [nimbus storm-name conf topology]
+  (when-not (Utils/isValidConf conf)
+    (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
 (defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]

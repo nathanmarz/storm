@@ -40,6 +40,9 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
+        if(!Utils.isValidConf(stormConf)) {
+            throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
+        }
         stormConf = new HashMap(stormConf);
         stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();

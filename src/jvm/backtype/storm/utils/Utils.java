@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
+import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
@@ -133,6 +134,35 @@ public class Utils {
         ret.putAll(storm);
         ret.putAll(readCommandLineOpts());
         return ret;
+    }
+    
+    private static Object normalizeConf(Object conf) {
+        if(conf==null) return new HashMap();
+        if(conf instanceof Map) {
+            Map confMap = new HashMap((Map) conf);
+            for(Object key: confMap.keySet()) {
+                Object val = confMap.get(key);
+                confMap.put(key, normalizeConf(val));
+            }
+            return confMap;
+        } else if(conf instanceof List) {
+            List confList =  new ArrayList((List) conf);
+            for(int i=0; i<confList.size(); i++) {
+                Object val = confList.get(i);
+                confList.set(i, normalizeConf(val));
+            }
+            return confList;
+        } else if (conf instanceof Integer) {
+            return ((Integer) conf).longValue();
+        } else if(conf instanceof Float) {
+            return ((Float) conf).doubleValue();
+        } else {
+            return conf;
+        }
+    }
+    
+    public static boolean isValidConf(Map<String, Object> stormConf) {
+        return normalizeConf(stormConf).equals(normalizeConf((Map) JSONValue.parse(JSONValue.toJSONString(stormConf))));
     }
 
     public static Object getSetComponentObject(ComponentObject obj) {

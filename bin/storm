@@ -22,7 +22,7 @@ else:
     normclasspath = identity
 
 CONF_DIR = os.path.expanduser("~/.storm")
-STORM_DIR = "/".join(os.path.abspath( __file__ ).split("/")[:-2])
+STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 CONFIG_OPTS = []
 
 def get_config_opts():
@@ -84,7 +84,8 @@ def print_remoteconfvalue(name):
 
 def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
     nativepath = confvalue("java.library.path", extrajars)
-    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + " " + get_config_opts() + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
+    args_str = " ".join(map(lambda s: "\"" + s + "\"", args))
+    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + " " + get_config_opts() + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + args_str
     print "Running: " + command    
     os.system(command)
 

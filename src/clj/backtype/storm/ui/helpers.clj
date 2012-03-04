@@ -113,3 +113,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   (let [dt (from-long (* 1000 (long secs)))]
     (unparse (:rfc822 formatters) dt)
     ))
+
+(defn url-format [fmt & args]
+  (String/format fmt 
+    (to-array (map #(java.net.URLEncoder/encode (str %)) args))))

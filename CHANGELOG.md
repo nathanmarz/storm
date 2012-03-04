@@ -2,6 +2,9 @@
 
  * Added ability to override configs at the command line. These config definitions have the highest priority.
  * Error thrown if invalid (not json-serializable) topology conf used.
+ * Bug fix: Quoted arguments with spaces now work properly with storm client script
+ * Bug fix: Workers start properly when topology name has spaces
+ * Bug fix: UI works properly when there are spaces in topology or spout/bolt names
 
 ## 0.7.0
 

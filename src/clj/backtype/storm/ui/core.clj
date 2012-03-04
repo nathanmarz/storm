@@ -7,6 +7,7 @@
   (:use [clojure.contrib.def :only [defnk]])
   (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [ring.adapter.jetty :only [run-jetty]])
+  (:import [java.net URLEncoder])
   (:import [backtype.storm.generated TaskSpecificStats
             TaskStats TaskSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -345,7 +346,7 @@
       )))
 
 (defn component-link [storm-id id]
-  (link-to (format "/topology/%s/component/%s" storm-id id) id))
+  (link-to (format "/topology/%s/component/%s" (URLEncoder/encode storm-id) (URLEncoder/encode id)) id))
 
 (defn spout-comp-table [top-id summ-map window]
   (sorted-table

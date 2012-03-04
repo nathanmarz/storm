@@ -373,13 +373,17 @@
                                  "%ID%"
                                  (str port))
           logfilename (str "worker-" port ".log")
-          command (str "java -server " childopts
-                       " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
-                       " -Dlogfile.name=" logfilename
-                       " -Dstorm.home=" (System/getProperty "storm.home")
-                       " -Dlog4j.configuration=storm.log.properties"
-                       " -cp " classpath " backtype.storm.daemon.worker \""
-                       storm-id "\" " supervisor-id " " port " " worker-id)]
+          command ["java"
+                   "-server"
+                   childopts
+                   (str "-Djava.library.path=" (conf JAVA-LIBRARY-PATH))
+                   (str "-Dlogfile.name=" logfilename)
+                   (str "-Dstorm.home=" (System/getProperty "storm.home"))
+                   "-Dlog4j.configuration=storm.log.properties"
+                   "-cp" classpath
+                   "backtype.storm.daemon.worker"
+                   storm-id supervisor-id port worker-id
+                   ]]
       (log-message "Launching worker with command: " command)
       (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))

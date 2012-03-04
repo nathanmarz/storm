@@ -236,9 +236,7 @@
     ))
 
 (defnk launch-process [command :environment {}]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. (cons "nohup" command))
+  (let [builder (ProcessBuilder. (cons "nohup" command))
         process-env (.environment builder)]
     (doseq [[k v] environment]
       (.put process-env k v))

@@ -35,3 +35,4 @@ You must not remove this notice, or any other, from this software.
 * Dan Dillinger ([@ddillinger](https://github.com/ddillinger))
 * Kang Xiao ([@xiaokang](https://github.com/xiaokang))
 * Gabriel Grant ([@gabrielgrant](https://github.com/gabrielgrant))
+* Travis Wellman ([@travisfw](https://github.com/travisfw))

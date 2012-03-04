@@ -56,7 +56,7 @@
 
 
 (defn- read-downloaded-storm-ids [conf]
-  (read-dir-contents (supervisor-stormdist-root conf))
+  (map #(java.net.URLDecoder/decode %) (read-dir-contents (supervisor-stormdist-root conf)))
   )
 
 (defn read-worker-heartbeat [conf id]

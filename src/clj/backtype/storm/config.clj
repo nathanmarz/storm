@@ -103,7 +103,7 @@
 (defn supervisor-stormdist-root
   ([conf] (str (supervisor-local-dir conf) "/stormdist"))
   ([conf storm-id]
-      (str (supervisor-stormdist-root conf) "/" storm-id)))
+      (str (supervisor-stormdist-root conf) "/" (java.net.URLEncoder/encode storm-id))))
 
 (defn supervisor-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))

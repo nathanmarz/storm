@@ -378,8 +378,8 @@
                        " -Dlogfile.name=" logfilename
                        " -Dstorm.home=" (System/getProperty "storm.home")
                        " -Dlog4j.configuration=storm.log.properties"
-                       " -cp " classpath " backtype.storm.daemon.worker \""
-                       storm-id "\" " supervisor-id " " port " " worker-id)]
+                       " -cp " classpath " backtype.storm.daemon.worker "
+                       (java.net.URLEncoder/encode storm-id) " " supervisor-id " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
       (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))

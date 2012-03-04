@@ -254,4 +254,4 @@
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-worker conf nil storm-id supervisor-id (Integer/parseInt port-str) worker-id)))
+    (mk-worker conf nil (java.net.URLDecoder/decode storm-id) supervisor-id (Integer/parseInt port-str) worker-id)))

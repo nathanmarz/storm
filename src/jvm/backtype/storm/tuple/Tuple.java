@@ -302,6 +302,7 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
         Seq(List<String> fields, List<Object> values, int i) {
             this.fields = fields;
             this.values = values;
+            assert i >= 0;
             this.i = i;
         }
 
@@ -309,6 +310,7 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
             super(meta);
             this.fields= fields;
             this.values = values;
+            assert i >= 0;
             this.i = i;
         }
 
@@ -324,7 +326,9 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
         }
 
         public int count() {
-            return fields.size();
+            assert fields.size() -i >= 0 : "index out of bounds";
+            // i being the position in the fields of this seq, the remainder of the seq is the size
+            return fields.size() -i;
         }
 
         public Obj withMeta(IPersistentMap meta) {

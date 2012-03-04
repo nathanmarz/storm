@@ -33,3 +33,5 @@ You must not remove this notice, or any other, from this software.
 * Alexey Kachayev ([@kachayev](https://github.com/kachayev))
 * Haitao Yao ([@haitaoyao](https://github.com/haitaoyao))
 * Dan Dillinger ([@ddillinger](https://github.com/ddillinger))
+* Kang Xiao ([@xiaokang](https://github.com/xiaokang))
+* Gabriel Grant ([@gabrielgrant](https://github.com/gabrielgrant))

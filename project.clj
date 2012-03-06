@@ -29,7 +29,8 @@
   :dev-dependencies [
                      [swank-clojure "1.2.1"]
                      [lein-ring "0.4.5"]
-                    ]
+                     [jarjar "1.2"]
+                     ]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
   :ring {:handler backtype.storm.ui.core/app}
   :extra-classpath-dirs ["src/ui"]

@@ -9,15 +9,10 @@ DIR=_release/storm-$RELEASE
 rm -rf _release
 export LEIN_ROOT=1
 rm *.zip
-rm *jar
-lein clean
-lein deps
-lein compile
-lein jar
 mkdir -p $DIR
 mkdir $DIR/lib
-cp storm*jar $DIR/
-cp lib/*.jar $DIR/lib
+sh bin/build_jar.sh
+mv storm-$RELEASE-release.jar $DIR/storm-$RELEASE-release.jar
 
 echo $RELEASE > $DIR/RELEASE
 

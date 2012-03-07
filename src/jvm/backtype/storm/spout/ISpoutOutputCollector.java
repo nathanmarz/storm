@@ -8,5 +8,6 @@ public interface ISpoutOutputCollector {
     */
     List<Integer> emit(String streamId, List<Object> tuple, Object messageId);
     void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId);
+    void reportError(Throwable error);
 }
 

@@ -323,6 +323,9 @@
                            (^void emitDirect [this ^int out-task-id ^String stream-id
                                               ^List tuple ^Object message-id]
                              (send-spout-msg stream-id tuple message-id out-task-id)
+                             )
+                           (reportError [this error]
+                             (report-error-fn error)
                              ))]
     (log-message "Opening spout " component-id ":" task-id)
     (.open spout storm-conf user-context (SpoutOutputCollector. output-collector))

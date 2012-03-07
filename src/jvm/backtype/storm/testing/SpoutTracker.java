@@ -43,6 +43,11 @@ public class SpoutTracker extends BaseRichSpout {
             _collector.emitDirect(taskId, streamId, tuple, messageId);
             recordSpoutEmit();
         }
+
+        @Override
+        public void reportError(Throwable error) {
+        	_collector.reportError(error);
+        }
     }
 
 

@@ -1,6 +1,7 @@
 ## Unreleased
 
  * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
+ * Added TOPOLOGY_AUTO_TASK_HOOKS config to automatically add hooks into every spout/bolt for the topology.
  * Added ability to override configs at the command line. These config definitions have the highest priority.
  * Error thrown if invalid (not json-serializable) topology conf used.
  * Bug fix: Quoted arguments with spaces now work properly with storm client script

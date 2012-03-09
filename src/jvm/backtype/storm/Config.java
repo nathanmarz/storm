@@ -377,6 +377,13 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
     
     /**
+     * Task hooks that are automatically added to every spout and bolt in the topology. An example
+     * of when you'd do this is to add a hook that integrates with your internal 
+     * monitoring system. These hooks are instantiated using the zero-arg constructor.
+     */
+    public static String TOPOLOGY_AUTO_TASK_HOOKS="topology.auto.task.hooks";    
+    
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";

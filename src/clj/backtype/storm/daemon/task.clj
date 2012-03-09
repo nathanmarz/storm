@@ -169,6 +169,9 @@
                           :priority Thread/MAX_PRIORITY
                           :kill-fn report-error-and-die)
 
+        _ (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
+            (.addTaskHook user-context (-> klass Class/forName .newInstance)))
+
         stream->component->grouper (outbound-components topology-context)
         component->tasks (reverse-map task-info)
         ;; important it binds to virtual port before function returns

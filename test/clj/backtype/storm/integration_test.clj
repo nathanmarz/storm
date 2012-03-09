@@ -536,7 +536,7 @@
         failed (atom 0)
         emitted (atom 0)]
     (.addTaskHook context
-                  (reify backtype.storm.hooks.TaskHook
+                  (reify backtype.storm.hooks.ITaskHook
                     (emit [this info]
                       (swap! emitted inc))
                     (boltAck [this info]

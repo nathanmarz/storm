@@ -2,7 +2,7 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
-  (:import [backtype.storm.hooks TaskHook])
+  (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
               EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
@@ -78,7 +78,7 @@
     ))
 
 (defmacro apply-hooks [topology-context method-sym info-form]
-  (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.TaskHook})]
+  (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.ITaskHook})]
     `(let [hooks# (.getHooks ~topology-context)]
        (when-not (empty? hooks#)
          (let [info# ~info-form]

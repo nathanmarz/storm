@@ -6,7 +6,7 @@ import backtype.storm.hooks.info.EmitInfo;
 import backtype.storm.hooks.info.SpoutAckInfo;
 import backtype.storm.hooks.info.SpoutFailInfo;
 
-public class BaseTaskHook implements TaskHook {
+public class BaseTaskHook implements ITaskHook {
 
     @Override
     public void emit(EmitInfo info) {

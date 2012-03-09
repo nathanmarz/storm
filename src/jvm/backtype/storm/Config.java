@@ -377,7 +377,7 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
     
     /**
-     * Task hooks that are automatically added to every spout and bolt in the topology. An example
+     * A list of task hooks that are automatically added to every spout and bolt in the topology. An example
      * of when you'd do this is to add a hook that integrates with your internal 
      * monitoring system. These hooks are instantiated using the zero-arg constructor.
      */

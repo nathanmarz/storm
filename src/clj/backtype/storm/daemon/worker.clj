@@ -88,6 +88,7 @@
         
         task->component (storm-task-info storm-cluster-state storm-id)
         mk-topology-context #(TopologyContext. (system-topology! storm-conf topology)
+                                               storm-conf
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path
@@ -95,6 +96,7 @@
                                                (worker-pids-root conf worker-id)
                                                %)
         mk-user-context #(TopologyContext. topology
+                                           storm-conf
                                            task->component
                                            storm-id
                                            (supervisor-storm-resources-path

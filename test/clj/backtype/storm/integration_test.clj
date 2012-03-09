@@ -497,7 +497,7 @@
   (bolt
    (execute [tuple]
             (let [name (.getValue tuple 0)
-                  val (if (= name "!MAX_MSG_TIMEOUT") (.maxTopologyMessageTimeout context conf) (get conf name))]
+                  val (if (= name "!MAX_MSG_TIMEOUT") (.maxTopologyMessageTimeout context) (get conf name))]
               (emit-bolt! collector [name val] :anchor tuple)
               (ack! collector tuple))
             )))

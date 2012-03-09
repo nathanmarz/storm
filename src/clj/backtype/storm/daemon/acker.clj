@@ -30,7 +30,7 @@
     (reify IBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (reset! output-collector collector)
-               (reset! pending (TimeCacheMap. (.maxTopologyMessageTimeout context storm-conf)))
+               (reset! pending (TimeCacheMap. (.maxTopologyMessageTimeout context)))
                )
       (^void execute [this ^Tuple tuple]
              (let [id (.getValue tuple 0)

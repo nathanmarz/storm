@@ -183,7 +183,7 @@ public class CoordinatedBolt implements IRichBolt {
         if(_delegate instanceof TimeoutCallback) {
             callback = new TimeoutItems();
         }
-        _tracked = new TimeCacheMap<Object, TrackingInfo>(context.maxTopologyMessageTimeout(config), callback);
+        _tracked = new TimeCacheMap<Object, TrackingInfo>(context.maxTopologyMessageTimeout(), callback);
         _collector = collector;
         _delegate.prepare(config, context, new OutputCollector(new CoordinatedOutputCollector(collector)));
         for(String component: Utils.get(context.getThisTargets(),

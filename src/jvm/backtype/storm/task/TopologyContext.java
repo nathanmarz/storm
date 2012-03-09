@@ -39,9 +39,11 @@ public class TopologyContext {
     private String _stormId;
     private Object _taskData = null;
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
+    private Map _stormConf;
     
-    public TopologyContext(StormTopology topology, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
+    public TopologyContext(StormTopology topology, Map stormConf, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
         _topology = topology;
+        _stormConf = stormConf;
         _taskToComponent = taskToComponent;
         _stormId = stormId;
         _taskId = taskId;
@@ -331,8 +333,8 @@ public class TopologyContext {
         return _taskData;
     }
     
-    public int maxTopologyMessageTimeout(Map<String, Object> topologyConfig) {
-        Integer max = Utils.getInt(topologyConfig.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+    public int maxTopologyMessageTimeout() {
+        Integer max = Utils.getInt(_stormConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
         for(String spout: getRawTopology().get_spouts().keySet()) {
             ComponentCommon common = getComponentCommon(spout);
             String jsonConf = common.get_json_conf();

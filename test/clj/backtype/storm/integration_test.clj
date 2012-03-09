@@ -530,6 +530,48 @@
                   (apply hash-map))
              )))))
 
+(defbolt hooks-bolt ["emit" "ack" "fail"] {:prepare true}
+  [conf context collector]
+  (let [acked (atom 0)
+        failed (atom 0)
+        emitted (atom 0)]
+    (.addTaskHook context
+                  (reify backtype.storm.hooks.TaskHook
+                    (emit [this info]
+                      (swap! emitted inc))
+                    (boltAck [this info]
+                      (swap! acked inc))
+                    (boltFail [this info]
+                      (swap! failed inc))))
+    (bolt
+     (execute [tuple]
+        (emit-bolt! collector [@emitted @acked @failed])
+        (if (= 0 (- @acked @failed))
+          (ack! collector tuple)
+          (fail! collector tuple))
+        ))))
+
+(deftest test-hooks
+  (with-simulated-time-local-cluster [cluster]
+    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])))
+                              }
+                             {"2" (bolt-spec {"1" :shuffle}
+                                             hooks-bolt)
+                              })
+          results (complete-topology cluster
+                                     topology
+                                     :mock-sources {"1" [[1]
+                                                         [1]
+                                                         [1]
+                                                         [1]
+                                                         ]})]
+      (is (= [[0 0 0]
+              [2 1 0]
+              [4 1 1]
+              [6 2 1]]
+             (read-tuples results "2")
+             )))))
+
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology
   )

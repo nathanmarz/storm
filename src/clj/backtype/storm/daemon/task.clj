@@ -251,7 +251,7 @@
 (defn- fail-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
   (log-message "Failing message " msg-id ": " tuple-info)
   (.fail spout msg-id)
-  (apply-hooks user-context .spoutFail (SpoutAckInfo. msg-id time-delta))
+  (apply-hooks user-context .spoutFail (SpoutFailInfo. msg-id time-delta))
   (when (sampler)
     (stats/spout-failed-tuple! task-stats (:stream tuple-info) time-delta)
     ))
@@ -344,15 +344,15 @@
          (when-not (empty? ser-msg)
            (let [tuple (.deserialize deserializer ser-msg)
                  id (.getValue tuple 0)
-                 [spout-id tuple-finished-info start-time-ms] (.remove pending id)
-                 time-delta (time-delta-ms start-time-ms)]
+                 [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
              (when spout-id
-               (condp = (.getSourceStreamId tuple)
-                 ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
-                                                                       tuple-finished-info time-delta task-stats sampler))
-                 ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
+               (let [time-delta (time-delta-ms start-time-ms)]
+                 (condp = (.getSourceStreamId tuple)
+                   ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
                                                                          tuple-finished-info time-delta task-stats sampler))
-                 )))
+                   ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
+                                                                           tuple-finished-info time-delta task-stats sampler))
+                   ))))
            ;; TODO: on failure, emit tuple to failure stream
            )))
      ]
@@ -405,8 +405,8 @@
                                                   ACKER-ACK-STREAM-ID [root (bit-xor id ack-val)])
                                  ))
                              (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                               (apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
                                (when (sampler)
-                                 (apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
                                  (stats/bolt-acked-tuple! task-stats
                                                           (.getSourceComponent tuple)
                                                           (.getSourceStreamId tuple)
@@ -418,8 +418,8 @@
                                (send-unanchored topology-context tasks-fn transfer-fn
                                                 ACKER-FAIL-STREAM-ID [root]))
                              (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                               (apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
                                (when (sampler)
-                                 (apply-hooks user-context .boltFail (BoltAckInfo. tuple delta))
                                  (stats/bolt-failed-tuple! task-stats
                                                            (.getSourceComponent tuple)
                                                            (.getSourceStreamId tuple)

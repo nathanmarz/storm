@@ -1,16 +1,15 @@
 package backtype.storm.hooks;
 
 import backtype.storm.hooks.info.BoltAckInfo;
-import backtype.storm.hooks.info.BoltEmitInfo;
 import backtype.storm.hooks.info.BoltFailInfo;
+import backtype.storm.hooks.info.EmitInfo;
 import backtype.storm.hooks.info.SpoutAckInfo;
-import backtype.storm.hooks.info.SpoutEmitInfo;
 import backtype.storm.hooks.info.SpoutFailInfo;
 
 public class BaseTaskHook implements TaskHook {
 
     @Override
-    public void spoutEmit(SpoutEmitInfo info) {
+    public void emit(EmitInfo info) {
     }
 
     @Override
@@ -19,10 +18,6 @@ public class BaseTaskHook implements TaskHook {
 
     @Override
     public void spoutFail(SpoutFailInfo info) {
-    }
-
-    @Override
-    public void boltEmit(BoltEmitInfo info) {
     }
 
     @Override

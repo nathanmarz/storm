@@ -2,6 +2,9 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
+  (:import [backtype.storm.hooks TaskHook])
+  (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
+              EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
 
 (bootstrap)
@@ -74,6 +77,14 @@
     obj
     ))
 
+(defmacro apply-hooks [topology-context method-sym info-form]
+  (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.TaskHook})]
+    `(let [hooks# (.getHooks ~topology-context)]
+       (when-not (empty? hooks#)
+         (let [info# ~info-form]
+           (doseq [~hook-sym hooks#]
+             (~method-sym ~hook-sym info#)
+             ))))))
 
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
@@ -176,6 +187,7 @@
                               out-task-id (if grouping out-task-id)]
                           (when (and (not-nil? grouping) (not= :direct grouping))
                             (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
+                          (apply-hooks user-context .emit (EmitInfo. values stream [out-task-id]))
                           (when (emit-sampler)
                             (stats/emitted-tuple! task-stats stream)
                             (if out-task-id
@@ -196,6 +208,7 @@
                                                indices (collectify (grouper values))]
                                            (for [i indices] (tasks i))))
                                        (stream->component->grouper stream))]
+                        (apply-hooks user-context .emit (EmitInfo. values stream out-tasks))
                         (when (emit-sampler)
                           (stats/emitted-tuple! task-stats stream)
                           (stats/transferred-tuples! task-stats stream (count out-tasks)))
@@ -235,17 +248,19 @@
         (every? (memfn sleeping?) system-threads)
         ))))
 
-(defn- fail-spout-msg [^ISpout spout storm-conf msg-id tuple-info time-delta task-stats sampler]
+(defn- fail-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
   (log-message "Failing message " msg-id ": " tuple-info)
   (.fail spout msg-id)
+  (apply-hooks user-context .spoutFail (SpoutAckInfo. msg-id time-delta))
   (when (sampler)
     (stats/spout-failed-tuple! task-stats (:stream tuple-info) time-delta)
     ))
 
-(defn- ack-spout-msg [^ISpout spout storm-conf msg-id tuple-info time-delta task-stats sampler]
+(defn- ack-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
   (when (= true (storm-conf TOPOLOGY-DEBUG))
     (log-message "Acking message " msg-id))
   (.ack spout msg-id)
+  (apply-hooks user-context .spoutAck (SpoutAckInfo. msg-id time-delta))
   (when (sampler)
     (stats/spout-acked-tuple! task-stats (:stream tuple-info) time-delta)
     ))
@@ -266,7 +281,7 @@
                  (reify TimeCacheMap$ExpiredCallback
                    (expire [this msg-id [spout-id tuple-info start-time-ms]]
                      (let [time-delta (time-delta-ms start-time-ms)]
-                       (.add event-queue #(fail-spout-msg spout storm-conf spout-id tuple-info time-delta task-stats sampler)))
+                       (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id tuple-info time-delta task-stats sampler)))
                      )))
         send-spout-msg (fn [out-stream-id values message-id out-task-id]
                          (let [out-tasks (if out-task-id
@@ -295,7 +310,7 @@
                                                 ACKER-INIT-STREAM-ID
                                                 [root-id (bit-xor-vals out-ids) task-id]))
                              (when message-id
-                               (.add event-queue #(ack-spout-msg spout storm-conf message-id {:stream out-stream-id :values values} 0 task-stats sampler))))
+                               (.add event-queue #(ack-spout-msg spout user-context storm-conf message-id {:stream out-stream-id :values values} 0 task-stats sampler))))
                            (or out-tasks [])
                            ))
         output-collector (reify ISpoutOutputCollector
@@ -333,9 +348,9 @@
                  time-delta (time-delta-ms start-time-ms)]
              (when spout-id
                (condp = (.getSourceStreamId tuple)
-                 ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout storm-conf spout-id
+                 ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
                                                                        tuple-finished-info time-delta task-stats sampler))
-                 ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout storm-conf spout-id
+                 ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
                                                                          tuple-finished-info time-delta task-stats sampler))
                  )))
            ;; TODO: on failure, emit tuple to failure stream
@@ -391,6 +406,7 @@
                                  ))
                              (let [delta (tuple-time-delta! tuple-start-times tuple)]
                                (when (sampler)
+                                 (apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
                                  (stats/bolt-acked-tuple! task-stats
                                                           (.getSourceComponent tuple)
                                                           (.getSourceStreamId tuple)
@@ -403,6 +419,7 @@
                                                 ACKER-FAIL-STREAM-ID [root]))
                              (let [delta (tuple-time-delta! tuple-start-times tuple)]
                                (when (sampler)
+                                 (apply-hooks user-context .boltFail (BoltAckInfo. tuple delta))
                                  (stats/bolt-failed-tuple! task-stats
                                                            (.getSourceComponent tuple)
                                                            (.getSourceStreamId tuple)

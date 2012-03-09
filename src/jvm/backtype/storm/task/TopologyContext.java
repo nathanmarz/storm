@@ -6,11 +6,13 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
+import backtype.storm.hooks.TaskHook;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +38,8 @@ public class TopologyContext {
     private String _pidDir;
     private String _stormId;
     private Object _taskData = null;
-
+    private List<TaskHook> _hooks = new ArrayList<TaskHook>();
+    
     public TopologyContext(StormTopology topology, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
         _topology = topology;
         _taskToComponent = taskToComponent;
@@ -342,5 +345,13 @@ public class TopologyContext {
             }
         }
         return max;
+    }
+    
+    public void addTaskHook(TaskHook hook) {
+        _hooks.add(hook);
+    }
+    
+    public Collection<TaskHook> getHooks() {
+        return _hooks;
     }
 }

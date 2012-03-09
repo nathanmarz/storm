@@ -13,7 +13,6 @@ rm *jar
 rm -rf lib
 rm -rf classes
 lein deps
-lein compile
 lein jar
 mkdir -p $DIR
 mkdir $DIR/lib

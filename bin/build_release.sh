@@ -10,7 +10,8 @@ rm -rf _release
 export LEIN_ROOT=1
 rm *.zip
 rm *jar
-lein clean
+rm -rf lib
+rm -rf classes
 lein deps
 lein compile
 lein jar

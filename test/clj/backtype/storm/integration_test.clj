@@ -514,17 +514,20 @@
                               })
           results (complete-topology cluster
                                      topology
+                                     :topology-name "test123"
                                      :storm-conf {TOPOLOGY-MAX-TASK-PARALLELISM 10
                                                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30}
                                      :mock-sources {"1" [["fake.config"]
                                                          [TOPOLOGY-MAX-TASK-PARALLELISM]
                                                          [TOPOLOGY-MAX-SPOUT-PENDING]
                                                          ["!MAX_MSG_TIMEOUT"]
+                                                         [TOPOLOGY-NAME]
                                                          ]})]
       (is (= {"fake.config" 1
               TOPOLOGY-MAX-TASK-PARALLELISM 2
               TOPOLOGY-MAX-SPOUT-PENDING 3
-              "!MAX_MSG_TIMEOUT" 40}
+              "!MAX_MSG_TIMEOUT" 40
+              TOPOLOGY-NAME "test123"}
              (->> (read-tuples results "2")
                   (apply concat)
                   (apply hash-map))
@@ -537,6 +540,8 @@
         emitted (atom 0)]
     (.addTaskHook context
                   (reify backtype.storm.hooks.ITaskHook
+                    (prepare [this conf context]
+                      )
                     (emit [this info]
                       (swap! emitted inc))
                     (boltAck [this info]

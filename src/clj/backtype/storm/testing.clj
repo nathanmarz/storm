@@ -385,11 +385,11 @@
     ))
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true]
+(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true :topology-name nil]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
-        storm-name (str "topologytest-" (uuid))
+        storm-name (or topology-name (str "topologytest-" (uuid)))
         state (:storm-cluster-state cluster-map)
         spouts (.get_spouts topology)
         replacements (map-val (fn [v]

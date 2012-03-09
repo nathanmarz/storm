@@ -350,6 +350,7 @@ public class TopologyContext {
     }
     
     public void addTaskHook(ITaskHook hook) {
+        hook.prepare(_stormConf, this);
         _hooks.add(hook);
     }
     

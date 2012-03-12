@@ -74,6 +74,14 @@
         cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         task-ids (read-worker-task-ids storm-cluster-state storm-id supervisor-id port)
+        
+        ; List of folders located {root}/workers/{worker id}/tasks/{task id}
+        task-folder-ids (map str (repeat (str (worker-taskfolders-root conf worker-id) "/task")) task-ids)
+        ; Create folders
+        _ (doseq [task-folder-id task-folder-ids] (local-mkdirs task-folder-id))
+        ; Map of taskID to folder
+        task->folder (zipmap task-ids task-folder-ids)
+        
         ;; because in local mode, its not a separate
         ;; process. supervisor will register it in this case
         _ (when (= :distributed (cluster-mode conf))
@@ -94,6 +102,7 @@
                                                (supervisor-storm-resources-path
                                                  (supervisor-stormdist-root conf storm-id))
                                                (worker-pids-root conf worker-id)
+                                               (task->folder %)
                                                %)
         mk-user-context #(TopologyContext. topology
                                            storm-conf
@@ -102,6 +111,7 @@
                                            (supervisor-storm-resources-path
                                              (supervisor-stormdist-root conf storm-id))
                                            (worker-pids-root conf worker-id)
+                                           (task->folder %)
                                            %)
         mq-context (if mq-context
                      mq-context

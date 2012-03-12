@@ -36,3 +36,4 @@ You must not remove this notice, or any other, from this software.
 * Kang Xiao ([@xiaokang](https://github.com/xiaokang))
 * Gabriel Grant ([@gabrielgrant](https://github.com/gabrielgrant))
 * Travis Wellman ([@travisfw](https://github.com/travisfw))
+* Kasper Madsen ([@KasperMadsen](https://github.com/KasperMadsen))

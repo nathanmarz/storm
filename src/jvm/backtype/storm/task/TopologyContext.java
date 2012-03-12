@@ -36,12 +36,13 @@ public class TopologyContext {
     private Map<String, List<Integer>> _componentToTasks;
     private String _codeDir;
     private String _pidDir;
+    private String _taskDir;
     private String _stormId;
     private Object _taskData = null;
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map _stormConf;
     
-    public TopologyContext(StormTopology topology, Map stormConf, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
+    public TopologyContext(StormTopology topology, Map stormConf, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, String taskDir, Integer taskId) {
         _topology = topology;
         _stormConf = stormConf;
         _taskToComponent = taskToComponent;
@@ -49,6 +50,7 @@ public class TopologyContext {
         _taskId = taskId;
         _componentToTasks = new HashMap<String, List<Integer>>();
         _pidDir = pidDir;
+        _taskDir = taskDir;
         _codeDir = codeDir;
         for(Integer task: taskToComponent.keySet()) {
             String component = taskToComponent.get(task);
@@ -307,6 +309,13 @@ public class TopologyContext {
         return _pidDir;
     }
 
+    /**
+     * Gets folder for current task
+     */
+     public String getTaskDir() {
+       return _taskDir;	
+     }
+     
     /**
      * Gets a map from task id to component id.
      */

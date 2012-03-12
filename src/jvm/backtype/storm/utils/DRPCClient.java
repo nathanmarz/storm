@@ -13,19 +13,29 @@ public class DRPCClient implements DistributedRPC.Iface {
     private DistributedRPC.Client client;
     private String host;
     private int port;
+    private Integer timeout;
 
-    public DRPCClient(String host, int port) {
+    public DRPCClient(String host, int port, Integer timeout) {
         try {
             this.host = host;
             this.port = port;
+            this.timeout = timeout;
             connect();
         } catch(TException e) {
             throw new RuntimeException(e);
         }
     }
     
+    public DRPCClient(String host, int port) {
+        this(host, port, null);
+    }
+    
     private void connect() throws TException {
-        conn = new TFramedTransport(new TSocket(host, port));
+        TSocket socket = new TSocket(host, port);
+        if(timeout!=null) {
+            socket.setTimeout(timeout);
+        }
+        conn = new TFramedTransport(socket);
         client = new DistributedRPC.Client(new TBinaryProtocol(conn));
         conn.open();
     }

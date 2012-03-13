@@ -54,7 +54,7 @@ public class ShellBolt implements IBolt {
     OutputCollector _collector;
     Map<Long, Tuple> _inputs = new HashMap<Long, Tuple>();
     String[] command;
-    
+
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
@@ -183,7 +183,9 @@ public class ShellBolt implements IBolt {
     }
 
     private void sendToSubprocess(String str) throws IOException {
-        _processin.writeBytes(str + "\n");
+        byte[] strBytes = str.getBytes("UTF-8");
+        _processin.write(strBytes, 0, strBytes.length);
+        _processin.writeBytes("\n");
         _processin.writeBytes("end\n");
         _processin.flush();
     }

@@ -239,6 +239,8 @@
         (doseq [t all-threads]
           (.interrupt t)
           (.join t))
+        (doseq [hook (.getHooks user-context)]
+          (.cleanup hook))
         (.remove-task-heartbeat! storm-cluster-state storm-id task-id)
         (.disconnect storm-cluster-state)
         (.close puller)

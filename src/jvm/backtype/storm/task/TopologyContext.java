@@ -40,10 +40,12 @@ public class TopologyContext {
     private Object _taskData = null;
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map _stormConf;
+    private Integer _workerPort;
     
-    public TopologyContext(StormTopology topology, Map stormConf, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId) {
+    public TopologyContext(StormTopology topology, Map stormConf, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId, Integer workerPort) {
         _topology = topology;
         _stormConf = stormConf;
+        _workerPort = workerPort;
         _taskToComponent = taskToComponent;
         _stormId = stormId;
         _taskId = taskId;
@@ -347,6 +349,10 @@ public class TopologyContext {
             }
         }
         return max;
+    }
+    
+    public Integer getThisWorkerPort() {
+        return _workerPort;
     }
     
     public void addTaskHook(ITaskHook hook) {

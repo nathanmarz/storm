@@ -652,7 +652,8 @@
                           conf
                           (-> serializedConf
                               from-json
-                              (assoc STORM-ID storm-id))
+                              (assoc STORM-ID storm-id)
+                              (assoc TOPOLOGY-NAME storm-name))
                           topology)
               total-storm-conf (merge conf storm-conf)
               topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)

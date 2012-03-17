@@ -154,7 +154,6 @@
 
 (defn halt-process! [val & msg]
   (log-message "Halting process: " msg)
-  (Thread/sleep 1000)
   (.halt (Runtime/getRuntime) val)
   )
 

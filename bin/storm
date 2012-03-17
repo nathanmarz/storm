@@ -22,7 +22,7 @@ else:
     normclasspath = identity
 
 CONF_DIR = os.path.expanduser("~/.storm")
-STORM_DIR = "/".join(os.path.abspath( __file__ ).split("/")[:-2])
+STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 CONFIG_OPTS = []
 
 def get_config_opts():
@@ -84,7 +84,8 @@ def print_remoteconfvalue(name):
 
 def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
     nativepath = confvalue("java.library.path", extrajars)
-    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + " " + get_config_opts() + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + " ".join(args)
+    args_str = " ".join(map(lambda s: "\"" + s + "\"", args))
+    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + " " + get_config_opts() + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + args_str
     print "Running: " + command    
     os.system(command)
 
@@ -291,14 +292,29 @@ def parse_config(config_list):
     global CONFIG_OPTS
     if len(config_list) > 0:
         for config in config_list:
-            CONFIG_OPTS.append(config[1])
-	
+            CONFIG_OPTS.append(config)
+
+def parse_config_opts(args):
+  curr = args[:]
+  curr.reverse()
+  config_list = []
+  args_list = []
+  
+  while len(curr) > 0:
+    token = curr.pop()
+    if token == "-c":
+      config_list.append(curr.pop())
+    else:
+      args_list.append(token)
+  
+  return config_list, args_list
+    
 def main():
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(-1)
     global CONFIG_OPTS
-    config_list, args = getopt.gnu_getopt(sys.argv[1:], "c:")
+    config_list, args = parse_config_opts(sys.argv[1:])
     parse_config(config_list)
     COMMAND = args[0]
     ARGS = args[1:]

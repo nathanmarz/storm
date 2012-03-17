@@ -2,6 +2,9 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
+  (:import [backtype.storm.hooks ITaskHook])
+  (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
+              EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
 
 (bootstrap)
@@ -74,6 +77,14 @@
     obj
     ))
 
+(defmacro apply-hooks [topology-context method-sym info-form]
+  (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.ITaskHook})]
+    `(let [hooks# (.getHooks ~topology-context)]
+       (when-not (empty? hooks#)
+         (let [info# ~info-form]
+           (doseq [~hook-sym hooks#]
+             (~method-sym ~hook-sym info#)
+             ))))))
 
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
@@ -158,6 +169,9 @@
                           :priority Thread/MAX_PRIORITY
                           :kill-fn report-error-and-die)
 
+        _ (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
+            (.addTaskHook user-context (-> klass Class/forName .newInstance)))
+
         stream->component->grouper (outbound-components topology-context)
         component->tasks (reverse-map task-info)
         ;; important it binds to virtual port before function returns
@@ -176,6 +190,7 @@
                               out-task-id (if grouping out-task-id)]
                           (when (and (not-nil? grouping) (not= :direct grouping))
                             (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
+                          (apply-hooks user-context .emit (EmitInfo. values stream [out-task-id]))
                           (when (emit-sampler)
                             (stats/emitted-tuple! task-stats stream)
                             (if out-task-id
@@ -196,6 +211,7 @@
                                                indices (collectify (grouper values))]
                                            (for [i indices] (tasks i))))
                                        (stream->component->grouper stream))]
+                        (apply-hooks user-context .emit (EmitInfo. values stream out-tasks))
                         (when (emit-sampler)
                           (stats/emitted-tuple! task-stats stream)
                           (stats/transferred-tuples! task-stats stream (count out-tasks)))
@@ -235,18 +251,20 @@
         (every? (memfn sleeping?) system-threads)
         ))))
 
-(defn- fail-spout-msg [^ISpout spout storm-conf msg-id tuple-info time-delta task-stats]
+(defn- fail-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
   (log-message "Failing message " msg-id ": " tuple-info)
   (.fail spout msg-id)
-  (when time-delta
+  (apply-hooks user-context .spoutFail (SpoutFailInfo. msg-id time-delta))
+  (when (sampler)
     (stats/spout-failed-tuple! task-stats (:stream tuple-info) time-delta)
     ))
 
-(defn- ack-spout-msg [^ISpout spout storm-conf msg-id tuple-info time-delta task-stats]
+(defn- ack-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
   (when (= true (storm-conf TOPOLOGY-DEBUG))
     (log-message "Acking message " msg-id))
   (.ack spout msg-id)
-  (when time-delta
+  (apply-hooks user-context .spoutAck (SpoutAckInfo. msg-id time-delta))
+  (when (sampler)
     (stats/spout-acked-tuple! task-stats (:stream tuple-info) time-delta)
     ))
 
@@ -265,8 +283,8 @@
                  (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))
                  (reify TimeCacheMap$ExpiredCallback
                    (expire [this msg-id [spout-id tuple-info start-time-ms]]
-                     (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
-                       (.add event-queue #(fail-spout-msg spout storm-conf spout-id tuple-info time-delta task-stats)))
+                     (let [time-delta (time-delta-ms start-time-ms)]
+                       (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id tuple-info time-delta task-stats sampler)))
                      )))
         send-spout-msg (fn [out-stream-id values message-id out-task-id]
                          (let [out-tasks (if out-task-id
@@ -290,12 +308,12 @@
                              (do
                                (.put pending root-id [message-id
                                                       {:stream out-stream-id :values values}
-                                                      (if (sampler) (System/currentTimeMillis))])
+                                                      (System/currentTimeMillis)])
                                (send-unanchored topology-context tasks-fn transfer-fn
                                                 ACKER-INIT-STREAM-ID
                                                 [root-id (bit-xor-vals out-ids) task-id]))
                              (when message-id
-                               (.add event-queue #(ack-spout-msg spout storm-conf message-id {:stream out-stream-id :values values} nil task-stats))))
+                               (.add event-queue #(ack-spout-msg spout user-context storm-conf message-id {:stream out-stream-id :values values} 0 task-stats sampler))))
                            (or out-tasks [])
                            ))
         output-collector (reify ISpoutOutputCollector
@@ -305,6 +323,9 @@
                            (^void emitDirect [this ^int out-task-id ^String stream-id
                                               ^List tuple ^Object message-id]
                              (send-spout-msg stream-id tuple message-id out-task-id)
+                             )
+                           (reportError [this error]
+                             (report-error-fn error)
                              ))]
     (log-message "Opening spout " component-id ":" task-id)
     (.open spout storm-conf user-context (SpoutOutputCollector. output-collector))
@@ -329,25 +350,22 @@
          (when-not (empty? ser-msg)
            (let [tuple (.deserialize deserializer ser-msg)
                  id (.getValue tuple 0)
-                 [spout-id tuple-finished-info start-time-ms] (.remove pending id)
-                 time-delta (if start-time-ms (time-delta-ms start-time-ms))]
+                 [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
              (when spout-id
-               (condp = (.getSourceStreamId tuple)
-                 ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout storm-conf spout-id
-                                                                       tuple-finished-info time-delta task-stats))
-                 ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout storm-conf spout-id
-                                                                         tuple-finished-info time-delta task-stats))
-                 )))
+               (let [time-delta (time-delta-ms start-time-ms)]
+                 (condp = (.getSourceStreamId tuple)
+                   ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
+                                                                         tuple-finished-info time-delta task-stats sampler))
+                   ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
+                                                                           tuple-finished-info time-delta task-stats sampler))
+                   ))))
            ;; TODO: on failure, emit tuple to failure stream
            )))
      ]
     ))
 
 (defn- tuple-time-delta! [^Map start-times ^Tuple tuple]
-  (let [start-time (.remove start-times tuple)]
-    (if start-time
-      (time-delta-ms start-time))
-    ))
+  (time-delta-ms (.remove start-times tuple)))
 
 (defn put-xor! [^Map pending key id]
   (let [curr (or (.get pending key) (long 0))]
@@ -393,7 +411,8 @@
                                                   ACKER-ACK-STREAM-ID [root (bit-xor id ack-val)])
                                  ))
                              (let [delta (tuple-time-delta! tuple-start-times tuple)]
-                               (when delta
+                               (apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
+                               (when (sampler)
                                  (stats/bolt-acked-tuple! task-stats
                                                           (.getSourceComponent tuple)
                                                           (.getSourceStreamId tuple)
@@ -405,7 +424,8 @@
                                (send-unanchored topology-context tasks-fn transfer-fn
                                                 ACKER-FAIL-STREAM-ID [root]))
                              (let [delta (tuple-time-delta! tuple-start-times tuple)]
-                               (when delta
+                               (apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
+                               (when (sampler)
                                  (stats/bolt-failed-tuple! task-stats
                                                            (.getSourceComponent tuple)
                                                            (.getSourceStreamId tuple)
@@ -440,8 +460,7 @@
              ;; TODO: how to handle incremental updates as well as synchronizations at same time
              ;; TODO: need to version tuples somehow
              (log-debug "Received tuple " tuple " at task " (.getThisTaskId topology-context))
-             (when (sampler)
-               (.put tuple-start-times tuple (System/currentTimeMillis)))
+             (.put tuple-start-times tuple (System/currentTimeMillis))
              
              (.execute bolt tuple)
              ))))]

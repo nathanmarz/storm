@@ -220,6 +220,8 @@
        )))
 
 (defn submit-local-topology [nimbus storm-name conf topology]
+  (when-not (Utils/isValidConf conf)
+    (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
 (defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]
@@ -383,11 +385,11 @@
     ))
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true]
+(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true :topology-name nil]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
-        storm-name (str "topologytest-" (uuid))
+        storm-name (or topology-name (str "topologytest-" (uuid)))
         state (:storm-cluster-state cluster-map)
         spouts (.get_spouts topology)
         replacements (map-val (fn [v]
@@ -540,6 +542,6 @@
         spout-spec (mk-spout-spec* (TestWordSpout.)
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
-        context (TopologyContext. topology {1 component} "test-storm-id" nil nil 1)]
+        context (TopologyContext. topology (read-storm-config) {1 component} "test-storm-id" nil nil 1)]
     (Tuple. context values 1 stream)
     ))

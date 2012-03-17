@@ -56,7 +56,7 @@
 
 
 (defn- read-downloaded-storm-ids [conf]
-  (read-dir-contents (supervisor-stormdist-root conf))
+  (map #(java.net.URLDecoder/decode %) (read-dir-contents (supervisor-stormdist-root conf)))
   )
 
 (defn read-worker-heartbeat [conf id]
@@ -379,7 +379,7 @@
                        " -Dstorm.home=" (System/getProperty "storm.home")
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
-                       storm-id " " supervisor-id " " port " " worker-id)]
+                       (java.net.URLEncoder/encode storm-id) " " supervisor-id " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
       (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))

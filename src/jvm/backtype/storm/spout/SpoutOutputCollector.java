@@ -101,4 +101,9 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
     public void emitDirect(int taskId, List<Object> tuple) {
         emitDirect(taskId, tuple, null);
     }
+
+    @Override
+    public void reportError(Throwable error) {
+        _delegate.reportError(error);
+    }
 }

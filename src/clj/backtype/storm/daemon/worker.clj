@@ -88,6 +88,7 @@
         
         task->component (storm-task-info storm-cluster-state storm-id)
         mk-topology-context #(TopologyContext. (system-topology! storm-conf topology)
+                                               storm-conf
                                                task->component
                                                storm-id
                                                (supervisor-storm-resources-path
@@ -95,6 +96,7 @@
                                                (worker-pids-root conf worker-id)
                                                %)
         mk-user-context #(TopologyContext. topology
+                                           storm-conf
                                            task->component
                                            storm-id
                                            (supervisor-storm-resources-path
@@ -254,4 +256,4 @@
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-worker conf nil storm-id supervisor-id (Integer/parseInt port-str) worker-id)))
+    (mk-worker conf nil (java.net.URLDecoder/decode storm-id) supervisor-id (Integer/parseInt port-str) worker-id)))

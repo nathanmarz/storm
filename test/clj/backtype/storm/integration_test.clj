@@ -497,7 +497,7 @@
   (bolt
    (execute [tuple]
             (let [name (.getValue tuple 0)
-                  val (if (= name "!MAX_MSG_TIMEOUT") (.maxTopologyMessageTimeout context conf) (get conf name))]
+                  val (if (= name "!MAX_MSG_TIMEOUT") (.maxTopologyMessageTimeout context) (get conf name))]
               (emit-bolt! collector [name val] :anchor tuple)
               (ack! collector tuple))
             )))
@@ -514,20 +514,67 @@
                               })
           results (complete-topology cluster
                                      topology
+                                     :topology-name "test123"
                                      :storm-conf {TOPOLOGY-MAX-TASK-PARALLELISM 10
                                                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30}
                                      :mock-sources {"1" [["fake.config"]
                                                          [TOPOLOGY-MAX-TASK-PARALLELISM]
                                                          [TOPOLOGY-MAX-SPOUT-PENDING]
                                                          ["!MAX_MSG_TIMEOUT"]
+                                                         [TOPOLOGY-NAME]
                                                          ]})]
       (is (= {"fake.config" 1
               TOPOLOGY-MAX-TASK-PARALLELISM 2
               TOPOLOGY-MAX-SPOUT-PENDING 3
-              "!MAX_MSG_TIMEOUT" 40}
+              "!MAX_MSG_TIMEOUT" 40
+              TOPOLOGY-NAME "test123"}
              (->> (read-tuples results "2")
                   (apply concat)
                   (apply hash-map))
+             )))))
+
+(defbolt hooks-bolt ["emit" "ack" "fail"] {:prepare true}
+  [conf context collector]
+  (let [acked (atom 0)
+        failed (atom 0)
+        emitted (atom 0)]
+    (.addTaskHook context
+                  (reify backtype.storm.hooks.ITaskHook
+                    (prepare [this conf context]
+                      )
+                    (emit [this info]
+                      (swap! emitted inc))
+                    (boltAck [this info]
+                      (swap! acked inc))
+                    (boltFail [this info]
+                      (swap! failed inc))))
+    (bolt
+     (execute [tuple]
+        (emit-bolt! collector [@emitted @acked @failed])
+        (if (= 0 (- @acked @failed))
+          (ack! collector tuple)
+          (fail! collector tuple))
+        ))))
+
+(deftest test-hooks
+  (with-simulated-time-local-cluster [cluster]
+    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])))
+                              }
+                             {"2" (bolt-spec {"1" :shuffle}
+                                             hooks-bolt)
+                              })
+          results (complete-topology cluster
+                                     topology
+                                     :mock-sources {"1" [[1]
+                                                         [1]
+                                                         [1]
+                                                         [1]
+                                                         ]})]
+      (is (= [[0 0 0]
+              [2 1 0]
+              [4 1 1]
+              [6 2 1]]
+             (read-tuples results "2")
              )))))
 
 (deftest test-acking-branching-complex

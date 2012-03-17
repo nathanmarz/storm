@@ -1,6 +1,17 @@
 ## Unreleased
 
+ * Removed parameter from TopologyContext#maxTopologyMessageTimeout (simplification).
+ * Storm now automatically sets TOPOLOGY_NAME in the config passed to the bolts and spouts to the name of the topology.
+ * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
+ * Added TOPOLOGY_AUTO_TASK_HOOKS config to automatically add hooks into every spout/bolt for the topology.
  * Added ability to override configs at the command line. These config definitions have the highest priority.
+ * Error thrown if invalid (not json-serializable) topology conf used.
+ * bin/storm script can now be symlinked (thanks gabrielgrant)
+ * Socket timeout for DRPCClient is now configurable
+ * Bug fix: Quoted arguments with spaces now work properly with storm client script
+ * Bug fix: Workers start properly when topology name has spaces
+ * Bug fix: UI works properly when there are spaces in topology or spout/bolt names (thanks xiaokang)
+ * Bug fix: Tuple$Seq now returns correct count (thanks travisfw)
 
 ## 0.7.0
 

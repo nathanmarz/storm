@@ -9,6 +9,7 @@
  * bin/storm script can now be symlinked (thanks gabrielgrant)
  * Socket timeout for DRPCClient is now configurable
  * Added getThisWorkerPort() method to TopologyContext
+ * Added better error checking in Fields (thanks git2samus)
  * Bug fix: Quoted arguments with spaces now work properly with storm client script
  * Bug fix: Workers start properly when topology name has spaces
  * Bug fix: UI works properly when there are spaces in topology or spout/bolt names (thanks xiaokang)

@@ -37,4 +37,4 @@ You must not remove this notice, or any other, from this software.
 * Gabriel Grant ([@gabrielgrant](https://github.com/gabrielgrant))
 * Travis Wellman ([@travisfw](https://github.com/travisfw))
 * Kasper Madsen ([@KasperMadsen](https://github.com/KasperMadsen))
-* Michael Cetrulo([@git2samus](https://github.com/git2samus))
+* Michael Cetrulo ([@git2samus](https://github.com/git2samus))

@@ -14,6 +14,10 @@ public class BaseTaskHook implements ITaskHook {
     }
 
     @Override
+    public void cleanup() {
+    }    
+
+    @Override
     public void emit(EmitInfo info) {
     }
 

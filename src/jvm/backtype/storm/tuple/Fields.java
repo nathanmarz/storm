@@ -17,7 +17,14 @@ public class Fields implements Iterable<String>, Serializable {
     }
     
     public Fields(List<String> fields) {
-        _fields = new ArrayList<String>(fields);
+        _fields = new ArrayList<String>(fields.size());
+        for (String field : fields) {
+            if (_fields.contains(field))
+                throw new IllegalArgumentException(
+                    String.format("duplicate field '%s'", field)
+                );
+            _fields.add(field);
+        }
         index();
     }
     

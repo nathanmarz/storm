@@ -542,6 +542,8 @@
                   (reify backtype.storm.hooks.ITaskHook
                     (prepare [this conf context]
                       )
+                    (cleanup [this]
+                      )
                     (emit [this info]
                       (swap! emitted inc))
                     (boltAck [this info]

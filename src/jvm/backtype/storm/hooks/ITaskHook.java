@@ -10,6 +10,7 @@ import java.util.Map;
 
 public interface ITaskHook {
     void prepare(Map conf, TopologyContext context);
+    void cleanup();
     void emit(EmitInfo info);
     void spoutAck(SpoutAckInfo info);
     void spoutFail(SpoutFailInfo info);

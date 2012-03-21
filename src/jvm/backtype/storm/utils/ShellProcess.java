@@ -29,12 +29,6 @@ public class ShellProcess {
         processIn = new DataOutputStream(_subprocess.getOutputStream());
         processOut = new BufferedReader(new InputStreamReader(_subprocess.getInputStream()));
 
-        // this doesn't seem to work when the jvm dies due to at least
-        // some kinds of errors... does it help at all?
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() { _subprocess.destroy(); }
-        });
-
         writeString(context.getPIDDir());
         String pid = readString();
         writeObject(conf);

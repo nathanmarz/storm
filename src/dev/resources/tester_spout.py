@@ -21,6 +21,7 @@ class TesterSpout(Spout):
         del self.pending[id]
 
     def fail(self, id):
+        log("emitting " + self.pending[id] + " on fail")
         emit([self.pending[id]], id=id)
 
 TesterSpout().run()

@@ -53,6 +53,9 @@ public class ShellBolt implements IBolt {
     private ShellProcess _process;
     private volatile boolean _running = true;
     private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    
+    private Thread _readerThread;
+    private Thread _writerThread;
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -76,7 +79,7 @@ public class ShellBolt implements IBolt {
         }
 
         // reader
-        new Thread(new Runnable() {
+        _readerThread = new Thread(new Runnable() {
             public void run() {
                 while (_running) {
                     try {
@@ -99,14 +102,14 @@ public class ShellBolt implements IBolt {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     } catch (InterruptedException e) {
-                        // ignore
                     }
                 }
             }
-        }).start();
+        });
+        
+        _readerThread.start();
 
-        // writer
-        new Thread(new Runnable() {
+        _writerThread = new Thread(new Runnable() {
             public void run() {
                 while (_running) {
                     try {
@@ -117,11 +120,12 @@ public class ShellBolt implements IBolt {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     } catch (InterruptedException e) {
-                        // ignore
                     }
                 }
             }
-        }).start();
+        });
+        
+        _writerThread.start();
     }
 
     public void execute(Tuple input) {
@@ -142,9 +146,9 @@ public class ShellBolt implements IBolt {
     }
 
     public void cleanup() {
+        _running = false;
         _process.destroy();
         _inputs.clear();
-        _running = false;
     }
 
     private void handleAck(Map action) {

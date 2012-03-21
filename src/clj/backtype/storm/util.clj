@@ -591,3 +591,20 @@
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
     (some? #(.startsWith % (str target "/")) entries)
     ))
+
+(defn destructure-method [[name args & body]]
+  (let [[newargs subs] (reduce (fn [[args submap] val]
+                         (if (symbol? val)
+                           [(conj args val) submap]
+                           (let [newsym (gensym)]
+                             [(conj args newsym) (assoc submap newsym val)]
+                             )))
+                         [[] {}]
+                         args)
+        let-bindings (forcat [[sym val] subs] [val sym])]
+  `(~name ~newargs (let [~@let-bindings] ~@body))
+  ))
+
+(defmacro destructuring-reify [& args]
+  (let [args (map #(if (list? %) (destructure-method %) %) args)]
+    `(reify ~@args )))

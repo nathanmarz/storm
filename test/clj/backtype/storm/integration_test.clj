@@ -151,8 +151,8 @@
                (read-tuples results "2")))
       )))
 
-(defbolt lalala-bolt1 ["word"] [tuple collector]
-  (let [ret (-> (.getValue tuple 0) (str "lalala"))]
+(defbolt lalala-bolt1 ["word"] [[val :as tuple] collector]
+  (let [ret (str val "lalala")]
     (emit-bolt! collector [ret] :anchor tuple)
     (ack! collector tuple)
     ))
@@ -175,7 +175,7 @@
     (bolt
       (prepare [_ _ _]
         (reset! state (str prefix "lalala")))
-      (execute [tuple]
+      (execute [{val "word" :as tuple}]
         (let [ret (-> (.getValue tuple 0) (str @state))]
           (emit-bolt! collector [ret] :anchor tuple)
           (ack! collector tuple)

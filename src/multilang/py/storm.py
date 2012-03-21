@@ -11,21 +11,18 @@ except ImportError:
 json_encode = lambda x: json.dumps(x)
 json_decode = lambda x: json.loads(x)
 
-def readStringMsg():
+#reads lines and reconstructs newlines appropriately
+def readMsg():
     msg = ""
     while True:
         line = sys.stdin.readline()[0:-1]
         if line == "end":
             break
         msg = msg + line + "\n"
-    return msg[0:-1]
+    return json_decode(msg[0:-1])
 
 MODE = None
 ANCHOR_TUPLE = None
-
-#reads lines and reconstructs newlines appropriately
-def readMsg():
-    return json_decode(readStringMsg())
 
 #queue up commands we read while trying to read taskids
 pending_commands = deque()
@@ -57,8 +54,8 @@ def readTuple():
     cmd = readCommand()
     return Tuple(cmd["id"], cmd["comp"], cmd["stream"], cmd["task"], cmd["tuple"])
 
-def sendToParent(s):
-    print s
+def sendMsgToParent(msg):
+    print json_encode(msg)
     print "end"
     sys.stdout.flush()
 
@@ -68,11 +65,8 @@ def sync():
 
 def sendpid(heartbeatdir):
     pid = os.getpid()
-    sendToParent(pid)
+    sendMsgToParent(pid)
     open(heartbeatdir + "/" + str(pid), "w").close()    
-
-def sendMsgToParent(amap):
-    sendToParent(json_encode(amap))
 
 def emit(*args, **kwargs):
     __emit(*args, **kwargs)
@@ -129,7 +123,7 @@ def readenv():
     return [conf, context]
 
 def initComponent():
-    heartbeatdir = readStringMsg()
+    heartbeatdir = readMsg()
     sendpid(heartbeatdir)
     return readenv()
 

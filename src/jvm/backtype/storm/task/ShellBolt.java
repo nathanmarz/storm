@@ -72,7 +72,7 @@ public class ShellBolt implements IBolt {
 
         try {
             //subprocesses must send their pid first thing
-            String subpid = _process.launch(stormConf, context);
+            int subpid = _process.launch(stormConf, context);
             LOG.info("Launched subprocess with pid " + subpid);
         } catch (IOException e) {
             throw new RuntimeException("Error when launching multilang subprocess", e);
@@ -83,7 +83,7 @@ public class ShellBolt implements IBolt {
             public void run() {
                 while (_running) {
                     try {
-                        Map action = _process.readMap();
+                        Map action = (Map)_process.readMessage();
                         if (action == null) {
                             // ignore sync
                         }
@@ -115,7 +115,7 @@ public class ShellBolt implements IBolt {
                     try {
                         Object write = _pendingWrites.poll(1, SECONDS);
                         if (write != null) {
-                            _process.writeObject(write);
+                            _process.writeMessage(write);
                         }
                     } catch (IOException e) {
                         throw new RuntimeException(e);

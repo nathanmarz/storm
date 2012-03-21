@@ -1,3 +1,5 @@
+# This Python file uses the following encoding: utf-8
+
 import storm
 from random import random
 
@@ -7,6 +9,7 @@ class TesterBolt(storm.Bolt):
 
     def process(self, tup):
         word = tup.values[0];
+        storm.log("BBB: " + word + " " + str(ord(word[-1])))
         if (random() < 0.75):
             storm.emit([word + 'lalala'], anchors=[tup])
             storm.ack(tup)

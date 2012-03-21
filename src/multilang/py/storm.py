@@ -4,13 +4,12 @@ import traceback
 from collections import deque
 
 try:
-    import cjson
-    json_encode = cjson.encode
-    json_decode = lambda x: cjson.decode(x, all_unicode=True)
+    import simplejson as json
 except ImportError:
     import json
-    json_encode = lambda x: json.dumps(x, ensure_ascii=False)
-    json_decode = lambda x: json.loads(unicode(x))
+
+json_encode = lambda x: json.dumps(x)
+json_decode = lambda x: json.loads(x)
 
 def readStringMsg():
     msg = ""
@@ -62,7 +61,7 @@ def sendToParent(s):
     print s
     print "end"
     sys.stdout.flush()
-    
+
 def sync():
     print "sync"
     sys.stdout.flush()
@@ -134,7 +133,7 @@ def initComponent():
     sendpid(heartbeatdir)
     return readenv()
 
-class Tuple:    
+class Tuple:
     def __init__(self, id, component, stream, task, values):
         self.id = id
         self.component = component
@@ -150,10 +149,10 @@ class Tuple:
 class Bolt:
     def initialize(self, stormconf, context):
         pass
-    
+
     def process(self, tuple):
         pass
-    
+
     def run(self):
         global MODE
         MODE = Bolt
@@ -164,15 +163,15 @@ class Bolt:
                 tup = readTuple()
                 self.process(tup)
         except Exception, e:
-            log(traceback.format_exc(e))        
+            log(traceback.format_exc(e))
 
 class BasicBolt:
     def initialize(self, stormconf, context):
         pass
-    
+
     def process(self, tuple):
         pass
-    
+
     def run(self):
         global MODE
         MODE = Bolt

@@ -44,12 +44,11 @@ public class ShellProcess {
         writeString(JSONValue.toJSONString(obj));
     }
 
-    public void writeString(String string) throws IOException {
-        // don't need synchronization for now
-        //synchronized (processIn) {
-            processIn.writeBytes(string + "\nend\n");
-            processIn.flush();
-            //}
+    public void writeString(String str) throws IOException {
+        byte[] strBytes = str.getBytes("UTF-8");
+        processIn.write(strBytes, 0, strBytes.length);
+        processIn.writeBytes("\nend\n");
+        processIn.flush();
     }
 
     // returns null for sync. odd?

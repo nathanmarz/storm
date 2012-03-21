@@ -39,3 +39,4 @@ You must not remove this notice, or any other, from this software.
 * Kasper Madsen ([@KasperMadsen](https://github.com/KasperMadsen))
 * Michael Cetrulo ([@git2samus](https://github.com/git2samus))
 * Thomas Jack ([@tomo](https://github.com/tomo))
+* Nicolas Yzet ([@nicoo](https://github.com/nicoo))

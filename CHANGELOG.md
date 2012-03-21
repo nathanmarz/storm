@@ -13,6 +13,7 @@
  * Added getThisWorkerPort() method to TopologyContext
  * Added better error checking in Fields (thanks git2samus)
  * Improved Clojure DSL to allow destructuring in bolt/spout methods
+ * Bug fix: Fixed string encoding in ShellBolt protocol to be UTF-8 (thanks nicoo)
  * Bug fix: Fixed race condition in FeederSpout that could lead to dropped messages
  * Bug fix: Quoted arguments with spaces now work properly with storm client script
  * Bug fix: Workers start properly when topology name has spaces

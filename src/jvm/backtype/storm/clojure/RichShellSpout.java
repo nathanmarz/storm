@@ -1,20 +1,20 @@
 package backtype.storm.clojure;
 
 import backtype.storm.generated.StreamInfo;
-import backtype.storm.task.ShellBolt;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.spout.ShellSpout;
+import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import java.util.Map;
 
-public class RichShellBolt extends ShellBolt implements IRichBolt {
+public class RichShellSpout extends ShellSpout implements IRichSpout {
     private Map<String, StreamInfo> _outputs;
-    
-    public RichShellBolt(String[] command, Map<String, StreamInfo> outputs) {
+
+    public RichShellSpout(String[] command, Map<String, StreamInfo> outputs) {
         super(command);
         _outputs = outputs;
     }
-    
+
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         for(String stream: _outputs.keySet()) {
@@ -22,7 +22,7 @@ public class RichShellBolt extends ShellBolt implements IRichBolt {
             if(def.is_direct()) {
                 declarer.declareStream(stream, true, new Fields(def.get_output_fields()));
             } else {
-                declarer.declareStream(stream, new Fields(def.get_output_fields()));                
+                declarer.declareStream(stream, new Fields(def.get_output_fields()));
             }
         }
     }
@@ -30,5 +30,5 @@ public class RichShellBolt extends ShellBolt implements IRichBolt {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         return null;
-    }    
+    }
 }

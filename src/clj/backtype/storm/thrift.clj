@@ -7,7 +7,7 @@
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.clojure RichShellBolt])
+  (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config])
@@ -157,13 +157,29 @@
     {:obj spout :p parallelism-hint :conf conf}
     ))
 
+(defn- shell-component-params [command script-or-output-spec kwargs]
+  (if (string? script-or-output-spec)
+    [(into-array String [command script-or-output-spec])
+     (first kwargs)
+     (rest kwargs)]
+    [(into-array String command)
+     script-or-output-spec
+     kwargs]))
+
 (defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil :conf nil]
   (let [parallelism-hint (if p p parallelism-hint)]
     {:obj bolt :inputs inputs :p parallelism-hint :conf conf}
     ))
 
-(defn mk-shell-bolt-spec [inputs command script output-spec & kwargs]
-  (apply mk-bolt-spec inputs (RichShellBolt. command script (mk-output-spec output-spec)) kwargs))
+(defn mk-shell-bolt-spec [inputs command script-or-output-spec & kwargs]
+  (let [[command output-spec kwargs]
+        (shell-component-params command script-or-output-spec kwargs)]
+    (apply mk-bolt-spec inputs (RichShellBolt. command (mk-output-spec output-spec)) kwargs)))
+
+(defn mk-shell-spout-spec [command script-or-output-spec & kwargs]
+  (let [[command output-spec kwargs]
+        (shell-component-params command script-or-output-spec kwargs)]
+   (apply mk-spout-spec (RichShellSpout. command (mk-output-spec output-spec)) kwargs)))
 
 (defn- add-inputs [declarer inputs]
   (doseq [[id grouping] (mk-inputs inputs)]

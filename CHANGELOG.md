@@ -1,7 +1,7 @@
 ## Unreleased
 
- * Implemented shell spout (thanks tomoj)
- * Shell bolts can now asynchronously emit/ack messages (thanks tomoj)
+ * Implemented shell spout (thanks tomo)
+ * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
  * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
  * Removed parameter from TopologyContext#maxTopologyMessageTimeout (simplification).
  * Storm now automatically sets TOPOLOGY_NAME in the config passed to the bolts and spouts to the name of the topology.

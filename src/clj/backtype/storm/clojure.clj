@@ -44,7 +44,7 @@
 (defmacro bolt [& body]
   (let [[bolt-fns other-fns] (split-with #(not (symbol? %)) body)
         fns (normalize-fns bolt-fns)]
-    `(destructuring-reify IBolt
+    `(reify IBolt
        ~@fns
        ~@other-fns)))
 
@@ -55,7 +55,7 @@
 (defmacro spout [& body]
   (let [[spout-fns other-fns] (split-with #(not (symbol? %)) body)
         fns (normalize-fns spout-fns)]
-    `(destructuring-reify ISpout
+    `(reify ISpout
        ~@fns
        ~@other-fns)))
 

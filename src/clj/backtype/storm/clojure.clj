@@ -125,11 +125,17 @@
           conf-code (:conf opts)
           fn-body (if (:prepare opts)
                     (cons 'fn impl)
-                    (let [[args & impl-body] impl
-                          coll-sym (nth args 1)
-                          args (vec (take 1 args))
+                    (let [[[tuple-arg coll-sym] & impl-body] impl
+                          tuple-arg# (gensym "tuple-arg")
                           prepargs (hinted-args 'clojure-prepare-fn [(gensym "conf") (gensym "context") coll-sym])]
-                      `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
+                      `(fn ~prepargs
+                         (bolt ~(list* 'execute
+                                       (if (symbol? tuple-arg)
+                                         (list* [tuple-arg] impl-body)
+                                         (list [tuple-arg#]
+                                               (list* 'let
+                                                      [tuple-arg tuple-arg#]
+                                                      impl-body))))))))
           definer (if params
                     `(defn ~name [& args#]
                        (clojure-bolt ~output-spec ~worker-name ~conf-fn-name args#))

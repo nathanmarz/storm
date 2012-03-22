@@ -6,8 +6,8 @@ import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPCInvocations;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.ServiceRegistry;
@@ -20,7 +20,7 @@ import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
-public class DRPCSpout implements IRichSpout {
+public class DRPCSpout extends BaseRichSpout {
     public static Logger LOG = Logger.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
@@ -146,9 +146,4 @@ public class DRPCSpout implements IRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("args", "return-info"));
     }    
-
-    @Override
-    public Map<String, Object> getComponentConfiguration() {
-        return null;
-    }
 }

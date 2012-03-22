@@ -4,8 +4,8 @@ import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.FailedException;
-import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.transactional.state.RotatingTransactionalState;
 import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.tuple.Fields;
@@ -16,8 +16,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
-// TODO: Need to change this to replay EVERYTHING after a failure and ignore acks/fails for unknown attempts
-public class TransactionalSpoutCoordinator implements IRichSpout { 
+public class TransactionalSpoutCoordinator extends BaseRichSpout { 
     public static final Logger LOG = Logger.getLogger(TransactionalSpoutCoordinator.class);
     
     public static final BigInteger INIT_TXID = BigInteger.ONE;

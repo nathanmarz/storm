@@ -274,6 +274,7 @@
                                 ^TopologyContext topology-context ^TopologyContext user-context
                                 task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
+        last-active (atom false)
         task-id (.getThisTaskId topology-context)
         component-id (.getThisComponentId topology-context)
         max-spout-pending (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)
@@ -341,10 +342,20 @@
            ))
        (if (or (not max-spout-pending)
                (< (.size pending) max-spout-pending))
-         (if (wait-fn)
-           (.nextTuple spout)
-           (Time/sleep 100))
-         ;; TODO: log that it's getting throttled
+         (if-let [active? (wait-fn)]
+           (do
+             (when-not @last-active
+               (reset! last-active true)
+               (log-message "Activating spout " component-id ":" task-id)
+               (.activate spout))
+             (.nextTuple spout))
+           (do
+             (when @last-active
+               (reset! last-active false)
+               (log-message "Deactivating spout " component-id ":" task-id)
+               (.deactivate spout))
+             ;; TODO: log that it's getting throttled
+             (Time/sleep 100)))
          ))
      (fn []
        (let [^bytes ser-msg (msg/recv puller)]

@@ -4,7 +4,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import java.util.Map;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.InprocMessaging;
 import backtype.storm.utils.Utils;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 
-public class FeederSpout implements IRichSpout {
+public class FeederSpout extends BaseRichSpout {
     private int _id;
     private Fields _outFields;
     private SpoutOutputCollector _collector;

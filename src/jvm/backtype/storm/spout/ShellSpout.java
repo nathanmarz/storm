@@ -10,7 +10,6 @@ import java.io.IOException;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
-import static backtype.storm.Config.TOPOLOGY_MAX_SPOUT_PENDING;
 
 public class ShellSpout implements ISpout {
     public static Logger LOG = Logger.getLogger(ShellSpout.class);
@@ -104,5 +103,13 @@ public class ShellSpout implements ISpout {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void activate() {
+    }
+
+    @Override
+    public void deactivate() {
     }
 }

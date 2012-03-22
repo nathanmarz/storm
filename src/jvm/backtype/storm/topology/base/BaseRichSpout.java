@@ -16,6 +16,14 @@ public abstract class BaseRichSpout extends BaseComponent implements IRichSpout 
     }
 
     @Override
+    public void activate() {
+    }
+
+    @Override
+    public void deactivate() {
+    }
+
+    @Override
     public void ack(Object msgId) {
     }
 

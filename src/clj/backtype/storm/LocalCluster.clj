@@ -24,3 +24,19 @@
 (defn -killTopology [this name]
   (.killTopology (:nimbus (. this state)) name)
   )
+
+(defn -getTopologyConf [this id]
+  (.getTopologyConf (:nimbus (. this state)) id)
+  )
+
+(defn -getTopology [this id]
+  (.getTopology (:nimbus (. this state)) id)
+  )
+
+(defn -getClusterInfo [this]
+  (.getClusterInfo (:nimbus (. this state)))
+  )
+
+(defn -getTopologyInfo [this id]
+  (.getTopologyInfo (:nimbus (. this state)) id)
+  )

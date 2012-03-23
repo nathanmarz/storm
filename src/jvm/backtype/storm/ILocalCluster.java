@@ -1,9 +1,12 @@
 package backtype.storm;
 
 import backtype.storm.generated.AlreadyAliveException;
+import backtype.storm.generated.ClusterSummary;
 import backtype.storm.generated.InvalidTopologyException;
 import backtype.storm.generated.NotAliveException;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.TopologyInfo;
+
 import java.util.Map;
 
 
@@ -13,4 +16,8 @@ public interface ILocalCluster {
     void killTopology(String topologyName)
             throws NotAliveException;
     void shutdown();
+    String getTopologyConf(String id);
+    StormTopology getTopology(String id);
+    ClusterSummary getClusterInfo();
+    TopologyInfo getTopologyInfo(String id);
 }

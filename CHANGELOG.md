@@ -14,6 +14,8 @@
  * Added getThisWorkerPort() method to TopologyContext
  * Added better error checking in Fields (thanks git2samus)
  * Improved Clojure DSL to allow destructuring in bolt/spout methods
+ * Added Nimbus stats methods to LocalCluster (thanks KasperMadsen)
+ * Added rebalance, activate, deactivate, and killTopologyWithOpts methods to LocalCluster
  * Bug fix: Fixed string encoding in ShellBolt protocol to be UTF-8 (thanks nicoo)
  * Bug fix: Fixed race condition in FeederSpout that could lead to dropped messages
  * Bug fix: Quoted arguments with spaces now work properly with storm client script

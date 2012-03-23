@@ -21,7 +21,7 @@ public class ShellProcess {
         this.command = command;
     }
 
-    public String launch(Map conf, TopologyContext context) throws IOException {
+    public int launch(Map conf, TopologyContext context) throws IOException {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(new File(context.getCodeDir()));
         _subprocess = builder.start();
@@ -29,10 +29,10 @@ public class ShellProcess {
         processIn = new DataOutputStream(_subprocess.getOutputStream());
         processOut = new BufferedReader(new InputStreamReader(_subprocess.getInputStream()));
 
-        writeString(context.getPIDDir());
-        String pid = readString();
-        writeObject(conf);
-        writeObject(context);
+        writeMessage(context.getPIDDir());
+        int pid = ((Number)readMessage()).intValue();
+        writeMessage(conf);
+        writeMessage(context);
         return pid;
     }
 
@@ -40,11 +40,11 @@ public class ShellProcess {
         _subprocess.destroy();
     }
 
-    public void writeObject(Object obj) throws IOException {
-        writeString(JSONValue.toJSONString(obj));
+    public void writeMessage(Object msg) throws IOException {
+        writeString(JSONValue.toJSONString(msg));
     }
 
-    public void writeString(String str) throws IOException {
+    private void writeString(String str) throws IOException {
         byte[] strBytes = str.getBytes("UTF-8");
         processIn.write(strBytes, 0, strBytes.length);
         processIn.writeBytes("\nend\n");
@@ -52,21 +52,21 @@ public class ShellProcess {
     }
 
     // returns null for sync. odd?
-    public Map readMap() throws IOException {
+    public Object readMessage() throws IOException {
         String string = readString();
         if (string.equals("sync")) {
             return null; // previously had: return readMap();
         } else {
-            Map map = (Map)JSONValue.parse(string);
-            if (map != null) {
-                return map;
+            Object msg = JSONValue.parse(string);
+            if (msg != null) {
+                return msg;
             } else {
                 throw new IOException("unable to parse: " + string);
             }
         }
     }
 
-    public String readString() throws IOException {
+    private String readString() throws IOException {
         StringBuilder line = new StringBuilder();
 
         //synchronized (processOut) {

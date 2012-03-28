@@ -243,6 +243,28 @@ public class LinearDRPCTopologyBuilder {
         }
 
         @Override
+        public LinearDRPCInputDeclarer localOrShuffleGrouping() {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(String prevComponent, InputDeclarer declarer) {
+                    declarer.localOrShuffleGrouping(prevComponent);
+                }                
+            });
+            return this;
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer localOrShuffleGrouping(final String streamId) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(String prevComponent, InputDeclarer declarer) {
+                    declarer.localOrShuffleGrouping(prevComponent, streamId);
+                }                
+            });
+            return this;
+        }
+        
+        @Override
         public LinearDRPCInputDeclarer noneGrouping() {
             addDeclaration(new InputDeclaration() {
                 @Override

@@ -13,6 +13,9 @@ public interface LinearDRPCInputDeclarer extends ComponentConfigurationDeclarer<
     public LinearDRPCInputDeclarer shuffleGrouping();
     public LinearDRPCInputDeclarer shuffleGrouping(String streamId);
 
+    public LinearDRPCInputDeclarer localOrShuffleGrouping();
+    public LinearDRPCInputDeclarer localOrShuffleGrouping(String streamId);
+    
     public LinearDRPCInputDeclarer noneGrouping();
     public LinearDRPCInputDeclarer noneGrouping(String streamId);
 

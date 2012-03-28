@@ -19,7 +19,7 @@
           (mod num-tasks)
           task-getter))))
 
-(defn- mk-shuffle-grouper [target-tasks]
+(defn- mk-shuffle-grouper [^List target-tasks]
   (let [num-tasks (count target-tasks)
         choices (rotating-random-range num-tasks)]
     (fn [tuple]
@@ -95,9 +95,12 @@
     obj
     ))
 
+(defn- get-context-hooks [^TopologyContext context]
+  (.getHooks context))
+
 (defmacro apply-hooks [topology-context method-sym info-form]
   (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.ITaskHook})]
-    `(let [hooks# (.getHooks ~topology-context)]
+    `(let [hooks# (get-context-hooks ~topology-context)]
        (when-not (empty? hooks#)
          (let [info# ~info-form]
            (doseq [~hook-sym hooks#]

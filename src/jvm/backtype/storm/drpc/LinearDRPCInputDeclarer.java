@@ -1,5 +1,6 @@
 package backtype.storm.drpc;
 
+import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.ComponentConfigurationDeclarer;
 import backtype.storm.tuple.Fields;
 
@@ -23,5 +24,9 @@ public interface LinearDRPCInputDeclarer extends ComponentConfigurationDeclarer<
     public LinearDRPCInputDeclarer allGrouping(String streamId);
 
     public LinearDRPCInputDeclarer directGrouping();
-    public LinearDRPCInputDeclarer directGrouping(String streamId);    
+    public LinearDRPCInputDeclarer directGrouping(String streamId);
+    
+    public LinearDRPCInputDeclarer customGrouping(CustomStreamGrouping grouping);
+    public LinearDRPCInputDeclarer customGrouping(String streamId, CustomStreamGrouping grouping);
+    
 }

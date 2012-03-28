@@ -4,6 +4,8 @@
  * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
  * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
  * Added activate and deactivate lifecycle methods on spouts. Spouts start off deactivated.
+ * Generalized CustomStreamGrouping to return the target tasks rather than the indices. Also parameterized custom groupings with TopologyContext. (not backwards compatible)
+ * Added localOrShuffle grouping that will send to tasks in the same worker process if possible, or do a shuffle grouping otherwise.
  * Removed parameter from TopologyContext#maxTopologyMessageTimeout (simplification).
  * Storm now automatically sets TOPOLOGY_NAME in the config passed to the bolts and spouts to the name of the topology.
  * Added TOPOLOGY_AUTO_TASK_HOOKS config to automatically add hooks into every spout/bolt for the topology.
@@ -16,6 +18,7 @@
  * Improved Clojure DSL to allow destructuring in bolt/spout methods
  * Added Nimbus stats methods to LocalCluster (thanks KasperMadsen)
  * Added rebalance, activate, deactivate, and killTopologyWithOpts methods to LocalCluster
+ * Added custom stream groupings to LinearDRPC API
  * Simplify multilang protocol to use json for all messages (thanks tomoj)
  * Bug fix: Fixed string encoding in ShellBolt protocol to be UTF-8 (thanks nicoo)
  * Bug fix: Fixed race condition in FeederSpout that could lead to dropped messages

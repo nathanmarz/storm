@@ -122,7 +122,7 @@ public class TransactionalSpoutCoordinator extends BaseRichSpout {
         }
         
         try {
-            if(_activeTx.size() < _maxTransactionActive) {
+            if(_coordinator.isReady() && _activeTx.size() < _maxTransactionActive) {
                 BigInteger curr = _currTransaction;
                 for(int i=0; i<_maxTransactionActive; i++) {
                     if(!_activeTx.containsKey(curr)) {

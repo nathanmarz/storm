@@ -189,7 +189,7 @@
                       {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
                       {"2" (thrift/mk-bolt-spec {"1" :shuffle}
                                               lalala-bolt1)
-                       "3" (thrift/mk-bolt-spec {"1" :shuffle}
+                       "3" (thrift/mk-bolt-spec {"1" :local-or-shuffle}
                                               lalala-bolt2)
                        "4" (thrift/mk-bolt-spec {"1" :shuffle}
                                               (lalala-bolt3 "_nathan_"))}

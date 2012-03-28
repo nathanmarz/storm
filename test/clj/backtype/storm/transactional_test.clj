@@ -24,6 +24,7 @@
        nil)
      (getCoordinator [this conf context]
        (reify ITransactionalSpout$Coordinator
+         (isReady [this] true)
          (initializeTransaction [this txid prevMetadata]
            @atom )
          (close [this]

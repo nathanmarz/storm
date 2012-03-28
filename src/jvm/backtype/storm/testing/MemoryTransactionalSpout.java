@@ -53,6 +53,11 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         }
 
         @Override
+        public boolean isReady() {
+            return true;
+        }        
+        
+        @Override
         public void close() {
         }        
     }

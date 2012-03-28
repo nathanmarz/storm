@@ -19,11 +19,21 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
     IOpaquePartitionedTransactionalSpout _spout;
     
     public class Coordinator implements ITransactionalSpout.Coordinator<Object> {
+        IOpaquePartitionedTransactionalSpout.Coordinator _coordinator;
 
+        public Coordinator(Map conf, TopologyContext context) {
+            _coordinator = _spout.getCoordinator(conf, context);
+        }
+        
         @Override
         public Object initializeTransaction(BigInteger txid, Object prevMetadata) {
             return null;
         }
+
+        @Override
+        public boolean isReady() {
+            return _coordinator.isReady();
+        }        
 
         @Override
         public void close() {
@@ -98,7 +108,7 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
     
     @Override
     public ITransactionalSpout.Coordinator<Object> getCoordinator(Map conf, TopologyContext context) {
-        return new Coordinator();
+        return new Coordinator(conf, context);
     }
 
     @Override

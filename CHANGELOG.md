@@ -4,6 +4,7 @@
  * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
  * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
  * Added activate and deactivate lifecycle methods on spouts. Spouts start off deactivated.
+ * Added isReady method to ITransactionalSpout$Coordinator to give the ability to delay the creation of new batches
  * Generalized CustomStreamGrouping to return the target tasks rather than the indices. Also parameterized custom groupings with TopologyContext. (not backwards compatible)
  * Added localOrShuffle grouping that will send to tasks in the same worker process if possible, or do a shuffle grouping otherwise.
  * Removed parameter from TopologyContext#maxTopologyMessageTimeout (simplification).

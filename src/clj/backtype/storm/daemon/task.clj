@@ -1,6 +1,7 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
+  (:use [clojure.contrib.seq :only [positions]])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
@@ -9,48 +10,65 @@
 
 (bootstrap)
 
-(defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields num-tasks]
-  (fn [^List values]
-    (mod (tuple/list-hash-code (.select out-fields group-fields values))
-         num-tasks)
-    ))
+(defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
+  (let [num-tasks (count target-tasks)
+        task-getter (fn [i] (.get target-tasks i))]
+    (fn [^List values]
+      (-> (.select out-fields group-fields values)
+          tuple/list-hash-code
+          (mod num-tasks)
+          task-getter))))
 
-(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^Fields out-fields num-tasks]
-  (.prepare grouping out-fields num-tasks)
+(defn- mk-shuffle-grouper [target-tasks]
+  (let [num-tasks (count target-tasks)
+        choices (rotating-random-range num-tasks)]
+    (fn [tuple]
+      (->> (acquire-random-range-id choices num-tasks)
+           (.get target-tasks)))))
+
+(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^TopologyContext context ^Fields out-fields target-tasks]
+  (.prepare grouping context out-fields target-tasks)
   (fn [^List values]
-    (.taskIndices grouping values)
+    (.chooseTasks grouping values)
     ))
 
 (defn- mk-grouper
   "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
-  [^Fields out-fields thrift-grouping num-tasks]
-  (let [random (Random.)]
+  [^TopologyContext context ^Fields out-fields thrift-grouping ^List target-tasks]
+  (let [num-tasks (count target-tasks)
+        random (Random.)
+        target-tasks (vec (sort target-tasks))]
     (condp = (thrift/grouping-type thrift-grouping)
       :fields
         (if (thrift/global-grouping? thrift-grouping)
           (fn [tuple]
             ;; It's possible for target to have multiple tasks if it reads multiple sources
-            0 )
+            (first target-tasks))
           (let [group-fields (Fields. (thrift/field-grouping thrift-grouping))]
-            (mk-fields-grouper out-fields group-fields num-tasks)
+            (mk-fields-grouper out-fields group-fields target-tasks)
             ))
       :all
-        (fn [tuple]
-          (range num-tasks))
+        (fn [tuple] target-tasks)
       :shuffle
-        (let [choices (rotating-random-range num-tasks)]
-          (fn [tuple]
-            (acquire-random-range-id choices num-tasks)
-            ))
+        (mk-shuffle-grouper target-tasks)
+      :local-or-shuffle
+        (let [same-tasks (set/intersection
+                           (set target-tasks)
+                           (set (.getThisWorkerTasks context)))]
+          (if-not (empty? same-tasks)
+            (mk-shuffle-grouper (vec same-tasks))
+            (mk-shuffle-grouper target-tasks)))
       :none
         (fn [tuple]
-          (mod (.nextInt random) num-tasks))
+          (let [i (mod (.nextInt random) num-tasks)]
+            (.get target-tasks i)
+            ))
       :custom-object
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
-          (mk-custom-grouper grouping out-fields num-tasks))
+          (mk-custom-grouper grouping context out-fields target-tasks))
       :custom-serialized
         (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping))]
-          (mk-custom-grouper grouping out-fields num-tasks))
+          (mk-custom-grouper grouping context out-fields target-tasks))
       :direct
         :direct
       )))
@@ -88,7 +106,7 @@
 
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
-  [^TopologyContext topology-context]
+  [^TopologyContext topology-context ^TopologyContext user-context]
   (let [output-groupings (clojurify-structure (.getThisTargets topology-context))]
      (into {}
        (for [[stream-id component->grouping] output-groupings
@@ -98,9 +116,10 @@
          [stream-id
           (into {}
                 (for [[component tgrouping] component->grouping]
-                  [component (mk-grouper out-fields
+                  [component (mk-grouper user-context
+                                         out-fields
                                          tgrouping
-                                         (count (.getComponentTasks topology-context component))
+                                         (.getComponentTasks topology-context component)
                                          )]
                   ))]))
     ))
@@ -155,6 +174,7 @@
         
         report-error-and-die (fn [error]
                                (report-error error)
+                               (apply-hooks user-context .error error)
                                (suicide-fn))
 
         ;; heartbeat ASAP so nimbus doesn't reassign
@@ -172,7 +192,7 @@
         _ (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
             (.addTaskHook user-context (-> klass Class/forName .newInstance)))
 
-        stream->component->grouper (outbound-components topology-context)
+        stream->component->grouper (outbound-components topology-context user-context)
         component->tasks (reverse-map task-info)
         ;; important it binds to virtual port before function returns
         puller (msg/bind mq-context storm-id task-id)
@@ -207,9 +227,7 @@
                                          (when (= :direct grouper)
                                            ;;  TODO: this is wrong, need to check how the stream was declared
                                            (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))
-                                         (let [tasks (component->tasks out-component)
-                                               indices (collectify (grouper values))]
-                                           (for [i indices] (tasks i))))
+                                         (collectify (grouper values)))
                                        (stream->component->grouper stream))]
                         (apply-hooks user-context .emit (EmitInfo. values stream out-tasks))
                         (when (emit-sampler)

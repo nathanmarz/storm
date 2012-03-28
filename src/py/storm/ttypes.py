@@ -348,6 +348,7 @@ class Grouping:
    - direct
    - custom_object
    - custom_serialized
+   - local_or_shuffle
   """
 
   thrift_spec = (
@@ -359,9 +360,10 @@ class Grouping:
     (5, TType.STRUCT, 'direct', (NullStruct, NullStruct.thrift_spec), None, ), # 5
     (6, TType.STRUCT, 'custom_object', (JavaObject, JavaObject.thrift_spec), None, ), # 6
     (7, TType.STRING, 'custom_serialized', None, None, ), # 7
+    (8, TType.STRUCT, 'local_or_shuffle', (NullStruct, NullStruct.thrift_spec), None, ), # 8
   )
 
-  def __init__(self, fields=None, shuffle=None, all=None, none=None, direct=None, custom_object=None, custom_serialized=None,):
+  def __init__(self, fields=None, shuffle=None, all=None, none=None, direct=None, custom_object=None, custom_serialized=None, local_or_shuffle=None,):
     self.fields = fields
     self.shuffle = shuffle
     self.all = all
@@ -369,6 +371,7 @@ class Grouping:
     self.direct = direct
     self.custom_object = custom_object
     self.custom_serialized = custom_serialized
+    self.local_or_shuffle = local_or_shuffle
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -424,6 +427,12 @@ class Grouping:
           self.custom_serialized = iprot.readString();
         else:
           iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.STRUCT:
+          self.local_or_shuffle = NullStruct()
+          self.local_or_shuffle.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -464,6 +473,10 @@ class Grouping:
     if self.custom_serialized is not None:
       oprot.writeFieldBegin('custom_serialized', TType.STRING, 7)
       oprot.writeString(self.custom_serialized)
+      oprot.writeFieldEnd()
+    if self.local_or_shuffle is not None:
+      oprot.writeFieldBegin('local_or_shuffle', TType.STRUCT, 8)
+      self.local_or_shuffle.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

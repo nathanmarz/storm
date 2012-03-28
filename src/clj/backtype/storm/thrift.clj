@@ -28,6 +28,7 @@
    Grouping$_Fields/CUSTOM_SERIALIZED :custom-serialized
    Grouping$_Fields/CUSTOM_OBJECT :custom-object
    Grouping$_Fields/DIRECT :direct
+   Grouping$_Fields/LOCAL_OR_SHUFFLE :local-or-shuffle
   })
 
 (defn grouping-type [^Grouping grouping]
@@ -100,6 +101,9 @@
 (defn mk-shuffle-grouping []
   (Grouping/shuffle (NullStruct.)))
 
+(defn mk-local-or-shuffle-grouping []
+  (Grouping/local_or_shuffle (NullStruct.)))
+
 (defn mk-fields-grouping [fields]
   (Grouping/fields fields))
 
@@ -131,6 +135,7 @@
         (instance? JavaObject grouping-spec) (Grouping/custom_object grouping-spec)
         (sequential? grouping-spec) (mk-fields-grouping grouping-spec)
         (= grouping-spec :shuffle) (mk-shuffle-grouping)
+        (= grouping-spec :local-or-shuffle) (mk-local-or-shuffle-grouping)
         (= grouping-spec :none) (mk-none-grouping)
         (= grouping-spec :all) (mk-all-grouping)
         (= grouping-spec :global) (mk-global-grouping)

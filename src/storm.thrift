@@ -34,6 +34,7 @@ union Grouping {
   5: NullStruct direct; // this bolt expects the source bolt to send tuples directly to it
   6: JavaObject custom_object;
   7: binary custom_serialized;
+  8: NullStruct local_or_shuffle; // prefer sending to tasks in the same worker process, otherwise shuffle
 }
 
 struct StreamInfo {

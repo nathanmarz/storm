@@ -122,10 +122,11 @@ public class TransactionalSpoutCoordinator extends BaseRichSpout {
         }
         
         try {
-            if(_coordinator.isReady() && _activeTx.size() < _maxTransactionActive) {
+            if(_activeTx.size() < _maxTransactionActive) {
                 BigInteger curr = _currTransaction;
                 for(int i=0; i<_maxTransactionActive; i++) {
-                    if(!_activeTx.containsKey(curr)) {
+                    if((_coordinatorState.hasCache(curr) || _coordinator.isReady())
+                            && !_activeTx.containsKey(curr)) {
                         TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
                         Object state = _coordinatorState.getState(curr, _initializer);
                         _activeTx.put(curr, new TransactionStatus(attempt));

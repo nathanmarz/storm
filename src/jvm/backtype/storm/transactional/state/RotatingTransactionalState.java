@@ -88,6 +88,10 @@ public class RotatingTransactionalState {
         }
         return _curr.get(txid);
     }
+    
+    public boolean hasCache(BigInteger txid) {
+        return _curr.containsKey(txid);
+    }
        
     /**
      * Returns null if it was created, the value otherwise.

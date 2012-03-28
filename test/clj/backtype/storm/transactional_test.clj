@@ -24,7 +24,7 @@
        nil)
      (getCoordinator [this conf context]
        (reify ITransactionalSpout$Coordinator
-         (isReady [this] true)
+         (isReady [this] (not (nil? @atom)))
          (initializeTransaction [this txid prevMetadata]
            @atom )
          (close [this]
@@ -115,12 +115,17 @@
         (.ack coordinator commit-id)
         (bind commit-id (get-commit emit-capture))
         (verify-and-reset! {COMMIT-STREAM [[2]] BATCH-STREAM [[5 12]]} emit-capture)
+        (reset! coordinator-state nil)
         (.ack coordinator commit-id)
-        (verify-and-reset! {BATCH-STREAM [[6 12]]} emit-capture)
+        (verify-and-reset! {} emit-capture)
 
         (.fail coordinator (nth attempts 1))
         (bind attempts (get-attempts emit-capture BATCH-STREAM))
-        (verify-and-reset! {BATCH-STREAM [[3 10] [4 10] [5 12] [6 12]]} emit-capture)
+        (verify-and-reset! {BATCH-STREAM [[3 10] [4 10] [5 12]]} emit-capture)
+
+        (reset! coordinator-state 12)
+        (.nextTuple coordinator)
+        (verify-and-reset! {BATCH-STREAM [[6 12]]} emit-capture)
 
         (.ack coordinator (first attempts))
         (bind commit-id (get-commit emit-capture))

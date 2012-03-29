@@ -21,7 +21,7 @@ public class ShellProcess {
         this.command = command;
     }
 
-    public int launch(Map conf, TopologyContext context) throws IOException {
+    public Number launch(Map conf, TopologyContext context) throws IOException {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(new File(context.getCodeDir()));
         _subprocess = builder.start();
@@ -29,11 +29,13 @@ public class ShellProcess {
         processIn = new DataOutputStream(_subprocess.getOutputStream());
         processOut = new BufferedReader(new InputStreamReader(_subprocess.getInputStream()));
 
-        writeMessage(context.getPIDDir());
-        int pid = ((Number)readMessage()).intValue();
-        writeMessage(conf);
-        writeMessage(context);
-        return pid;
+        JSONObject setupInfo = new JSONObject();
+        setupInfo.put("pidDir", context.getPIDDir());
+        setupInfo.put("conf", conf);
+        setupInfo.put("context", context);
+        writeMessage(setupInfo);
+
+        return (Number)readMessage().get("pid");
     }
 
     public void destroy() {
@@ -51,18 +53,13 @@ public class ShellProcess {
         processIn.flush();
     }
 
-    // returns null for sync. odd?
-    public Object readMessage() throws IOException {
+    public JSONObject readMessage() throws IOException {
         String string = readString();
-        if (string.equals("sync")) {
-            return null; // previously had: return readMap();
+        JSONObject msg = (JSONObject)JSONValue.parse(string);
+        if (msg != null) {
+            return msg;
         } else {
-            Object msg = JSONValue.parse(string);
-            if (msg != null) {
-                return msg;
-            } else {
-                throw new IOException("unable to parse: " + string);
-            }
+            throw new IOException("unable to parse: " + string);
         }
     }
 
@@ -74,9 +71,6 @@ public class ShellProcess {
                 String subline = processOut.readLine();
                 if(subline==null)
                     throw new RuntimeException("Pipe to subprocess seems to be broken!");
-                if(subline.equals("sync")) {
-                    return subline;
-                }
                 if(subline.equals("end")) {
                     break;
                 }

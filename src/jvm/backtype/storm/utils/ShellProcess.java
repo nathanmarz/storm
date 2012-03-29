@@ -29,18 +29,13 @@ public class ShellProcess {
         processIn = new DataOutputStream(_subprocess.getOutputStream());
         processOut = new BufferedReader(new InputStreamReader(_subprocess.getInputStream()));
 
-        JSONObject pidDir = new JSONObject();
-        pidDir.put("pidDir", context.getPIDDir());
-        writeMessage(pidDir);
-
-        Number pid = (Number)readMessage().get("pid");
-
         JSONObject setupInfo = new JSONObject();
+        setupInfo.put("pidDir", context.getPIDDir());
         setupInfo.put("conf", conf);
         setupInfo.put("context", context);
         writeMessage(setupInfo);
 
-        return pid;
+        return (Number)readMessage().get("pid");
     }
 
     public void destroy() {

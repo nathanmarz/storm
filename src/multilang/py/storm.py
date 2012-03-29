@@ -116,9 +116,8 @@ def log(msg):
     sendMsgToParent({"command": "log", "msg": msg})
 
 def initComponent():
-    heartbeatdir = readMsg()['pidDir']
-    sendpid(heartbeatdir)
     setupInfo = readMsg()
+    sendpid(setupInfo['pidDir'])
     return [setupInfo['conf'], setupInfo['context']]
 
 class Tuple:

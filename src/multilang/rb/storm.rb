@@ -107,9 +107,8 @@ module Storm
     end
 
     def handshake
-      heartbeat_dir = read_message['pidDir']
-      send_pid heartbeat_dir
       setup_info = read_message
+      send_pid setup_info['pidDir']
       [setup_info['conf'], setup_info['context']]
     end
   end

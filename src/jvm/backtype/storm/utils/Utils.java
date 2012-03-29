@@ -81,22 +81,36 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
+    
+    public static List<URL> findResources(String name) {
+        try {
+            Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(name);
+            List<URL> ret = new ArrayList<URL>();
+            while(resources.hasMoreElements()) {
+                ret.add(resources.nextElement());
+            }
+            return ret;
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
         try {
-            Enumeration resources = Thread.currentThread().getContextClassLoader().getResources(name);
-            if(!resources.hasMoreElements()) {
+            List<URL> resources = findResources(name);
+            if(resources.isEmpty()) {
                 if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
                 else return new HashMap();
             }
-            URL resource = (URL) resources.nextElement();
+            if(resources.size() > 1) {
+                throw new RuntimeException("Found multiple " + name + " resources");
+            }
+            URL resource = resources.get(0);
             Yaml yaml = new Yaml();
             Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
             if(ret==null) ret = new HashMap();
             
-            if(resources.hasMoreElements()) {
-                throw new RuntimeException("Found multiple " + name + " resources");
-            }
+
             return new HashMap(ret);
             
         } catch (IOException e) {

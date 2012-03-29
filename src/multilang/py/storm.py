@@ -60,12 +60,11 @@ def sendMsgToParent(msg):
     sys.stdout.flush()
 
 def sync():
-    print "sync"
-    sys.stdout.flush()
+    sendMsgToParent({'command':'sync'})
 
 def sendpid(heartbeatdir):
     pid = os.getpid()
-    sendMsgToParent(pid)
+    sendMsgToParent({'pid':pid})
     open(heartbeatdir + "/" + str(pid), "w").close()    
 
 def emit(*args, **kwargs):
@@ -116,16 +115,11 @@ def fail(tup):
 def log(msg):
     sendMsgToParent({"command": "log", "msg": msg})
 
-# read the stormconf and context
-def readenv():
-    conf = readMsg()
-    context = readMsg()
-    return [conf, context]
-
 def initComponent():
-    heartbeatdir = readMsg()
+    heartbeatdir = readMsg()['pidDir']
     sendpid(heartbeatdir)
-    return readenv()
+    setupInfo = readMsg()
+    return [setupInfo['conf'], setupInfo['context']]
 
 class Tuple:
     def __init__(self, id, component, stream, task, values):

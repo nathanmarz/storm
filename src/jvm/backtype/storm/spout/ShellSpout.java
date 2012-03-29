@@ -32,7 +32,7 @@ public class ShellSpout implements ISpout {
         _collector = collector;
 
         try {
-            int subpid = _process.launch(stormConf, context);
+            Number subpid = _process.launch(stormConf, context);
             LOG.info("Launched subprocess with pid " + subpid);
         } catch (IOException e) {
             throw new RuntimeException("Error when launching multilang subprocess", e);
@@ -80,10 +80,11 @@ public class ShellSpout implements ISpout {
             _process.writeMessage(query);
 
             while (true) {
-                Map action = (Map)_process.readMessage();
-                if (action == null) return; // sync
+                JSONObject action = _process.readMessage();
                 String command = (String) action.get("command");
-                if (command.equals("log")) {
+                if (command.equals("sync")) {
+                    return;
+                } else if (command.equals("log")) {
                     String msg = (String) action.get("msg");
                     LOG.info("Shell msg: " + msg);
                 } else if (command.equals("emit")) {

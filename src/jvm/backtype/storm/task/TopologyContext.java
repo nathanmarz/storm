@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
 import org.json.simple.JSONValue;
+import org.json.simple.JSONAware;
 
 /**
  * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
@@ -29,7 +30,7 @@ import org.json.simple.JSONValue;
  * <p>The TopologyContext is also used to declare ISubscribedState objects to
  * synchronize state with StateSpouts this object is subscribed to.</p>
  */
-public class TopologyContext {
+public class TopologyContext implements JSONAware {
     private StormTopology _topology;
     private Map<Integer, String> _taskToComponent;
     private Integer _taskId;
@@ -41,8 +42,12 @@ public class TopologyContext {
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map _stormConf;
     private Integer _workerPort;
+    private List<Integer> _workerTasks;
     
-    public TopologyContext(StormTopology topology, Map stormConf, Map<Integer, String> taskToComponent, String stormId, String codeDir, String pidDir, Integer taskId, Integer workerPort) {
+    public TopologyContext(StormTopology topology, Map stormConf,
+            Map<Integer, String> taskToComponent, String stormId,
+            String codeDir, String pidDir, Integer taskId,
+            Integer workerPort, List<Integer> workerTasks) {
         _topology = topology;
         _stormConf = stormConf;
         _workerPort = workerPort;
@@ -52,6 +57,8 @@ public class TopologyContext {
         _componentToTasks = new HashMap<String, List<Integer>>();
         _pidDir = pidDir;
         _codeDir = codeDir;
+        _workerTasks = new ArrayList<Integer>(workerTasks);
+        Collections.sort(_workerTasks);
         for(Integer task: taskToComponent.keySet()) {
             String component = taskToComponent.get(task);
             List<Integer> curr = _componentToTasks.get(component);
@@ -165,6 +172,14 @@ public class TopologyContext {
      */
     public String getThisComponentId() {
         return getComponentId(_taskId);
+    }
+    
+    /**
+     * Gets all the task ids that are running in this worker process
+     * (including the task for this task).
+     */
+    public List<Integer> getThisWorkerTasks() {
+        return _workerTasks;
     }
 
     /**

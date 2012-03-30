@@ -7,7 +7,7 @@
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.clojure RichShellBolt])
+  (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config])
@@ -28,6 +28,7 @@
    Grouping$_Fields/CUSTOM_SERIALIZED :custom-serialized
    Grouping$_Fields/CUSTOM_OBJECT :custom-object
    Grouping$_Fields/DIRECT :direct
+   Grouping$_Fields/LOCAL_OR_SHUFFLE :local-or-shuffle
   })
 
 (defn grouping-type [^Grouping grouping]
@@ -100,6 +101,9 @@
 (defn mk-shuffle-grouping []
   (Grouping/shuffle (NullStruct.)))
 
+(defn mk-local-or-shuffle-grouping []
+  (Grouping/local_or_shuffle (NullStruct.)))
+
 (defn mk-fields-grouping [fields]
   (Grouping/fields fields))
 
@@ -131,6 +135,7 @@
         (instance? JavaObject grouping-spec) (Grouping/custom_object grouping-spec)
         (sequential? grouping-spec) (mk-fields-grouping grouping-spec)
         (= grouping-spec :shuffle) (mk-shuffle-grouping)
+        (= grouping-spec :local-or-shuffle) (mk-local-or-shuffle-grouping)
         (= grouping-spec :none) (mk-none-grouping)
         (= grouping-spec :all) (mk-all-grouping)
         (= grouping-spec :global) (mk-global-grouping)
@@ -157,13 +162,29 @@
     {:obj spout :p parallelism-hint :conf conf}
     ))
 
+(defn- shell-component-params [command script-or-output-spec kwargs]
+  (if (string? script-or-output-spec)
+    [(into-array String [command script-or-output-spec])
+     (first kwargs)
+     (rest kwargs)]
+    [(into-array String command)
+     script-or-output-spec
+     kwargs]))
+
 (defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil :conf nil]
   (let [parallelism-hint (if p p parallelism-hint)]
     {:obj bolt :inputs inputs :p parallelism-hint :conf conf}
     ))
 
-(defn mk-shell-bolt-spec [inputs command script output-spec & kwargs]
-  (apply mk-bolt-spec inputs (RichShellBolt. command script (mk-output-spec output-spec)) kwargs))
+(defn mk-shell-bolt-spec [inputs command script-or-output-spec & kwargs]
+  (let [[command output-spec kwargs]
+        (shell-component-params command script-or-output-spec kwargs)]
+    (apply mk-bolt-spec inputs (RichShellBolt. command (mk-output-spec output-spec)) kwargs)))
+
+(defn mk-shell-spout-spec [command script-or-output-spec & kwargs]
+  (let [[command output-spec kwargs]
+        (shell-component-params command script-or-output-spec kwargs)]
+   (apply mk-spout-spec (RichShellSpout. command (mk-output-spec output-spec)) kwargs)))
 
 (defn- add-inputs [declarer inputs]
   (doseq [[id grouping] (mk-inputs inputs)]

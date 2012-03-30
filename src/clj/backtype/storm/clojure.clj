@@ -10,60 +10,6 @@
   (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
   (:require [backtype.storm [thrift :as thrift]]))
 
-(defn hint [sym class-sym]
-  (with-meta sym {:tag class-sym})
-  )
-
-(defmulti hinted-args (fn [m args] m))
-
-(defmethod hinted-args 'prepare [_ [conf context collector]]
-           [(hint conf 'java.util.Map)
-            (hint context 'backtype.storm.task.TopologyContext)
-            (hint collector 'backtype.storm.task.OutputCollector)]
-           )
-
-; Special case for clojure where we use a closure instead of the prepare
-; method
-(defmethod hinted-args 'clojure-prepare-fn [_ [conf context collector]]
-  [(hint conf 'java.util.Map)
-   (hint context 'backtype.storm.task.TopologyContext)
-   (hint collector 'java.util.Map)])
-
-(defmethod hinted-args 'execute [_ [tuple]]
-           [(hint tuple 'backtype.storm.tuple.Tuple)]
-           )
-
-(defmethod hinted-args 'cleanup [_ []]
-           []
-           )
-
-(defmethod hinted-args 'close [_ []]
-           []
-           )
-
-(defmethod hinted-args 'clojure-open-fn [_ [conf context collector]]
-           [(hint conf 'java.util.Map)
-            (hint context 'backtype.storm.task.TopologyContext)
-            (hint collector 'java.util.Map)]
-           )
-(defmethod hinted-args 'open [_ [conf context collector]]
-           [(hint conf 'java.util.Map)
-            (hint context 'backtype.storm.task.TopologyContext)
-            (hint collector 'backtype.storm.spout.SpoutOutputCollector)]
-           )
-
-(defmethod hinted-args 'nextTuple [_ []]
-           []
-           )
-
-(defmethod hinted-args 'ack [_ [id]]
-           [(hint id 'java.lang.Object)]
-           )
-
-(defmethod hinted-args 'fail [_ [id]]
-           [(hint id 'java.lang.Object)]
-           )
-
 
 (defn direct-stream [fields]
   (StreamInfo. fields true))
@@ -78,7 +24,6 @@
 (defmacro clojure-bolt [output-spec fn-sym conf-fn-sym args]
   `(clojure-bolt* ~output-spec (var ~fn-sym) (var ~conf-fn-sym) ~args))
 
-
 (defn clojure-spout* [output-spec fn-var conf-var args]
   (let [m (meta fn-var)]
     (ClojureSpout. (to-spec fn-var) (to-spec conf-var) args (thrift/mk-output-spec output-spec))
@@ -87,11 +32,9 @@
 (defmacro clojure-spout [output-spec fn-sym conf-sym args]
   `(clojure-spout* ~output-spec (var ~fn-sym) (var ~conf-sym) ~args))
 
-(defn hint-fns [body]
+(defn normalize-fns [body]
   (for [[name args & impl] body
-        :let [name (hint name 'void)
-              args (hinted-args name args)
-              args (-> "this"
+        :let [args (-> "this"
                        gensym
                        (cons args)
                        vec)]]
@@ -100,7 +43,7 @@
 
 (defmacro bolt [& body]
   (let [[bolt-fns other-fns] (split-with #(not (symbol? %)) body)
-        fns (hint-fns bolt-fns)]
+        fns (normalize-fns bolt-fns)]
     `(reify IBolt
        ~@fns
        ~@other-fns)))
@@ -111,7 +54,7 @@
 
 (defmacro spout [& body]
   (let [[spout-fns other-fns] (split-with #(not (symbol? %)) body)
-        fns (hint-fns spout-fns)]
+        fns (normalize-fns spout-fns)]
     `(reify ISpout
        ~@fns
        ~@other-fns)))
@@ -128,7 +71,7 @@
                     (let [[args & impl-body] impl
                           coll-sym (nth args 1)
                           args (vec (take 1 args))
-                          prepargs (hinted-args 'clojure-prepare-fn [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs [(gensym "conf") (gensym "context") coll-sym]]
                       `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
@@ -160,7 +103,7 @@
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (first args)
-                          prepargs (hinted-args 'clojure-open-fn [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs [(gensym "conf") (gensym "context") coll-sym]]
                       `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
@@ -229,6 +172,7 @@
 (defalias bolt-spec thrift/mk-bolt-spec)
 (defalias spout-spec thrift/mk-spout-spec)
 (defalias shell-bolt-spec thrift/mk-shell-bolt-spec)
+(defalias shell-spout-spec thrift/mk-shell-spout-spec)
 
 (defn submit-remote-topology [name conf topology]
   (StormSubmitter/submitTopology name conf topology))

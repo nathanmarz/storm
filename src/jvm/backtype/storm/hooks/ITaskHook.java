@@ -16,4 +16,5 @@ public interface ITaskHook {
     void spoutFail(SpoutFailInfo info);
     void boltAck(BoltAckInfo info);
     void boltFail(BoltFailInfo info);
+    void error(Throwable error);
 }

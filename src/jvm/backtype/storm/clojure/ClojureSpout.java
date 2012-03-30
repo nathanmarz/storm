@@ -114,5 +114,23 @@ public class ClojureSpout implements IRichSpout {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }    
+    }
+
+    @Override
+    public void activate() {
+        try {
+            _spout.activate();
+        } catch(AbstractMethodError ame) {
+                
+        }
+    }
+
+    @Override
+    public void deactivate() {
+        try {
+            _spout.deactivate();
+        } catch(AbstractMethodError ame) {
+                
+        }
+    }
 }

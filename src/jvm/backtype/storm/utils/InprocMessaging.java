@@ -19,32 +19,15 @@ public class InprocMessaging {
     }
     
     public static void sendMessage(int port, Object msg) {
-        LinkedBlockingQueue<Object> queue = getQueue(port);
-        synchronized(_lock) {
-            queue.add(msg);
-        }
+        getQueue(port).add(msg);
     }
     
     public static Object takeMessage(int port) throws InterruptedException {
-        LinkedBlockingQueue<Object> queue = getQueue(port);
-        Object ret = queue.take();
-        synchronized(_lock) {
-            if(queue.size()==0) {
-                _queues.remove(port);
-            }
-        }
-        return ret;
+        return getQueue(port).take();
     }
 
     public static Object pollMessage(int port) {
-        LinkedBlockingQueue<Object> queue = getQueue(port);
-        Object ret = queue.poll();
-        synchronized(_lock) {
-            if(queue.size()==0) {
-                _queues.remove(port);
-            }
-        }
-        return ret;
+        return  getQueue(port).poll();
     }    
     
     private static LinkedBlockingQueue<Object> getQueue(int port) {

@@ -25,6 +25,14 @@ public interface ITransactionalSpout<T> extends IComponent {
         X initializeTransaction(BigInteger txid, X prevMetadata);
         
         /**
+         * Returns true if its ok to emit start a new transaction, false otherwise (will skip this transaction).
+         * 
+         * You should sleep here if you want a delay between asking for the next transaction (this will be called 
+         * repeatedly in a loop).
+         */
+        boolean isReady();
+        
+        /**
          * Release any resources from this coordinator.
          */
         void close();

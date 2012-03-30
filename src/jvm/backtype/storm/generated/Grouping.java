@@ -30,6 +30,7 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
   private static final org.apache.thrift7.protocol.TField DIRECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("direct", org.apache.thrift7.protocol.TType.STRUCT, (short)5);
   private static final org.apache.thrift7.protocol.TField CUSTOM_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("custom_object", org.apache.thrift7.protocol.TType.STRUCT, (short)6);
   private static final org.apache.thrift7.protocol.TField CUSTOM_SERIALIZED_FIELD_DESC = new org.apache.thrift7.protocol.TField("custom_serialized", org.apache.thrift7.protocol.TType.STRING, (short)7);
+  private static final org.apache.thrift7.protocol.TField LOCAL_OR_SHUFFLE_FIELD_DESC = new org.apache.thrift7.protocol.TField("local_or_shuffle", org.apache.thrift7.protocol.TType.STRUCT, (short)8);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -39,7 +40,8 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
     NONE((short)4, "none"),
     DIRECT((short)5, "direct"),
     CUSTOM_OBJECT((short)6, "custom_object"),
-    CUSTOM_SERIALIZED((short)7, "custom_serialized");
+    CUSTOM_SERIALIZED((short)7, "custom_serialized"),
+    LOCAL_OR_SHUFFLE((short)8, "local_or_shuffle");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -68,6 +70,8 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
           return CUSTOM_OBJECT;
         case 7: // CUSTOM_SERIALIZED
           return CUSTOM_SERIALIZED;
+        case 8: // LOCAL_OR_SHUFFLE
+          return LOCAL_OR_SHUFFLE;
         default:
           return null;
       }
@@ -125,6 +129,8 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, JavaObject.class)));
     tmpMap.put(_Fields.CUSTOM_SERIALIZED, new org.apache.thrift7.meta_data.FieldMetaData("custom_serialized", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING        , true)));
+    tmpMap.put(_Fields.LOCAL_OR_SHUFFLE, new org.apache.thrift7.meta_data.FieldMetaData("local_or_shuffle", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, NullStruct.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(Grouping.class, metaDataMap);
   }
@@ -192,6 +198,12 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
     return x;
   }
 
+  public static Grouping local_or_shuffle(NullStruct value) {
+    Grouping x = new Grouping();
+    x.set_local_or_shuffle(value);
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -231,6 +243,11 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
           break;
         }
         throw new ClassCastException("Was expecting value of type ByteBuffer for field 'custom_serialized', but got " + value.getClass().getSimpleName());
+      case LOCAL_OR_SHUFFLE:
+        if (value instanceof NullStruct) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type NullStruct for field 'local_or_shuffle', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -319,6 +336,16 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case LOCAL_OR_SHUFFLE:
+          if (field.type == LOCAL_OR_SHUFFLE_FIELD_DESC.type) {
+            NullStruct local_or_shuffle;
+            local_or_shuffle = new NullStruct();
+            local_or_shuffle.read(iprot);
+            return local_or_shuffle;
+          } else {
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -366,6 +393,10 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         ByteBuffer custom_serialized = (ByteBuffer)value_;
         oprot.writeBinary(custom_serialized);
         return;
+      case LOCAL_OR_SHUFFLE:
+        NullStruct local_or_shuffle = (NullStruct)value_;
+        local_or_shuffle.write(oprot);
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -388,6 +419,8 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         return CUSTOM_OBJECT_FIELD_DESC;
       case CUSTOM_SERIALIZED:
         return CUSTOM_SERIALIZED_FIELD_DESC;
+      case LOCAL_OR_SHUFFLE:
+        return LOCAL_OR_SHUFFLE_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -516,6 +549,20 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
     value_ = value;
   }
 
+  public NullStruct get_local_or_shuffle() {
+    if (getSetField() == _Fields.LOCAL_OR_SHUFFLE) {
+      return (NullStruct)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'local_or_shuffle' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void set_local_or_shuffle(NullStruct value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.LOCAL_OR_SHUFFLE;
+    value_ = value;
+  }
+
   public boolean is_set_fields() {
     return setField_ == _Fields.FIELDS;
   }
@@ -548,6 +595,11 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
 
   public boolean is_set_custom_serialized() {
     return setField_ == _Fields.CUSTOM_SERIALIZED;
+  }
+
+
+  public boolean is_set_local_or_shuffle() {
+    return setField_ == _Fields.LOCAL_OR_SHUFFLE;
   }
 
 

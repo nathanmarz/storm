@@ -10,6 +10,7 @@ import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.coordination.IBatchBolt;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
+import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
 import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.BoltDeclarer;
@@ -243,6 +244,28 @@ public class LinearDRPCTopologyBuilder {
         }
 
         @Override
+        public LinearDRPCInputDeclarer localOrShuffleGrouping() {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(String prevComponent, InputDeclarer declarer) {
+                    declarer.localOrShuffleGrouping(prevComponent);
+                }                
+            });
+            return this;
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer localOrShuffleGrouping(final String streamId) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(String prevComponent, InputDeclarer declarer) {
+                    declarer.localOrShuffleGrouping(prevComponent, streamId);
+                }                
+            });
+            return this;
+        }
+        
+        @Override
         public LinearDRPCInputDeclarer noneGrouping() {
             addDeclaration(new InputDeclaration() {
                 @Override
@@ -303,6 +326,28 @@ public class LinearDRPCTopologyBuilder {
                 @Override
                 public void declare(String prevComponent, InputDeclarer declarer) {
                     declarer.directGrouping(prevComponent, streamId);
+                }                
+            });
+            return this;
+        }
+        
+        @Override
+        public LinearDRPCInputDeclarer customGrouping(final CustomStreamGrouping grouping) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(String prevComponent, InputDeclarer declarer) {
+                    declarer.customGrouping(prevComponent, grouping);
+                }                
+            });
+            return this;
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer customGrouping(final String streamId, final CustomStreamGrouping grouping) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(String prevComponent, InputDeclarer declarer) {
+                    declarer.customGrouping(prevComponent, streamId, grouping);
                 }                
             });
             return this;

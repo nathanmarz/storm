@@ -304,6 +304,38 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
+        public BoltDeclarer localOrShuffleGrouping(final String component) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(InputDeclarer declarer) {
+                    declarer.localOrShuffleGrouping(component);
+                }                
+
+                @Override
+                public String getComponent() {
+                    return component;
+                }                
+            });
+            return this;
+        }
+
+        @Override
+        public BoltDeclarer localOrShuffleGrouping(final String component, final String streamId) {
+            addDeclaration(new InputDeclaration() {
+                @Override
+                public void declare(InputDeclarer declarer) {
+                    declarer.localOrShuffleGrouping(component, streamId);
+                }                
+
+                @Override
+                public String getComponent() {
+                    return component;
+                }                
+            });
+            return this;
+        }
+        
+        @Override
         public BoltDeclarer noneGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override

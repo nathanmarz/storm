@@ -95,7 +95,8 @@
                                                  (supervisor-stormdist-root conf storm-id))
                                                (worker-pids-root conf worker-id)
                                                %
-                                               port)
+                                               port
+                                               task-ids)
         mk-user-context #(TopologyContext. topology
                                            storm-conf
                                            task->component
@@ -104,7 +105,8 @@
                                              (supervisor-stormdist-root conf storm-id))
                                            (worker-pids-root conf worker-id)
                                            %
-                                           port)
+                                           port
+                                           task-ids)
         mq-context (if mq-context
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)

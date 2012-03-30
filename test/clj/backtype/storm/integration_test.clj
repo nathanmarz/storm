@@ -13,10 +13,10 @@
 ;;     (let [state (:storm-cluster-state cluster)
 ;;           nimbus (:nimbus cluster)
 ;;           topology (thrift/mk-topology
-;;                     {1 (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
-;;                     {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
-;;                      3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
-;;                      4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
+;;                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+;;                     {"2" (thrift/mk-bolt-spec {"1" ["word"]} (TestWordCounter.) :parallelism-hint 4)
+;;                      "3" (thrift/mk-bolt-spec {"1" :global} (TestGlobalCount.))
+;;                      "4" (thrift/mk-bolt-spec {"2" :global} (TestAggregatesCounter.))
 ;;                      })]
 ;;         (submit-local-topology nimbus
 ;;                             "counter"
@@ -31,8 +31,8 @@
 ;;   (with-local-cluster [cluster :supervisors 4]
 ;;     (let [nimbus (:nimbus cluster)
 ;;           topology (thrift/mk-topology
-;;                       {1 (thrift/mk-spout-spec (TestWordSpout. false))}
-;;                       {2 (thrift/mk-shell-bolt-spec {1 :shuffle} "fancy" "tester.fy" ["word"] :parallelism-hint 1)}
+;;                       {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
+;;                       {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "fancy" "tester.fy" ["word"] :parallelism-hint 1)}
 ;;                       )]
 ;;       (submit-local-topology nimbus
 ;;                           "test"
@@ -43,29 +43,27 @@
 ;;       (Thread/sleep 10000)
 ;;       )))
 
-;; (deftest test-multilang-rb
-;;   (with-local-cluster [cluster :supervisors 4]
-;;     (let [nimbus (:nimbus cluster)
-;;           topology (thrift/mk-topology
-;;                       {1 (thrift/mk-spout-spec (TestWordSpout. false))}
-;;                       {2 (thrift/mk-shell-bolt-spec {1 :shuffle} "ruby" "tester.rb" ["word"] :parallelism-hint 1)}
-;;                       )]
-;;       (submit-local-topology nimbus
-;;                           "test"
-;;                           {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
-;;                           topology)
-;;       (Thread/sleep 10000)
-;;       (.killTopology nimbus "test")
-;;       (Thread/sleep 10000)
-;;       )))
+(deftest test-multilang-rb
+  (with-local-cluster [cluster :supervisors 4]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-shell-spout-spec ["ruby" "tester_spout.rb"] ["word"])}
+                    {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "ruby" "tester_bolt.rb" ["word"] :parallelism-hint 1)})]
+      (submit-local-topology nimbus
+                             "test"
+                             {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
+                             topology)
+      (Thread/sleep 10000)
+      (.killTopology nimbus "test")
+      (Thread/sleep 10000))))
 
 
 (deftest test-multilang-py
   (with-local-cluster [cluster :supervisors 4]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
-                      {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
-                      {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "python" "tester.py" ["word"] :parallelism-hint 1)}
+                      {"1" (thrift/mk-shell-spout-spec ["python" "tester_spout.py"] ["word"])}
+                      {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} ["python" "tester_bolt.py"] ["word"] :parallelism-hint 1)}
                       )]
       (submit-local-topology nimbus
                           "test"
@@ -151,8 +149,8 @@
                (read-tuples results "2")))
       )))
 
-(defbolt lalala-bolt1 ["word"] [tuple collector]
-  (let [ret (-> (.getValue tuple 0) (str "lalala"))]
+(defbolt lalala-bolt1 ["word"] [[val :as tuple] collector]
+  (let [ret (str val "lalala")]
     (emit-bolt! collector [ret] :anchor tuple)
     (ack! collector tuple)
     ))
@@ -175,7 +173,7 @@
     (bolt
       (prepare [_ _ _]
         (reset! state (str prefix "lalala")))
-      (execute [tuple]
+      (execute [{val "word" :as tuple}]
         (let [ret (-> (.getValue tuple 0) (str @state))]
           (emit-bolt! collector [ret] :anchor tuple)
           (ack! collector tuple)
@@ -189,7 +187,7 @@
                       {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
                       {"2" (thrift/mk-bolt-spec {"1" :shuffle}
                                               lalala-bolt1)
-                       "3" (thrift/mk-bolt-spec {"1" :shuffle}
+                       "3" (thrift/mk-bolt-spec {"1" :local-or-shuffle}
                                               lalala-bolt2)
                        "4" (thrift/mk-bolt-spec {"1" :shuffle}
                                               (lalala-bolt3 "_nathan_"))}

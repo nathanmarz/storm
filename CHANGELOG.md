@@ -1,8 +1,14 @@
 ## Unreleased
 
+ * Implemented shell spout (thanks tomo)
+ * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
+ * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
+ * Added activate and deactivate lifecycle methods on spouts. Spouts start off deactivated.
+ * Added isReady method to ITransactionalSpout$Coordinator to give the ability to delay the creation of new batches
+ * Generalized CustomStreamGrouping to return the target tasks rather than the indices. Also parameterized custom groupings with TopologyContext. (not backwards compatible)
+ * Added localOrShuffle grouping that will send to tasks in the same worker process if possible, or do a shuffle grouping otherwise.
  * Removed parameter from TopologyContext#maxTopologyMessageTimeout (simplification).
  * Storm now automatically sets TOPOLOGY_NAME in the config passed to the bolts and spouts to the name of the topology.
- * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
  * Added TOPOLOGY_AUTO_TASK_HOOKS config to automatically add hooks into every spout/bolt for the topology.
  * Added ability to override configs at the command line. These config definitions have the highest priority.
  * Error thrown if invalid (not json-serializable) topology conf used.
@@ -10,6 +16,13 @@
  * Socket timeout for DRPCClient is now configurable
  * Added getThisWorkerPort() method to TopologyContext
  * Added better error checking in Fields (thanks git2samus)
+ * Improved Clojure DSL to allow destructuring in bolt/spout methods
+ * Added Nimbus stats methods to LocalCluster (thanks KasperMadsen)
+ * Added rebalance, activate, deactivate, and killTopologyWithOpts methods to LocalCluster
+ * Added custom stream groupings to LinearDRPC API
+ * Simplify multilang protocol to use json for all messages (thanks tomoj)
+ * Bug fix: Fixed string encoding in ShellBolt protocol to be UTF-8 (thanks nicoo)
+ * Bug fix: Fixed race condition in FeederSpout that could lead to dropped messages
  * Bug fix: Quoted arguments with spaces now work properly with storm client script
  * Bug fix: Workers start properly when topology name has spaces
  * Bug fix: UI works properly when there are spaces in topology or spout/bolt names (thanks xiaokang)

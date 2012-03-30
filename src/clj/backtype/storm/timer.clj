@@ -54,8 +54,8 @@
   (when-not @(:active timer)
     (throw (IllegalStateException. "Timer is not active"))))
 
-(defn schedule [timer delay-secs afn]
-  (check-active! timer)
+(defnk schedule [timer delay-secs afn :check-active true]
+  (when check-active (check-active! timer))
   (let [id (uuid)
         ^PriorityQueue queue (:queue timer)]
     (locking (:lock timer)
@@ -67,8 +67,9 @@
             delay-secs
             (fn this []
               (afn)
-              (schedule timer recur-secs this)
-              )))
+              (schedule timer recur-secs this))
+            :check-active false ; this avoids a race condition with cancel-timer
+            ))
 
 (defn cancel-timer [timer]
   (check-active! timer)

@@ -35,6 +35,11 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
         public Integer initializeTransaction(BigInteger txid, Integer prevMetadata) {
             return _coordinator.numPartitions();
         }
+        
+        @Override
+        public boolean isReady() {
+            return _coordinator.isReady();
+        }
 
         @Override
         public void close() {

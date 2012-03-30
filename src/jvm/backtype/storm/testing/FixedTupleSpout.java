@@ -131,4 +131,12 @@ public class FixedTupleSpout implements ISpout {
             failed.put(_id, curr+1);
         }
     }
+
+    @Override
+    public void activate() {
+    }
+
+    @Override
+    public void deactivate() {
+    }
 }

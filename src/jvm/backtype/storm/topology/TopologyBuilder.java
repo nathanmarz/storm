@@ -276,6 +276,14 @@ public class TopologyBuilder {
             return grouping(componentId, streamId, Grouping.shuffle(new NullStruct()));
         }
 
+        public BoltDeclarer localOrShuffleGrouping(String componentId) {
+            return localOrShuffleGrouping(componentId, Utils.DEFAULT_STREAM_ID);
+        }
+
+        public BoltDeclarer localOrShuffleGrouping(String componentId, String streamId) {
+            return grouping(componentId, streamId, Grouping.local_or_shuffle(new NullStruct()));
+        }
+        
         public BoltDeclarer noneGrouping(String componentId) {
             return noneGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }

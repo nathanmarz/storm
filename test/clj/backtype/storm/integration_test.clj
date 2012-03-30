@@ -88,8 +88,7 @@
             results (complete-topology cluster
                                        topology
                                        :mock-sources {"1" [["nathan"] ["bob"] ["joey"] ["nathan"]]}
-                                       :storm-conf {TOPOLOGY-DEBUG true
-                                                    TOPOLOGY-WORKERS 2})]
+                                       :storm-conf {TOPOLOGY-WORKERS 2})]
         (is (ms= [["nathan"] ["bob"] ["joey"] ["nathan"]]
                  (read-tuples results "1")))
         (is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
@@ -290,7 +289,7 @@
                      ))]
       (submit-local-topology (:nimbus cluster)
                              "acking-test1"
-                             {TOPOLOGY-DEBUG true}
+                             {}
                              (:topology tracked))
       (.feed feeder1 [1])
       (tracked-wait tracked 1)

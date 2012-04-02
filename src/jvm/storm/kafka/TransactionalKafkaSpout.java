@@ -37,6 +37,12 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
         @Override
         public void close() {
         }
+        
+        @Override
+        public boolean isReady() {
+            //TODO: can do a more sophisticated strategy by looking at the high water marks for each partition
+            return true;
+        }
     }
     
     class Emitter implements IPartitionedTransactionalSpout.Emitter<BatchMeta> {

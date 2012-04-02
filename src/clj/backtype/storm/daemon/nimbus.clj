@@ -258,7 +258,6 @@
   (->> (all-supervisor-info storm-cluster-state callback)
        (map-val :hostname)))
 
-;; TODO: this needs to be mocked out
 (defn- available-slots
   [conf storm-cluster-state callback]
   (let [supervisor-ids (.supervisors storm-cluster-state callback)

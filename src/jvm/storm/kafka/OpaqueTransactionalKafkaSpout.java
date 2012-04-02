@@ -28,6 +28,11 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
     public IOpaquePartitionedTransactionalSpout.Emitter<BatchMeta> getEmitter(Map conf, TopologyContext context) {
         return new Emitter();
     }
+    
+    @Override
+    public IOpaquePartitionedTransactionalSpout.Coordinator getCoordinator(Map map, TopologyContext tc) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
@@ -41,6 +46,14 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
         backtype.storm.Config conf = new backtype.storm.Config();
         conf.registerSerialization(BatchMeta.class);
         return conf;
+    }
+    
+    class Coordinator implements IOpaquePartitionedTransactionalSpout.Coordinator {
+        @Override
+        public boolean isReady() {
+            //TODO: can do a more sophisticated strategy by looking at the high water marks for each partition
+            return true;
+        }        
     }
     
     class Emitter implements IOpaquePartitionedTransactionalSpout.Emitter<BatchMeta> {

@@ -1,22 +1,29 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
+  (:import [backtype.storm.generated StormTopology
+            InvalidTopologyException GlobalStreamId])
+  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm Constants])
+  (:require [backtype.storm.daemon.acker :as acker])
+  (:require [backtype.storm.thrift :as thrift])
   )
 
-(def ACKER-COMPONENT-ID -1)
-(def ACKER-INIT-STREAM-ID -1)
-(def ACKER-ACK-STREAM-ID -2)
-(def ACKER-FAIL-STREAM-ID -3)
+(defn system-id? [id]
+  (Utils/isSystemId id))
 
+(def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
+(def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
+(def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
+(def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
 
-(defn system-component? [id]
-  (< id 0))
+(def SYSTEM-STREAM-ID "__system")
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
 (defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
 
-(defrecord StormBase [storm-name launch-time-secs])
+(defrecord StormBase [storm-name launch-time-secs status])
 
 (defrecord SupervisorInfo [time-secs hostname worker-ports uptime-secs])
 
@@ -36,10 +43,6 @@
 
 (defrecord WorkerHeartbeat [time-secs storm-id task-ids port])
 
-;; should include stats in here
-;; TODO: want to know how many it has processed from every source
-;; component/stream pair
-;; TODO: want to know how many it has emitted to every stream
 (defrecord TaskStats [^long processed
                       ^long acked
                       ^long emitted
@@ -73,7 +76,7 @@
 
 (defn topology-bases [storm-cluster-state]
   (let [active-topologies (.active-storms storm-cluster-state)]
-    (into {}
+    (into {} 
           (dofor [id active-topologies]
                  [id (.storm-base storm-cluster-state id nil)]
                  ))
@@ -87,9 +90,105 @@
 (defmacro defserverfn [name & body]
   `(let [exec-fn# (fn ~@body)]
     (defn ~name [& args#]
-      (try
+      (try-cause
         (apply exec-fn# args#)
+      (catch InterruptedException e#
+        (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
         (halt-process! 13 "Error on initialization")
         )))))
+
+(defn- validate-ids! [^StormTopology topology]
+  (let [sets (map #(.getFieldValue topology %) thrift/STORM-TOPOLOGY-FIELDS)
+        offending (apply any-intersection sets)]
+    (if-not (empty? offending)
+      (throw (InvalidTopologyException.
+              (str "Duplicate component ids: " offending))))
+    (doseq [f thrift/STORM-TOPOLOGY-FIELDS
+            :let [obj-map (.getFieldValue topology f)]]
+      (doseq [id (keys obj-map)]
+        (if (system-id? id)
+          (throw (InvalidTopologyException.
+                  (str id " is not a valid component id")))))
+      (doseq [obj (vals obj-map)
+              id (-> obj .get_common .get_streams keys)]
+        (if (system-id? id)
+          (throw (InvalidTopologyException.
+                  (str id " is not a valid stream id"))))))
+    ))
+
+(defn validate-basic! [^StormTopology topology]
+  (validate-ids! topology)
+  (doseq [f thrift/SPOUT-FIELDS
+          obj (->> f (.getFieldValue topology) vals)]
+    (if-not (empty? (-> obj .get_common .get_inputs))
+      (throw (InvalidTopologyException. "May not declare inputs for a spout"))
+      )))
+
+(defn validate-structure! [^StormTopology topology]
+  ;; TODO: validate that all subscriptions are to valid component/streams
+  )
+
+(defn all-components [^StormTopology topology]
+  (apply merge {}
+         (for [f thrift/STORM-TOPOLOGY-FIELDS]
+           (.getFieldValue topology f)
+           )))
+
+(defn acker-inputs [^StormTopology topology]
+  (let [bolt-ids (.. topology get_bolts keySet)
+        spout-ids (.. topology get_spouts keySet)
+        spout-inputs (apply merge
+                            (for [id spout-ids]
+                              {[id ACKER-INIT-STREAM-ID] ["id"]}
+                              ))
+        bolt-inputs (apply merge
+                           (for [id bolt-ids]
+                             {[id ACKER-ACK-STREAM-ID] ["id"]
+                              [id ACKER-FAIL-STREAM-ID] ["id"]}
+                             ))]
+    (merge spout-inputs bolt-inputs)))
+
+(defn add-acker! [num-tasks ^StormTopology ret]
+  (let [acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
+                                         (new backtype.storm.daemon.acker)
+                                         {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
+                                          ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
+                                          }
+                                         :p num-tasks)]
+    (dofor [[_ bolt] (.get_bolts ret)
+            :let [common (.get_common bolt)]]
+           (do
+             (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
+             (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
+             ))
+    (dofor [[_ spout] (.get_spouts ret)
+            :let [common (.get_common spout)]]
+      (do
+        (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "init-val" "spout-task"]))
+        (.put_to_inputs common
+                        (GlobalStreamId. ACKER-COMPONENT-ID ACKER-ACK-STREAM-ID)
+                        (thrift/mk-direct-grouping))
+        (.put_to_inputs common
+                        (GlobalStreamId. ACKER-COMPONENT-ID ACKER-FAIL-STREAM-ID)
+                        (thrift/mk-direct-grouping))
+        ))
+    (.put_to_bolts ret "__acker" acker-bolt)
+    ))
+
+(defn add-system-streams! [^StormTopology topology]
+  (doseq [[_ component] (all-components topology)
+          :let [common (.get_common component)]]
+    (.put_to_streams common SYSTEM-STREAM-ID (thrift/output-fields ["event"]))
+    ;; TODO: consider adding a stats stream for stats aggregation
+    ))
+
+(defn system-topology! [storm-conf ^StormTopology topology]
+  (validate-basic! topology)
+  (let [ret (.deepCopy topology)]
+    (add-acker! (storm-conf TOPOLOGY-ACKERS) ret)
+    (add-system-streams! ret)
+    (validate-structure! ret)
+    ret
+    ))

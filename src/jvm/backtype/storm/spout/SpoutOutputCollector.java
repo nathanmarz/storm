@@ -27,7 +27,7 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      *
      * @return the list of task ids that this tuple was sent to
      */
-    public List<Integer> emit(int streamId, List<Object> tuple, Object messageId) {
+    public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
         return _delegate.emit(streamId, tuple, messageId);
     }
 
@@ -56,7 +56,7 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * Emits a tuple to the specified output stream with a null message id. Storm will
      * not track this message so ack and fail will never be called for this tuple.
      */
-    public List<Integer> emit(int streamId, List<Object> tuple) {
+    public List<Integer> emit(String streamId, List<Object> tuple) {
         return emit(streamId, tuple, null);
     }
 
@@ -65,7 +65,7 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * stream must have been declared as a direct stream, and the specified task must
      * use a direct grouping on this stream to receive the message. 
      */
-    public void emitDirect(int taskId, int streamId, List<Object> tuple, Object messageId) {
+    public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
         _delegate.emitDirect(taskId, streamId, tuple, messageId);
     }
 
@@ -86,7 +86,7 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * <p> Because no message id is specified, Storm will not track this message
      * so ack and fail will never be called for this tuple.</p>
      */
-    public void emitDirect(int taskId, int streamId, List<Object> tuple) {
+    public void emitDirect(int taskId, String streamId, List<Object> tuple) {
         emitDirect(taskId, streamId, tuple, null);
     }
 
@@ -100,5 +100,10 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      */
     public void emitDirect(int taskId, List<Object> tuple) {
         emitDirect(taskId, tuple, null);
+    }
+
+    @Override
+    public void reportError(Throwable error) {
+        _delegate.reportError(error);
     }
 }

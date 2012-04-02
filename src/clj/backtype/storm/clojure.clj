@@ -1,83 +1,40 @@
 (ns backtype.storm.clojure
-  (:use [backtype.storm util])
-  (:import [backtype.storm LocalCluster StormSubmitter])
+  (:use [backtype.storm bootstrap util])
+  (:import [backtype.storm StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.task OutputCollector IBolt])
+  (:import [backtype.storm.task OutputCollector IBolt TopologyContext])
   (:import [backtype.storm.spout SpoutOutputCollector ISpout])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
   (:import [java.util List])
   (:require [backtype.storm [thrift :as thrift]]))
 
-(defn hint [sym class-sym]
-  (with-meta sym {:tag class-sym})
-  )
-
-(defmulti hinted-args (fn [m args] m))
-
-(defmethod hinted-args 'prepare [_ [conf context collector]]
-           [(hint conf 'java.util.Map)
-            (hint context 'backtype.storm.task.TopologyContext)
-            (hint collector 'backtype.storm.task.OutputCollector)]
-           )
-
-(defmethod hinted-args 'execute [_ [tuple]]
-           [(hint tuple 'backtype.storm.tuple.Tuple)]
-           )
-
-(defmethod hinted-args 'cleanup [_ []]
-           []
-           )
-
-(defmethod hinted-args 'close [_ []]
-           []
-           )
-
-(defmethod hinted-args 'open [_ [conf context collector]]
-           [(hint conf 'java.util.Map)
-            (hint context 'backtype.storm.task.TopologyContext)
-            (hint collector 'backtype.storm.spout.SpoutOutputCollector)]
-           )
-
-(defmethod hinted-args 'nextTuple [_ []]
-           []
-           )
-
-(defmethod hinted-args 'ack [_ [id]]
-           [(hint id 'java.lang.Object)]
-           )
-
-(defmethod hinted-args 'fail [_ [id]]
-           [(hint id 'java.lang.Object)]
-           )
-
 
 (defn direct-stream [fields]
   (StreamInfo. fields true))
 
-(defn clojure-bolt* [output-spec fn-var args]
+(defn to-spec [avar]
+  (let [m (meta avar)]
+    [(str (:ns m)) (str (:name m))]))
+
+(defn clojure-bolt* [output-spec fn-var conf-fn-var args]
+  (ClojureBolt. (to-spec fn-var) (to-spec conf-fn-var) args (thrift/mk-output-spec output-spec)))
+
+(defmacro clojure-bolt [output-spec fn-sym conf-fn-sym args]
+  `(clojure-bolt* ~output-spec (var ~fn-sym) (var ~conf-fn-sym) ~args))
+
+(defn clojure-spout* [output-spec fn-var conf-var args]
   (let [m (meta fn-var)]
-    (ClojureBolt. (str (:ns m)) (str (:name m)) args (thrift/mk-output-spec output-spec))
+    (ClojureSpout. (to-spec fn-var) (to-spec conf-var) args (thrift/mk-output-spec output-spec))
     ))
 
-(defmacro clojure-bolt [output-spec fn-sym args]
-  `(clojure-bolt* ~output-spec (var ~fn-sym) ~args))
+(defmacro clojure-spout [output-spec fn-sym conf-sym args]
+  `(clojure-spout* ~output-spec (var ~fn-sym) (var ~conf-sym) ~args))
 
-
-(defn clojure-spout* [output-spec distributed? fn-var args]
-  (let [m (meta fn-var)]
-    (ClojureSpout. (str (:ns m)) (str (:name m)) args (thrift/mk-output-spec output-spec) distributed?)
-    ))
-
-(defmacro clojure-spout [output-spec distributed? fn-sym args]
-  `(clojure-spout* ~output-spec ~distributed? (var ~fn-sym) ~args))
-
-(defn hint-fns [body]
+(defn normalize-fns [body]
   (for [[name args & impl] body
-        :let [name (hint name 'void)
-              args (hinted-args name args)
-              args (-> "this"
+        :let [args (-> "this"
                        gensym
                        (cons args)
                        vec)]]
@@ -85,39 +42,48 @@
     ))
 
 (defmacro bolt [& body]
-  (let [fns (hint-fns body)]
+  (let [[bolt-fns other-fns] (split-with #(not (symbol? %)) body)
+        fns (normalize-fns bolt-fns)]
     `(reify IBolt
-       ~@fns)))
+       ~@fns
+       ~@other-fns)))
 
 (defmacro bolt-execute [& body]
   `(bolt
      (~'execute ~@body)))
 
 (defmacro spout [& body]
-  (let [fns (hint-fns body)]
+  (let [[spout-fns other-fns] (split-with #(not (symbol? %)) body)
+        fns (normalize-fns spout-fns)]
     `(reify ISpout
-       ~@fns)))
+       ~@fns
+       ~@other-fns)))
 
 (defmacro defbolt [name output-spec & [opts & impl :as all]]
   (if-not (map? opts)
     `(defbolt ~name ~output-spec {} ~@all)
     (let [worker-name (symbol (str name "__"))
+          conf-fn-name (symbol (str name "__conf__"))
           params (:params opts)
+          conf-code (:conf opts)
           fn-body (if (:prepare opts)
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (nth args 1)
                           args (vec (take 1 args))
-                          prepargs (hinted-args 'prepare [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs [(gensym "conf") (gensym "context") coll-sym]]
                       `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
-                       (clojure-bolt ~output-spec ~worker-name args#))
+                       (clojure-bolt ~output-spec ~worker-name ~conf-fn-name args#))
                     `(def ~name
-                       (clojure-bolt ~output-spec ~worker-name []))
+                       (clojure-bolt ~output-spec ~worker-name ~conf-fn-name []))
                     )
           ]
       `(do
+         (defn ~conf-fn-name ~(if params params [])
+           ~conf-code
+           )
          (defn ~worker-name ~(if params params [])
            ~fn-body
            )
@@ -128,63 +94,90 @@
   (if-not (map? opts)
     `(defspout ~name ~output-spec {} ~@all)
     (let [worker-name (symbol (str name "__"))
+          conf-fn-name (symbol (str name "__conf__"))
           params (:params opts)
-          distributed? (get opts :distributed true)
+          conf-code (:conf opts)
           prepare? (:prepare opts)
           prepare? (if (nil? prepare?) true prepare?)
           fn-body (if prepare?
                     (cons 'fn impl)
                     (let [[args & impl-body] impl
                           coll-sym (first args)
-                          prepargs (hinted-args 'open [(gensym "conf") (gensym "context") coll-sym])]
+                          prepargs [(gensym "conf") (gensym "context") coll-sym]]
                       `(fn ~prepargs (spout (~'nextTuple [] ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
-                       (clojure-spout ~output-spec ~distributed? ~worker-name args#))
+                       (clojure-spout ~output-spec ~worker-name ~conf-fn-name args#))
                     `(def ~name
-                       (clojure-spout ~output-spec ~distributed? ~worker-name []))
+                       (clojure-spout ~output-spec ~worker-name ~conf-fn-name []))
                     )
           ]
       `(do
+         (defn ~conf-fn-name ~(if params params [])
+           ~conf-code
+           )
          (defn ~worker-name ~(if params params [])
            ~fn-body
            )
          ~definer
          ))))
 
-(defnk emit-bolt! [^OutputCollector collector ^List values
+(defprotocol TupleValues
+  (tuple-values [values collector stream]))
+
+(extend-protocol TupleValues
+  java.util.Map
+  (tuple-values [this collector ^String stream]
+    (let [^TopologyContext context (:context collector)
+          fields (..  context (getThisOutputFields stream) toList) ]
+      (vec (map (into 
+                  (empty this) (for [[k v] this] 
+                                   [(if (keyword? k) (name k) k) v])) 
+                fields))))
+  java.util.List
+  (tuple-values [this collector stream]
+    this))
+
+(defnk emit-bolt! [collector values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emit collector stream anchor values)
+  (let [^List anchor (collectify anchor)
+        values (tuple-values values collector stream) ]
+    (.emit ^OutputCollector (:output-collector collector) stream anchor values)
     ))
 
-(defnk emit-direct-bolt! [^OutputCollector collector task ^List values
+(defnk emit-direct-bolt! [collector task values
                           :stream Utils/DEFAULT_STREAM_ID :anchor []]
-  (let [^List anchor (collectify anchor)]
-    (.emitDirect collector task stream anchor values)
+  (let [^List anchor (collectify anchor)
+        values (tuple-values values collector stream) ]
+    (.emitDirect ^OutputCollector (:output-collector collector) task stream anchor values)
     ))
 
-(defn ack! [^OutputCollector collector ^Tuple tuple]
-  (.ack collector tuple))
+(defn ack! [collector ^Tuple tuple]
+  (.ack ^OutputCollector (:output-collector collector) tuple))
 
-(defn fail! [^OutputCollector collector ^Tuple tuple]
-  (.fail collector tuple))
+(defn fail! [collector ^Tuple tuple]
+  (.fail ^OutputCollector (:output-collector collector) tuple))
 
-(defnk emit-spout! [^SpoutOutputCollector collector ^List values
+(defnk emit-spout! [collector values
                     :stream Utils/DEFAULT_STREAM_ID :id nil]
-  (.emit collector stream values id))
+  (let [values (tuple-values values collector stream)]
+    (.emit ^SpoutOutputCollector (:output-collector collector) stream values id)))
 
-(defnk emit-direct-spout! [^SpoutOutputCollector collector task ^List values
+(defnk emit-direct-spout! [collector task values
                            :stream Utils/DEFAULT_STREAM_ID :id nil]
-  (.emitDirect collector task stream values id))
+  (let [values (tuple-values values collector stream)]
+    (.emitDirect ^SpoutOutputCollector (:output-collector collector) task stream values id)))
 
 (defalias topology thrift/mk-topology)
 (defalias bolt-spec thrift/mk-bolt-spec)
 (defalias spout-spec thrift/mk-spout-spec)
 (defalias shell-bolt-spec thrift/mk-shell-bolt-spec)
+(defalias shell-spout-spec thrift/mk-shell-spout-spec)
 
 (defn submit-remote-topology [name conf topology]
   (StormSubmitter/submitTopology name conf topology))
 
-(defn local-cluster []
-  (LocalCluster.))
+(defn local-cluster []  
+  ;; do this to avoid a cyclic dependency of
+  ;; LocalCluster -> testing -> nimbus -> bootstrap -> clojure -> LocalCluster
+  (eval '(new backtype.storm.LocalCluster)))

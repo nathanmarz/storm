@@ -56,7 +56,7 @@
 
 
 (defn- read-downloaded-storm-ids [conf]
-  (read-dir-contents (supervisor-stormdist-root conf))
+  (map #(java.net.URLDecoder/decode %) (read-dir-contents (supervisor-stormdist-root conf)))
   )
 
 (defn read-worker-heartbeat [conf id]
@@ -105,7 +105,7 @@
                            :timed-out
                          true
                            :valid)]
-              (log-debug "Worker " id " is " state ": " hb)
+              (log-debug "Worker " id " is " state ": " (pr-str hb) " at supervisor time-secs " now)
               [id [state hb]]
               ))
      )))
@@ -144,7 +144,7 @@
     (rmpath (worker-pids-root conf id))
     (rmpath (worker-root conf id))
   (catch RuntimeException e
-    (log-error e "Failed to cleanup worker " id ". Will retry later")
+    (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
 
 (defn shutdown-worker [conf supervisor-id id worker-thread-pids-atom]
@@ -163,6 +163,7 @@
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
 (defserverfn mk-supervisor [conf shared-context]
+  (log-message "Starting Supervisor with conf " conf)
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
   (let [active (atom true)
         uptime (uptime-computer)
@@ -176,7 +177,7 @@
         sync-processes (fn []
                          (let [assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
                                allocated (read-allocated-workers conf local-state assigned-tasks)
-                               keepers (filter-map-val
+                               keepers (filter-val
                                         (fn [[state _]] (= state :valid))
                                         allocated)
                                keep-ports (set (for [[id [_ hb]] keepers] (:port hb)))
@@ -311,6 +312,7 @@
                            (when @active (conf SUPERVISOR-MONITOR-FREQUENCY-SECS))
                            )
                          :priority Thread/MAX_PRIORITY)]))]
+    (log-message "Starting supervisor with id " supervisor-id " at host " my-hostname)
     (reify
      Shutdownable
      (shutdown [this]
@@ -351,7 +353,7 @@
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/forceMkdir (File. tmproot))      
+      (FileUtils/forceMkdir (File. tmproot))
       
       (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
       (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
@@ -365,30 +367,50 @@
     :distributed [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]
     (let [stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
+          storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (conf WORKER-CHILDOPTS)
+          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+                                 "%ID%"
+                                 (str port))
           logfilename (str "worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
+                       " -Dstorm.home=" (System/getProperty "storm.home")
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
-                       storm-id " " supervisor-id " " port " " worker-id)]
-      (launch-process command)
+                       (java.net.URLEncoder/encode storm-id) " " supervisor-id " " port " " worker-id)]
+      (log-message "Launching worker with command: " command)
+      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))
 
 ;; local implementation
+
+(defn resources-jar []
+  (->> (.split (current-classpath) File/pathSeparator)
+       (filter #(.endsWith  % ".jar"))
+       (filter #(zip-contains-dir? % RESOURCES-SUBDIR))
+       first ))
 
 (defmethod download-storm-code
     :local [conf storm-id master-code-dir]
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
-            ;; should detect if it was run with "storm jar" and copy or extract appropriately
-            url (.getResource classloader RESOURCES-SUBDIR)]
-            (when url
-              (FileUtils/copyDirectory (File. (.getFile url)) (File. (str stormroot "/" RESOURCES-SUBDIR)))
-              ))))
+            resources-jar (resources-jar)
+            url (.getResource classloader RESOURCES-SUBDIR)
+            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
+            (cond
+              resources-jar
+              (do
+                (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
+                (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
+              url
+              (do
+                (log-message "Copying resources at " (str url) " to " target-dir)
+                (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
+                ))
+            )))
 
 (defmethod launch-worker
     :local [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]

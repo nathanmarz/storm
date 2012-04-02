@@ -87,16 +87,17 @@
 (defn topology-link
   ([id] (topology-link id id))
   ([id content]
-     (link-to (format "/topology/%s" id) content)))
+     (link-to (url-format "/topology/%s" id) content)))
 
 (defn main-topology-summary-table [summs]
   ;; make the id clickable
   ;; make the table sortable
   (sorted-table
-   ["Name" "Id" "Uptime" "Num workers" "Num tasks"]
+   ["Name" "Id" "Status" "Uptime" "Num workers" "Num tasks"]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (.get_id t)
+      (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
       (.get_num_tasks t)
@@ -133,7 +134,6 @@
     (cond
      (.containsKey bolts id) :bolt
      (.containsKey spouts id) :spout
-     (= ACKER-COMPONENT-ID id) :bolt
      )))
 
 (defn task-summary-type [topology ^TaskSummary s]
@@ -266,9 +266,10 @@
 (defn topology-summary-table [^TopologyInfo summ]
   (let [tasks (.get_tasks summ)
         workers (set (for [^TaskSummary t tasks] [(.get_host t) (.get_port t)]))]
-    (table ["Name" "Id" "Uptime" "Num workers" "Num tasks"]
+    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num tasks"]
            [[(.get_name summ)
              (.get_id summ)
+             (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)
              (count tasks)
@@ -307,7 +308,7 @@
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
-                 (format "/topology/%s?window=%s" id k)
+                 (url-format "/topology/%s?window=%s" id k)
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
@@ -342,7 +343,7 @@
       )))
 
 (defn component-link [storm-id id]
-  (link-to (format "/topology/%s/component/%s" storm-id id) id))
+  (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
 
 (defn spout-comp-table [top-id summ-map window]
   (sorted-table
@@ -424,7 +425,7 @@
     ))
 
 (defnk task-link [topology-id id :suffix ""]
-  (link-to (format "/topology/%s/task/%s%s" topology-id id suffix)
+  (link-to (url-format "/topology/%s/task/%s%s" topology-id id suffix)
            id))
 
 (defn spout-summary-table [topology-id id stats window]
@@ -436,7 +437,7 @@
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
-                 (format "/topology/%s/component/%s?window=%s" topology-id id k)
+                 (url-format "/topology/%s/component/%s?window=%s" topology-id id k)
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
@@ -569,7 +570,7 @@
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
-                 (format "/topology/%s/component/%s?window=%s" topology-id id k)
+                 (url-format "/topology/%s/component/%s?window=%s" topology-id id k)
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
@@ -665,7 +666,7 @@
        (-> (topology-page id (:window m))
            ui-template))
   (GET "/topology/:id/component/:component" [id component & m]
-       (-> (component-page id (Integer/parseInt component) (:window m))
+       (-> (component-page id component (:window m))
            ui-template))
   (GET "/topology/:id/task/:task" [id task & m]
        (-> (task-page id (Integer/parseInt task) (:window m))

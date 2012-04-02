@@ -1,6 +1,7 @@
 package backtype.storm.topology;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Common methods for all possible components in a topology. This interface is used
@@ -13,5 +14,14 @@ public interface IComponent extends Serializable {
      *
      * @param declarer this is used to declare output stream ids, output fields, and whether or not each output stream is a direct stream
      */
-    public void declareOutputFields(OutputFieldsDeclarer declarer);
+    void declareOutputFields(OutputFieldsDeclarer declarer);
+
+    /**
+     * Declare configuration specific to this component. Only a subset of the "topology.*" configs can
+     * be overridden. The component configuration can be further overridden when constructing the 
+     * topology using {@link TopologyBuilder}
+     *
+     */
+    Map<String, Object> getComponentConfiguration();
+
 }

@@ -4,27 +4,23 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import java.util.Map;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.InprocMessaging;
 import backtype.storm.utils.Utils;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.LinkedBlockingQueue;
 
 
-public class FeederSpout implements IRichSpout {
-
-    public transient static Map<String, LinkedBlockingQueue<List<Object>>> _feeds = new HashMap<String, LinkedBlockingQueue<List<Object>>>();
-
-    private String _id;
+public class FeederSpout extends BaseRichSpout {
+    private int _id;
     private Fields _outFields;
     private SpoutOutputCollector _collector;
     private AckFailDelegate _ackFailDelegate;
 
     public FeederSpout(Fields outFields) {
-        _id = UUID.randomUUID().toString();
-        _feeds.put(_id, new LinkedBlockingQueue<List<Object>>());
+        _id = InprocMessaging.acquireNewPort();
         _outFields = outFields;
     }
 
@@ -33,11 +29,7 @@ public class FeederSpout implements IRichSpout {
     }
     
     public void feed(List<Object> tuple) {
-        _feeds.get(_id).add(tuple);
-    }
-
-    public boolean isDistributed() {
-        return true;
+        InprocMessaging.sendMessage(_id, tuple);
     }
 
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -49,11 +41,11 @@ public class FeederSpout implements IRichSpout {
     }
 
     public void nextTuple() {
-        List<Object> tuple = _feeds.get(_id).poll();
+        List<Object> tuple = (List<Object>) InprocMessaging.pollMessage(_id);
         if(tuple!=null) {
             _collector.emit(tuple, UUID.randomUUID().toString());
         } else {
-            Utils.sleep(100);                
+            Utils.sleep(10);                
         }
     }
 
@@ -71,5 +63,10 @@ public class FeederSpout implements IRichSpout {
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(_outFields);
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return new HashMap<String, Object>();
     }
 }

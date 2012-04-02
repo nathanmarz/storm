@@ -1,28 +1,40 @@
 package backtype.storm.utils;
 
+import backtype.storm.Config;
+import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.StormTopology;
 import clojure.lang.IFn;
 import clojure.lang.RT;
+import com.netflix.curator.framework.CuratorFramework;
+import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.retry.RetryNTimes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.InputStreamReader;
-import java.io.InputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.thrift.TException;
-import org.jvyaml.YAML;
+import java.util.TreeMap;
+import java.util.UUID;
+import org.apache.commons.lang.StringUtils;
+import org.apache.thrift7.TException;
+import org.json.simple.JSONValue;
+import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
-    public static final int DEFAULT_STREAM_ID = 1;
+    public static final String DEFAULT_STREAM_ID = "default";
 
     public static byte[] serialize(Object obj) {
         try {
@@ -69,28 +81,41 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
-
-    public static Map readYamlConfig(String path) {
+    
+    public static List<URL> findResources(String name) {
         try {
-            Map ret = (Map) YAML.load(new FileReader(path));
-            if(ret==null) ret = new HashMap();
-            return new HashMap(ret);
-        } catch (FileNotFoundException ex) {
-            throw new RuntimeException(ex);
+            Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(name);
+            List<URL> ret = new ArrayList<URL>();
+            while(resources.hasMoreElements()) {
+                ret.add(resources.nextElement());
+            }
+            return ret;
+        } catch(IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
-        // It's important to use Utils.class here instead of Object.class here.
-        // If Object.class is used, sbt can't find defaults.yaml
-        InputStream is = Utils.class.getResourceAsStream("/" + name);
-        if(is==null) {
-            if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
-            else return new HashMap();
+        try {
+            List<URL> resources = findResources(name);
+            if(resources.isEmpty()) {
+                if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
+                else return new HashMap();
+            }
+            if(resources.size() > 1) {
+                throw new RuntimeException("Found multiple " + name + " resources");
+            }
+            URL resource = resources.get(0);
+            Yaml yaml = new Yaml();
+            Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
+            if(ret==null) ret = new HashMap();
+            
+
+            return new HashMap(ret);
+            
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        Map ret = (Map) YAML.load(new InputStreamReader(is));
-        if(ret==null) ret = new HashMap();
-        return new HashMap(ret);
     }
 
     public static Map findAndReadConfigFile(String name) {
@@ -100,17 +125,65 @@ public class Utils {
     public static Map readDefaultConfig() {
         return findAndReadConfigFile("defaults.yaml", true);
     }
+    
+    public static Map readCommandLineOpts() {
+        Map ret = new HashMap();
+        String commandOptions = System.getProperty("storm.options");
+        if(commandOptions != null) {
+            commandOptions = commandOptions.replaceAll("%%%%", " ");
+            String[] configs = commandOptions.split(",");
+            for (String config : configs) {
+                String[] options = config.split("=");
+                if (options.length == 2) {
+                    ret.put(options[0], options[1]);
+                }
+            }
+        }
+        return ret;
+    }
 
     public static Map readStormConfig() {
         Map ret = readDefaultConfig();
         Map storm = findAndReadConfigFile("storm.yaml", false);
         ret.putAll(storm);
+        ret.putAll(readCommandLineOpts());
         return ret;
+    }
+    
+    private static Object normalizeConf(Object conf) {
+        if(conf==null) return new HashMap();
+        if(conf instanceof Map) {
+            Map confMap = new HashMap((Map) conf);
+            for(Object key: confMap.keySet()) {
+                Object val = confMap.get(key);
+                confMap.put(key, normalizeConf(val));
+            }
+            return confMap;
+        } else if(conf instanceof List) {
+            List confList =  new ArrayList((List) conf);
+            for(int i=0; i<confList.size(); i++) {
+                Object val = confList.get(i);
+                confList.set(i, normalizeConf(val));
+            }
+            return confList;
+        } else if (conf instanceof Integer) {
+            return ((Integer) conf).longValue();
+        } else if(conf instanceof Float) {
+            return ((Float) conf).doubleValue();
+        } else {
+            return conf;
+        }
+    }
+    
+    public static boolean isValidConf(Map<String, Object> stormConf) {
+        return normalizeConf(stormConf).equals(normalizeConf((Map) JSONValue.parse(JSONValue.toJSONString(stormConf))));
     }
 
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {
             return Utils.deserialize(obj.get_serialized_java());
+        } else if(obj.getSetField()==ComponentObject._Fields.JAVA_OBJECT) {
+            return obj.get_java_object();
         } else {
             return obj.get_shell();
         }
@@ -135,13 +208,11 @@ public class Utils {
     public static void downloadFromMaster(Map conf, String file, String localFile) throws IOException, TException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
         String id = client.getClient().beginFileDownload(file);
-        FileOutputStream out = new FileOutputStream(localFile);
+        WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
         while(true) {
-            byte[] chunk = client.getClient().downloadChunk(id);
-            if(chunk.length==0) {
-                break;
-            }
-            out.write(chunk);
+            ByteBuffer chunk = client.getClient().downloadChunk(id);
+            int written = out.write(chunk);
+            if(written==0) break;
         }
         out.close();
     }
@@ -153,5 +224,112 @@ public class Utils {
           //if playing from the repl and defining functions, file won't exist
         }
         return (IFn) RT.var(namespace, name).deref();        
+    }
+    
+    public static boolean isSystemId(String id) {
+        return id.startsWith("__");
+    }
+        
+    public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
+        Map<V, K> ret = new HashMap<V, K>();
+        for(K key: map.keySet()) {
+            ret.put(map.get(key), key);
+        }
+        return ret;
+    }
+    
+    public static ComponentCommon getComponentCommon(StormTopology topology, String id) {
+        if(topology.get_spouts().containsKey(id)) {
+            return topology.get_spouts().get(id).get_common();
+        }
+        if(topology.get_bolts().containsKey(id)) {
+            return topology.get_bolts().get(id).get_common();
+        }
+        if(topology.get_state_spouts().containsKey(id)) {
+            return topology.get_state_spouts().get(id).get_common();
+        }
+        throw new IllegalArgumentException("Could not find component with id " + id);
+    }
+    
+    public static Integer getInt(Object o) {
+        if(o instanceof Long) {
+            return ((Long) o ).intValue();
+        } else if (o instanceof Integer) {
+            return (Integer) o;
+        } else if (o instanceof Short) {
+            return ((Short) o).intValue();
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
+        }
+    }
+    
+    public static long randomLong() {
+        return UUID.randomUUID().getLeastSignificantBits();
+    }
+    
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
+        List<String> serverPorts = new ArrayList<String>();
+        for(String zkServer: (List<String>) servers) {
+            serverPorts.add(zkServer + ":" + Utils.getInt(port));
+        }
+        String zkStr = StringUtils.join(serverPorts, ",") + root; 
+        try {
+            CuratorFramework ret =  CuratorFrameworkFactory.newClient(zkStr,
+                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+                                        15000, new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                                                               Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+            return ret;
+        } catch (IOException e) {
+           throw new RuntimeException(e);
+        }
+    }
+
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port) {
+        return newCurator(conf, servers, port, "");
+    }
+
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root) {
+        CuratorFramework ret = newCurator(conf, servers, port, root);
+        ret.start();
+        return ret;
+    }
+
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port) {
+        CuratorFramework ret = newCurator(conf, servers, port);
+        ret.start();
+        return ret;
+    }    
+    
+    /**
+     *
+(defn integer-divided [sum num-pieces]
+  (let [base (int (/ sum num-pieces))
+        num-inc (mod sum num-pieces)
+        num-bases (- num-pieces num-inc)]
+    (if (= num-inc 0)
+      {base num-bases}
+      {base num-bases (inc base) num-inc}
+      )))
+     * @param sum
+     * @param numPieces
+     * @return 
+     */
+    
+    public static TreeMap<Integer, Integer> integerDivided(int sum, int numPieces) {
+        int base = sum / numPieces;
+        int numInc = sum % numPieces;
+        int numBases = numPieces - numInc;
+        TreeMap<Integer, Integer> ret = new TreeMap<Integer, Integer>();
+        ret.put(base, numBases);
+        if(numInc!=0) {
+            ret.put(base+1, numInc);
+        }
+        return ret;
+    }
+
+    public static byte[] toByteArray(ByteBuffer buffer) {
+        byte[] ret = new byte[buffer.remaining()];
+        buffer.get(ret, 0, ret.length);
+        return ret;
     }
 }

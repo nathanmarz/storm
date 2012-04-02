@@ -1,5 +1,6 @@
 package backtype.storm.tuple;
 
+import backtype.storm.utils.Utils;
 import backtype.storm.utils.WritableUtils;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -8,13 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.UUID;
 
 public class MessageId {
     private Map<Long, Long> _anchorsToIds;
     
     public static long generateId() {
-        return UUID.randomUUID().getLeastSignificantBits();
+        return Utils.randomLong();
     }
 
     public static MessageId makeUnanchored() {
@@ -25,9 +25,9 @@ public class MessageId {
         return new MessageId(anchorsToIds);
     }
         
-    public static MessageId makeRootId(long id) {
+    public static MessageId makeRootId(long id, long val) {
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
-        anchorsToIds.put(id, id);
+        anchorsToIds.put(id, val);
         return new MessageId(anchorsToIds);
     }
     
@@ -51,7 +51,7 @@ public class MessageId {
     @Override
     public boolean equals(Object other) {
         if(other instanceof MessageId) {
-            return _anchorsToIds == ((MessageId) other)._anchorsToIds;
+            return _anchorsToIds.equals(((MessageId) other)._anchorsToIds);
         } else {
             return false;
         }

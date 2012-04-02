@@ -1,50 +1,88 @@
 import sys
 import os
 import traceback
+from collections import deque
 
 try:
-    import cjson
-    json_encode = cjson.encode
-    json_decode = lambda x: cjson.decode(x, all_unicode=True)
+    import simplejson as json
 except ImportError:
     import json
-    json_encode = lambda x: json.dumps(x, ensure_ascii=False)
-    json_decode = lambda x: json.loads(unicode(x))
 
-def readStringMsg():
+json_encode = lambda x: json.dumps(x)
+json_decode = lambda x: json.loads(x)
+
+#reads lines and reconstructs newlines appropriately
+def readMsg():
     msg = ""
     while True:
         line = sys.stdin.readline()[0:-1]
         if line == "end":
             break
         msg = msg + line + "\n"
-    return msg[0:-1]
+    return json_decode(msg[0:-1])
 
+MODE = None
 ANCHOR_TUPLE = None
 
-#reads lines and reconstructs newlines appropriately
-def readMsg():
-    return json_decode(readStringMsg())
+#queue up commands we read while trying to read taskids
+pending_commands = deque()
 
-def sendToParent(s):
-    print s
+def readTaskIds():
+    if pending_taskids:
+        return pending_taskids.popleft()
+    else:
+        msg = readMsg()
+        while type(msg) is not list:
+            pending_commands.append(msg)
+            msg = readMsg()
+        return msg
+
+#queue up taskids we read while trying to read commands/tuples
+pending_taskids = deque()
+
+def readCommand():
+    if pending_commands:
+        return pending_commands.popleft()
+    else:
+        msg = readMsg()
+        while type(msg) is list:
+            pending_taskids.append(msg)
+            msg = readMsg()
+        return msg
+
+def readTuple():
+    cmd = readCommand()
+    return Tuple(cmd["id"], cmd["comp"], cmd["stream"], cmd["task"], cmd["tuple"])
+
+def sendMsgToParent(msg):
+    print json_encode(msg)
     print "end"
     sys.stdout.flush()
-    
+
 def sync():
-    print "sync"
-    sys.stdout.flush()
+    sendMsgToParent({'command':'sync'})
 
 def sendpid(heartbeatdir):
     pid = os.getpid()
-    print pid
-    sys.stdout.flush()
+    sendMsgToParent({'pid':pid})
     open(heartbeatdir + "/" + str(pid), "w").close()    
 
-def sendMsgToParent(amap):
-    sendToParent(json_encode(amap))
+def emit(*args, **kwargs):
+    __emit(*args, **kwargs)
+    return readTaskIds()
 
-def emittuple(tup, stream=None, anchors = [], directTask=None):
+def emitDirect(task, *args, **kwargs):
+    kwargs[directTask] = task
+    __emit(*args, **kwargs)
+
+def __emit(*args, **kwargs):
+    global MODE
+    if MODE == Bolt:
+        emitBolt(*args, **kwargs)
+    elif MODE == Spout:
+        emitSpout(*args, **kwargs)
+
+def emitBolt(tup, stream=None, anchors = [], directTask=None):
     global ANCHOR_TUPLE
     if ANCHOR_TUPLE is not None:
         anchors = [ANCHOR_TUPLE]
@@ -57,13 +95,16 @@ def emittuple(tup, stream=None, anchors = [], directTask=None):
     m["tuple"] = tup
     sendMsgToParent(m)
     
-def emit(tup, stream=None, anchors = []):
-    emittuple(tup, stream=stream, anchors=anchors)
-    #read back task ids
-    return readMsg()
-    
-def emitDirect(task, tup, stream=None, anchors = []):
-    emittuple(tup, stream=stream, anchors=anchors, directTask=task)
+def emitSpout(tup, stream=None, id=None, directTask=None):
+    m = {"command": "emit"}
+    if id is not None:
+        m["id"] = id
+    if stream is not None:
+        m["stream"] = stream
+    if directTask is not None:
+        m["task"] = directTask
+    m["tuple"] = tup
+    sendMsgToParent(m)
 
 def ack(tup):
     sendMsgToParent({"command": "ack", "id": tup.id})
@@ -74,22 +115,12 @@ def fail(tup):
 def log(msg):
     sendMsgToParent({"command": "log", "msg": msg})
 
-# read the stormconf and context
-def readenv():
-    conf = readMsg()
-    context = readMsg()
-    return [conf, context]
+def initComponent():
+    setupInfo = readMsg()
+    sendpid(setupInfo['pidDir'])
+    return [setupInfo['conf'], setupInfo['context']]
 
-def readtuple():
-    tupmap = readMsg()
-    return Tuple(tupmap["id"], tupmap["comp"], tupmap["stream"], tupmap["task"], tupmap["tuple"])
-
-def initbolt():
-    heartbeatdir = readStringMsg()
-    sendpid(heartbeatdir)
-    return readenv()
-
-class Tuple:    
+class Tuple:
     def __init__(self, id, component, stream, task, values):
         self.id = id
         self.component = component
@@ -105,44 +136,71 @@ class Tuple:
 class Bolt:
     def initialize(self, stormconf, context):
         pass
-    
+
     def process(self, tuple):
         pass
-    
+
     def run(self):
-        conf, context = initbolt()
+        global MODE
+        MODE = Bolt
+        conf, context = initComponent()
         self.initialize(conf, context)
         try:
             while True:
-                tup = readtuple()
+                tup = readTuple()
                 self.process(tup)
-                sync()
         except Exception, e:
-            log(traceback.format_exc(e))        
+            log(traceback.format_exc(e))
 
 class BasicBolt:
     def initialize(self, stormconf, context):
         pass
-    
+
     def process(self, tuple):
         pass
-    
+
     def run(self):
+        global MODE
+        MODE = Bolt
         global ANCHOR_TUPLE
-        conf, context = initbolt()
+        conf, context = initComponent()
         self.initialize(conf, context)
         try:
             while True:
-                tup = readtuple()
+                tup = readTuple()
                 ANCHOR_TUPLE = tup
                 self.process(tup)
                 ack(tup)
-                sync()
         except Exception, e:
             log(traceback.format_exc(e))
 
 class Spout:
-    pass
+    def initialize(self, conf, context):
+        pass
 
+    def ack(self, id):
+        pass
 
+    def fail(self, id):
+        pass
 
+    def nextTuple(self):
+        pass
+
+    def run(self):
+        global MODE
+        MODE = Spout
+        conf, context = initComponent()
+        self.initialize(conf, context)
+        try:
+            while True:
+                msg = readCommand()
+                if msg["command"] == "next":
+                    self.nextTuple()
+                if msg["command"] == "ack":
+                    self.ack(msg["id"])
+                if msg["command"] == "fail":
+                    self.fail(msg["id"])
+                sync()
+        except Exception, e:
+            log(traceback.format_exc(e))

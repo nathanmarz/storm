@@ -1,25 +1,26 @@
 package backtype.storm.testing;
 
-import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 
-public class TupleCaptureBolt implements IBolt {
-    public static transient Map<String, Map<Integer, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<Integer, List<FixedTuple>>>();
+public class TupleCaptureBolt implements IRichBolt {
+    public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
 
     private String _name;
-    private Map<Integer, List<FixedTuple>> _results = null;
     private OutputCollector _collector;
 
-    public TupleCaptureBolt(String name) {
-        _name = name;
-        emitted_tuples.put(name, new HashMap<Integer, List<FixedTuple>>());
+    public TupleCaptureBolt() {
+        _name = UUID.randomUUID().toString();
+        emitted_tuples.put(_name, new HashMap<String, List<FixedTuple>>());
     }
 
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
@@ -27,8 +28,8 @@ public class TupleCaptureBolt implements IBolt {
     }
 
     public void execute(Tuple input) {
-        int component = input.getSourceComponent();
-        Map<Integer, List<FixedTuple>> captured = emitted_tuples.get(_name);
+        String component = input.getSourceComponent();
+        Map<String, List<FixedTuple>> captured = emitted_tuples.get(_name);
         if(!captured.containsKey(component)) {
            captured.put(component, new ArrayList<FixedTuple>());
         }
@@ -36,14 +37,30 @@ public class TupleCaptureBolt implements IBolt {
         _collector.ack(input);
     }
 
-    public Map<Integer, List<FixedTuple>> getResults() {
-        if(_results==null) {
-            _results = emitted_tuples.remove(_name);
-        }
-        return _results;
+    public Map<String, List<FixedTuple>> getResults() {
+        return emitted_tuples.get(_name);
     }
 
     public void cleanup() {
+    }
+    
+    public Map<String, List<FixedTuple>> getAndRemoveResults() {
+        return emitted_tuples.remove(_name);
+    }
+
+    public Map<String, List<FixedTuple>> getAndClearResults() {
+        Map<String, List<FixedTuple>> ret = new HashMap<String, List<FixedTuple>>(emitted_tuples.get(_name));
+        emitted_tuples.get(_name).clear();
+        return ret;
+    }
+    
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return null;
     }
 
 }

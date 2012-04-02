@@ -9,42 +9,42 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import clojure.lang.IFn;
+import clojure.lang.PersistentArrayMap;
+import clojure.lang.Keyword;
+import clojure.lang.Symbol;
 import clojure.lang.RT;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class ClojureSpout implements IRichSpout {
-    private boolean _isDistributed;
-    Map<Integer, StreamInfo> _fields;
-    String _namespace;
-    String _fnName;
+    Map<String, StreamInfo> _fields;
+    List<String> _fnSpec;
+    List<String> _confSpec;
     List<Object> _params;
     
     ISpout _spout;
     
-    public ClojureSpout(String namespace, String fnName, List<Object> params, Map<Integer, StreamInfo> fields, boolean isDistributed) {
-        _isDistributed = isDistributed;
-        _namespace = namespace;
-        _fnName = fnName;
+    public ClojureSpout(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
+        _fnSpec = fnSpec;
+        _confSpec = confSpec;
         _params = params;
         _fields = fields;
     }
     
-    @Override
-    public boolean isDistributed() {
-        return _isDistributed;
-    }
 
     @Override
     public void open(final Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
-        IFn hof = Utils.loadClojureFn(_namespace, _fnName);
+        IFn hof = Utils.loadClojureFn(_fnSpec.get(0), _fnSpec.get(1));
         try {
             IFn preparer = (IFn) hof.applyTo(RT.seq(_params));
+            final Map<Keyword,Object> collectorMap = new PersistentArrayMap( new Object[] {
+                Keyword.intern(Symbol.create("output-collector")), collector,
+                Keyword.intern(Symbol.create("context")), context});
             List<Object> args = new ArrayList<Object>() {{
                 add(conf);
                 add(context);
-                add(collector);
+                add(collectorMap);
             }};
             
             _spout = (ISpout) preparer.applyTo(RT.seq(args));
@@ -100,10 +100,37 @@ public class ClojureSpout implements IRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        for(Integer stream: _fields.keySet()) {
+        for(String stream: _fields.keySet()) {
             StreamInfo info = _fields.get(stream);
             declarer.declareStream(stream, info.is_direct(), new Fields(info.get_output_fields()));
         }
     }
     
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        IFn hof = Utils.loadClojureFn(_confSpec.get(0), _confSpec.get(1));
+        try {
+            return (Map) hof.applyTo(RT.seq(_params));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void activate() {
+        try {
+            _spout.activate();
+        } catch(AbstractMethodError ame) {
+                
+        }
+    }
+
+    @Override
+    public void deactivate() {
+        try {
+            _spout.deactivate();
+        } catch(AbstractMethodError ame) {
+                
+        }
+    }
 }

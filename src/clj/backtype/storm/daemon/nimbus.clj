@@ -258,18 +258,11 @@
   (->> (all-supervisor-info storm-cluster-state callback)
        (map-val :hostname)))
 
+;; TODO: this needs to be mocked out
 (defn- available-slots
   [conf storm-cluster-state callback]
   (let [supervisor-ids (.supervisors storm-cluster-state callback)
-        supervisor-infos (all-supervisor-info storm-cluster-state callback)
-        ;; TODO: this is broken. need to maintain a map since last time
-        ;; supervisor hearbeats like is done for tasks
-        ;; maybe it's ok to trust ephemeral nodes here?
-        ;;[[id info]]
-        ;; (when (< (time-delta (:time-secs info))
-        ;;          (conf NIMBUS-SUPERVISOR-TIMEOUT-SECS))
-        ;;   [[id info]]
-        ;;   )        
+        supervisor-infos (all-supervisor-info storm-cluster-state callback)   
         all-slots (map-val (comp set :worker-ports) supervisor-infos)
         existing-slots (assigned-slots storm-cluster-state)
         ]    
@@ -412,7 +405,7 @@
 
 ;; public so it can be mocked out
 (defn compute-new-task->node+port [conf storm-id existing-assignment storm-cluster-state callback task-heartbeats-cache scratch?]
-  (let [available-slots (available-slots conf storm-cluster-state callback)        
+  (let [available-slots (available-slots conf storm-cluster-state callback)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
 

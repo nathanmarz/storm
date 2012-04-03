@@ -2,7 +2,8 @@
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
-  (:gen-class))
+  (:gen-class
+    :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
 (bootstrap)
 
@@ -420,7 +421,10 @@
       (swap! worker-thread-pids-atom assoc worker-id pid)
       ))
 
-(defn -main []
+(defn -launch [supervisor]
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
     (mk-supervisor conf nil)))
+
+(defn -main []
+  (-launch nil))

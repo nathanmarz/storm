@@ -8,7 +8,8 @@
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:use [clojure.contrib.def :only [defnk]])
-  (:gen-class))
+  (:gen-class
+    :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
 (bootstrap)
 
@@ -858,6 +859,8 @@
   nil
   )
 
+(defn -launch [nimbus]
+  (launch-server! (read-storm-config)))
 
 (defn -main []
-  (launch-server! (read-storm-config)))
+  (-launch nil))

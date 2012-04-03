@@ -1,5 +1,7 @@
 ## Unreleased
 
+ * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
+
 ## 0.7.1
 
  * Implemented shell spout (thanks tomo)

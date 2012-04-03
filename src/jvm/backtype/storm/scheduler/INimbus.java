@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface INimbus {
-    void prepare(Map stormConf);
+    void prepare(Map stormConf, String schedulerLocalDir);
     //used slots are slots that are currently assigned and haven't timed out
     // mesos should:
     //   1. if some slots are used, return as much as it currently has available
@@ -17,9 +17,4 @@ public interface INimbus {
     // set the task id to {nodeid-port}
     // this should be called after the assignment is changed in ZK
     void assignSlot(WorkerSlot slot, TopologyInfo topology);
-    // call kill task on task id {nodeid-port}
-    // this should be called before the assignment is changed in ZK
-    // this is also called when a topology is killed
-    // move task status update into supervisor
-    void removeSlot(WorkerSlot slot, TopologyInfo topology);
 }

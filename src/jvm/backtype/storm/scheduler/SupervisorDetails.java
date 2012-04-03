@@ -1,10 +1,10 @@
 package backtype.storm.scheduler;
 
-public class SupervisorInfo {
+public class SupervisorDetails {
     String id;
     Object meta;
     
-    public SupervisorInfo(String id, Object meta) {
+    public SupervisorDetails(String id, Object meta) {
         this.id = id;
         this.meta = meta;
     }

@@ -10,11 +10,11 @@ public interface INimbus {
     //   1. if some slots are used, return as much as it currently has available
     //   2. otherwise return nothing until it has enough slots, or enough time has passed
     // sets the node id as {normalized hostname (invalid chars removed}-{topologyid}
-    List<WorkerSlot> availableSlots(List<SupervisorInfo> existingSupervisors, List<WorkerSlot> usedSlots, TopologyInfo topology);
+    List<WorkerSlot> availableSlots(List<SupervisorDetails> existingSupervisors, List<WorkerSlot> usedSlots, TopologyDetails topology);
     // mesos should call launchTasks on an executor for this topology... 
     // gives it the executor with:
     //   - name: the node id
     // set the task id to {nodeid-port}
     // this should be called after the assignment is changed in ZK
-    void assignSlot(WorkerSlot slot, TopologyInfo topology);
+    void assignSlot(WorkerSlot slot, TopologyDetails topology);
 }

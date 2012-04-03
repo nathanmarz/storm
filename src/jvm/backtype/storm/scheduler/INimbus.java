@@ -20,5 +20,6 @@ public interface INimbus {
     // call kill task on task id {nodeid-port}
     // this should be called before the assignment is changed in ZK
     // this is also called when a topology is killed
+    // move task status update into supervisor
     void removeSlot(WorkerSlot slot, TopologyInfo topology);
 }

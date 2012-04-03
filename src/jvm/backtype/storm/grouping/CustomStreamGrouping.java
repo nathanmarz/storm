@@ -9,8 +9,8 @@ import java.util.Map;
 public interface CustomStreamGrouping extends Serializable {
     
    /**
-     * Tells the stream grouping at runtime the number of tasks in the target bolt.
-     * This information should be used in taskIndicies to determine the target tasks.
+     * Tells the stream grouping at runtime the tasks in the target bolt.
+     * This information should be used in chooseTasks to determine the target tasks.
      * 
      * It also tells the grouping the metadata on the stream this grouping will be used on.
      */

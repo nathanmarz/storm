@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 0.7.1
+
  * Implemented shell spout (thanks tomo)
  * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
  * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.

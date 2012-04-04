@@ -9,9 +9,9 @@
           topologies (.get_topologies cluster-info)
           msg-format "%-20s %-10s %-10s %-12s %-10s"]
       (if (or (nil? topologies) (empty? topologies))
-        (println "No topology running.")
+        (println "No topologies running.")
         (do
-          (println (format msg-format "Topology Name" "Status" "Num_tasks" "Num_workers" "Uptime_secs"))
+          (println (format msg-format "Topology_name" "Status" "Num_tasks" "Num_workers" "Uptime_secs"))
           (println "-------------------------------------------------------------------")
           (doseq [^TopologySummary topology topologies]
             (let [topology-name (.get_name topology)

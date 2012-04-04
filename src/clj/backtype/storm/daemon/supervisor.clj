@@ -245,10 +245,13 @@
                                        storm-code-map (read-storm-code-locations storm-cluster-state sync-callback)
                                        assigned-storm-ids (set (keys storm-code-map))
                                        downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-                                       new-assignment (read-assignments
+                                       new-assignment (->>
+                                                       (read-assignments
                                                         storm-cluster-state
                                                         supervisor-id
-                                                        sync-callback)]
+                                                        sync-callback)
+                                                       (filter-key #(.confirmAssigned isupervisor %)))
+                                       existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
                                    (log-debug "Synchronizing supervisor")
                                    (log-debug "Storm code map: " storm-code-map)
                                    (log-debug "Downloaded storm ids: " downloaded-storm-ids)
@@ -278,10 +281,12 @@
                                        ))
                                    (log-debug "Writing new assignment "
                                               (pr-str new-assignment))
+                                   (doseq [p (set/difference (set (keys existing-assigned))
+                                                             (set (keys new-assignment)))]
+                                     (.killedWorker isupervisor (int p)))
                                    (.put local-state
                                          LS-LOCAL-ASSIGNMENTS
-                                         new-assignment
-                                         )
+                                         new-assignment)
                                    (.add processes-event-manager sync-processes)
                                    ))
         heartbeat-fn (fn [] (.supervisor-heartbeat!

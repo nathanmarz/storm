@@ -166,6 +166,7 @@
 ;; another thread launches events to restart any dead processes if necessary
 (defserverfn mk-supervisor [conf shared-context isupervisor]
   (log-message "Starting Supervisor with conf " conf)
+  (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
   (let [active (atom true)
         uptime (uptime-computer)

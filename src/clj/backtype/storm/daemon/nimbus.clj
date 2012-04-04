@@ -5,7 +5,7 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot])
+  (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:use [clojure.contrib.def :only [defnk]])
@@ -24,8 +24,9 @@
                   ))
    ))
 
-(defn nimbus-data [conf]
+(defn nimbus-data [conf inimbus]
   {:conf conf
+   :inimbus inimbus
    :submitted-count (atom 0)
    :storm-cluster-state (cluster/mk-storm-cluster-state conf)
    :submit-lock (Object.)
@@ -261,18 +262,30 @@
        (map-val :hostname)))
 
 (defn- available-slots
-  [conf storm-cluster-state callback]
-  (let [supervisor-ids (.supervisors storm-cluster-state callback)
-        supervisor-infos (all-supervisor-info storm-cluster-state callback)   
-        all-slots (map-val (comp set :worker-ports) supervisor-infos)
+  [nimbus callback topology-details]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        ^INimbus inimbus (:inimbus nimbus)
+        
+        supervisor-ids (.supervisors storm-cluster-state callback)
+        supervisor-infos (all-supervisor-info storm-cluster-state callback)
         existing-slots (assigned-slots storm-cluster-state)
-        ]    
-    (mapcat
-     (fn [[id slots]]
-       (for [s (set/difference slots (existing-slots id))]
-         [id s]))
-     all-slots)
-    ))
+
+        supervisor-details (for [[id info] supervisor-infos]
+                             (SupervisorDetails. id (:meta info)))
+
+        worker-slots (mapcat (fn [[id ports]]
+                               (for [p ports]
+                                 (WorkerSlot. id p)))
+                             existing-slots)
+        ret (.availableSlots inimbus
+                     supervisor-details
+                     worker-slots
+                     topology-details
+                     )
+        ]
+    (for [^WorkerSlot slot ret]
+      [(.getNodeId slot) (.getPort slot)]
+      )))
 
 (defn- optimize-topology [topology]
   ;; TODO: create new topology by collapsing bolts into CompoundSpout
@@ -310,6 +323,12 @@
       (FileUtils/readFileToByteArray
         (File. (master-stormcode-path stormroot))
         ))))
+
+(defn read-topology-details [nimbus storm-id]
+  (let [conf (:conf nimbus)]
+    (TopologyDetails. storm-id
+                      (read-storm-conf conf storm-id)
+                      (read-storm-topology conf storm-id))))
 
 ;; public so it can be mocked in tests
 (defn mk-task-component-assignments [conf storm-id]
@@ -405,8 +424,13 @@
 ;; TODO: slots that have dead task should be reused as long as supervisor is active
 
 ;; public so it can be mocked out
-(defn compute-new-task->node+port [conf storm-id existing-assignment storm-cluster-state callback task-heartbeats-cache scratch?]
-  (let [available-slots (available-slots conf storm-cluster-state callback)
+(defn compute-new-task->node+port [nimbus ^TopologyDetails topology-details existing-assignment callback scratch?]
+  (let [conf (:conf nimbus)
+        storm-cluster-state (:storm-cluster-state nimbus)
+        task-heartbeat-cache (:task-heartbeats-cache nimbus)
+        storm-id (.getId topology-details)
+        
+        available-slots (available-slots nimbus callback)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
 
@@ -451,6 +475,16 @@
     (apply concat (vals brand-new-slots))
     ))
 
+(defn newly-added-slots [existing-assignment new-assignment]
+  (let [old-slots (-> (:task->node+port existing-assignment)
+                      reverse-map
+                      set)
+        new-slots (-> (:task->node+port new-assignment)
+                      reverse-map
+                      set)]
+    (->> (set/difference new-slots old-slots)
+         (map first))))
+
 ;; get existing assignment (just the task->node+port map) -> default to {}
 ;; filter out ones which have a task timeout
 ;; figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many tasks should be in each slot (e.g., 4, 4, 4, 5)
@@ -463,10 +497,12 @@
         callback (fn [& ignored] (transition! nimbus storm-id :monitor))
         node->host (get-node->host storm-cluster-state callback)
 
+        topology-details (read-topology-details nimbus storm-id)
         existing-assignment (.assignment-info storm-cluster-state storm-id nil)
-        task->node+port (compute-new-task->node+port conf storm-id existing-assignment
-                                                     storm-cluster-state callback
-                                                     (:task-heartbeats-cache nimbus)
+        task->node+port (compute-new-task->node+port nimbus
+                                                     topology-details
+                                                     existing-assignment
+                                                     callback
                                                      scratch?)
         
         all-node->host (merge (:node->host existing-assignment) node->host)
@@ -492,6 +528,11 @@
       (do
         (log-message "Setting new assignment for storm id " storm-id ": " (pr-str assignment))
         (.set-assignment! storm-cluster-state storm-id assignment)
+        (.assignSlots ^INimbus (:inimbus nimbus)
+                      (for [[id port] (newly-added-slots existing-assignment assignment)]
+                        (WorkerSlot. id port))
+                      topology-details)
+        
         ))
     ))
 
@@ -616,8 +657,9 @@
       )))
 
 (defserverfn service-handler [conf inimbus]
+  (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf)]
+  (let [nimbus (nimbus-data conf inimbus)]
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))

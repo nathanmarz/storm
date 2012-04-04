@@ -164,7 +164,7 @@
 
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
-(defserverfn mk-supervisor [conf shared-context isupervisor]
+(defserverfn mk-supervisor [conf shared-context ^ISupervisor isupervisor]
   (log-message "Starting Supervisor with conf " conf)
   (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
@@ -174,8 +174,7 @@
         storm-cluster-state (cluster/mk-storm-cluster-state conf)
         local-state (supervisor-state conf)
         my-hostname (local-hostname)
-        supervisor-id (if-let [id (.get local-state LS-ID)] id (generate-supervisor-id))
-        _ (.put local-state LS-ID supervisor-id)
+        supervisor-id (.getId isupervisor)
         [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
         sync-processes (fn []
                          (let [assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
@@ -290,7 +289,7 @@
                                supervisor-id
                                (SupervisorInfo. (current-time-secs)
                                                 my-hostname
-                                                (conf SUPERVISOR-SLOTS-PORTS)
+                                                (.getMetadata isupervisor)
                                                 (uptime))))
         _ (heartbeat-fn)
         ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)

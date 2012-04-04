@@ -38,4 +38,8 @@ public class BasicOutputCollector implements IBasicOutputCollector {
     protected IOutputCollector getOutputter() {
         return out;
     }
+
+    public void reportError(Throwable t) {
+        out.reportError(t);
+    }
 }

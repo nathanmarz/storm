@@ -407,7 +407,7 @@
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-LOCAL-DIR nimbus-dir}))
          (bind cluster-state (cluster/mk-storm-cluster-state conf))
-         (bind nimbus (nimbus/service-handler conf))
+         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
          (bind topology (thrift/mk-topology
                          {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
                          {}))
@@ -417,7 +417,7 @@
          (bind storm-id2 (get-storm-id cluster-state "t2"))
          (.shutdown nimbus)
          (rmr (master-stormdist-root conf storm-id1))
-         (bind nimbus (nimbus/service-handler conf))
+         (bind nimbus (nimbus/service-handler conf) (nimbus/standalone-nimbus))
          (is ( = #{storm-id2} (set (.active-storms cluster-state))))
          (.shutdown nimbus)
          (.disconnect cluster-state)

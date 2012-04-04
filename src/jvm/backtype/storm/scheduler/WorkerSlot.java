@@ -27,4 +27,15 @@ public class WorkerSlot {
     public Object getMeta() {
         return meta;
     }
+
+    @Override
+    public int hashCode() {
+        return nodeId.hashCode() + 13 * ((Integer) port).hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        WorkerSlot other = (WorkerSlot) o;
+        return this.port == other.port && this.nodeId.equals(other.nodeId);
+    }    
 }

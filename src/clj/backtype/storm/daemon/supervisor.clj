@@ -1,4 +1,5 @@
 (ns backtype.storm.daemon.supervisor
+  (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -424,7 +425,29 @@
 (defn -launch [supervisor]
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil)))
+    (mk-supervisor conf nil supervisor)))
+
+(defn standalone-supervisor []
+  (let [conf-atom (atom nil)
+        id-atom (atom nil)]
+    (reify ISupervisor
+      (prepare [this conf local-dir]
+        (reset! conf-atom conf)
+        (let [state (LocalState. local-dir)
+              curr-id (if-let [id (.get state LS-ID)]
+                        id
+                        (generate-supervisor-id))]
+          (.put state LS-ID curr-id)           
+          (reset! id-atom curr-id))
+        )
+      (confirmAssigned [this port]
+        true)
+      (getMetadata [this]
+        (get @conf-atom SUPERVISOR-SLOTS-PORTS))
+      (getId [this]
+        @id-atom)
+      (killedWorker [this port]
+        ))))
 
 (defn -main []
-  (-launch nil))
+  (-launch (standalone-supervisor)))

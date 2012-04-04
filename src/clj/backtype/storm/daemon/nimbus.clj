@@ -5,6 +5,7 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
+  (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:use [clojure.contrib.def :only [defnk]])
@@ -614,7 +615,7 @@
       (.remove-storm! storm-cluster-state corrupt)
       )))
 
-(defserverfn service-handler [conf]
+(defserverfn service-handler [conf inimbus]
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf)]
     (cleanup-corrupt-topologies! nimbus)
@@ -827,9 +828,9 @@
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
 
-(defn launch-server! [conf]
+(defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
-  (let [service-handler (service-handler conf)
+  (let [service-handler (service-handler conf nimbus)
         options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
                     (THsHaServer$Args.)
                     (.workerThreads 64)
@@ -860,7 +861,24 @@
   )
 
 (defn -launch [nimbus]
-  (launch-server! (read-storm-config)))
+  (launch-server! (read-storm-config) nimbus))
+
+(defn standalone-nimbus []
+  (reify INimbus
+    (prepare [this conf local-dir]
+      )
+    (availableSlots [this supervisors used-slots topology]
+      (let [all-slots (->> supervisors
+                           (mapcat (fn [^SupervisorDetails s]
+                                     (for [p (.getMeta s)]
+                                       (WorkerSlot. (.getId s) p))))
+                           set)]
+        (set/difference all-slots (set used-slots))
+        ))
+    (assignSlots [this slot topology]
+      )
+    ))
 
 (defn -main []
-  (-launch nil))
+  (-launch (standalone-nimbus)))
+

@@ -82,7 +82,7 @@
                                 SUPERVISOR-SLOTS-PORTS port-ids
                                })
         id-fn (if id (fn [] id) supervisor/generate-supervisor-id)
-        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf (:shared-context cluster-map)))]
+        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf (:shared-context cluster-map) (supervisor/standalone-supervisor)))]
     (swap! (:supervisors cluster-map) conj daemon)
     (swap! (:tmp-dirs cluster-map) conj tmp-dir)
     daemon
@@ -113,7 +113,8 @@
         zk-handle (zk/mk-inprocess-zookeeper zk-tmp zk-port)
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
-                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp))
+                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                (nimbus/standalone-nimbus))
         context (mk-shared-context daemon-conf)
         cluster-map {:nimbus nimbus
                      :port-counter port-counter

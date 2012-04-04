@@ -87,7 +87,7 @@
         total-tasks (->> (.get_topologies summ)
                          (map #(.get_num_tasks ^TopologySummary %))
                          (reduce +))]
-    (table ["Storm version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Running tasks"]
+    (table ["Version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Running tasks"]
            [[(read-storm-version)
              (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
              (count sups)

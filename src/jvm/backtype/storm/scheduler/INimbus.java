@@ -1,5 +1,6 @@
 package backtype.storm.scheduler;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -16,5 +17,5 @@ public interface INimbus {
     //   - name: the node id
     // set the task id to {nodeid-port}
     // this should be called after the assignment is changed in ZK
-    void assignSlot(WorkerSlot slot, TopologyDetails topology);
+    void assignSlots(Collection<WorkerSlot> slot, TopologyDetails topology);
 }

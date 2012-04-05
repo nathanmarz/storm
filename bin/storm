@@ -187,7 +187,7 @@ def repl():
     cppaths = [STORM_DIR + "/conf"]
     exec_storm_class("clojure.lang.Repl", jvmtype="-client", extrajars=cppaths)
 
-def nimbus():
+def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
 
     Launches the nimbus daemon. This command should be run under 
@@ -199,12 +199,12 @@ def nimbus():
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     childopts = confvalue("nimbus.childopts", cppaths) + " -Dlogfile.name=nimbus.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class(
-        "backtype.storm.daemon.nimbus", 
+        klass, 
         jvmtype="-server", 
         extrajars=cppaths, 
         childopts=childopts)
 
-def supervisor():
+def supervisor(klass="backtype.storm.daemon.supervisor"):
     """Syntax: [storm supervisor]
 
     Launches the supervisor daemon. This command should be run 
@@ -216,7 +216,7 @@ def supervisor():
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     childopts = confvalue("supervisor.childopts", cppaths) + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
     exec_storm_class(
-        "backtype.storm.daemon.supervisor", 
+        klass, 
         jvmtype="-server", 
         extrajars=cppaths, 
         childopts=childopts)

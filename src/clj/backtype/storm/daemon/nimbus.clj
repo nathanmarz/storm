@@ -427,10 +427,10 @@
 (defn compute-new-task->node+port [nimbus ^TopologyDetails topology-details existing-assignment callback scratch?]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
-        task-heartbeat-cache (:task-heartbeats-cache nimbus)
+        task-heartbeats-cache (:task-heartbeats-cache nimbus)
         storm-id (.getId topology-details)
         
-        available-slots (available-slots nimbus callback)
+        available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
 

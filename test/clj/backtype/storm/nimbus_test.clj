@@ -417,7 +417,7 @@
          (bind storm-id2 (get-storm-id cluster-state "t2"))
          (.shutdown nimbus)
          (rmr (master-stormdist-root conf storm-id1))
-         (bind nimbus (nimbus/service-handler conf) (nimbus/standalone-nimbus))
+         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
          (is ( = #{storm-id2} (set (.active-storms cluster-state))))
          (.shutdown nimbus)
          (.disconnect cluster-state)

@@ -1,18 +1,18 @@
 package backtype.storm.scheduler;
 
-import backtype.storm.task.GeneralTopologyContext;
+import backtype.storm.generated.StormTopology;
 import java.util.Map;
 
 
 public class TopologyDetails {
     String topologyId;
     Map topologyConf;
-    GeneralTopologyContext context;
+    StormTopology topology;
     
-    public TopologyDetails(String topologyId, Map topologyConf, GeneralTopologyContext context) {
+    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology) {
         this.topologyId = topologyId;
         this.topologyConf = topologyConf;
-        this.context = context;
+        this.topology = topology;
     }
     
     public String getId() {
@@ -23,7 +23,7 @@ public class TopologyDetails {
         return topologyConf;
     }
     
-    public GeneralTopologyContext getContext() {
-        return context;
+    public StormTopology getTopology() {
+        return topology;
     }
 }

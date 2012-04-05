@@ -197,7 +197,7 @@
       (bind sup1 (add-supervisor cluster :id "sup" :ports [5 6 7]))
       (advance-cluster-time cluster 4)
       (bind hb (get-heartbeat cluster "sup"))
-      (is (= #{5 6 7} (set (:worker-ports hb))))
+      (is (= #{5 6 7} (set (:meta hb))))
       (check-heartbeat cluster "sup" 3)
       (advance-cluster-time cluster 3)
       (check-heartbeat cluster "sup" 3)

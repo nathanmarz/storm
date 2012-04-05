@@ -281,7 +281,7 @@
                                        ))
                                    (log-debug "Writing new assignment "
                                               (pr-str new-assignment))
-                                   (doseq [p (set/difference (set (keys existing-assigned))
+                                   (doseq [p (set/difference (set (keys existing-assignment))
                                                              (set (keys new-assignment)))]
                                      (.killedWorker isupervisor (int p)))
                                    (.put local-state

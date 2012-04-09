@@ -147,6 +147,13 @@
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
 
+(defn try-cleanup-taskfolders [conf id]
+  (try
+      (rmr (worker-taskfolders-root conf id))
+  (catch RuntimeException e
+    (log-warn-error e "Failed to cleanup tasks.")
+    )))
+
 (defn shutdown-worker [conf supervisor-id id worker-thread-pids-atom]
   (log-message "Shutting down " supervisor-id ":" id)
   (let [pids (read-dir-contents (worker-pids-root conf id))
@@ -157,6 +164,7 @@
       (ensure-process-killed! pid)
       (rmpath (worker-pid-path conf id pid))
       )
+    (try-cleanup-taskfolders conf id)
     (try-cleanup-worker conf id))
   (log-message "Shut down " supervisor-id ":" id))
 

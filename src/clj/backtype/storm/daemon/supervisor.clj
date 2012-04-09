@@ -170,7 +170,9 @@
         worker-thread-pids-atom (atom {})
         storm-cluster-state (cluster/mk-storm-cluster-state conf)
         local-state (supervisor-state conf)
-        my-hostname (local-hostname)
+        my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
+                      (conf STORM-LOCAL-HOSTNAME)
+                      (local-hostname))
         supervisor-id (if-let [id (.get local-state LS-ID)] id (generate-supervisor-id))
         _ (.put local-state LS-ID supervisor-id)
         [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]

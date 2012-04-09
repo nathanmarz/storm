@@ -18,6 +18,7 @@ mkdir -p $DIR
 mkdir $DIR/lib
 cp storm*jar $DIR/
 cp lib/*.jar $DIR/lib
+cp CHANGELOG.md $DIR/
 
 echo $RELEASE > $DIR/RELEASE
 

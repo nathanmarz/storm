@@ -255,6 +255,17 @@ def drpc():
         childopts=childopts, 
         extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
 
+def dev_zookeeper():
+    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    tmpdir = confvalue("dev.zookeeper.path", cppaths)
+    os.system("rm -rf " + tmpdir)
+    os.system("mkdir " + tmpdir)
+    # generate a conf file in the tmpdir (with a zookeeper dir there as well)
+    # run the server using java -cp ...
+    # use a config variable for the dev zookeeper path? (default to "/tmp/dev-storm-zookeeper") ?
+    # TODO: default storm.zookeeper.servers to localhost? make it easy to run this stuff locally...
+    pass
+
 def print_classpath():
     """Syntax: [storm classpath]
 
@@ -286,7 +297,8 @@ def unknown_command(*args):
 COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
-            "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage}
+            "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
+            "dev-zookeeper": dev_zookeeper}
 
 def parse_config(config_list):
     global CONFIG_OPTS

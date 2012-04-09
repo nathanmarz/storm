@@ -425,6 +425,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static String JAVA_LIBRARY_PATH = "java.library.path";
     
+    /**
+     * The path to use as the zookeeper dir when running a zookeeper server via
+     * "storm dev-zookeeper". This zookeeper instance is only intended for development;
+     * it is not a production grade zookeeper setup.
+     */
+    public static String DEV_ZOOKEEPER_PATH = "dev.zookeeper.path";
+    
     public void setDebug(boolean isOn) {
         put(Config.TOPOLOGY_DEBUG, isOn);
     } 

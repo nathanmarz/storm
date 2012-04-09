@@ -6,6 +6,8 @@ java.library.path: "/usr/local/lib:/opt/local/lib:/usr/lib"
 ### storm.* configs are general configurations
 # the local dir is where jars are kept
 storm.local.dir: "/mnt/storm"
+storm.zookeeper.servers:
+    - "localhost"
 storm.zookeeper.port: 2181
 storm.zookeeper.root: "/storm"
 storm.zookeeper.session.timeout: 20000
@@ -15,6 +17,7 @@ storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 
 ### nimbus.* configs are for the master
+nimbus.host: "localhost"
 nimbus.thrift.port: 6627
 nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
@@ -79,3 +82,5 @@ topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
+
+dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

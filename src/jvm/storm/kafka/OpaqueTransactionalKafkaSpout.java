@@ -31,7 +31,7 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
     
     @Override
     public IOpaquePartitionedTransactionalSpout.Coordinator getCoordinator(Map map, TopologyContext tc) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return new Coordinator();
     }
 
     @Override

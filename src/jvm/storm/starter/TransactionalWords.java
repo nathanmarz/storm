@@ -114,7 +114,7 @@ public class TransactionalWords {
                         newVal.count = val.count;
                     }
                     newVal.count = newVal.count + _counts.get(key);
-                    COUNT_DATABASE.put(key, val);
+                    COUNT_DATABASE.put(key, newVal);
                 } else {
                     newVal = val;
                 }

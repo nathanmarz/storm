@@ -183,7 +183,14 @@ public class Config extends HashMap<String, Object> {
     /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
-    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";    
+    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
+    
+    /**
+     * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
+     * timeout based on the socket timeout on the DRPC client, and separately based on the topology message
+     * timeout for the topology implementing the DRPC function.
+     */
+    public static String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
     
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and

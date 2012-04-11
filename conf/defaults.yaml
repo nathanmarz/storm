@@ -32,6 +32,7 @@ ui.childopts: "-Xmx768m"
 
 drpc.port: 3772
 drpc.invocations.port: 3773
+drpc.request.timeout.secs: 600
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null

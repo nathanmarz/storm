@@ -74,7 +74,7 @@
   (-> @capture-atom (get COMMIT-STREAM) first :id))
 
 (deftest test-coordinator
-  (let [zk-port (available-port 2181)
+  (let [zk-port (available-port)
         coordinator-state (atom nil)
         emit-capture (atom nil)]
     (with-inprocess-zookeeper zk-port
@@ -244,7 +244,7 @@
 
 (deftest test-rotating-transactional-state
   ;; test strict ordered vs not strict ordered
-  (let [zk-port (available-port 2181)]
+  (let [zk-port (available-port)]
     (with-inprocess-zookeeper zk-port
       (let [conf (merge (read-default-config)
                         {STORM-ZOOKEEPER-PORT zk-port

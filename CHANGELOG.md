@@ -1,5 +1,6 @@
 ## Unreleased
 
+ * Make request timeout within DRPC server configurable via "drpc.request.timeout.secs"
  * Added "storm list" command to show running topologies at the command line (thanks xumingming)
  * Storm UI displays the release version (thanks xumingming)
  * Added reportError to BasicOutputCollector

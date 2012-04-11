@@ -489,13 +489,17 @@
        (let [^bytes ser (msg/recv puller)]
          (when-not (empty? ser) ; skip empty messages (used during shutdown)
            (log-debug "Processing message")
-           (let [tuple (.deserialize deserializer ser)]
+           (let [tuple (.deserialize deserializer ser)
+                 max-bolt-pending (storm-conf TOPOLOGY-MAX-BOLT-PENDING)]
              ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
              ;; TODO: how to handle incremental updates as well as synchronizations at same time
              ;; TODO: need to version tuples somehow
              (log-debug "Received tuple " tuple " at task " (.getThisTaskId topology-context))
              (.put tuple-start-times tuple (System/currentTimeMillis))
-             
+             (when (and (not-nil? max-bolt-pending) (> (count tuple-start-times) max-bolt-pending))
+               (log-warn (format "Count of un-acked tuples(%s) in bolt: %s(task-id:%s) exceeded the threshold(%s)"
+                                 (count tuple-start-times) component-id task-id max-bolt-pending)))
+               
              (.execute bolt tuple)
              ))))]
     ))

@@ -347,7 +347,17 @@ public class Config extends HashMap<String, Object> {
      * their tuples with a message id.
      */
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
-    
+
+    /**
+     * The maximum number of tuples that can be pending on a bolt task at any given time. 
+     * This config applies to individual tasks, not to bolts or topologies as a whole. 
+     * 
+     * A pending tuple is one that has been emitted from a spout/bolt but has not been acked or failed yet.
+     * Note that unlike <code>TOPOLOGY_MAX_SPOUT_PENDING</code> this config parameter <strong>HAS</strong> 
+     * effect on all kinds of bolts (no matter the spout of the topology is reliable or not)
+     */
+    public static String TOPOLOGY_MAX_BOLT_PENDING="topology.max.bolt.pending"; 
+        
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
@@ -465,6 +475,10 @@ public class Config extends HashMap<String, Object> {
     
     public void setMaxSpoutPending(int max) {
         put(Config.TOPOLOGY_MAX_SPOUT_PENDING, max);
+    }
+    
+    public void setMaxBoltPending(int max) {
+        put(Config.TOPOLOGY_MAX_BOLT_PENDING, max);
     }
     
     public void setStatsSampleRate(double rate) {

@@ -243,44 +243,43 @@
 
 (deftest test-rotating-transactional-state
   ;; test strict ordered vs not strict ordered
-  (let []
-    (with-inprocess-zookeeper zk-port
-      (let [conf (merge (read-default-config)
-                        {STORM-ZOOKEEPER-PORT zk-port
-                         STORM-ZOOKEEPER-SERVERS ["localhost"]
-                         })
-            state (TransactionalState/newUserState conf "id1" {})
-            strict-rotating (RotatingTransactionalState. state "strict" true)
-            unstrict-rotating (RotatingTransactionalState. state "unstrict" false)
-            init (atom 10)
-            initializer (mk-state-initializer init)]
-        (is (= 10 (get-state strict-rotating 1 initializer)))
-        (is (= 10 (get-state strict-rotating 2 initializer)))
-        (reset! init 20)
-        (is (= 20 (get-state strict-rotating 3 initializer)))
-        (is (= 10 (get-state strict-rotating 1 initializer)))
+  (with-inprocess-zookeeper zk-port
+    (let [conf (merge (read-default-config)
+                      {STORM-ZOOKEEPER-PORT zk-port
+                       STORM-ZOOKEEPER-SERVERS ["localhost"]
+                       })
+          state (TransactionalState/newUserState conf "id1" {})
+          strict-rotating (RotatingTransactionalState. state "strict" true)
+          unstrict-rotating (RotatingTransactionalState. state "unstrict" false)
+          init (atom 10)
+          initializer (mk-state-initializer init)]
+      (is (= 10 (get-state strict-rotating 1 initializer)))
+      (is (= 10 (get-state strict-rotating 2 initializer)))
+      (reset! init 20)
+      (is (= 20 (get-state strict-rotating 3 initializer)))
+      (is (= 10 (get-state strict-rotating 1 initializer)))
 
-        (is (thrown? Exception (get-state strict-rotating 5 initializer)))
-        (is (= 20 (get-state strict-rotating 4 initializer)))
-        (is (= 4 (count (.list state "strict"))))
-        (cleanup-before strict-rotating 3)
-        (is (= 2 (count (.list state "strict"))))
+      (is (thrown? Exception (get-state strict-rotating 5 initializer)))
+      (is (= 20 (get-state strict-rotating 4 initializer)))
+      (is (= 4 (count (.list state "strict"))))
+      (cleanup-before strict-rotating 3)
+      (is (= 2 (count (.list state "strict"))))
 
-        (is (nil? (get-state-or-create strict-rotating 5 initializer)))
-        (is (= 20 (get-state-or-create strict-rotating 5 initializer)))
-        (is (nil? (get-state-or-create strict-rotating 6 initializer)))        
-        (cleanup-before strict-rotating 6)
-        (is (= 1 (count (.list state "strict"))))
+      (is (nil? (get-state-or-create strict-rotating 5 initializer)))
+      (is (= 20 (get-state-or-create strict-rotating 5 initializer)))
+      (is (nil? (get-state-or-create strict-rotating 6 initializer)))        
+      (cleanup-before strict-rotating 6)
+      (is (= 1 (count (.list state "strict"))))
 
-        (is (= 20 (get-state unstrict-rotating 10 initializer)))
-        (is (= 20 (get-state unstrict-rotating 20 initializer)))
-        (is (nil? (get-state unstrict-rotating 12 initializer)))
-        (is (nil? (get-state unstrict-rotating 19 initializer)))
-        (is (nil? (get-state unstrict-rotating 12 initializer)))
-        (is (= 20 (get-state unstrict-rotating 21 initializer)))
+      (is (= 20 (get-state unstrict-rotating 10 initializer)))
+      (is (= 20 (get-state unstrict-rotating 20 initializer)))
+      (is (nil? (get-state unstrict-rotating 12 initializer)))
+      (is (nil? (get-state unstrict-rotating 19 initializer)))
+      (is (nil? (get-state unstrict-rotating 12 initializer)))
+      (is (= 20 (get-state unstrict-rotating 21 initializer)))
 
-        (.close state)
-        ))))
+      (.close state)
+      )))
 
 (defn mk-transactional-source []
   (HashMap.))

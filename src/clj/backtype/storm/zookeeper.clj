@@ -134,9 +134,8 @@
         [port factory] (loop [port 2000]
                          (if-let [factory-tmp (try-cause (NIOServerCnxn$Factory. (InetSocketAddress. port))
                                            (catch BindException e
-                                             (if (< (inc port) 65535)
-                                               nil
-                                               (throw (RuntimeException. "No port is available to lauch a inprocess zookeeper.")))))]
+                                             (when (>= (inc port) 65535)
+                                               (throw (RuntimeException. "No port is available to launch an inprocess zookeeper.")))))]
                            [port factory-tmp]
                            (recur (inc port))))]
     (log-message "Starting inprocess zookeeper at port " port " and dir " localdir)    

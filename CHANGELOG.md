@@ -7,6 +7,7 @@
  * Added reportError to BatchOutputCollector
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
  * Bug fix: Zookeeper in local mode now always gets an unused port. This will eliminate conflicts with other local mode processes or other Zookeeper instances on a local machine. (thanks xumingming)
+ * Bug fix: Fixed NPE in CoordinatedBolt it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
 
 ## 0.7.1
 

@@ -85,7 +85,9 @@ public class CoordinatedBolt implements IRichBolt {
         public void ack(Tuple tuple) {
             Object id = tuple.getValue(0);
             synchronized(_tracked) {
-                _tracked.get(id).receivedTuples++;
+                TrackingInfo track = _tracked.get(id);
+                if (track != null)
+                    track.receivedTuples++;
             }
             boolean failed = checkFinishId(tuple);
             if(failed) {
@@ -98,7 +100,9 @@ public class CoordinatedBolt implements IRichBolt {
         public void fail(Tuple tuple) {
             Object id = tuple.getValue(0);
             synchronized(_tracked) {
-                _tracked.get(id).failed = true;
+                TrackingInfo track = _tracked.get(id);
+                if (track != null)
+                    track.failed = true;
             }
             _delegate.fail(tuple);
         }
@@ -110,10 +114,13 @@ public class CoordinatedBolt implements IRichBolt {
 
         private void updateTaskCounts(Object id, List<Integer> tasks) {
             synchronized(_tracked) {
-                Map<Integer, Integer> taskEmittedTuples = _tracked.get(id).taskEmittedTuples;
-                for(Integer task: tasks) {
-                    int newCount = get(taskEmittedTuples, task, 0) + 1;
-                    taskEmittedTuples.put(task, newCount);
+                TrackingInfo track = _tracked.get(id);
+                if (track != null) {
+                    Map<Integer, Integer> taskEmittedTuples = track.taskEmittedTuples;
+                    for(Integer task: tasks) {
+                        int newCount = get(taskEmittedTuples, task, 0) + 1;
+                        taskEmittedTuples.put(task, newCount);
+                    }
                 }
             }
         }

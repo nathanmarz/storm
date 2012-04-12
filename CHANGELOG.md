@@ -6,6 +6,7 @@
  * Added reportError to BasicOutputCollector
  * Added reportError to BatchOutputCollector
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
+ * Bug fix: Zookeeper in local mode now always gets an unused port. This will eliminate conflicts with other local mode processes or other Zookeeper instances on a local machine. (thanks xumingming)
 
 ## 0.7.1
 

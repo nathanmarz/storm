@@ -397,7 +397,7 @@
       )))
 
 (deftest test-cleans-corrupt
-  (let [zk-port (available-port 2181)]
+  (let []
     (with-inprocess-zookeeper zk-port
       (with-local-tmp [nimbus-dir]
         (letlocals

@@ -7,7 +7,7 @@
             Watcher$Event$EventType KeeperException$NodeExistsException])
   (:import [org.apache.zookeeper.data Stat])
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxn$Factory])
-  (:import [java.net InetSocketAddress])
+  (:import [java.net InetSocketAddress BindException])
   (:import [java.io File])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
@@ -128,13 +128,20 @@
                                   ))
         ))))
 
-(defn mk-inprocess-zookeeper [localdir port]
-  (log-message "Starting inprocess zookeeper at port " port " and dir " localdir)
+(defn mk-inprocess-zookeeper [localdir]
   (let [localfile (File. localdir)
         zk (ZooKeeperServer. localfile localfile 2000)
-        factory (NIOServerCnxn$Factory. (InetSocketAddress. port))]
+        [port factory] (loop [port 2000]
+                         (if-let [factory-tmp (try-cause (NIOServerCnxn$Factory. (InetSocketAddress. port))
+                                           (catch BindException e
+                                             (if (< (inc port) 65535)
+                                               nil
+                                               (throw (RuntimeException. "No port is available to lauch a inprocess zookeeper.")))))]
+                           [port factory-tmp]
+                           (recur (inc port))))]
+    (log-message "Starting inprocess zookeeper at port " port " and dir " localdir)    
     (.startup factory zk)
-    factory
+    [port factory]
     ))
 
 (defn shutdown-inprocess-zookeeper [handle]

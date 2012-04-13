@@ -431,6 +431,15 @@ public class Config extends HashMap<String, Object> {
      * Storm uses the ZeroMQ and JZMQ native libs. 
      */
     public static String JAVA_LIBRARY_PATH = "java.library.path";
+
+    /**
+     * The hostname the supervisors/workers should report to nimbus.
+     * 
+     * You should set this config when you dont have a DNS which supervisors/workers
+     * can utilize to find each other based on hostname got from calls to
+     * <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
+     */
+    public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
     
     public void setDebug(boolean isOn) {
         put(Config.TOPOLOGY_DEBUG, isOn);

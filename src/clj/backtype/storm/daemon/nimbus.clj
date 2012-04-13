@@ -787,8 +787,7 @@
               task-info (storm-task-info storm-cluster-state storm-id)
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              no-assigned-tasks? (empty? (:task->node+port assignment))
-              task-summaries (if no-assigned-tasks?
+              task-summaries (if (empty? (:task->node+port assignment))
                                []
                                (dofor [[task component] task-info]
                                     (let [[node port] (get-in assignment [:task->node+port task])

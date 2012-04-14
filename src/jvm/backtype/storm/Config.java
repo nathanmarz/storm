@@ -47,6 +47,16 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_CLUSTER_MODE = "storm.cluster.mode";
 
     /**
+     * The hostname the supervisors/workers should report to nimbus. If unset, Storm will 
+     * get the hostname to report by calling <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
+     * 
+     * You should set this config when you dont have a DNS which supervisors/workers
+     * can utilize to find each other based on hostname got from calls to
+     * <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
+     */
+    public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
+
+    /**
      * Whether or not to use ZeroMQ for messaging in local mode. If this is set 
      * to false, then Storm will use a pure-Java messaging system. The purpose 
      * of this flag is to make it easy to run Storm in local mode by eliminating 
@@ -431,15 +441,6 @@ public class Config extends HashMap<String, Object> {
      * Storm uses the ZeroMQ and JZMQ native libs. 
      */
     public static String JAVA_LIBRARY_PATH = "java.library.path";
-
-    /**
-     * The hostname the supervisors/workers should report to nimbus.
-     * 
-     * You should set this config when you dont have a DNS which supervisors/workers
-     * can utilize to find each other based on hostname got from calls to
-     * <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
-     */
-    public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
     
     public void setDebug(boolean isOn) {
         put(Config.TOPOLOGY_DEBUG, isOn);

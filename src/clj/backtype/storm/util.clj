@@ -304,13 +304,13 @@
 (defn rmr [path]
   (log-debug "Rmr path " path)
   (when (exists-file? path)
-    (FileUtils/forceDelete (File. path))))
+    (FileUtils/forceDelete (.getCanonicalFile (File. path)))))
 
 (defn rmpath
   "Removes file or directory at the path. Not recursive. Throws exception on failure"
   [path]
   (log-debug "Removing path " path)
-  (let [deleted? (.delete (File. path))]
+  (let [deleted? (.delete (.getCanonicalFile (File. path)))]
     (when-not deleted?
       (throw (RuntimeException. (str "Failed to delete " path))))
     ))

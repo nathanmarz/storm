@@ -6,7 +6,7 @@
   :resources-path "conf"
   :dev-resources-path "src/dev"
   :repositories {"sonatype" "http://oss.sonatype.org/content/groups/public/"}
-  :dependencies [[org.clojure/clojure "1.3.0"]
+  :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [storm/libthrift7 "0.7.0"]

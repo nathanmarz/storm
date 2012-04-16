@@ -3,9 +3,11 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils])
   (:import [java.util UUID])
+  (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
+  (:import [java.util.concurrent Semaphore])
   (:import [java.io File RandomAccessFile StringWriter PrintWriter])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
@@ -13,6 +15,7 @@
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
   (:require [clojure [string :as str]])
+  (:import [clojure.lang RT])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
   (:use [backtype.storm log])
@@ -103,8 +106,62 @@
       m)
     (dissoc m k)))
 
+(defn indexed
+  "Returns a lazy sequence of [index, item] pairs, where items come
+  from 's' and indexes count up from zero.
+
+  (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
+  [s]
+  (map vector (iterate inc 0) s))
+
+(defn positions
+  "Returns a lazy sequence containing the positions at which pred
+   is true for items in coll."
+  [pred coll]
+  (for [[idx elt] (indexed coll) :when (pred elt)] idx))
+
+(defn exception-cause? [klass ^Throwable t]
+  (->> (iterate #(.getCause ^Throwable %) t)
+       (take-while identity)
+       (some (partial instance? klass))
+       boolean))
+
+(defmacro forcat [[args aseq] & body]
+  `(mapcat (fn [~args]
+             ~@body)
+           ~aseq))
+
+(defmacro try-cause [& body]
+  (let [checker (fn [form]
+                  (or (not (sequential? form))
+                      (not= 'catch (first form))))
+        [code guards] (split-with checker body)
+        error-local (gensym "t")
+        guards (forcat [[_ klass local & guard-body] guards]
+                 `((exception-cause? ~klass ~error-local)
+                   (let [~local ~error-local]
+                     ~@guard-body
+                     )))
+        ]
+    `(try ~@code
+          (catch Throwable ~error-local
+            (cond ~@guards
+                  true (throw ~error-local)
+                  )))))
+
 (defn local-hostname []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
+
+(letfn [(try-port [port]
+          (with-open [socket (java.net.ServerSocket. port)]
+            (.getLocalPort socket)))]
+  (defn available-port
+    ([] (try-port 0))
+    ([preferred]
+      (try
+        (try-port preferred)
+        (catch java.io.IOException e
+          (available-port))))))
 
 (defn uuid []
   (str (UUID/randomUUID)))
@@ -172,20 +229,29 @@
        amap
        )))
 
+(defn filter-key [afn amap]
+  (into {}
+    (filter
+      (fn [[k v]]
+        (afn k))
+       amap
+       )))
+
+(defn separate [pred aseq]
+  [(filter pred aseq) (filter (complement pred) aseq)])
+
 (defn full-path [parent name]
   (let [toks (tokenize-path parent)]
     (toks->path (conj toks name))
     ))
 
-(defn not-nil? [o]
-  (not (nil? o)))
+(def not-nil? (complement nil?))
 
 (defn barr [& vals]
   (byte-array (map byte vals)))
 
 (defn halt-process! [val & msg]
   (log-message "Halting process: " msg)
-  (Thread/sleep 1000)
   (.halt (Runtime/getRuntime) val)
   )
 
@@ -206,10 +272,12 @@
 (defn defaulted [val default]
   (if val val default))
 
-(defn mk-counter []
-  (let [val (atom 0)]
-    (fn []
-      (Integer. (swap! val inc)))))
+(defn mk-counter
+  ([] (mk-counter 1))
+  ([start-val]
+     (let [val (atom (dec start-val))]
+       (fn []
+         (swap! val inc)))))
 
 (defmacro for-times [times & body]
   `(for [i# (range ~times)]
@@ -250,7 +318,7 @@
     ))
 
 (defn extract-dir-from-jar [jarpath dir destdir]
-  (try
+  (try-cause
     (exec-command! (str "unzip -qq " jarpath " " dir "/** -d " destdir))
   (catch ExecuteException e
     (log-message "Error when trying to extract " dir " from " jarpath))
@@ -258,15 +326,19 @@
 
 (defn ensure-process-killed! [pid]
   ;; TODO: should probably do a ps ax of some sort to make sure it was killed
-  (try
+  (try-cause
     (exec-command! (str "kill -9 " pid))
   (catch ExecuteException e
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
-(defn launch-process [command]
-  (let [command (seq (.split command " "))
-        builder (ProcessBuilder. (cons "nohup" command))]
+(defnk launch-process [command :environment {}]
+  (let [command (->> (seq (.split command " "))
+                     (filter (complement empty?)))
+        builder (ProcessBuilder. (cons "nohup" command))
+        process-env (.environment builder)]
+    (doseq [[k v] environment]
+      (.put process-env k v))
     (.start builder)
     ))
 
@@ -291,7 +363,7 @@
                    :start true]
   (let [thread (Thread.
                 (fn []
-                  (try
+                  (try-cause
                     (let [args (args-fn)]
                       (loop []
                         (let [sleep-time (apply afn args)]
@@ -303,13 +375,8 @@
                       (log-message "Async loop interrupted!")
                       )
                     (catch Throwable t
-                      ;; work around clojure wrapping exceptions
-                      (if (instance? InterruptedException (.getCause t))
-                        (log-message "Async loop interrupted!")
-                        (do
-                          (log-error t "Async loop died!")
-                          (kill-fn t)
-                          ))
+                      (log-error t "Async loop died!")
+                      (kill-fn t)
                       ))
                   ))]
     (.setDaemon thread daemon)
@@ -328,9 +395,6 @@
         (Time/isThreadWaiting thread)
         ))
       ))
-
-(defn filter-map-val [afn amap]
-  (into {} (filter (fn [[k v]] (afn v)) amap)))
 
 (defn exists-file? [path]
   (.exists (File. path)))
@@ -380,18 +444,18 @@
   (ReentrantReadWriteLock.))
 
 (defmacro read-locked [rw-lock & body]
-  `(let [rlock# (.readLock ~rw-lock)]
-      (try
-        (.lock rlock#)
-        ~@body
-      (finally (.unlock rlock#)))))
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [rlock# (.readLock ~lock)]
+       (try (.lock rlock#)
+            ~@body
+            (finally (.unlock rlock#))))))
 
 (defmacro write-locked [rw-lock & body]
-  `(let [wlock# (.writeLock ~rw-lock)]
-      (try
-        (.lock wlock#)
-        ~@body
-      (finally (.unlock wlock#)))))
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [wlock# (.writeLock ~lock)]
+       (try (.lock wlock#)
+            ~@body
+            (finally (.unlock wlock#))))))
 
 (defn wait-for-condition [apredicate]
   (while (not (apredicate))
@@ -411,13 +475,7 @@
   (Integer/valueOf str))
 
 (defn integer-divided [sum num-pieces]
-  (let [base (Integer. (int (/ sum num-pieces)))
-        num-inc (mod sum num-pieces)
-        num-bases (- num-pieces num-inc)]
-    (if (= num-inc 0)
-      {base num-bases}
-      {base num-bases (inc base) num-inc}
-      )))
+  (clojurify-structure (Utils/integerDivided sum num-pieces)))
 
 (defn collectify [obj]
   (if (or (sequential? obj) (instance? Collection obj)) obj [obj]))
@@ -426,8 +484,11 @@
   (JSONValue/toJSONString m))
 
 (defn from-json [^String str]
-  (clojurify-structure
-    (JSONValue/parse str)))
+  (if str
+    (clojurify-structure
+     (JSONValue/parse str))
+    nil
+    ))
 
 (defmacro letlocals [& body]
    (let [[tobind lexpr] (split-at (dec (count body)) body)
@@ -581,7 +642,50 @@
     ))
 
 (defn nil-to-zero [v]
-  (if v v 0))
+  (or v 0))
 
 (defn bit-xor-vals [vals]
   (reduce bit-xor 0 vals))
+
+(defmacro with-error-reaction [afn & body]
+  `(try ~@body
+     (catch Throwable t# (~afn t#))))
+
+(defn container []
+  (Container.))
+
+(defn container-set! [^Container container obj]
+  (set! (. container object) obj)
+  container)
+
+(defn container-get [^Container container]
+  (. container object))
+
+(defn to-millis [secs]
+  (* 1000 (long secs)))
+
+(defn throw-runtime [& strs]
+  (throw (RuntimeException. (apply str strs))))
+
+(defn redirect-stdio-to-log4j! []
+  ;; set-var-root doesn't work with *out* and *err*, so digging much deeper here
+  ;; Unfortunately, this code seems to work at the REPL but not when spawned as worker processes
+  ;; it might have something to do with being a child process
+  ;; (set! (. (.getThreadBinding RT/OUT) val)
+  ;;       (java.io.OutputStreamWriter.
+  ;;         (log-stream :info "STDIO")))
+  ;; (set! (. (.getThreadBinding RT/ERR) val)
+  ;;       (PrintWriter.
+  ;;         (java.io.OutputStreamWriter.
+  ;;           (log-stream :error "STDIO"))
+  ;;         true))
+  (log-capture! "STDIO"))
+
+(defn spy [prefix val]
+  (log-message prefix ": " val)
+  val)
+
+(defn zip-contains-dir? [zipfile target]
+  (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
+    (some? #(.startsWith % (str target "/")) entries)
+    ))

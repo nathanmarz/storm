@@ -1,9 +1,20 @@
 package backtype.storm.tuple;
 
+import backtype.storm.utils.IndifferentAccessMap;
+import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.TopologyContext;
-import clojure.lang.ILookup;
+import clojure.lang.Seqable;
+import clojure.lang.Indexed;
+import clojure.lang.Counted;
+import clojure.lang.ISeq;
+import clojure.lang.ASeq;
+import clojure.lang.IPersistentMap;
+import clojure.lang.PersistentArrayMap;
+import clojure.lang.Obj;
+import clojure.lang.IMeta;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
+import clojure.lang.MapEntry;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,47 +30,35 @@ import java.util.Map;
  * use another type, you'll need to implement and register a serializer for that type.
  * See {@link http://github.com/nathanmarz/storm/wiki/Serialization} for more info.
  */
-public class Tuple implements ILookup {
+public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMeta {
     private List<Object> values;
     private int taskId;
-    private int streamId;
+    private String streamId;
     private TopologyContext context;
     private MessageId id;
+    private IPersistentMap _meta = null;
 
     //needs to get taskId explicitly b/c could be in a different task than where it was created
-    public Tuple(TopologyContext context, List<Object> values, int taskId, int streamId, MessageId id) {
+    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
+        super();
         this.values = values;
         this.taskId = taskId;
         this.streamId = streamId;
         this.id = id;
         this.context = context;
-        //TODO: should find a way to include this information here
-        //TODO: should only leave out the connection info?
-        //TODO: have separate methods for "user" and "system" topology?
-        if(streamId>=0) {
-            int componentId = context.getComponentId(taskId);
-            if(componentId>=0) {
-                Fields schema = context.getComponentOutputFields(componentId, streamId);
-                if(values.size()!=schema.size()) {
-                    throw new IllegalArgumentException(
-                            "Tuple created with wrong number of fields. " +
-                            "Expected " + schema.size() + " fields but got " +
-                            values.size() + " fields");
-                }
-            }
+        
+        String componentId = context.getComponentId(taskId);
+        Fields schema = context.getComponentOutputFields(componentId, streamId);
+        if(values.size()!=schema.size()) {
+            throw new IllegalArgumentException(
+                    "Tuple created with wrong number of fields. " +
+                    "Expected " + schema.size() + " fields but got " +
+                    values.size() + " fields");
         }
     }
 
-    public Tuple(TopologyContext context, List<Object> values, int taskId, int streamId) {
+    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
-    }
-
-    public Tuple copyWithNewId(long id) {
-        Map<Long, Long> newIds = new HashMap<Long, Long>();
-        for(Long anchor: this.id.getAnchorsToIds().keySet()) {
-            newIds.put(anchor, id);
-        }
-        return new Tuple(this.context, this.values, this.taskId, this.streamId, MessageId.makeId(newIds));
     }
 
     /**
@@ -219,10 +218,18 @@ public class Tuple implements ILookup {
         return getFields().select(selector, values);
     }
     
+    
+    /**
+     * Returns the global stream id (component + stream) of this tuple.
+     */
+    public GlobalStreamId getSourceGlobalStreamid() {
+        return new GlobalStreamId(getSourceComponent(), streamId);
+    }
+    
     /**
      * Gets the id of the component that created this tuple.
      */
-    public int getSourceComponent() {
+    public String getSourceComponent() {
         return context.getComponentId(taskId);
     }
     
@@ -236,7 +243,7 @@ public class Tuple implements ILookup {
     /**
      * Gets the id of the stream that this tuple was emitted to.
      */
-    public int getSourceStreamId() {
+    public String getSourceStreamId() {
         return streamId;
     }
     
@@ -261,32 +268,119 @@ public class Tuple implements ILookup {
         return System.identityHashCode(this);
     }
 
-    private static final Keyword makeKeyword(String name) {
+    private final Keyword makeKeyword(String name) {
         return Keyword.intern(Symbol.create(name));
-    }
-    
-    private static final Keyword STREAM_KEYWORD = makeKeyword("stream");
-    private static final Keyword COMPONENT_KEYWORD = makeKeyword("component");
-    private static final Keyword TASK_KEYWORD = makeKeyword("task");
-    
+    }    
+
+    /* ILookup */
     @Override
     public Object valAt(Object o) {
-        // should change this to get by field name, and push metadata stuff like this
-        // into metadata
-        if(o.equals(STREAM_KEYWORD)) {
-            return getSourceStreamId();
-        } else if(o.equals(COMPONENT_KEYWORD)) {
-            return getSourceComponent();
-        } else if(o.equals(TASK_KEYWORD)) {
-            return getSourceTask();
+        try {
+            if(o instanceof Keyword) {
+                return getValueByField(((Keyword) o).getName());
+            } else if(o instanceof String) {
+                return getValueByField((String) o);
+            }
+        } catch(IllegalArgumentException e) {
         }
         return null;
     }
 
-    @Override
-    public Object valAt(Object o, Object def) {
-        Object ret = valAt(o);
-        if(ret==null) ret = def;
+    /* Seqable */
+    public ISeq seq() {
+        if(values.size() > 0) {
+            return new Seq(getFields().toList(), values, 0);
+        }
+        return null;
+    }
+
+    static class Seq extends ASeq implements Counted {
+        final List<String> fields;
+        final List<Object> values;
+        final int i;
+
+        Seq(List<String> fields, List<Object> values, int i) {
+            this.fields = fields;
+            this.values = values;
+            assert i >= 0;
+            this.i = i;
+        }
+
+        public Seq(IPersistentMap meta, List<String> fields, List<Object> values, int i) {
+            super(meta);
+            this.fields= fields;
+            this.values = values;
+            assert i >= 0;
+            this.i = i;
+        }
+
+        public Object first() {
+            return new MapEntry(fields.get(i), values.get(i));
+        }
+
+        public ISeq next() {
+            if(i+1 < fields.size()) {
+                return new Seq(fields, values, i+1);
+            }
+            return null;
+        }
+
+        public int count() {
+            assert fields.size() -i >= 0 : "index out of bounds";
+            // i being the position in the fields of this seq, the remainder of the seq is the size
+            return fields.size() -i;
+        }
+
+        public Obj withMeta(IPersistentMap meta) {
+            return new Seq(meta, fields, values, i);
+        }
+    }
+
+    /* Indexed */
+    public Object nth(int i) {
+        if(i < values.size()) {
+            return values.get(i);
+        } else {
+            return null;
+        }
+    }
+
+    public Object nth(int i, Object notfound) {
+        Object ret = nth(i);
+        if(ret==null) ret = notfound;
         return ret;
+    }
+
+    /* Counted */
+    public int count() {
+        return values.size();
+    }
+    
+    /* IMeta */
+    public IPersistentMap meta() {
+        if(_meta==null) {
+            _meta = new PersistentArrayMap( new Object[] {
+            makeKeyword("stream"), getSourceStreamId(), 
+            makeKeyword("component"), getSourceComponent(), 
+            makeKeyword("task"), getSourceTask()});
+        }
+        return _meta;
+    }
+
+    private PersistentArrayMap toMap() {
+        Object array[] = new Object[values.size()*2];
+        List<String> fields = getFields().toList();
+        for(int i=0; i < values.size(); i++) {
+            array[i*2] = fields.get(i);
+            array[(i*2)+1] = values.get(i);
+        }
+        return new PersistentArrayMap(array);
+    }
+
+    public IPersistentMap getMap() {
+        if(_map==null) {
+            setMap(toMap());
+        }
+        return _map;
     }
 }

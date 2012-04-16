@@ -1,8 +1,10 @@
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
+  
   )
 
 (defprotocol ClusterState
@@ -18,27 +20,23 @@
   )
 
 (defn mk-distributed-cluster-state [conf]
-  (let [zk (zk/mk-client (mk-zk-connect-string (assoc conf STORM-ZOOKEEPER-ROOT "/")))]
+  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT))]
     (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
-    (.close zk)
-    )
+    (.close zk))
   (let [callbacks (atom {})
         active (atom true)
-        mk-zk #(zk/mk-client (mk-zk-connect-string conf)
-                             (conf STORM-ZOOKEEPER-SESSION-TIMEOUT)
-                             %)
-        zk (atom nil)
-        watcher (fn this [state type path]
-                    (when @active
-                      (when-not (= :connected state)
-                        (log-message "Zookeeper disconnected. Attempting to reconnect")
-                        (reset! zk (mk-zk this))
-                        )
-                      (when-not (= :none type)
-                        (doseq [callback (vals @callbacks)]                          
-                          (callback type path))))
-                      )]
-    (reset! zk (mk-zk watcher))
+        zk (zk/mk-client conf
+                         (conf STORM-ZOOKEEPER-SERVERS)
+                         (conf STORM-ZOOKEEPER-PORT)
+                         :root (conf STORM-ZOOKEEPER-ROOT)
+                         :watcher (fn [state type path]
+                                     (when @active
+                                       (when-not (= :connected state)
+                                         (log-warn "Received event " state ":" type ":" path " with disconnected Zookeeper."))
+                                       (when-not (= :none type)
+                                         (doseq [callback (vals @callbacks)]
+                                           (callback type path))))
+                                       ))]
     (reify
      ClusterState
      (register [this callback]
@@ -49,38 +47,43 @@
      (unregister [this id]
                  (swap! callbacks dissoc id))
      (set-ephemeral-node [this path data]
-                         (zk/mkdirs @zk (parent-path path))
-                         (if (zk/exists @zk path false)
-                           (zk/set-data @zk path data) ; should verify that it's ephemeral
-                           (zk/create-node @zk path data :ephemeral)
+                         (zk/mkdirs zk (parent-path path))
+                         (if (zk/exists zk path false)
+                           (try-cause
+                             (zk/set-data zk path data) ; should verify that it's ephemeral
+                             (catch KeeperException$NoNodeException e
+                               (log-warn-error e "Ephemeral node disappeared between checking for existing and setting data")
+                               (zk/create-node zk path data :ephemeral)
+                               ))
+                           (zk/create-node zk path data :ephemeral)
                            ))
      
      (set-data [this path data]
                ;; note: this does not turn off any existing watches
-               (if (zk/exists @zk path false)
-                 (zk/set-data @zk path data)
+               (if (zk/exists zk path false)
+                 (zk/set-data zk path data)
                  (do
-                   (zk/mkdirs @zk (parent-path path))
-                   (zk/create-node @zk path data :persistent)
+                   (zk/mkdirs zk (parent-path path))
+                   (zk/create-node zk path data :persistent)
                    )))
      
      (delete-node [this path]
-                  (zk/delete-recursive @zk path)
+                  (zk/delete-recursive zk path)
                   )
      
      (get-data [this path watch?]
-               (zk/get-data @zk path watch?)
+               (zk/get-data zk path watch?)
                )
      
      (get-children [this path watch?]
-                   (zk/get-children @zk path watch?))
+                   (zk/get-children zk path watch?))
      
      (mkdirs [this path]
-             (zk/mkdirs @zk path))
+             (zk/mkdirs zk path))
      
      (close [this]
             (reset! active false)
-            (.close @zk))
+            (.close zk))
      )))
 
 (defprotocol StormClusterState
@@ -108,7 +111,8 @@
   (remove-task-heartbeat! [this storm-id task-id])
   (supervisor-heartbeat! [this supervisor-id info])
   (activate-storm! [this storm-id storm-base])
-  (deactivate-storm! [this storm-id])
+  (update-storm! [this storm-id new-elems])
+  (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
   (remove-storm! [this storm-id])
   (report-task-error [this storm-id task-id error])
@@ -181,6 +185,7 @@
 
 (defstruct TaskError :error :time-secs)
 
+;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defn mk-storm-cluster-state [cluster-state-spec]
   (let [[solo? cluster-state] (if (satisfies? ClusterState cluster-state-spec)
                                 [false cluster-state-spec]
@@ -268,7 +273,7 @@
         )
 
       (task-heartbeat! [this storm-id task-id info]
-        (set-ephemeral-node cluster-state (taskbeat-path storm-id task-id) (Utils/serialize info))
+        (set-data cluster-state (taskbeat-path storm-id task-id) (Utils/serialize info))
         )
 
       (remove-task-heartbeat! [this storm-id task-id]
@@ -279,10 +284,18 @@
         (mkdirs cluster-state (taskbeat-storm-root storm-id)))
 
       (teardown-heartbeats! [this storm-id]
-        (delete-node cluster-state (taskbeat-storm-root storm-id)))
+        (try-cause
+         (delete-node cluster-state (taskbeat-storm-root storm-id))
+         (catch KeeperException e
+           (log-warn-error e "Could not teardown heartbeats for " storm-id)
+           )))
 
       (teardown-task-errors! [this storm-id]
-        (delete-node cluster-state (taskerror-storm-root storm-id)))
+        (try-cause
+         (delete-node cluster-state (taskerror-storm-root storm-id))         
+         (catch KeeperException e
+           (log-warn-error e "Could not teardown errors for " storm-id)
+           )))
 
       (supervisor-heartbeat! [this supervisor-id info]
         (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info))
@@ -292,13 +305,19 @@
         (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base))
         )
 
+      (update-storm! [this storm-id new-elems]
+        (set-data cluster-state (storm-path storm-id)
+                                (-> (storm-base this storm-id nil)
+                                    (merge new-elems)
+                                    Utils/serialize)))
+
       (storm-base [this storm-id callback]
         (when callback
           (swap! storm-base-callback assoc storm-id callback))
         (maybe-deserialize (get-data cluster-state (storm-path storm-id) (not-nil? callback)))
         )
 
-      (deactivate-storm! [this storm-id]
+      (remove-storm-base! [this storm-id]
         (delete-node cluster-state (storm-path storm-id))
         )
 
@@ -307,10 +326,9 @@
         )
 
       (remove-storm! [this storm-id]
-        ;; rmr the task related info. must remove assignment last
         (delete-node cluster-state (storm-task-root storm-id))
         (delete-node cluster-state (assignment-path storm-id))
-        )
+        (remove-storm-base! this storm-id))
 
       (report-task-error [this storm-id task-id error]
                          (let [path (taskerror-path storm-id task-id)

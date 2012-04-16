@@ -1,6 +1,6 @@
 Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, and is a lot of fun to use!
 
-The [Rationale page](https://github.com/nathanmarz/storm/wiki/Rationale) on the wiki explains what Storm is and why it was built. The [slides](http://www.slideshare.net/nathanmarz/storm-distributed-and-faulttolerant-realtime-computation) from Storm's launch presentation also provide a good introduction to the project.
+The [Rationale page](https://github.com/nathanmarz/storm/wiki/Rationale) on the wiki explains what Storm is and why it was built. The [video](http://www.infoq.com/presentations/Storm) and [slides](http://www.slideshare.net/nathanmarz/storm-distributed-and-faulttolerant-realtime-computation) of Storm's launch presentation are also good introductions to the project.
 
 ## Documentation
 
@@ -27,3 +27,16 @@ You must not remove this notice, or any other, from this software.
 * Jason Jackson ([@jason_j](http://twitter.com/jason_j))
 * Christopher Bertels ([@bakkdoor](http://twitter.com/bakkdoor))
 * Michael Montano ([@michaelmontano](http://twitter.com/michaelmontano))
+* Dennis Zhuang ([@killme2008](https://github.com/killme2008))
+* Trevor Smith ([@trevorsummerssmith](https://github.com/trevorsummerssmith))
+* Ben Hughes ([@schleyfox](https://github.com/schleyfox))
+* Alexey Kachayev ([@kachayev](https://github.com/kachayev))
+* Haitao Yao ([@haitaoyao](https://github.com/haitaoyao))
+* Dan Dillinger ([@ddillinger](https://github.com/ddillinger))
+* Kang Xiao ([@xiaokang](https://github.com/xiaokang))
+* Gabriel Grant ([@gabrielgrant](https://github.com/gabrielgrant))
+* Travis Wellman ([@travisfw](https://github.com/travisfw))
+* Kasper Madsen ([@KasperMadsen](https://github.com/KasperMadsen))
+* Michael Cetrulo ([@git2samus](https://github.com/git2samus))
+* Thomas Jack ([@tomo](https://github.com/tomo))
+* Nicolas Yzet ([@nicoo](https://github.com/nicoo))

@@ -8,12 +8,5 @@ import backtype.storm.spout.ISpout;
  *
  */
 public interface IRichSpout extends ISpout, IComponent {
-    /**
-     * Returns if this spout is allowed to execute as multiple tasks. If
-     * this method returns false, the planner will ignore the parallelism
-     * assigned to this component and only use one task to execute this spout.
-     *
-     * @return Whether this spout is allowed to execute as multiple tasks
-     */
-    public boolean isDistributed();
+
 }

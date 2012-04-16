@@ -1,5 +1,4 @@
 (ns backtype.storm.config
-  (:import [org.jvyaml YAML])
   (:import [java.io FileReader File])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils LocalState])
@@ -10,13 +9,21 @@
 
 (def RESOURCES-SUBDIR "resources")
 
+(defn- clojure-config-name [name]
+  (.replace (.toUpperCase name) "_" "-"))
+
 ;; define clojure constants for every configuration parameter
 (doseq [f (seq (.getFields Config))]
   (let [name (.getName f)
-        new-name (.replace (.toUpperCase name) "_" "-")]
+        new-name (clojure-config-name name)]
     (eval
       `(def ~(symbol new-name) (. Config ~(symbol name))))
       ))
+
+(def ALL-CONFIGS
+  (dofor [f (seq (.getFields Config))]
+         (.get f nil)
+         ))
 
 (defn cluster-mode [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
@@ -52,17 +59,6 @@
 ; storm.zookeeper.port: 2181
 ; storm.zookeeper.root: "/storm"
 
-(defn mk-zk-connect-string [conf]
-  (let [servers (conf STORM-ZOOKEEPER-SERVERS)
-        port (conf STORM-ZOOKEEPER-PORT)
-        root (conf STORM-ZOOKEEPER-ROOT)]
-    (str
-      (str/join ","
-        (for [s servers]
-          (str s ":" port)))
-      root)
-    ))
-
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
 
@@ -78,8 +74,11 @@
     ret
     ))
 
-(defn master-stormdist-root [conf storm-id]
-  (str (master-local-dir conf) "/stormdist/" storm-id))
+(defn master-stormdist-root
+  ([conf]
+     (str (master-local-dir conf) "/stormdist"))
+  ([conf storm-id]
+     (str (master-stormdist-root conf) "/" storm-id)))
 
 (defn master-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))
@@ -104,7 +103,7 @@
 (defn supervisor-stormdist-root
   ([conf] (str (supervisor-local-dir conf) "/stormdist"))
   ([conf storm-id]
-      (str (supervisor-stormdist-root conf) "/" storm-id)))
+      (str (supervisor-stormdist-root conf) "/" (java.net.URLEncoder/encode storm-id))))
 
 (defn supervisor-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))
@@ -126,6 +125,18 @@
 (defn ^LocalState supervisor-state [conf]
   (LocalState. (str (supervisor-local-dir conf) "/localstate")))
 
+(defn read-supervisor-storm-conf [conf storm-id]
+  (let [stormroot (supervisor-stormdist-root conf storm-id)
+        conf-path (supervisor-stormconf-path stormroot)
+        topology-path (supervisor-stormcode-path stormroot)]
+    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
+    ))
+
+(defn read-supervisor-topology [conf storm-id]
+  (let [stormroot (supervisor-stormdist-root conf storm-id)
+        topology-path (supervisor-stormcode-path stormroot)]
+    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
+    ))
 
 (defn worker-root
   ([conf]

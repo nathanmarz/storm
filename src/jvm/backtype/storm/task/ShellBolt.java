@@ -4,20 +4,17 @@ import backtype.storm.generated.ShellComponent;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
+import backtype.storm.utils.ShellProcess;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 
 /**
  * A bolt that shells out to another process to process tuples. ShellBolt
@@ -48,57 +45,92 @@ import org.json.simple.JSONValue;
  */
 public class ShellBolt implements IBolt {
     public static Logger LOG = Logger.getLogger(ShellBolt.class);
-
-    String _shellCommand;
-    String _codeResource;
     Process _subprocess;
-    DataOutputStream _processin;
-    BufferedReader _processout;
     OutputCollector _collector;
-    Map<Long, Tuple> _inputs = new HashMap<Long, Tuple>();
+    Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
+
+    private String[] _command;
+    private ShellProcess _process;
+    private volatile boolean _running = true;
+    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    
+    private Thread _readerThread;
+    private Thread _writerThread;
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
 
-    public ShellBolt(String shellCommand, String codeResource) {
-        _shellCommand = shellCommand;
-        _codeResource = codeResource;
+    public ShellBolt(String... command) {
+        _command = command;
     }
 
-    private String initializeSubprocess(TopologyContext context) {
-        //can change this to launchSubprocess and have it return the pid (that the subprcess returns)
-        ProcessBuilder builder = new ProcessBuilder(_shellCommand, _codeResource);
-        builder.directory(new File(context.getCodeDir()));
+    public void prepare(Map stormConf, TopologyContext context,
+                        final OutputCollector collector) {
+        _process = new ShellProcess(_command);
+        _collector = collector;
+
         try {
-            _subprocess = builder.start();
-            _processin = new DataOutputStream(_subprocess.getOutputStream());
-            _processout = new BufferedReader(new InputStreamReader(_subprocess.getInputStream()));
-            sendToSubprocess(context.getPIDDir());
             //subprocesses must send their pid first thing
-            String subpid = _processout.readLine();
+            Number subpid = _process.launch(stormConf, context);
             LOG.info("Launched subprocess with pid " + subpid);
-            return subpid;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        try {
-            initializeSubprocess(context);
-            _collector = collector;
-
-            sendToSubprocess(JSONValue.toJSONString(stormConf));
-            sendToSubprocess(context.toJSONString());
         } catch (IOException e) {
             throw new RuntimeException("Error when launching multilang subprocess", e);
         }
+
+        // reader
+        _readerThread = new Thread(new Runnable() {
+            public void run() {
+                while (_running) {
+                    try {
+                        JSONObject action = _process.readMessage();
+                        if (action == null) {
+                            // ignore sync
+                        }
+
+                        String command = (String) action.get("command");
+                        if(command.equals("ack")) {
+                            handleAck(action);
+                        } else if (command.equals("fail")) {
+                            handleFail(action);
+                        } else if (command.equals("log")) {
+                            String msg = (String) action.get("msg");
+                            LOG.info("Shell msg: " + msg);
+                        } else if (command.equals("emit")) {
+                            handleEmit(action);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        });
+        
+        _readerThread.start();
+
+        _writerThread = new Thread(new Runnable() {
+            public void run() {
+                while (_running) {
+                    try {
+                        Object write = _pendingWrites.poll(1, SECONDS);
+                        if (write != null) {
+                            _process.writeMessage(write);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        });
+        
+        _writerThread.start();
     }
 
     public void execute(Tuple input) {
         //just need an id
-        long genId = MessageId.generateId();
+        String genId = Long.toString(MessageId.generateId());
         _inputs.put(genId, input);
         try {
             JSONObject obj = new JSONObject();
@@ -107,88 +139,60 @@ public class ShellBolt implements IBolt {
             obj.put("stream", input.getSourceStreamId());
             obj.put("task", input.getSourceTask());
             obj.put("tuple", input.getValues());
-            sendToSubprocess(obj.toString());
-            while(true) {
-              String line = "";
-              while(true) {
-                  String subline = _processout.readLine();
-                  if(subline==null)
-                      throw new RuntimeException("Pipe to subprocess seems to be broken!");
-                  if(subline.equals("sync")) {
-                      line = subline;
-                      break;
-                  }
-                  if(subline.equals("end")) {
-                      break;
-                  }
-                  if(line.length()!=0) {
-                      line+="\n";
-                  }
-                  line+=subline;
-              }
-              if(line.equals("sync")) {
-                  break;
-              } else {
-                  Map action = (Map) JSONValue.parse(line);
-                  String command = (String) action.get("command");
-                  if(command.equals("ack")) {
-                    Long id = (Long) action.get("id");
-                    Tuple acked = _inputs.remove(id);
-                    if(acked==null) {
-                        throw new RuntimeException("Acked a non-existent or already acked/failed id: " + id);
-                    }
-                    _collector.ack(acked);
-                  } else if (command.equals("fail")) {
-                    Long id = (Long) action.get("id");
-                    Tuple failed = _inputs.remove(id);
-                    if(failed==null) {
-                        throw new RuntimeException("Failed a non-existent or already acked/failed id: " + id);
-                    }
-                    _collector.fail(failed);
-                  } else if (command.equals("log")) {
-                    String msg = (String) action.get("msg");
-                    LOG.info("Shell msg: " + msg);
-                  } else if(command.equals("emit")) {
-                    Long stream = (Long) action.get("stream");
-                    if(stream==null) stream = (long)Utils.DEFAULT_STREAM_ID;
-                    Long task = (Long) action.get("task");
-                    List<Object> tuple = (List) action.get("tuple");
-                    List<Tuple> anchors = new ArrayList<Tuple>();
-                    Object anchorObj = action.get("anchors");
-                    if(anchorObj!=null) {
-                        if(anchorObj instanceof Long) {
-                            anchorObj = Arrays.asList(anchorObj);
-                        }
-                        for(Object o: (List) anchorObj) {
-                            anchors.add(_inputs.get((Long) o));
-                        }
-                    }
-                    if(task==null) {
-                       List<Integer> outtasks = _collector.emit((int)stream.longValue(), anchors, tuple);
-                       sendToSubprocess(JSONValue.toJSONString(outtasks));
-                    } else {
-                        _collector.emitDirect((int)task.longValue(), (int)stream.longValue(), anchors, tuple);
-                    }
-                  }
-              }
-            }
-        } catch(IOException e) {
+            _pendingWrites.put(obj);
+        } catch(InterruptedException e) {
             throw new RuntimeException("Error during multilang processing", e);
         }
     }
 
     public void cleanup() {
-        _subprocess.destroy();
+        _running = false;
+        _process.destroy();
         _inputs.clear();
-        _processin = null;
-        _processout = null;
-        _collector = null;
     }
 
-    private void sendToSubprocess(String str) throws IOException {
-        _processin.writeBytes(str + "\n");
-        _processin.writeBytes("end\n");
-        _processin.flush();
+    private void handleAck(Map action) {
+        String id = (String) action.get("id");
+        Tuple acked = _inputs.remove(id);
+        if(acked==null) {
+            throw new RuntimeException("Acked a non-existent or already acked/failed id: " + id);
+        }
+        _collector.ack(acked);
     }
 
+    private void handleFail(Map action) {
+        String id = (String) action.get("id");
+        Tuple failed = _inputs.remove(id);
+        if(failed==null) {
+            throw new RuntimeException("Failed a non-existent or already acked/failed id: " + id);
+        }
+        _collector.fail(failed);
+    }
+
+    private void handleEmit(Map action) throws InterruptedException {
+        String stream = (String) action.get("stream");
+        if(stream==null) stream = Utils.DEFAULT_STREAM_ID;
+        Long task = (Long) action.get("task");
+        List<Object> tuple = (List) action.get("tuple");
+        List<Tuple> anchors = new ArrayList<Tuple>();
+        Object anchorObj = action.get("anchors");
+        if(anchorObj!=null) {
+            if(anchorObj instanceof String) {
+                anchorObj = Arrays.asList(anchorObj);
+            }
+            for(Object o: (List) anchorObj) {
+                Tuple t = _inputs.get((String) o);
+                if (t == null) {
+                    throw new RuntimeException("Anchored onto " + o + " after ack/fail");
+                }
+                anchors.add(t);
+            }
+        }
+        if(task==null) {
+            List<Integer> outtasks = _collector.emit(stream, anchors, tuple);
+            _pendingWrites.put(outtasks);
+        } else {
+            _collector.emitDirect((int)task.longValue(), stream, anchors, tuple);
+        }
+    }
 }

@@ -7,9 +7,11 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.utils.BufferFileInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.log4j.Logger;
-import org.apache.thrift.TException;
+import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 /**
@@ -38,6 +40,11 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
+        if(!Utils.isValidConf(stormConf)) {
+            throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
+        }
+        stormConf = new HashMap(stormConf);
+        stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
         try {
@@ -66,7 +73,7 @@ public class StormSubmitter {
     private static void submitJar(Map conf) {
         if(submittedJar==null) {
             LOG.info("Jar not uploaded to master yet. Submitting jar...");
-            String localJar = System.getenv("STORM_JAR");
+            String localJar = System.getProperty("storm.jar");
             submittedJar = submitJar(conf, localJar);
         } else {
             LOG.info("Jar already uploaded to master. Not submitting jar.");
@@ -82,7 +89,7 @@ public class StormSubmitter {
             while(true) {
                 byte[] toSubmit = is.read();
                 if(toSubmit.length==0) break;
-                client.getClient().uploadChunk(uploadLocation, toSubmit);
+                client.getClient().uploadChunk(uploadLocation, ByteBuffer.wrap(toSubmit));
             }
             client.getClient().finishFileUpload(uploadLocation);
             LOG.info("Successfully uploaded topology jar to assigned location: " + uploadLocation);
@@ -91,6 +98,6 @@ public class StormSubmitter {
             throw new RuntimeException(e);            
         } finally {
             client.close();
-        } 
+        }
     }
 }

@@ -39,7 +39,16 @@ public class FixedTupleSpout implements ISpout {
     private List<FixedTuple> _serveTuples;
     private Map<String, FixedTuple> _pending;
 
+    private String _id;
+    
     public FixedTupleSpout(List tuples) {
+        _id = UUID.randomUUID().toString();
+        synchronized(acked) {
+            acked.put(_id, 0);
+        }
+        synchronized(failed) {
+            failed.put(_id, 0);
+        }
         _tuples = new ArrayList<FixedTuple>();
         for(Object o: tuples) {
             FixedTuple ft;
@@ -54,6 +63,28 @@ public class FixedTupleSpout implements ISpout {
 
     public List<FixedTuple> getSourceTuples() {
         return _tuples;
+    }
+    
+    public int getCompleted() {
+        int ackedAmt;
+        int failedAmt;
+        
+        synchronized(acked) {
+            ackedAmt = acked.get(_id);
+        }
+        synchronized(failed) {
+            failedAmt = failed.get(_id);
+        }
+        return ackedAmt + failedAmt;
+    }
+    
+    public void cleanup() {
+        synchronized(acked) {            
+            acked.remove(_id);
+        } 
+        synchronized(failed) {            
+            failed.remove(_id);
+        }
     }
 
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -89,15 +120,23 @@ public class FixedTupleSpout implements ISpout {
 
     public void ack(Object msgId) {
         synchronized(acked) {
-            int curr = get(acked, _context.getStormId(), 0);
-            acked.put(_context.getStormId(), curr+1);
+            int curr = get(acked, _id, 0);
+            acked.put(_id, curr+1);
         }
     }
 
     public void fail(Object msgId) {
         synchronized(failed) {
-            int curr = get(failed, _context.getStormId(), 0);
-            failed.put(_context.getStormId(), curr+1);
+            int curr = get(failed, _id, 0);
+            failed.put(_id, curr+1);
         }
+    }
+
+    @Override
+    public void activate() {
+    }
+
+    @Override
+    public void deactivate() {
     }
 }

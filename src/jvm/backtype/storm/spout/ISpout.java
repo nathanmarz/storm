@@ -47,6 +47,20 @@ public interface ISpout extends Serializable {
      * killed when running Storm in local mode.</p>
      */
     void close();
+    
+    /**
+     * Called when a spout has been activated out of a deactivated mode.
+     * nextTuple will be called on this spout soon. A spout can become activated
+     * after having been deactivated when the topology is manipulated using the 
+     * `storm` client. 
+     */
+    void activate();
+    
+    /**
+     * Called when a spout has been deactivated. nextTuple will not be called while
+     * a spout is deactivated. The spout may or may not be reactivated in the future.
+     */
+    void deactivate();
 
     /**
      * When this method is called, Storm is requesting that the Spout emit tuples to the 

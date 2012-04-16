@@ -1,8 +1,9 @@
 package backtype.storm;
 
-import backtype.storm.serialization.ISerialization;
-import backtype.storm.serialization.SerializationFactory;
+import com.esotericsoftware.kryo.Serializer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,6 +65,16 @@ public class Config extends HashMap<String, Object> {
      * The timeout for clients to ZooKeeper.
      */
     public static String STORM_ZOOKEEPER_SESSION_TIMEOUT = "storm.zookeeper.session.timeout";
+    
+    /**
+     * The number of times to retry a Zookeeper operation.
+     */
+    public static String STORM_ZOOKEEPER_RETRY_TIMES="storm.zookeeper.retry.times";
+    
+    /**
+     * The interval between retries of a Zookeeper operation.
+     */
+    public static String STORM_ZOOKEEPER_RETRY_INTERVAL="storm.zookeeper.retry.interval";
 
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.
@@ -104,6 +115,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_MONITOR_FREQ_SECS = "nimbus.monitor.freq.secs";
 
+    /**
+     * How often nimbus should wake the cleanup thread to clean the inbox.
+     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     */
+    public static String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
+
+    /**
+     * The length of time a jar file lives in the inbox before being deleted by the cleanup thread.
+     *
+     * Probably keep this value greater than or equal to NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS.
+     * Note that the time it takes to delete an inbox jar file is going to be somewhat more than
+     * NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS (depending on how often NIMBUS_CLEANUP_FREQ_SECS
+     * is set to).
+     * @see NIMBUS_CLEANUP_FREQ_SECS
+     */
+    public static String NIMBUS_INBOX_JAR_EXPIRATION_SECS = "nimbus.inbox.jar.expiration.secs";
 
     /**
      * How long before a supervisor can go without heartbeating before nimbus considers it dead
@@ -137,6 +164,27 @@ public class Config extends HashMap<String, Object> {
      */
     public static String UI_PORT = "ui.port";
 
+    /**
+     * Childopts for Storm UI Java process.
+     */
+    public static String UI_CHILDOPTS = "ui.childopts";
+    
+    
+    /**
+     * List of DRPC servers so that the DRPCSpout knows who to talk to.
+     */
+    public static String DRPC_SERVERS = "drpc.servers";
+
+    /**
+     * This port is used by Storm DRPC for receiving DPRC requests from clients.
+     */
+    public static String DRPC_PORT = "drpc.port";
+    
+    /**
+     * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
+     */
+    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";    
+    
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune
@@ -190,7 +238,8 @@ public class Config extends HashMap<String, Object> {
     public static String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
     
     /**
-     * The jvm opts provided to workers launched by this supervisor.
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
+     * with an identifier for this worker.
      */
     public static String WORKER_CHILDOPTS = "worker.childopts";
 
@@ -260,26 +309,26 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_MESSAGE_TIMEOUT_SECS = "topology.message.timeout.secs";
 
     /**
-     * A map from unique tokens to the name of classes that implement custom serializations. Tokens 
-     * must 33 or greater. Custom serializations are implemented using the
-     * {@link backtype.storm.serialization.ISerialization} interface. The unique tokens you provide
-     * are what are serialized on the wire so that Storm can identify the types of fields. Storm
-     * forces this optimization on you because otherwise it would have to write the class name, 
-     * which would be terribly inefficient. After you register serializations through this config, 
-     * Storm will make use of them automatically.
+     * A list of serialization registrations for Kryo ( http://code.google.com/p/kryo/ ),
+     * the underlying serialization framework for Storm. A serialization can either
+     * be the name of a class (in which case Kryo will automatically create a serializer for the class
+     * that saves all the object's fields), or an implementation of com.esotericsoftware.kryo.Serializer.
+     *
+     * See Kryo's documentation for more information about writing custom serializers.
      */
-    public static String TOPOLOGY_SERIALIZATIONS = "topology.serializations";
+    public static String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
 
     /**
-     * Whether or not Storm should skip the loading of a serialization for which it
-     * does not have the code. Otherwise, the task will fail to load and will throw
-     * an error at runtime. The use case of this is if you want to declare your serializations 
-     * on the storm.yaml files on the cluster rather than every single time you submit a topology.
-     * Different applications may use different serializations and so a single application may not 
-     * have the code for the other serializers used by other apps. By setting this config to true,
-     * Storm will ignore that it doesn't have those other serializations rather than throw an error.
+     * Whether or not Storm should skip the loading of kryo registrations for which it
+     * does not know the class or have the serializer implementation. Otherwise, the task will
+     * fail to load and will throw an error at runtime. The use case of this is if you want to
+     * declare your serializations on the storm.yaml files on the cluster rather than every single
+     * time you submit a topology. Different applications may use different serializations and so
+     * a single application may not have the code for the other serializers used by other apps.
+     * By setting this config to true, Storm will ignore that it doesn't have those other serializations
+     * rather than throw an error.
      */
-    public static String TOPOLOGY_SKIP_MISSING_SERIALIZATIONS= "topology.skip.missing.serializations";
+    public static String TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS= "topology.skip.missing.kryo.registrations";
 
 
     /**
@@ -297,9 +346,8 @@ public class Config extends HashMap<String, Object> {
      * Note that this config parameter has no effect for unreliable spouts that don't tag 
      * their tuples with a message id.
      */
-    public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
-
-
+    public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
+    
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
@@ -312,10 +360,55 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_STATS_SAMPLE_RATE="topology.stats.sample.rate";
 
     /**
+     * Whether or not to use Java serialization in a topology.
+     */
+    public static String TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION="topology.fall.back.on.java.serialization";
+
+    /**
+     * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
+     */
+    public static String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
+
+    /**
+     * This config is available for TransactionalSpouts, and contains the id ( a String) for
+     * the transactional topology. This id is used to store the state of the transactional
+     * topology in Zookeeper.
+     */
+    public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
+    
+    /**
+     * A list of task hooks that are automatically added to every spout and bolt in the topology. An example
+     * of when you'd do this is to add a hook that integrates with your internal 
+     * monitoring system. These hooks are instantiated using the zero-arg constructor.
+     */
+    public static String TOPOLOGY_AUTO_TASK_HOOKS="topology.auto.task.hooks";
+
+    /**
+     * Name of the topology. This config is automatically set by Storm when the topology is submitted.
+     */
+    public static String TOPOLOGY_NAME="topology.name";  
+    
+    /**
+     * The root directory in ZooKeeper for metadata about TransactionalSpouts.
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
+    
+    /**
+     * The list of zookeeper servers in which to keep the transactional state. If null (which is default),
+     * will use storm.zookeeper.servers
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_SERVERS="transactional.zookeeper.servers";
+
+    /**
+     * The port to use to connect to the transactional zookeeper servers. If null (which is default),
+     * will use storm.zookeeper.port
+     */
+    public static String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
+    
+    /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static String ZMQ_THREADS = "zmq.threads";
-
 
     /**
      * How long a connection should retry sending messages to a target host when
@@ -352,22 +445,18 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
     }
     
-    public void addSerialization(int token, Class<? extends ISerialization> serialization) {
-        if(!containsKey(Config.TOPOLOGY_SERIALIZATIONS)) {
-            put(Config.TOPOLOGY_SERIALIZATIONS, new HashMap());
-        }
-        Map<Integer, String> sers = (Map<Integer, String>) get(Config.TOPOLOGY_SERIALIZATIONS);
-        if(token<=SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY) {
-            throw new IllegalArgumentException("User serialization tokens must be greater than " + SerializationFactory.SERIALIZATION_TOKEN_BOUNDARY);
-        }
-        if(sers.containsKey(token)) {
-            throw new IllegalArgumentException("All serialization tokens must be unique. Found duplicate token: " + token);
-        }
-        sers.put(token, serialization.getName());
+    public void registerSerialization(Class klass) {
+        getRegisteredSerializations().add(klass.getName());
     }
     
-    public void setSkipMissingSerializations(boolean skip) {
-        put(Config.TOPOLOGY_SKIP_MISSING_SERIALIZATIONS, skip);
+    public void registerSerialization(Class klass, Class<? extends Serializer> serializerClass) {
+        Map<String, String> register = new HashMap<String, String>();
+        register.put(klass.getName(), serializerClass.getName());
+        getRegisteredSerializations().add(register);        
+    }
+    
+    public void setSkipMissingKryoRegistrations(boolean skip) {
+        put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
     }
     
     public void setMaxTaskParallelism(int max) {
@@ -381,5 +470,15 @@ public class Config extends HashMap<String, Object> {
     public void setStatsSampleRate(double rate) {
         put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
     }    
+
+    public void setFallBackOnJavaSerialization(boolean fallback) {
+        put(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION, fallback);
+    }    
     
+    private List getRegisteredSerializations() {
+        if(!containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
+            put(Config.TOPOLOGY_KRYO_REGISTER, new ArrayList());
+        }
+        return (List) get(Config.TOPOLOGY_KRYO_REGISTER);
+    }
 }

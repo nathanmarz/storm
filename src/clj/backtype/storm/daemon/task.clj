@@ -312,7 +312,7 @@
                      )))
         send-spout-msg (fn [out-stream-id values message-id out-task-id]
                          (let [out-tasks (if out-task-id
-                                           (tasks-fn out-stream-id values out-task-id)
+                                           (tasks-fn out-task-id out-stream-id values)
                                            (tasks-fn out-stream-id values))
                                root-id (MessageId/generateId)
                                rooted? (and message-id (> (storm-conf TOPOLOGY-ACKERS) 0))

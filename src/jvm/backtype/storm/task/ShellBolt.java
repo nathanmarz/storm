@@ -52,6 +52,7 @@ public class ShellBolt implements IBolt {
     private String[] _command;
     private ShellProcess _process;
     private volatile boolean _running = true;
+    private volatile Exception _exception;
     private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
     
     private Thread _readerThread;
@@ -100,7 +101,7 @@ public class ShellBolt implements IBolt {
                             handleEmit(action);
                         }
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        die(e);
                     } catch (InterruptedException e) {
                     }
                 }
@@ -118,7 +119,7 @@ public class ShellBolt implements IBolt {
                             _process.writeMessage(write);
                         }
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        die(e);
                     } catch (InterruptedException e) {
                     }
                 }
@@ -129,6 +130,10 @@ public class ShellBolt implements IBolt {
     }
 
     public void execute(Tuple input) {
+        if (_exception != null) {
+            throw new RuntimeException(_exception);
+        }
+
         //just need an id
         String genId = Long.toString(MessageId.generateId());
         _inputs.put(genId, input);
@@ -194,5 +199,10 @@ public class ShellBolt implements IBolt {
         } else {
             _collector.emitDirect((int)task.longValue(), stream, anchors, tuple);
         }
+    }
+
+    private void die(Exception exception) {
+        _exception = exception;
+        cleanup();
     }
 }

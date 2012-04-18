@@ -203,6 +203,5 @@ public class ShellBolt implements IBolt {
 
     private void die(Exception exception) {
         _exception = exception;
-        cleanup();
     }
 }

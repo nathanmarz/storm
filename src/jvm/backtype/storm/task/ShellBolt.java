@@ -52,7 +52,7 @@ public class ShellBolt implements IBolt {
     private String[] _command;
     private ShellProcess _process;
     private volatile boolean _running = true;
-    private volatile Exception _exception;
+    private volatile Throwable _exception;
     private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
     
     private Thread _readerThread;
@@ -100,9 +100,9 @@ public class ShellBolt implements IBolt {
                         } else if (command.equals("emit")) {
                             handleEmit(action);
                         }
-                    } catch (IOException e) {
-                        die(e);
                     } catch (InterruptedException e) {
+                    } catch (Throwable t) {
+                        die(t);
                     }
                 }
             }
@@ -118,9 +118,9 @@ public class ShellBolt implements IBolt {
                         if (write != null) {
                             _process.writeMessage(write);
                         }
-                    } catch (IOException e) {
-                        die(e);
                     } catch (InterruptedException e) {
+                    } catch (Throwable t) {
+                        die(t);
                     }
                 }
             }
@@ -201,7 +201,7 @@ public class ShellBolt implements IBolt {
         }
     }
 
-    private void die(Exception exception) {
+    private void die(Throwable exception) {
         _exception = exception;
     }
 }

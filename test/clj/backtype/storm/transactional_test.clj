@@ -6,7 +6,7 @@
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
             KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
-            IdentityBolt CountingCommitBolt])
+            IdentityBolt CountingCommitBolt OpaqueMemoryTransactionalSpout])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -599,3 +599,91 @@
                              )))
      )))
 
+(deftest test-opaque-transactional-topology
+  (with-tracked-cluster [cluster]
+    (with-controller-bolt [controller collector tuples]
+      (letlocals
+       (bind data (mk-transactional-source))
+       (bind builder (TransactionalTopologyBuilder.
+                      "id"
+                      "spout"
+                      (OpaqueMemoryTransactionalSpout. data
+                                                       (Fields. ["word"])
+                                                       2)
+                      2))
+
+       (-> builder
+           (.setCommitterBolt "count" (KeyedCountingBatchBolt.) 2)
+           (.fieldsGrouping "spout" (Fields. ["word"])))
+
+       (bind builder (.buildTopologyBuilder builder))
+       
+       (-> builder
+           (.setBolt "controller" controller 1)
+           (.directGrouping "spout" Constants/COORDINATED_STREAM_ID)
+           (.directGrouping "count" Constants/COORDINATED_STREAM_ID))
+
+       (add-transactional-data data
+                               {0 [["dog"]
+                                   ["cat"]
+                                   ["apple"]
+                                   ["dog"]]})
+       
+       (bind topo-info (tracked-captured-topology
+                        cluster
+                        (.createTopology builder)))
+       (submit-local-topology (:nimbus cluster)
+                              "transactional-test"
+                              {TOPOLOGY-MAX-SPOUT-PENDING 2
+                               }
+                              (:topology topo-info))
+
+       (bind ack-tx! (fn [txid]
+                       (let [[to-ack not-to-ack] (separate
+                                                  #(-> %
+                                                       (.getValue 0)
+                                                       .getTransactionId
+                                                       (= txid))
+                                                  @tuples)]
+                         (reset! tuples not-to-ack)
+                         (doseq [t to-ack]
+                           (ack! @collector t)))))
+
+       (bind fail-tx! (fn [txid]
+                        (let [[to-fail not-to-fail] (separate
+                                                     #(-> %
+                                                          (.getValue 0)
+                                                          .getTransactionId
+                                                          (= txid))
+                                                     @tuples)]
+                          (reset! tuples not-to-fail)
+                          (doseq [t to-fail]
+                            (fail! @collector t)))))
+
+       ;; only check default streams
+       (bind verify! (fn [expected]
+                       (let [results (-> topo-info :capturer .getResults)]
+                         (doseq [[component tuples] expected
+                                 :let [emitted (->> (read-tuples results
+                                                                 component
+                                                                 "default")
+                                                    (map normalize-tx-tuple))]]
+                           (is (ms= tuples emitted)))
+                         (.clear results)
+                         )))
+
+       (tracked-wait topo-info 2)
+       (verify! {"count" []})
+       (ack-tx! 1)
+       (tracked-wait topo-info 1)
+
+       (verify! {"count" [[1 "dog" 1]
+                          [1 "cat" 1]]})       
+       (ack-tx! 2)
+       (ack-tx! 1)
+       (tracked-wait topo-info 2)
+
+       (verify! {"count" [[2 "apple" 1]
+                          [2 "dog" 1]]})
+
+       ))))

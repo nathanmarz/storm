@@ -19,6 +19,7 @@ public interface IOpaquePartitionedTransactionalSpout<T> extends IComponent {
          * repeatedly in a loop).
          */
         boolean isReady();
+        void close();
     }
     
     public interface Emitter<X> {

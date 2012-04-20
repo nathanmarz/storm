@@ -6,6 +6,8 @@
  * Storm UI displays the release version (thanks xumingming)
  * Added reportError to BasicOutputCollector
  * Added reportError to BatchOutputCollector
+ * Added close method to OpaqueTransactionalSpout coordinator
+ * Bug fix: Fixed criticial bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
  * Bug fix: Zookeeper in local mode now always gets an unused port. This will eliminate conflicts with other local mode processes or other Zookeeper instances on a local machine. (thanks xumingming)

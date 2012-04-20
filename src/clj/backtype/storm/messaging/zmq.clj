@@ -19,10 +19,10 @@
 
 (deftype ZMQContext [context linger-ms ipc?]
   Context
-  (bind [this storm-id virtual-port]
+  (bind [this storm-id port]
     (-> context
         (mq/socket mq/pull)
-        (mqvp/virtual-bind virtual-port)
+        (mqvp/virtual-bind port)
         (ZMQConnection.)
         ))
   (connect [this storm-id host port]
@@ -34,10 +34,6 @@
           (mq/set-linger linger-ms)
           (mq/connect url)
           (ZMQConnection.))))
-  (send-local-task-empty [this storm-id virtual-port]
-    (let [pusher (-> context (mq/socket mq/push) (mqvp/virtual-connect virtual-port))]
-          (mq/send pusher (mq/barr))
-          (.close pusher)))
   (term [this]
     (.term context))
   ZMQContextQuery

@@ -128,19 +128,19 @@
                                   ))
         ))))
 
-(defn mk-inprocess-zookeeper [localdir]
+(defnk mk-inprocess-zookeeper [localdir :port nil]
   (let [localfile (File. localdir)
         zk (ZooKeeperServer. localfile localfile 2000)
-        [port factory] (loop [port 2000]
-                         (if-let [factory-tmp (try-cause (NIOServerCnxn$Factory. (InetSocketAddress. port))
-                                           (catch BindException e
-                                             (when (>= (inc port) 65535)
-                                               (throw (RuntimeException. "No port is available to launch an inprocess zookeeper.")))))]
-                           [port factory-tmp]
-                           (recur (inc port))))]
-    (log-message "Starting inprocess zookeeper at port " port " and dir " localdir)    
+        [retport factory] (loop [retport (if port port 2000)]
+                            (if-let [factory-tmp (try-cause (NIOServerCnxn$Factory. (InetSocketAddress. retport))
+                                              (catch BindException e
+                                                (when (> (inc retport) (if port port 65535))
+                                                  (throw (RuntimeException. "No port is available to launch an inprocess zookeeper.")))))]
+                              [retport factory-tmp]
+                              (recur (inc retport))))]
+    (log-message "Starting inprocess zookeeper at port " retport " and dir " localdir)    
     (.startup factory zk)
-    [port factory]
+    [retport factory]
     ))
 
 (defn shutdown-inprocess-zookeeper [handle]

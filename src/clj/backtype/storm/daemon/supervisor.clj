@@ -173,8 +173,10 @@
         worker-thread-pids-atom (atom {})
         storm-cluster-state (cluster/mk-storm-cluster-state conf)
         local-state (supervisor-state conf)
-        my-hostname (local-hostname)
         supervisor-id (.getId isupervisor)
+        my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
+                      (conf STORM-LOCAL-HOSTNAME)
+                      (local-hostname))
         [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
         sync-processes (fn []
                          (let [assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})

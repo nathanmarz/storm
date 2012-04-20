@@ -7,10 +7,12 @@
   (:use [clojure.contrib.def :only [defnk]])
   (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [ring.adapter.jetty :only [run-jetty]])
+  (:use [clojure.string :only [trim]])
   (:import [backtype.storm.generated TaskSpecificStats
             TaskStats TaskSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId])
+  (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [backtype.storm [thrift :as thrift]])
@@ -69,6 +71,14 @@
     (seq body)
     ]))
 
+(defn read-storm-version []
+  (let [storm-home (System/getProperty "storm.home")
+        release-path (format "%s/RELEASE" storm-home)
+        release-file (File. release-path)]
+    (if (and (.exists release-file) (.isFile release-file))
+      (trim (slurp release-path))
+      "Unknown")))
+
 (defn cluster-summary-table [^ClusterSummary summ]
   (let [sups (.get_supervisors summ)
         used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
@@ -77,8 +87,9 @@
         total-tasks (->> (.get_topologies summ)
                          (map #(.get_num_tasks ^TopologySummary %))
                          (reduce +))]
-    (table ["Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Running tasks"]
-           [[(pretty-uptime-sec (.get_nimbus_uptime_secs summ))
+    (table ["Version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Running tasks"]
+           [[(read-storm-version)
+             (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
              (count sups)
              used-slots
              free-slots

@@ -132,6 +132,17 @@ def activate(*args):
         jvmtype="-client", 
         extrajars=[CONF_DIR, STORM_DIR + "/bin"])
 
+def list(*args):
+    """Syntax: [storm list]
+
+    List the running topologies and their statuses.
+    """
+    exec_storm_class(
+        "backtype.storm.command.list", 
+        args=args, 
+        jvmtype="-client", 
+        extrajars=[CONF_DIR, STORM_DIR + "/bin"])
+
 def deactivate(*args):
     """Syntax: [storm deactivate topology-name]
 
@@ -298,7 +309,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "dev-zookeeper": dev_zookeeper}
+            "list": list, "dev-zookeeper": dev_zookeeper}
 
 def parse_config(config_list):
     global CONFIG_OPTS

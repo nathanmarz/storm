@@ -4,25 +4,23 @@
   (:use [clojure test])
   (:use [backtype.storm cluster config util testing]))
 
-(def ZK-PORT 2181)
-
-(defn mk-config []
+(defn mk-config [zk-port]
   (merge (read-storm-config)
-         {STORM-ZOOKEEPER-PORT ZK-PORT
+         {STORM-ZOOKEEPER-PORT zk-port
           STORM-ZOOKEEPER-SERVERS ["localhost"]}))
 
 (defn mk-state
-  ([] (mk-distributed-cluster-state (mk-config)))
-  ([cb]
-     (let [ret (mk-state)]
+  ([zk-port] (mk-distributed-cluster-state (mk-config zk-port)))
+  ([zk-port cb]
+     (let [ret (mk-state zk-port)]
        (.register ret cb)
        ret )))
 
-(defn mk-storm-state [] (mk-storm-cluster-state (mk-config)))
+(defn mk-storm-state [zk-port] (mk-storm-cluster-state (mk-config zk-port)))
 
 (deftest test-basics
-  (with-inprocess-zookeeper ZK-PORT
-    (let [state (mk-state)]
+  (with-inprocess-zookeeper zk-port
+    (let [state (mk-state zk-port)]
       (.set-data state "/root" (barr 1 2 3))
       (is (Arrays/equals (barr 1 2 3) (.get-data state "/root" false)))
       (is (= nil (.get-data state "/a" false)))
@@ -42,9 +40,9 @@
       )))
 
 (deftest test-multi-state
-  (with-inprocess-zookeeper ZK-PORT
-    (let [state1 (mk-state)
-          state2 (mk-state)]
+  (with-inprocess-zookeeper zk-port
+    (let [state1 (mk-state zk-port)
+          state2 (mk-state zk-port)]
       (.set-data state1 "/root" (barr 1))
       (is (Arrays/equals (barr 1) (.get-data state1 "/root" false)))
       (is (Arrays/equals (barr 1) (.get-data state2 "/root" false)))
@@ -56,10 +54,10 @@
       )))
 
 (deftest test-ephemeral
-  (with-inprocess-zookeeper ZK-PORT
-    (let [state1 (mk-state)
-          state2 (mk-state)
-          state3 (mk-state)]
+  (with-inprocess-zookeeper zk-port
+    (let [state1 (mk-state zk-port)
+          state2 (mk-state zk-port)
+          state3 (mk-state zk-port)]
       (.set-ephemeral-node state1 "/a" (barr 1))
       (is (Arrays/equals (barr 1) (.get-data state1 "/a" false)))
       (is (Arrays/equals (barr 1) (.get-data state2 "/a" false)))
@@ -93,11 +91,11 @@
       ))))
 
 (deftest test-callbacks
-  (with-inprocess-zookeeper ZK-PORT
+  (with-inprocess-zookeeper zk-port
     (let [[state1-last-cb state1-cb] (mk-callback-tester)
-          state1 (mk-state state1-cb)
+          state1 (mk-state zk-port state1-cb)
           [state2-last-cb state2-cb] (mk-callback-tester)
-          state2 (mk-state state2-cb)]
+          state2 (mk-state zk-port state2-cb)]
       (.set-data state1 "/root" (barr 1))
       (.get-data state2 "/root" true)
       (is (= nil @state1-last-cb))
@@ -144,8 +142,8 @@
 
 
 (deftest test-storm-cluster-state-basics
-  (with-inprocess-zookeeper ZK-PORT
-    (let [state (mk-storm-state)
+  (with-inprocess-zookeeper zk-port
+    (let [state (mk-storm-state zk-port)
           assignment1 (Assignment. "/aaa" {} {1 [2 2002 1]} {})
           assignment2 (Assignment. "/aaa" {} {1 [2 2002]} {})
           base1 (StormBase. "/tmp/storm1" 1 {:type :active})
@@ -186,9 +184,9 @@
       )))
 
 (deftest test-storm-cluster-state-errors
-  (with-inprocess-zookeeper ZK-PORT
+  (with-inprocess-zookeeper zk-port
     (with-simulated-time
-      (let [state (mk-storm-state)]
+      (let [state (mk-storm-state zk-port)]
         (.report-task-error state "a" 1 (RuntimeException.))
         (validate-errors! state "a" 1 ["RuntimeException"])
         (advance-time-secs! 2)
@@ -209,9 +207,9 @@
 
 
 (deftest test-supervisor-state
-  (with-inprocess-zookeeper ZK-PORT
-    (let [state1 (mk-storm-state)
-          state2 (mk-storm-state)]
+  (with-inprocess-zookeeper zk-port
+    (let [state1 (mk-storm-state zk-port)
+          state2 (mk-storm-state zk-port)]
       (is (= [] (.supervisors state1 nil)))
       (.supervisor-heartbeat! state2 "2" {:a 1})
       (.supervisor-heartbeat! state1 "1" {})

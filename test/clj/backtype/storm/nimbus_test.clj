@@ -397,31 +397,30 @@
       )))
 
 (deftest test-cleans-corrupt
-  (let [zk-port (available-port 2181)]
-    (with-inprocess-zookeeper zk-port
-      (with-local-tmp [nimbus-dir]
-        (letlocals
-         (bind conf (merge (read-storm-config)
-                           {STORM-ZOOKEEPER-SERVERS ["localhost"]
-                            STORM-CLUSTER-MODE "local"
-                            STORM-ZOOKEEPER-PORT zk-port
-                            STORM-LOCAL-DIR nimbus-dir}))
-         (bind cluster-state (cluster/mk-storm-cluster-state conf))
-         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-         (bind topology (thrift/mk-topology
-                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
-                         {}))
-         (submit-local-topology nimbus "t1" {} topology)
-         (submit-local-topology nimbus "t2" {} topology)
-         (bind storm-id1 (get-storm-id cluster-state "t1"))
-         (bind storm-id2 (get-storm-id cluster-state "t2"))
-         (.shutdown nimbus)
-         (rmr (master-stormdist-root conf storm-id1))
-         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-         (is ( = #{storm-id2} (set (.active-storms cluster-state))))
-         (.shutdown nimbus)
-         (.disconnect cluster-state)
-         )))))
+  (with-inprocess-zookeeper zk-port
+    (with-local-tmp [nimbus-dir]
+      (letlocals
+       (bind conf (merge (read-storm-config)
+                         {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                          STORM-CLUSTER-MODE "local"
+                          STORM-ZOOKEEPER-PORT zk-port
+                          STORM-LOCAL-DIR nimbus-dir}))
+       (bind cluster-state (cluster/mk-storm-cluster-state conf))
+       (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+       (bind topology (thrift/mk-topology
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                       {}))
+       (submit-local-topology nimbus "t1" {} topology)
+       (submit-local-topology nimbus "t2" {} topology)
+       (bind storm-id1 (get-storm-id cluster-state "t1"))
+       (bind storm-id2 (get-storm-id cluster-state "t2"))
+       (.shutdown nimbus)
+       (rmr (master-stormdist-root conf storm-id1))
+       (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+       (is ( = #{storm-id2} (set (.active-storms cluster-state))))
+       (.shutdown nimbus)
+       (.disconnect cluster-state)
+       ))))
 
 (deftest test-no-overlapping-slots
   ;; test that same node+port never appears across 2 assignments

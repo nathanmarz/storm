@@ -14,8 +14,6 @@
 
 (bootstrap)
 
-;; TODO: timeout should be configurable on a per-function basis
-(def REQUEST-TIMEOUT-SECS 60)
 (def TIMEOUT-CHECK-SECS 5)
 
 (defn acquire-queue [queues-atom function]
@@ -29,7 +27,8 @@
 
 ;; TODO: change this to use TimeCacheMap
 (defn service-handler []
-  (let [ctr (atom 0)
+  (let [conf (read-storm-config)
+        ctr (atom 0)
         id->sem (atom {})
         id->result (atom {})
         id->start (atom {})
@@ -41,7 +40,7 @@
         clear-thread (async-loop
                       (fn []
                         (doseq [[id start] @id->start]
-                          (when (> (time-delta start) REQUEST-TIMEOUT-SECS)
+                          (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                             (when-let [sem (@id->sem id)]
                               (swap! id->result assoc id (DRPCExecutionException. "Request timed out"))
                               (.release sem))

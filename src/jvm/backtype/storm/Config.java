@@ -47,6 +47,16 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_CLUSTER_MODE = "storm.cluster.mode";
 
     /**
+     * The hostname the supervisors/workers should report to nimbus. If unset, Storm will 
+     * get the hostname to report by calling <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
+     * 
+     * You should set this config when you dont have a DNS which supervisors/workers
+     * can utilize to find each other based on hostname got from calls to
+     * <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
+     */
+    public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
+
+    /**
      * Whether or not to use ZeroMQ for messaging in local mode. If this is set 
      * to false, then Storm will use a pure-Java messaging system. The purpose 
      * of this flag is to make it easy to run Storm in local mode by eliminating 
@@ -183,7 +193,14 @@ public class Config extends HashMap<String, Object> {
     /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
-    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";    
+    public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
+    
+    /**
+     * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
+     * timeout based on the socket timeout on the DRPC client, and separately based on the topology message
+     * timeout for the topology implementing the DRPC function.
+     */
+    public static String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
     
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and

@@ -99,7 +99,8 @@
 ;; can customize the supervisors (except for ports) by passing in map for :supervisors parameter
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {}]
-  (let [zk-port (available-port 2181)
+  (let [zk-tmp (local-temp-path)
+        [zk-port zk-handle] (zk/mk-inprocess-zookeeper zk-tmp)
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
@@ -109,8 +110,6 @@
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-ZOOKEEPER-SERVERS ["localhost"]})
         nimbus-tmp (local-temp-path)
-        zk-tmp (local-temp-path)
-        zk-handle (zk/mk-inprocess-zookeeper zk-tmp zk-port)
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
@@ -210,9 +209,9 @@
     (with-local-cluster ~@args)))
 
 ;; TODO: should take in a port symbol and find available port automatically
-(defmacro with-inprocess-zookeeper [port & body]
+(defmacro with-inprocess-zookeeper [port-sym & body]
   `(with-local-tmp [tmp#]
-     (let [zks# (zk/mk-inprocess-zookeeper tmp# ~port)]
+     (let [[~port-sym zks#] (zk/mk-inprocess-zookeeper tmp#)]
        (try
          ~@body
        (finally

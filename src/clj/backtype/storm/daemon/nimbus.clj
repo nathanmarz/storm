@@ -830,7 +830,9 @@
               task-info (storm-task-info storm-cluster-state storm-id)
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              task-summaries (dofor [[task component] task-info]
+              task-summaries (if (empty? (:task->node+port assignment))
+                               []
+                               (dofor [[task component] task-info]
                                     (let [[node port] (get-in assignment [:task->node+port task])
                                           host (-> assignment :node->host (get node))
                                           heartbeat (.task-heartbeat storm-cluster-state storm-id task)
@@ -849,7 +851,7 @@
                                                         errors
                                                         )
                                         (.set_stats stats))
-                                      ))
+                                      )))
               ]
           (TopologyInfo. storm-id
                          (:storm-name base)

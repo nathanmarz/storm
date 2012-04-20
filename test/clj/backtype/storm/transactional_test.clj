@@ -6,7 +6,7 @@
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
             KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
-            IdentityBolt CountingCommitBolt])
+            IdentityBolt CountingCommitBolt OpaqueMemoryTransactionalSpout])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -74,8 +74,7 @@
   (-> @capture-atom (get COMMIT-STREAM) first :id))
 
 (deftest test-coordinator
-  (let [zk-port (available-port 2181)
-        coordinator-state (atom nil)
+  (let [coordinator-state (atom nil)
         emit-capture (atom nil)]
     (with-inprocess-zookeeper zk-port
       (letlocals
@@ -244,44 +243,43 @@
 
 (deftest test-rotating-transactional-state
   ;; test strict ordered vs not strict ordered
-  (let [zk-port (available-port 2181)]
-    (with-inprocess-zookeeper zk-port
-      (let [conf (merge (read-default-config)
-                        {STORM-ZOOKEEPER-PORT zk-port
-                         STORM-ZOOKEEPER-SERVERS ["localhost"]
-                         })
-            state (TransactionalState/newUserState conf "id1" {})
-            strict-rotating (RotatingTransactionalState. state "strict" true)
-            unstrict-rotating (RotatingTransactionalState. state "unstrict" false)
-            init (atom 10)
-            initializer (mk-state-initializer init)]
-        (is (= 10 (get-state strict-rotating 1 initializer)))
-        (is (= 10 (get-state strict-rotating 2 initializer)))
-        (reset! init 20)
-        (is (= 20 (get-state strict-rotating 3 initializer)))
-        (is (= 10 (get-state strict-rotating 1 initializer)))
+  (with-inprocess-zookeeper zk-port
+    (let [conf (merge (read-default-config)
+                      {STORM-ZOOKEEPER-PORT zk-port
+                       STORM-ZOOKEEPER-SERVERS ["localhost"]
+                       })
+          state (TransactionalState/newUserState conf "id1" {})
+          strict-rotating (RotatingTransactionalState. state "strict" true)
+          unstrict-rotating (RotatingTransactionalState. state "unstrict" false)
+          init (atom 10)
+          initializer (mk-state-initializer init)]
+      (is (= 10 (get-state strict-rotating 1 initializer)))
+      (is (= 10 (get-state strict-rotating 2 initializer)))
+      (reset! init 20)
+      (is (= 20 (get-state strict-rotating 3 initializer)))
+      (is (= 10 (get-state strict-rotating 1 initializer)))
 
-        (is (thrown? Exception (get-state strict-rotating 5 initializer)))
-        (is (= 20 (get-state strict-rotating 4 initializer)))
-        (is (= 4 (count (.list state "strict"))))
-        (cleanup-before strict-rotating 3)
-        (is (= 2 (count (.list state "strict"))))
+      (is (thrown? Exception (get-state strict-rotating 5 initializer)))
+      (is (= 20 (get-state strict-rotating 4 initializer)))
+      (is (= 4 (count (.list state "strict"))))
+      (cleanup-before strict-rotating 3)
+      (is (= 2 (count (.list state "strict"))))
 
-        (is (nil? (get-state-or-create strict-rotating 5 initializer)))
-        (is (= 20 (get-state-or-create strict-rotating 5 initializer)))
-        (is (nil? (get-state-or-create strict-rotating 6 initializer)))        
-        (cleanup-before strict-rotating 6)
-        (is (= 1 (count (.list state "strict"))))
+      (is (nil? (get-state-or-create strict-rotating 5 initializer)))
+      (is (= 20 (get-state-or-create strict-rotating 5 initializer)))
+      (is (nil? (get-state-or-create strict-rotating 6 initializer)))        
+      (cleanup-before strict-rotating 6)
+      (is (= 1 (count (.list state "strict"))))
 
-        (is (= 20 (get-state unstrict-rotating 10 initializer)))
-        (is (= 20 (get-state unstrict-rotating 20 initializer)))
-        (is (nil? (get-state unstrict-rotating 12 initializer)))
-        (is (nil? (get-state unstrict-rotating 19 initializer)))
-        (is (nil? (get-state unstrict-rotating 12 initializer)))
-        (is (= 20 (get-state unstrict-rotating 21 initializer)))
+      (is (= 20 (get-state unstrict-rotating 10 initializer)))
+      (is (= 20 (get-state unstrict-rotating 20 initializer)))
+      (is (nil? (get-state unstrict-rotating 12 initializer)))
+      (is (nil? (get-state unstrict-rotating 19 initializer)))
+      (is (nil? (get-state unstrict-rotating 12 initializer)))
+      (is (= 20 (get-state unstrict-rotating 21 initializer)))
 
-        (.close state)
-        ))))
+      (.close state)
+      )))
 
 (defn mk-transactional-source []
   (HashMap.))
@@ -601,3 +599,91 @@
                              )))
      )))
 
+(deftest test-opaque-transactional-topology
+  (with-tracked-cluster [cluster]
+    (with-controller-bolt [controller collector tuples]
+      (letlocals
+       (bind data (mk-transactional-source))
+       (bind builder (TransactionalTopologyBuilder.
+                      "id"
+                      "spout"
+                      (OpaqueMemoryTransactionalSpout. data
+                                                       (Fields. ["word"])
+                                                       2)
+                      2))
+
+       (-> builder
+           (.setCommitterBolt "count" (KeyedCountingBatchBolt.) 2)
+           (.fieldsGrouping "spout" (Fields. ["word"])))
+
+       (bind builder (.buildTopologyBuilder builder))
+       
+       (-> builder
+           (.setBolt "controller" controller 1)
+           (.directGrouping "spout" Constants/COORDINATED_STREAM_ID)
+           (.directGrouping "count" Constants/COORDINATED_STREAM_ID))
+
+       (add-transactional-data data
+                               {0 [["dog"]
+                                   ["cat"]
+                                   ["apple"]
+                                   ["dog"]]})
+       
+       (bind topo-info (tracked-captured-topology
+                        cluster
+                        (.createTopology builder)))
+       (submit-local-topology (:nimbus cluster)
+                              "transactional-test"
+                              {TOPOLOGY-MAX-SPOUT-PENDING 2
+                               }
+                              (:topology topo-info))
+
+       (bind ack-tx! (fn [txid]
+                       (let [[to-ack not-to-ack] (separate
+                                                  #(-> %
+                                                       (.getValue 0)
+                                                       .getTransactionId
+                                                       (= txid))
+                                                  @tuples)]
+                         (reset! tuples not-to-ack)
+                         (doseq [t to-ack]
+                           (ack! @collector t)))))
+
+       (bind fail-tx! (fn [txid]
+                        (let [[to-fail not-to-fail] (separate
+                                                     #(-> %
+                                                          (.getValue 0)
+                                                          .getTransactionId
+                                                          (= txid))
+                                                     @tuples)]
+                          (reset! tuples not-to-fail)
+                          (doseq [t to-fail]
+                            (fail! @collector t)))))
+
+       ;; only check default streams
+       (bind verify! (fn [expected]
+                       (let [results (-> topo-info :capturer .getResults)]
+                         (doseq [[component tuples] expected
+                                 :let [emitted (->> (read-tuples results
+                                                                 component
+                                                                 "default")
+                                                    (map normalize-tx-tuple))]]
+                           (is (ms= tuples emitted)))
+                         (.clear results)
+                         )))
+
+       (tracked-wait topo-info 2)
+       (verify! {"count" []})
+       (ack-tx! 1)
+       (tracked-wait topo-info 1)
+
+       (verify! {"count" [[1 "dog" 1]
+                          [1 "cat" 1]]})       
+       (ack-tx! 2)
+       (ack-tx! 1)
+       (tracked-wait topo-info 2)
+
+       (verify! {"count" [[2 "apple" 1]
+                          [2 "dog" 1]]})
+
+       ))))

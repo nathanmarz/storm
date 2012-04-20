@@ -13,6 +13,8 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 
 public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTransactionalSpout<Object> {
@@ -37,13 +39,14 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
 
         @Override
         public void close() {
+            _coordinator.close();
         }        
     }
     
     public class Emitter implements ICommitterTransactionalSpout.Emitter {
         IOpaquePartitionedTransactionalSpout.Emitter _emitter;
         TransactionalState _state;
-        Map<BigInteger, Map<Integer, Object>> _cachedMetas = new HashMap<BigInteger, Map<Integer, Object>>();
+        TreeMap<BigInteger, Map<Integer, Object>> _cachedMetas = new TreeMap<BigInteger, Map<Integer, Object>>();
         Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<Integer, RotatingTransactionalState>();
         int _index;
         int _numTasks;
@@ -67,6 +70,14 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
             Map<Integer, Object> metas = new HashMap<Integer, Object>();
             _cachedMetas.put(tx.getTransactionId(), metas);
             int partitions = _emitter.numPartitions();
+            Entry<BigInteger, Map<Integer, Object>> entry = _cachedMetas.lowerEntry(tx.getTransactionId());
+            Map<Integer, Object> prevCached;
+            if(entry!=null) {
+                prevCached = entry.getValue();
+            } else {
+                prevCached = new HashMap<Integer, Object>();
+            }
+            
             for(int i=_index; i < partitions; i+=_numTasks) {
                 RotatingTransactionalState state = _partitionStates.get(i);
                 if(state==null) {
@@ -74,7 +85,9 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
                     _partitionStates.put(i, state);
                 }
                 state.removeState(tx.getTransactionId());
-                Object meta = _emitter.emitPartitionBatch(tx, collector, i, state.getLastState());
+                Object lastMeta = prevCached.get(i);
+                if(lastMeta==null) lastMeta = state.getLastState();
+                Object meta = _emitter.emitPartitionBatch(tx, collector, i, lastMeta);
                 metas.put(i, meta);
             }
         }

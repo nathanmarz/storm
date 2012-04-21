@@ -33,6 +33,7 @@ public class TopologyContext extends GeneralTopologyContext {
     private Integer _taskId;
     private String _codeDir;
     private String _pidDir;
+    private String _taskDir;
     private Object _taskData = null;
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Integer _workerPort;
@@ -40,7 +41,7 @@ public class TopologyContext extends GeneralTopologyContext {
     
     public TopologyContext(StormTopology topology, Map stormConf,
             Map<Integer, String> taskToComponent, String stormId,
-            String codeDir, String pidDir, Integer taskId,
+            String codeDir, String pidDir, Integer taskId, String taskDir,
             Integer workerPort, List<Integer> workerTasks) {
         super(topology, stormConf, taskToComponent, stormId);
         _workerPort = workerPort;
@@ -205,6 +206,10 @@ public class TopologyContext extends GeneralTopologyContext {
     
     public Object getTaskData() {
         return _taskData;
+    }
+    
+    public String getTaskDir() {
+    	return _taskDir;  
     }
     
     public Integer getThisWorkerPort() {

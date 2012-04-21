@@ -7,6 +7,7 @@
  * Added reportError to BasicOutputCollector
  * Added reportError to BatchOutputCollector
  * Added close method to OpaqueTransactionalSpout coordinator
+ * Use new style classes for Python multilang adapter
  * Bug fix: Fixed criticial bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.

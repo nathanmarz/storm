@@ -53,10 +53,13 @@
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
-(defn mk-transfer-fn [transfer-queue]
+(defn mk-transfer-fn [transfer-queue receive-queue-map serializer]
   (fn [task ^Tuple tuple]
-    (.put ^LinkedBlockingQueue transfer-queue [task tuple])
-    ))
+    (if (contains? receive-queue-map task)
+      (.put (receive-queue-map task) tuple)
+      (let [tuple (.serialize serializer tuple)]
+        (.put ^LinkedBlockingQueue transfer-queue [task tuple]))
+    )))
 
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
@@ -122,7 +125,7 @@
                                          {tid (LinkedBlockingQueue.)}))
         
         ^KryoTupleSerializer serializer (KryoTupleSerializer. storm-conf (mk-topology-context nil))
-        transfer-fn (mk-transfer-fn transfer-queue)
+        transfer-fn (mk-transfer-fn transfer-queue receive-queue-map serializer)
         refresh-connections (fn this
                               ([]
                                 (this (fn [& ignored] (.add event-manager this))))
@@ -130,7 +133,10 @@
                                 (let [assignment (.assignment-info storm-cluster-state storm-id callback)
                                       my-assignment (select-keys (:task->node+port assignment) outbound-tasks)
                                       ;; we dont need a connection for the local tasks anymore
-                                      needed-connections (set (vals (filter #(not (contains? task-ids-set (key %))) my-assignment)))
+                                      needed-connections (->> my-assignment
+                                                              (filter #(->> % key (contains? task-ids-set) not))
+                                                              vals
+                                                              set)
                                       current-connections (set (keys @node+port->socket))
                                       new-connections (set/difference needed-connections current-connections)
                                       remove-connections (set/difference current-connections needed-connections)]
@@ -179,7 +185,7 @@
                             )
                           :priority Thread/MAX_PRIORITY)
         suicide-fn (mk-suicide-fn conf active)
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) (mk-user-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn (receive-queue-map tid)))
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) (mk-user-context tid) storm-id cluster-state storm-active-atom transfer-fn suicide-fn (receive-queue-map tid)))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)
@@ -195,14 +201,9 @@
                       (let [node+port->socket @node+port->socket
                             task->node+port @task->node+port]
                         (doseq [[task tuple] drainer]
-                          ;; if its a local-task, add the tuple to its receive-queue directly
-                          ;; otherwise, send it through the socket.
-                          (if (contains? task-ids-set task)
-                            (let [^LinkedBlockingQueue target-receive-queue (receive-queue-map task)]
-                              (.put target-receive-queue tuple))
-                            (let [socket (node+port->socket (task->node+port task))]
-                              (msg/send socket task (.serialize serializer tuple))
-                              ))
+                          (let [socket (node+port->socket (task->node+port task))]
+                            (msg/send socket task tuple)
+                            )
                         )))
                     (.clear drainer)
                     0 )

@@ -158,7 +158,7 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
-(defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn
+(defn mk-task [conf storm-conf topology-context user-context storm-id cluster-state storm-active-atom transfer-fn suicide-fn
                receive-queue]
   (let [task-id (.getThisTaskId topology-context)
         worker-port (.getThisWorkerPort topology-context)

@@ -1,5 +1,6 @@
 ## Unreleased
 
+ * Upgrade to Clojure 1.4 (thanks sorenmacbeth)
  * Can override the hostname that supervisors report using "storm.local.hostname" config.
  * Make request timeout within DRPC server configurable via "drpc.request.timeout.secs"
  * Added "storm list" command to show running topologies at the command line (thanks xumingming)
@@ -7,7 +8,7 @@
  * Added reportError to BasicOutputCollector
  * Added reportError to BatchOutputCollector
  * Added close method to OpaqueTransactionalSpout coordinator
- * Use new style classes for Python multilang adapter
+ * Use new style classes for Python multilang adapter (thanks hellp)
  * Bug fix: Fixed criticial bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.

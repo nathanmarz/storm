@@ -794,8 +794,10 @@
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               assigned (assigned-slots storm-cluster-state)
               supervisor-infos (all-supervisor-info storm-cluster-state)
+              ;; TODO: need to get the port info about supervisors...
+              ;; in standalone just look at metadata, otherwise just say N/A?
               supervisor-summaries (dofor [[id info] supervisor-infos]
-                                          (let [ports (set (:worker-ports info))
+                                          (let [ports (set (:meta info))
                                                 ]
                                             (SupervisorSummary. (:hostname info)
                                                                 (:uptime-secs info)

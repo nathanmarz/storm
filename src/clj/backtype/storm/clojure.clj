@@ -1,5 +1,4 @@
 (ns backtype.storm.clojure
-  (:use [clojure.contrib.def :only [defnk defalias]])
   (:use [backtype.storm bootstrap util])
   (:import [backtype.storm StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
@@ -8,6 +7,7 @@
   (:import [backtype.storm.spout SpoutOutputCollector ISpout])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
+  (:import [java.util List])
   (:require [backtype.storm [thrift :as thrift]]))
 
 
@@ -138,14 +138,14 @@
   (tuple-values [this collector stream]
     this))
 
-(defnk emit-bolt! [collector ^TupleValues values
+(defnk emit-bolt! [collector values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]
   (let [^List anchor (collectify anchor)
         values (tuple-values values collector stream) ]
     (.emit ^OutputCollector (:output-collector collector) stream anchor values)
     ))
 
-(defnk emit-direct-bolt! [collector task ^TupleValues values
+(defnk emit-direct-bolt! [collector task values
                           :stream Utils/DEFAULT_STREAM_ID :anchor []]
   (let [^List anchor (collectify anchor)
         values (tuple-values values collector stream) ]
@@ -158,12 +158,12 @@
 (defn fail! [collector ^Tuple tuple]
   (.fail ^OutputCollector (:output-collector collector) tuple))
 
-(defnk emit-spout! [collector ^TupleValues values
+(defnk emit-spout! [collector values
                     :stream Utils/DEFAULT_STREAM_ID :id nil]
   (let [values (tuple-values values collector stream)]
     (.emit ^SpoutOutputCollector (:output-collector collector) stream values id)))
 
-(defnk emit-direct-spout! [collector task ^TupleValues values
+(defnk emit-direct-spout! [collector task values
                            :stream Utils/DEFAULT_STREAM_ID :id nil]
   (let [values (tuple-values values collector stream)]
     (.emitDirect ^SpoutOutputCollector (:output-collector collector) task stream values id)))

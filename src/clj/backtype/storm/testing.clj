@@ -25,8 +25,6 @@
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
-  (:use [clojure.contrib.def :only [defnk]])
-  (:use [clojure.contrib.seq :only [find-first]])
   (:use [backtype.storm cluster util thrift config log]))
 
 (defn feeder-spout [fields]
@@ -541,6 +539,6 @@
         spout-spec (mk-spout-spec* (TestWordSpout.)
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
-        context (TopologyContext. topology (read-storm-config) {1 component} "test-storm-id" nil nil 1 nil [1])]
+        context (TopologyContext. topology (read-storm-config) {(int 1) component} "test-storm-id" nil nil (int 1) nil [(int 1)])]
     (Tuple. context values 1 stream)
     ))

@@ -74,6 +74,7 @@
         cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         task-ids (read-worker-task-ids storm-cluster-state storm-id supervisor-id port)
+        _ (doseq [t task-ids] (log-message t " " (class t)))
         ;; because in local mode, its not a separate
         ;; process. supervisor will register it in this case
         _ (when (= :distributed (cluster-mode conf))

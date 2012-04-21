@@ -5,9 +5,8 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
-  (:use [clojure.contrib.def :only [defnk]])
   (:gen-class))
 
 (bootstrap)
@@ -329,6 +328,8 @@
 
 (defn- setup-storm-static [conf storm-id storm-cluster-state]
   (doseq [[task-id component-id] (mk-task-component-assignments conf storm-id)]
+    (log-message "static " task-id (class task-id))
+    (log-message "static comp" component-id (class component-id))
     (.set-task! storm-cluster-state storm-id task-id (TaskInfo. component-id))
     ))
 
@@ -408,7 +409,6 @@
   (let [available-slots (available-slots conf storm-cluster-state callback)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
-
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids
@@ -484,6 +484,8 @@
                     start-times
                     )
         ]
+    (doseq [t (keys (:task->node+port assignment))] (log-message "Nimbus task" t (class t)))
+    (doseq [t (keys (:task->start-time-secs assignment))] (log-message "Nimbus time" t (class t)))
     ;; tasks figure out what tasks to talk to by looking at topology at runtime
     ;; only log/set when there's been a change to the assignment
     (if (= existing-assignment assignment)

@@ -5,7 +5,7 @@
   )
 
 (defn add-queue! [queues-map lock storm-id port]
-  (let [id (str storm-id "-" port)]
+  (let [id (str storm-id "____" port)]
     (locking lock
       (when-not (contains? @queues-map id)
         (swap! queues-map assoc id (LinkedBlockingQueue.))))
@@ -16,7 +16,8 @@
   (recv [this]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
-    (.take queue))
+    (let [[port tuple] (.take queue)]
+      [(short port) tuple]))
   (send [this task message]
     (let [send-queue (add-queue! queues-map lock storm-id port)]
       (.put send-queue [task message])

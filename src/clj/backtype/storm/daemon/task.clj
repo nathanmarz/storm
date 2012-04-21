@@ -2,7 +2,7 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:use [clojure.contrib.seq :only [positions]])
-  (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
+  (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap LinkedBlockingQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
@@ -292,7 +292,20 @@
     (stats/spout-acked-tuple! task-stats (:stream tuple-info) time-delta)
     ))
 
-(defmethod mk-executors ISpout [^ISpout spout storm-conf receive-queue tasks-fn transfer-fn storm-active-atom
+(defmacro with-received-tuple [[^LinkedBlockingQueue receive-queue deserializer tuple-sym] & body]
+  `(let [msg# (.take ~receive-queue)
+        is-ser-msg?# (not (instance? Tuple msg#))
+        is-empty-msg?# (or (nil? msg#) (and is-ser-msg?# (empty? msg#)))]
+    (when-not is-empty-msg?# ; skip empty messages (used during shutdown)
+      (log-debug "Processing message")
+      (let [~tuple-sym (if is-ser-msg?#
+                          (.deserialize ~deserializer msg#)
+                          msg#)]
+        ~@body
+        ))
+    ))
+
+(defmethod mk-executors ISpout [^ISpout spout storm-conf ^LinkedBlockingQueue receive-queue tasks-fn transfer-fn storm-active-atom
                                 ^TopologyContext topology-context ^TopologyContext user-context
                                 task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
@@ -380,25 +393,17 @@
              (Time/sleep 100)))
          ))
      (fn []
-       (let [msg (.take receive-queue)
-             is-ser-msg? (not (instance? Tuple msg))
-             is-empty-msg? (or (nil? msg) (and is-ser-msg? (empty? msg)))]
-         ;; skip empty messages (used during shutdown)
-         (when-not is-empty-msg?
-           (let [tuple (if is-ser-msg?
-                         (.deserialize deserializer msg)
-                         msg)
-
-                 id (.getValue tuple 0)
-                 [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
-             (when spout-id
-               (let [time-delta (time-delta-ms start-time-ms)]
-                 (condp = (.getSourceStreamId tuple)
+       (with-received-tuple [receive-queue deserializer tuple]
+         (let [id (.getValue tuple 0)
+               [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
+           (when spout-id
+             (let [time-delta (time-delta-ms start-time-ms)]
+               (condp = (.getSourceStreamId tuple)
                    ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
                                                                          tuple-finished-info time-delta task-stats sampler))
                    ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
                                                                            tuple-finished-info time-delta task-stats sampler))
-                   ))))
+                   )))
            ;; TODO: on failure, emit tuple to failure stream
            )))
      ]
@@ -412,7 +417,7 @@
     ;; TODO: this portion is not thread safe (multiple threads updating same value at same time)
     (.put pending key (bit-xor curr id))))
 
-(defmethod mk-executors IBolt [^IBolt bolt storm-conf receive-queue tasks-fn transfer-fn storm-active-atom
+(defmethod mk-executors IBolt [^IBolt bolt storm-conf ^LinkedBlockingQueue receive-queue tasks-fn transfer-fn storm-active-atom
                                ^TopologyContext topology-context ^TopologyContext user-context
                                task-stats report-error-fn]
   (let [deserializer (KryoTupleDeserializer. storm-conf topology-context)
@@ -492,14 +497,7 @@
        ;; should remember sync requests and include a random sync id in the request. drop anything not related to active sync requests
        ;; or just timeout the sync messages that are coming in until full sync is hit from that task
        ;; need to drop incremental updates from tasks where waiting for sync. otherwise, buffer the incremental updates
-       (let [msg (.take receive-queue)
-             is-ser-msg? (not (instance? Tuple msg))
-             is-empty-msg? (or (nil? msg) (and is-ser-msg? (empty? msg)))]
-         (when-not is-empty-msg? ; skip empty messages (used during shutdown)
-           (log-debug "Processing message")
-           (let [tuple (if is-ser-msg?
-                         (.deserialize deserializer msg)
-                         msg)]
+       (with-received-tuple [receive-queue deserializer tuple]
              ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
              ;; TODO: how to handle incremental updates as well as synchronizations at same time
              ;; TODO: need to version tuples somehow
@@ -507,7 +505,7 @@
              (.put tuple-start-times tuple (System/currentTimeMillis))
              
              (.execute bolt tuple)
-             ))))]
+             ))]
     ))
 
 (defmethod close-component ISpout [spout]

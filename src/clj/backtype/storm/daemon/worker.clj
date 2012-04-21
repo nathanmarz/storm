@@ -9,11 +9,6 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn local-mode-zmq? [conf]
-  (or (= (conf STORM-CLUSTER-MODE) "distributed")
-      (conf STORM-LOCAL-MODE-ZMQ)))
-
-
 (defn read-worker-task-ids [storm-cluster-state storm-id supervisor-id port]
   (let [assignment (:task->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
@@ -113,8 +108,7 @@
         mq-context (if mq-context
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
-                                                (storm-conf ZMQ-LINGER-MILLIS)
-                                                (= (conf STORM-CLUSTER-MODE) "local")))
+                                                (storm-conf ZMQ-LINGER-MILLIS)))
         outbound-tasks (worker-outbound-tasks task->component mk-topology-context task-ids)
         endpoint-socket-lock (mk-rw-lock)
         node+port->socket (atom {})
@@ -210,27 +204,17 @@
                   :args-fn (fn [] [(ArrayList.)]))
                  heartbeat-thread]
         deserializer (KryoTupleDeserializer. storm-conf (mk-topology-context nil))
-        virtual-port-shutdown (if (local-mode-zmq? conf)
-                                (do 
-                                  (log-message "Launching virtual port for " supervisor-id ":" port)
-                                  (msg-loader/launch-virtual-port!
-                                   (= (conf STORM-CLUSTER-MODE) "local")
-                                   mq-context
-                                   port
-                                   receive-queue-map
-                                   :kill-fn (fn [t]
-                                              (halt-process! 11))
-                                   :valid-ports task-ids))
-                                (do
-                                  (log-message "Launching FAKE virtual port")
-                                  (msg-loader/launch-fake-virtual-port!
+        receive-thread-shutdown (do 
+                                  (log-message "Launching receive-thread for " supervisor-id ":" port)
+                                  (msg-loader/launch-receive-thread!
                                    mq-context
                                    storm-id
                                    port
                                    receive-queue-map
-                                   deserializer)))
-                                   
-                                
+                                   :kill-fn (fn [t]
+                                              (halt-process! 11))
+                                   :valid-tasks task-ids))
+                                                              
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
                     (reset! active false)
@@ -239,7 +223,7 @@
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
-                    (virtual-port-shutdown)
+                    (receive-thread-shutdown)
                     (log-message "Terminating zmq context")
                     (msg/term mq-context)
                     (log-message "Disconnecting from storm cluster state context")

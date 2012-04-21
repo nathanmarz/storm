@@ -57,16 +57,6 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
 
     /**
-     * Whether or not to use ZeroMQ for messaging in local mode. If this is set 
-     * to false, then Storm will use a pure-Java messaging system. The purpose 
-     * of this flag is to make it easy to run Storm in local mode by eliminating 
-     * the need for native dependencies, which can be difficult to install.
-     *
-     * Defaults to false.
-     */
-    public static String STORM_LOCAL_MODE_ZMQ = "storm.local.mode.zmq";
-
-    /**
      * The root location at which Storm stores data in ZooKeeper.
      */
     public static String STORM_ZOOKEEPER_ROOT = "storm.zookeeper.root";

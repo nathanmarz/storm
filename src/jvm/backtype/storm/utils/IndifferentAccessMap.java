@@ -80,13 +80,13 @@ public class IndifferentAccessMap extends AFn implements ILookup, IPersistentMap
         return new IndifferentAccessMap(getMap().assoc(k, v));
     }
 
-    public IPersistentMap assocEx(Object k, Object v) throws Exception {
+    public IPersistentMap assocEx(Object k, Object v) {
         if(k instanceof Keyword) return assocEx(((Keyword) k).getName(), v);
 
         return new IndifferentAccessMap(getMap().assocEx(k, v));
     }
 
-    public IPersistentMap without(Object k) throws Exception {
+    public IPersistentMap without(Object k) {
         if(k instanceof Keyword) return without(((Keyword) k).getName());
 
         return new IndifferentAccessMap(getMap().without(k));

@@ -20,6 +20,11 @@ public class BatchOutputCollectorImpl extends BatchOutputCollector {
     public void emitDirect(int taskId, String streamId, List<Object> tuple) {
         _collector.emitDirect(taskId, streamId, tuple);
     }
+
+    @Override
+    public void reportError(Throwable error) {
+        _collector.reportError(error);
+    }
     
     public void ack(Tuple tup) {
         _collector.ack(tup);

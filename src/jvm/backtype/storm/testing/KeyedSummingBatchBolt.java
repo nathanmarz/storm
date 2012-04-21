@@ -8,13 +8,14 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
+import clojure.lang.Numbers;
 import java.util.HashMap;
 import java.util.Map;
 
 public class KeyedSummingBatchBolt extends BaseBatchBolt {
     BatchOutputCollector _collector;
     Object _id;
-    Map<Object, Integer> _sums = new HashMap<Object, Integer>();
+    Map<Object, Number> _sums = new HashMap<Object, Number>();
     
     @Override
     public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
@@ -25,8 +26,8 @@ public class KeyedSummingBatchBolt extends BaseBatchBolt {
     @Override
     public void execute(Tuple tuple) {
         Object key = tuple.getValue(1);
-        int curr = Utils.get(_sums, key, 0);
-        _sums.put(key, curr + tuple.getInteger(2));
+        Number curr = Utils.get(_sums, key, 0);        
+        _sums.put(key, Numbers.add(curr, tuple.getValue(2)));
     }
 
     @Override

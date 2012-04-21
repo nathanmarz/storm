@@ -1,7 +1,6 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:use [clojure.contrib.seq :only [positions]])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
@@ -312,7 +311,7 @@
                      )))
         send-spout-msg (fn [out-stream-id values message-id out-task-id]
                          (let [out-tasks (if out-task-id
-                                           (tasks-fn out-stream-id values out-task-id)
+                                           (tasks-fn out-task-id out-stream-id values)
                                            (tasks-fn out-stream-id values))
                                root-id (MessageId/generateId)
                                rooted? (and message-id (> (storm-conf TOPOLOGY-ACKERS) 0))

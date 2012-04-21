@@ -3,7 +3,6 @@
   (:import [java.util PriorityQueue Comparator])
   (:import [java.util.concurrent Semaphore])
   (:use [backtype.storm util log])
-  (:use [clojure.contrib.def :only [defnk]])
   )
 
 ;; The timer defined in this file is very similar to java.util.Timer, except it integrates with
@@ -67,8 +66,7 @@
             delay-secs
             (fn this []
               (afn)
-              (schedule timer recur-secs this))
-            :check-active false ; this avoids a race condition with cancel-timer
+              (schedule timer recur-secs this :check-active false)) ; this avoids a race condition with cancel-timer
             ))
 
 (defn cancel-timer [timer]

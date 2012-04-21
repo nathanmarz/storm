@@ -1,5 +1,24 @@
 ## Unreleased
 
+ * Upgrade to Clojure 1.4 (thanks sorenmacbeth)
+ * Can override the hostname that supervisors report using "storm.local.hostname" config.
+ * Make request timeout within DRPC server configurable via "drpc.request.timeout.secs"
+ * Added "storm list" command to show running topologies at the command line (thanks xumingming)
+ * Storm UI displays the release version (thanks xumingming)
+ * Added reportError to BasicOutputCollector
+ * Added reportError to BatchOutputCollector
+ * Added close method to OpaqueTransactionalSpout coordinator
+ * Use new style classes for Python multilang adapter (thanks hellp)
+ * Bug fix: Fixed criticial bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
+ * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
+ * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
+ * Bug fix: Zookeeper in local mode now always gets an unused port. This will eliminate conflicts with other local mode processes or other Zookeeper instances on a local machine. (thanks xumingming)
+ * Bug fix: Fixed NPE in CoordinatedBolt it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
+ * Bug fix: UI no longer errors for topologies with no assigned tasks (thanks xumingming)
+ * Bug fix: emitDirect on SpoutOutputCollector now works
+
+## 0.7.1
+
  * Implemented shell spout (thanks tomo)
  * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
  * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.

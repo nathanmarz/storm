@@ -3,7 +3,6 @@
   (:import [java.util PriorityQueue Comparator])
   (:import [java.util.concurrent Semaphore])
   (:use [backtype.storm util log])
-  (:use [clojure.contrib.def :only [defnk]])
   )
 
 ;; The timer defined in this file is very similar to java.util.Timer, except it integrates with

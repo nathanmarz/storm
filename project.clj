@@ -6,8 +6,7 @@
   :resources-path "conf"
   :dev-resources-path "src/dev"
   :repositories {"sonatype" "http://oss.sonatype.org/content/groups/public/"}
-  :dependencies [[org.clojure/clojure "1.2.0"]
-                 [org.clojure/clojure-contrib "1.2.0"]
+  :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [storm/libthrift7 "0.7.0"]
@@ -20,14 +19,16 @@
                  [compojure "0.6.4"]
                  [hiccup "0.3.6"]
                  [ring/ring-jetty-adapter "0.3.11"]
+                 [org.clojure/tools.logging "0.2.3"]
+                 [org.clojure/math.numeric-tower "0.0.1"]
                  [org.slf4j/slf4j-log4j12 "1.5.8"]
-                 [storm/carbonite "1.0.0"]
+                 [storm/carbonite "1.0.1"]
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [
-                     [swank-clojure "1.2.1"]
+                     [swank-clojure "1.4.0-SNAPSHOT"]
                      [lein-ring "0.4.5"]
                      [lein-eclipse "1.0.0"]
                     ]

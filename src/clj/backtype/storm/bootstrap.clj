@@ -20,7 +20,6 @@
      (require (quote [backtype.storm.messaging.loader :as msg-loader]))
      (require (quote [backtype.storm.messaging.protocol :as msg]))
      (use (quote [backtype.storm config util log clojure timer]))
-     (use (quote [clojure.contrib.seq :only [find-first]]))
      (require (quote [backtype.storm [thrift :as thrift] [cluster :as cluster]
                       [event :as event] [process-simulator :as psim]]))
      (require (quote [clojure.set :as set]))

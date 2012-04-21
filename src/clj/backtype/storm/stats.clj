@@ -4,13 +4,12 @@
             ClusterSummary TopologyInfo TopologySummary TaskSummary TaskStats TaskSpecificStats
             SpoutStats BoltStats ErrorInfo SupervisorSummary])
   (:use [backtype.storm util])
-  (:use [clojure.contrib.seq-utils :only [find-first]])
-  (:use [clojure.contrib.math :only [ceil]]))
+  (:use [clojure.math.numeric-tower :only [ceil]]))
 
 ;;TODO: consider replacing this with some sort of RRD
 
 (defn curr-time-bucket [^Integer time-secs ^Integer bucket-size-secs]
-  (* bucket-size-secs (unchecked-divide time-secs bucket-size-secs))
+  (* bucket-size-secs (unchecked-divide-int time-secs bucket-size-secs))
   )
 
 (defrecord RollingWindow [updater merger extractor bucket-size-secs num-buckets buckets])

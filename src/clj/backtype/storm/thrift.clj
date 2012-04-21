@@ -11,7 +11,6 @@
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config])
-  (:use [clojure.contrib.def :only [defnk]])
   )
 
 (defn instantiate-java-object [^JavaObject obj]
@@ -195,9 +194,9 @@
   ([spout-map bolt-map]
     (let [builder (TopologyBuilder.)]
       (doseq [[name {spout :obj p :p conf :conf}] spout-map]
-        (-> builder (.setSpout name spout p) (.addConfigurations conf)))
+        (-> builder (.setSpout name spout (if-not (nil? p) (int p) p)) (.addConfigurations conf)))
       (doseq [[name {bolt :obj p :p conf :conf inputs :inputs}] bolt-map]
-        (-> builder (.setBolt name bolt p) (.addConfigurations conf) (add-inputs inputs)))
+        (-> builder (.setBolt name bolt (if-not (nil? p) (int p) p)) (.addConfigurations conf) (add-inputs inputs)))
       (.createTopology builder)
       ))
   ([spout-map bolt-map state-spout-map]

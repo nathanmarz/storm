@@ -4,8 +4,6 @@
   (:use [backtype.storm config util])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID]]])
-  (:use [clojure.contrib.def :only [defnk]])
-  (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [trim]])
   (:import [backtype.storm.generated TaskSpecificStats
@@ -18,7 +16,7 @@
             [backtype.storm [thrift :as thrift]])
   (:gen-class))
 
-(def *STORM-CONF* (read-storm-config))
+(def ^:dynamic *STORM-CONF* (read-storm-config))
 
 (defmacro with-nimbus [nimbus-sym & body]
   `(thrift/with-nimbus-connection [~nimbus-sym "localhost" (*STORM-CONF* NIMBUS-THRIFT-PORT)]
@@ -691,4 +689,4 @@
   (handler/site main-routes))
 
 (defn -main []
-  (run-jetty app {:port (int (*STORM-CONF* UI-PORT))}))
+  (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))}))

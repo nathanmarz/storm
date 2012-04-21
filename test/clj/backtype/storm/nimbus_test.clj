@@ -1,6 +1,5 @@
 (ns backtype.storm.nimbus-test
   (:use [clojure test])
-  (:use [clojure.contrib.def :only [defnk]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])

@@ -1,7 +1,6 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:use [clojure.contrib.seq :only [positions]])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo

@@ -3,6 +3,7 @@
   (:use [backtype.storm bootstrap])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
   (:import [backtype.storm.hooks ITaskHook])
+  (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
               EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
@@ -156,8 +157,10 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
-(defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
+(defn mk-task [conf storm-conf topology-context user-context storm-id cluster-state storm-active-atom transfer-fn suicide-fn
+               receive-queue]
   (let [task-id (.getThisTaskId topology-context)
+        worker-port (.getThisWorkerPort topology-context)
         component-id (.getThisComponentId topology-context)
         storm-conf (component-conf storm-conf topology-context component-id)
         _ (log-message "Loading task " component-id ":" task-id)
@@ -196,9 +199,7 @@
 
         stream->component->grouper (outbound-components topology-context user-context)
         component->tasks (reverse-map task-info)
-        ;; important it binds to virtual port before function returns
-        puller (msg/bind mq-context storm-id task-id)
-
+        
         ;; TODO: consider DRYing things up and moving stats        
         task-readable-name (get-readable-name topology-context)
 
@@ -239,7 +240,7 @@
         _ (send-unanchored topology-context tasks-fn transfer-fn SYSTEM-STREAM-ID ["startup"])
         executor-threads (dofor
                           [exec (with-error-reaction report-error-and-die
-                                  (mk-executors task-object storm-conf puller tasks-fn
+                                  (mk-executors task-object storm-conf receive-queue tasks-fn
                                                 transfer-fn
                                                 storm-active-atom topology-context
                                                 user-context task-stats report-error))]
@@ -254,8 +255,9 @@
         [this]
         (log-message "Shutting down task " storm-id ":" task-id)
         (reset! active false)
-        ;; empty messages are skip messages (this unblocks the socket)
-        (msg/send-local-task-empty mq-context storm-id task-id)
+        ;; put an empty message into receive-queue
+        ;; empty messages are skip messages (this unblocks the receive-queue.take thread)
+        (.put receive-queue (byte-array []))
         (doseq [t all-threads]
           (.interrupt t)
           (.join t))
@@ -263,7 +265,6 @@
           (.cleanup hook))
         (.remove-task-heartbeat! storm-cluster-state storm-id task-id)
         (.disconnect storm-cluster-state)
-        (.close puller)
         (close-component task-object)
         (log-message "Shut down task " storm-id ":" task-id))
       DaemonCommon
@@ -290,7 +291,7 @@
     (stats/spout-acked-tuple! task-stats (:stream tuple-info) time-delta)
     ))
 
-(defmethod mk-executors ISpout [^ISpout spout storm-conf puller tasks-fn transfer-fn storm-active-atom
+(defmethod mk-executors ISpout [^ISpout spout storm-conf receive-queue tasks-fn transfer-fn storm-active-atom
                                 ^TopologyContext topology-context ^TopologyContext user-context
                                 task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
@@ -378,10 +379,15 @@
              (Time/sleep 100)))
          ))
      (fn []
-       (let [^bytes ser-msg (msg/recv puller)]
+       (let [msg (.take receive-queue)
+             is-ser-msg? (not (instance? Tuple msg))
+             is-empty-msg? (or (nil? msg) (and is-ser-msg? (empty? msg)))]
          ;; skip empty messages (used during shutdown)
-         (when-not (empty? ser-msg)
-           (let [tuple (.deserialize deserializer ser-msg)
+         (when-not is-empty-msg?
+           (let [tuple (if is-ser-msg?
+                         (.deserialize deserializer msg)
+                         msg)
+
                  id (.getValue tuple 0)
                  [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
              (when spout-id
@@ -405,7 +411,7 @@
     ;; TODO: this portion is not thread safe (multiple threads updating same value at same time)
     (.put pending key (bit-xor curr id))))
 
-(defmethod mk-executors IBolt [^IBolt bolt storm-conf puller tasks-fn transfer-fn storm-active-atom
+(defmethod mk-executors IBolt [^IBolt bolt storm-conf receive-queue tasks-fn transfer-fn storm-active-atom
                                ^TopologyContext topology-context ^TopologyContext user-context
                                task-stats report-error-fn]
   (let [deserializer (KryoTupleDeserializer. storm-conf topology-context)
@@ -485,10 +491,14 @@
        ;; should remember sync requests and include a random sync id in the request. drop anything not related to active sync requests
        ;; or just timeout the sync messages that are coming in until full sync is hit from that task
        ;; need to drop incremental updates from tasks where waiting for sync. otherwise, buffer the incremental updates
-       (let [^bytes ser (msg/recv puller)]
-         (when-not (empty? ser) ; skip empty messages (used during shutdown)
+       (let [msg (.take receive-queue)
+             is-ser-msg? (not (instance? Tuple msg))
+             is-empty-msg? (or (nil? msg) (and is-ser-msg? (empty? msg)))]
+         (when-not is-empty-msg? ; skip empty messages (used during shutdown)
            (log-debug "Processing message")
-           (let [tuple (.deserialize deserializer ser)]
+           (let [tuple (if is-ser-msg?
+                         (.deserialize deserializer msg)
+                         msg)]
              ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
              ;; TODO: how to handle incremental updates as well as synchronizations at same time
              ;; TODO: need to version tuples somehow

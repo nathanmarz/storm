@@ -1,9 +1,11 @@
 (ns zilch.virtual-port
   (:use [backtype.storm util log])
+  (:use [backtype.storm.bootstrap])
   (:require [zilch [mq :as mq]])
   (:import [java.nio ByteBuffer])
-  (:import [java.util.concurrent Semaphore]))
+  (:import [java.util.concurrent Semaphore LinkedBlockingQueue]))
 
+(bootstrap)
 (mq/zeromq-imports)
 
 (defn mk-packet [virtual-port ^bytes message]
@@ -24,21 +26,6 @@
 (defn virtual-url [port]
   (str "inproc://" port))
 
-(defn- get-virtual-socket! [context mapping-atom port]
-  (when-not (contains? @mapping-atom port)
-    (log-message "Connecting to virtual port " port)
-    (swap! mapping-atom
-           assoc
-           port
-           (-> context (mq/socket mq/push) (mq/connect (virtual-url port)))
-           ))
-  (@mapping-atom port))
-
-(defn close-virtual-sockets! [mapping-atom]
-  (doseq [[_ virtual-socket] @mapping-atom]
-    (.close virtual-socket))
-  (reset! mapping-atom {}))
-
 (defn virtual-send
   ([^ZMQ$Socket socket virtual-port ^bytes message flags]
      (mq/send socket (mk-packet virtual-port message) flags))
@@ -46,29 +33,30 @@
      (virtual-send socket virtual-port message ZMQ/NOBLOCK)))
 
 (defnk launch-virtual-port!
-  [context url :daemon true
+  [context url receive-queue-map
+               :daemon true
                :kill-fn (fn [t] (System/exit 1))
                :priority Thread/NORM_PRIORITY
                :valid-ports nil]
   (let [valid-ports (set (map short valid-ports))
         vthread (async-loop
-                  (fn [^ZMQ$Socket socket virtual-mapping]
+                  (fn [^ZMQ$Socket socket receive-queue-map]
                         (let [[port msg] (parse-packet (mq/recv socket))]
                           (if (= port -1)
                             (do
                               (log-message "Virtual port " url " received shutdown notice")
-                              (close-virtual-sockets! virtual-mapping)
                               (.close socket)
                               nil )
                             (if (or (nil? valid-ports) (contains? valid-ports port))
-                              (let [^ZMQ$Socket virtual-socket (get-virtual-socket! context virtual-mapping port)]
+                              (let [port (int port)
+                                    ^LinkedBlockingQueue receive-queue (receive-queue-map port)]
                                 ;; TODO: probably need to handle multi-part messages here or something
-                                (mq/send virtual-socket msg)
+                                (.put receive-queue msg)
                                 0
                                 )
                               (log-message "Received invalid message directed at port " port ". Dropping...")
                               ))))
-                  :args-fn (fn [] [(-> context (mq/socket mq/pull) (mq/bind url)) (atom {})])
+                  :args-fn (fn [] [(-> context (mq/socket mq/pull) (mq/bind url)) receive-queue-map])
                   :daemon daemon
                   :kill-fn kill-fn
                   :priority priority)]
@@ -84,6 +72,35 @@
         (log-message "Shutdown virtual port at url: " url)
         ))))
 
+(defn launch-fake-virtual-port! [context storm-id port receive-queue-map deserializer]
+  (let [socket (-> context (msg/bind storm-id port))
+        vthread (async-loop
+                 (fn []
+                   (let [[port ser-msg] (msg/recv socket)
+                         msg (if (nil? ser-msg)
+                               nil
+                               (.deserialize deserializer ser-msg))
+                         ]
+                     (if (= (int port) -1)
+                       (do
+                         (log-message "FAKE virtual port received shutdown notice")
+                         (.close socket)
+                         nil )
+                       (let [port (int port)
+                             receive-queue (receive-queue-map port)]
+                         (.put receive-queue msg)
+                         0
+                         ))))
+                 )]
+    (fn []
+      (let [kill-socket (-> context (msg/connect storm-id nil port))]
+        (log-message "Shutting down FAKE virtual port")
+        (msg/send kill-socket -1 nil)
+        (.close kill-socket)
+        (log-message "Waiting for FAKE virtual port to die")
+        (.join vthread)
+        (log-message "Shutdown FAKE virtual port")
+                                    ))))
 (defn virtual-bind
   [^ZMQ$Socket socket virtual-port]
   (mq/bind socket (virtual-url virtual-port))

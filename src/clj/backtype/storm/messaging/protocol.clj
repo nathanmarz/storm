@@ -9,9 +9,8 @@
   )
 
 (defprotocol Context
-  (bind [context storm-id virtual-port])
+  (bind [context storm-id port])
   (connect [context storm-id host port])
-  (send-local-task-empty [context storm-id virtual-port])
   (term [context])
   )
 

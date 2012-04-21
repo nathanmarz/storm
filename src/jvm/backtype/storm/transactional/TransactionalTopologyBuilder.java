@@ -48,18 +48,18 @@ public class TransactionalTopologyBuilder {
     
     // id is used to store the state of this transactionalspout in zookeeper
     // it would be very dangerous to have 2 topologies active with the same id in the same cluster    
-    public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout, Integer spoutParallelism) {
+    public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout, Number spoutParallelism) {
         _id = id;
         _spoutId = spoutId;
         _spout = spout;
-        _spoutParallelism = spoutParallelism;
+        _spoutParallelism = spoutParallelism.intValue();
     }
     
     public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout) {
         this(id, spoutId, spout, null);
     }
 
-    public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout, Integer spoutParallelism) {
+    public TransactionalTopologyBuilder(String id, String spoutId, IPartitionedTransactionalSpout spout, Number spoutParallelism) {
         this(id, spoutId, new PartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
     }
     
@@ -67,7 +67,7 @@ public class TransactionalTopologyBuilder {
         this(id, spoutId, spout, null);
     }
     
-    public TransactionalTopologyBuilder(String id, String spoutId, IOpaquePartitionedTransactionalSpout spout, Integer spoutParallelism) {
+    public TransactionalTopologyBuilder(String id, String spoutId, IOpaquePartitionedTransactionalSpout spout, Number spoutParallelism) {
         this(id, spoutId, new OpaquePartitionedTransactionalSpoutExecutor(spout), spoutParallelism);
     }
     
@@ -83,7 +83,7 @@ public class TransactionalTopologyBuilder {
         return setBolt(id, bolt, null);
     }
     
-    public BoltDeclarer setBolt(String id, IBatchBolt bolt, Integer parallelism) {
+    public BoltDeclarer setBolt(String id, IBatchBolt bolt, Number parallelism) {
         return setBolt(id, new BatchBoltExecutor(bolt), parallelism, bolt instanceof ICommitter);
     }
 
@@ -91,7 +91,7 @@ public class TransactionalTopologyBuilder {
         return setCommitterBolt(id, bolt, null);
     }
     
-    public BoltDeclarer setCommitterBolt(String id, IBatchBolt bolt, Integer parallelism) {
+    public BoltDeclarer setCommitterBolt(String id, IBatchBolt bolt, Number parallelism) {
         return setBolt(id, new BatchBoltExecutor(bolt), parallelism, true);
     }      
     
@@ -99,12 +99,14 @@ public class TransactionalTopologyBuilder {
         return setBolt(id, bolt, null);
     }    
     
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism) {
+    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism) {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism, false);
     }
     
-    private BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism, boolean committer) {
-        Component component = new Component(bolt, parallelism, committer);
+    private BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelism, boolean committer) {
+        Integer p = null;
+        if(parallelism!=null) p = parallelism.intValue();
+        Component component = new Component(bolt, p, committer);
         _bolts.put(id, component);
         return new BoltDeclarerImpl(component);
     }

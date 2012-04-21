@@ -285,7 +285,7 @@
   (HashMap.))
 
 (defn add-transactional-data [source partition-map]
-  (doseq [[p data] partition-map]
+  (doseq [[p data] partition-map :let [p (int p)]]
     (if-not (contains? source p)
       (.put source p (Collections/synchronizedList (ArrayList.))))
     (-> source (.get p) (.addAll data))

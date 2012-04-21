@@ -328,8 +328,6 @@
 
 (defn- setup-storm-static [conf storm-id storm-cluster-state]
   (doseq [[task-id component-id] (mk-task-component-assignments conf storm-id)]
-    (log-message "static " task-id (class task-id))
-    (log-message "static comp" component-id (class component-id))
     (.set-task! storm-cluster-state storm-id task-id (TaskInfo. component-id))
     ))
 
@@ -484,8 +482,6 @@
                     start-times
                     )
         ]
-    (doseq [t (keys (:task->node+port assignment))] (log-message "Nimbus task" t (class t)))
-    (doseq [t (keys (:task->start-time-secs assignment))] (log-message "Nimbus time" t (class t)))
     ;; tasks figure out what tasks to talk to by looking at topology at runtime
     ;; only log/set when there's been a change to the assignment
     (if (= existing-assignment assignment)

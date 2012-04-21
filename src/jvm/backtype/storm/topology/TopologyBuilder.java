@@ -118,7 +118,7 @@ public class TopologyBuilder {
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somewhere around the cluster.
      * @return use the returned object to declare the inputs to this component
      */
-    public BoltDeclarer setBolt(String id, IRichBolt bolt, Integer parallelism_hint) {
+    public BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelism_hint) {
         validateUnusedId(id);
         initCommon(id, bolt, parallelism_hint);
         _bolts.put(id, bolt);
@@ -150,7 +150,7 @@ public class TopologyBuilder {
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
      * @return use the returned object to declare the inputs to this component
      */
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Integer parallelism_hint) {
+    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism_hint) {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism_hint);
     }
 
@@ -173,7 +173,7 @@ public class TopologyBuilder {
      * @param parallelism_hint the number of tasks that should be assigned to execute this spout. Each task will run on a thread in a process somwehere around the cluster.
      * @param spout the spout
      */
-    public SpoutDeclarer setSpout(String id, IRichSpout spout, Integer parallelism_hint) {
+    public SpoutDeclarer setSpout(String id, IRichSpout spout, Number parallelism_hint) {
         validateUnusedId(id);
         initCommon(id, spout, parallelism_hint);
         _spouts.put(id, spout);
@@ -184,7 +184,7 @@ public class TopologyBuilder {
         setStateSpout(id, stateSpout, null);
     }
 
-    public void setStateSpout(String id, IRichStateSpout stateSpout, Integer parallelism_hint) {
+    public void setStateSpout(String id, IRichStateSpout stateSpout, Number parallelism_hint) {
         validateUnusedId(id);
         // TODO: finish
     }
@@ -211,10 +211,10 @@ public class TopologyBuilder {
         return ret;        
     }
     
-    private void initCommon(String id, IComponent component, Integer parallelism) {
+    private void initCommon(String id, IComponent component, Number parallelism) {
         ComponentCommon common = new ComponentCommon();
         common.set_inputs(new HashMap<GlobalStreamId, Grouping>());
-        if(parallelism!=null) common.set_parallelism_hint(parallelism);
+        if(parallelism!=null) common.set_parallelism_hint(parallelism.intValue());
         Map conf = component.getComponentConfiguration();
         if(conf!=null) common.set_json_conf(JSONValue.toJSONString(conf));
         _commons.put(id, common);

@@ -10,7 +10,7 @@
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [storm/libthrift7 "0.7.0"]
-                 [clj-time "0.3.0"]
+                 [clj-time "0.4.1"]
                  [log4j/log4j "1.2.16"]
                  [com.netflix.curator/curator-framework "1.0.1"]
                  [backtype/jzmq "2.1.0"]
@@ -25,12 +25,11 @@
                  [storm/carbonite "1.0.1"]
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
+                 [org.clojure/tools.cli "0.2.1"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [
-                     [swank-clojure "1.4.0-SNAPSHOT"]
-                     [lein-ring "0.4.5"]
-                     [lein-eclipse "1.0.0"]
+                     [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
                     ]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
   :ring {:handler backtype.storm.ui.core/app}

@@ -5,7 +5,7 @@
   )
 
 (defn add-queue! [queues-map lock storm-id port]
-  (let [id (str storm-id "____" port)]
+  (let [id (str storm-id "-" port)]
     (locking lock
       (when-not (contains? @queues-map id)
         (swap! queues-map assoc id (LinkedBlockingQueue.))))

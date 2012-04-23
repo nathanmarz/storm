@@ -89,7 +89,8 @@
     ))
 
 (defn mk-shared-context [conf]
-  (if (= (conf STORM-CLUSTER-MODE) "local")
+  (if (and (= (conf STORM-CLUSTER-MODE) "local")
+           (not (conf STORM-LOCAL-MODE-ZMQ)))
     (msg-loader/mk-local-context)
     ))
 

@@ -20,6 +20,11 @@
     [port msg]
     ))
 
+(defn get-zmq-url [local? port]
+  (if local?
+    (str "ipc://" port ".ipc")
+    (str "tcp://*:" port)))
+
 (defprotocol ZMQContextQuery
   (zmq-context [this]))
 
@@ -33,27 +38,26 @@
     (.close socket)
     ))
 
-(deftype ZMQContext [context linger-ms]
+(deftype ZMQContext [context linger-ms local?]
   Context
   (bind [this storm-id port]
     (-> context
         (mq/socket mq/pull)
-        (mq/bind (str "tcp://*:" port))
+        (mq/bind (get-zmq-url local? port))
         (ZMQConnection.)
         ))
   (connect [this storm-id host port]
-    (let [url (str "tcp://" host ":" port)]
-      (-> context
-          (mq/socket mq/push)
-          (mq/set-linger linger-ms)
-          (mq/connect url)
-          (ZMQConnection.))))
+    (-> context
+        (mq/socket mq/push)
+        (mq/set-linger linger-ms)
+        (mq/connect (get-zmq-url local? port))
+        (ZMQConnection.)))
   (term [this]
     (.term context))
   ZMQContextQuery
   (zmq-context [this]
     context))
 
-(defn mk-zmq-context [num-threads linger]
-  (ZMQContext. (mq/context num-threads) linger))
+(defn mk-zmq-context [num-threads linger local?]
+  (ZMQContext. (mq/context num-threads) linger local?))
 

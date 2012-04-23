@@ -108,7 +108,8 @@
         mq-context (if mq-context
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
-                                                (storm-conf ZMQ-LINGER-MILLIS)))
+                                                (storm-conf ZMQ-LINGER-MILLIS)
+                                                (= (conf STORM-CLUSTER-MODE) "local")))
         outbound-tasks (worker-outbound-tasks task->component mk-topology-context task-ids)
         endpoint-socket-lock (mk-rw-lock)
         node+port->socket (atom {})

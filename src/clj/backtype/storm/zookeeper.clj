@@ -10,8 +10,7 @@
   (:import [java.net InetSocketAddress BindException])
   (:import [java.io File])
   (:import [backtype.storm.utils Utils])
-  (:use [backtype.storm util log config])
-  (:use [clojure.contrib.def :only [defnk]]))
+  (:use [backtype.storm util log config]))
 
 (def zk-keeper-states
   {Watcher$Event$KeeperState/Disconnected :disconnected

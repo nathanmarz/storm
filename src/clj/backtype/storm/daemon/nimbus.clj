@@ -6,9 +6,8 @@
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
-  (:use [clojure.contrib.def :only [defnk]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -433,7 +432,6 @@
         available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (set (.task-ids storm-cluster-state storm-id))
-
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids

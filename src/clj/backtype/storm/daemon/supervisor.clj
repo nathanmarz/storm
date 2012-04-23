@@ -32,7 +32,7 @@
                             ))]
     (into {} (for [[port task-ids] port-tasks]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
-               [(int port) (LocalAssignment. storm-id task-ids)]
+               [(Integer. port) (LocalAssignment. storm-id task-ids)]
                ))
     ))
 

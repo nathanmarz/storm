@@ -459,7 +459,7 @@
                                              {"fake.type2" "a.serializer"}]
                      }))
          (.shuffleGrouping "1")
-         (.setMaxTaskParallelism 2)
+         (.setMaxTaskParallelism (int 2))
          (.addConfiguration "fake.config2" 987)
          )
      

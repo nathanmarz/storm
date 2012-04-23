@@ -65,6 +65,10 @@ public class Time {
         }
     }
     
+    public static int currentTimeSecs() {
+        return (int) (currentTimeMillis() / 1000);
+    }
+    
     public static void advanceTime(long ms) {
         if(!simulating.get()) throw new IllegalStateException("Cannot simulate time unless in simulation mode");
         simulatedCurrTimeMs.set(simulatedCurrTimeMs.get() + ms);

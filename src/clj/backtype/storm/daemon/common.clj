@@ -1,5 +1,4 @@
 (ns backtype.storm.daemon.common
-  (:use [clojure.contrib.seq-utils :only [find-first]])
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId])

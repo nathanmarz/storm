@@ -266,6 +266,17 @@ def drpc():
         childopts=childopts, 
         extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
 
+def version():
+  """Syntax: [storm version]
+  
+  Prints the version number of this Storm release.  
+  """
+  releasefile = STORM_DIR + "/RELEASE"
+  if os.path.exists(releasefile):
+    print open(releasefile).readline().strip()
+  else:
+    print "Unknown"
+
 def print_classpath():
     """Syntax: [storm classpath]
 
@@ -298,7 +309,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": list}
+            "list": list, "version": version}
 
 def parse_config(config_list):
     global CONFIG_OPTS

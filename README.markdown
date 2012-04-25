@@ -2,6 +2,8 @@ Storm is a distributed realtime computation system. Similar to how Hadoop provid
 
 The [Rationale page](https://github.com/nathanmarz/storm/wiki/Rationale) on the wiki explains what Storm is and why it was built. The [video](http://www.infoq.com/presentations/Storm) and [slides](http://www.slideshare.net/nathanmarz/storm-distributed-and-faulttolerant-realtime-computation) of Storm's launch presentation are also good introductions to the project.
 
+Follow [@stormprocessor](https://twitter.com/stormprocessor) on Twitter for updates on the project.
+
 ## Documentation
 
 Documentation and tutorials can be found on the [Storm wiki](http://github.com/nathanmarz/storm/wiki).

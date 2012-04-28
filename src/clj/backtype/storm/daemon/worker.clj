@@ -213,8 +213,7 @@
                                    port
                                    receive-queue-map
                                    :kill-fn (fn [t]
-                                              (halt-process! 11))
-                                   :valid-tasks task-ids))
+                                              (halt-process! 11))))
                                                               
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)

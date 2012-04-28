@@ -1,10 +1,10 @@
 (ns backtype.storm.messaging.loader
-  (:use [clojure.contrib.def :only [defnk]])
   (:use [backtype.storm.bootstrap])
   (:import [java.util.concurrent LinkedBlockingQueue])
   (:require [backtype.storm.messaging.local :as local]))
 
 (bootstrap)
+
 (defn mk-local-context []
   (local/mk-local-context))
 
@@ -19,10 +19,8 @@
   [context storm-id port receive-queue-map
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
-   :priority Thread/NORM_PRIORITY
-   :valid-tasks nil]
-  (let [valid-tasks (set (map short valid-tasks))
-        vthread (async-loop
+   :priority Thread/NORM_PRIORITY]
+  (let [vthread (async-loop
                  (fn [socket receive-queue-map]
                    (let [[task msg] (msg/recv socket)]
                      (if (= task -1)
@@ -30,15 +28,11 @@
                          (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
                          (.close socket)
                          nil )
-                       (if (or (nil? valid-tasks) (contains? valid-tasks task))
-                         (let [task (int task)
-                               ^LinkedBlockingQueue receive-queue (receive-queue-map task)]
-                           ;; TODO: probably need to handle multi-part messages here or something
-                           (.put receive-queue msg)
-                           0
-                           )
-                         (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping...")
-                         ))))
+                       (do
+                         (if (contains? receive-queue-map task)
+                           (.put ^LinkedBlockingQueue (receive-queue-map task) msg)
+                           (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping..."))
+                          0 ))))
                  :args-fn (fn [] [(msg/bind context storm-id port) receive-queue-map])
                  :daemon daemon
                  :kill-fn kill-fn
@@ -49,9 +43,9 @@
         (msg/send kill-socket
                   -1
                   (byte-array []))
-        (.close kill-socket)
         (log-message "Waiting for receiving-thread:[" storm-id ", " port "] to die")
         (.join vthread)
+        (.close kill-socket)
         (log-message "Shutdown receiving-thread: [" storm-id ", " port "]")
         ))))
 

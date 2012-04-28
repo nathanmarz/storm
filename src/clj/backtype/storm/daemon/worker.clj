@@ -9,11 +9,6 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn local-mode-zmq? [conf]
-  (or (= (conf STORM-CLUSTER-MODE) "distributed")
-      (conf STORM-LOCAL-MODE-ZMQ)))
-
-
 (defn read-worker-task-ids [storm-cluster-state storm-id supervisor-id port]
   (let [assignment (:task->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
@@ -53,11 +48,13 @@
             (-> (reverse-map task->component) (select-keys components) vals)))
     ))
 
-(defn mk-transfer-fn [storm-conf context transfer-queue]
-  (let [^KryoTupleSerializer serializer (KryoTupleSerializer. storm-conf context)]
-    (fn [task ^Tuple tuple]
-      (.put ^LinkedBlockingQueue transfer-queue [task (.serialize serializer tuple)])
-      )))
+(defn mk-transfer-fn [transfer-queue receive-queue-map serializer]
+  (fn [task ^Tuple tuple]
+    (if (contains? receive-queue-map task)
+      (.put (receive-queue-map task) tuple)
+      (let [tuple (.serialize serializer tuple)]
+        (.put ^LinkedBlockingQueue transfer-queue [task tuple]))
+    )))
 
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
@@ -74,6 +71,7 @@
         cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         task-ids (read-worker-task-ids storm-cluster-state storm-id supervisor-id port)
+        task-ids-set (set task-ids)
         ;; because in local mode, its not a separate
         ;; process. supervisor will register it in this case
         _ (when (= :distributed (cluster-mode conf))
@@ -118,15 +116,22 @@
         task->node+port (atom {})
 
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
+        receive-queue-map (apply merge (dofor [tid task-ids]
+                                         {tid (LinkedBlockingQueue.)}))
         
-        transfer-fn (mk-transfer-fn storm-conf (mk-topology-context nil) transfer-queue)
+        ^KryoTupleSerializer serializer (KryoTupleSerializer. storm-conf (mk-topology-context nil))
+        transfer-fn (mk-transfer-fn transfer-queue receive-queue-map serializer)
         refresh-connections (fn this
                               ([]
                                 (this (fn [& ignored] (.add event-manager this))))
                               ([callback]
                                 (let [assignment (.assignment-info storm-cluster-state storm-id callback)
                                       my-assignment (select-keys (:task->node+port assignment) outbound-tasks)
-                                      needed-connections (set (vals my-assignment))
+                                      ;; we dont need a connection for the local tasks anymore
+                                      needed-connections (->> my-assignment
+                                                              (filter #(->> % key (contains? task-ids-set) not))
+                                                              vals
+                                                              set)
                                       current-connections (set (keys @node+port->socket))
                                       new-connections (set/difference needed-connections current-connections)
                                       remove-connections (set/difference current-connections needed-connections)]
@@ -175,7 +180,7 @@
                             )
                           :priority Thread/MAX_PRIORITY)
         suicide-fn (mk-suicide-fn conf active)
-        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) (mk-user-context tid) storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn))
+        tasks (dofor [tid task-ids] (task/mk-task conf storm-conf (mk-topology-context tid) (mk-user-context tid) storm-id cluster-state storm-active-atom transfer-fn suicide-fn (receive-queue-map tid)))
         threads [(async-loop
                   (fn []
                     (.add event-manager refresh-connections)
@@ -190,24 +195,27 @@
                     (read-locked endpoint-socket-lock
                       (let [node+port->socket @node+port->socket
                             task->node+port @task->node+port]
-                        (doseq [[task ser-tuple] drainer]
+                        (doseq [[task tuple] drainer]
                           (let [socket (node+port->socket (task->node+port task))]
-                            (msg/send socket task ser-tuple)
-                            ))
-                        ))
+                            (msg/send socket task tuple)
+                            )
+                        )))
                     (.clear drainer)
                     0 )
                   :args-fn (fn [] [(ArrayList.)]))
                  heartbeat-thread]
-        virtual-port-shutdown (when (local-mode-zmq? conf)
-                                (log-message "Launching virtual port for " supervisor-id ":" port)
-                                (msg-loader/launch-virtual-port!
-                                 (= (conf STORM-CLUSTER-MODE) "local")
-                                 mq-context
-                                 port
-                                 :kill-fn (fn [t]
-                                            (halt-process! 11))
-                                 :valid-ports task-ids))
+        deserializer (KryoTupleDeserializer. storm-conf (mk-topology-context nil))
+        receive-thread-shutdown (do 
+                                  (log-message "Launching receive-thread for " supervisor-id ":" port)
+                                  (msg-loader/launch-receive-thread!
+                                   mq-context
+                                   storm-id
+                                   port
+                                   receive-queue-map
+                                   :kill-fn (fn [t]
+                                              (halt-process! 11))
+                                   :valid-tasks task-ids))
+                                                              
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
                     (reset! active false)
@@ -216,7 +224,7 @@
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
-                    (if virtual-port-shutdown (virtual-port-shutdown))
+                    (receive-thread-shutdown)
                     (log-message "Terminating zmq context")
                     (msg/term mq-context)
                     (log-message "Disconnecting from storm cluster state context")

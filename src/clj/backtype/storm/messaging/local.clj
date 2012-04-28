@@ -11,15 +11,16 @@
         (swap! queues-map assoc id (LinkedBlockingQueue.))))
     (@queues-map id)))
 
-(deftype LocalConnection [storm-id queues-map lock queue]
+(deftype LocalConnection [storm-id port queues-map lock queue]
   Connection
   (recv [this]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
-    (.take queue))
+    (let [[port tuple] (.take queue)]
+      [(short port) tuple]))
   (send [this task message]
-    (let [send-queue (add-queue! queues-map lock storm-id task)]
-      (.put send-queue message)
+    (let [send-queue (add-queue! queues-map lock storm-id port)]
+      (.put send-queue [task message])
       ))
   (close [this]
     ))
@@ -27,15 +28,11 @@
 
 (deftype LocalContext [queues-map lock]
   Context
-  (bind [this storm-id virtual-port]
-    (LocalConnection. storm-id queues-map lock (add-queue! queues-map lock storm-id virtual-port)))
+  (bind [this storm-id port]
+    (LocalConnection. storm-id port queues-map lock (add-queue! queues-map lock storm-id port)))
   (connect [this storm-id host port]
-    (LocalConnection. storm-id queues-map lock nil)
+    (LocalConnection. storm-id port queues-map lock nil)
     )
-  (send-local-task-empty [this storm-id virtual-port]
-    (let [queue (add-queue! queues-map lock storm-id virtual-port)]
-      (.put queue (byte-array []))
-      ))
   (term [this]
     ))
 

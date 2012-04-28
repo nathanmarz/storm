@@ -14,12 +14,16 @@ public class KafkaPartitionConnections {
     }
     
     public SimpleConsumer getConsumer(int partition) {
-        if(!_kafka.containsKey(partition)) {
-            int hostIndex = partition % _config.hosts.size();
-            _kafka.put(partition, new SimpleConsumer(_config.hosts.get(hostIndex), _config.port, _config.socketTimeoutMs, _config.bufferSizeBytes));
+        int hostIndex = partition / _config.partitionsPerHost;
+        if(!_kafka.containsKey(hostIndex)) {
+            _kafka.put(hostIndex, new SimpleConsumer(_config.hosts.get(hostIndex), _config.port, _config.socketTimeoutMs, _config.bufferSizeBytes));
             
         }
-        return _kafka.get(partition);
+        return _kafka.get(hostIndex);
+    }
+    
+    public int getHostPartition(int globalPartition) {
+        return globalPartition % _config.partitionsPerHost;
     }
     
     public void close() {

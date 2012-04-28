@@ -51,7 +51,7 @@ public class KafkaSpout extends BaseRichSpout {
             if(_waitingToEmit.isEmpty()) fill();
             MessageAndOffset toEmit = _waitingToEmit.pollFirst();
             if(toEmit==null) return false;
-            List<Object> tup = _kafkaConfig.scheme.deserialize(Utils.toByteArray(toEmit.message().payload()));
+            List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.message().payload()));
             _collector.emit(tup, new KafkaMessageId(_partition, actualOffset(toEmit)));
             return true;
         }
@@ -60,10 +60,10 @@ public class KafkaSpout extends BaseRichSpout {
             SimpleConsumer consumer = _partitions.getConsumer(_partition);
             ByteBufferMessageSet msgs = consumer.fetch(
                     new FetchRequest(
-                        _kafkaConfig.topic,
+                        _spoutConfig.topic,
                         _partitions.getHostPartition(_partition),
                         _emittedToOffset,
-                        _kafkaConfig.fetchSizeBytes));
+                        _spoutConfig.fetchSizeBytes));
             for(MessageAndOffset msg: msgs) {
                 _pending.add(actualOffset(msg));
                 _waitingToEmit.add(msg);
@@ -107,7 +107,6 @@ public class KafkaSpout extends BaseRichSpout {
         }
     }
     
-    KafkaConfig _kafkaConfig;
     SpoutConfig _spoutConfig;
     SpoutOutputCollector _collector;
     TransactionalState _state;
@@ -119,8 +118,7 @@ public class KafkaSpout extends BaseRichSpout {
     int _currPartitionIndex = 0;
     List<Integer> _managedPartitions = new ArrayList<Integer>();
         
-    public KafkaSpout(SpoutConfig spoutConf, KafkaConfig kafkaConfig) {
-        _kafkaConfig = kafkaConfig;
+    public KafkaSpout(SpoutConfig spoutConf) {
         _spoutConfig = spoutConf;
     }
     
@@ -143,9 +141,9 @@ public class KafkaSpout extends BaseRichSpout {
         
         // using TransactionalState like this is a hack
         _state = TransactionalState.newUserState(stateConf, _spoutConfig.id, null);
-        _partitions = new KafkaPartitionConnections(_kafkaConfig);
+        _partitions = new KafkaPartitionConnections(_spoutConfig);
 
-        int totalPartitions = _kafkaConfig.partitionsPerHost * _kafkaConfig.hosts.size();
+        int totalPartitions = _spoutConfig.partitionsPerHost * _spoutConfig.hosts.size();
         int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
         for(int p = context.getThisTaskIndex(); p < totalPartitions; p+=numTasks) {
             _managedPartitions.add(p);
@@ -189,7 +187,7 @@ public class KafkaSpout extends BaseRichSpout {
     
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(_kafkaConfig.scheme.getOutputFields());
+        declarer.declare(_spoutConfig.scheme.getOutputFields());
     }
     
     private void commit() {
@@ -204,16 +202,15 @@ public class KafkaSpout extends BaseRichSpout {
         TopologyBuilder builder = new TopologyBuilder();
         List<String> hosts = new ArrayList<String>();
         hosts.add("localhost");
-        KafkaConfig kafkaConf = new KafkaConfig(hosts, 3, "nathan");
-        kafkaConf.scheme = new StringScheme();
-        SpoutConfig spoutConf = new SpoutConfig("/kafka", "id");
+        SpoutConfig spoutConf = new SpoutConfig(hosts, 3, "nathan", "/kafka", "id");
+        spoutConf.scheme = new StringScheme();
         spoutConf.zkServers = new ArrayList<String>() {{
            add("localhost"); 
         }};
         spoutConf.zkPort = 2181;
         
         builder.setSpout("spout",
-                new KafkaSpout(spoutConf, kafkaConf));
+                new KafkaSpout(spoutConf));
         
         Config conf = new Config();
         conf.setDebug(true);

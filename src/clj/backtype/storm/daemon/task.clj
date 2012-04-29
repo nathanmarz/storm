@@ -157,9 +157,24 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
-(defn mk-task [conf storm-conf topology-context user-context storm-id cluster-state storm-active-atom transfer-fn suicide-fn
-               receive-queue]
+(defn mk-task [worker topology-context user-context]
   (let [task-id (.getThisTaskId topology-context)
+
+        ;; TODO refactor...
+        conf (:conf worker)
+        storm-conf (:storm-conf worker)
+        storm-id (:storm-id worker)
+        cluster-state (:cluster-state worker)
+        storm-active-atom (:storm-active-atom worker)
+        transfer-fn (:transfer-fn worker)
+        suicide-fn (:suicide-fn worker)
+        receive-queue ((:receive-queue-map worker) task-id)
+    
+    
+    
+    
+    
+    
         worker-port (.getThisWorkerPort topology-context)
         component-id (.getThisComponentId topology-context)
         storm-conf (component-conf storm-conf topology-context component-id)

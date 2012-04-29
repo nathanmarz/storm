@@ -28,7 +28,11 @@
 
 (defn heartbeat-worker [supervisor port storm-id task-ids]
   (let [conf (.get-conf supervisor)]
-    (worker/do-heartbeat conf (find-worker-id conf port) port storm-id task-ids)))
+    (worker/do-heartbeat {:conf conf
+                          :port port
+                          :storm-id storm-id
+                          :task-ids task-ids
+                          :worker-id (find-worker-id conf port)})))
 
 (defn heartbeat-workers [cluster supervisor-id ports]
   (let [sup (get-supervisor cluster supervisor-id)]

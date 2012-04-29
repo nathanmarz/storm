@@ -132,7 +132,7 @@ def activate(*args):
         jvmtype="-client", 
         extrajars=[CONF_DIR, STORM_DIR + "/bin"])
 
-def list(*args):
+def listtopos(*args):
     """Syntax: [storm list]
 
     List the running topologies and their statuses.
@@ -273,6 +273,17 @@ def dev_zookeeper():
         jvmtype="-server", 
         extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
 
+def version():
+  """Syntax: [storm version]
+  
+  Prints the version number of this Storm release.  
+  """
+  releasefile = STORM_DIR + "/RELEASE"
+  if os.path.exists(releasefile):
+    print open(releasefile).readline().strip()
+  else:
+    print "Unknown"
+
 def print_classpath():
     """Syntax: [storm classpath]
 
@@ -305,7 +316,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": list, "dev-zookeeper": dev_zookeeper}
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version}
 
 def parse_config(config_list):
     global CONFIG_OPTS

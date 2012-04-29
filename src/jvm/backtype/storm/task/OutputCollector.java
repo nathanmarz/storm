@@ -20,7 +20,8 @@ public class OutputCollector implements IOutputCollector {
     }
     
     /**
-     * Emits a new tuple to a specific stream with a single anchor.
+     * Emits a new tuple to a specific stream with a single anchor. The emitted values must be 
+     * immutable.
      *
      * @param streamId the stream to emit to
      * @param anchor the tuple to anchor to
@@ -34,7 +35,8 @@ public class OutputCollector implements IOutputCollector {
     /**
      * Emits a new unanchored tuple to the specified stream. Because it's unanchored,
      * if a failure happens downstream, this new tuple won't affect whether any
-     * spout tuples are considered failed or not.
+     * spout tuples are considered failed or not. The emitted values must be 
+     * immutable.
      * 
      * @param streamId the stream to emit to
      * @param tuple the new output tuple from this bolt
@@ -45,7 +47,8 @@ public class OutputCollector implements IOutputCollector {
     }
 
     /**
-     * Emits a new tuple to the default stream anchored on a group of input tuples.
+     * Emits a new tuple to the default stream anchored on a group of input tuples. The emitted
+     * values must be immutable.
      * 
      * @param anchors the tuples to anchor to
      * @param tuple the new output tuple from this bolt
@@ -57,7 +60,8 @@ public class OutputCollector implements IOutputCollector {
 
 
     /**
-     * Emits a new tuple to the default stream anchored on a single tuple.
+     * Emits a new tuple to the default stream anchored on a single tuple. The emitted values must be 
+     * immutable.
      * 
      * @param anchor the tuple to anchor to
      * @param tuple the new output tuple from this bolt
@@ -70,7 +74,8 @@ public class OutputCollector implements IOutputCollector {
     /**
      * Emits a new unanchored tuple to the default stream. Beacuse it's unanchored,
      * if a failure happens downstream, this new tuple won't affect whether any
-     * spout tuples are considered failed or not.
+     * spout tuples are considered failed or not. The emitted values must be 
+     * immutable.
      *
      * @param tuple the new output tuple from this bolt
      * @return the list of task ids that this new tuple was sent to
@@ -84,7 +89,8 @@ public class OutputCollector implements IOutputCollector {
      * If the target bolt does not subscribe to this bolt using a direct grouping,
      * the tuple will not be sent. If the specified output stream is not declared
      * as direct, or the target bolt subscribes with a non-direct grouping,
-     * an error will occur at runtime.
+     * an error will occur at runtime. The emitted values must be 
+     * immutable.
      *
      * @param taskId the taskId to send the new tuple to
      * @param streamId the stream to send the tuple on. It must be declared as a direct stream in the topology definition.
@@ -102,6 +108,7 @@ public class OutputCollector implements IOutputCollector {
      * as direct, or the target bolt subscribes with a non-direct grouping,
      * an error will occur at runtime. Note that this method does not use anchors,
      * so downstream failures won't affect the failure status of any spout tuples.
+     * The emitted values must be immutable.
      *
      * @param taskId the taskId to send the new tuple to
      * @param streamId the stream to send the tuple on. It must be declared as a direct stream in the topology definition.
@@ -116,7 +123,8 @@ public class OutputCollector implements IOutputCollector {
      * If the target bolt does not subscribe to this bolt using a direct grouping,
      * the tuple will not be sent. If the specified output stream is not declared
      * as direct, or the target bolt subscribes with a non-direct grouping,
-     * an error will occur at runtime.
+     * an error will occur at runtime. The emitted values must be 
+     * immutable.
      *
      * <p>The default stream must be declared as direct in the topology definition.
      * See OutputDeclarer#declare for how this is done when defining topologies
@@ -135,7 +143,8 @@ public class OutputCollector implements IOutputCollector {
      * If the target bolt does not subscribe to this bolt using a direct grouping,
      * the tuple will not be sent. If the specified output stream is not declared
      * as direct, or the target bolt subscribes with a non-direct grouping,
-     * an error will occur at runtime.
+     * an error will occur at runtime. The emitted values must be 
+     * immutable.
      *
      * <p>The default stream must be declared as direct in the topology definition.
      * See OutputDeclarer#declare for how this is done when defining topologies
@@ -155,7 +164,8 @@ public class OutputCollector implements IOutputCollector {
      * If the target bolt does not subscribe to this bolt using a direct grouping,
      * the tuple will not be sent. If the specified output stream is not declared
      * as direct, or the target bolt subscribes with a non-direct grouping,
-     * an error will occur at runtime.
+     * an error will occur at runtime. The emitted values must be 
+     * immutable.
      *
      * <p>The default stream must be declared as direct in the topology definition.
      * See OutputDeclarer#declare for how this is done when defining topologies

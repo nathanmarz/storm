@@ -1,5 +1,8 @@
 ## Unreleased
 
+NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable inputs has been reverted to support optimized sending of tuples to colocated tasks
+
+ * Messages sent to colocated tasks are sent in-memory, skipping serialization (useful in conjunction with localOrShuffle grouping) (thanks xumingming)
  * Upgrade to Clojure 1.4 (thanks sorenmacbeth)
  * Can override the hostname that supervisors report using "storm.local.hostname" config.
  * Make request timeout within DRPC server configurable via "drpc.request.timeout.secs"
@@ -10,6 +13,7 @@
  * Added close method to OpaqueTransactionalSpout coordinator
  * Added "storm dev-zookeeper" command for launching a local zookeeper server. Useful for testing a one node Storm cluster locally. Zookeeper dir configured with "dev.zookeeper.path"
  * Use new style classes for Python multilang adapter (thanks hellp)
+ * Added "storm version" command
  * Bug fix: Fixed criticial bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
@@ -69,7 +73,7 @@
  * Logging now always goes to logs/ in the Storm directory, regardless of where you launched the daemon (thanks haitaoyao)
  * Improved Clojure DSL: can emit maps and Tuples implement the appropriate interfaces to integrate with Clojure's seq functions (thanks schleyfox)
  * Added "ui.childopts" config (thanks ddillinger)
- * Bug fix: OutputCollector no longer assumes immutable inputs
+ * Bug fix: OutputCollector no longer assumes immutable inputs [NOTE: this was reverted in 0.7.2 because it conflicts with sending tuples to colocated tasks without serialization]
  * Bug fix: DRPC topologies now throw a proper error when no DRPC servers are configured instead of NPE (thanks danharvey)
  * Bug fix: Fix local mode so multiple topologies can be run on one LocalCluster
  * Bug fix: "storm supervisor" now uses supervisor.childopts instead of nimbus.childopts (thanks ddillinger)

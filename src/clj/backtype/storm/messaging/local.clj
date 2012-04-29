@@ -16,8 +16,7 @@
   (recv [this]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
-    (let [[port tuple] (.take queue)]
-      [(short port) tuple]))
+    (.take queue))
   (send [this task message]
     (let [send-queue (add-queue! queues-map lock storm-id port)]
       (.put send-queue [task message])

@@ -294,13 +294,10 @@
 (defn mk-task-receiver [^LinkedBlockingQueue receive-queue ^KryoTupleDeserializer deserializer tuple-action-fn]
   (fn []
     (let [msg (.take receive-queue)
-          is-ser-msg? (not (instance? Tuple msg))
-          is-empty-msg? (or (nil? msg) (and is-ser-msg? (empty? msg)))]
-      (when-not is-empty-msg? ; skip empty messages (used during shutdown)
-        (log-debug "Processing message")
-        (let [^Tuple tuple (if is-ser-msg?
-                        (.deserialize deserializer msg)
-                        msg)]
+          is-tuple? (instance? Tuple msg)]
+      (when (or is-tuple? (not (empty? msg))) ; skip empty messages (used during shutdown)
+        (log-debug "Processing message " msg)
+        (let [^Tuple tuple (if is-tuple? msg (.deserialize deserializer msg))]
           (tuple-action-fn tuple)
           ))
       )))
@@ -381,6 +378,7 @@
     (log-message "Opening spout " component-id ":" task-id)
     (.open spout storm-conf user-context (SpoutOutputCollector. output-collector))
     (log-message "Opened spout " component-id ":" task-id)
+    ;; TODO: should redesign this to only use one thread
     [(fn []
        ;; This design requires that spouts be non-blocking
        (loop []

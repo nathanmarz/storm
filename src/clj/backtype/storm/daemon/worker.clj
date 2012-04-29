@@ -70,8 +70,7 @@
         storm-active-atom (atom false)
         cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
-        task-ids (read-worker-task-ids storm-cluster-state storm-id supervisor-id port)
-        task-ids-set (set task-ids)
+        task-ids (set (read-worker-task-ids storm-cluster-state storm-id supervisor-id port))
         ;; because in local mode, its not a separate
         ;; process. supervisor will register it in this case
         _ (when (= :distributed (cluster-mode conf))
@@ -94,7 +93,7 @@
                                                (worker-pids-root conf worker-id)
                                                %
                                                port
-                                               task-ids)
+                                               (vec task-ids))
         mk-user-context #(TopologyContext. topology
                                            storm-conf
                                            task->component
@@ -104,7 +103,7 @@
                                            (worker-pids-root conf worker-id)
                                            %
                                            port
-                                           task-ids)
+                                           (vec task-ids))
         mq-context (if mq-context
                      mq-context
                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
@@ -129,7 +128,7 @@
                                       my-assignment (select-keys (:task->node+port assignment) outbound-tasks)
                                       ;; we dont need a connection for the local tasks anymore
                                       needed-connections (->> my-assignment
-                                                              (filter #(->> % key (contains? task-ids-set) not))
+                                                              (filter-key (complement task-ids))
                                                               vals
                                                               set)
                                       current-connections (set (keys @node+port->socket))
@@ -195,9 +194,9 @@
                     (read-locked endpoint-socket-lock
                       (let [node+port->socket @node+port->socket
                             task->node+port @task->node+port]
-                        (doseq [[task tuple] drainer]
+                        (doseq [[task ser-tuple] drainer]
                           (let [socket (node+port->socket (task->node+port task))]
-                            (msg/send socket task tuple)
+                            (msg/send socket task ser-tuple)
                             )
                         )))
                     (.clear drainer)

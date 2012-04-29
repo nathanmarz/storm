@@ -1,9 +1,7 @@
 (ns backtype.storm.messaging.loader
-  (:use [backtype.storm.bootstrap])
+  (:use [backtype.storm util log])
   (:import [java.util.concurrent LinkedBlockingQueue])
-  (:require [backtype.storm.messaging.local :as local]))
-
-(bootstrap)
+  (:require [backtype.storm.messaging [local :as local] [protocol :as msg]]))
 
 (defn mk-local-context []
   (local/mk-local-context))

@@ -9,7 +9,7 @@
 (bootstrap)
 
 (defmulti download-storm-code cluster-mode)
-(defmulti launch-worker cluster-mode)
+(defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
 
 ;; used as part of a map from port to this
 (defrecord LocalAssignment [storm-id task-ids])
@@ -89,8 +89,10 @@
 
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"
-  [conf local-state assigned-tasks]
-  (let [now (current-time-secs)
+  [supervisor assigned-tasks]
+  (let [conf (:conf supervisor)
+        ^LocalState local-state (:local-state supervisor)
+        now (current-time-secs)
         id->heartbeat (read-worker-heartbeats conf)
         approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
     (into
@@ -149,10 +151,11 @@
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
 
-(defn shutdown-worker [conf supervisor-id id worker-thread-pids-atom]
-  (log-message "Shutting down " supervisor-id ":" id)
-  (let [pids (read-dir-contents (worker-pids-root conf id))
-        thread-pid (@worker-thread-pids-atom id)]
+(defn shutdown-worker [supervisor id]
+  (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
+  (let [conf (:conf supervisor)
+        pids (read-dir-contents (worker-pids-root conf id))
+        thread-pid (@(:worker-thread-pids-atom supervisor) id)]
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
@@ -160,7 +163,146 @@
       (rmpath (worker-pid-path conf id pid))
       )
     (try-cleanup-worker conf id))
-  (log-message "Shut down " supervisor-id ":" id))
+  (log-message "Shut down " (:supervisor-id supervisor) ":" id))
+
+(defn supervisor-data [conf shared-context ^ISupervisor isupervisor]
+  {:conf conf
+   :shared-context shared-context
+   :isupervisor isupervisor
+   :active (atom true)
+   :uptime (uptime-computer)
+   :worker-thread-pids-atom (atom {})
+   :storm-cluster-state (cluster/mk-storm-cluster-state conf)
+   :local-state (supervisor-state conf)
+   :supervisor-id (.getId isupervisor)
+   :my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
+                  (conf STORM-LOCAL-HOSTNAME)
+                  (local-hostname))
+   :timer (mk-timer :kill-fn (fn [t]
+                               (log-error t "Error when processing event")
+                               (halt-process! 20 "Error when processing an event")
+                               ))
+   })
+
+(defn sync-processes [supervisor]
+  (let [conf (:conf supervisor)
+        ^LocalState local-state (:local-state supervisor)
+        assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS)
+                                  {})
+        allocated (read-allocated-workers supervisor assigned-tasks)
+        keepers (filter-val
+                 (fn [[state _]] (= state :valid))
+                 allocated)
+        keep-ports (set (for [[id [_ hb]] keepers] (:port hb)))
+        reassign-tasks (select-keys-pred (complement keep-ports) assigned-tasks)
+        new-worker-ids (into
+                        {}
+                        (for [port (keys reassign-tasks)]
+                          [port (uuid)]))
+        ]
+    ;; 1. to kill are those in allocated that are dead or disallowed
+    ;; 2. kill the ones that should be dead
+    ;;     - read pids, kill -9 and individually remove file
+    ;;     - rmr heartbeat dir, rmdir pid dir, rmdir id dir (catch exception and log)
+    ;; 3. of the rest, figure out what assignments aren't yet satisfied
+    ;; 4. generate new worker ids, write new "approved workers" to LS
+    ;; 5. create local dir for worker id
+    ;; 5. launch new workers (give worker-id, port, and supervisor-id)
+    ;; 6. wait for workers launch
+  
+    (log-debug "Syncing processes")
+    (log-debug "Assigned tasks: " assigned-tasks)
+    (log-debug "Allocated: " allocated)
+    (doseq [[id [state heartbeat]] allocated]
+      (when (not= :valid state)
+        (log-message
+         "Shutting down and clearing state for id " id
+         ". State: " state
+         ", Heartbeat: " (pr-str heartbeat))
+        (shutdown-worker supervisor id)
+        ))
+    (doseq [id (vals new-worker-ids)]
+      (local-mkdirs (worker-pids-root conf id)))
+    (.put local-state LS-APPROVED-WORKERS
+          (merge
+           (select-keys (.get local-state LS-APPROVED-WORKERS)
+                        (keys keepers))
+           (zipmap (vals new-worker-ids) (keys new-worker-ids))
+           ))
+    (wait-for-workers-launch
+     conf
+     (dofor [[port assignment] reassign-tasks]
+       (let [id (new-worker-ids port)]
+         (log-message "Launching worker with assignment "
+                      (pr-str assignment)
+                      " for this supervisor "
+                      (:supervisor-id supervisor)
+                      " on port "
+                      port
+                      " with id "
+                      id
+                      )
+         (launch-worker supervisor
+                        (:storm-id assignment)
+                        port
+                        id)
+         id)))
+    ))
+
+(defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
+  (fn this []
+    (let [conf (:conf supervisor)
+          storm-cluster-state (:storm-cluster-state supervisor)
+          ^ISupervisor isupervisor (:isupervisor supervisor)
+          ^LocalState local-state (:local-state supervisor)
+          sync-callback (fn [& ignored] (.add event-manager this))
+          storm-code-map (read-storm-code-locations storm-cluster-state sync-callback)
+          assigned-storm-ids (set (keys storm-code-map))
+          downloaded-storm-ids (set (read-downloaded-storm-ids conf))
+          new-assignment (->>
+                          (read-assignments
+                           storm-cluster-state
+                           (:supervisor-id supervisor)
+                           sync-callback)
+                          (filter-key #(.confirmAssigned isupervisor %)))
+          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
+      (log-debug "Synchronizing supervisor")
+      (log-debug "Storm code map: " storm-code-map)
+      (log-debug "Downloaded storm ids: " downloaded-storm-ids)
+      (log-debug "New assignment: " new-assignment)
+      ;; download code first
+      ;; This might take awhile
+      ;;   - should this be done separately from usual monitoring?
+      ;; should we only download when storm is assigned to this supervisor?
+      (doseq [[storm-id master-code-dir] storm-code-map]
+        (when-not (downloaded-storm-ids storm-id)
+          (log-message "Downloading code for storm id "
+             storm-id
+             " from "
+             master-code-dir)
+          (download-storm-code conf storm-id master-code-dir)
+          (log-message "Finished downloading code for storm id "
+             storm-id
+             " from "
+             master-code-dir)
+          ))
+      ;; remove any downloaded code that's no longer assigned or active
+      (doseq [storm-id downloaded-storm-ids]
+        (when-not (assigned-storm-ids storm-id)
+          (log-message "Removing code for storm id "
+                       storm-id)
+          (rmr (supervisor-stormdist-root conf storm-id))
+          ))
+      (log-debug "Writing new assignment "
+                 (pr-str new-assignment))
+      (doseq [p (set/difference (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
+        (.killedWorker isupervisor (int p)))
+      (.put local-state
+            LS-LOCAL-ASSIGNMENTS
+            new-assignment)
+      (.add processes-event-manager sync-processes)
+      )))
 
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
@@ -168,186 +310,56 @@
   (log-message "Starting Supervisor with conf " conf)
   (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
-  (let [active (atom true)
-        uptime (uptime-computer)
-        worker-thread-pids-atom (atom {})
-        storm-cluster-state (cluster/mk-storm-cluster-state conf)
-        local-state (supervisor-state conf)
-        supervisor-id (.getId isupervisor)
-        my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
-                      (conf STORM-LOCAL-HOSTNAME)
-                      (local-hostname))
-        [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
-        sync-processes (fn []
-                         (let [assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
-                               allocated (read-allocated-workers conf local-state assigned-tasks)
-                               keepers (filter-val
-                                        (fn [[state _]] (= state :valid))
-                                        allocated)
-                               keep-ports (set (for [[id [_ hb]] keepers] (:port hb)))
-                               reassign-tasks (select-keys-pred (complement keep-ports) assigned-tasks)
-                               new-worker-ids (into
-                                               {}
-                                               (for [port (keys reassign-tasks)]
-                                                 [port (uuid)]))
-                               ]
-                           ;; 1. to kill are those in allocated that are dead or disallowed
-                           ;; 2. kill the ones that should be dead
-                           ;;     - read pids, kill -9 and individually remove file
-                           ;;     - rmr heartbeat dir, rmdir pid dir, rmdir id dir (catch exception and log)
-                           ;; 3. of the rest, figure out what assignments aren't yet satisfied
-                           ;; 4. generate new worker ids, write new "approved workers" to LS
-                           ;; 5. create local dir for worker id
-                           ;; 5. launch new workers (give worker-id, port, and supervisor-id)
-                           ;; 6. wait for workers launch
-                           
-                           (log-debug "Syncing processes")
-                           (log-debug "Assigned tasks: " assigned-tasks)
-                           (log-debug "Allocated: " allocated)
-                           (doseq [[id [state heartbeat]] allocated]
-                             (when (not= :valid state)
-                               (log-message
-                                "Shutting down and clearing state for id " id
-                                ". State: " state
-                                ", Heartbeat: " (pr-str heartbeat))
-                               (shutdown-worker conf supervisor-id id worker-thread-pids-atom)
-                               ))
-                           (doseq [id (vals new-worker-ids)]
-                             (local-mkdirs (worker-pids-root conf id)))
-                           (.put local-state LS-APPROVED-WORKERS
-                                 (merge
-                                  (select-keys (.get local-state LS-APPROVED-WORKERS)
-                                               (keys keepers))
-                                  (zipmap (vals new-worker-ids) (keys new-worker-ids))
-                                  ))
-                           (wait-for-workers-launch
-                            conf
-                            (dofor [[port assignment] reassign-tasks]
-                              (let [id (new-worker-ids port)]
-                                (log-message "Launching worker with assignment "
-                                             (pr-str assignment)
-                                             " for this supervisor "
-                                             supervisor-id
-                                             " on port "
-                                             port
-                                             " with id "
-                                             id
-                                             )
-                                (launch-worker conf
-                                               shared-context
-                                               (:storm-id assignment)
-                                               supervisor-id
-                                               port
-                                               id
-                                               worker-thread-pids-atom)
-                                id)))
-                           ))
-        synchronize-supervisor (fn this []
-                                 (let [sync-callback (fn [& ignored] (.add event-manager this))
-                                       storm-code-map (read-storm-code-locations storm-cluster-state sync-callback)
-                                       assigned-storm-ids (set (keys storm-code-map))
-                                       downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-                                       new-assignment (->>
-                                                       (read-assignments
-                                                        storm-cluster-state
-                                                        supervisor-id
-                                                        sync-callback)
-                                                       (filter-key #(.confirmAssigned isupervisor %)))
-                                       existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
-                                   (log-debug "Synchronizing supervisor")
-                                   (log-debug "Storm code map: " storm-code-map)
-                                   (log-debug "Downloaded storm ids: " downloaded-storm-ids)
-                                   (log-debug "New assignment: " new-assignment)
-                                   ;; download code first
-                                   ;; This might take awhile
-                                   ;;   - should this be done separately from usual monitoring?
-                                   ;; should we only download when storm is assigned to this supervisor?
-                                   (doseq [[storm-id master-code-dir] storm-code-map]
-                                     (when-not (downloaded-storm-ids storm-id)
-                                       (log-message "Downloading code for storm id "
-                                          storm-id
-                                          " from "
-                                          master-code-dir)
-                                       (download-storm-code conf storm-id master-code-dir)
-                                       (log-message "Finished downloading code for storm id "
-                                          storm-id
-                                          " from "
-                                          master-code-dir)
-                                       ))
-                                   ;; remove any downloaded code that's no longer assigned or active
-                                   (doseq [storm-id downloaded-storm-ids]
-                                     (when-not (assigned-storm-ids storm-id)
-                                       (log-message "Removing code for storm id "
-                                                    storm-id)
-                                       (rmr (supervisor-stormdist-root conf storm-id))
-                                       ))
-                                   (log-debug "Writing new assignment "
-                                              (pr-str new-assignment))
-                                   (doseq [p (set/difference (set (keys existing-assignment))
-                                                             (set (keys new-assignment)))]
-                                     (.killedWorker isupervisor (int p)))
-                                   (.put local-state
-                                         LS-LOCAL-ASSIGNMENTS
-                                         new-assignment)
-                                   (.add processes-event-manager sync-processes)
-                                   ))
+  (let [supervisor (supervisor-data conf shared-context isupervisor)
+        [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]                         
+        sync-processes (partial sync-processes supervisor)
+        synchronize-supervisor (mk-synchronize-supervisor supervisor sync-processes event-manager processes-event-manager)
         heartbeat-fn (fn [] (.supervisor-heartbeat!
-                               storm-cluster-state
-                               supervisor-id
+                               (:storm-cluster-state supervisor)
+                               (:supervisor-id supervisor)
                                (SupervisorInfo. (current-time-secs)
-                                                my-hostname
+                                                (:my-hostname supervisor)
                                                 (.getMetadata isupervisor)
-                                                (uptime))))
-        _ (heartbeat-fn)
-        ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
-        threads (concat
-                  [(async-loop
-                     (fn []
-                       (heartbeat-fn)
-                       (when @active (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS))
-                       )
-                     :priority Thread/MAX_PRIORITY)]
-                   ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
-                   ;; to date even if callbacks don't all work exactly right
-                   (when (conf SUPERVISOR-ENABLE)
-                     [(async-loop
-                       (fn []
-                         (.add event-manager synchronize-supervisor)
-                         (when @active 10)
-                         ))
-                      (async-loop
-                         (fn []
-                           (.add processes-event-manager sync-processes)
-                           (when @active (conf SUPERVISOR-MONITOR-FREQUENCY-SECS))
-                           )
-                         :priority Thread/MAX_PRIORITY)]))]
-    (log-message "Starting supervisor with id " supervisor-id " at host " my-hostname)
+                                                ((:uptime supervisor)))))]
+    (heartbeat-fn)
+    ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
+    (schedule-recurring (:timer supervisor)
+                        0
+                        (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
+                        heartbeat-fn)
+    (when (conf SUPERVISOR-ENABLE)
+      ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
+      ;; to date even if callbacks don't all work exactly right
+      (schedule-recurring (:timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
+      (schedule-recurring (:timer supervisor)
+                          0
+                          (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
+                          (fn [] (.add processes-event-manager sync-processes))))
+    (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable
      (shutdown [this]
-               (log-message "Shutting down supervisor " supervisor-id)
-               (reset! active false)
-               (doseq [t threads]
-                 (.interrupt t)
-                 (.join t))
+               (log-message "Shutting down supervisor " (:supervisor-id supervisor))
+               (reset! (:active supervisor) false)
+               (cancel-timer (:timer supervisor))
                (.shutdown event-manager)
                (.shutdown processes-event-manager)
-               (.disconnect storm-cluster-state))
+               (.disconnect (:storm-cluster-state supervisor)))
      SupervisorDaemon
      (get-conf [this]
        conf)
      (get-id [this]
-       supervisor-id )
+       (:supervisor-id supervisor))
      (shutdown-all-workers [this]
        (let [ids (my-worker-ids conf)]
          (doseq [id ids]
-           (shutdown-worker conf supervisor-id id worker-thread-pids-atom)
+           (shutdown-worker supervisor id)
            )))
      DaemonCommon
      (waiting? [this]
-       (or (not @active)
+       (or (not @(:active supervisor))
            (and
-            (every? (memfn sleeping?) threads)
+            (timer-waiting? (:timer supervisor))
             (every? (memfn waiting?) managers)))
            ))))
 
@@ -373,8 +385,9 @@
 
 
 (defmethod launch-worker
-    :distributed [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]
-    (let [stormroot (supervisor-stormdist-root conf storm-id)
+    :distributed [supervisor storm-id port worker-id]
+    (let [conf (:conf supervisor)
+          stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
@@ -388,7 +401,8 @@
                        " -Dstorm.home=" (System/getProperty "storm.home")
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "
-                       (java.net.URLEncoder/encode storm-id) " " supervisor-id " " port " " worker-id)]
+                       (java.net.URLEncoder/encode storm-id) " " (:supervisor-id supervisor)
+                       " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
       (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))
@@ -422,11 +436,17 @@
             )))
 
 (defmethod launch-worker
-    :local [conf shared-context storm-id supervisor-id port worker-id worker-thread-pids-atom]
-    (let [pid (uuid)
-          worker (worker/mk-worker conf shared-context storm-id supervisor-id port worker-id)]
+    :local [supervisor storm-id port worker-id]
+    (let [conf (:conf supervisor)
+          pid (uuid)
+          worker (worker/mk-worker conf
+                                   (:shared-context supervisor)
+                                   storm-id
+                                   (:supervisor-id supervisor)
+                                   port
+                                   worker-id)]
       (psim/register-process pid worker)
-      (swap! worker-thread-pids-atom assoc worker-id pid)
+      (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))
 
 (defn -launch [supervisor]

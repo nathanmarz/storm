@@ -228,8 +228,9 @@
     ))
 
 (defn mk-capture-launch-fn [capture-atom]
-  (fn [conf shared-context storm-id supervisor-id port worker-id _]
-    (let [existing (get @capture-atom [supervisor-id port] [])]
+  (fn [supervisor storm-id port worker-id]
+    (let [supervisor-id (:supervisor-id supervisor)
+          existing (get @capture-atom [supervisor-id port] [])]
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id))
       )))
 
@@ -248,11 +249,13 @@
 
 (defn mk-capture-shutdown-fn [capture-atom]
   (let [existing-fn supervisor/shutdown-worker]
-    (fn [conf supervisor-id worker-id worker-thread-pids-atom]
-      (let [port (find-worker-port conf worker-id)
+    (fn [supervisor worker-id]
+      (let [conf (:conf supervisor)
+            supervisor-id (:supervisor-id supervisor)
+            port (find-worker-port conf worker-id)
             existing (get @capture-atom [supervisor-id port] 0)]      
         (swap! capture-atom assoc [supervisor-id port] (inc existing))
-        (existing-fn conf supervisor-id worker-id worker-thread-pids-atom)
+        (existing-fn supervisor worker-id)
         ))))
 
 (defmacro capture-changed-workers [& body]

@@ -267,6 +267,12 @@ def drpc():
         extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
 
 def dev_zookeeper():
+    """Syntax: [storm dev-zookeeper]
+  
+    Launches a fresh Zookeeper server using "dev.zookeeper.path" as its local dir and
+    "storm.zookeeper.port" as its port. This is only intended for development/testing, the
+    Zookeeper instance launched is not configured to be used in production.
+    """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     exec_storm_class(
         "backtype.storm.command.dev_zookeeper", 

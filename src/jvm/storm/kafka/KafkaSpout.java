@@ -197,10 +197,8 @@ public class KafkaSpout extends BaseRichSpout {
 
     @Override
     public void nextTuple() {
-        //TODO: change behavior to stick with one partition until it's empty
         for(int i=0; i<_managedPartitions.size(); i++) {
             int partition = _managedPartitions.get(_currPartitionIndex);
-            _currPartitionIndex = (_currPartitionIndex + 1) % _managedPartitions.size();
             EmitState state = _managers.get(partition).next();
             if(state!=EmitState.EMITTED_MORE_LEFT) {
                 _currPartitionIndex = (_currPartitionIndex + 1) % _managedPartitions.size();                

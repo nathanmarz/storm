@@ -14,10 +14,17 @@ public class KafkaConfig implements Serializable {
     public int bufferSizeBytes = 1024*1024;
     public Scheme scheme = new RawScheme();
     public String topic;
+    public long startOffsetTime = -2;
+    public boolean forceFromStart = false;
 
     public KafkaConfig(List<String> hosts, int partitionsPerHost, String topic) {
         this.hosts = hosts;
         this.partitionsPerHost = partitionsPerHost;
         this.topic = topic;
+    }
+    
+    public void forceStartOffsetTime(long millis) {
+        startOffsetTime = millis;
+        forceFromStart = true;
     }
 }

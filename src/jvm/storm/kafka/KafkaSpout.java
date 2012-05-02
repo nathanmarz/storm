@@ -17,12 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.apache.log4j.Logger;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
 import kafka.api.FetchRequest;
 
-
+// TODO: need to add blacklisting
+// TODO: need to make a best effort to not re-emit messages if don't have to
 public class KafkaSpout extends BaseRichSpout {
+    public static final Logger LOG = Logger.getLogger(KafkaSpout.class);
+    
     static class KafkaMessageId {
         public int partition;
         public long offset;
@@ -43,7 +47,12 @@ public class KafkaSpout extends BaseRichSpout {
         public PartitionManager(int partition) {
             _partition = partition;
             _committedTo = (Long) _state.getData(committedPath());
-            if(_committedTo==null) _committedTo = 0L;
+            SimpleConsumer consumer = _partitions.getConsumer(_partition);
+            int hostPartition = _partitions.getHostPartition(_partition);
+            if(_committedTo==null || _spoutConfig.forceFromStart) {
+                _committedTo = consumer.getOffsetsBefore(_spoutConfig.topic, hostPartition, _spoutConfig.startOffsetTime, 1)[0];
+            }
+            LOG.info("Starting Kafka " + consumer.host() + ":" + hostPartition + " from offset " + _committedTo);
             _emittedToOffset = _committedTo;            
         }
         
@@ -58,12 +67,15 @@ public class KafkaSpout extends BaseRichSpout {
         
         private void fill() {
             SimpleConsumer consumer = _partitions.getConsumer(_partition);
+            int hostPartition = _partitions.getHostPartition(_partition);
+            //LOG.info("Fetching from Kafka: " + consumer.host() + ":" + hostPartition);
             ByteBufferMessageSet msgs = consumer.fetch(
                     new FetchRequest(
                         _spoutConfig.topic,
-                        _partitions.getHostPartition(_partition),
+                        hostPartition,
                         _emittedToOffset,
                         _spoutConfig.fetchSizeBytes));
+            //LOG.info("Fetched " + msgs.underlying().size() + " messages from Kafka: " + consumer.host() + ":" + hostPartition);
             for(MessageAndOffset msg: msgs) {
                 _pending.add(actualOffset(msg));
                 _waitingToEmit.add(msg);
@@ -153,8 +165,7 @@ public class KafkaSpout extends BaseRichSpout {
     }
 
     @Override
-    public void nextTuple() {
-        
+    public void nextTuple() {        
         for(int i=0; i<_managedPartitions.size(); i++) {
             int partition = _managedPartitions.get(_currPartitionIndex);
             _currPartitionIndex = (_currPartitionIndex + 1) % _managedPartitions.size();
@@ -165,7 +176,6 @@ public class KafkaSpout extends BaseRichSpout {
         if((now - _lastUpdateMs) > _spoutConfig.stateUpdateIntervalMs) {
             commit();
         }
-
     }
 
     @Override
@@ -202,18 +212,22 @@ public class KafkaSpout extends BaseRichSpout {
         TopologyBuilder builder = new TopologyBuilder();
         List<String> hosts = new ArrayList<String>();
         hosts.add("localhost");
-        SpoutConfig spoutConf = new SpoutConfig(hosts, 3, "nathan", "/kafka", "id");
+        //hosts.add("smf1-atc-13-sr1.prod.twitter.com");
+        //hosts.add("smf1-atx-26-sr1.prod.twitter.com");
+        //hosts.add("smf1-atw-05-sr4.prod.twitter.com");
+        //hosts.add("smf1-aty-37-sr4.prod.twitter.com");
+        SpoutConfig spoutConf = new SpoutConfig(hosts, 8, "clicks", "/kafkastorm", "id");
         spoutConf.scheme = new StringScheme();
-        spoutConf.zkServers = new ArrayList<String>() {{
-           add("localhost"); 
-        }};
-        spoutConf.zkPort = 2181;
+        spoutConf.forceStartOffsetTime(1335774001000L);
+ //       spoutConf.zkServers = new ArrayList<String>() {{
+ //          add("localhost"); 
+ //       }};
+ //       spoutConf.zkPort = 2181;
         
-        builder.setSpout("spout",
-                new KafkaSpout(spoutConf));
+        builder.setSpout("spout", new KafkaSpout(spoutConf), 3);
         
         Config conf = new Config();
-        conf.setDebug(true);
+        //conf.setDebug(true);
         
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("kafka-test", conf, builder.createTopology());

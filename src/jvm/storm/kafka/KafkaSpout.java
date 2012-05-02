@@ -9,6 +9,7 @@ import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.utils.Utils;
+import java.io.Serializable;
 import java.util.ArrayList;
 import kafka.javaapi.consumer.SimpleConsumer;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 import org.apache.log4j.Logger;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
@@ -25,6 +27,22 @@ import kafka.api.FetchRequest;
 // TODO: need to add blacklisting
 // TODO: need to make a best effort to not re-emit messages if don't have to
 public class KafkaSpout extends BaseRichSpout {
+    public static class ZooMeta implements Serializable {
+        String id;
+        long offset;
+        
+        public ZooMeta(String id, long offset) {
+            this.id = id;
+            this.offset = offset;
+        }
+    }
+    
+    static enum EmitState {
+        EMITTED_MORE_LEFT,
+        EMITTED_END,
+        NO_EMITTED
+    }
+    
     public static final Logger LOG = Logger.getLogger(KafkaSpout.class);
     
     static class KafkaMessageId {
@@ -46,23 +64,32 @@ public class KafkaSpout extends BaseRichSpout {
         
         public PartitionManager(int partition) {
             _partition = partition;
-            _committedTo = (Long) _state.getData(committedPath());
+            ZooMeta zooMeta = (ZooMeta) _state.getData(committedPath());
             SimpleConsumer consumer = _partitions.getConsumer(_partition);
             int hostPartition = _partitions.getHostPartition(_partition);
-            if(_committedTo==null || _spoutConfig.forceFromStart) {
+            
+            //the id stuff makes sure the spout doesn't reset the offset if it restarts
+            if(zooMeta==null || (!_uuid.equals(zooMeta.id) && _spoutConfig.forceFromStart)) {
                 _committedTo = consumer.getOffsetsBefore(_spoutConfig.topic, hostPartition, _spoutConfig.startOffsetTime, 1)[0];
+            } else {
+                _committedTo = zooMeta.offset;
             }
             LOG.info("Starting Kafka " + consumer.host() + ":" + hostPartition + " from offset " + _committedTo);
             _emittedToOffset = _committedTo;            
         }
         
-        public boolean next() {
+        //returns false if it's reached the end of current batch
+        public EmitState next() {
             if(_waitingToEmit.isEmpty()) fill();
             MessageAndOffset toEmit = _waitingToEmit.pollFirst();
-            if(toEmit==null) return false;
+            if(toEmit==null) return EmitState.NO_EMITTED;
             List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.message().payload()));
             _collector.emit(tup, new KafkaMessageId(_partition, actualOffset(toEmit)));
-            return true;
+            if(_waitingToEmit.size()>0) {
+                return EmitState.EMITTED_MORE_LEFT;
+            } else {
+                return EmitState.EMITTED_END;
+            }
         }
         
         private void fill() {
@@ -104,7 +131,7 @@ public class KafkaSpout extends BaseRichSpout {
                 committedTo = _pending.first();
             }
             if(committedTo!=_committedTo) {
-                _state.setData(committedPath(), committedTo);
+                _state.setData(committedPath(), new ZooMeta(_uuid, committedTo));
                 _committedTo = committedTo;
             }
         }
@@ -119,6 +146,7 @@ public class KafkaSpout extends BaseRichSpout {
         }
     }
     
+    String _uuid = UUID.randomUUID().toString();
     SpoutConfig _spoutConfig;
     SpoutOutputCollector _collector;
     TransactionalState _state;
@@ -151,6 +179,9 @@ public class KafkaSpout extends BaseRichSpout {
         stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_PORT, zkPort);
         stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_ROOT, zkRoot);
         
+        Config componentConf = new Config();
+        componentConf.registerSerialization(ZooMeta.class);
+        
         // using TransactionalState like this is a hack
         _state = TransactionalState.newUserState(stateConf, _spoutConfig.id, null);
         _partitions = new KafkaPartitionConnections(_spoutConfig);
@@ -165,11 +196,18 @@ public class KafkaSpout extends BaseRichSpout {
     }
 
     @Override
-    public void nextTuple() {        
+    public void nextTuple() {
+        //TODO: change behavior to stick with one partition until it's empty
         for(int i=0; i<_managedPartitions.size(); i++) {
             int partition = _managedPartitions.get(_currPartitionIndex);
             _currPartitionIndex = (_currPartitionIndex + 1) % _managedPartitions.size();
-            if(_managers.get(partition).next()) break;
+            EmitState state = _managers.get(partition).next();
+            if(state!=EmitState.EMITTED_MORE_LEFT) {
+                _currPartitionIndex = (_currPartitionIndex + 1) % _managedPartitions.size();                
+            }
+            if(state!=EmitState.NO_EMITTED) {
+                break;
+            }
         }
         
         long now = System.currentTimeMillis();
@@ -205,8 +243,7 @@ public class KafkaSpout extends BaseRichSpout {
         for(PartitionManager manager: _managers.values()) {
             manager.commit();
         }        
-    }
-    
+    } 
     
     public static void main(String[] args) {
         TopologyBuilder builder = new TopologyBuilder();
@@ -218,7 +255,8 @@ public class KafkaSpout extends BaseRichSpout {
         //hosts.add("smf1-aty-37-sr4.prod.twitter.com");
         SpoutConfig spoutConf = new SpoutConfig(hosts, 8, "clicks", "/kafkastorm", "id");
         spoutConf.scheme = new StringScheme();
-        spoutConf.forceStartOffsetTime(1335774001000L);
+        spoutConf.forceStartOffsetTime(-2);
+        
  //       spoutConf.zkServers = new ArrayList<String>() {{
  //          add("localhost"); 
  //       }};

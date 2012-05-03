@@ -10,7 +10,7 @@
   (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
-  (:use [backtype.storm util config])
+  (:use [backtype.storm util config log])
   )
 
 (defn instantiate-java-object [^JavaObject obj]
@@ -49,6 +49,7 @@
     ))
 
 (defn nimbus-client-and-conn [host port]
+  (log-message "Connecting to Nimbus at " host ":" port)
   (let [transport (TFramedTransport. (TSocket. host port))
         prot (TBinaryProtocol. transport)
         client (Nimbus$Client. prot)]

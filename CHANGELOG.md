@@ -14,9 +14,12 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Added "storm dev-zookeeper" command for launching a local zookeeper server. Useful for testing a one node Storm cluster locally. Zookeeper dir configured with "dev.zookeeper.path"
  * Use new style classes for Python multilang adapter (thanks hellp)
  * Added "storm version" command
- * Bug fix: Fixed criticial bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
+ * Heavily refactored and simplified the supervisor and worker code
+ * Improved error message when duplicate config files found on classpath
+ * Print the host and port of Nimbus when using the storm command line client
+ * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
- * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method.
+ * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method
  * Bug fix: Zookeeper in local mode now always gets an unused port. This will eliminate conflicts with other local mode processes or other Zookeeper instances on a local machine. (thanks xumingming)
  * Bug fix: Fixed NPE in CoordinatedBolt it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
  * Bug fix: UI no longer errors for topologies with no assigned tasks (thanks xumingming)

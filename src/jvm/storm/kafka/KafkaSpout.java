@@ -31,6 +31,10 @@ public class KafkaSpout extends BaseRichSpout {
         String id;
         long offset;
         
+        public ZooMeta() {
+            
+        }
+        
         public ZooMeta(String id, long offset) {
             this.id = id;
             this.offset = offset;
@@ -183,7 +187,7 @@ public class KafkaSpout extends BaseRichSpout {
         componentConf.registerSerialization(ZooMeta.class);
         
         // using TransactionalState like this is a hack
-        _state = TransactionalState.newUserState(stateConf, _spoutConfig.id, null);
+        _state = TransactionalState.newUserState(stateConf, _spoutConfig.id, componentConf);
         _partitions = new KafkaPartitionConnections(_spoutConfig);
 
         int totalPartitions = _spoutConfig.partitionsPerHost * _spoutConfig.hosts.size();

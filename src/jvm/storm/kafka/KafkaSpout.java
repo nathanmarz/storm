@@ -247,10 +247,6 @@ public class KafkaSpout extends BaseRichSpout {
         TopologyBuilder builder = new TopologyBuilder();
         List<String> hosts = new ArrayList<String>();
         hosts.add("localhost");
-        //hosts.add("smf1-atc-13-sr1.prod.twitter.com");
-        //hosts.add("smf1-atx-26-sr1.prod.twitter.com");
-        //hosts.add("smf1-atw-05-sr4.prod.twitter.com");
-        //hosts.add("smf1-aty-37-sr4.prod.twitter.com");
         SpoutConfig spoutConf = new SpoutConfig(hosts, 8, "clicks", "/kafkastorm", "id");
         spoutConf.scheme = new StringScheme();
         spoutConf.forceStartOffsetTime(-2);

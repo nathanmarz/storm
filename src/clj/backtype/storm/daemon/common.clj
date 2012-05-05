@@ -1,9 +1,11 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
-            InvalidTopologyException GlobalStreamId])
+            InvalidTopologyException GlobalStreamId
+            Grouping Grouping$_Fields])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
+  (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
   )
@@ -126,15 +128,32 @@
       (throw (InvalidTopologyException. "May not declare inputs for a spout"))
       )))
 
-(defn validate-structure! [^StormTopology topology]
-  ;; TODO: validate that all subscriptions are to valid component/streams
-  )
-
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
            (.getFieldValue topology f)
            )))
+
+(defn validate-structure! [^StormTopology topology]
+  ;; validate all the component subscribe from component+stream which actually exists in the topology
+  ;; and if it is a fields grouping, validate the corresponding field exists  
+  (let [all-components (all-components topology)]
+    (doseq [[id comp] all-components
+            :let [inputs (.. comp get_common get_inputs)]]
+      (doseq [[global-stream-id grouping] inputs
+              :let [source-component-id (.get_componentId global-stream-id)
+                    source-stream-id    (.get_streamId global-stream-id)]]
+        (if-not (contains? all-components source-component-id)
+          (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from non-exists component [" source-component-id "]")))
+          (let [source-streams (-> all-components (get source-component-id) .get_common .get_streams)]
+            (if-not (contains? source-streams source-stream-id)
+              (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from non-exists stream: [" source-stream-id "] of component [" source-component-id "]")))
+              (if (= Grouping$_Fields/FIELDS (.getSetField grouping))
+                (let [grouping-fields (set (.get_fields grouping))
+                      source-stream-fields (-> source-streams (get source-stream-id) .get_output_fields set)
+                      diff-fields (set/difference grouping-fields source-stream-fields)]
+                  (when-not (empty? diff-fields)
+                    (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from stream: [" source-stream-id "] of component [" source-component-id "] with non-exists fields: " diff-fields)))))))))))))
 
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)

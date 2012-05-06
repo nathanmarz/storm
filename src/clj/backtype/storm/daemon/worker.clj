@@ -25,11 +25,18 @@
              (current-time-secs)
              (:storm-id worker)
              (:task-ids worker)
-             (:port worker))]
-  (log-debug "Doing heartbeat " (pr-str hb))
-  (.put (worker-state conf (:worker-id worker))
+             (:port worker))
+        taskbeats @(:taskbeats worker)
+        zk-hb {:storm-id (:storm-id worker)
+               :taskbeats taskbeats}]
+    (log-debug "Doing heartbeat " (pr-str hb))
+    ;; do the local-file-system heartbeat.
+    (.put (worker-state conf (:worker-id worker))
         LS-WORKER-HEARTBEAT
-        hb)))
+        hb)
+    ;; do the zookeeper heartbeat
+    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:supervisor-id worker) (:port worker) zk-hb)
+    ))
 
 (defn mk-topology-context-builder [worker topology]
   (let [conf (:conf worker)]
@@ -94,6 +101,7 @@
         task-ids (set (read-worker-task-ids storm-cluster-state storm-id supervisor-id port))
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         receive-queue-map (into {} (dofor [tid task-ids] [tid (LinkedBlockingQueue.)]))
+        taskbeats (atom {})
         ret {:conf conf
              :mq-context (if mq-context
                              mq-context
@@ -121,6 +129,7 @@
              :transfer-queue transfer-queue
              :receive-queue-map receive-queue-map
              :suicide-fn (mk-suicide-fn conf)
+             :taskbeats taskbeats
              }]
     (merge ret
            {:transfer-fn (mk-transfer-fn ret)
@@ -249,6 +258,7 @@
                       (.interrupt t)
                       (.join t))
                     (cancel-timer (:timer worker))
+                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:cluster-state worker))

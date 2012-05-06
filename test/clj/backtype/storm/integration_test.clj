@@ -115,6 +115,11 @@
                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
                     {"2" (thrift/mk-bolt-spec {"1" ["non-exists-field"]} (TestWordCounter.) :parallelism-hint 4)}))
 
+(defn mk-invalidate-topology-3 []
+  (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                    {"2" (thrift/mk-bolt-spec {["1" "non-exists-stream"] ["word"]} (TestWordCounter.) :parallelism-hint 4)}))
+
 (defn try-complete-wc-topology [cluster topology]
   (try (do
          (complete-topology cluster
@@ -128,10 +133,12 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [any-error1? (try-complete-wc-topology cluster (mk-validate-topology-1))
           any-error2? (try-complete-wc-topology cluster (mk-invalidate-topology-1))
-          any-error3? (try-complete-wc-topology cluster (mk-invalidate-topology-2))]
+          any-error3? (try-complete-wc-topology cluster (mk-invalidate-topology-2))
+          any-error4? (try-complete-wc-topology cluster (mk-invalidate-topology-3))]
       (is (= any-error1? false))
       (is (= any-error2? true))
-      (is (= any-error3? true)))))
+      (is (= any-error3? true))
+      (is (= any-error4? true)))))
 
 (defbolt identity-bolt ["num"]
   [tuple collector]

@@ -1,8 +1,7 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
-            InvalidTopologyException GlobalStreamId
-            Grouping Grouping$_Fields])
+            InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
   (:require [clojure.set :as set])  
@@ -148,7 +147,7 @@
           (let [source-streams (-> all-components (get source-component-id) .get_common .get_streams)]
             (if-not (contains? source-streams source-stream-id)
               (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from non-exists stream: [" source-stream-id "] of component [" source-component-id "]")))
-              (if (= Grouping$_Fields/FIELDS (.getSetField grouping))
+              (if (= :fields (thrift/grouping-type grouping))
                 (let [grouping-fields (set (.get_fields grouping))
                       source-stream-fields (-> source-streams (get source-stream-id) .get_output_fields set)
                       diff-fields (set/difference grouping-fields source-stream-fields)]

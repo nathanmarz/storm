@@ -4,6 +4,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
 
  * Messages sent to colocated tasks are sent in-memory, skipping serialization (useful in conjunction with localOrShuffle grouping) (thanks xumingming)
  * Upgrade to Clojure 1.4 (thanks sorenmacbeth)
+ * Exposed INimbus and ISupervisor interfaces for running Storm on different resource frameworks (like Mesos).
  * Can override the hostname that supervisors report using "storm.local.hostname" config.
  * Make request timeout within DRPC server configurable via "drpc.request.timeout.secs"
  * Added "storm list" command to show running topologies at the command line (thanks xumingming)

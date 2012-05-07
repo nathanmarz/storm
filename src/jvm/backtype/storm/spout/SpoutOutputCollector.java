@@ -23,7 +23,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * When Storm detects that this tuple has been fully processed, or has failed
      * to be fully processed, the spout will receive an ack or fail callback respectively
      * with the messageId as long as the messageId was not null. If the messageId was null,
-     * Storm will not track the tuple and no callback will be received.
+     * Storm will not track the tuple and no callback will be received. The emitted values must be 
+     * immutable.
      *
      * @return the list of task ids that this tuple was sent to
      */
@@ -36,7 +37,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * When Storm detects that this tuple has been fully processed, or has failed
      * to be fully processed, the spout will receive an ack or fail callback respectively
      * with the messageId as long as the messageId was not null. If the messageId was null,
-     * Storm will not track the tuple and no callback will be received.
+     * Storm will not track the tuple and no callback will be received. The emitted values must be 
+     * immutable.
      *
      * @return the list of task ids that this tuple was sent to
      */
@@ -46,7 +48,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
 
     /**
      * Emits a tuple to the default output stream with a null message id. Storm will
-     * not track this message so ack and fail will never be called for this tuple.
+     * not track this message so ack and fail will never be called for this tuple. The
+     * emitted values must be immutable.
      */
     public List<Integer> emit(List<Object> tuple) {
         return emit(tuple, null);
@@ -54,7 +57,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
 
     /**
      * Emits a tuple to the specified output stream with a null message id. Storm will
-     * not track this message so ack and fail will never be called for this tuple.
+     * not track this message so ack and fail will never be called for this tuple. The
+     * emitted values must be immutable.
      */
     public List<Integer> emit(String streamId, List<Object> tuple) {
         return emit(streamId, tuple, null);
@@ -63,7 +67,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
     /**
      * Emits a tuple to the specified task on the specified output stream. This output
      * stream must have been declared as a direct stream, and the specified task must
-     * use a direct grouping on this stream to receive the message. 
+     * use a direct grouping on this stream to receive the message. The emitted values must be 
+     * immutable.
      */
     public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
         _delegate.emitDirect(taskId, streamId, tuple, messageId);
@@ -72,7 +77,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
     /**
      * Emits a tuple to the specified task on the default output stream. This output
      * stream must have been declared as a direct stream, and the specified task must
-     * use a direct grouping on this stream to receive the message.
+     * use a direct grouping on this stream to receive the message. The emitted values must be 
+     * immutable.
      */
     public void emitDirect(int taskId, List<Object> tuple, Object messageId) {
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, tuple, messageId);
@@ -81,7 +87,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
     /**
      * Emits a tuple to the specified task on the specified output stream. This output
      * stream must have been declared as a direct stream, and the specified task must
-     * use a direct grouping on this stream to receive the message.
+     * use a direct grouping on this stream to receive the message. The emitted values must be 
+     * immutable.
      *
      * <p> Because no message id is specified, Storm will not track this message
      * so ack and fail will never be called for this tuple.</p>
@@ -93,7 +100,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
     /**
      * Emits a tuple to the specified task on the default output stream. This output
      * stream must have been declared as a direct stream, and the specified task must
-     * use a direct grouping on this stream to receive the message.
+     * use a direct grouping on this stream to receive the message. The emitted values must be 
+     * immutable.
      *
      * <p> Because no message id is specified, Storm will not track this message
      * so ack and fail will never be called for this tuple.</p>

@@ -1,8 +1,9 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap])
+  (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap LinkedBlockingQueue])
   (:import [backtype.storm.hooks ITaskHook])
+  (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
               EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
@@ -156,8 +157,25 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
-(defn mk-task [conf storm-conf topology-context user-context storm-id mq-context cluster-state storm-active-atom transfer-fn suicide-fn]
+(defn mk-task [worker topology-context user-context]
   (let [task-id (.getThisTaskId topology-context)
+
+        ;; TODO refactor...
+        conf (:conf worker)
+        storm-conf (:storm-conf worker)
+        storm-id (:storm-id worker)
+        cluster-state (:cluster-state worker)
+        storm-active-atom (:storm-active-atom worker)
+        transfer-fn (:transfer-fn worker)
+        suicide-fn (:suicide-fn worker)
+        receive-queue ((:receive-queue-map worker) task-id)
+    
+    
+    
+    
+    
+    
+        worker-port (.getThisWorkerPort topology-context)
         component-id (.getThisComponentId topology-context)
         storm-conf (component-conf storm-conf topology-context component-id)
         _ (log-message "Loading task " component-id ":" task-id)
@@ -196,9 +214,7 @@
 
         stream->component->grouper (outbound-components topology-context user-context)
         component->tasks (reverse-map task-info)
-        ;; important it binds to virtual port before function returns
-        puller (msg/bind mq-context storm-id task-id)
-
+        
         ;; TODO: consider DRYing things up and moving stats        
         task-readable-name (get-readable-name topology-context)
 
@@ -239,7 +255,7 @@
         _ (send-unanchored topology-context tasks-fn transfer-fn SYSTEM-STREAM-ID ["startup"])
         executor-threads (dofor
                           [exec (with-error-reaction report-error-and-die
-                                  (mk-executors task-object storm-conf puller tasks-fn
+                                  (mk-executors task-object storm-conf receive-queue tasks-fn
                                                 transfer-fn
                                                 storm-active-atom topology-context
                                                 user-context task-stats report-error))]
@@ -254,8 +270,9 @@
         [this]
         (log-message "Shutting down task " storm-id ":" task-id)
         (reset! active false)
-        ;; empty messages are skip messages (this unblocks the socket)
-        (msg/send-local-task-empty mq-context storm-id task-id)
+        ;; put an empty message into receive-queue
+        ;; empty messages are skip messages (this unblocks the receive-queue.take thread)
+        (.put receive-queue (byte-array []))
         (doseq [t all-threads]
           (.interrupt t)
           (.join t))
@@ -263,7 +280,6 @@
           (.cleanup hook))
         (.remove-task-heartbeat! storm-cluster-state storm-id task-id)
         (.disconnect storm-cluster-state)
-        (.close puller)
         (close-component task-object)
         (log-message "Shut down task " storm-id ":" task-id))
       DaemonCommon
@@ -290,7 +306,18 @@
     (stats/spout-acked-tuple! task-stats (:stream tuple-info) time-delta)
     ))
 
-(defmethod mk-executors ISpout [^ISpout spout storm-conf puller tasks-fn transfer-fn storm-active-atom
+(defn mk-task-receiver [^LinkedBlockingQueue receive-queue ^KryoTupleDeserializer deserializer tuple-action-fn]
+  (fn []
+    (let [msg (.take receive-queue)
+          is-tuple? (instance? Tuple msg)]
+      (when (or is-tuple? (not (empty? msg))) ; skip empty messages (used during shutdown)
+        (log-debug "Processing message " msg)
+        (let [^Tuple tuple (if is-tuple? msg (.deserialize deserializer msg))]
+          (tuple-action-fn tuple)
+          ))
+      )))
+
+(defmethod mk-executors ISpout [^ISpout spout storm-conf ^LinkedBlockingQueue receive-queue tasks-fn transfer-fn storm-active-atom
                                 ^TopologyContext topology-context ^TopologyContext user-context
                                 task-stats report-error-fn]
   (let [wait-fn (fn [] @storm-active-atom)
@@ -349,10 +376,24 @@
                              )
                            (reportError [this error]
                              (report-error-fn error)
-                             ))]
+                             ))
+        tuple-action-fn (fn [^Tuple tuple]
+                          (let [id (.getValue tuple 0)
+                                [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
+                            (when spout-id
+                              (let [time-delta (time-delta-ms start-time-ms)]
+                                (condp = (.getSourceStreamId tuple)
+                                    ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
+                                                                                          tuple-finished-info time-delta task-stats sampler))
+                                    ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
+                                                                                            tuple-finished-info time-delta task-stats sampler))
+                                    )))
+                            ;; TODO: on failure, emit tuple to failure stream
+                            ))]
     (log-message "Opening spout " component-id ":" task-id)
     (.open spout storm-conf user-context (SpoutOutputCollector. output-collector))
     (log-message "Opened spout " component-id ":" task-id)
+    ;; TODO: should redesign this to only use one thread
     [(fn []
        ;; This design requires that spouts be non-blocking
        (loop []
@@ -377,23 +418,7 @@
              ;; TODO: log that it's getting throttled
              (Time/sleep 100)))
          ))
-     (fn []
-       (let [^bytes ser-msg (msg/recv puller)]
-         ;; skip empty messages (used during shutdown)
-         (when-not (empty? ser-msg)
-           (let [tuple (.deserialize deserializer ser-msg)
-                 id (.getValue tuple 0)
-                 [spout-id tuple-finished-info start-time-ms] (.remove pending id)]
-             (when spout-id
-               (let [time-delta (time-delta-ms start-time-ms)]
-                 (condp = (.getSourceStreamId tuple)
-                   ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg spout user-context storm-conf spout-id
-                                                                         tuple-finished-info time-delta task-stats sampler))
-                   ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg spout user-context storm-conf spout-id
-                                                                           tuple-finished-info time-delta task-stats sampler))
-                   ))))
-           ;; TODO: on failure, emit tuple to failure stream
-           )))
+         (mk-task-receiver receive-queue deserializer tuple-action-fn)
      ]
     ))
 
@@ -405,7 +430,7 @@
     ;; TODO: this portion is not thread safe (multiple threads updating same value at same time)
     (.put pending key (bit-xor curr id))))
 
-(defmethod mk-executors IBolt [^IBolt bolt storm-conf puller tasks-fn transfer-fn storm-active-atom
+(defmethod mk-executors IBolt [^IBolt bolt storm-conf ^LinkedBlockingQueue receive-queue tasks-fn transfer-fn storm-active-atom
                                ^TopologyContext topology-context ^TopologyContext user-context
                                task-stats report-error-fn]
   (let [deserializer (KryoTupleDeserializer. storm-conf topology-context)
@@ -466,7 +491,26 @@
                                  )))
                            (reportError [this error]
                              (report-error-fn error)
-                             ))]
+                             ))
+        tuple-action-fn (fn [^Tuple tuple]
+                          ;; synchronization needs to be done with a key provided by this bolt, otherwise:
+                          ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
+                          ;; TODO: for state sync, need to first send sync messages in a loop and receive tuples until synchronization
+                          ;; buffer other tuples until fully synchronized, then process all of those tuples
+                          ;; then go into normal loop
+                          ;; spill to disk?
+                          ;; could be receiving incremental updates while waiting for sync or even a partial sync because of another failed task
+                          ;; should remember sync requests and include a random sync id in the request. drop anything not related to active sync requests
+                          ;; or just timeout the sync messages that are coming in until full sync is hit from that task
+                          ;; need to drop incremental updates from tasks where waiting for sync. otherwise, buffer the incremental updates
+                          ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
+                          ;; TODO: how to handle incremental updates as well as synchronizations at same time
+                          ;; TODO: need to version tuples somehow
+ 
+                          (log-debug "Received tuple " tuple " at task " (.getThisTaskId topology-context))
+                          (.put tuple-start-times tuple (System/currentTimeMillis))
+             
+                          (.execute bolt tuple))]
     (log-message "Preparing bolt " component-id ":" task-id)
     (.prepare bolt
               storm-conf
@@ -474,29 +518,7 @@
               (OutputCollector. output-collector))
     (log-message "Prepared bolt " component-id ":" task-id)
     ;; TODO: can get any SubscribedState objects out of the context now
-    [(fn []
-       ;; synchronization needs to be done with a key provided by this bolt, otherwise:
-       ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
-       ;; TODO: for state sync, need to first send sync messages in a loop and receive tuples until synchronization
-       ;; buffer other tuples until fully synchronized, then process all of those tuples
-       ;; then go into normal loop
-       ;; spill to disk?
-       ;; could be receiving incremental updates while waiting for sync or even a partial sync because of another failed task
-       ;; should remember sync requests and include a random sync id in the request. drop anything not related to active sync requests
-       ;; or just timeout the sync messages that are coming in until full sync is hit from that task
-       ;; need to drop incremental updates from tasks where waiting for sync. otherwise, buffer the incremental updates
-       (let [^bytes ser (msg/recv puller)]
-         (when-not (empty? ser) ; skip empty messages (used during shutdown)
-           (log-debug "Processing message")
-           (let [tuple (.deserialize deserializer ser)]
-             ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
-             ;; TODO: how to handle incremental updates as well as synchronizations at same time
-             ;; TODO: need to version tuples somehow
-             (log-debug "Received tuple " tuple " at task " (.getThisTaskId topology-context))
-             (.put tuple-start-times tuple (System/currentTimeMillis))
-             
-             (.execute bolt tuple)
-             ))))]
+    [(mk-task-receiver receive-queue deserializer tuple-action-fn)]
     ))
 
 (defmethod close-component ISpout [spout]

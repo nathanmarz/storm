@@ -25,7 +25,7 @@
 
 (defrecord StormBase [storm-name launch-time-secs status])
 
-(defrecord SupervisorInfo [time-secs hostname worker-ports uptime-secs])
+(defrecord SupervisorInfo [time-secs hostname meta uptime-secs])
 
 (defrecord TaskInfo [component-id])
 

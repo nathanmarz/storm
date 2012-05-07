@@ -94,11 +94,17 @@
     (FileUtils/forceMkdir (File. ret))
     ret ))
 
+(defn master-inimbus-dir [conf]
+  (str (master-local-dir conf) "/inimbus"))
+
 (defn supervisor-local-dir [conf]
   (let [ret (str (conf STORM-LOCAL-DIR) "/supervisor")]
     (FileUtils/forceMkdir (File. ret))
     ret
     ))
+
+(defn supervisor-isupervisor-dir [conf]
+  (str (supervisor-local-dir conf) "/isupervisor"))
 
 (defn supervisor-stormdist-root
   ([conf] (str (supervisor-local-dir conf) "/stormdist"))

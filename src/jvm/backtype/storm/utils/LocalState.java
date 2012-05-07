@@ -33,6 +33,12 @@ public class LocalState {
         curr.put(key, val);
         persist(curr);
     }
+
+    public synchronized void remove(Object key) throws IOException {
+        Map<Object, Object> curr = snapshot();
+        curr.remove(key);
+        persist(curr);
+    }
     
     private void persist(Map<Object, Object> val) throws IOException {
         byte[] toWrite = Utils.serialize(val);

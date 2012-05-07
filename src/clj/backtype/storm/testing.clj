@@ -80,15 +80,14 @@
                                 SUPERVISOR-SLOTS-PORTS port-ids
                                })
         id-fn (if id (fn [] id) supervisor/generate-supervisor-id)
-        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf (:shared-context cluster-map)))]
+        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf (:shared-context cluster-map) (supervisor/standalone-supervisor)))]
     (swap! (:supervisors cluster-map) conj daemon)
     (swap! (:tmp-dirs cluster-map) conj tmp-dir)
     daemon
     ))
 
 (defn mk-shared-context [conf]
-  (if (and (= (conf STORM-CLUSTER-MODE) "local")
-           (not (conf STORM-LOCAL-MODE-ZMQ)))
+  (if-not (conf STORM-LOCAL-MODE-ZMQ)
     (msg-loader/mk-local-context)
     ))
 
@@ -110,7 +109,8 @@
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
-                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp))
+                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                (nimbus/standalone-nimbus))
         context (mk-shared-context daemon-conf)
         cluster-map {:nimbus nimbus
                      :port-counter port-counter
@@ -196,6 +196,7 @@
        ~@body
      (catch Throwable t#
        (log-error t# "Error in cluster")
+       (throw t#)
        )
      (finally
        (kill-local-storm-cluster ~cluster-sym)))
@@ -228,8 +229,9 @@
     ))
 
 (defn mk-capture-launch-fn [capture-atom]
-  (fn [conf shared-context storm-id supervisor-id port worker-id _]
-    (let [existing (get @capture-atom [supervisor-id port] [])]
+  (fn [supervisor storm-id port worker-id]
+    (let [supervisor-id (:supervisor-id supervisor)
+          existing (get @capture-atom [supervisor-id port] [])]
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id))
       )))
 
@@ -248,11 +250,13 @@
 
 (defn mk-capture-shutdown-fn [capture-atom]
   (let [existing-fn supervisor/shutdown-worker]
-    (fn [conf supervisor-id worker-id worker-thread-pids-atom]
-      (let [port (find-worker-port conf worker-id)
+    (fn [supervisor worker-id]
+      (let [conf (:conf supervisor)
+            supervisor-id (:supervisor-id supervisor)
+            port (find-worker-port conf worker-id)
             existing (get @capture-atom [supervisor-id port] 0)]      
         (swap! capture-atom assoc [supervisor-id port] (inc existing))
-        (existing-fn conf supervisor-id worker-id worker-thread-pids-atom)
+        (existing-fn supervisor worker-id)
         ))))
 
 (defmacro capture-changed-workers [& body]

@@ -196,6 +196,7 @@
        ~@body
      (catch Throwable t#
        (log-error t# "Error in cluster")
+       (throw t#)
        )
      (finally
        (kill-local-storm-cluster ~cluster-sym)))

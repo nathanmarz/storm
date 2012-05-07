@@ -95,7 +95,7 @@
   (task-storms [this])
   (task-ids [this storm-id])
   (task-info [this storm-id task-id])
-  (task-heartbeat [this storm-id task-id]) ;; returns nil if doesn't exist
+  (taskbeats [this storm-id])
   (supervisors [this callback])
   (supervisor-info [this supervisor-id])  ;; returns nil if doesn't exist
 
@@ -107,8 +107,8 @@
   (heartbeat-tasks [this storm-id])
 
   (set-task! [this storm-id task-id info])
-  (task-heartbeat! [this storm-id task-id info])
-  (remove-task-heartbeat! [this storm-id task-id])
+  (worker-heartbeat! [this storm-id node port info])
+  (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
   (activate-storm! [this storm-id storm-base])
   (update-storm! [this storm-id new-elems])
@@ -127,14 +127,14 @@
 (def CODE-ROOT "code")
 (def STORMS-ROOT "storms")
 (def SUPERVISORS-ROOT "supervisors")
-(def TASKBEATS-ROOT "taskbeats")
+(def WORKERBEATS-ROOT "workerbeats")
 (def TASKERRORS-ROOT "taskerrors")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def TASKS-SUBTREE (str "/" TASKS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
-(def TASKBEATS-SUBTREE (str "/" TASKBEATS-ROOT))
+(def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def TASKERRORS-SUBTREE (str "/" TASKERRORS-ROOT))
 
 (defn supervisor-path [id]
@@ -152,11 +152,11 @@
 (defn task-path [storm-id task-id]
   (str (storm-task-root storm-id) "/" task-id))
 
-(defn taskbeat-storm-root [storm-id]
-  (str TASKBEATS-SUBTREE "/" storm-id))
+(defn workerbeat-storm-root [storm-id]
+  (str WORKERBEATS-SUBTREE "/" storm-id))
 
-(defn taskbeat-path [storm-id task-id]
-  (str (taskbeat-storm-root storm-id) "/" task-id))
+(defn workerbeat-path [storm-id node port]
+  (str (workerbeat-storm-root storm-id) "/" node "-" port))
 
 (defn taskerror-storm-root [storm-id]
   (str TASKERRORS-SUBTREE "/" storm-id))
@@ -208,7 +208,7 @@
                           (halt-process! 30 "Unknown callback for subtree " subtree args)
                           )
                       )))]
-    (doseq [p [ASSIGNMENTS-SUBTREE TASKS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE TASKBEATS-SUBTREE TASKERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE TASKS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE TASKERRORS-SUBTREE]]
       (mkdirs cluster-state p))
     (reify
      StormClusterState
@@ -229,15 +229,15 @@
         )
 
       (heartbeat-storms [this]
-        (get-children cluster-state TASKBEATS-SUBTREE false)
+        (get-children cluster-state WORKERBEATS-SUBTREE false)
         )
 
       (task-error-storms [this]
          (get-children cluster-state TASKERRORS-SUBTREE false)
-         )
-      
+        )
+        
       (heartbeat-tasks [this storm-id]
-        (get-children cluster-state (taskbeat-storm-root storm-id) false)
+        (keys (.taskbeats this storm-id))
         )
 
       (task-storms [this]
@@ -253,10 +253,10 @@
         (maybe-deserialize (get-data cluster-state (task-path storm-id task-id) false))
         )
 
-      ;; TODO: add a callback here so that nimbus can respond immediately when it goes down? 
-      (task-heartbeat [this storm-id task-id]
-        (maybe-deserialize (get-data cluster-state (taskbeat-path storm-id task-id) false))
-        )
+      (taskbeats [this storm-id]
+        (let [node+ports (get-children cluster-state (workerbeat-storm-root storm-id) false)]
+          (into {} (for [node+port node+ports]
+                     (-> cluster-state (get-data (str (workerbeat-storm-root storm-id) "/" node+port) false) maybe-deserialize :taskbeats)))))
 
       (supervisors [this callback]
         (when callback
@@ -272,20 +272,20 @@
         (set-data cluster-state (task-path storm-id task-id) (Utils/serialize info))
         )
 
-      (task-heartbeat! [this storm-id task-id info]
-        (set-data cluster-state (taskbeat-path storm-id task-id) (Utils/serialize info))
+      (worker-heartbeat! [this storm-id node port info]
+        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info))
         )
 
-      (remove-task-heartbeat! [this storm-id task-id]
-        (delete-node cluster-state (taskbeat-path storm-id task-id))
+      (remove-worker-heartbeat! [this storm-id node port]
+        (delete-node cluster-state (workerbeat-path storm-id node port))
         )
 
       (setup-heartbeats! [this storm-id]
-        (mkdirs cluster-state (taskbeat-storm-root storm-id)))
+        (mkdirs cluster-state (workerbeat-storm-root storm-id)))
 
       (teardown-heartbeats! [this storm-id]
         (try-cause
-         (delete-node cluster-state (taskbeat-storm-root storm-id))
+         (delete-node cluster-state (workerbeat-storm-root storm-id))
          (catch KeeperException e
            (log-warn-error e "Could not teardown heartbeats for " storm-id)
            )))

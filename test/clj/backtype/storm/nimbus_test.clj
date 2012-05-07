@@ -19,10 +19,21 @@
     (count (reverse-map (:task->node+port assignment)))
     ))
 
-(defn do-task-heartbeat [cluster storm-id task-id]
-  (let [state (:storm-cluster-state cluster)]
-    (.task-heartbeat! state storm-id task-id (TaskHeartbeat. (current-time-secs) 10 {}))
-    ))
+(defn mk-task->node+port+taskbeats [state storm-id]
+  (let [task->node+port (:task->node+port (.assignment-info state storm-id nil))
+        node+port->taskbeats (into {} (for [node+port (set (vals task->node+port))]
+                                        {node+port (atom {})}))]
+    (into {} (for [[task node+port] task->node+port
+                   :let [taskbeats (->> task (get task->node+port) (get node+port->taskbeats))]]
+               {task {:node+port node+port :taskbeats taskbeats}}))))
+
+(defn do-task-heartbeat [cluster storm-id task-id task->node+port+taskbeats]
+  (log-message "TASKBATS: " task->node+port+taskbeats)
+  (let [state (:storm-cluster-state cluster)
+        [node port] (-> task->node+port+taskbeats (get task-id) :node+port)
+        taskbeats (-> task->node+port+taskbeats (get task-id) :taskbeats)]
+    (swap! taskbeats assoc task-id (TaskHeartbeat. (current-time-secs) 10 {}))
+    (.worker-heartbeat! state storm-id node port {:storm-id storm-id :taskbeats @taskbeats})))
 
 (defn task-assignment [cluster storm-id task-id]
   (let [state (:storm-cluster-state cluster)
@@ -188,7 +199,9 @@
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (bind task-id (first (.task-ids state storm-id3)))
-      (do-task-heartbeat cluster storm-id3 task-id)
+      (bind task->node+port+taskbeats (mk-task->node+port+taskbeats state storm-id3))
+      
+      (do-task-heartbeat cluster storm-id3 task-id task->node+port+taskbeats)
       (.killTopology (:nimbus cluster) "test3")
       (advance-cluster-time cluster 6)
       (is (= 0 (count (.task-storms state))))
@@ -227,25 +240,26 @@
       (bind [task-id1 task-id2]  (.task-ids state storm-id))
       (bind ass1 (task-assignment cluster storm-id task-id1))
       (bind ass2 (task-assignment cluster storm-id task-id2))
-
+      (bind task->node+port+taskbeats (mk-task->node+port+taskbeats state storm-id))      
+      
       (advance-cluster-time cluster 59)
-      (do-task-heartbeat cluster storm-id task-id1)
-      (do-task-heartbeat cluster storm-id task-id2)
+      (do-task-heartbeat cluster storm-id task-id1 task->node+port+taskbeats)
+      (do-task-heartbeat cluster storm-id task-id2 task->node+port+taskbeats)
 
       (advance-cluster-time cluster 13)
       (is (= ass1 (task-assignment cluster storm-id task-id1)))
       (is (= ass2 (task-assignment cluster storm-id task-id2)))
-      (do-task-heartbeat cluster storm-id task-id1)
+      (do-task-heartbeat cluster storm-id task-id1 task->node+port+taskbeats)
 
       (advance-cluster-time cluster 11)
-      (do-task-heartbeat cluster storm-id task-id1)
+      (do-task-heartbeat cluster storm-id task-id1 task->node+port+taskbeats)
       (is (= ass1 (task-assignment cluster storm-id task-id1)))
       (check-consistency cluster "test")
 
       ; have to wait an extra 10 seconds because nimbus may not
       ; resynchronize its heartbeat time till monitor-time secs after
       (advance-cluster-time cluster 11)
-      (do-task-heartbeat cluster storm-id task-id1)
+      (do-task-heartbeat cluster storm-id task-id1 task->node+port+taskbeats)
       (is (= ass1 (task-assignment cluster storm-id task-id1)))
       (check-consistency cluster "test")
       
@@ -266,8 +280,8 @@
       (kill-supervisor cluster active-supervisor)
 
       (doseq [i (range 12)]
-        (do-task-heartbeat cluster storm-id task-id1)
-        (do-task-heartbeat cluster storm-id task-id2)
+        (do-task-heartbeat cluster storm-id task-id1 task->node+port+taskbeats)
+        (do-task-heartbeat cluster storm-id task-id2 task->node+port+taskbeats)
         (advance-cluster-time cluster 10)
         )
       ;; tests that it doesn't reassign tasks if they're heartbeating even if supervisor times out

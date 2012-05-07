@@ -286,7 +286,8 @@
                            (select-keys component->tasks component-ids)
                            component->tasks)
         task-ids (apply concat (vals component->tasks))
-        heartbeats (dofor [id task-ids] (.task-heartbeat state storm-id id))
+        taskbeats (.taskbeats state storm-id)
+        heartbeats (dofor [id task-ids] (get taskbeats id))
         stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
     (reduce + stats)
     ))

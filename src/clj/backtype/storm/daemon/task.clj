@@ -200,7 +200,7 @@
         ;; heartbeat ASAP so nimbus doesn't reassign
         heartbeat-thread (async-loop
                           (fn []
-                            (.task-heartbeat! storm-cluster-state storm-id task-id
+                            (swap! (:taskbeats worker) assoc task-id
                                               (TaskHeartbeat. (current-time-secs)
                                                               (uptime)
                                                               (stats/render-stats! task-stats)))
@@ -278,7 +278,8 @@
           (.join t))
         (doseq [hook (.getHooks user-context)]
           (.cleanup hook))
-        (.remove-task-heartbeat! storm-cluster-state storm-id task-id)
+        ;; remove its taskbeats from worker if exists
+        (swap! (:taskbeats worker) dissoc task-id)
         (.disconnect storm-cluster-state)
         (close-component task-object)
         (log-message "Shut down task " storm-id ":" task-id))

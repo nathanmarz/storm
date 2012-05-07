@@ -27,11 +27,15 @@ public class DistributedRPC {
 
     public String execute(String functionName, String funcArgs) throws DRPCExecutionException, org.apache.thrift7.TException;
 
+    public ByteBuffer executeBinary(String functionName, String funcArgs) throws DRPCExecutionException, org.apache.thrift7.TException;
+
   }
 
   public interface AsyncIface {
 
     public void execute(String functionName, String funcArgs, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.execute_call> resultHandler) throws org.apache.thrift7.TException;
+
+    public void executeBinary(String functionName, String funcArgs, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.executeBinary_call> resultHandler) throws org.apache.thrift7.TException;
 
   }
 
@@ -80,6 +84,33 @@ public class DistributedRPC {
         throw result.e;
       }
       throw new org.apache.thrift7.TApplicationException(org.apache.thrift7.TApplicationException.MISSING_RESULT, "execute failed: unknown result");
+    }
+
+    public ByteBuffer executeBinary(String functionName, String funcArgs) throws DRPCExecutionException, org.apache.thrift7.TException
+    {
+      send_executeBinary(functionName, funcArgs);
+      return recv_executeBinary();
+    }
+
+    public void send_executeBinary(String functionName, String funcArgs) throws org.apache.thrift7.TException
+    {
+      executeBinary_args args = new executeBinary_args();
+      args.set_functionName(functionName);
+      args.set_funcArgs(funcArgs);
+      sendBase("executeBinary", args);
+    }
+
+    public ByteBuffer recv_executeBinary() throws DRPCExecutionException, org.apache.thrift7.TException
+    {
+      executeBinary_result result = new executeBinary_result();
+      receiveBase(result, "executeBinary");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.e != null) {
+        throw result.e;
+      }
+      throw new org.apache.thrift7.TApplicationException(org.apache.thrift7.TApplicationException.MISSING_RESULT, "executeBinary failed: unknown result");
     }
 
   }
@@ -135,6 +166,41 @@ public class DistributedRPC {
       }
     }
 
+    public void executeBinary(String functionName, String funcArgs, org.apache.thrift7.async.AsyncMethodCallback<executeBinary_call> resultHandler) throws org.apache.thrift7.TException {
+      checkReady();
+      executeBinary_call method_call = new executeBinary_call(functionName, funcArgs, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class executeBinary_call extends org.apache.thrift7.async.TAsyncMethodCall {
+      private String functionName;
+      private String funcArgs;
+      public executeBinary_call(String functionName, String funcArgs, org.apache.thrift7.async.AsyncMethodCallback<executeBinary_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.functionName = functionName;
+        this.funcArgs = funcArgs;
+      }
+
+      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
+        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("executeBinary", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+        executeBinary_args args = new executeBinary_args();
+        args.set_functionName(functionName);
+        args.set_funcArgs(funcArgs);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public ByteBuffer getResult() throws DRPCExecutionException, org.apache.thrift7.TException {
+        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_executeBinary();
+      }
+    }
+
   }
 
   public static class Processor<I extends Iface> extends org.apache.thrift7.TBaseProcessor implements org.apache.thrift7.TProcessor {
@@ -149,6 +215,7 @@ public class DistributedRPC {
 
     private static <I extends Iface> Map<String,  org.apache.thrift7.ProcessFunction<I, ? extends  org.apache.thrift7.TBase>> getProcessMap(Map<String,  org.apache.thrift7.ProcessFunction<I, ? extends  org.apache.thrift7.TBase>> processMap) {
       processMap.put("execute", new execute());
+      processMap.put("executeBinary", new executeBinary());
       return processMap;
     }
 
@@ -165,6 +232,26 @@ public class DistributedRPC {
         execute_result result = new execute_result();
         try {
           result.success = iface.execute(args.functionName, args.funcArgs);
+        } catch (DRPCExecutionException e) {
+          result.e = e;
+        }
+        return result;
+      }
+    }
+
+    private static class executeBinary<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, executeBinary_args> {
+      public executeBinary() {
+        super("executeBinary");
+      }
+
+      protected executeBinary_args getEmptyArgsInstance() {
+        return new executeBinary_args();
+      }
+
+      protected executeBinary_result getResult(I iface, executeBinary_args args) throws org.apache.thrift7.TException {
+        executeBinary_result result = new executeBinary_result();
+        try {
+          result.success = iface.executeBinary(args.functionName, args.funcArgs);
         } catch (DRPCExecutionException e) {
           result.e = e;
         }
@@ -925,6 +1012,803 @@ public class DistributedRPC {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class executeBinary_args implements org.apache.thrift7.TBase<executeBinary_args, executeBinary_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("executeBinary_args");
+
+    private static final org.apache.thrift7.protocol.TField FUNCTION_NAME_FIELD_DESC = new org.apache.thrift7.protocol.TField("functionName", org.apache.thrift7.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift7.protocol.TField FUNC_ARGS_FIELD_DESC = new org.apache.thrift7.protocol.TField("funcArgs", org.apache.thrift7.protocol.TType.STRING, (short)2);
+
+    private String functionName; // required
+    private String funcArgs; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      FUNCTION_NAME((short)1, "functionName"),
+      FUNC_ARGS((short)2, "funcArgs");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // FUNCTION_NAME
+            return FUNCTION_NAME;
+          case 2: // FUNC_ARGS
+            return FUNC_ARGS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.FUNCTION_NAME, new org.apache.thrift7.meta_data.FieldMetaData("functionName", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      tmpMap.put(_Fields.FUNC_ARGS, new org.apache.thrift7.meta_data.FieldMetaData("funcArgs", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(executeBinary_args.class, metaDataMap);
+    }
+
+    public executeBinary_args() {
+    }
+
+    public executeBinary_args(
+      String functionName,
+      String funcArgs)
+    {
+      this();
+      this.functionName = functionName;
+      this.funcArgs = funcArgs;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public executeBinary_args(executeBinary_args other) {
+      if (other.is_set_functionName()) {
+        this.functionName = other.functionName;
+      }
+      if (other.is_set_funcArgs()) {
+        this.funcArgs = other.funcArgs;
+      }
+    }
+
+    public executeBinary_args deepCopy() {
+      return new executeBinary_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.functionName = null;
+      this.funcArgs = null;
+    }
+
+    public String get_functionName() {
+      return this.functionName;
+    }
+
+    public void set_functionName(String functionName) {
+      this.functionName = functionName;
+    }
+
+    public void unset_functionName() {
+      this.functionName = null;
+    }
+
+    /** Returns true if field functionName is set (has been assigned a value) and false otherwise */
+    public boolean is_set_functionName() {
+      return this.functionName != null;
+    }
+
+    public void set_functionName_isSet(boolean value) {
+      if (!value) {
+        this.functionName = null;
+      }
+    }
+
+    public String get_funcArgs() {
+      return this.funcArgs;
+    }
+
+    public void set_funcArgs(String funcArgs) {
+      this.funcArgs = funcArgs;
+    }
+
+    public void unset_funcArgs() {
+      this.funcArgs = null;
+    }
+
+    /** Returns true if field funcArgs is set (has been assigned a value) and false otherwise */
+    public boolean is_set_funcArgs() {
+      return this.funcArgs != null;
+    }
+
+    public void set_funcArgs_isSet(boolean value) {
+      if (!value) {
+        this.funcArgs = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case FUNCTION_NAME:
+        if (value == null) {
+          unset_functionName();
+        } else {
+          set_functionName((String)value);
+        }
+        break;
+
+      case FUNC_ARGS:
+        if (value == null) {
+          unset_funcArgs();
+        } else {
+          set_funcArgs((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case FUNCTION_NAME:
+        return get_functionName();
+
+      case FUNC_ARGS:
+        return get_funcArgs();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case FUNCTION_NAME:
+        return is_set_functionName();
+      case FUNC_ARGS:
+        return is_set_funcArgs();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof executeBinary_args)
+        return this.equals((executeBinary_args)that);
+      return false;
+    }
+
+    public boolean equals(executeBinary_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_functionName = true && this.is_set_functionName();
+      boolean that_present_functionName = true && that.is_set_functionName();
+      if (this_present_functionName || that_present_functionName) {
+        if (!(this_present_functionName && that_present_functionName))
+          return false;
+        if (!this.functionName.equals(that.functionName))
+          return false;
+      }
+
+      boolean this_present_funcArgs = true && this.is_set_funcArgs();
+      boolean that_present_funcArgs = true && that.is_set_funcArgs();
+      if (this_present_funcArgs || that_present_funcArgs) {
+        if (!(this_present_funcArgs && that_present_funcArgs))
+          return false;
+        if (!this.funcArgs.equals(that.funcArgs))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_functionName = true && (is_set_functionName());
+      builder.append(present_functionName);
+      if (present_functionName)
+        builder.append(functionName);
+
+      boolean present_funcArgs = true && (is_set_funcArgs());
+      builder.append(present_funcArgs);
+      if (present_funcArgs)
+        builder.append(funcArgs);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(executeBinary_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      executeBinary_args typedOther = (executeBinary_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_functionName()).compareTo(typedOther.is_set_functionName());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_functionName()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.functionName, typedOther.functionName);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_funcArgs()).compareTo(typedOther.is_set_funcArgs());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_funcArgs()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.funcArgs, typedOther.funcArgs);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // FUNCTION_NAME
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.functionName = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // FUNC_ARGS
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.funcArgs = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.functionName != null) {
+        oprot.writeFieldBegin(FUNCTION_NAME_FIELD_DESC);
+        oprot.writeString(this.functionName);
+        oprot.writeFieldEnd();
+      }
+      if (this.funcArgs != null) {
+        oprot.writeFieldBegin(FUNC_ARGS_FIELD_DESC);
+        oprot.writeString(this.funcArgs);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("executeBinary_args(");
+      boolean first = true;
+
+      sb.append("functionName:");
+      if (this.functionName == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.functionName);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("funcArgs:");
+      if (this.funcArgs == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.funcArgs);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class executeBinary_result implements org.apache.thrift7.TBase<executeBinary_result, executeBinary_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("executeBinary_result");
+
+    private static final org.apache.thrift7.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift7.protocol.TField("success", org.apache.thrift7.protocol.TType.STRING, (short)0);
+    private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+
+    private ByteBuffer success; // required
+    private DRPCExecutionException e; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      E((short)1, "e");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // E
+            return E;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift7.meta_data.FieldMetaData("success", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING          , true)));
+      tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(executeBinary_result.class, metaDataMap);
+    }
+
+    public executeBinary_result() {
+    }
+
+    public executeBinary_result(
+      ByteBuffer success,
+      DRPCExecutionException e)
+    {
+      this();
+      this.success = success;
+      this.e = e;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public executeBinary_result(executeBinary_result other) {
+      if (other.is_set_success()) {
+        this.success = org.apache.thrift7.TBaseHelper.copyBinary(other.success);
+;
+      }
+      if (other.is_set_e()) {
+        this.e = new DRPCExecutionException(other.e);
+      }
+    }
+
+    public executeBinary_result deepCopy() {
+      return new executeBinary_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.e = null;
+    }
+
+    public byte[] get_success() {
+      set_success(org.apache.thrift7.TBaseHelper.rightSize(success));
+      return success == null ? null : success.array();
+    }
+
+    public ByteBuffer buffer_for_success() {
+      return success;
+    }
+
+    public void set_success(byte[] success) {
+      set_success(success == null ? (ByteBuffer)null : ByteBuffer.wrap(success));
+    }
+
+    public void set_success(ByteBuffer success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public DRPCExecutionException get_e() {
+      return this.e;
+    }
+
+    public void set_e(DRPCExecutionException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((ByteBuffer)value);
+        }
+        break;
+
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((DRPCExecutionException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case E:
+        return get_e();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case E:
+        return is_set_e();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof executeBinary_result)
+        return this.equals((executeBinary_result)that);
+      return false;
+    }
+
+    public boolean equals(executeBinary_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_e = true && (is_set_e());
+      builder.append(present_e);
+      if (present_e)
+        builder.append(e);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(executeBinary_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      executeBinary_result typedOther = (executeBinary_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(typedOther.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.success = iprot.readBinary();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // E
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.e = new DRPCExecutionException();
+              this.e.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        oprot.writeBinary(this.success);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_e()) {
+        oprot.writeFieldBegin(E_FIELD_DESC);
+        this.e.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("executeBinary_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift7.TBaseHelper.toString(this.success, sb);
       }
       first = false;
       if (!first) sb.append(", ");

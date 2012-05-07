@@ -6,6 +6,7 @@
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
             DistributedRPCInvocations$Processor])
+  (:import [java.nio ByteBuffer CharBuffer charset.Charset])
   (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
@@ -50,7 +51,7 @@
                         ))
         ]
     (reify DistributedRPC$Iface
-      (^String execute [this ^String function ^String args]
+      (^ByteBuffer executeBinary [this ^String function ^String args]
         (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
         (let [id (str (swap! ctr (fn [v] (mod (inc v) 1000000000))))
               ^Semaphore sem (Semaphore. 0)
@@ -70,8 +71,36 @@
               (throw result)
               result
               ))))
+      (^String execute [this ^String function ^String args]
+        (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
+        (let [id (str (swap! ctr (fn [v] (mod (inc v) 1000000000))))
+              ^Semaphore sem (Semaphore. 0)
+              req (DRPCRequest. args id)
+              ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
+              ]
+          (swap! id->start assoc id (current-time-secs))
+          (swap! id->sem assoc id sem)
+          (.add queue req)
+          (log-debug "Waiting for DRPC result for " function " " args " at " (System/currentTimeMillis))
+          (.acquire sem)
+          (log-debug "Acquired DRPC result for " function " " args " at " (System/currentTimeMillis))
+          (let [result (@id->result id)]
+            (cleanup id)
+            (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
+            (if (instance? DRPCExecutionException result)
+              (throw result)
+
+              ;(-> (.newDecoder (Charset/defaultCharset)) (.decode result) str)
+              ;str
+
+              (-> (Charset/defaultCharset)
+                  .newDecoder
+                  (.decode result)
+                  str)
+
+              ))))
       DistributedRPCInvocations$Iface
-      (^void result [this ^String id ^String result]
+      (^void result [this ^String id ^ByteBuffer result]
         (let [^Semaphore sem (@id->sem id)]
           (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
           (when sem

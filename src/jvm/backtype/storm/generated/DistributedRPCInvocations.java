@@ -25,7 +25,7 @@ public class DistributedRPCInvocations {
 
   public interface Iface {
 
-    public void result(String id, String result) throws org.apache.thrift7.TException;
+    public void result(String id, ByteBuffer result) throws org.apache.thrift7.TException;
 
     public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift7.TException;
 
@@ -35,7 +35,7 @@ public class DistributedRPCInvocations {
 
   public interface AsyncIface {
 
-    public void result(String id, String result, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.result_call> resultHandler) throws org.apache.thrift7.TException;
+    public void result(String id, ByteBuffer result, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.result_call> resultHandler) throws org.apache.thrift7.TException;
 
     public void fetchRequest(String functionName, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.fetchRequest_call> resultHandler) throws org.apache.thrift7.TException;
 
@@ -63,13 +63,13 @@ public class DistributedRPCInvocations {
       super(iprot, oprot);
     }
 
-    public void result(String id, String result) throws org.apache.thrift7.TException
+    public void result(String id, ByteBuffer result) throws org.apache.thrift7.TException
     {
       send_result(id, result);
       recv_result();
     }
 
-    public void send_result(String id, String result) throws org.apache.thrift7.TException
+    public void send_result(String id, ByteBuffer result) throws org.apache.thrift7.TException
     {
       result_args args = new result_args();
       args.set_id(id);
@@ -145,7 +145,7 @@ public class DistributedRPCInvocations {
       super(protocolFactory, clientManager, transport);
     }
 
-    public void result(String id, String result, org.apache.thrift7.async.AsyncMethodCallback<result_call> resultHandler) throws org.apache.thrift7.TException {
+    public void result(String id, ByteBuffer result, org.apache.thrift7.async.AsyncMethodCallback<result_call> resultHandler) throws org.apache.thrift7.TException {
       checkReady();
       result_call method_call = new result_call(id, result, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -154,8 +154,8 @@ public class DistributedRPCInvocations {
 
     public static class result_call extends org.apache.thrift7.async.TAsyncMethodCall {
       private String id;
-      private String result;
-      public result_call(String id, String result, org.apache.thrift7.async.AsyncMethodCallback<result_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+      private ByteBuffer result;
+      public result_call(String id, ByteBuffer result, org.apache.thrift7.async.AsyncMethodCallback<result_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.id = id;
         this.result = result;
@@ -320,7 +320,7 @@ public class DistributedRPCInvocations {
     private static final org.apache.thrift7.protocol.TField RESULT_FIELD_DESC = new org.apache.thrift7.protocol.TField("result", org.apache.thrift7.protocol.TType.STRING, (short)2);
 
     private String id; // required
-    private String result; // required
+    private ByteBuffer result; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -391,7 +391,7 @@ public class DistributedRPCInvocations {
       tmpMap.put(_Fields.ID, new org.apache.thrift7.meta_data.FieldMetaData("id", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
       tmpMap.put(_Fields.RESULT, new org.apache.thrift7.meta_data.FieldMetaData("result", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING          , true)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(result_args.class, metaDataMap);
     }
@@ -401,7 +401,7 @@ public class DistributedRPCInvocations {
 
     public result_args(
       String id,
-      String result)
+      ByteBuffer result)
     {
       this();
       this.id = id;
@@ -416,7 +416,8 @@ public class DistributedRPCInvocations {
         this.id = other.id;
       }
       if (other.is_set_result()) {
-        this.result = other.result;
+        this.result = org.apache.thrift7.TBaseHelper.copyBinary(other.result);
+;
       }
     }
 
@@ -453,11 +454,20 @@ public class DistributedRPCInvocations {
       }
     }
 
-    public String get_result() {
-      return this.result;
+    public byte[] get_result() {
+      set_result(org.apache.thrift7.TBaseHelper.rightSize(result));
+      return result == null ? null : result.array();
     }
 
-    public void set_result(String result) {
+    public ByteBuffer buffer_for_result() {
+      return result;
+    }
+
+    public void set_result(byte[] result) {
+      set_result(result == null ? (ByteBuffer)null : ByteBuffer.wrap(result));
+    }
+
+    public void set_result(ByteBuffer result) {
       this.result = result;
     }
 
@@ -490,7 +500,7 @@ public class DistributedRPCInvocations {
         if (value == null) {
           unset_result();
         } else {
-          set_result((String)value);
+          set_result((ByteBuffer)value);
         }
         break;
 
@@ -629,7 +639,7 @@ public class DistributedRPCInvocations {
             break;
           case 2: // RESULT
             if (field.type == org.apache.thrift7.protocol.TType.STRING) {
-              this.result = iprot.readString();
+              this.result = iprot.readBinary();
             } else { 
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
@@ -654,7 +664,7 @@ public class DistributedRPCInvocations {
       }
       if (this.result != null) {
         oprot.writeFieldBegin(RESULT_FIELD_DESC);
-        oprot.writeString(this.result);
+        oprot.writeBinary(this.result);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -678,7 +688,7 @@ public class DistributedRPCInvocations {
       if (this.result == null) {
         sb.append("null");
       } else {
-        sb.append(this.result);
+        org.apache.thrift7.TBaseHelper.toString(this.result, sb);
       }
       first = false;
       sb.append(")");

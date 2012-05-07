@@ -15,6 +15,10 @@
     [[] {:service-id id :handler handler}]
     ))
 
+(defn -executeBinary [this func funcArgs]
+  (.executeBinary (:handler (. this state)) func funcArgs)
+  )
+
 (defn -execute [this func funcArgs]
   (.execute (:handler (. this state)) func funcArgs)
   )

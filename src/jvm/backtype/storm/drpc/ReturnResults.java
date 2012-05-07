@@ -17,6 +17,9 @@ import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.*;
 
 public class ReturnResults extends BaseRichBolt {
     public static final Logger LOG = Logger.getLogger(ReturnResults.class);
@@ -33,7 +36,28 @@ public class ReturnResults extends BaseRichBolt {
 
     @Override
     public void execute(Tuple input) {
-        String result = (String) input.getValue(0);
+
+        ByteBuffer result = null;
+
+        if( input.getValue(0) instanceof ByteBuffer )
+            result = (ByteBuffer) input.getValue(0);
+        else
+        {
+            try {
+                // Convert string to byte buffer
+                Charset charset = Charset.defaultCharset();    
+
+                CharsetEncoder encoder = charset.newEncoder();
+
+                result = encoder.encode( CharBuffer.wrap( (String)input.getValue(0) ) );            
+            }
+            catch( java.nio.charset.CharacterCodingException e )
+            {
+                LOG.error("Failed to return results to DRPC server", e);
+                _collector.fail(input);
+            }
+        }
+         
         String returnInfo = (String) input.getValue(1);
         if(returnInfo!=null) {
             Map retMap = (Map) JSONValue.parse(returnInfo);

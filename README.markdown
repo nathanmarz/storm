@@ -31,7 +31,7 @@ The spout stores the state of the offsets its consumed in Zookeeper. The spout i
 By default, the offsets will be stored in the same Zookeeper cluster that Storm uses. You can override this via your spout config like this:
 
 ```java
-spoutConfig.zkServers = ImmutableList.of("smfd-atm-28-sr3.devel.twitter.com");
+spoutConfig.zkServers = ImmutableList.of("otherserver.com");
 spoutConfig.zkPort = 2191;
 ```
 

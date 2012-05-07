@@ -302,6 +302,7 @@ def print_commands():
     print "Commands:\n\t",  "\n\t".join(sorted(COMMANDS.keys()))
     print "\nHelp:", "\n\thelp", "\n\thelp <command>"
     print "\nDocumentation for the storm client can be found at https://github.com/nathanmarz/storm/wiki/Command-line-client\n"
+    print "Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n"
 
 def print_usage(command=None):
     """Print one help message or list of available commands"""

@@ -94,6 +94,7 @@
         task-ids (set (read-worker-task-ids storm-cluster-state storm-id supervisor-id port))
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         receive-queue-map (into {} (dofor [tid task-ids] [tid (LinkedBlockingQueue.)]))
+        topology (read-supervisor-topology conf storm-id)
         ret {:conf conf
              :mq-context (if mq-context
                              mq-context
@@ -109,12 +110,12 @@
              :storm-active-atom (atom false)
              :task-ids task-ids
              :storm-conf storm-conf
-             :topology (read-supervisor-topology conf storm-id)
+             :topology topology
              :timer (mk-timer :kill-fn (fn [t]
                                          (log-error t "Error when processing event")
                                          (halt-process! 20 "Error when processing an event")
                                          ))
-             :task->component (storm-task-info storm-cluster-state storm-id)
+             :task->component (storm-task-info topology storm-conf)
              :endpoint-socket-lock (mk-rw-lock)
              :node+port->socket (atom {})
              :task->node+port (atom {})

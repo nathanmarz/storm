@@ -92,9 +92,6 @@
   (active-storms [this])
   (storm-base [this storm-id callback])
 
-  (task-storms [this])
-  (task-ids [this storm-id])
-  (task-info [this storm-id task-id])
   (task-heartbeat [this storm-id task-id]) ;; returns nil if doesn't exist
   (supervisors [this callback])
   (supervisor-info [this supervisor-id])  ;; returns nil if doesn't exist
@@ -106,7 +103,6 @@
   (task-error-storms [this])
   (heartbeat-tasks [this storm-id])
 
-  (set-task! [this storm-id task-id info])
   (task-heartbeat! [this storm-id task-id info])
   (remove-task-heartbeat! [this storm-id task-id])
   (supervisor-heartbeat! [this supervisor-id info])
@@ -123,7 +119,6 @@
 
 
 (def ASSIGNMENTS-ROOT "assignments")
-(def TASKS-ROOT "tasks")
 (def CODE-ROOT "code")
 (def STORMS-ROOT "storms")
 (def SUPERVISORS-ROOT "supervisors")
@@ -131,7 +126,6 @@
 (def TASKERRORS-ROOT "taskerrors")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
-(def TASKS-SUBTREE (str "/" TASKS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def TASKBEATS-SUBTREE (str "/" TASKBEATS-ROOT))
@@ -145,12 +139,6 @@
 
 (defn storm-path [id]
   (str STORMS-SUBTREE "/" id))
-
-(defn storm-task-root [storm-id]
-  (str TASKS-SUBTREE "/" storm-id))
-
-(defn task-path [storm-id task-id]
-  (str (storm-task-root storm-id) "/" task-id))
 
 (defn taskbeat-storm-root [storm-id]
   (str TASKBEATS-SUBTREE "/" storm-id))
@@ -208,7 +196,7 @@
                           (halt-process! 30 "Unknown callback for subtree " subtree args)
                           )
                       )))]
-    (doseq [p [ASSIGNMENTS-SUBTREE TASKS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE TASKBEATS-SUBTREE TASKERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE TASKBEATS-SUBTREE TASKERRORS-SUBTREE]]
       (mkdirs cluster-state p))
     (reify
      StormClusterState
@@ -240,19 +228,6 @@
         (get-children cluster-state (taskbeat-storm-root storm-id) false)
         )
 
-      (task-storms [this]
-        (get-children cluster-state TASKS-SUBTREE false)
-        )
-
-      (task-ids [this storm-id]
-        (map parse-int
-          (get-children cluster-state (storm-task-root storm-id) false)
-          ))
-
-      (task-info [this storm-id task-id]
-        (maybe-deserialize (get-data cluster-state (task-path storm-id task-id) false))
-        )
-
       ;; TODO: add a callback here so that nimbus can respond immediately when it goes down? 
       (task-heartbeat [this storm-id task-id]
         (maybe-deserialize (get-data cluster-state (taskbeat-path storm-id task-id) false))
@@ -266,10 +241,6 @@
 
       (supervisor-info [this supervisor-id]
         (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false))
-        )
-
-      (set-task! [this storm-id task-id info]
-        (set-data cluster-state (task-path storm-id task-id) (Utils/serialize info))
         )
 
       (task-heartbeat! [this storm-id task-id info]
@@ -326,7 +297,6 @@
         )
 
       (remove-storm! [this storm-id]
-        (delete-node cluster-state (storm-task-root storm-id))
         (delete-node cluster-state (assignment-path storm-id))
         (remove-storm-base! this storm-id))
 

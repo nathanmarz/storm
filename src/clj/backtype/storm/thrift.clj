@@ -87,10 +87,12 @@
       output-spec
       )))
 
-(defn mk-plain-component-common [inputs output-spec parallelism-hint]
+(defnk mk-plain-component-common [inputs output-spec parallelism-hint :conf nil]
   (let [ret (ComponentCommon. (HashMap. inputs) (HashMap. (mk-output-spec output-spec)))]
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
+    (when conf
+      (.set_json_conf ret (to-json conf)))
     ret
     ))
 
@@ -152,8 +154,8 @@
        (mk-grouping grouping-spec)]
       )))
 
-(defnk mk-bolt-spec* [inputs bolt outputs :p nil]
-  (let [common (mk-plain-component-common (mk-inputs inputs) outputs p)]
+(defnk mk-bolt-spec* [inputs bolt outputs :p nil :conf nil]
+  (let [common (mk-plain-component-common (mk-inputs inputs) outputs p :conf conf)]
     (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
            common )))
 

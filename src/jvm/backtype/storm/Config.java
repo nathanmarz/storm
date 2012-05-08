@@ -303,6 +303,16 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_WORKERS = "topology.workers";
 
     /**
+     * How many instances to create for a spout/bolt. A task runs on a thread with zero or more
+     * other tasks for the same spout/bolt. The number of tasks for a spout/bolt is always
+     * the same throughout the lifetime of a topology, but the number of executors (threads) for 
+     * a spout/bolt can change over time. This allows a topology to scale to more or less resources 
+     * without redeploying the topology or violating the constraints of Storm (such as a fields grouping
+     * guaranteeing that the same value goes to the same task).
+     */
+    public static String TOPOLOGY_TASKS = "topology.tasks";
+
+    /**
      * How many acker tasks should be spawned for the topology. An acker task keeps
      * track of a subset of the tuples emitted by spouts and detects when a spout
      * tuple is fully processed. When an acker task detects that a spout tuple
@@ -314,7 +324,15 @@ public class Config extends HashMap<String, Object> {
      * <p>If this is set to 0, then Storm will immediately ack tuples as soon
      * as they come off the spout, effectively disabling reliability.</p>
      */
-    public static String TOPOLOGY_ACKERS = "topology.ackers";
+    public static String TOPOLOGY_ACKER_TASKS = "topology.acker.tasks";
+
+    /**
+     * How many executors to spawn for ackers.
+     *
+     * <p>If this is set to 0, then Storm will immediately ack tuples as soon
+     * as they come off the spout, effectively disabling reliability.</p>
+     */
+    public static String TOPOLOGY_ACKER_EXECUTORS = "topology.acker.executors";
 
 
     /**
@@ -461,8 +479,12 @@ public class Config extends HashMap<String, Object> {
         put(Config.TOPOLOGY_WORKERS, workers);
     }
     
-    public void setNumAckers(int numTasks) {
-        put(Config.TOPOLOGY_ACKERS, numTasks);
+    public void setNumAckerTasks(int numTasks) {
+        put(Config.TOPOLOGY_ACKER_TASKS, numTasks);
+    }
+
+    public void setNumAckerExecutors(int numExecutors) {
+        put(Config.TOPOLOGY_ACKER_EXECUTORS, numExecutors);
     }
     
     public void setMessageTimeoutSecs(int secs) {

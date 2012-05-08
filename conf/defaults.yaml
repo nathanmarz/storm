@@ -73,7 +73,9 @@ zmq.linger.millis: 5000
 topology.debug: false
 topology.optimize: true
 topology.workers: 1
-topology.ackers: 1
+topology.acker.executors: 1
+topology.acker.tasks: null
+topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
 topology.skip.missing.kryo.registrations: false

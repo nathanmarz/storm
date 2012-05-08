@@ -211,6 +211,7 @@ service Nimbus {
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e);
   StormTopology getTopology(1: string id) throws (1: NotAliveException e);
+  StormTopology getUserTopology(1: string id) throws (1: NotAliveException e);
 }
 
 struct DRPCRequest {

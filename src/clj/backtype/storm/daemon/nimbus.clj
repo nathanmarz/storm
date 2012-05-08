@@ -292,20 +292,6 @@
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn mk-task-maker [storm-conf id-counter]
-  (fn [[component-id spec]]
-    (let [common (.get_common spec)
-          declared (thrift/parallelism-hint common)
-          storm-conf (merge storm-conf
-                            (from-json (.get_json_conf common)))
-          max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-          parallelism (if max-parallelism
-                        (min declared max-parallelism)
-                        declared)]
-      (for-times parallelism
-                 [(id-counter) component-id])
-      )))
-
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
    (FileUtils/forceMkdir (File. stormroot))
@@ -328,29 +314,6 @@
     (TopologyDetails. storm-id
                       (read-storm-conf conf storm-id)
                       (read-storm-topology conf storm-id))))
-
-;; public so it can be mocked in tests
-(defn mk-task-component-assignments [conf storm-id]
-  (let [storm-conf (read-storm-conf conf storm-id)
-        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
-        counter (mk-counter)
-        tasks (concat
-               (mapcat (mk-task-maker storm-conf counter)
-                       (.get_bolts topology))
-               (mapcat (mk-task-maker storm-conf counter)
-                       (.get_spouts topology))
-               (mapcat (mk-task-maker storm-conf counter)
-                       (.get_state_spouts topology))
-               )]
-    (into {}
-      tasks)
-    ))
-
-(defn- setup-storm-static [conf storm-id storm-cluster-state]
-  (doseq [[task-id component-id] (mk-task-component-assignments conf storm-id)]
-    (.set-task! storm-cluster-state storm-id task-id (TaskInfo. component-id))
-    ))
-
 
 ;; Does not assume that clocks are synchronized. Task heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
@@ -431,7 +394,7 @@
         
         available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
-        all-task-ids (set (.task-ids storm-cluster-state storm-id))
+        all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids
@@ -611,7 +574,10 @@
     (merge storm-conf
            {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
                                           (mapify-serializations base-sers))
-            TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
+            TOPOLOGY-ACKER-TASKS (total-conf TOPOLOGY-ACKER-TASKS)
+            TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
+            TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+            })
     ))
 
 (defn do-cleanup [nimbus]
@@ -701,7 +667,6 @@
           (locking (:submit-lock nimbus)
             (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
             (.setup-heartbeats! storm-cluster-state storm-id)
-            (setup-storm-static conf storm-id storm-cluster-state)
             (mk-assignments nimbus storm-id)
             (start-storm storm-name storm-cluster-state storm-id))
           ))
@@ -788,6 +753,9 @@
       (^StormTopology getTopology [this ^String id]
         (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
 
+      (^StormTopology getUserTopology [this ^String id]
+        (read-storm-topology conf id))
+
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               assigned (assigned-slots storm-cluster-state)
@@ -827,7 +795,7 @@
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              task-info (storm-task-info storm-cluster-state storm-id)
+              task-info (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               task-summaries (if (empty? (:task->node+port assignment))

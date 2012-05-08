@@ -58,15 +58,6 @@
 (defn storm-task-ids [storm-cluster-state storm-id]
   (keys (:task->node+port (.assignment-info storm-cluster-state storm-id nil))))
 
-(defn storm-task-info
-  "Returns map from task -> component id"
-  [storm-cluster-state storm-id]
-  (let [task-ids (.task-ids storm-cluster-state storm-id)]
-    (into {}
-      (dofor [id task-ids]
-        [id (:component-id (.task-info storm-cluster-state storm-id id))]
-        ))))
-
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
     (find-first
@@ -150,13 +141,14 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
-(defn add-acker! [num-tasks ^StormTopology ret]
+(defn add-acker! [num-executors num-tasks ^StormTopology ret]
   (let [acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
-                                         :p num-tasks)]
+                                         :p num-executors
+                                         :conf {TOPOLOGY-TASKS num-tasks})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do
@@ -187,8 +179,36 @@
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
-    (add-acker! (storm-conf TOPOLOGY-ACKERS) ret)
+    (add-acker! (storm-conf TOPOLOGY-ACKER-EXECUTORS) (storm-conf TOPOLOGY-ACKER-TASKS) ret)
     (add-system-streams! ret)
     (validate-structure! ret)
     ret
     ))
+
+(defn has-ackers? [storm-conf]
+  (let [tasks (storm-conf TOPOLOGY-ACKER-TASKS)]
+    (and (or (nil? tasks) (> tasks 0))
+         (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
+
+(defn- component-parallelism [storm-conf component]
+  (let [common (.get_common component)
+        num-executors (thrift/parallelism-hint common)
+        storm-conf (merge storm-conf (from-json (.get_json_conf common)))
+        num-tasks (or (storm-conf TOPOLOGY-TASKS) num-executors)
+        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+        ]
+    (if max-parallelism
+      (min max-parallelism num-tasks)
+      num-tasks)))
+
+(defn storm-task-info
+  "Returns map from task -> component id"
+  [^StormTopology user-topology storm-conf]
+  (->> (system-topology! storm-conf user-topology)
+       all-components
+       (map-val (partial component-parallelism storm-conf))
+       (sort-by first)
+       (mapcat (fn [[c num-tasks]] (repeat num-tasks c)))
+       (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))
+       (into {})
+       ))

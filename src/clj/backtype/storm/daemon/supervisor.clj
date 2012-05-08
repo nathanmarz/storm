@@ -273,7 +273,7 @@
       ;; download code first
       ;; This might take awhile
       ;;   - should this be done separately from usual monitoring?
-      ;; should we only download when storm is assigned to this supervisor?
+      ;; should we only download when topology is assigned to this supervisor?
       (doseq [[storm-id master-code-dir] storm-code-map]
         (when-not (downloaded-storm-ids storm-id)
           (log-message "Downloading code for storm id "

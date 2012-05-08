@@ -259,16 +259,17 @@
           storm-code-map (read-storm-code-locations storm-cluster-state sync-callback)
           assigned-storm-ids (set (keys storm-code-map))
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-          new-assignment (->>
-                          (read-assignments
+          all-assignment (read-assignments
                            storm-cluster-state
                            (:supervisor-id supervisor)
                            sync-callback)
-                          (filter-key #(.confirmAssigned isupervisor %)))
+          new-assignment (->> all-assignment
+                              (filter-key #(.confirmAssigned isupervisor %)))
           existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)
+      (log-debug "All assignment: " all-assignment)
       (log-debug "New assignment: " new-assignment)
       ;; download code first
       ;; This might take awhile

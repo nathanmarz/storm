@@ -4,7 +4,7 @@
              [supervisor :as supervisor]
              [common :as common]
              [worker :as worker]
-             [task :as task]])
+             [executor :as executor]])
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])

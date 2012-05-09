@@ -2,7 +2,7 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:import [java.util.concurrent LinkedBlockingQueue])
-  (:require [backtype.storm.daemon [task :as task]])
+  (:require [backtype.storm.daemon [executor :as executor]])
   (:gen-class))
 
 (bootstrap)
@@ -239,7 +239,7 @@
         _ (refresh-connections nil)
         _ (refresh-storm-active worker nil)
  
-        tasks (dofor [tid (:task-ids worker)] (task/mk-task worker (system-topology-context worker tid) (user-topology-context worker tid)))
+        tasks (dofor [tid (:task-ids worker)] (executor/mk-executor worker (system-topology-context worker tid) (user-topology-context worker tid)))
         threads [(async-loop (fn [& args] (apply transfer-tuples args) 0)
                              :args-fn (fn [] [worker (ArrayList.)]))]
         receive-thread-shutdown (launch-receive-thread worker)

@@ -1,4 +1,4 @@
-(ns backtype.storm.daemon.task
+(ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap LinkedBlockingQueue])
@@ -157,7 +157,7 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
-(defn mk-task [worker ^TopologyContext topology-context ^TopologyContext user-context]
+(defn mk-executor [worker ^TopologyContext topology-context ^TopologyContext user-context]
   (let [task-id (.getThisTaskId topology-context)
 
         ;; TODO refactor...

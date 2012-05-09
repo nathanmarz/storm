@@ -50,7 +50,7 @@ supervisor.slots.ports:
     - 6703
 supervisor.childopts: "-Xmx1024m"
 #how long supervisor will wait to ensure that a worker process is started
-supervisor.worker.start.timeout.secs: 240
+supervisor.worker.start.timeout.secs: 120
 #how long between heartbeats until supervisor considers that worker dead and tries to restart it
 supervisor.worker.timeout.secs: 30
 #how frequently the supervisor checks on the status of the processes it's monitoring and restarts if necessary

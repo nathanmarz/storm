@@ -25,7 +25,7 @@
                  [storm/carbonite "1.0.1"]
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
-                 [org.clojure/tools.cli "0.2.1"]
+                 [storm/tools.cli "0.2.2"]
                  ]
   :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [

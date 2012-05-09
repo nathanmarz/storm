@@ -2,7 +2,7 @@
 
  * Eliminate explicit storage of task->component in Zookeeper
 
-## 0.7.2-rc1
+## 0.7.2 (unreleased but release candidate available)
 
 NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable inputs has been reverted to support optimized sending of tuples to colocated tasks
 

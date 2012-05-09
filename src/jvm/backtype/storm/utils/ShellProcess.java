@@ -70,7 +70,7 @@ public class ShellProcess {
             while (true) {
                 String subline = processOut.readLine();
                 if(subline==null)
-                    throw new RuntimeException("Pipe to subprocess seems to be broken!");
+                    throw new RuntimeException("Pipe to subprocess seems to be broken! Currently read output: " + line.toString());
                 if(subline.equals("end")) {
                     break;
                 }

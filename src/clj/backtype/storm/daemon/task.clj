@@ -157,7 +157,7 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
-(defn mk-task [worker topology-context user-context]
+(defn mk-task [worker ^TopologyContext topology-context ^TopologyContext user-context]
   (let [task-id (.getThisTaskId topology-context)
 
         ;; TODO refactor...

@@ -31,7 +31,6 @@
                {task {:node+port node+port :taskbeats taskbeats}}))))
 
 (defn do-task-heartbeat [cluster storm-id task-id task->node+port+taskbeats]
-  (log-message "TASKBATS: " task->node+port+taskbeats)
   (let [state (:storm-cluster-state cluster)
         [node port] (-> task->node+port+taskbeats (get task-id) :node+port)
         taskbeats (-> task->node+port+taskbeats (get task-id) :taskbeats)]

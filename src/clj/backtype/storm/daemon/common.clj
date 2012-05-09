@@ -23,7 +23,7 @@
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
 (defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
 
-(defrecord StormBase [storm-name launch-time-secs status])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
 (defrecord SupervisorInfo [time-secs hostname meta uptime-secs])
 
@@ -190,11 +190,19 @@
     (and (or (nil? tasks) (> tasks 0))
          (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
 
+(defn component-conf [storm-conf component]
+  (->> component
+      .get_common
+      .get_json_conf
+      from-json
+      (merge storm-conf)))
+
+(defn num-start-executors [component]
+  (thrift/parallelism-hint (.get_common component)))
+
 (defn- component-parallelism [storm-conf component]
-  (let [common (.get_common component)
-        num-executors (thrift/parallelism-hint common)
-        storm-conf (merge storm-conf (from-json (.get_json_conf common)))
-        num-tasks (or (storm-conf TOPOLOGY-TASKS) num-executors)
+  (let [storm-conf (component-conf storm-conf component)
+        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
         max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
         ]
     (if max-parallelism

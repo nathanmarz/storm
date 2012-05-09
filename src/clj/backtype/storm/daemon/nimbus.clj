@@ -392,6 +392,9 @@
         task-heartbeats-cache (:task-heartbeats-cache nimbus)
         storm-id (.getId topology-details)
         
+        storm-base (.storm-base storm-cluster-state storm-id nil)
+        
+        
         available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
@@ -404,7 +407,7 @@
         
         alive-assigned (filter-val (partial every? alive-ids) existing-assigned)
 
-        total-slots-to-use (min (storm-conf TOPOLOGY-WORKERS)
+        total-slots-to-use (min (:num-workers storm-base)
                                 (+ (count available-slots) (count alive-assigned)))
         keep-assigned (if scratch?
                         {}
@@ -504,13 +507,20 @@
       (mk-assignments nimbus
                       storm-id))))
 
-(defn- start-storm [storm-name storm-cluster-state storm-id]
-  (log-message "Activating " storm-name ": " storm-id)
-  (.activate-storm! storm-cluster-state
-                    storm-id
-                    (StormBase. storm-name
-                                (current-time-secs)
-                                {:type :active})))
+(defn- start-storm [nimbus storm-name storm-id]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        conf (:conf nimbus)
+        storm-conf (read-storm-conf conf storm-id)
+        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
+        executors (->> (all-components topology) (map-val num-start-executors))]
+    (log-message "Activating " storm-name ": " storm-id)
+    (.activate-storm! storm-cluster-state
+                      storm-id
+                      (StormBase. storm-name
+                                  (current-time-secs)
+                                  {:type :active}
+                                  (storm-conf TOPOLOGY-WORKERS)
+                                  executors))))
 
 ;; Master:
 ;; job submit:
@@ -667,8 +677,8 @@
           (locking (:submit-lock nimbus)
             (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
             (.setup-heartbeats! storm-cluster-state storm-id)
-            (mk-assignments nimbus storm-id)
-            (start-storm storm-name storm-cluster-state storm-id))
+            (start-storm nimbus storm-name storm-id)
+            (mk-assignments nimbus storm-id))
           ))
       
       (^void killTopology [this ^String name]

@@ -136,7 +136,7 @@
 (defn- get-readable-name [topology-context]
   (.getThisComponentId topology-context))
 
-(defn- component-conf [storm-conf topology-context component-id]
+(defn- normalized-component-conf [storm-conf topology-context component-id]
   (let [to-remove (disj (set ALL-CONFIGS)
                         TOPOLOGY-DEBUG
                         TOPOLOGY-MAX-SPOUT-PENDING
@@ -177,7 +177,7 @@
     
         worker-port (.getThisWorkerPort topology-context)
         component-id (.getThisComponentId topology-context)
-        storm-conf (component-conf storm-conf topology-context component-id)
+        storm-conf (normalized-component-conf storm-conf topology-context component-id)
         _ (log-message "Loading task " component-id ":" task-id)
         task-info (.getTaskToComponent topology-context)
         active (atom true)

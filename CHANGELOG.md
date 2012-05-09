@@ -4,6 +4,7 @@
  * Number of workers can be dynamically changed at runtime through rebalance command and -n switch
  * Use worker heartbeats instead of task heartbeats (thanks xumingming)
  * Added button to show/hide system stats (e.g., acker component and stream stats) from the Storm UI (thanks xumingming)
+ * Validate that subscriptions come from valid components and streams, and if its a field grouping that the schema is correct (thanks xumingming)
 
 ## 0.7.2 (unreleased but release candidate available)
 

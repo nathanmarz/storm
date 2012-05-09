@@ -1,7 +1,8 @@
 ## Unreleased
 
  * Eliminate explicit storage of task->component in Zookeeper
- * Use worker heartbeats instead of task heartbeats (thanks xuming)
+ * Use worker heartbeats instead of task heartbeats (thanks xumingming)
+ * Added button to show/hide system stats (e.g., acker component and stream stats) from the Storm UI (thanks xumingming)
 
 ## 0.7.2 (unreleased but release candidate available)
 

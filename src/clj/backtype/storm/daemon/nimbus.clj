@@ -329,11 +329,11 @@
 ;; Does not assume that clocks are synchronized. Task heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
 ;; tracked through task-heartbeat-cache
-(defn- alive-tasks [conf storm-id storm-cluster-state task-ids task-start-times task-heartbeats-cache]
+(defn- alive-tasks [conf storm-id taskbeats task-ids task-start-times task-heartbeats-cache]
   (doall
     (filter
       (fn [task-id]
-        (let [heartbeat (.task-heartbeat storm-cluster-state storm-id task-id)
+        (let [heartbeat (get taskbeats task-id)
               reported-time (:time-secs heartbeat)
               {last-nimbus-time :nimbus-time
                last-reported-time :task-reported-time} (get-in @task-heartbeats-cache
@@ -409,10 +409,11 @@
         available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
+        taskbeats (.taskbeats storm-cluster-state storm-id)
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids
-                    (set (alive-tasks conf storm-id storm-cluster-state
+                    (set (alive-tasks conf storm-id taskbeats
                                       all-task-ids (:task->start-time-secs existing-assignment)
                                       task-heartbeats-cache)))
         
@@ -823,12 +824,13 @@
               task-info (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
+              taskbeats (.taskbeats storm-cluster-state storm-id)
               task-summaries (if (empty? (:task->node+port assignment))
                                []
                                (dofor [[task component] task-info]
                                     (let [[node port] (get-in assignment [:task->node+port task])
                                           host (-> assignment :node->host (get node))
-                                          heartbeat (.task-heartbeat storm-cluster-state storm-id task)
+                                          heartbeat (get taskbeats task)
                                           errors (.task-errors storm-cluster-state storm-id task)
                                           errors (dofor [e errors] (ErrorInfo. (:error e) (:time-secs e)))
                                           stats (:stats heartbeat)

@@ -19,6 +19,13 @@
             assignment))
     ))
 
+(defn do-task-heartbeats [worker]
+  (let [zk-hb {:storm-id (:storm-id worker)
+               :taskbeats @(:taskbeats worker)}]
+    ;; do the zookeeper heartbeat
+    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:supervisor-id worker) (:port worker) zk-hb)    
+    ))
+
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
         hb (WorkerHeartbeat.
@@ -26,10 +33,12 @@
              (:storm-id worker)
              (:task-ids worker)
              (:port worker))]
-  (log-debug "Doing heartbeat " (pr-str hb))
-  (.put (worker-state conf (:worker-id worker))
+    (log-debug "Doing heartbeat " (pr-str hb))
+    ;; do the local-file-system heartbeat.
+    (.put (worker-state conf (:worker-id worker))
         LS-WORKER-HEARTBEAT
-        hb)))
+        hb)
+    ))
 
 (defn mk-topology-context-builder [worker topology]
   (let [conf (:conf worker)]
@@ -95,6 +104,7 @@
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         receive-queue-map (into {} (dofor [tid task-ids] [tid (LinkedBlockingQueue.)]))
         topology (read-supervisor-topology conf storm-id)
+        taskbeats (atom {})
         ret {:conf conf
              :mq-context (if mq-context
                              mq-context
@@ -122,6 +132,7 @@
              :transfer-queue transfer-queue
              :receive-queue-map receive-queue-map
              :suicide-fn (mk-suicide-fn conf)
+             :taskbeats taskbeats
              }]
     (merge ret
            {:transfer-fn (mk-transfer-fn ret)
@@ -250,6 +261,7 @@
                       (.interrupt t)
                       (.join t))
                     (cancel-timer (:timer worker))
+                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:cluster-state worker))
@@ -268,6 +280,7 @@
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
+    (schedule-recurring (:timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-task-heartbeats worker))
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")

@@ -409,7 +409,7 @@
         available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
         all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
-        taskbeats (.taskbeats storm-cluster-state storm-id)
+        taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port existing-assignment))
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids
@@ -824,7 +824,7 @@
               task-info (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              taskbeats (.taskbeats storm-cluster-state storm-id)
+              taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port assignment))
               task-summaries (if (empty? (:task->node+port assignment))
                                []
                                (dofor [[task component] task-info]

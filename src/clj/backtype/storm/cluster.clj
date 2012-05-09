@@ -92,7 +92,8 @@
   (active-storms [this])
   (storm-base [this storm-id callback])
 
-  (taskbeats [this storm-id])
+  (get-worker-heartbeat [this storm-id node port])
+  (taskbeats [this storm-id task->node+port])
   (supervisors [this callback])
   (supervisor-info [this supervisor-id])  ;; returns nil if doesn't exist
 
@@ -101,7 +102,6 @@
   (teardown-task-errors! [this storm-id])
   (heartbeat-storms [this])
   (task-error-storms [this])
-  (heartbeat-tasks [this storm-id])
 
   (worker-heartbeat! [this storm-id node port info])
   (remove-worker-heartbeat! [this storm-id node port])
@@ -223,16 +223,24 @@
       (task-error-storms [this]
          (get-children cluster-state TASKERRORS-SUBTREE false)
         )
-        
-      (heartbeat-tasks [this storm-id]
-        (keys (.taskbeats this storm-id))
-        )
 
-      (taskbeats [this storm-id]
-        (let [node+ports (get-children cluster-state (workerbeat-storm-root storm-id) false)]
-          ;;TODO: is this right? maybe-deserialize?
-          (into {} (for [node+port node+ports]
-                     (-> cluster-state (get-data (str (workerbeat-storm-root storm-id) "/" node+port) false) maybe-deserialize :taskbeats)))))
+      (get-worker-heartbeat [this storm-id node port]
+        (-> cluster-state
+            (get-data (workerbeat-path storm-id node port) false)
+            maybe-deserialize))
+
+      (taskbeats [this storm-id task->node+port]
+        ;; need to take task->node+port in explicitly so that we don't run into a situation where a 
+        ;; long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
+        ;; with an assigned node+port, and only reading tasks from that heartbeat that are actually assigned,
+        ;; we avoid situations like that
+        (let [node+port->tasks (reverse-map task->node+port)
+              all-heartbeats (for [[[node port] tasks] node+port->tasks :let [tasks (set tasks)]]
+                                (->> (get-worker-heartbeat this storm-id node port)
+                                     :taskbeats
+                                     (filter-key tasks)
+                                     ))]
+          (apply merge all-heartbeats)))
 
       (supervisors [this callback]
         (when callback

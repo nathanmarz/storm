@@ -28,7 +28,12 @@
        (map #(.get_stats ^TaskSummary %))
        (filter not-nil?)))
 
-(defn ui-template [body include-sys?]
+(defn mk-system-toggle-button [include-sys?]
+  [:p [:input {:type "button"
+             :value (str (if include-sys? "Hide" "Show") " System Stats")
+             :onclick "toggleSys()"}]])
+
+(defn ui-template [body]
   (html
    [:head
     [:title "Storm UI"]
@@ -78,9 +83,6 @@ function toggleSys() {
 }"]
    [:body
     [:h1 (link-to "/" "Storm UI")]
-    [:p [:input {:type "button"
-                 :value (str (if include-sys? "Hide" "Show") " System Stats")
-                 :onclick "toggleSys()"}]]
     (seq body)
     ]))
 
@@ -709,18 +711,20 @@ function toggleSys() {
 (defroutes main-routes
   (GET "/" [:as {cookies :cookies}]
        (-> (main-page)
-           (ui-template (get-include-sys? cookies))))
+           ui-template))
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
        (let [include-sys? (get-include-sys? cookies)]
          (-> (topology-page id (:window m) include-sys?)
-                            (ui-template include-sys?))))
+             (concat [(mk-system-toggle-button include-sys?)])
+             ui-template)))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)]
          (-> (component-page id component (:window m) include-sys?)
-             (ui-template include-sys?))))
+             (concat [(mk-system-toggle-button include-sys?)])
+             ui-template)))
   (GET "/topology/:id/task/:task" [:as {cookies :cookies} id task & m]
        (-> (task-page id (Integer/parseInt task) (:window m))
-           (ui-template (get-include-sys? cookies))))
+           ui-template))
   (route/resources "/")
   (route/not-found "Page not found"))
 

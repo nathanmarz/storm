@@ -18,6 +18,10 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Heavily refactored and simplified the supervisor and worker code
  * Improved error message when duplicate config files found on classpath
  * Print the host and port of Nimbus when using the storm command line client
+ * Include as much of currently read output as possible when pipe to subprocess is broken
+ * Lower supervisor worker start timeout to 120 seconds
+ * More debug logging in supervisor
+ * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method

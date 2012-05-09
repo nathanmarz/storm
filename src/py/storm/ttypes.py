@@ -2686,15 +2686,21 @@ class RebalanceOptions:
   """
   Attributes:
    - wait_secs
+   - num_workers
+   - num_executors
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.I32, 'wait_secs', None, None, ), # 1
+    (2, TType.I32, 'num_workers', None, None, ), # 2
+    (3, TType.MAP, 'num_executors', (TType.STRING,None,TType.I32,None), None, ), # 3
   )
 
-  def __init__(self, wait_secs=None,):
+  def __init__(self, wait_secs=None, num_workers=None, num_executors=None,):
     self.wait_secs = wait_secs
+    self.num_workers = num_workers
+    self.num_executors = num_executors
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2710,6 +2716,22 @@ class RebalanceOptions:
           self.wait_secs = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.num_workers = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.MAP:
+          self.num_executors = {}
+          (_ktype239, _vtype240, _size238 ) = iprot.readMapBegin() 
+          for _i242 in xrange(_size238):
+            _key243 = iprot.readString().decode('utf-8')
+            _val244 = iprot.readI32();
+            self.num_executors[_key243] = _val244
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2723,6 +2745,18 @@ class RebalanceOptions:
     if self.wait_secs is not None:
       oprot.writeFieldBegin('wait_secs', TType.I32, 1)
       oprot.writeI32(self.wait_secs)
+      oprot.writeFieldEnd()
+    if self.num_workers is not None:
+      oprot.writeFieldBegin('num_workers', TType.I32, 2)
+      oprot.writeI32(self.num_workers)
+      oprot.writeFieldEnd()
+    if self.num_executors is not None:
+      oprot.writeFieldBegin('num_executors', TType.MAP, 3)
+      oprot.writeMapBegin(TType.STRING, TType.I32, len(self.num_executors))
+      for kiter245,viter246 in self.num_executors.items():
+        oprot.writeString(kiter245.encode('utf-8'))
+        oprot.writeI32(viter246)
+      oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

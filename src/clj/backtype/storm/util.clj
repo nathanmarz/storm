@@ -509,6 +509,9 @@
     (concat b (rest e))
     ))
 
+(defn assoc-non-nil [m k v]
+  (if v (assoc m k v) m))
+
 (defn multi-set
   "Returns a map of elem to count"
   [aseq]

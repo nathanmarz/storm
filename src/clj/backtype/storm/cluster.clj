@@ -277,10 +277,13 @@
         )
 
       (update-storm! [this storm-id new-elems]
-        (set-data cluster-state (storm-path storm-id)
-                                (-> (storm-base this storm-id nil)
-                                    (merge new-elems)
-                                    Utils/serialize)))
+        (let [base (storm-base this storm-id nil)
+              executors (:component->executors base)
+              new-elems (update new-elems :component->executors (partial merge executors))]
+          (set-data cluster-state (storm-path storm-id)
+                                  (-> base
+                                      (merge new-elems)
+                                      Utils/serialize))))
 
       (storm-base [this storm-id callback]
         (when callback

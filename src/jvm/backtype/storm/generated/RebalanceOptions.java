@@ -25,12 +25,18 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
   private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("RebalanceOptions");
 
   private static final org.apache.thrift7.protocol.TField WAIT_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("wait_secs", org.apache.thrift7.protocol.TType.I32, (short)1);
+  private static final org.apache.thrift7.protocol.TField NUM_WORKERS_FIELD_DESC = new org.apache.thrift7.protocol.TField("num_workers", org.apache.thrift7.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift7.protocol.TField NUM_EXECUTORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("num_executors", org.apache.thrift7.protocol.TType.MAP, (short)3);
 
   private int wait_secs; // required
+  private int num_workers; // required
+  private Map<String,Integer> num_executors; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    WAIT_SECS((short)1, "wait_secs");
+    WAIT_SECS((short)1, "wait_secs"),
+    NUM_WORKERS((short)2, "num_workers"),
+    NUM_EXECUTORS((short)3, "num_executors");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -47,6 +53,10 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
       switch(fieldId) {
         case 1: // WAIT_SECS
           return WAIT_SECS;
+        case 2: // NUM_WORKERS
+          return NUM_WORKERS;
+        case 3: // NUM_EXECUTORS
+          return NUM_EXECUTORS;
         default:
           return null;
       }
@@ -88,13 +98,20 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
 
   // isset id assignments
   private static final int __WAIT_SECS_ISSET_ID = 0;
-  private BitSet __isset_bit_vector = new BitSet(1);
+  private static final int __NUM_WORKERS_ISSET_ID = 1;
+  private BitSet __isset_bit_vector = new BitSet(2);
 
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.WAIT_SECS, new org.apache.thrift7.meta_data.FieldMetaData("wait_secs", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.NUM_WORKERS, new org.apache.thrift7.meta_data.FieldMetaData("num_workers", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.NUM_EXECUTORS, new org.apache.thrift7.meta_data.FieldMetaData("num_executors", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(RebalanceOptions.class, metaDataMap);
   }
@@ -109,6 +126,22 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     __isset_bit_vector.clear();
     __isset_bit_vector.or(other.__isset_bit_vector);
     this.wait_secs = other.wait_secs;
+    this.num_workers = other.num_workers;
+    if (other.is_set_num_executors()) {
+      Map<String,Integer> __this__num_executors = new HashMap<String,Integer>();
+      for (Map.Entry<String, Integer> other_element : other.num_executors.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        Integer other_element_value = other_element.getValue();
+
+        String __this__num_executors_copy_key = other_element_key;
+
+        Integer __this__num_executors_copy_value = other_element_value;
+
+        __this__num_executors.put(__this__num_executors_copy_key, __this__num_executors_copy_value);
+      }
+      this.num_executors = __this__num_executors;
+    }
   }
 
   public RebalanceOptions deepCopy() {
@@ -119,6 +152,9 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
   public void clear() {
     set_wait_secs_isSet(false);
     this.wait_secs = 0;
+    set_num_workers_isSet(false);
+    this.num_workers = 0;
+    this.num_executors = null;
   }
 
   public int get_wait_secs() {
@@ -143,6 +179,62 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     __isset_bit_vector.set(__WAIT_SECS_ISSET_ID, value);
   }
 
+  public int get_num_workers() {
+    return this.num_workers;
+  }
+
+  public void set_num_workers(int num_workers) {
+    this.num_workers = num_workers;
+    set_num_workers_isSet(true);
+  }
+
+  public void unset_num_workers() {
+    __isset_bit_vector.clear(__NUM_WORKERS_ISSET_ID);
+  }
+
+  /** Returns true if field num_workers is set (has been assigned a value) and false otherwise */
+  public boolean is_set_num_workers() {
+    return __isset_bit_vector.get(__NUM_WORKERS_ISSET_ID);
+  }
+
+  public void set_num_workers_isSet(boolean value) {
+    __isset_bit_vector.set(__NUM_WORKERS_ISSET_ID, value);
+  }
+
+  public int get_num_executors_size() {
+    return (this.num_executors == null) ? 0 : this.num_executors.size();
+  }
+
+  public void put_to_num_executors(String key, int val) {
+    if (this.num_executors == null) {
+      this.num_executors = new HashMap<String,Integer>();
+    }
+    this.num_executors.put(key, val);
+  }
+
+  public Map<String,Integer> get_num_executors() {
+    return this.num_executors;
+  }
+
+  public void set_num_executors(Map<String,Integer> num_executors) {
+    this.num_executors = num_executors;
+  }
+
+  public void unset_num_executors() {
+    this.num_executors = null;
+  }
+
+  /** Returns true if field num_executors is set (has been assigned a value) and false otherwise */
+  public boolean is_set_num_executors() {
+    return this.num_executors != null;
+  }
+
+  public void set_num_executors_isSet(boolean value) {
+    if (!value) {
+      this.num_executors = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case WAIT_SECS:
@@ -153,6 +245,22 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
       }
       break;
 
+    case NUM_WORKERS:
+      if (value == null) {
+        unset_num_workers();
+      } else {
+        set_num_workers((Integer)value);
+      }
+      break;
+
+    case NUM_EXECUTORS:
+      if (value == null) {
+        unset_num_executors();
+      } else {
+        set_num_executors((Map<String,Integer>)value);
+      }
+      break;
+
     }
   }
 
@@ -160,6 +268,12 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     switch (field) {
     case WAIT_SECS:
       return Integer.valueOf(get_wait_secs());
+
+    case NUM_WORKERS:
+      return Integer.valueOf(get_num_workers());
+
+    case NUM_EXECUTORS:
+      return get_num_executors();
 
     }
     throw new IllegalStateException();
@@ -174,6 +288,10 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     switch (field) {
     case WAIT_SECS:
       return is_set_wait_secs();
+    case NUM_WORKERS:
+      return is_set_num_workers();
+    case NUM_EXECUTORS:
+      return is_set_num_executors();
     }
     throw new IllegalStateException();
   }
@@ -200,6 +318,24 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
         return false;
     }
 
+    boolean this_present_num_workers = true && this.is_set_num_workers();
+    boolean that_present_num_workers = true && that.is_set_num_workers();
+    if (this_present_num_workers || that_present_num_workers) {
+      if (!(this_present_num_workers && that_present_num_workers))
+        return false;
+      if (this.num_workers != that.num_workers)
+        return false;
+    }
+
+    boolean this_present_num_executors = true && this.is_set_num_executors();
+    boolean that_present_num_executors = true && that.is_set_num_executors();
+    if (this_present_num_executors || that_present_num_executors) {
+      if (!(this_present_num_executors && that_present_num_executors))
+        return false;
+      if (!this.num_executors.equals(that.num_executors))
+        return false;
+    }
+
     return true;
   }
 
@@ -211,6 +347,16 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     builder.append(present_wait_secs);
     if (present_wait_secs)
       builder.append(wait_secs);
+
+    boolean present_num_workers = true && (is_set_num_workers());
+    builder.append(present_num_workers);
+    if (present_num_workers)
+      builder.append(num_workers);
+
+    boolean present_num_executors = true && (is_set_num_executors());
+    builder.append(present_num_executors);
+    if (present_num_executors)
+      builder.append(num_executors);
 
     return builder.toHashCode();
   }
@@ -229,6 +375,26 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     }
     if (is_set_wait_secs()) {
       lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.wait_secs, typedOther.wait_secs);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_num_workers()).compareTo(typedOther.is_set_num_workers());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_num_workers()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.num_workers, typedOther.num_workers);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_num_executors()).compareTo(typedOther.is_set_num_executors());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_num_executors()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.num_executors, typedOther.num_executors);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -258,6 +424,33 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 2: // NUM_WORKERS
+          if (field.type == org.apache.thrift7.protocol.TType.I32) {
+            this.num_workers = iprot.readI32();
+            set_num_workers_isSet(true);
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 3: // NUM_EXECUTORS
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map133 = iprot.readMapBegin();
+              this.num_executors = new HashMap<String,Integer>(2*_map133.size);
+              for (int _i134 = 0; _i134 < _map133.size; ++_i134)
+              {
+                String _key135; // required
+                int _val136; // required
+                _key135 = iprot.readString();
+                _val136 = iprot.readI32();
+                this.num_executors.put(_key135, _val136);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -276,6 +469,26 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
       oprot.writeI32(this.wait_secs);
       oprot.writeFieldEnd();
     }
+    if (is_set_num_workers()) {
+      oprot.writeFieldBegin(NUM_WORKERS_FIELD_DESC);
+      oprot.writeI32(this.num_workers);
+      oprot.writeFieldEnd();
+    }
+    if (this.num_executors != null) {
+      if (is_set_num_executors()) {
+        oprot.writeFieldBegin(NUM_EXECUTORS_FIELD_DESC);
+        {
+          oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.I32, this.num_executors.size()));
+          for (Map.Entry<String, Integer> _iter137 : this.num_executors.entrySet())
+          {
+            oprot.writeString(_iter137.getKey());
+            oprot.writeI32(_iter137.getValue());
+          }
+          oprot.writeMapEnd();
+        }
+        oprot.writeFieldEnd();
+      }
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -288,6 +501,22 @@ public class RebalanceOptions implements org.apache.thrift7.TBase<RebalanceOptio
     if (is_set_wait_secs()) {
       sb.append("wait_secs:");
       sb.append(this.wait_secs);
+      first = false;
+    }
+    if (is_set_num_workers()) {
+      if (!first) sb.append(", ");
+      sb.append("num_workers:");
+      sb.append(this.num_workers);
+      first = false;
+    }
+    if (is_set_num_executors()) {
+      if (!first) sb.append(", ");
+      sb.append("num_executors:");
+      if (this.num_executors == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.num_executors);
+      }
       first = false;
     }
     sb.append(")");

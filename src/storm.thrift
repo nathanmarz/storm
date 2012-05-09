@@ -184,6 +184,8 @@ struct KillOptions {
 
 struct RebalanceOptions {
   1: optional i32 wait_secs;
+  2: optional i32 num_workers;
+  3: optional map<string, i32> num_executors;
 }
 
 

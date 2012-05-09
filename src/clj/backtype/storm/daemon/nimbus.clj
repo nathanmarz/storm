@@ -77,7 +77,7 @@
     ))
 
 (defn rebalance-transition [nimbus storm-id status]
-  (fn [time]
+  (fn [time num-workers executor-overrides]
     (let [delay (if time
                   time
                   (get (read-storm-conf (:conf nimbus) storm-id)
@@ -89,6 +89,8 @@
       {:type :rebalancing
        :delay-secs delay
        :old-status status
+       :num-workers num-workers
+       :executor-overrides executor-overrides
        })))
 
 (defn reassign-transition [nimbus storm-id]
@@ -96,6 +98,15 @@
     (reassign-topology nimbus storm-id)
     nil
     ))
+
+(defn do-rebalance [nimbus storm-id status]
+  (.update-storm! (:storm-cluster-state nimbus)
+                  storm-id
+                  (assoc-non-nil
+                    {:component->executors (:executor-overrides status)}
+                    :num-workers
+                    (:num-workers status)))
+  (mk-assignments nimbus storm-id :scratch? true))
 
 (defn state-transitions [nimbus storm-id status]
   {:active {:monitor (reassign-transition nimbus storm-id)
@@ -127,7 +138,7 @@
                                               :do-rebalance))
                  :kill (kill-transition nimbus storm-id)
                  :do-rebalance (fn []
-                                 (mk-assignments nimbus storm-id :scratch? true)
+                                 (do-rebalance nimbus storm-id status)
                                  (:old-status status))
                  }})
 
@@ -695,10 +706,14 @@
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (check-storm-active! nimbus storm-name true)
         (let [wait-amt (if (.is_set_wait_secs options)
-                         (.get_wait_secs options)                         
-                         )]
-          (transition-name! nimbus storm-name [:rebalance wait-amt] true)
-          ))      
+                         (.get_wait_secs options))
+              num-workers (if (.is_set_num_workers options)
+                            (.get_num_workers options))
+              executor-overrrides (if (.is_set_num_executors options)
+                                    (.get_num_executors options)
+                                    {})]
+          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrrides] true)
+          ))
 
       (activate [this storm-name]
         (transition-name! nimbus storm-name :activate true)

@@ -134,16 +134,16 @@
               :let [source-component-id (.get_componentId global-stream-id)
                     source-stream-id    (.get_streamId global-stream-id)]]
         (if-not (contains? all-components source-component-id)
-          (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from non-exists component [" source-component-id "]")))
+          (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from non-existent component [" source-component-id "]")))
           (let [source-streams (-> all-components (get source-component-id) .get_common .get_streams)]
             (if-not (contains? source-streams source-stream-id)
-              (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from non-exists stream: [" source-stream-id "] of component [" source-component-id "]")))
+              (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from non-existent stream: [" source-stream-id "] of component [" source-component-id "]")))
               (if (= :fields (thrift/grouping-type grouping))
                 (let [grouping-fields (set (.get_fields grouping))
                       source-stream-fields (-> source-streams (get source-stream-id) .get_output_fields set)
                       diff-fields (set/difference grouping-fields source-stream-fields)]
                   (when-not (empty? diff-fields)
-                    (throw (InvalidTopologyException. (str "Component: [" id "] subscribe from stream: [" source-stream-id "] of component [" source-component-id "] with non-exists fields: " diff-fields)))))))))))))
+                    (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from stream: [" source-stream-id "] of component [" source-component-id "] with non-existent fields: " diff-fields)))))))))))))
 
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)

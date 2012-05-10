@@ -695,3 +695,28 @@
 
 (defn url-encode [s]
   (java.net.URLEncoder/encode s))
+
+(defn join-maps [& maps]
+  (let [all-keys (apply set/union (for [m maps] (-> m keys set)))]
+    (into {}
+      (for [k all-keys]
+        [k (for [m maps] (m k))]
+        ))))
+
+(defn partition-fixed [max-num-chunks aseq]
+  (if (zero? max-num-chunks)
+    (throw (IllegalArgumentException. "Cannot partition into zero chunks"))
+    (let [chunks (->> (integer-divided (count aseq) max-num-chunks)
+                      (#(dissoc % 0))
+                      (sort-by (comp - first))
+                      (mapcat (fn [[size amt]] (repeat amt size)))
+                      )]
+      (loop [result []
+             [chunk & rest-chunks] chunks
+             data aseq]
+        (if (nil? chunk)
+          result
+          (let [[c rest-data] (split-at chunk data)]
+            (recur (conj result c)
+                   rest-chunks
+                   rest-data)))))))

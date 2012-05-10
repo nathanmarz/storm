@@ -5,6 +5,7 @@
  * Use worker heartbeats instead of task heartbeats (thanks xumingming)
  * Added button to show/hide system stats (e.g., acker component and stream stats) from the Storm UI (thanks xumingming)
  * Validate that subscriptions come from valid components and streams, and if its a field grouping that the schema is correct (thanks xumingming)
+ * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
 
 ## 0.7.2 (unreleased but release candidate available)
 

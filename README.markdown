@@ -23,9 +23,13 @@ By using this software in any fashion, you are agreeing to be bound by
 the terms of this license.
 You must not remove this notice, or any other, from this software.
 
-## Contributors
+## Core contributors
 
 * Nathan Marz ([@nathanmarz](http://twitter.com/nathanmarz))
+* James Xu ([@xumingming](https://github.com/xumingming))
+
+## Contributors
+
 * Jason Jackson ([@jason_j](http://twitter.com/jason_j))
 * Christopher Bertels ([@bakkdoor](http://twitter.com/bakkdoor))
 * Michael Montano ([@michaelmontano](http://twitter.com/michaelmontano))
@@ -42,6 +46,5 @@ You must not remove this notice, or any other, from this software.
 * Michael Cetrulo ([@git2samus](https://github.com/git2samus))
 * Thomas Jack ([@tomo](https://github.com/tomo))
 * Nicolas Yzet ([@nicoo](https://github.com/nicoo))
-* James Xu ([@xumingming](https://github.com/xumingming))
 * Fabian Neumann ([@hellp](https://github.com/hellp))
 * Soren Macbeth ([@sorenmacbeth](https://github.com/sorenmacbeth))

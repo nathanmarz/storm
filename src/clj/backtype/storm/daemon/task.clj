@@ -190,7 +190,7 @@
 
         report-error (fn [error]
                        (log-error error)
-                       (.report-task-error storm-cluster-state storm-id task-id error))
+                       (cluster/report-error storm-cluster-state storm-id component-id error))
         
         report-error-and-die (fn [error]
                                (report-error error)

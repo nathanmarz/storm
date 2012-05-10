@@ -29,12 +29,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
   private static final org.apache.thrift7.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)3);
   private static final org.apache.thrift7.protocol.TField TASKS_FIELD_DESC = new org.apache.thrift7.protocol.TField("tasks", org.apache.thrift7.protocol.TType.LIST, (short)4);
   private static final org.apache.thrift7.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift7.protocol.TField("status", org.apache.thrift7.protocol.TType.STRING, (short)5);
+  private static final org.apache.thrift7.protocol.TField ERRORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("errors", org.apache.thrift7.protocol.TType.MAP, (short)6);
 
   private String id; // required
   private String name; // required
   private int uptime_secs; // required
   private List<TaskSummary> tasks; // required
   private String status; // required
+  private Map<String,List<ErrorInfo>> errors; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -42,7 +44,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     NAME((short)2, "name"),
     UPTIME_SECS((short)3, "uptime_secs"),
     TASKS((short)4, "tasks"),
-    STATUS((short)5, "status");
+    STATUS((short)5, "status"),
+    ERRORS((short)6, "errors");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -67,6 +70,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
           return TASKS;
         case 5: // STATUS
           return STATUS;
+        case 6: // ERRORS
+          return ERRORS;
         default:
           return null;
       }
@@ -124,6 +129,11 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
             new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskSummary.class))));
     tmpMap.put(_Fields.STATUS, new org.apache.thrift7.meta_data.FieldMetaData("status", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+    tmpMap.put(_Fields.ERRORS, new org.apache.thrift7.meta_data.FieldMetaData("errors", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
+                new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ErrorInfo.class)))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TopologyInfo.class, metaDataMap);
   }
@@ -136,7 +146,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     String name,
     int uptime_secs,
     List<TaskSummary> tasks,
-    String status)
+    String status,
+    Map<String,List<ErrorInfo>> errors)
   {
     this();
     this.id = id;
@@ -145,6 +156,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     set_uptime_secs_isSet(true);
     this.tasks = tasks;
     this.status = status;
+    this.errors = errors;
   }
 
   /**
@@ -170,6 +182,24 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     if (other.is_set_status()) {
       this.status = other.status;
     }
+    if (other.is_set_errors()) {
+      Map<String,List<ErrorInfo>> __this__errors = new HashMap<String,List<ErrorInfo>>();
+      for (Map.Entry<String, List<ErrorInfo>> other_element : other.errors.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        List<ErrorInfo> other_element_value = other_element.getValue();
+
+        String __this__errors_copy_key = other_element_key;
+
+        List<ErrorInfo> __this__errors_copy_value = new ArrayList<ErrorInfo>();
+        for (ErrorInfo other_element_value_element : other_element_value) {
+          __this__errors_copy_value.add(new ErrorInfo(other_element_value_element));
+        }
+
+        __this__errors.put(__this__errors_copy_key, __this__errors_copy_value);
+      }
+      this.errors = __this__errors;
+    }
   }
 
   public TopologyInfo deepCopy() {
@@ -184,6 +214,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     this.uptime_secs = 0;
     this.tasks = null;
     this.status = null;
+    this.errors = null;
   }
 
   public String get_id() {
@@ -315,6 +346,40 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     }
   }
 
+  public int get_errors_size() {
+    return (this.errors == null) ? 0 : this.errors.size();
+  }
+
+  public void put_to_errors(String key, List<ErrorInfo> val) {
+    if (this.errors == null) {
+      this.errors = new HashMap<String,List<ErrorInfo>>();
+    }
+    this.errors.put(key, val);
+  }
+
+  public Map<String,List<ErrorInfo>> get_errors() {
+    return this.errors;
+  }
+
+  public void set_errors(Map<String,List<ErrorInfo>> errors) {
+    this.errors = errors;
+  }
+
+  public void unset_errors() {
+    this.errors = null;
+  }
+
+  /** Returns true if field errors is set (has been assigned a value) and false otherwise */
+  public boolean is_set_errors() {
+    return this.errors != null;
+  }
+
+  public void set_errors_isSet(boolean value) {
+    if (!value) {
+      this.errors = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ID:
@@ -357,6 +422,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       }
       break;
 
+    case ERRORS:
+      if (value == null) {
+        unset_errors();
+      } else {
+        set_errors((Map<String,List<ErrorInfo>>)value);
+      }
+      break;
+
     }
   }
 
@@ -376,6 +449,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
 
     case STATUS:
       return get_status();
+
+    case ERRORS:
+      return get_errors();
 
     }
     throw new IllegalStateException();
@@ -398,6 +474,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       return is_set_tasks();
     case STATUS:
       return is_set_status();
+    case ERRORS:
+      return is_set_errors();
     }
     throw new IllegalStateException();
   }
@@ -460,6 +538,15 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         return false;
     }
 
+    boolean this_present_errors = true && this.is_set_errors();
+    boolean that_present_errors = true && that.is_set_errors();
+    if (this_present_errors || that_present_errors) {
+      if (!(this_present_errors && that_present_errors))
+        return false;
+      if (!this.errors.equals(that.errors))
+        return false;
+    }
+
     return true;
   }
 
@@ -491,6 +578,11 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     builder.append(present_status);
     if (present_status)
       builder.append(status);
+
+    boolean present_errors = true && (is_set_errors());
+    builder.append(present_errors);
+    if (present_errors)
+      builder.append(errors);
 
     return builder.toHashCode();
   }
@@ -553,6 +645,16 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_errors()).compareTo(typedOther.is_set_errors());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_errors()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.errors, typedOther.errors);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -595,14 +697,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         case 4: // TASKS
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list129 = iprot.readListBegin();
-              this.tasks = new ArrayList<TaskSummary>(_list129.size);
-              for (int _i130 = 0; _i130 < _list129.size; ++_i130)
+              org.apache.thrift7.protocol.TList _list125 = iprot.readListBegin();
+              this.tasks = new ArrayList<TaskSummary>(_list125.size);
+              for (int _i126 = 0; _i126 < _list125.size; ++_i126)
               {
-                TaskSummary _elem131; // required
-                _elem131 = new TaskSummary();
-                _elem131.read(iprot);
-                this.tasks.add(_elem131);
+                TaskSummary _elem127; // required
+                _elem127 = new TaskSummary();
+                _elem127.read(iprot);
+                this.tasks.add(_elem127);
               }
               iprot.readListEnd();
             }
@@ -613,6 +715,36 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         case 5: // STATUS
           if (field.type == org.apache.thrift7.protocol.TType.STRING) {
             this.status = iprot.readString();
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 6: // ERRORS
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map128 = iprot.readMapBegin();
+              this.errors = new HashMap<String,List<ErrorInfo>>(2*_map128.size);
+              for (int _i129 = 0; _i129 < _map128.size; ++_i129)
+              {
+                String _key130; // required
+                List<ErrorInfo> _val131; // required
+                _key130 = iprot.readString();
+                {
+                  org.apache.thrift7.protocol.TList _list132 = iprot.readListBegin();
+                  _val131 = new ArrayList<ErrorInfo>(_list132.size);
+                  for (int _i133 = 0; _i133 < _list132.size; ++_i133)
+                  {
+                    ErrorInfo _elem134; // required
+                    _elem134 = new ErrorInfo();
+                    _elem134.read(iprot);
+                    _val131.add(_elem134);
+                  }
+                  iprot.readListEnd();
+                }
+                this.errors.put(_key130, _val131);
+              }
+              iprot.readMapEnd();
+            }
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -647,9 +779,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       oprot.writeFieldBegin(TASKS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.tasks.size()));
-        for (TaskSummary _iter132 : this.tasks)
+        for (TaskSummary _iter135 : this.tasks)
         {
-          _iter132.write(oprot);
+          _iter135.write(oprot);
         }
         oprot.writeListEnd();
       }
@@ -658,6 +790,26 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     if (this.status != null) {
       oprot.writeFieldBegin(STATUS_FIELD_DESC);
       oprot.writeString(this.status);
+      oprot.writeFieldEnd();
+    }
+    if (this.errors != null) {
+      oprot.writeFieldBegin(ERRORS_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.LIST, this.errors.size()));
+        for (Map.Entry<String, List<ErrorInfo>> _iter136 : this.errors.entrySet())
+        {
+          oprot.writeString(_iter136.getKey());
+          {
+            oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, _iter136.getValue().size()));
+            for (ErrorInfo _iter137 : _iter136.getValue())
+            {
+              _iter137.write(oprot);
+            }
+            oprot.writeListEnd();
+          }
+        }
+        oprot.writeMapEnd();
+      }
       oprot.writeFieldEnd();
     }
     oprot.writeFieldStop();
@@ -704,6 +856,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       sb.append(this.status);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("errors:");
+    if (this.errors == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.errors);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -728,6 +888,10 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
 
     if (!is_set_status()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'status' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_errors()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'errors' is unset! Struct:" + toString());
     }
 
   }

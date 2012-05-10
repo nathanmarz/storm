@@ -562,7 +562,7 @@
 
 (defn cleanup-storm-ids [conf storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
-        error-ids (set (.task-error-storms storm-cluster-state))
+        error-ids (set (.error-topologies storm-cluster-state))
         code-ids (code-ids conf)
         assigned-ids (set (.active-storms storm-cluster-state))]
     (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
@@ -612,7 +612,7 @@
         (doseq [id to-cleanup-ids]
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
-          (.teardown-task-errors! storm-cluster-state id)
+          (.teardown-topology-errors! storm-cluster-state id)
           (rmr (master-stormdist-root conf id))
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
@@ -641,6 +641,10 @@
       (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
       (.remove-storm! storm-cluster-state corrupt)
       )))
+
+(defn- get-errors [storm-cluster-state storm-id component-id]
+  (->> (.errors storm-cluster-state storm-id component-id)
+       (map #(ErrorInfo. (:error %) (:time-secs %)))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -825,14 +829,18 @@
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port assignment))
+              all-components (-> task-info reverse-map keys)
+              errors (->> task-info
+                          reverse-map
+                          keys
+                          (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
+                          (into {}))
               task-summaries (if (empty? (:task->node+port assignment))
                                []
                                (dofor [[task component] task-info]
                                     (let [[node port] (get-in assignment [:task->node+port task])
                                           host (-> assignment :node->host (get node))
                                           heartbeat (get taskbeats task)
-                                          errors (.task-errors storm-cluster-state storm-id task)
-                                          errors (dofor [e errors] (ErrorInfo. (:error e) (:time-secs e)))
                                           stats (:stats heartbeat)
                                           stats (if stats
                                                   (stats/thriftify-task-stats stats))]
@@ -841,10 +849,7 @@
                                                         component
                                                         host
                                                         port
-                                                        (nil-to-zero
-                                                         (:uptime-secs heartbeat))
-                                                        errors
-                                                        )
+                                                        (nil-to-zero (:uptime-secs heartbeat)))
                                         (.set_stats stats))
                                       )))
               ]
@@ -853,6 +858,7 @@
                          (time-delta (:launch-time-secs base))
                          task-summaries
                          (extract-status-str base)
+                         errors
                          )
           ))
       

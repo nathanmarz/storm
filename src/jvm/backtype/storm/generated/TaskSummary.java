@@ -29,7 +29,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
   private static final org.apache.thrift7.protocol.TField HOST_FIELD_DESC = new org.apache.thrift7.protocol.TField("host", org.apache.thrift7.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift7.protocol.TField PORT_FIELD_DESC = new org.apache.thrift7.protocol.TField("port", org.apache.thrift7.protocol.TType.I32, (short)4);
   private static final org.apache.thrift7.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)5);
-  private static final org.apache.thrift7.protocol.TField ERRORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("errors", org.apache.thrift7.protocol.TType.LIST, (short)6);
   private static final org.apache.thrift7.protocol.TField STATS_FIELD_DESC = new org.apache.thrift7.protocol.TField("stats", org.apache.thrift7.protocol.TType.STRUCT, (short)7);
 
   private int task_id; // required
@@ -37,7 +36,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
   private String host; // required
   private int port; // required
   private int uptime_secs; // required
-  private List<ErrorInfo> errors; // required
   private TaskStats stats; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -47,7 +45,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     HOST((short)3, "host"),
     PORT((short)4, "port"),
     UPTIME_SECS((short)5, "uptime_secs"),
-    ERRORS((short)6, "errors"),
     STATS((short)7, "stats");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -73,8 +70,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
           return PORT;
         case 5: // UPTIME_SECS
           return UPTIME_SECS;
-        case 6: // ERRORS
-          return ERRORS;
         case 7: // STATS
           return STATS;
         default:
@@ -135,9 +130,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     tmpMap.put(_Fields.UPTIME_SECS, new org.apache.thrift7.meta_data.FieldMetaData("uptime_secs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
-    tmpMap.put(_Fields.ERRORS, new org.apache.thrift7.meta_data.FieldMetaData("errors", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
-            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ErrorInfo.class))));
     tmpMap.put(_Fields.STATS, new org.apache.thrift7.meta_data.FieldMetaData("stats", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -152,8 +144,7 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     String component_id,
     String host,
     int port,
-    int uptime_secs,
-    List<ErrorInfo> errors)
+    int uptime_secs)
   {
     this();
     this.task_id = task_id;
@@ -164,7 +155,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     set_port_isSet(true);
     this.uptime_secs = uptime_secs;
     set_uptime_secs_isSet(true);
-    this.errors = errors;
   }
 
   /**
@@ -182,13 +172,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     }
     this.port = other.port;
     this.uptime_secs = other.uptime_secs;
-    if (other.is_set_errors()) {
-      List<ErrorInfo> __this__errors = new ArrayList<ErrorInfo>();
-      for (ErrorInfo other_element : other.errors) {
-        __this__errors.add(new ErrorInfo(other_element));
-      }
-      this.errors = __this__errors;
-    }
     if (other.is_set_stats()) {
       this.stats = new TaskStats(other.stats);
     }
@@ -208,7 +191,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     this.port = 0;
     set_uptime_secs_isSet(false);
     this.uptime_secs = 0;
-    this.errors = null;
     this.stats = null;
   }
 
@@ -324,44 +306,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     __isset_bit_vector.set(__UPTIME_SECS_ISSET_ID, value);
   }
 
-  public int get_errors_size() {
-    return (this.errors == null) ? 0 : this.errors.size();
-  }
-
-  public java.util.Iterator<ErrorInfo> get_errors_iterator() {
-    return (this.errors == null) ? null : this.errors.iterator();
-  }
-
-  public void add_to_errors(ErrorInfo elem) {
-    if (this.errors == null) {
-      this.errors = new ArrayList<ErrorInfo>();
-    }
-    this.errors.add(elem);
-  }
-
-  public List<ErrorInfo> get_errors() {
-    return this.errors;
-  }
-
-  public void set_errors(List<ErrorInfo> errors) {
-    this.errors = errors;
-  }
-
-  public void unset_errors() {
-    this.errors = null;
-  }
-
-  /** Returns true if field errors is set (has been assigned a value) and false otherwise */
-  public boolean is_set_errors() {
-    return this.errors != null;
-  }
-
-  public void set_errors_isSet(boolean value) {
-    if (!value) {
-      this.errors = null;
-    }
-  }
-
   public TaskStats get_stats() {
     return this.stats;
   }
@@ -427,14 +371,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
       }
       break;
 
-    case ERRORS:
-      if (value == null) {
-        unset_errors();
-      } else {
-        set_errors((List<ErrorInfo>)value);
-      }
-      break;
-
     case STATS:
       if (value == null) {
         unset_stats();
@@ -463,9 +399,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     case UPTIME_SECS:
       return Integer.valueOf(get_uptime_secs());
 
-    case ERRORS:
-      return get_errors();
-
     case STATS:
       return get_stats();
 
@@ -490,8 +423,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
       return is_set_port();
     case UPTIME_SECS:
       return is_set_uptime_secs();
-    case ERRORS:
-      return is_set_errors();
     case STATS:
       return is_set_stats();
     }
@@ -556,15 +487,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
         return false;
     }
 
-    boolean this_present_errors = true && this.is_set_errors();
-    boolean that_present_errors = true && that.is_set_errors();
-    if (this_present_errors || that_present_errors) {
-      if (!(this_present_errors && that_present_errors))
-        return false;
-      if (!this.errors.equals(that.errors))
-        return false;
-    }
-
     boolean this_present_stats = true && this.is_set_stats();
     boolean that_present_stats = true && that.is_set_stats();
     if (this_present_stats || that_present_stats) {
@@ -605,11 +527,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     builder.append(present_uptime_secs);
     if (present_uptime_secs)
       builder.append(uptime_secs);
-
-    boolean present_errors = true && (is_set_errors());
-    builder.append(present_errors);
-    if (present_errors)
-      builder.append(errors);
 
     boolean present_stats = true && (is_set_stats());
     builder.append(present_stats);
@@ -673,16 +590,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     }
     if (is_set_uptime_secs()) {
       lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.uptime_secs, typedOther.uptime_secs);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = Boolean.valueOf(is_set_errors()).compareTo(typedOther.is_set_errors());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (is_set_errors()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.errors, typedOther.errors);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -752,24 +659,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 6: // ERRORS
-          if (field.type == org.apache.thrift7.protocol.TType.LIST) {
-            {
-              org.apache.thrift7.protocol.TList _list125 = iprot.readListBegin();
-              this.errors = new ArrayList<ErrorInfo>(_list125.size);
-              for (int _i126 = 0; _i126 < _list125.size; ++_i126)
-              {
-                ErrorInfo _elem127; // required
-                _elem127 = new ErrorInfo();
-                _elem127.read(iprot);
-                this.errors.add(_elem127);
-              }
-              iprot.readListEnd();
-            }
-          } else { 
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
         case 7: // STATS
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.stats = new TaskStats();
@@ -810,18 +699,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     oprot.writeFieldBegin(UPTIME_SECS_FIELD_DESC);
     oprot.writeI32(this.uptime_secs);
     oprot.writeFieldEnd();
-    if (this.errors != null) {
-      oprot.writeFieldBegin(ERRORS_FIELD_DESC);
-      {
-        oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.errors.size()));
-        for (ErrorInfo _iter128 : this.errors)
-        {
-          _iter128.write(oprot);
-        }
-        oprot.writeListEnd();
-      }
-      oprot.writeFieldEnd();
-    }
     if (this.stats != null) {
       if (is_set_stats()) {
         oprot.writeFieldBegin(STATS_FIELD_DESC);
@@ -865,14 +742,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     sb.append("uptime_secs:");
     sb.append(this.uptime_secs);
     first = false;
-    if (!first) sb.append(", ");
-    sb.append("errors:");
-    if (this.errors == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.errors);
-    }
-    first = false;
     if (is_set_stats()) {
       if (!first) sb.append(", ");
       sb.append("stats:");
@@ -907,10 +776,6 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
 
     if (!is_set_uptime_secs()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'uptime_secs' is unset! Struct:" + toString());
-    }
-
-    if (!is_set_errors()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'errors' is unset! Struct:" + toString());
     }
 
   }

@@ -62,7 +62,8 @@
 
 (def zk-create-modes
   {:ephemeral CreateMode/EPHEMERAL
-   :persistent CreateMode/PERSISTENT})
+   :persistent CreateMode/PERSISTENT
+   :sequential CreateMode/PERSISTENT_SEQUENTIAL})
 
 (defn create-node
   ([^CuratorFramework zk ^String path ^bytes data mode]

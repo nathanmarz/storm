@@ -579,6 +579,25 @@
        (apply merge)
        ))
 
+(defn- component-parallelism [storm-conf component]
+  (let [storm-conf (merge storm-conf (component-conf component))
+        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
+        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+        ]
+    (if max-parallelism
+      (min max-parallelism num-tasks)
+      num-tasks)))
+
+(defn normalize-topology [storm-conf ^StormTopology topology]
+  (let [ret (.deepCopy topology)]
+    (doseq [[_ component] (all-components ret)]
+      (.set_json_conf
+        (.get_common component)
+        (->> {TOPOLOGY-TASKS (component-parallelism storm-conf component)}
+             (merge (component-conf component))
+             to-json )))
+    ret ))
+
 (defn normalize-conf [conf storm-conf ^StormTopology topology]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
@@ -596,7 +615,7 @@
     (merge storm-conf
            {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
                                           (mapify-serializations base-sers))
-            TOPOLOGY-ACKER-TASKS (total-conf TOPOLOGY-ACKER-TASKS)
+            TOPOLOGY-ACKER-TASKS (or (total-conf TOPOLOGY-ACKER-TASKS) (total-conf TOPOLOGY-ACKER-EXECUTORS))
             TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
             TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)
             })
@@ -682,6 +701,7 @@
                               (assoc TOPOLOGY-NAME storm-name))
                           topology)
               total-storm-conf (merge conf storm-conf)
+              topology (normalize-topology total-storm-conf topology)
               topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
                          (optimize-topology topology)
                          topology)

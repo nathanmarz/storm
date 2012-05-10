@@ -208,31 +208,21 @@
     (and (or (nil? tasks) (> tasks 0))
          (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
 
-(defn component-conf [storm-conf component]
+(defn component-conf [component]
   (->> component
       .get_common
       .get_json_conf
-      from-json
-      (merge storm-conf)))
+      from-json))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))
-
-(defn- component-parallelism [storm-conf component]
-  (let [storm-conf (component-conf storm-conf component)
-        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
-        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        ]
-    (if max-parallelism
-      (min max-parallelism num-tasks)
-      num-tasks)))
 
 (defn storm-task-info
   "Returns map from task -> component id"
   [^StormTopology user-topology storm-conf]
   (->> (system-topology! storm-conf user-topology)
        all-components
-       (map-val (partial component-parallelism storm-conf))
+       (map-val (comp #(get % TOPOLOGY-TASKS) component-conf))
        (sort-by first)
        (mapcat (fn [[c num-tasks]] (repeat num-tasks c)))
        (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))

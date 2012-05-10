@@ -372,10 +372,8 @@ function toggleSys() {
 (defn error-subset [error-str]
   (apply str (take 200 error-str)))
 
-(defn most-recent-error [summs]
-  (let [summs (collectify summs)
-        error (->> summs
-                   (mapcat #(clojurify-structure (.get_errors ^TaskSummary %)))
+(defn most-recent-error [errors-list]
+  (let [error (->> errors-list
                    (sort-by #(.get_error_time_secs ^ErrorInfo %))
                    reverse
                    first)]
@@ -390,7 +388,7 @@ function toggleSys() {
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
 
-(defn spout-comp-table [top-id summ-map window include-sys?]
+(defn spout-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
    ["Id" "Parallelism" "Emitted" "Transferred" "Complete latency (ms)"
     "Acked" "Failed" "Last error"]
@@ -406,11 +404,11 @@ function toggleSys() {
       (float-str (get-in stats [:complete-latencies window]))
       (get-in stats [:acked window])
       (get-in stats [:failed window])
-      (most-recent-error summs)
+      (most-recent-error (get errors id))
       ]
      )))
 
-(defn bolt-comp-table [top-id summ-map window include-sys?]
+(defn bolt-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
    ["Id" "Parallelism" "Emitted" "Transferred" "Process latency (ms)"
     "Acked" "Failed" "Last error"]
@@ -427,7 +425,7 @@ function toggleSys() {
       (float-str (get-in stats [:process-latencies window]))
       (get-in stats [:acked window])
       (get-in stats [:failed window])
-      (most-recent-error summs)
+      (most-recent-error (get errors id))
       ]
      )))
 
@@ -454,9 +452,9 @@ function toggleSys() {
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
        [[:h2 "Spouts (" window-hint ")"]]
-       (spout-comp-table id spout-comp-summs window include-sys?)
+       (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Bolts (" window-hint ")"]]
-       (bolt-comp-table id bolt-comp-summs window include-sys?)
+       (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
@@ -469,10 +467,6 @@ function toggleSys() {
               (bolt-comp-summs id))]
     (sort-by #(.get_task_id ^TaskSummary %) ret)
     ))
-
-(defnk task-link [topology-id id :suffix ""]
-  (link-to (url-format "/topology/%s/task/%s%s" topology-id id suffix)
-           id))
 
 (defn spout-summary-table [topology-id id stats window]
   (let [times (stats-times (:emitted stats))
@@ -509,7 +503,7 @@ function toggleSys() {
 (defn spout-task-table [topology-id tasks window include-sys?]
   (sorted-table
    ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
-    "Complete latency (ms)" "Acked" "Failed" "Last error"]
+    "Complete latency (ms)" "Acked" "Failed"]
    (for [^TaskSummary t tasks
          :let [stats (.get_stats t)
                stats (if stats
@@ -518,7 +512,7 @@ function toggleSys() {
                            aggregate-spout-streams
                            swap-map-order
                            (get window)))]]
-     [(task-link topology-id (.get_task_id t))
+     [(.get_task_id t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_host t)
       (.get_port t)
@@ -527,7 +521,6 @@ function toggleSys() {
       (float-str (:complete-latencies stats))
       (nil-to-zero (:acked stats))
       (nil-to-zero (:failed stats))
-      (most-recent-error t)
       ]
      )
    :time-cols [1]
@@ -583,7 +576,7 @@ function toggleSys() {
 (defn bolt-task-table [topology-id tasks window include-sys?]
   (sorted-table
    ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
-    "Process latency (ms)" "Acked" "Failed" "Last error"]
+    "Process latency (ms)" "Acked" "Failed"]
    (for [^TaskSummary t tasks
          :let [stats (.get_stats t)
                stats (if stats
@@ -592,7 +585,7 @@ function toggleSys() {
                            (aggregate-bolt-streams)
                            swap-map-order
                            (get window)))]]
-     [(task-link topology-id (.get_task_id t))
+     [(.get_task_id t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_host t)
       (.get_port t)
@@ -601,7 +594,6 @@ function toggleSys() {
       (float-str (:process-latencies stats))
       (nil-to-zero (:acked stats))
       (nil-to-zero (:failed stats))
-      (most-recent-error t)
       ]
      )
    :time-cols [1]
@@ -645,6 +637,18 @@ function toggleSys() {
      (bolt-task-table (.get_id topology-info) tasks window include-sys?)
      )))
 
+(defn errors-table [errors-list]
+  (let [errors (->> errors-list
+                    (sort-by #(.get_error_time_secs ^ErrorInfo %))
+                    reverse)]
+    (sorted-table
+     ["Time" "Error"]
+     (for [^ErrorInfo e errors]
+       [(date-str (.get_error_time_secs e))
+        [:pre (.get_error e)]])
+     :sort-list "[[0,1]]"
+     )))
+
 (defn component-page [topology-id component window include-sys?]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
@@ -662,45 +666,8 @@ function toggleSys() {
                  (count summs)
                  ]])]
        spec
-       ))))
-
-(defn errors-table [^TaskSummary task]
-  (let [errors (->> task
-                    .get_errors
-                    (sort-by #(.get_error_time_secs ^ErrorInfo %))
-                    reverse)]
-    (sorted-table
-     ["Time" "Error"]
-     (for [^ErrorInfo e errors]
-       [(date-str (.get_error_time_secs e))
-        [:pre (.get_error e)]])
-     :sort-list "[[0,1]]"
-     )))
-
-(defn task-summary-table [^TaskSummary task ^TopologyInfo summ]
-  (table ["Id" "Topology" "Component" "Uptime" "Host" "Port"]
-         [[(.get_task_id task)
-            (topology-link (.get_id summ) (.get_name summ))
-            (component-link (.get_id summ) (.get_component_id task))
-            (pretty-uptime-sec (.get_uptime_secs task))
-            (.get_host task)
-            (.get_port task)]]
-         ))
-
-(defn task-page [topology-id task-id window]
-  (with-nimbus nimbus
-    (let [summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
-          topology (.getTopology ^Nimbus$Client nimbus topology-id)
-          task (->> summ
-                    .get_tasks
-                    (find-first #(= (.get_task_id ^TaskSummary %) task-id)))]
-      (concat
-       [[:h2 "Task summary"]]
-       [(task-summary-table task summ)]
-       ;; TODO: overall stats -> window, ...
-       ;; TODO: inputs/outputs stream stats
-       [[:h2 "Errors"]]
-       (errors-table task)
+       [[:h2 "Errors"]
+        (errors-table (get (.get_errors summ) component))]
        ))))
 
 (defn get-include-sys? [cookies]
@@ -722,9 +689,6 @@ function toggleSys() {
          (-> (component-page id component (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
-  (GET "/topology/:id/task/:task" [:as {cookies :cookies} id task & m]
-       (-> (task-page id (Integer/parseInt task) (:window m))
-           ui-template))
   (route/resources "/")
   (route/not-found "Page not found"))
 

@@ -176,34 +176,37 @@
       (.disconnect state)
       )))
 
-(defn- validate-errors! [state storm-id task errors-list]
-  (let [errors (.task-errors state storm-id task)]
+(defn- validate-errors! [state storm-id component errors-list]
+  (let [errors (.errors state storm-id component)]
+    ;;(println errors)
     (is (= (count errors) (count errors-list)))
     (doseq [[error target] (map vector errors errors-list)]
+      (when-not  (.contains (:error error) target)
+        (println target " => " (:error error)))
       (is (.contains (:error error) target))
       )))
+
 
 (deftest test-storm-cluster-state-errors
   (with-inprocess-zookeeper zk-port
     (with-simulated-time
       (let [state (mk-storm-state zk-port)]
-        (.report-task-error state "a" 1 (RuntimeException.))
-        (validate-errors! state "a" 1 ["RuntimeException"])
-        (advance-time-secs! 2)
-        (.report-task-error state "a" 1 (IllegalArgumentException.))
-        (validate-errors! state "a" 1 ["RuntimeException" "IllegalArgumentException"])
+        (.report-error state "a" "1" (RuntimeException.))
+        (validate-errors! state "a" "1" ["RuntimeException"])
+        (.report-error state "a" "1" (IllegalArgumentException.))
+        (validate-errors! state "a" "1" ["RuntimeException" "IllegalArgumentException"])
         (doseq [i (range 10)]
-          (.report-task-error state "a" 2 (RuntimeException.))
+          (.report-error state "a" "2" (RuntimeException.))
           (advance-time-secs! 2))
-        (validate-errors! state "a" 2 (repeat 10 "RuntimeException"))
+        (validate-errors! state "a" "2" (repeat 10 "RuntimeException"))
         (doseq [i (range 5)]
-          (.report-task-error state "a" 2 (IllegalArgumentException.))
+          (.report-error state "a" "2" (IllegalArgumentException.))
           (advance-time-secs! 2))
-        (validate-errors! state "a" 2 (concat (repeat 5 "RuntimeException")
-                                              (repeat 5 "IllegalArgumentException")))
+        (validate-errors! state "a" "2" (concat (repeat 5 "IllegalArgumentException")
+                                                (repeat 5 "RuntimeException")
+                                                ))
         (.disconnect state)
-        ))
-    ))
+        ))))
 
 
 (deftest test-supervisor-state

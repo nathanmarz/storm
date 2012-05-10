@@ -2349,7 +2349,6 @@ class TaskSummary:
    - host
    - port
    - uptime_secs
-   - errors
    - stats
   """
 
@@ -2360,17 +2359,16 @@ class TaskSummary:
     (3, TType.STRING, 'host', None, None, ), # 3
     (4, TType.I32, 'port', None, None, ), # 4
     (5, TType.I32, 'uptime_secs', None, None, ), # 5
-    (6, TType.LIST, 'errors', (TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec)), None, ), # 6
+    None, # 6
     (7, TType.STRUCT, 'stats', (TaskStats, TaskStats.thrift_spec), None, ), # 7
   )
 
-  def __init__(self, task_id=None, component_id=None, host=None, port=None, uptime_secs=None, errors=None, stats=None,):
+  def __init__(self, task_id=None, component_id=None, host=None, port=None, uptime_secs=None, stats=None,):
     self.task_id = task_id
     self.component_id = component_id
     self.host = host
     self.port = port
     self.uptime_secs = uptime_secs
-    self.errors = errors
     self.stats = stats
 
   def read(self, iprot):
@@ -2405,17 +2403,6 @@ class TaskSummary:
       elif fid == 5:
         if ftype == TType.I32:
           self.uptime_secs = iprot.readI32();
-        else:
-          iprot.skip(ftype)
-      elif fid == 6:
-        if ftype == TType.LIST:
-          self.errors = []
-          (_etype227, _size224) = iprot.readListBegin()
-          for _i228 in xrange(_size224):
-            _elem229 = ErrorInfo()
-            _elem229.read(iprot)
-            self.errors.append(_elem229)
-          iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 7:
@@ -2454,13 +2441,6 @@ class TaskSummary:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 5)
       oprot.writeI32(self.uptime_secs)
       oprot.writeFieldEnd()
-    if self.errors is not None:
-      oprot.writeFieldBegin('errors', TType.LIST, 6)
-      oprot.writeListBegin(TType.STRUCT, len(self.errors))
-      for iter230 in self.errors:
-        iter230.write(oprot)
-      oprot.writeListEnd()
-      oprot.writeFieldEnd()
     if self.stats is not None:
       oprot.writeFieldBegin('stats', TType.STRUCT, 7)
       self.stats.write(oprot)
@@ -2479,8 +2459,6 @@ class TaskSummary:
       raise TProtocol.TProtocolException(message='Required field port is unset!')
     if self.uptime_secs is None:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
-    if self.errors is None:
-      raise TProtocol.TProtocolException(message='Required field errors is unset!')
     return
 
 
@@ -2503,6 +2481,7 @@ class TopologyInfo:
    - uptime_secs
    - tasks
    - status
+   - errors
   """
 
   thrift_spec = (
@@ -2512,14 +2491,16 @@ class TopologyInfo:
     (3, TType.I32, 'uptime_secs', None, None, ), # 3
     (4, TType.LIST, 'tasks', (TType.STRUCT,(TaskSummary, TaskSummary.thrift_spec)), None, ), # 4
     (5, TType.STRING, 'status', None, None, ), # 5
+    (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, tasks=None, status=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, tasks=None, status=None, errors=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
     self.tasks = tasks
     self.status = status
+    self.errors = errors
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2548,17 +2529,34 @@ class TopologyInfo:
       elif fid == 4:
         if ftype == TType.LIST:
           self.tasks = []
-          (_etype234, _size231) = iprot.readListBegin()
-          for _i235 in xrange(_size231):
-            _elem236 = TaskSummary()
-            _elem236.read(iprot)
-            self.tasks.append(_elem236)
+          (_etype227, _size224) = iprot.readListBegin()
+          for _i228 in xrange(_size224):
+            _elem229 = TaskSummary()
+            _elem229.read(iprot)
+            self.tasks.append(_elem229)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 5:
         if ftype == TType.STRING:
           self.status = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.MAP:
+          self.errors = {}
+          (_ktype231, _vtype232, _size230 ) = iprot.readMapBegin() 
+          for _i234 in xrange(_size230):
+            _key235 = iprot.readString().decode('utf-8')
+            _val236 = []
+            (_etype240, _size237) = iprot.readListBegin()
+            for _i241 in xrange(_size237):
+              _elem242 = ErrorInfo()
+              _elem242.read(iprot)
+              _val236.append(_elem242)
+            iprot.readListEnd()
+            self.errors[_key235] = _val236
+          iprot.readMapEnd()
         else:
           iprot.skip(ftype)
       else:
@@ -2586,13 +2584,24 @@ class TopologyInfo:
     if self.tasks is not None:
       oprot.writeFieldBegin('tasks', TType.LIST, 4)
       oprot.writeListBegin(TType.STRUCT, len(self.tasks))
-      for iter237 in self.tasks:
-        iter237.write(oprot)
+      for iter243 in self.tasks:
+        iter243.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.status is not None:
       oprot.writeFieldBegin('status', TType.STRING, 5)
       oprot.writeString(self.status.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.errors is not None:
+      oprot.writeFieldBegin('errors', TType.MAP, 6)
+      oprot.writeMapBegin(TType.STRING, TType.LIST, len(self.errors))
+      for kiter244,viter245 in self.errors.items():
+        oprot.writeString(kiter244.encode('utf-8'))
+        oprot.writeListBegin(TType.STRUCT, len(viter245))
+        for iter246 in viter245:
+          iter246.write(oprot)
+        oprot.writeListEnd()
+      oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -2608,6 +2617,8 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field tasks is unset!')
     if self.status is None:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
+    if self.errors is None:
+      raise TProtocol.TProtocolException(message='Required field errors is unset!')
     return
 
 
@@ -2724,11 +2735,11 @@ class RebalanceOptions:
       elif fid == 3:
         if ftype == TType.MAP:
           self.num_executors = {}
-          (_ktype239, _vtype240, _size238 ) = iprot.readMapBegin() 
-          for _i242 in xrange(_size238):
-            _key243 = iprot.readString().decode('utf-8')
-            _val244 = iprot.readI32();
-            self.num_executors[_key243] = _val244
+          (_ktype248, _vtype249, _size247 ) = iprot.readMapBegin() 
+          for _i251 in xrange(_size247):
+            _key252 = iprot.readString().decode('utf-8')
+            _val253 = iprot.readI32();
+            self.num_executors[_key252] = _val253
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -2753,9 +2764,9 @@ class RebalanceOptions:
     if self.num_executors is not None:
       oprot.writeFieldBegin('num_executors', TType.MAP, 3)
       oprot.writeMapBegin(TType.STRING, TType.I32, len(self.num_executors))
-      for kiter245,viter246 in self.num_executors.items():
-        oprot.writeString(kiter245.encode('utf-8'))
-        oprot.writeI32(viter246)
+      for kiter254,viter255 in self.num_executors.items():
+        oprot.writeString(kiter254.encode('utf-8'))
+        oprot.writeI32(viter255)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

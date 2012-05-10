@@ -166,7 +166,6 @@ struct TaskSummary {
   3: required string host;
   4: required i32 port;
   5: required i32 uptime_secs;
-  6: required list<ErrorInfo> errors;
   7: optional TaskStats stats;
 }
 
@@ -176,6 +175,7 @@ struct TopologyInfo {
   3: required i32 uptime_secs;
   4: required list<TaskSummary> tasks;
   5: required string status;
+  6: required map<string, list<ErrorInfo>> errors;
 }
 
 struct KillOptions {

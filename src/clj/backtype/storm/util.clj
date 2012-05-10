@@ -692,3 +692,6 @@
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
     (some? #(.startsWith % (str target "/")) entries)
     ))
+
+(defn url-encode [s]
+  (java.net.URLEncoder/encode s))

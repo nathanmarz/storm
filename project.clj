@@ -27,12 +27,10 @@
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  [storm/tools.cli "0.2.2"]
                  ]
-  :uberjar-exclusions [#"META-INF.*"]
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
                     ]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
-  :ring {:handler backtype.storm.ui.core/app}
   :extra-classpath-dirs ["src/ui"]
   :aot :all
 )

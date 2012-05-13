@@ -4,6 +4,7 @@
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
+  (:require [backtype.storm.daemon [common :as common]])
   
   )
 
@@ -98,7 +99,7 @@
   (storm-base [this storm-id callback])
 
   (get-worker-heartbeat [this storm-id node port])
-  (taskbeats [this storm-id task->node+port])
+  (taskbeats [this storm-id task-group->node+port])
   (supervisors [this callback])
   (supervisor-info [this supervisor-id])  ;; returns nil if doesn't exist
 
@@ -236,12 +237,12 @@
             (get-data (workerbeat-path storm-id node port) false)
             maybe-deserialize))
 
-      (taskbeats [this storm-id task->node+port]
-        ;; need to take task->node+port in explicitly so that we don't run into a situation where a 
+      (taskbeats [this storm-id task-group->node+port]
+        ;; need to take task-group->node+port in explicitly so that we don't run into a situation where a 
         ;; long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
         ;; with an assigned node+port, and only reading tasks from that heartbeat that are actually assigned,
         ;; we avoid situations like that
-        (let [node+port->tasks (reverse-map task->node+port)
+        (let [node+port->tasks (common/reverse-assignment task-group->node+port)
               all-heartbeats (for [[[node port] tasks] node+port->tasks :let [tasks (set tasks)]]
                                 (->> (get-worker-heartbeat this storm-id node port)
                                      :taskbeats

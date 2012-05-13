@@ -22,7 +22,7 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
+(defrecord Assignment [master-code-dir node->host task-group->node+port task->start-time-secs])
 
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
@@ -52,12 +52,14 @@
 
 (defrecord TaskHeartbeat [time-secs uptime-secs stats])
 
+(defn reverse-assignment [task-group->node+port]
+  (->> task-group->node+port
+       reverse-map
+       (map-val (partial apply concat))
+       ))
+
 (defn new-task-stats []
   (TaskStats. 0 0 0 0 0))
-
-;technically this is only active task ids
-(defn storm-task-ids [storm-cluster-state storm-id]
-  (keys (:task->node+port (.assignment-info storm-cluster-state storm-id nil))))
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]

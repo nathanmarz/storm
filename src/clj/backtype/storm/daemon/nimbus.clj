@@ -248,7 +248,7 @@
     (defaulted
       (apply merge-with set/union
              (for [a assignments
-                   [_ [node port]] (-> (.assignment-info storm-cluster-state a nil) :task->node+port)]
+                   [_ [node port]] (-> (.assignment-info storm-cluster-state a nil) :task-group->node+port)]
                {node #{port}}
                ))
       {})
@@ -329,7 +329,17 @@
 ;; Does not assume that clocks are synchronized. Task heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
 ;; tracked through task-heartbeat-cache
-(defn- alive-tasks [conf storm-id taskbeats task-ids task-start-times task-heartbeats-cache]
+
+;;taskbeats (.taskbeats storm-cluster-state storm-id (:task-group->node+port existing-assignment))
+;;(alive-task-groups nimbus topology-details all-task-groups existing-assignment)
+
+
+;;TODO: rewrite
+;; separate updating of heartbeats into another function
+;; need 
+(defn- alive-task-groups
+  [nimbus topology-details all-task-groups existing-assignment]
+  ;;[conf storm-id taskbeats task-ids task-start-times task-heartbeats-cache]
   (doall
     (filter
       (fn [task-id]
@@ -396,26 +406,40 @@
 
 ;; TODO: slots that have dead task should be reused as long as supervisor is active
 
+(defn- compute-task-groups [conf storm-id storm-base]
+  (let [component->executors (:component->executors storm-base)
+        storm-conf (read-storm-conf conf storm-id)
+        topology (read-storm-topology conf storm-id)
+        task->component (storm-task-info topology storm-conf)]
+    (->> (storm-task-info topology storm-conf)
+         reverse-map
+         (join-maps component->executors)
+         (map-val (partial apply partition-fixed)))
+         (mapcat second)
+         ))
+
 ;; public so it can be mocked out
-(defn compute-new-task->node+port [nimbus ^TopologyDetails topology-details existing-assignment callback scratch?]
+(defn compute-new-task-group->node+port [nimbus ^TopologyDetails topology-details existing-assignment callback scratch?]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
-        task-heartbeats-cache (:task-heartbeats-cache nimbus)
         storm-id (.getId topology-details)
         
         storm-base (.storm-base storm-cluster-state storm-id nil)
         
+        ;; TODO: need to use the number of executors for each component to divide it into task groups...
+        ;; after computing task->component need to turn that into task-group -> component (by reversing map, dividing up, and re-reversing)
+        ;;need to invalidate any existing assignments that have a non-matching task group
         
-        available-slots (available-slots nimbus callback topology-details)
-        storm-conf (read-storm-conf conf storm-id)
-        all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
-        taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port existing-assignment))
-        existing-assigned (reverse-map (:task->node+port existing-assignment))
-        alive-ids (if scratch?
-                    all-task-ids
-                    (set (alive-tasks conf storm-id taskbeats
-                                      all-task-ids (:task->start-time-secs existing-assignment)
-                                      task-heartbeats-cache)))
+        
+        available-slots (available-slots nimbus callback topology-details)        
+        all-task-groups (compute-task-groups conf storm-id storm-base)
+                         
+        existing-assigned (reverse-map (:task-group->node+port existing-assignment))
+        
+        ;; TODO: finish
+        alive-groups (if scratch?
+                        all-task-ids
+                        (set (alive-task-groups nimbus topology-details all-task-groups existing-assignment)))
         
         alive-assigned (filter-val (partial every? alive-ids) existing-assigned)
 
@@ -475,11 +499,11 @@
 
         topology-details (read-topology-details nimbus storm-id)
         existing-assignment (.assignment-info storm-cluster-state storm-id nil)
-        task->node+port (compute-new-task->node+port nimbus
-                                                     topology-details
-                                                     existing-assignment
-                                                     callback
-                                                     scratch?)
+        task->node+port (compute-new-task-group->node+port nimbus
+                                                           topology-details
+                                                           existing-assignment
+                                                           callback
+                                                           scratch?)
         
         all-node->host (merge (:node->host existing-assignment) node->host)
         reassign-ids (changed-ids (:task->node+port existing-assignment) task->node+port)

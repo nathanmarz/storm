@@ -30,6 +30,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Include as much of currently read output as possible when pipe to subprocess is broken in multilang components
  * Lower supervisor worker start timeout to 120 seconds
  * More debug logging in supervisor
+ * "nohup" no longer used by supervisor to launch workers (unnecessary)
  * Throw helpful error message if StormSubmitter used without using storm client script
  * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining

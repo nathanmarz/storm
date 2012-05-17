@@ -53,7 +53,11 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
         public boolean isReady() {
             //TODO: can do a more sophisticated strategy by looking at the high water marks for each partition
             return true;
-        }        
+        }
+
+        @Override
+        public void close() {
+        }
     }
     
     class Emitter implements IOpaquePartitionedTransactionalSpout.Emitter<BatchMeta> {

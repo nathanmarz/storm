@@ -157,6 +157,10 @@
                          (.getThisTaskId topology-context)
                          stream))))
 
+(defprotocol RunningTask
+  (render-stats [this])
+  (get-task-id [this]))
+
 (defn mk-executor [worker ^TopologyContext topology-context ^TopologyContext user-context]
   (let [task-id (.getThisTaskId topology-context)
 
@@ -181,7 +185,6 @@
         _ (log-message "Loading task " component-id ":" task-id)
         task-info (.getTaskToComponent topology-context)
         active (atom true)
-        uptime (uptime-computer)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         
         task-object (get-task-object (.getRawTopology topology-context)
@@ -196,18 +199,6 @@
                                (report-error error)
                                (apply-hooks user-context .error error)
                                (suicide-fn))
-
-        ;; heartbeat ASAP so nimbus doesn't reassign
-        heartbeat-thread (async-loop
-                          (fn []
-                            (swap! (:taskbeats worker) assoc task-id
-                                              (TaskHeartbeat. (current-time-secs)
-                                                              (uptime)
-                                                              (stats/render-stats! task-stats)))
-                            (when @active (storm-conf TASK-HEARTBEAT-FREQUENCY-SECS))
-                            )
-                          :priority Thread/MAX_PRIORITY
-                          :kill-fn report-error-and-die)
 
         _ (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
             (.addTaskHook user-context (-> klass Class/forName .newInstance)))
@@ -260,12 +251,15 @@
                                                 storm-active-atom topology-context
                                                 user-context task-stats report-error))]
                           (async-loop (fn [] (exec) (when @active 0))
-                                      :kill-fn report-error-and-die))
-        system-threads [heartbeat-thread]
-        all-threads  (concat executor-threads system-threads)]
+                                      :kill-fn report-error-and-die))]
     (log-message "Finished loading task " component-id ":" task-id)
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
     (reify
+      RunningTask
+      (render-stats [this]
+        (stats/render-stats! task-stats))
+      (get-task-id [this]
+        task-id )
       Shutdownable
       (shutdown
         [this]
@@ -274,7 +268,7 @@
         ;; put an empty message into receive-queue
         ;; empty messages are skip messages (this unblocks the receive-queue.take thread)
         (.put receive-queue (byte-array []))
-        (doseq [t all-threads]
+        (doseq [t executor-threads]
           (.interrupt t)
           (.join t))
         (doseq [hook (.getHooks user-context)]
@@ -284,12 +278,7 @@
         (.disconnect storm-cluster-state)
         (close-component task-object)
         (log-message "Shut down task " storm-id ":" task-id))
-      DaemonCommon
-      (waiting? [this]
-        ;; executor threads are independent since they don't sleep
-        ;; -> they block on zeromq
-        (every? (memfn sleeping?) system-threads)
-        ))))
+        )))
 
 (defn- fail-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
   (log-message "Failing message " msg-id ": " tuple-info)

@@ -19,9 +19,17 @@
             assignment))
     ))
 
-(defn do-task-heartbeats [worker]
-  (let [zk-hb {:storm-id (:storm-id worker)
-               :taskbeats @(:taskbeats worker)}]
+(defnk do-task-heartbeats [worker :tasks nil]
+  (let [stats (if-not tasks
+                  (into {} (map (fn [t] {t nil}) (:task-ids worker)))
+                  (->> tasks
+                    (map (fn [t] {(task/get-task-id t) (task/render-stats t)}))
+                    (apply merge)))
+        zk-hb {:storm-id (:storm-id worker)
+               :task-stats stats
+               :uptime ((:uptime worker))
+               :time-secs (current-time-secs)
+               }]
     ;; do the zookeeper heartbeat
     (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:supervisor-id worker) (:port worker) zk-hb)    
     ))
@@ -133,6 +141,7 @@
              :receive-queue-map receive-queue-map
              :suicide-fn (mk-suicide-fn conf)
              :taskbeats taskbeats
+             :uptime (uptime-computer)
              }]
     (merge ret
            {:transfer-fn (mk-transfer-fn ret)
@@ -234,6 +243,9 @@
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
         
+        ;; heartbeat immediately to nimbus so that it knows that the worker has been started
+        _ (do-task-heartbeats worker)
+        
         refresh-connections (mk-refresh-connections worker)
 
         _ (refresh-connections nil)
@@ -274,13 +286,12 @@
              DaemonCommon
              (waiting? [this]
                        (and
-                        (timer-waiting? (:timer worker))
-                        (every? (memfn waiting?) tasks)))
+                        (timer-waiting? (:timer worker))))
              )]
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
-    (schedule-recurring (:timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-task-heartbeats worker))
+    (schedule-recurring (:timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-task-heartbeats worker :tasks tasks))
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")

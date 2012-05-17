@@ -50,7 +50,6 @@
                       ^long transferred
                       ^long failed])
 
-(defrecord TaskHeartbeat [time-secs uptime-secs stats])
 
 (defn reverse-assignment [task-group->node+port]
   (->> task-group->node+port

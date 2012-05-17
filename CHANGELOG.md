@@ -32,6 +32,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * More debug logging in supervisor
  * "nohup" no longer used by supervisor to launch workers (unnecessary)
  * Throw helpful error message if StormSubmitter used without using storm client script
+ * Add Values class as a default serialization
  * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)

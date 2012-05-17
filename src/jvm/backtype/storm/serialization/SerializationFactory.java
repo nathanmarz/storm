@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.transactional.TransactionAttempt;
+import backtype.storm.tuple.Values;
 import backtype.storm.utils.ListDelegate;
 import backtype.storm.utils.Utils;
 import carbonite.JavaBridge;
@@ -52,6 +53,7 @@ public class SerializationFactory {
         k.register(HashSet.class);
         k.register(BigInteger.class, new BigIntegerSerializer());
         k.register(TransactionAttempt.class);
+        k.register(Values.class);
         JavaBridge clojureSerializersBridge = new JavaBridge();
         clojureSerializersBridge.registerClojureCollections(k);
         clojureSerializersBridge.registerClojurePrimitives(k);

@@ -50,7 +50,6 @@
                       ^long transferred
                       ^long failed])
 
-(defrecord TaskHeartbeat [time-secs uptime-secs stats])
 
 (defn new-task-stats []
   (TaskStats. 0 0 0 0 0))

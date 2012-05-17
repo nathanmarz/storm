@@ -29,7 +29,7 @@
         curr-beat (.get-worker-heartbeat state storm-id node port)
         taskbeats (:taskbeats curr-beat)]
     (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :taskbeats (assoc taskbeats task-id (TaskHeartbeat. (current-time-secs) 10 {}))}
+      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10}
       )))
 
 (defn task-assignment [cluster storm-id task-id]

@@ -264,6 +264,7 @@
         system-threads [heartbeat-thread]
         all-threads  (concat executor-threads system-threads)]
     (log-message "Finished loading task " component-id ":" task-id)
+    ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
     (reify
       Shutdownable
       (shutdown

@@ -334,9 +334,11 @@
 ;;(alive-task-groups nimbus topology-details all-task-groups existing-assignment)
 
 
+(defn update-heartbeats! [nimbus topology-details ...]
+  )
+
 ;;TODO: rewrite
 ;; separate updating of heartbeats into another function
-;; need 
 (defn- alive-task-groups
   [nimbus topology-details all-task-groups existing-assignment]
   ;;[conf storm-id taskbeats task-ids task-start-times task-heartbeats-cache]

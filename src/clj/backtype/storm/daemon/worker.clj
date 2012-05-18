@@ -113,7 +113,6 @@
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         receive-queue-map (into {} (dofor [tid task-ids] [tid (LinkedBlockingQueue.)]))
         topology (read-supervisor-topology conf storm-id)
-        taskbeats (atom {})
         ret {:conf conf
              :mq-context (if mq-context
                              mq-context
@@ -141,7 +140,6 @@
              :transfer-queue transfer-queue
              :receive-queue-map receive-queue-map
              :suicide-fn (mk-suicide-fn conf)
-             :taskbeats taskbeats
              :uptime (uptime-computer)
              }]
     (merge ret

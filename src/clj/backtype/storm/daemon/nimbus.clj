@@ -334,33 +334,35 @@
 ;;(alive-task-groups nimbus topology-details all-task-groups existing-assignment)
 
 
-(defn update-heartbeats! [nimbus topology-details ...]
-  )
+(defn update-heartbeats! [nimbus storm-id existing-assignment]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        task-heartbeats-cache (:task-heartbeats-cache nimbus)
+        taskbeats (.taskbeats storm-cluster-state storm-id (:task-group->node+port existing-assignment))]
+    (doseq [[task-id {reported-time :time-secs}] taskbeats
+            :let [{last-nimbus-time :nimbus-time
+                   last-reported-time :task-reported-time} (get-in @task-heartbeats-cache [storm-id task-id])
+                  start-time (-> existing-assignment :task->start-time-secs task-id)
+                  nimbus-time (if (or (not last-nimbus-time)
+                                  (not= last-reported-time reported-time))
+                                (current-time-secs)
+                                last-nimbus-time
+                                )]]
+      (swap! task-heartbeats-cache
+                 assoc-in [storm-id task-id]
+                 {:nimbus-time nimbus-time
+                  :task-reported-time reported-time}))))
 
 ;;TODO: rewrite
 ;; separate updating of heartbeats into another function
 (defn- alive-task-groups
   [nimbus topology-details all-task-groups existing-assignment]
+  (let [task-heartbeats-cache (:task-heartbeats-cache nimbus)]
+    )
   ;;[conf storm-id taskbeats task-ids task-start-times task-heartbeats-cache]
   (doall
     (filter
       (fn [task-id]
-        (let [heartbeat (get taskbeats task-id)
-              reported-time (:time-secs heartbeat)
-              {last-nimbus-time :nimbus-time
-               last-reported-time :task-reported-time} (get-in @task-heartbeats-cache
-                                                               [storm-id task-id])
-              task-start-time (get task-start-times task-id)
-              nimbus-time (if (or (not last-nimbus-time)
-                                  (not= last-reported-time reported-time))
-                            (current-time-secs)
-                            last-nimbus-time
-                            )
-              ]          
-          (swap! task-heartbeats-cache
-                 assoc-in [storm-id task-id]
-                 {:nimbus-time nimbus-time
-                  :task-reported-time reported-time})
+        ;; TODO;...
           (if (and task-start-time
                    (or
                     (< (time-delta task-start-time)
@@ -438,6 +440,7 @@
                          
         existing-assigned (reverse-map (:task-group->node+port existing-assignment))
         
+        _ (update-heartbeats! nimbus storm-id existing-assignment)
         ;; TODO: finish
         alive-groups (if scratch?
                         all-task-ids

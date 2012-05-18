@@ -20,6 +20,7 @@
     ))
 
 (defnk do-task-heartbeats [worker :tasks nil]
+  ;; stats is how we know what tasks are assigned to this worker 
   (let [stats (if-not tasks
                   (into {} (map (fn [t] {t nil}) (:task-ids worker)))
                   (->> tasks

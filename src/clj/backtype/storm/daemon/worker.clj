@@ -41,7 +41,7 @@
         hb (WorkerHeartbeat.
              (current-time-secs)
              (:storm-id worker)
-             (:executor-ids worker)
+             (:executors worker)
              (:port worker))]
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.

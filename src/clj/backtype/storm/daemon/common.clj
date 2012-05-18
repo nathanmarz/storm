@@ -22,13 +22,13 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host task-group->node+port task->start-time-secs])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs])
 
+
+;; component->executors is a map from spout/bolt id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
 (defrecord SupervisorInfo [time-secs hostname meta uptime-secs])
-
-(defrecord TaskInfo [component-id])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
@@ -42,16 +42,16 @@
 
 
 
-(defrecord WorkerHeartbeat [time-secs storm-id task-ids port])
+(defrecord WorkerHeartbeat [time-secs storm-id executor-ids port])
 
-(defrecord TaskStats [^long processed
-                      ^long acked
-                      ^long emitted
-                      ^long transferred
-                      ^long failed])
+(defrecord ExecutorStats [^long processed
+                          ^long acked
+                          ^long emitted
+                          ^long transferred
+                          ^long failed])
 
-(defn new-task-stats []
-  (TaskStats. 0 0 0 0 0))
+(defn new-executor-stats []
+  (ExecutorStats. 0 0 0 0 0))
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
@@ -222,3 +222,6 @@
        (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))
        (into {})
        ))
+
+(defn executor-id->tasks [[first-task-id last-task-id]]
+  (range first-task-id (inc last-task-id)))

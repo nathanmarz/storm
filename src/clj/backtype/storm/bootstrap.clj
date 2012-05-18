@@ -30,11 +30,11 @@
                      Nimbus$Iface StormTopology ShellComponent
                      NotAliveException AlreadyAliveException
                      InvalidTopologyException ClusterSummary TopologyInfo
-                     TopologySummary TaskSummary TaskStats TaskSpecificStats
-                     SpoutStats BoltStats ErrorInfo SupervisorSummary
+                     TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
+                     SpoutStats BoltStats ErrorInfo SupervisorSummary ExecutorInfo
                      KillOptions RebalanceOptions JavaObject JavaObjectArg]))
      (import (quote [backtype.storm.daemon.common StormBase Assignment
-                     TaskInfo SupervisorInfo WorkerHeartbeat]))
+                     SupervisorInfo WorkerHeartbeat]))
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
      (import (quote [java.io File FileOutputStream FileInputStream]))
      (import (quote [java.util List Random Map HashMap Collections ArrayList]))

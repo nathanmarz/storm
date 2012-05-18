@@ -19,15 +19,16 @@
             assignment))
     ))
 
-(defnk do-task-heartbeats [worker :tasks nil]
-  ;; stats is how we know what tasks are assigned to this worker 
-  (let [stats (if-not tasks
-                  (into {} (map (fn [t] {t nil}) (:task-ids worker)))
-                  (->> tasks
-                    (map (fn [t] {(task/get-task-id t) (task/render-stats t)}))
+;;TODO: need to update worker to work with executors, not tasks
+(defnk do-task-heartbeats [worker :executors nil]
+  ;; stats is how we know what executors are assigned to this worker 
+  (let [stats (if-not executors
+                  (into {} (map (fn [t] {t nil}) (:executor-ids worker)))
+                  (->> executors
+                    (map (fn [e] {(executor/get-executor-id e) (executor/render-stats e)}))
                     (apply merge)))
         zk-hb {:storm-id (:storm-id worker)
-               :task-stats stats
+               :executor-stats stats
                :uptime ((:uptime worker))
                :time-secs (current-time-secs)
                }]
@@ -40,7 +41,7 @@
         hb (WorkerHeartbeat.
              (current-time-secs)
              (:storm-id worker)
-             (:task-ids worker)
+             (:executor-ids worker)
              (:port worker))]
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.

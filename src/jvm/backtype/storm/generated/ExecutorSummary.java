@@ -21,26 +21,26 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSummary._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("TaskSummary");
+public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary, ExecutorSummary._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ExecutorSummary");
 
-  private static final org.apache.thrift7.protocol.TField TASK_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("task_id", org.apache.thrift7.protocol.TType.I32, (short)1);
+  private static final org.apache.thrift7.protocol.TField EXECUTOR_INFO_FIELD_DESC = new org.apache.thrift7.protocol.TField("executor_info", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
   private static final org.apache.thrift7.protocol.TField COMPONENT_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("component_id", org.apache.thrift7.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift7.protocol.TField HOST_FIELD_DESC = new org.apache.thrift7.protocol.TField("host", org.apache.thrift7.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift7.protocol.TField PORT_FIELD_DESC = new org.apache.thrift7.protocol.TField("port", org.apache.thrift7.protocol.TType.I32, (short)4);
   private static final org.apache.thrift7.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)5);
   private static final org.apache.thrift7.protocol.TField STATS_FIELD_DESC = new org.apache.thrift7.protocol.TField("stats", org.apache.thrift7.protocol.TType.STRUCT, (short)7);
 
-  private int task_id; // required
+  private ExecutorInfo executor_info; // required
   private String component_id; // required
   private String host; // required
   private int port; // required
   private int uptime_secs; // required
-  private TaskStats stats; // required
+  private ExecutorStats stats; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    TASK_ID((short)1, "task_id"),
+    EXECUTOR_INFO((short)1, "executor_info"),
     COMPONENT_ID((short)2, "component_id"),
     HOST((short)3, "host"),
     PORT((short)4, "port"),
@@ -60,8 +60,8 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // TASK_ID
-          return TASK_ID;
+        case 1: // EXECUTOR_INFO
+          return EXECUTOR_INFO;
         case 2: // COMPONENT_ID
           return COMPONENT_ID;
         case 3: // HOST
@@ -112,16 +112,15 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
   }
 
   // isset id assignments
-  private static final int __TASK_ID_ISSET_ID = 0;
-  private static final int __PORT_ISSET_ID = 1;
-  private static final int __UPTIME_SECS_ISSET_ID = 2;
-  private BitSet __isset_bit_vector = new BitSet(3);
+  private static final int __PORT_ISSET_ID = 0;
+  private static final int __UPTIME_SECS_ISSET_ID = 1;
+  private BitSet __isset_bit_vector = new BitSet(2);
 
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TASK_ID, new org.apache.thrift7.meta_data.FieldMetaData("task_id", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.EXECUTOR_INFO, new org.apache.thrift7.meta_data.FieldMetaData("executor_info", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ExecutorInfo.class)));
     tmpMap.put(_Fields.COMPONENT_ID, new org.apache.thrift7.meta_data.FieldMetaData("component_id", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     tmpMap.put(_Fields.HOST, new org.apache.thrift7.meta_data.FieldMetaData("host", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
@@ -131,24 +130,23 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     tmpMap.put(_Fields.UPTIME_SECS, new org.apache.thrift7.meta_data.FieldMetaData("uptime_secs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     tmpMap.put(_Fields.STATS, new org.apache.thrift7.meta_data.FieldMetaData("stats", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskStats.class)));
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ExecutorStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TaskSummary.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ExecutorSummary.class, metaDataMap);
   }
 
-  public TaskSummary() {
+  public ExecutorSummary() {
   }
 
-  public TaskSummary(
-    int task_id,
+  public ExecutorSummary(
+    ExecutorInfo executor_info,
     String component_id,
     String host,
     int port,
     int uptime_secs)
   {
     this();
-    this.task_id = task_id;
-    set_task_id_isSet(true);
+    this.executor_info = executor_info;
     this.component_id = component_id;
     this.host = host;
     this.port = port;
@@ -160,10 +158,12 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TaskSummary(TaskSummary other) {
+  public ExecutorSummary(ExecutorSummary other) {
     __isset_bit_vector.clear();
     __isset_bit_vector.or(other.__isset_bit_vector);
-    this.task_id = other.task_id;
+    if (other.is_set_executor_info()) {
+      this.executor_info = new ExecutorInfo(other.executor_info);
+    }
     if (other.is_set_component_id()) {
       this.component_id = other.component_id;
     }
@@ -173,18 +173,17 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     this.port = other.port;
     this.uptime_secs = other.uptime_secs;
     if (other.is_set_stats()) {
-      this.stats = new TaskStats(other.stats);
+      this.stats = new ExecutorStats(other.stats);
     }
   }
 
-  public TaskSummary deepCopy() {
-    return new TaskSummary(this);
+  public ExecutorSummary deepCopy() {
+    return new ExecutorSummary(this);
   }
 
   @Override
   public void clear() {
-    set_task_id_isSet(false);
-    this.task_id = 0;
+    this.executor_info = null;
     this.component_id = null;
     this.host = null;
     set_port_isSet(false);
@@ -194,26 +193,27 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     this.stats = null;
   }
 
-  public int get_task_id() {
-    return this.task_id;
+  public ExecutorInfo get_executor_info() {
+    return this.executor_info;
   }
 
-  public void set_task_id(int task_id) {
-    this.task_id = task_id;
-    set_task_id_isSet(true);
+  public void set_executor_info(ExecutorInfo executor_info) {
+    this.executor_info = executor_info;
   }
 
-  public void unset_task_id() {
-    __isset_bit_vector.clear(__TASK_ID_ISSET_ID);
+  public void unset_executor_info() {
+    this.executor_info = null;
   }
 
-  /** Returns true if field task_id is set (has been assigned a value) and false otherwise */
-  public boolean is_set_task_id() {
-    return __isset_bit_vector.get(__TASK_ID_ISSET_ID);
+  /** Returns true if field executor_info is set (has been assigned a value) and false otherwise */
+  public boolean is_set_executor_info() {
+    return this.executor_info != null;
   }
 
-  public void set_task_id_isSet(boolean value) {
-    __isset_bit_vector.set(__TASK_ID_ISSET_ID, value);
+  public void set_executor_info_isSet(boolean value) {
+    if (!value) {
+      this.executor_info = null;
+    }
   }
 
   public String get_component_id() {
@@ -306,11 +306,11 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     __isset_bit_vector.set(__UPTIME_SECS_ISSET_ID, value);
   }
 
-  public TaskStats get_stats() {
+  public ExecutorStats get_stats() {
     return this.stats;
   }
 
-  public void set_stats(TaskStats stats) {
+  public void set_stats(ExecutorStats stats) {
     this.stats = stats;
   }
 
@@ -331,11 +331,11 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case TASK_ID:
+    case EXECUTOR_INFO:
       if (value == null) {
-        unset_task_id();
+        unset_executor_info();
       } else {
-        set_task_id((Integer)value);
+        set_executor_info((ExecutorInfo)value);
       }
       break;
 
@@ -375,7 +375,7 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
       if (value == null) {
         unset_stats();
       } else {
-        set_stats((TaskStats)value);
+        set_stats((ExecutorStats)value);
       }
       break;
 
@@ -384,8 +384,8 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case TASK_ID:
-      return Integer.valueOf(get_task_id());
+    case EXECUTOR_INFO:
+      return get_executor_info();
 
     case COMPONENT_ID:
       return get_component_id();
@@ -413,8 +413,8 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     }
 
     switch (field) {
-    case TASK_ID:
-      return is_set_task_id();
+    case EXECUTOR_INFO:
+      return is_set_executor_info();
     case COMPONENT_ID:
       return is_set_component_id();
     case HOST:
@@ -433,21 +433,21 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof TaskSummary)
-      return this.equals((TaskSummary)that);
+    if (that instanceof ExecutorSummary)
+      return this.equals((ExecutorSummary)that);
     return false;
   }
 
-  public boolean equals(TaskSummary that) {
+  public boolean equals(ExecutorSummary that) {
     if (that == null)
       return false;
 
-    boolean this_present_task_id = true;
-    boolean that_present_task_id = true;
-    if (this_present_task_id || that_present_task_id) {
-      if (!(this_present_task_id && that_present_task_id))
+    boolean this_present_executor_info = true && this.is_set_executor_info();
+    boolean that_present_executor_info = true && that.is_set_executor_info();
+    if (this_present_executor_info || that_present_executor_info) {
+      if (!(this_present_executor_info && that_present_executor_info))
         return false;
-      if (this.task_id != that.task_id)
+      if (!this.executor_info.equals(that.executor_info))
         return false;
     }
 
@@ -503,10 +503,10 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_task_id = true;
-    builder.append(present_task_id);
-    if (present_task_id)
-      builder.append(task_id);
+    boolean present_executor_info = true && (is_set_executor_info());
+    builder.append(present_executor_info);
+    if (present_executor_info)
+      builder.append(executor_info);
 
     boolean present_component_id = true && (is_set_component_id());
     builder.append(present_component_id);
@@ -536,20 +536,20 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     return builder.toHashCode();
   }
 
-  public int compareTo(TaskSummary other) {
+  public int compareTo(ExecutorSummary other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    TaskSummary typedOther = (TaskSummary)other;
+    ExecutorSummary typedOther = (ExecutorSummary)other;
 
-    lastComparison = Boolean.valueOf(is_set_task_id()).compareTo(typedOther.is_set_task_id());
+    lastComparison = Boolean.valueOf(is_set_executor_info()).compareTo(typedOther.is_set_executor_info());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_task_id()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.task_id, typedOther.task_id);
+    if (is_set_executor_info()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.executor_info, typedOther.executor_info);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -621,10 +621,10 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
         break;
       }
       switch (field.id) {
-        case 1: // TASK_ID
-          if (field.type == org.apache.thrift7.protocol.TType.I32) {
-            this.task_id = iprot.readI32();
-            set_task_id_isSet(true);
+        case 1: // EXECUTOR_INFO
+          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+            this.executor_info = new ExecutorInfo();
+            this.executor_info.read(iprot);
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -661,7 +661,7 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
           break;
         case 7: // STATS
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
-            this.stats = new TaskStats();
+            this.stats = new ExecutorStats();
             this.stats.read(iprot);
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
@@ -680,9 +680,11 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    oprot.writeFieldBegin(TASK_ID_FIELD_DESC);
-    oprot.writeI32(this.task_id);
-    oprot.writeFieldEnd();
+    if (this.executor_info != null) {
+      oprot.writeFieldBegin(EXECUTOR_INFO_FIELD_DESC);
+      this.executor_info.write(oprot);
+      oprot.writeFieldEnd();
+    }
     if (this.component_id != null) {
       oprot.writeFieldBegin(COMPONENT_ID_FIELD_DESC);
       oprot.writeString(this.component_id);
@@ -712,11 +714,15 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("TaskSummary(");
+    StringBuilder sb = new StringBuilder("ExecutorSummary(");
     boolean first = true;
 
-    sb.append("task_id:");
-    sb.append(this.task_id);
+    sb.append("executor_info:");
+    if (this.executor_info == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.executor_info);
+    }
     first = false;
     if (!first) sb.append(", ");
     sb.append("component_id:");
@@ -758,8 +764,8 @@ public class TaskSummary implements org.apache.thrift7.TBase<TaskSummary, TaskSu
 
   public void validate() throws org.apache.thrift7.TException {
     // check for required fields
-    if (!is_set_task_id()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'task_id' is unset! Struct:" + toString());
+    if (!is_set_executor_info()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'executor_info' is unset! Struct:" + toString());
     }
 
     if (!is_set_component_id()) {

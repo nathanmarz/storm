@@ -34,7 +34,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
   private String id; // required
   private String name; // required
   private int uptime_secs; // required
-  private List<TaskSummary> tasks; // required
+  private List<ExecutorSummary> tasks; // required
   private String status; // required
   private Map<String,List<ErrorInfo>> errors; // required
 
@@ -126,7 +126,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     tmpMap.put(_Fields.TASKS, new org.apache.thrift7.meta_data.FieldMetaData("tasks", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
-            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskSummary.class))));
+            new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ExecutorSummary.class))));
     tmpMap.put(_Fields.STATUS, new org.apache.thrift7.meta_data.FieldMetaData("status", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     tmpMap.put(_Fields.ERRORS, new org.apache.thrift7.meta_data.FieldMetaData("errors", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
@@ -145,7 +145,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     String id,
     String name,
     int uptime_secs,
-    List<TaskSummary> tasks,
+    List<ExecutorSummary> tasks,
     String status,
     Map<String,List<ErrorInfo>> errors)
   {
@@ -173,9 +173,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     }
     this.uptime_secs = other.uptime_secs;
     if (other.is_set_tasks()) {
-      List<TaskSummary> __this__tasks = new ArrayList<TaskSummary>();
-      for (TaskSummary other_element : other.tasks) {
-        __this__tasks.add(new TaskSummary(other_element));
+      List<ExecutorSummary> __this__tasks = new ArrayList<ExecutorSummary>();
+      for (ExecutorSummary other_element : other.tasks) {
+        __this__tasks.add(new ExecutorSummary(other_element));
       }
       this.tasks = __this__tasks;
     }
@@ -289,22 +289,22 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     return (this.tasks == null) ? 0 : this.tasks.size();
   }
 
-  public java.util.Iterator<TaskSummary> get_tasks_iterator() {
+  public java.util.Iterator<ExecutorSummary> get_tasks_iterator() {
     return (this.tasks == null) ? null : this.tasks.iterator();
   }
 
-  public void add_to_tasks(TaskSummary elem) {
+  public void add_to_tasks(ExecutorSummary elem) {
     if (this.tasks == null) {
-      this.tasks = new ArrayList<TaskSummary>();
+      this.tasks = new ArrayList<ExecutorSummary>();
     }
     this.tasks.add(elem);
   }
 
-  public List<TaskSummary> get_tasks() {
+  public List<ExecutorSummary> get_tasks() {
     return this.tasks;
   }
 
-  public void set_tasks(List<TaskSummary> tasks) {
+  public void set_tasks(List<ExecutorSummary> tasks) {
     this.tasks = tasks;
   }
 
@@ -410,7 +410,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       if (value == null) {
         unset_tasks();
       } else {
-        set_tasks((List<TaskSummary>)value);
+        set_tasks((List<ExecutorSummary>)value);
       }
       break;
 
@@ -698,11 +698,11 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
               org.apache.thrift7.protocol.TList _list125 = iprot.readListBegin();
-              this.tasks = new ArrayList<TaskSummary>(_list125.size);
+              this.tasks = new ArrayList<ExecutorSummary>(_list125.size);
               for (int _i126 = 0; _i126 < _list125.size; ++_i126)
               {
-                TaskSummary _elem127; // required
-                _elem127 = new TaskSummary();
+                ExecutorSummary _elem127; // required
+                _elem127 = new ExecutorSummary();
                 _elem127.read(iprot);
                 this.tasks.add(_elem127);
               }
@@ -779,7 +779,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       oprot.writeFieldBegin(TASKS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.tasks.size()));
-        for (TaskSummary _iter135 : this.tasks)
+        for (ExecutorSummary _iter135 : this.tasks)
         {
           _iter135.write(oprot);
         }

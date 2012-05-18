@@ -379,37 +379,43 @@
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
         task-heartbeats-cache (:task-heartbeats-cache nimbus)
-        assignments+bad-slots (into {} (for [[tid assignment] existing-assignments
-                                                      :let [storm-conf (read-storm-conf conf tid)
-                                                            all-task-ids (-> (read-storm-topology conf tid) (storm-task-info storm-conf) keys set)
-                                                            taskbeats (.taskbeats storm-cluster-state tid (:task->node+port assignment))
-                                                            alive-ids (set (alive-tasks conf tid taskbeats
-                                                                                        all-task-ids (:task->start-time-secs assignment)
-                                                                                        task-heartbeats-cache))
-                                                            bad-ids (set/difference all-task-ids alive-ids)
-                                                            bad-slots (->> (:task->node+port assignment)
-                                                                           (filter #(contains? bad-ids (first %)))
-                                                                           vals)
-                                                            task->slot (into {} (for [[task [node port]] (:task->node+port assignment)]
-                                                                                  (if (contains? alive-ids task)
-                                                                                    {task (WorkerSlot. node port)}
-                                                                                    {})))]]
-                                                  {tid [(SchedulerAssignment. tid task->slot) bad-slots]}))
-        existing-scheduler-assignments (into {} (for [[tid [assignment _]] assignments+bad-slots]
+        assignments+dead-slots (into {} (for [[tid assignment] existing-assignments
+                                             :let [storm-conf (read-storm-conf conf tid)
+                                                   all-task-ids (-> (read-storm-topology conf tid) (storm-task-info storm-conf) keys set)
+                                                   taskbeats (.taskbeats storm-cluster-state tid (:task->node+port assignment))
+                                                   alive-ids (set (alive-tasks conf tid taskbeats
+                                                                               all-task-ids (:task->start-time-secs assignment)
+                                                                               task-heartbeats-cache))
+                                                   dead-ids (set/difference all-task-ids alive-ids)
+                                                   dead-slots (->> (:task->node+port assignment)
+                                                                  (filter #(contains? dead-ids (first %)))
+                                                                  vals)
+                                                   task->slot (into {} (for [[task [node port]] (:task->node+port assignment)]
+                                                                         (if (contains? alive-ids task)
+                                                                           {task (WorkerSlot. node port)}
+                                                                           {})))]]
+                                         
+                                                  {tid [(SchedulerAssignment. tid task->slot) dead-slots]}))
+        existing-scheduler-assignments (into {} (for [[tid [assignment _]] assignments+dead-slots]
                                                   {tid assignment}))
-        bad-slots (into {} (for [[tid [_ bad-slots]] assignments+bad-slots]
-                             {tid bad-slots}))
-        bad-slots (apply concat (vals bad-slots))
-        bad-slots (into [] (for [[sid port] bad-slots]
-                             {sid #{port}}))
-        bad-slots (apply (partial merge-with set/union) bad-slots)
-        bad-slots (if (nil? bad-slots) {} bad-slots)
+        dead-slots (->> assignments+dead-slots
+                        (map (fn [[tid [_ dead-slots]]] dead-slots))
+                        (apply concat)
+                        (map (fn [[sid port]] {sid #{port}}))
+                        (apply (partial merge-with set/union)))
+        dead-slots (if (nil? dead-slots) {} dead-slots)
         supervisor-infos (all-supervisor-info storm-cluster-state)
         supervisors (into {} (for [[sid supervisor-info] supervisor-infos
                                    :let [hostname (:hostname supervisor-info)
                                          scheduler-meta (:scheduler-meta supervisor-info)
-                                         bad-ports (bad-slots sid)
-                                         all-ports (map int (set/difference (set (:all-ports supervisor-info)) bad-ports))
+                                         dead-ports (dead-slots sid)
+                                         ;; hide the dead-ports from the all-ports
+                                         ;; these dead-ports can be reused in next round of assignments
+                                         all-ports (-> supervisor-info
+                                                       :all-ports
+                                                       set
+                                                       (set/difference dead-ports)
+                                                       ((fn [ports] (map int ports))))
                                          supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
                                {sid supervisor-details}))
         cluster (Cluster. supervisors existing-scheduler-assignments)
@@ -419,14 +425,13 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule scheduler topologies cluster)
-        new-scheduler-assignments (clojurify-structure (.getAssignments cluster))]
+        new-scheduler-assignments (.getAssignments cluster)]
         ;; add more information to convert SchedulerAssignment to Assignment
-         (into {} (for [[topology-id assignment] new-scheduler-assignments
-                                       :let [existing-assignment (get existing-assignments topology-id)
-                                             task->slot (clojurify-structure (.getTaskToSlots assignment))
-                                             task->node+port (into {} (for [[task slot] task->slot]
-                                                                        {task [(.getNodeId slot) (.getPort slot)]}))]]
-                    {topology-id task->node+port}))))
+    (into {} (for [[topology-id assignment] new-scheduler-assignments
+                   :let [task->slot (.getTaskToSlots assignment)
+                         task->node+port (into {} (for [[task slot] task->slot]
+                                                    {task [(.getNodeId slot) (.getPort slot)]}))]]
+               {topology-id task->node+port}))))
 
 
 (defn changed-ids [task->node+port new-task->node+port]
@@ -454,19 +459,24 @@
 (defnk mk-assignments [nimbus :scratch-topology-id nil]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
-
         node->host (get-node->host storm-cluster-state nil)
+        ;; read all the topologies
         topology-ids (.active-storms storm-cluster-state)
         topologies (into {} (for [tid topology-ids]
                               {tid (read-topology-details nimbus tid)}))
         topologies (Topologies. topologies)
+        ;; read all the assignments
         assigned-topology-ids (.assignments storm-cluster-state nil)
         existing-assignments (into {} (for [tid assigned-topology-ids]
+                                        ;; for the topology which wants rebalance (specified by the scratch-topology-id)
+                                        ;; we exclude its assignment, meaning that all the slots occupied by its assignment
+                                        ;; will be treated as free slot in the scheduler code.
                                         (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
                                           {tid (.assignment-info storm-cluster-state tid nil)})))
-
+        ;; make the new assignments for topologies
         topology->task->node+port (compute-new-topology->task->node+port nimbus existing-assignments topologies)
         now-secs (current-time-secs)
+        ;; construct the final Assignments by adding start-times etc into it
         new-assignments (into {} (for [[topology-id task->node+port] topology->task->node+port
                                         :let [existing-assignment (get existing-assignments topology-id)
                                              all-node->host (merge (:node->host existing-assignment) node->host)                                             

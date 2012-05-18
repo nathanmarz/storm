@@ -32,18 +32,17 @@
 
 (defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
   (let [topology-id (.getId topology)
-        available-slots (.getAvailableSlots cluster topology-id)
-        available-slots (into [] (for [slot available-slots]
-                                   [(.getNodeId slot) (.getPort slot)]))
-        all-task-ids (into #{} (for [task (.getTasks topology)]
-                                 task))
+        available-slots (->> topology-id
+                             (.getAvailableSlots cluster)
+                             (map #(vector (.getNodeId %) (.getPort %))))
+        all-task-ids (set (.getTasks topology))
         existing-assignment (.getAssignmentById cluster topology-id)
         task->node+port (if-not existing-assignment
                           {}
                           (into {} (for [[task slot] (.getTaskToSlots existing-assignment)]
-                                   {task [(.getNodeId slot) (.getPort slot)]})))
+                                     {task [(.getNodeId slot) (.getPort slot)]})))
         alive-assigned (reverse-map task->node+port)
-        topology-conf (clojurify-structure (.getConf topology))
+        topology-conf (.getConf topology)
         total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
                                 (+ (count available-slots) (count alive-assigned)))
         keep-assigned (keeper-slots alive-assigned (count all-task-ids) total-slots-to-use)

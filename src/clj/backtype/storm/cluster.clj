@@ -183,11 +183,15 @@
 
 
 (defn convert-task-beats [tasks worker-hb]
-  (->> tasks
-    (map (fn [t] {t {:time-secs (:time-secs worker-hb)
-                     :uptime (:uptime worker-hb)
-                     :stats (get (:task-stats worker-hb) t)}}))
-    (into {})))
+  ;; ensures that we only return heartbeats for tasks assigned to this worker
+  (let [task-stats (:task-stats worker-hb)]
+    (->> tasks
+      (map (fn [t] 
+             (if (contains? task-stats t)
+               {t {:time-secs (:time-secs worker-hb)
+                    :uptime (:uptime worker-hb)
+                    :stats (get task-stats t)}})))
+      (into {}))))
 
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defn mk-storm-cluster-state [cluster-state-spec]

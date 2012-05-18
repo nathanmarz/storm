@@ -27,9 +27,9 @@
         task->node+port (:task->node+port (.assignment-info state storm-id nil))
         [node port] (get task->node+port task-id)
         curr-beat (.get-worker-heartbeat state storm-id node port)
-        taskbeats (:taskbeats curr-beat)]
+        stats (:task-stats curr-beat)]
     (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10}
+      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10 :task-stats (merge stats {task-id nil})}
       )))
 
 (defn task-assignment [cluster storm-id task-id]

@@ -321,6 +321,8 @@
                                (SupervisorInfo. (current-time-secs)
                                                 (:my-hostname supervisor)
                                                 (.getMetadata isupervisor)
+                                                (get conf SUPERVISOR-SCHEDULER-META)
+                                                (get conf SUPERVISOR-SLOTS-PORTS)
                                                 ((:uptime supervisor)))))]
     (heartbeat-fn)
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)

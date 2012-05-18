@@ -5,7 +5,9 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails])
+  (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
+            Cluster Topologies SchedulerAssignment])
+  (:import [backtype.storm DefaultScheduler])  
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:gen-class
@@ -58,7 +60,6 @@
    (log-message "Updated " storm-id " with status " status)
    ))
 
-(declare reassign-topology)
 (declare delay-event)
 (declare mk-assignments)
 
@@ -93,12 +94,6 @@
        :executor-overrides executor-overrides
        })))
 
-(defn reassign-transition [nimbus storm-id]
-  (fn []
-    (reassign-topology nimbus storm-id)
-    nil
-    ))
-
 (defn do-rebalance [nimbus storm-id status]
   (.update-storm! (:storm-cluster-state nimbus)
                   storm-id
@@ -106,17 +101,15 @@
                     {:component->executors (:executor-overrides status)}
                     :num-workers
                     (:num-workers status)))
-  (mk-assignments nimbus storm-id :scratch? true))
+  (mk-assignments nimbus :scratch-topology-id storm-id))
 
 (defn state-transitions [nimbus storm-id status]
-  {:active {:monitor (reassign-transition nimbus storm-id)
-            :inactivate :inactive            
+  {:active {:inactivate :inactive            
             :activate nil
             :rebalance (rebalance-transition nimbus storm-id status)
             :kill (kill-transition nimbus storm-id)
             }
-   :inactive {:monitor (reassign-transition nimbus storm-id)
-              :activate :active
+   :inactive {:activate :active
               :inactivate nil
               :rebalance (rebalance-transition nimbus storm-id status)
               :kill (kill-transition nimbus storm-id)
@@ -150,7 +143,7 @@
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
      (locking (:submit-lock nimbus)
-       (let [system-events #{:startup :monitor}
+       (let [system-events #{:startup}
              [event & event-args] (if (keyword? event) [event] event)
              status (topology-status nimbus storm-id)]
          ;; handles the case where event was scheduled but topology has been removed
@@ -321,10 +314,15 @@
         ))))
 
 (defn read-topology-details [nimbus storm-id]
-  (let [conf (:conf nimbus)]
+  (let [conf (:conf nimbus)
+        topology-conf (read-storm-conf conf storm-id)
+        topology (read-storm-topology conf storm-id)
+        task-info (storm-task-info topology topology-conf)]
     (TopologyDetails. storm-id
-                      (read-storm-conf conf storm-id)
-                      (read-storm-topology conf storm-id))))
+                      topology-conf
+                      topology
+                      task-info
+                      )))
 
 ;; Does not assume that clocks are synchronized. Task heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
@@ -365,25 +363,6 @@
       task-ids
       )))
 
-(defn- keeper-slots [existing-slots num-task-ids num-workers]
-  (if (= 0 num-workers)
-    {}
-    (let [distribution (atom (integer-divided num-task-ids num-workers))
-          keepers (atom {})]
-      (doseq [[node+port task-list] existing-slots :let [task-count (count task-list)]]
-        (when (pos? (get @distribution task-count 0))
-          (swap! keepers assoc node+port task-list)
-          (swap! distribution update-in [task-count] dec)
-          ))
-      @keepers
-      )))
-
-
-(defn sort-slots [all-slots]
-  (let [split-up (vals (group-by first all-slots))]
-    (apply interleave-all split-up)
-    ))
-
 ;; NEW NOTES
 ;; only assign to supervisors who are there and haven't timed out
 ;; need to reassign workers with tasks that have timed out (will this make it brittle?)
@@ -393,55 +372,61 @@
 
 ;; in the future could allocate tasks intelligently (so that "close" tasks reside on same machine)
 
-
 ;; TODO: slots that have dead task should be reused as long as supervisor is active
 
 ;; public so it can be mocked out
-(defn compute-new-task->node+port [nimbus ^TopologyDetails topology-details existing-assignment callback scratch?]
+(defn compute-new-topology->task->node+port [nimbus existing-assignments topologies]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
         task-heartbeats-cache (:task-heartbeats-cache nimbus)
-        storm-id (.getId topology-details)
-        
-        storm-base (.storm-base storm-cluster-state storm-id nil)
-        
-        
-        available-slots (available-slots nimbus callback topology-details)
-        storm-conf (read-storm-conf conf storm-id)
-        all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
-        taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port existing-assignment))
-        existing-assigned (reverse-map (:task->node+port existing-assignment))
-        alive-ids (if scratch?
-                    all-task-ids
-                    (set (alive-tasks conf storm-id taskbeats
-                                      all-task-ids (:task->start-time-secs existing-assignment)
-                                      task-heartbeats-cache)))
-        
-        alive-assigned (filter-val (partial every? alive-ids) existing-assigned)
-
-        total-slots-to-use (min (:num-workers storm-base)
-                                (+ (count available-slots) (count alive-assigned)))
-        keep-assigned (if scratch?
-                        {}
-                        (keeper-slots alive-assigned (count all-task-ids) total-slots-to-use))
-        
-        freed-slots (keys (apply dissoc alive-assigned (keys keep-assigned)))
-        reassign-slots (take (- total-slots-to-use (count keep-assigned))
-                             (sort-slots (concat available-slots freed-slots)))
-        reassign-ids (sort (set/difference all-task-ids (set (apply concat (vals keep-assigned)))))
-        reassignment (into {}
-                           (map vector
-                                reassign-ids
-                                ;; for some reason it goes into infinite loop without limiting the repeat-seq
-                                (repeat-seq (count reassign-ids) reassign-slots)))
-        stay-assignment (into {} (mapcat (fn [[node+port task-ids]] (for [id task-ids] [id node+port])) keep-assigned))]
-    (when-not (empty? reassignment)
-      (log-message "Reassigning " storm-id " to " total-slots-to-use " slots")
-      (log-message "Reassign ids: " (vec reassign-ids))
-      (log-message "Available slots: " (pr-str available-slots))
-      )
-    (merge stay-assignment reassignment)
-    ))
+        assignments+bad-slots (into {} (for [[tid assignment] existing-assignments
+                                                      :let [storm-conf (read-storm-conf conf tid)
+                                                            all-task-ids (-> (read-storm-topology conf tid) (storm-task-info storm-conf) keys set)
+                                                            taskbeats (.taskbeats storm-cluster-state tid (:task->node+port assignment))
+                                                            alive-ids (set (alive-tasks conf tid taskbeats
+                                                                                        all-task-ids (:task->start-time-secs assignment)
+                                                                                        task-heartbeats-cache))
+                                                            bad-ids (set/difference all-task-ids alive-ids)
+                                                            bad-slots (->> (:task->node+port assignment)
+                                                                           (filter #(contains? bad-ids (first %)))
+                                                                           vals)
+                                                            task->slot (into {} (for [[task [node port]] (:task->node+port assignment)]
+                                                                                  (if (contains? alive-ids task)
+                                                                                    {task (WorkerSlot. node port)}
+                                                                                    {})))]]
+                                                  {tid [(SchedulerAssignment. tid task->slot) bad-slots]}))
+        existing-scheduler-assignments (into {} (for [[tid [assignment _]] assignments+bad-slots]
+                                                  {tid assignment}))
+        bad-slots (into {} (for [[tid [_ bad-slots]] assignments+bad-slots]
+                             {tid bad-slots}))
+        bad-slots (apply concat (vals bad-slots))
+        bad-slots (into [] (for [[sid port] bad-slots]
+                             {sid #{port}}))
+        bad-slots (apply (partial merge-with set/union) bad-slots)
+        bad-slots (if (nil? bad-slots) {} bad-slots)
+        supervisor-infos (all-supervisor-info storm-cluster-state)
+        supervisors (into {} (for [[sid supervisor-info] supervisor-infos
+                                   :let [hostname (:hostname supervisor-info)
+                                         scheduler-meta (:scheduler-meta supervisor-info)
+                                         bad-ports (bad-slots sid)
+                                         all-ports (map int (set/difference (set (:all-ports supervisor-info)) bad-ports))
+                                         supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
+                               {sid supervisor-details}))
+        cluster (Cluster. supervisors existing-scheduler-assignments)
+        scheduler (if (conf STORM-SCHEDULER)
+                    (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance)
+                    (DefaultScheduler.))
+        ;; call scheduler.schedule to schedule all the topologies
+        ;; the new assignments for all the topologies are in the cluster object.
+        _ (.schedule scheduler topologies cluster)
+        new-scheduler-assignments (clojurify-structure (.getAssignments cluster))]
+        ;; add more information to convert SchedulerAssignment to Assignment
+         (into {} (for [[topology-id assignment] new-scheduler-assignments
+                                       :let [existing-assignment (get existing-assignments topology-id)
+                                             task->slot (clojurify-structure (.getTaskToSlots assignment))
+                                             task->node+port (into {} (for [[task slot] task->slot]
+                                                                        {task [(.getNodeId slot) (.getPort slot)]}))]]
+                    {topology-id task->node+port}))))
 
 
 (defn changed-ids [task->node+port new-task->node+port]
@@ -466,58 +451,52 @@
 ;; figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many tasks should be in each slot (e.g., 4, 4, 4, 5)
 ;; only keep existing slots that satisfy one of those slots. for rest, reassign them across remaining slots
 ;; edge case for slots with no task timeout but with supervisor timeout... just treat these as valid slots that can be reassigned to. worst comes to worse the task will timeout and won't assign here next time around
-(defnk mk-assignments [nimbus storm-id :scratch? false]
-  (log-debug "Determining assignment for " storm-id)
+(defnk mk-assignments [nimbus :scratch-topology-id nil]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
-        callback (fn [& ignored] (transition! nimbus storm-id :monitor))
-        node->host (get-node->host storm-cluster-state callback)
 
-        topology-details (read-topology-details nimbus storm-id)
-        existing-assignment (.assignment-info storm-cluster-state storm-id nil)
-        task->node+port (compute-new-task->node+port nimbus
-                                                     topology-details
-                                                     existing-assignment
-                                                     callback
-                                                     scratch?)
-        
-        all-node->host (merge (:node->host existing-assignment) node->host)
-        reassign-ids (changed-ids (:task->node+port existing-assignment) task->node+port)
+        node->host (get-node->host storm-cluster-state nil)
+        topology-ids (.active-storms storm-cluster-state)
+        topologies (into {} (for [tid topology-ids]
+                              {tid (read-topology-details nimbus tid)}))
+        topologies (Topologies. topologies)
+        assigned-topology-ids (.assignments storm-cluster-state nil)
+        existing-assignments (into {} (for [tid assigned-topology-ids]
+                                        (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
+                                          {tid (.assignment-info storm-cluster-state tid nil)})))
+
+        topology->task->node+port (compute-new-topology->task->node+port nimbus existing-assignments topologies)
         now-secs (current-time-secs)
-        start-times (merge (:task->start-time-secs existing-assignment)
-                           (into {}
-                             (for [id reassign-ids]
-                               [id now-secs]
-                               )))
-
-        assignment (Assignment.
-                    (master-stormdist-root conf storm-id)
-                    (select-keys all-node->host (map first (vals task->node+port)))
-                    task->node+port
-                    start-times
-                    )
-        ]
+        new-assignments (into {} (for [[topology-id task->node+port] topology->task->node+port
+                                        :let [existing-assignment (get existing-assignments topology-id)
+                                             all-node->host (merge (:node->host existing-assignment) node->host)                                             
+                                             reassign-ids (changed-ids (:task->node+port existing-assignment) task->node+port)
+                                             start-times (merge (:task->start-time-secs existing-assignment)
+                                                                (into {}
+                                                                      (for [id reassign-ids]
+                                                                        [id now-secs]
+                                                                        )))]]
+                                   {topology-id (Assignment.
+                                                 (master-stormdist-root conf topology-id)
+                                                 (select-keys all-node->host (map first (vals task->node+port)))
+                                                 task->node+port
+                                                 start-times)}))]
     ;; tasks figure out what tasks to talk to by looking at topology at runtime
     ;; only log/set when there's been a change to the assignment
-    (if (= existing-assignment assignment)
-      (log-debug "Assignment for " storm-id " hasn't changed")
+    (doseq [[topology-id assignment] new-assignments
+            :let [existing-assignment (get existing-assignments topology-id)
+                  topology-details (.getById topologies topology-id)]]
+      (if (= existing-assignment assignment)
+      (log-debug "Assignment for " topology-id " hasn't changed")
       (do
-        (log-message "Setting new assignment for storm id " storm-id ": " (pr-str assignment))
-        (.set-assignment! storm-cluster-state storm-id assignment)
+        (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
+        (.set-assignment! storm-cluster-state topology-id assignment)
         (.assignSlots ^INimbus (:inimbus nimbus)
                       (for [[id port] (newly-added-slots existing-assignment assignment)]
                         (WorkerSlot. id port))
                       topology-details)
         
-        ))
-    ))
-
-(defn reassign-topology [nimbus storm-id]
-  (let [conf (:conf nimbus)
-        storm-cluster-state (:storm-cluster-state nimbus)]
-    (when (conf NIMBUS-REASSIGN)      
-      (mk-assignments nimbus
-                      storm-id))))
+        )))))
 
 (defn- start-storm [nimbus storm-name storm-id]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -657,8 +636,8 @@
                         0
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
-                          (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
-                            (transition! nimbus storm-id :monitor))
+                          (when (conf NIMBUS-REASSIGN)
+                            (mk-assignments nimbus))
                           (do-cleanup nimbus)
                           ))
     ;; Schedule Nimbus inbox cleaner
@@ -694,7 +673,7 @@
             (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
             (.setup-heartbeats! storm-cluster-state storm-id)
             (start-storm nimbus storm-name storm-id)
-            (mk-assignments nimbus storm-id))
+            (mk-assignments nimbus))
           ))
       
       (^void killTopology [this ^String name]

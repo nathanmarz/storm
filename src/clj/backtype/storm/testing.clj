@@ -224,7 +224,13 @@
 
 (defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]
   (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
-                   nimbus/compute-new-task->node+port (fn [& ignored] task->node+port)]
+                   nimbus/compute-new-topology->task->node+port (fn [nimbus existing-assignments topologies]
+                                                                  (let [topology (.getByName topologies storm-name)
+                                                                        topology-id (.getId topology)
+                                                                        existing-assignments (into {} (for [[tid assignment] existing-assignments]
+                                                                                                        {tid (:task->node+port assignment)}))
+                                                                        new-assignments (assoc existing-assignments topology-id task->node+port)]
+                                                                  new-assignments))]
     (submit-local-topology nimbus storm-name conf topology)
     ))
 

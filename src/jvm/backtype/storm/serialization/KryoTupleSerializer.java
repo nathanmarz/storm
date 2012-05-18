@@ -1,5 +1,6 @@
 package backtype.storm.serialization;
 
+import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.CRC32OutputStream;
@@ -13,7 +14,7 @@ import java.util.Map;
 public class KryoTupleSerializer implements ITupleSerializer {
     ThreadResourceManager<Worker> _manager;
     
-    public KryoTupleSerializer(final Map conf, final TopologyContext context) {
+    public KryoTupleSerializer(final Map conf, final GeneralTopologyContext context) {
         _manager = new ThreadResourceManager<Worker>(new ThreadResourceManager.ResourceFactory<Worker>() {
             @Override
             public Worker makeResource() {
@@ -48,7 +49,7 @@ public class KryoTupleSerializer implements ITupleSerializer {
         KryoValuesSerializer _kryo;
         SerializationFactory.IdDictionary _ids;
 
-        public Worker(Map conf, TopologyContext context) {
+        public Worker(Map conf, GeneralTopologyContext context) {
             _outputter = new ByteArrayOutputStream();
             _dataOutputter = new DataOutputStream(_outputter);
             _kryo = new KryoValuesSerializer(conf);

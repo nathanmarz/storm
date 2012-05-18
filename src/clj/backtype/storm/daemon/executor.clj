@@ -10,6 +10,36 @@
 
 (bootstrap)
 
+;;TODO use this to create contexts for tasks
+(defn mk-topology-context-builder [worker topology]
+  (let [conf (:conf worker)]
+    #(TopologyContext.
+      topology
+      (:storm-conf worker)
+      (:task->component worker)
+      (:storm-id worker)
+      (supervisor-storm-resources-path
+        (supervisor-stormdist-root conf (:storm-id worker)))
+      (worker-pids-root conf (:worker-id worker))
+      %
+      (:port worker)
+      (:task-ids worker)
+      )))
+
+(defn system-topology-context [worker tid]
+  ((mk-topology-context-builder
+    worker
+    (system-topology! (:storm-conf worker) (:topology worker)))
+   tid))
+
+(defn user-topology-context [worker tid]
+  ((mk-topology-context-builder
+    worker
+    (:topology worker))
+   tid))
+   
+   
+
 (defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
         task-getter (fn [i] (.get target-tasks i))]

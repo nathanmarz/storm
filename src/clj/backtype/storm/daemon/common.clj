@@ -42,7 +42,7 @@
 
 
 
-(defrecord WorkerHeartbeat [time-secs storm-id executor-ids port])
+(defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
 (defrecord ExecutorStats [^long processed
                           ^long acked

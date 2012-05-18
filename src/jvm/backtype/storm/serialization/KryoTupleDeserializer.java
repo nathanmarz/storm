@@ -1,5 +1,6 @@
 package backtype.storm.serialization;
 
+import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
@@ -14,7 +15,7 @@ import java.util.Map;
 public class KryoTupleDeserializer implements ITupleDeserializer {
     ThreadResourceManager<Worker> _manager;
     
-    public KryoTupleDeserializer(final Map conf, final TopologyContext context) {
+    public KryoTupleDeserializer(final Map conf, final GeneralTopologyContext context) {
         _manager = new ThreadResourceManager<Worker>(new ThreadResourceManager.ResourceFactory<Worker>() {
             @Override
             public Worker makeResource() {
@@ -34,11 +35,11 @@ public class KryoTupleDeserializer implements ITupleDeserializer {
     }
     
     public static class Worker implements ITupleDeserializer {
-        TopologyContext _context;
+        GeneralTopologyContext _context;
         KryoValuesDeserializer _kryo;
         SerializationFactory.IdDictionary _ids;
     
-        public Worker(Map conf, TopologyContext context) {
+        public Worker(Map conf, GeneralTopologyContext context) {
             _kryo = new KryoValuesDeserializer(conf);
             _context = context;
             _ids = new SerializationFactory.IdDictionary(context.getRawTopology());

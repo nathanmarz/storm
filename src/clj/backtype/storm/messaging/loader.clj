@@ -20,7 +20,7 @@
    :priority Thread/NORM_PRIORITY]
   (let [vthread (async-loop
                  (fn [socket receive-queue-map]
-                   (let [[task msg] (msg/recv socket)]
+                   (let [[task msg :as packet] (msg/recv socket)]
                      (if (= task -1)
                        (do
                          (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
@@ -28,7 +28,7 @@
                          nil )
                        (do
                          (if (contains? receive-queue-map task)
-                           (.put ^LinkedBlockingQueue (receive-queue-map task) msg)
+                           (.put ^LinkedBlockingQueue (receive-queue-map task) packet)
                            (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping..."))
                           0 ))))
                  :args-fn (fn [] [(msg/bind context storm-id port) receive-queue-map])

@@ -50,13 +50,6 @@
                       ^long transferred
                       ^long failed])
 
-
-(defn reverse-assignment [task-group->node+port]
-  (->> task-group->node+port
-       reverse-map
-       (map-val (partial apply concat))
-       ))
-
 (defn new-task-stats []
   (TaskStats. 0 0 0 0 0))
 

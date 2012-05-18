@@ -273,8 +273,6 @@
           (.join t))
         (doseq [hook (.getHooks user-context)]
           (.cleanup hook))
-        ;; remove its taskbeats from worker if exists
-        (swap! (:taskbeats worker) dissoc task-id)
         (.disconnect storm-cluster-state)
         (close-component task-object)
         (log-message "Shut down task " storm-id ":" task-id))

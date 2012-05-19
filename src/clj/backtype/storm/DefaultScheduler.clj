@@ -32,8 +32,7 @@
 
 (defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
   (let [topology-id (.getId topology)
-        available-slots (->> topology-id
-                             (.getAvailableSlots cluster)
+        available-slots (->> (.getAvailableSlots cluster)
                              (map #(vector (.getNodeId %) (.getPort %))))
         all-task-ids (set (.getTasks topology))
         existing-assignment (.getAssignmentById cluster topology-id)

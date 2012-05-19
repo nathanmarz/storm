@@ -55,27 +55,6 @@ public class SupervisorDetails {
     }
 
     /**
-     * Get all the used ports of this supervisor.
-     * 
-     * @param cluster
-     * @return
-     */
-    public List<Integer> getUsedPorts(Cluster cluster) {
-        Map<String, SchedulerAssignment> assignments = cluster.getAssignments();
-        List<Integer> usedPorts = new ArrayList<Integer>();
-
-        for (SchedulerAssignment assignment : assignments.values()) {
-            for (WorkerSlot slot : assignment.getTaskToSlots().values()) {
-                if (slot.getNodeId().equals(this.id)) {
-                    usedPorts.add(slot.getPort());
-                }
-            }
-        }
-
-        return usedPorts;
-    }
-
-    /**
      * return all the ports.
      * 
      * @return
@@ -84,36 +63,4 @@ public class SupervisorDetails {
         return this.allPorts;
     }
 
-    /**
-     * Return the available ports of this supervisor.
-     * 
-     * @param cluster
-     * @return
-     */
-    public List<Integer> getAvailablePorts(Cluster cluster) {
-        List<Integer> usedPorts = this.getUsedPorts(cluster);
-
-        List<Integer> ret = new ArrayList<Integer>();
-        ret.addAll(this.allPorts);
-        ret.removeAll(usedPorts);
-
-        return ret;
-    }
-
-    /**
-     * Return all the available slots on this supervisor.
-     * 
-     * @param cluster
-     * @return
-     */
-    public List<WorkerSlot> getAvailableSlots(Cluster cluster) {
-        List<Integer> ports = this.getAvailablePorts(cluster);
-        List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
-
-        for (Integer port : ports) {
-            slots.add(new WorkerSlot(this.id, port));
-        }
-
-        return slots;
-    }
 }

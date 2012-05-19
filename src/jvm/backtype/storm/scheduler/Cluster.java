@@ -11,6 +11,7 @@ import java.util.Set;
 import backtype.storm.Config;
 
 public class Cluster {
+
     /**
      * key: supervisor id, value: supervisor details
      */
@@ -47,7 +48,7 @@ public class Cluster {
      * @param topologies
      * @return
      */
-    public Collection<TopologyDetails> needsSchedulingTopologies(Topologies topologies) {
+    public List<TopologyDetails> needsSchedulingTopologies(Topologies topologies) {
         List<TopologyDetails> ret = new ArrayList<TopologyDetails>();
         for (TopologyDetails topology : topologies.getTopologies()) {
             if (needsScheduling(topology)) {
@@ -59,19 +60,119 @@ public class Cluster {
     }
 
     /**
-     * Does the topology need schedule?
+     * Does the topology need scheduling?
+     * 
+     * A topology needs scheduling if one of the following conditions holds:
+     * <ul>
+     *   <li>Although the topology is assigned slots, but is squeezed. i.e. the topology is assigned less slots than desired.</li>
+     *   <li>There are unassigned tasks in this topology</li>
+     * </ul>
      */
     public boolean needsScheduling(TopologyDetails topology) {
         int desiredNumWorkers = ((Number) topology.getConf().get(Config.TOPOLOGY_WORKERS)).intValue();
         int assignedNumWorkers = this.getAssignedNumWorkers(topology);
-        
+
         if (desiredNumWorkers > assignedNumWorkers) {
             return true;
         }
-        
+
         return this.getUnassignedTasks(topology).size() > 0;
     }
 
+    /**
+     * Gets a task-id -> component-id map which needs scheduling in this topology.
+     * 
+     * @param topology
+     * @return
+     */
+    public Map<Integer, String> getNeedsSchedulingTaskToComponents(TopologyDetails topology) {
+        Collection<Integer> allTasks = topology.getTasks();
+
+        SchedulerAssignment assignment = this.assignments.get(topology.getId());
+        if (assignment != null) {
+            Collection<Integer> assignedTasks = assignment.getTasks();
+            allTasks.removeAll(assignedTasks);
+        }
+
+        return topology.selectTaskToComponents(allTasks);
+    }
+    
+    /**
+     * Gets a component-id -> tasks map which needs scheduling in this topology.
+     * 
+     * @param topology
+     * @return
+     */
+    public Map<String, List<Integer>> getNeedsSchedulingComponentToTasks(TopologyDetails topology) {
+        Map<Integer, String> taskToComponents = this.getNeedsSchedulingTaskToComponents(topology);
+        Map<String, List<Integer>> componentToTasks = new HashMap<String, List<Integer>>();
+        for (int task : taskToComponents.keySet()) {
+            String component = taskToComponents.get(task);
+            if (!componentToTasks.containsKey(component)) {
+                componentToTasks.put(component, new ArrayList<Integer>());
+            }
+            
+            componentToTasks.get(component).add(task);
+        }
+        
+        return componentToTasks;
+    }
+
+
+    /**
+     * Get all the used ports of this supervisor.
+     * 
+     * @param cluster
+     * @return
+     */
+    public List<Integer> getUsedPorts(SupervisorDetails supervisor) {
+        Map<String, SchedulerAssignment> assignments = this.getAssignments();
+        List<Integer> usedPorts = new ArrayList<Integer>();
+
+        for (SchedulerAssignment assignment : assignments.values()) {
+            for (WorkerSlot slot : assignment.getTaskToSlots().values()) {
+                if (slot.getNodeId().equals(supervisor.getId())) {
+                    usedPorts.add(slot.getPort());
+                }
+            }
+        }
+
+        return usedPorts;
+    }
+
+    /**
+     * Return the available ports of this supervisor.
+     * 
+     * @param cluster
+     * @return
+     */
+    public List<Integer> getAvailablePorts(SupervisorDetails supervisor) {
+        List<Integer> usedPorts = this.getUsedPorts(supervisor);
+
+        List<Integer> ret = new ArrayList<Integer>();
+        ret.addAll(supervisor.allPorts);
+        ret.removeAll(usedPorts);
+
+        return ret;
+    }
+
+    /**
+     * Return all the available slots on this supervisor.
+     * 
+     * @param cluster
+     * @return
+     */
+    public List<WorkerSlot> getAvailableSlots(SupervisorDetails supervisor) {
+        List<Integer> ports = this.getAvailablePorts(supervisor);
+        List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
+
+        for (Integer port : ports) {
+            slots.add(new WorkerSlot(supervisor.getId(), port));
+        }
+
+        return slots;
+    }
+    
     /**
      * get the unassigned tasks of the topology.
      */
@@ -80,7 +181,7 @@ public class Cluster {
             return new ArrayList<Integer>(0);
         }
 
-        Set<Integer> allTasks = topology.getTasks();
+        Collection<Integer> allTasks = topology.getTasks();
         SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
 
         if (assignment != null) {
@@ -94,6 +195,12 @@ public class Cluster {
         return ret;
     }
 
+    /**
+     * Gets the number of workers assigned to this topology.
+     * 
+     * @param topology
+     * @return
+     */
     public int getAssignedNumWorkers(TopologyDetails topology) {
         SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
         if (topology == null || assignment == null) {
@@ -107,7 +214,7 @@ public class Cluster {
     }
 
     /**
-     * assign the slot to the task for this topology.
+     * Assign the slot to the task for this topology.
      */
     public void assign(WorkerSlot slot, String topologyId, Collection<Integer> tasks) {
         SchedulerAssignment assignment = this.getAssignmentById(topologyId);
@@ -125,10 +232,10 @@ public class Cluster {
      * 
      * @return
      */
-    public Collection<WorkerSlot> getAvailableSlots(String topologyId) {
+    public List<WorkerSlot> getAvailableSlots() {
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>();
         for (SupervisorDetails supervisor : this.supervisors.values()) {
-            slots.addAll(supervisor.getAvailableSlots(this));
+            slots.addAll(this.getAvailableSlots(supervisor));
         }
 
         return slots;
@@ -143,7 +250,7 @@ public class Cluster {
         SupervisorDetails supervisor = this.supervisors.get(slot.getNodeId());
 
         if (supervisor != null) {
-            // remove the port from the existing assignments
+            // remove the slot from the existing assignments
             for (SchedulerAssignment assignment : this.assignments.values()) {
                 if (assignment.occupiedSlot(slot)) {
                     assignment.removeSlot(slot);
@@ -196,6 +303,7 @@ public class Cluster {
 
     /**
      * Set assignment for the specified topology.
+     * 
      * @param topologyId the id of the topology the assignment is for.
      * @param assignment the assignment to be assigned.
      */

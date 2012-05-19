@@ -1,10 +1,11 @@
 package backtype.storm.scheduler;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
 import backtype.storm.Config;
 import backtype.storm.generated.StormTopology;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
 
 
 public class TopologyDetails {
@@ -49,7 +50,19 @@ public class TopologyDetails {
         return this.taskToComponents;
     }
 
-    public Set<Integer> getTasks() {
+    public Map<Integer, String> selectTaskToComponents(Collection<Integer> tasks) {
+        Map<Integer, String> ret = new HashMap<Integer, String>(tasks.size());
+        for (int task : tasks) {
+            String compId = this.taskToComponents.get(task);
+            if (compId != null) {
+                ret.put(task, compId);
+            }
+        }
+        
+        return ret;
+    }
+    
+    public Collection<Integer> getTasks() {
         return this.taskToComponents.keySet();
     }
 }

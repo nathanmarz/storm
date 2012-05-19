@@ -94,40 +94,39 @@
         executors (set (read-worker-executors storm-cluster-state storm-id supervisor-id port))
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         receive-queue-map (mk-receive-queue-map executors)
-        topology (read-supervisor-topology conf storm-id)
-        ret {:conf conf
-             :mq-context (if mq-context
-                             mq-context
-                             (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
-                                                        (storm-conf ZMQ-LINGER-MILLIS)
-                                                        (= (conf STORM-CLUSTER-MODE) "local")))
-             :storm-id storm-id
-             :supervisor-id supervisor-id
-             :port port
-             :worker-id worker-id
-             :cluster-state cluster-state
-             :storm-cluster-state storm-cluster-state
-             :storm-active-atom (atom false)
-             :executors executors
-             :task-ids (keys receive-queue-map)
-             :storm-conf storm-conf
-             :topology topology
-             :timer (mk-timer :kill-fn (fn [t]
-                                         (log-error t "Error when processing event")
-                                         (halt-process! 20 "Error when processing an event")
-                                         ))
-             :task->component (storm-task-info topology storm-conf)
-             :endpoint-socket-lock (mk-rw-lock)
-             :node+port->socket (atom {})
-             :task->node+port (atom {})
-             :transfer-queue transfer-queue
-             :receive-queue-map receive-queue-map
-             :suicide-fn (mk-suicide-fn conf)
-             :uptime (uptime-computer)
-             }]
-    (merge ret
-           {:transfer-fn (mk-transfer-fn ret)
-            })))
+        topology (read-supervisor-topology conf storm-id)]
+    (recursive-map
+      :conf conf
+      :mq-context (if mq-context
+                      mq-context
+                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
+                                                 (storm-conf ZMQ-LINGER-MILLIS)
+                                                 (= (conf STORM-CLUSTER-MODE) "local")))
+      :storm-id storm-id
+      :supervisor-id supervisor-id
+      :port port
+      :worker-id worker-id
+      :cluster-state cluster-state
+      :storm-cluster-state storm-cluster-state
+      :storm-active-atom (atom false)
+      :executors executors
+      :task-ids (keys receive-queue-map)
+      :storm-conf storm-conf
+      :topology topology
+      :timer (mk-timer :kill-fn (fn [t]
+                                  (log-error t "Error when processing event")
+                                  (halt-process! 20 "Error when processing an event")
+                                  ))
+      :task->component (storm-task-info topology storm-conf)
+      :endpoint-socket-lock (mk-rw-lock)
+      :node+port->socket (atom {})
+      :task->node+port (atom {})
+      :transfer-queue transfer-queue
+      :receive-queue-map receive-queue-map
+      :suicide-fn (mk-suicide-fn conf)
+      :uptime (uptime-computer)
+      :transfer-fn (mk-transfer-fn <>)
+      )))
 
 (defn- to-task->node+port [executor->node+port]
   (->> executor->node+port

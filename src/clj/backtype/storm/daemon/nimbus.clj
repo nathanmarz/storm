@@ -344,7 +344,7 @@
   [nimbus ^TopologyDetails topology-details all-executors existing-assignment]
   (let [conf (:conf nimbus)
         storm-id (.getId topology-details)
-        executor-start-times (:executor->start-time existing-assignment)
+        executor-start-times (:executor->start-time-secs existing-assignment)
         heartbeats-cache (@(:heartbeats-cache nimbus) storm-id)]
     (->> all-executors
         (filter (fn [executor]
@@ -443,7 +443,7 @@
         freed-slots (keys (apply dissoc alive-assigned (keys keep-assigned)))
         reassign-slots (take (- total-slots-to-use (count keep-assigned))
                              (sort-slots (concat available-slots freed-slots)))
-        reassign-executors (->> keep-assigned vals (apply concat) set (set/difference all-executors) sort)
+        reassign-executors (->> keep-assigned vals (apply concat) set (set/difference (set all-executors)) sort)
         reassignment (into {}
                            (map vector
                                 reassign-executors

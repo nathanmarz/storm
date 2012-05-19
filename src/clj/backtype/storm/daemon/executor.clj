@@ -247,12 +247,16 @@
             ))
         ))))
 
+(defn executor-max-spout-pending [storm-conf num-tasks]
+  (let [p (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)]
+    (if p (* p num-tasks))))
+
 (defmethod mk-threads :spout [executor-data task-datas]
   (let [wait-fn (fn [] @(:storm-active-atom executor-data))
         storm-conf (:storm-conf executor-data)
         last-active (atom false)
         component-id (:component-id executor-data)
-        max-spout-pending (* (storm-conf TOPOLOGY-MAX-SPOUT-PENDING) (count task-datas))
+        max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
         event-queue (ConcurrentLinkedQueue.)
         worker-context (:worker-context executor-data)
         transfer-fn (:transfer-fn executor-data)

@@ -348,8 +348,8 @@
         heartbeats-cache (@(:heartbeats-cache nimbus) storm-id)]
     (->> all-executors
         (filter (fn [executor]
-          (let [start-time (executor-start-times executor)
-                nimbus-time (-> heartbeats-cache executor :nimbus-time)]
+          (let [start-time (get executor-start-times executor)
+                nimbus-time (-> heartbeats-cache (get executor) :nimbus-time)]
             (if (and start-time
                    (or
                     (< (time-delta start-time)
@@ -409,10 +409,10 @@
          reverse-map
          (map-val sort)
          (join-maps component->executors)
-         (map-val (partial apply partition-fixed)))
+         (map-val (partial apply partition-fixed))
          (mapcat second)
          (map to-executor-id)
-         ))
+         )))
 
 ;; public so it can be mocked out
 (defn compute-new-executor->node+port [nimbus ^TopologyDetails topology-details existing-assignment callback scratch?]

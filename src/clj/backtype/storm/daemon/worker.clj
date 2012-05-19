@@ -49,16 +49,10 @@
         hb)
     ))
 
-(defn general-context [worker]
-  (GeneralTopologyContext. (system-topology! (:storm-conf worker) (:topology worker))
-                           (:storm-conf worker)
-                           (:task->component worker)
-                           (:storm-id worker)))
-
 (defn worker-outbound-tasks
   "Returns seq of task-ids that receive messages from this worker"
   [worker]
-  (let [context (general-context worker)
+  (let [context (worker-context worker)
         components (mapcat
                      (fn [task-id]
                        (->> (.getComponentId context (int task-id))
@@ -78,7 +72,7 @@
 (defn mk-transfer-fn [worker]
   (let [receive-queue-map (:receive-queue-map worker)
         ^LinkedBlockingQueue transfer-queue (:transfer-queue worker)
-        ^KryoTupleSerializer serializer (KryoTupleSerializer. (:storm-conf worker) (general-context worker))]
+        ^KryoTupleSerializer serializer (KryoTupleSerializer. (:storm-conf worker) (worker-context worker))]
     (fn [task ^Tuple tuple]
       (if (contains? receive-queue-map task)
         (.put ^LinkedBlockingQueue (receive-queue-map task) [task tuple])

@@ -222,9 +222,9 @@
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
-(defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]
+(defn submit-mocked-assignment [nimbus storm-name conf topology task->component executor->node+port]
   (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
-                   nimbus/compute-new-task->node+port (fn [& ignored] task->node+port)]
+                   nimbus/compute-new-executor->node+port (fn [& ignored] executor->node+port)]
     (submit-local-topology nimbus storm-name conf topology)
     ))
 

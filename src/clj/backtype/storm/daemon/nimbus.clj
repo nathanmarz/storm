@@ -342,7 +342,8 @@
 
 (defn- alive-executors
   [nimbus ^TopologyDetails topology-details all-executors existing-assignment]
-  (let [storm-id (.getId topology-details)
+  (let [conf (:conf nimbus)
+        storm-id (.getId topology-details)
         executor-start-times (:executor->start-time existing-assignment)
         heartbeats-cache (@(:heartbeats-cache nimbus) storm-id)]
     (->> all-executors
@@ -861,7 +862,7 @@
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
-              all-components (-> task-info reverse-map keys)
+              all-components (-> task->component reverse-map keys)
               errors (->> all-components
                           (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
                           (into {}))

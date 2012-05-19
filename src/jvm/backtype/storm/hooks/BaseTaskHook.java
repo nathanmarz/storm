@@ -36,8 +36,4 @@ public class BaseTaskHook implements ITaskHook {
     @Override
     public void boltFail(BoltFailInfo info) {
     }
-
-    @Override
-    public void error(Throwable error) {
-    }
 }

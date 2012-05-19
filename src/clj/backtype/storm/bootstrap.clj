@@ -13,7 +13,7 @@
      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
      (import (quote [backtype.storm.task IBolt IOutputCollector
                      OutputCollector TopologyContext ShellBolt
-                     GeneralTopologyContext]))
+                     GeneralTopologyContext WorkerTopologyContext]))
      (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
                      IBatchBolt BatchBoltExecutor]))
      (import (quote [backtype.storm.drpc KeyedFairBolt]))

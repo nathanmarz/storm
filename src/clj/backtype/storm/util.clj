@@ -729,3 +729,10 @@
   (->> (partition 2 forms)
        (map (fn [[key form]] `(assoc-apply-self ~key (fn [~'<>] ~form))))
        (concat `(-> {}))))
+
+(defn current-stack-trace []
+  (->> (Thread/currentThread)
+       .getStackTrace
+       (map str)
+       (str/join "\n")
+       ))

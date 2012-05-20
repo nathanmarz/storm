@@ -128,11 +128,6 @@
       :transfer-fn (mk-transfer-fn <>)
       )))
 
-(defn- to-task->node+port [executor->node+port]
-  (->> executor->node+port
-       (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
-       (into {})))
-
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)

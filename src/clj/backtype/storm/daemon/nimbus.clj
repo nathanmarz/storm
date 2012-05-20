@@ -325,7 +325,7 @@
 (defn update-heartbeat-cache [cache executor-beats all-executors]
   (let [cache (select-keys cache all-executors)]
     (into {}
-      (for [[executor curr] cache]
+      (for [executor all-executors :let [curr (cache executor)]]
         [executor
           (if (contains? executor-beats executor)
             (update-executor-cache curr (executor-beats executor))
@@ -422,7 +422,7 @@
         storm-base (.storm-base storm-cluster-state storm-id nil)        
         
         available-slots (available-slots nimbus callback topology-details)        
-        all-executors (compute-executors nimbus storm-id)
+        all-executors (set (compute-executors nimbus storm-id))
                          
         existing-assigned (reverse-map (:executor->node+port existing-assignment))
         
@@ -443,7 +443,7 @@
         freed-slots (keys (apply dissoc alive-assigned (keys keep-assigned)))
         reassign-slots (take (- total-slots-to-use (count keep-assigned))
                              (sort-slots (concat available-slots freed-slots)))
-        reassign-executors (->> keep-assigned vals (apply concat) set (set/difference (set all-executors)) sort)
+        reassign-executors (->> keep-assigned vals (apply concat) set (set/difference all-executors) sort)
         reassignment (into {}
                            (map vector
                                 reassign-executors

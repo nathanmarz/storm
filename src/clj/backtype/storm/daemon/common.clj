@@ -238,3 +238,9 @@
                            (:port worker)
                            (:task-ids worker)
                            ))
+
+
+(defn to-task->node+port [executor->node+port]
+  (->> executor->node+port
+       (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
+       (into {})))

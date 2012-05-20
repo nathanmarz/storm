@@ -394,10 +394,13 @@
                       (doseq [t out-tasks
                               :let [anchors-to-ids (HashMap.)]]
                         (doseq [^Tuple a anchors
-                                :let [edge-id (MessageId/generateId)]]
-                          (put-xor! pending-acks a edge-id)
-                          (doseq [root-id (-> a .getMessageId .getAnchorsToIds .keySet)]
-                            (put-xor! anchors-to-ids root-id edge-id)))
+                                :let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]]
+                          (when (pos? (count root-ids))
+                            (let [edge-id (MessageId/generateId)]
+                              (put-xor! pending-acks a edge-id)
+                              (doseq [root-id root-ids]
+                                (put-xor! anchors-to-ids root-id edge-id))
+                                )))
                         (transfer-fn t
                                      (Tuple. worker-context
                                              values

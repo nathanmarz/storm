@@ -228,9 +228,10 @@
   (range first-task-id (inc last-task-id)))
 
 (defn worker-context [worker]
-  (WorkerTopologyContext. (system-topology! (:storm-conf worker) (:topology worker))
+  (WorkerTopologyContext.  (:system-topology worker)
                            (:storm-conf worker)
                            (:task->component worker)
+                           (:component->sorted-tasks worker)
                            (:storm-id worker)
                            (supervisor-storm-resources-path
                              (supervisor-stormdist-root (:conf worker) (:storm-id worker)))

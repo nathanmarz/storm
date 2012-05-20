@@ -176,6 +176,7 @@
                         :task-ids
                         (map (fn [t] [t (task/mk-task executor-data t)]))
                         (into {}))
+        _ (log-message "Loaded executor tasks " (:component-id executor-data) ":" (pr-str executor-id))
         report-error-and-die (:report-error-and-die executor-data)
         component-id (:component-id executor-data)
 
@@ -184,7 +185,7 @@
                                 (mk-threads executor-data task-datas))]
                   (async-loop (fn [] (exec) (when @active 0))
                               :kill-fn report-error-and-die))]
-    (log-message "Finished loading executor " component-id ":" (keys task-datas))
+    (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
     (reify
       RunningExecutor
@@ -195,7 +196,7 @@
       Shutdownable
       (shutdown
         [this]
-        (log-message "Shutting down executor " component-id ":" (keys task-datas))
+        (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
         (reset! active false)
         ;; put an empty message into receive-queue
         ;; empty messages are skip messages (this unblocks the receive-queue.take thread)
@@ -210,7 +211,7 @@
         (.disconnect (:storm-cluster-state executor-data))
         (doseq [obj (map :object (vals task-datas))]
           (close-component executor-data obj))
-        (log-message "Shut down executor " component-id ":" (keys task-datas)))
+        (log-message "Shut down executor " component-id ":" (pr-str executor-id)))
         )))
 
 (defn- fail-spout-msg [executor-data task-data msg-id tuple-info time-delta]

@@ -4,6 +4,7 @@
   (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap LinkedBlockingQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
+  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
               EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
@@ -16,6 +17,7 @@
       topology
       (:storm-conf worker)
       (:task->component worker)
+      (:component->sorted-tasks worker)
       (:storm-id worker)
       (supervisor-storm-resources-path
         (supervisor-stormdist-root conf (:storm-id worker)))
@@ -28,7 +30,7 @@
 (defn system-topology-context [worker tid]
   ((mk-topology-context-builder
     worker
-    (system-topology! (:storm-conf worker) (:topology worker)))
+    (:system-topology worker))
    tid))
 
 (defn user-topology-context [worker tid]
@@ -37,16 +39,16 @@
     (:topology worker))
    tid))
 
-(defn- get-task-object [topology component-id]
+(defn- get-task-object [^TopologyContext topology component-id]
   (let [spouts (.get_spouts topology)
         bolts (.get_bolts topology)
         state-spouts (.get_state_spouts topology)
         obj (Utils/getSetComponentObject
              (cond
-              (contains? spouts component-id) (.get_spout_object (get spouts component-id))
-              (contains? bolts component-id) (.get_bolt_object (get bolts component-id))
-              (contains? state-spouts component-id) (.get_state_spout_object (get state-spouts component-id))
-              true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
+              (contains? spouts component-id) (.get_spout_object ^SpoutSpec (get spouts component-id))
+              (contains? bolts component-id) (.get_bolt_object ^Bolt (get bolts component-id))
+              (contains? state-spouts component-id) (.get_state_spout_object ^StateSpoutSpec (get state-spouts component-id))
+              true (throw-runtime "Could not find " component-id " in " topology)))
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
                 (ShellSpout. obj)
@@ -132,7 +134,7 @@
     :system-context (system-topology-context (:worker executor-data) task-id)
     :user-context (user-topology-context (:worker executor-data) task-id)
     :tasks-fn (mk-tasks-fn <>)
-    :object (get-task-object (.getRawTopology (:system-context <>)) (:component-id executor-data))
+    :object (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data))
     ))
 
 
@@ -140,7 +142,7 @@
   (let [task-data (mk-task-data executor-data task-id)
         storm-conf (:storm-conf executor-data)]
     (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
-      (.addTaskHook (:user-context task-data) (-> klass Class/forName .newInstance)))
+      (.addTaskHook ^TopologyContext (:user-context task-data) (-> klass Class/forName .newInstance)))
     (send-unanchored task-data SYSTEM-STREAM-ID ["startup"])
     task-data
     ))

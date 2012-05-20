@@ -110,14 +110,16 @@
       :storm-cluster-state storm-cluster-state
       :storm-active-atom (atom false)
       :executors executors
-      :task-ids (keys receive-queue-map)
+      :task-ids (->> receive-queue-map keys (map int) sort)
       :storm-conf storm-conf
       :topology topology
+      :system-topology (system-topology! storm-conf topology)
       :timer (mk-timer :kill-fn (fn [t]
                                   (log-error t "Error when processing event")
                                   (halt-process! 20 "Error when processing an event")
                                   ))
       :task->component (storm-task-info topology storm-conf)
+      :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
       :endpoint-socket-lock (mk-rw-lock)
       :node+port->socket (atom {})
       :task->node+port (atom {})

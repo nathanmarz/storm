@@ -547,6 +547,6 @@
         spout-spec (mk-spout-spec* (TestWordSpout.)
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
-        context (TopologyContext. topology (read-storm-config) {(int 1) component} "test-storm-id" nil nil (int 1) nil [(int 1)])]
+        context (TopologyContext. topology (read-storm-config) {(int 1) component} {component [(int 1)]} "test-storm-id" nil nil (int 1) nil [(int 1)])]
     (Tuple. context values 1 stream)
     ))

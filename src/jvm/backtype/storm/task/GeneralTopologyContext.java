@@ -33,24 +33,14 @@ public class GeneralTopologyContext implements JSONAware {
     private String _stormId;
     protected Map _stormConf;
     
+    // pass in componentToSortedTasks for the case of running tons of tasks in single executor
     public GeneralTopologyContext(StormTopology topology, Map stormConf,
-            Map<Integer, String> taskToComponent, String stormId) {
+            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks, String stormId) {
         _topology = topology;
         _stormConf = stormConf;
         _taskToComponent = taskToComponent;
         _stormId = stormId;
-        _componentToTasks = new HashMap<String, List<Integer>>();
-        for(Integer task: taskToComponent.keySet()) {
-            String component = taskToComponent.get(task);
-            List<Integer> curr = _componentToTasks.get(component);
-            if(curr==null) curr = new ArrayList<Integer>();
-            curr.add(task);
-            _componentToTasks.put(component, curr);
-        }
-        for(String component: _componentToTasks.keySet()) {
-            List<Integer> tasks = _componentToTasks.get(component);
-            Collections.sort(tasks);
-        }
+        _componentToTasks = componentToSortedTasks;
     }
 
     /**

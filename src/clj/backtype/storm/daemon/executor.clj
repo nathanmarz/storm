@@ -277,8 +277,8 @@
                                out-tasks (if out-task-id
                                            (tasks-fn out-task-id out-stream-id values)
                                            (tasks-fn out-stream-id values))
-                               root-id (MessageId/generateId)
                                rooted? (and message-id (has-ackers? storm-conf))
+                               root-id (if rooted? (MessageId/generateId))
                                out-ids (dofor [t out-tasks] (MessageId/generateId))
                                out-tuples (dofor [id out-ids]
                                             (let [tuple-id (if rooted?

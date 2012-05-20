@@ -482,6 +482,4 @@
        (advance-time-secs! 5)
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
-       )))
-
-  )
+       ))))

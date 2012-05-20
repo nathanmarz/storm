@@ -705,7 +705,7 @@
 
 (defn partition-fixed [max-num-chunks aseq]
   (if (zero? max-num-chunks)
-    (throw (IllegalArgumentException. "Cannot partition into zero chunks"))
+    []
     (let [chunks (->> (integer-divided (count aseq) max-num-chunks)
                       (#(dissoc % 0))
                       (sort-by (comp - first))

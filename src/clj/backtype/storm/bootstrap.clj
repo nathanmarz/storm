@@ -7,7 +7,7 @@
                      AckFailDelegate AckTracker]))
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback BufferFileInputStream
-                     RegisteredGlobalState ThriftTopologyUtils]))
+                     RegisteredGlobalState ThriftTopologyUtils DisruptorQueue]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))

@@ -75,15 +75,15 @@
         ^KryoTupleSerializer serializer (KryoTupleSerializer. (:storm-conf worker) (worker-context worker))]
     (fn [task ^Tuple tuple]
       (if (contains? receive-queue-map task)
-        (.put ^LinkedBlockingQueue (receive-queue-map task) [task tuple])
+        (let [q (receive-queue-map task)]
+          (.publish ^DisruptorQueue q [task tuple]))
         (let [tuple (.serialize serializer tuple)]
           (.put transfer-queue [task tuple]))
       ))))
 
-(defn- mk-receive-queue-map [executors]
+(defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
-       (map (fn [e] [e (LinkedBlockingQueue.)]))
-       (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
+       (map (fn [e] [e (DisruptorQueue. (storm-conf TOPOLOGY-EXECUTOR-BUFFER-SIZE))]))
        (into {})
        ))
 
@@ -93,7 +93,11 @@
         storm-conf (read-supervisor-storm-conf conf storm-id)
         executors (set (read-worker-executors storm-cluster-state storm-id supervisor-id port))
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
-        receive-queue-map (mk-receive-queue-map executors)
+        executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
+        receive-queue-map (->> executor-receive-queue-map
+                               (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
+                               (into {}))
+
         topology (read-supervisor-topology conf storm-id)]
     (recursive-map
       :conf conf
@@ -125,6 +129,7 @@
       :task->node+port (atom {})
       :transfer-queue transfer-queue
       :receive-queue-map receive-queue-map
+      :executor-receive-queue-map executor-receive-queue-map
       :suicide-fn (mk-suicide-fn conf)
       :uptime (uptime-computer)
       :transfer-fn (mk-transfer-fn <>)
@@ -241,6 +246,8 @@
                                                               
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
+                    (doseq [[_ q] (:executor-receive-queue-map worker)]
+                      (.haltProcessing q))
                     (doseq [executor executors] (.shutdown executor))
                     (doseq [[_ socket] @(:node+port->socket worker)]
                       ;; this will do best effort flushing since the linger period
@@ -248,6 +255,12 @@
                       (.close socket))
                     (receive-thread-shutdown)
                     (log-message "Terminating zmq context")
+                    
+                    ;; now it's safe to shutdown receive queues (nothing left to add messages to it
+                    ;; get deadlocked)
+                    (doseq [[_ q] (:executor-receive-queue-map worker)]
+                      (.shutdown q))
+                    
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
                     (msg/term (:mq-context worker))

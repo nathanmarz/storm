@@ -1,7 +1,7 @@
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue LinkedBlockingQueue])
+  (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
@@ -147,7 +147,7 @@
      :task-ids task-ids
      :component-id component-id
      :storm-conf storm-conf
-     :receive-queue ((:receive-queue-map worker) (first task-ids))
+     :receive-queue ((:executor-receive-queue-map worker) executor-id)
      :storm-id (:storm-id worker)
      :conf (:conf worker)
      :storm-active-atom (:storm-active-atom worker)
@@ -181,10 +181,15 @@
         component-id (:component-id executor-data)
 
         
-        threads (dofor [exec (with-error-reaction report-error-and-die
-                                (mk-threads executor-data task-datas))]
-                  (async-loop (fn [] (exec) (when @active 0))
-                              :kill-fn report-error-and-die))]
+        [disruptor-handler & other-handlers] (with-error-reaction report-error-and-die
+                                               (mk-threads executor-data task-datas))
+        threads (dofor [exec other-handlers]
+                  (async-loop (fn [] (exec) (when @active 0)) :kill-fn report-error-and-die))]
+    (.setHandler (:receive-queue executor-data)
+                 (reify com.lmax.disruptor.EventHandler
+                   (onEvent [this o seq-id batchEnd?]
+                     (disruptor-handler o seq-id batchEnd?)
+                     )))
     (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
     (reify
@@ -198,9 +203,6 @@
         [this]
         (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
         (reset! active false)
-        ;; put an empty message into receive-queue
-        ;; empty messages are skip messages (this unblocks the receive-queue.take thread)
-        (.put (:receive-queue executor-data) (byte-array []))
         (doseq [t threads]
           (.interrupt t)
           (.join t))
@@ -236,17 +238,14 @@
       )))
 
 (defn mk-task-receiver [executor-data tuple-action-fn]
-  (let [^LinkedBlockingQueue receive-queue (:receive-queue executor-data)
-        ^KryoTupleDeserializer deserializer (:deserializer executor-data)]
-    (fn []
-      (let [[task-id msg] (.take receive-queue)
-            is-tuple? (instance? Tuple msg)]
-        (when (or is-tuple? (not (empty? msg))) ; skip empty messages (used during shutdown)
-          ;;(log-debug "Processing message " msg)
-          (let [^Tuple tuple (if is-tuple? msg (.deserialize deserializer msg))]
-            (tuple-action-fn task-id tuple)
-            ))
-        ))))
+  (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)
+        report-error-and-die (:report-error-and-die executor-data)]
+    (fn [[task-id msg] sequence-id end-of-batch?]
+      (with-error-reaction report-error-and-die
+        ;;(log-debug "Processing message " msg)
+        (let [^Tuple tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
+          (tuple-action-fn task-id tuple)
+          )))))
 
 (defn executor-max-spout-pending [storm-conf num-tasks]
   (let [p (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)]
@@ -340,7 +339,8 @@
                )))
     (log-message "Opened spout " component-id ":" (keys task-datas))
     ;; TODO: should redesign this to only use one thread
-    [(fn []
+    [(mk-task-receiver executor-data tuple-action-fn)
+     (fn []
        ;; This design requires that spouts be non-blocking
        (loop []
          (when-let [event (.poll event-queue)]
@@ -363,8 +363,7 @@
                (doseq [^ISpout spout spouts] (.activate spout)))
              ;; TODO: log that it's getting throttled
              (Time/sleep 100)))
-         ))
-         (mk-task-receiver executor-data tuple-action-fn)
+         ))         
      ]
     ))
 

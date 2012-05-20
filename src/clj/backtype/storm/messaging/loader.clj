@@ -1,6 +1,6 @@
 (ns backtype.storm.messaging.loader
   (:use [backtype.storm util log])
-  (:import [java.util.concurrent LinkedBlockingQueue])
+  (:import [backtype.storm.utils DisruptorQueue])
   (:require [backtype.storm.messaging [local :as local] [protocol :as msg]]))
 
 (defn mk-local-context []
@@ -28,7 +28,8 @@
                          nil )
                        (do
                          (if (contains? receive-queue-map task)
-                           (.put ^LinkedBlockingQueue (receive-queue-map task) packet)
+                           (let [q (receive-queue-map task)]
+                             (.publish ^DisruptorQueue q packet))
                            (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping..."))
                           0 ))))
                  :args-fn (fn [] [(msg/bind context storm-id port) receive-queue-map])

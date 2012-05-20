@@ -85,5 +85,6 @@ topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
+topology.executor.buffer.size: 16384
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

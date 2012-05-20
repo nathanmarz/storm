@@ -26,6 +26,7 @@
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  [storm/tools.cli "0.2.2"]
+                 [com.googlecode.disruptor/disruptor "2.7.1"]
                  ]
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]

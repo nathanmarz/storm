@@ -179,7 +179,7 @@ struct TopologyInfo {
   1: required string id;
   2: required string name;
   3: required i32 uptime_secs;
-  4: required list<ExecutorSummary> tasks;
+  4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
 }

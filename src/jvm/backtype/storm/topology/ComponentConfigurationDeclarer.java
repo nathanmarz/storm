@@ -7,5 +7,6 @@ public interface ComponentConfigurationDeclarer<T extends ComponentConfiguration
     T addConfiguration(String config, Object value);
     T setDebug(boolean debug);
     T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);    
+    T setMaxSpoutPending(Number val);
+    T setNumTasks(Number val);
 }

@@ -5,7 +5,7 @@ java.library.path: "/usr/local/lib:/opt/local/lib:/usr/lib"
 
 ### storm.* configs are general configurations
 # the local dir is where jars are kept
-storm.local.dir: "/mnt/storm"
+storm.local.dir: "storm-local"
 storm.zookeeper.servers:
     - "localhost"
 storm.zookeeper.port: 2181

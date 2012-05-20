@@ -27,5 +27,11 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
     public T setMaxSpoutPending(Number val) {
         if(val!=null) val = val.intValue();
         return addConfiguration(Config.TOPOLOGY_MAX_SPOUT_PENDING, val);
-    }    
+    }
+    
+    @Override
+    public T setNumTasks(Number val) {
+        if(val!=null) val = val.intValue();
+        return addConfiguration(Config.TOPOLOGY_TASKS, val);
+    }
 }

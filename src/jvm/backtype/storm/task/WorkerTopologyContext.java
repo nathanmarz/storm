@@ -17,7 +17,7 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
     public WorkerTopologyContext(StormTopology topology, Map stormConf,
             Map<Integer, String> taskToComponent, String stormId,
             String codeDir, String pidDir, Integer workerPort,
-            List<Integer> workerTasks) {
+            List<Number> workerTasks) {
         super(topology, stormConf, taskToComponent, stormId);
         _codeDir = codeDir;
         try {
@@ -30,7 +30,10 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
             throw new RuntimeException("Could not get canonical path for " + _pidDir, e);
         }
         _workerPort = workerPort;
-        _workerTasks = new ArrayList<Integer>(workerTasks);
+        _workerTasks = new ArrayList<Integer>();
+        for(Number n: workerTasks) {
+            _workerTasks.add(n.intValue());
+        }
         Collections.sort(_workerTasks);
     }
 

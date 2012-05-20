@@ -837,17 +837,17 @@
                                         (let [assignment (.assignment-info storm-cluster-state id nil)]
                                           (TopologySummary. id
                                                             (:storm-name base)
-                                                            (-> (:executor->node+port assignment)
-                                                                keys
-                                                                (mapcat executor-id->tasks)
-                                                                count) 
-                                                            (-> (:executor->node+port assignment)
+                                                            (->> (:executor->node+port assignment)
+                                                                 keys
+                                                                 (mapcat executor-id->tasks)
+                                                                 count) 
+                                                            (->> (:executor->node+port assignment)
                                                                 keys
                                                                 count)                                                            
-                                                            (-> (:executor->node+port assignment)
-                                                                vals
-                                                                set
-                                                                count)
+                                                            (->> (:executor->node+port assignment)
+                                                                 vals
+                                                                 set
+                                                                 count)
                                                             (time-delta (:launch-time-secs base))
                                                             (extract-status-str base))
                                           ))]

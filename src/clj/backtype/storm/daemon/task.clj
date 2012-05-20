@@ -20,7 +20,7 @@
       (supervisor-storm-resources-path
         (supervisor-stormdist-root conf (:storm-id worker)))
       (worker-pids-root conf (:worker-id worker))
-      %
+      (int %)
       (:port worker)
       (:task-ids worker)
       )))

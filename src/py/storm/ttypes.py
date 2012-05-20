@@ -2570,7 +2570,7 @@ class TopologyInfo:
    - id
    - name
    - uptime_secs
-   - tasks
+   - executors
    - status
    - errors
   """
@@ -2580,16 +2580,16 @@ class TopologyInfo:
     (1, TType.STRING, 'id', None, None, ), # 1
     (2, TType.STRING, 'name', None, None, ), # 2
     (3, TType.I32, 'uptime_secs', None, None, ), # 3
-    (4, TType.LIST, 'tasks', (TType.STRUCT,(ExecutorSummary, ExecutorSummary.thrift_spec)), None, ), # 4
+    (4, TType.LIST, 'executors', (TType.STRUCT,(ExecutorSummary, ExecutorSummary.thrift_spec)), None, ), # 4
     (5, TType.STRING, 'status', None, None, ), # 5
     (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, tasks=None, status=None, errors=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
-    self.tasks = tasks
+    self.executors = executors
     self.status = status
     self.errors = errors
 
@@ -2619,12 +2619,12 @@ class TopologyInfo:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.LIST:
-          self.tasks = []
+          self.executors = []
           (_etype227, _size224) = iprot.readListBegin()
           for _i228 in xrange(_size224):
             _elem229 = ExecutorSummary()
             _elem229.read(iprot)
-            self.tasks.append(_elem229)
+            self.executors.append(_elem229)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -2672,10 +2672,10 @@ class TopologyInfo:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 3)
       oprot.writeI32(self.uptime_secs)
       oprot.writeFieldEnd()
-    if self.tasks is not None:
-      oprot.writeFieldBegin('tasks', TType.LIST, 4)
-      oprot.writeListBegin(TType.STRUCT, len(self.tasks))
-      for iter243 in self.tasks:
+    if self.executors is not None:
+      oprot.writeFieldBegin('executors', TType.LIST, 4)
+      oprot.writeListBegin(TType.STRUCT, len(self.executors))
+      for iter243 in self.executors:
         iter243.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
@@ -2704,8 +2704,8 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field name is unset!')
     if self.uptime_secs is None:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
-    if self.tasks is None:
-      raise TProtocol.TProtocolException(message='Required field tasks is unset!')
+    if self.executors is None:
+      raise TProtocol.TProtocolException(message='Required field executors is unset!')
     if self.status is None:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
     if self.errors is None:

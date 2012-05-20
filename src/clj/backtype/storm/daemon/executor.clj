@@ -1,7 +1,7 @@
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap LinkedBlockingQueue])
+  (:import [java.util.concurrent ConcurrentLinkedQueue LinkedBlockingQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
@@ -25,7 +25,7 @@
   (let [num-tasks (count target-tasks)
         choices (rotating-random-range num-tasks)]
     (fn [tuple]
-      (->> (acquire-random-range-id choices num-tasks)
+      (->> (acquire-random-range-id choices)
            (.get target-tasks)))))
 
 (defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^Fields out-fields target-tasks]
@@ -242,7 +242,7 @@
       (let [[task-id msg] (.take receive-queue)
             is-tuple? (instance? Tuple msg)]
         (when (or is-tuple? (not (empty? msg))) ; skip empty messages (used during shutdown)
-          (log-debug "Processing message " msg)
+          ;;(log-debug "Processing message " msg)
           (let [^Tuple tuple (if is-tuple? msg (.deserialize deserializer msg))]
             (tuple-action-fn task-id tuple)
             ))
@@ -378,12 +378,12 @@
 
 (defmethod mk-threads :bolt [executor-data task-datas]
   (let [component-id (:component-id executor-data)
-        tuple-start-times (ConcurrentHashMap.)
+        tuple-start-times (HashMap.)
         transfer-fn (:transfer-fn executor-data)
         worker-context (:worker-context executor-data)
         storm-conf (:storm-conf executor-data)
         executor-stats (:stats executor-data)
-        pending-acks (ConcurrentHashMap.)
+        pending-acks (HashMap.)
         report-error-fn (:report-error-fn executor-data)
         sampler (:sampler executor-data)
         bolt-emit (fn [from-task-id stream anchors values task]
@@ -424,7 +424,7 @@
                           ;; TODO: how to handle incremental updates as well as synchronizations at same time
                           ;; TODO: need to version tuples somehow
  
-                          (log-debug "Received tuple " tuple " at task " task-id)
+                          ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
                           (let [^IBolt bolt-obj (-> task-id task-datas :object)]
                             (.put tuple-start-times tuple (System/currentTimeMillis))                          

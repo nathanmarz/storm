@@ -1,7 +1,7 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue ConcurrentHashMap LinkedBlockingQueue])
+  (:import [java.util.concurrent ConcurrentLinkedQueue LinkedBlockingQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])

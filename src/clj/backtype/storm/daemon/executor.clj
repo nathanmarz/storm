@@ -320,8 +320,9 @@
                             ;; TODO: on failure, emit tuple to failure stream
                             ))]
     (log-message "Opening spout " component-id ":" (keys task-datas))
-    (doseq [[task-id task-data] task-datas]      
-      (.open ^ISpout (:object task-data)
+    (doseq [[task-id task-data] task-datas
+            :let [^ISpout spout-obj (:object task-data)]]      
+      (.open spout-obj
              storm-conf
              (:user-context task-data)
              (SpoutOutputCollector.
@@ -424,11 +425,14 @@
                           ;; TODO: need to version tuples somehow
  
                           (log-debug "Received tuple " tuple " at task " task-id)
-                          (.put tuple-start-times tuple (System/currentTimeMillis))                          
-                          (.execute ^IBolt (-> task-id task-datas :object) tuple))]
+                          ;; need to do it this way to avoid reflection
+                          (let [^IBolt bolt-obj (-> task-id task-datas :object)]
+                            (.put tuple-start-times tuple (System/currentTimeMillis))                          
+                            (.execute bolt-obj tuple)))]
     (log-message "Preparing bolt " component-id ":" (keys task-datas))
-    (doseq [[task-id task-data] task-datas]
-      (.prepare ^IBolt (:object task-data)
+    (doseq [[task-id task-data] task-datas
+            :let [^IBolt bolt-obj (:object task-data)]]
+      (.prepare bolt-obj
                 storm-conf
                 (:user-context task-data)
                 (OutputCollector.

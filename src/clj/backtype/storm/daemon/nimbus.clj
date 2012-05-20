@@ -5,9 +5,9 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
+  (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
-            Cluster Topologies SchedulerAssignment])
-  (:import [backtype.storm DefaultScheduler])  
+            Cluster Topologies SchedulerAssignment DefaultScheduler])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:gen-class
@@ -429,14 +429,30 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule scheduler topologies cluster)
-        new-scheduler-assignments (.getAssignments cluster)]
+        new-scheduler-assignments (.getAssignments cluster)
         ;; add more information to convert SchedulerAssignment to Assignment
-    (into {} (for [[topology-id assignment] new-scheduler-assignments
-                   :let [task->slot (.getTaskToSlots assignment)
-                         task->node+port (into {} (for [[task slot] task->slot]
-                                                    {task [(.getNodeId slot) (.getPort slot)]}))]]
-               {topology-id task->node+port}))))
+        new-topology->task->node+port (into {} (for [[topology-id assignment] new-scheduler-assignments
+                                                     :let [task->slot (.getTaskToSlots assignment)
+                                                           task->node+port (into {} (for [[task slot] task->slot]
+                                                                                      {task [(.getNodeId slot) (.getPort slot)]}))]]
+                                                 {topology-id task->node+port}))]
+    ;; print some useful information.
+    (doseq [[topology-id task->node+port] new-topology->task->node+port
+            :let [old-task->node+port (-> topology-id
+                                          existing-assignments
+                                          :task->node+port)
+                  reassignment (into {} (for [[task node+port] task->node+port]
+                                          (if (and (contains? old-task->node+port task)
+                                                   (= node+port (old-task->node+port task)))
+                                            {}
+                                            {task node+port})))]]
+      (when-not (empty? reassignment)
+        (let [new-slots-cnt (count (set (vals task->node+port)))
+              reassign-ids (keys reassignment)]
+          (log-message "Reassigning " topology-id " to " new-slots-cnt " slots")
+          (log-message "Reassign ids: " (vec reassign-ids)))))
 
+    new-topology->task->node+port))
 
 (defn changed-ids [task->node+port new-task->node+port]
   (let [slot-assigned (reverse-map task->node+port)

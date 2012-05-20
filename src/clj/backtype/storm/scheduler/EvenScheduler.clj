@@ -1,31 +1,15 @@
-(ns backtype.storm.scheduler.default-scheduler
-  (:use [backtype.storm util log bootstrap])
+(ns backtype.storm.scheduler.EvenScheduler
+  (:use [backtype.storm util log config])
   (:require [clojure.set :as set])
   (:import [backtype.storm.scheduler IScheduler Topologies
             Cluster TopologyDetails WorkerSlot SchedulerAssignment])
   (:gen-class
-    :name backtype.storm.scheduler.DefaultScheduler
     :implements [backtype.storm.scheduler.IScheduler]))
-
-(bootstrap)
 
 (defn sort-slots [all-slots]
   (let [split-up (vals (group-by first all-slots))]
     (apply interleave-all split-up)
     ))
-
-(defn- keeper-slots [existing-slots num-task-ids num-workers]
-  (if (= 0 num-workers)
-    {}
-    (let [distribution (atom (integer-divided num-task-ids num-workers))
-          keepers (atom {})]
-      (doseq [[node+port task-list] existing-slots :let [task-count (count task-list)]]
-        (when (pos? (get @distribution task-count 0))
-          (swap! keepers assoc node+port task-list)
-          (swap! distribution update-in [task-count] dec)
-          ))
-      @keepers
-      )))
 
 (defn- mk-scheduler-assignment [topology-id task->node+port]
   (SchedulerAssignment. topology-id
@@ -33,27 +17,24 @@
                                    {task (WorkerSlot. node port)}))))
 
 
-(defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
-  (log-message "CLUSTER-ASSIGNMENTS:" (.getAssignments cluster))
-  (doseq [[sid supervisor] (.getSupervisors cluster)]
-    (log-message "CLUSTER-SUPERVISORS:" (.getAllPorts supervisor)))
-  (let [available-slots (.getAvailableSlots cluster)
-        _ (log-message "AVAVAA:" available-slots)
-        available-slots (into [] (for [slot available-slots
-                                       :let [_ (log-message "AVA-NODE:" (.getNodeId slot) "AVA-PORT:" (.getPort slot))]]
-                                   [(.getNodeId slot) (.getPort slot)]))
-        all-task-ids (.getTasks topology)
-        topology-id (.getId topology)
-        existing-assignment (.getAssignment cluster topology-id)
+(defn- schedule-topology [^TopologyDetails topology ^Cluster cluster keeper-slots-fn]
+  (let [topology-id (.getId topology)
+        available-slots (->> (.getAvailableSlots cluster)
+                             (map #(vector (.getNodeId %) (.getPort %))))
+        all-task-ids (set (.getTasks topology))
+        existing-assignment (.getAssignmentById cluster topology-id)
         task->node+port (if-not existing-assignment
                           {}
                           (into {} (for [[task slot] (.getTaskToSlots existing-assignment)]
-                                   {task [(.getNodeId slot) (.getPort slot)]})))
+                                     {task [(.getNodeId slot) (.getPort slot)]})))
         alive-assigned (reverse-map task->node+port)
-        topology-conf (clojurify-structure (.getConf topology))
+        topology-conf (.getConf topology)
         total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
                                 (+ (count available-slots) (count alive-assigned)))
-        keep-assigned (keeper-slots alive-assigned (count all-task-ids) total-slots-to-use)
+        keep-assigned (if keeper-slots-fn
+                        (keeper-slots-fn alive-assigned (count all-task-ids) total-slots-to-use)
+                        alive-assigned
+                        )
         freed-slots (keys (apply dissoc alive-assigned (keys keep-assigned)))
         reassign-slots (take (- total-slots-to-use (count keep-assigned))
                              (sort-slots (concat available-slots freed-slots)))
@@ -65,20 +46,16 @@
                                 (repeat-seq (count reassign-ids) reassign-slots)))
         stay-assignment (into {} (mapcat (fn [[node+port task-ids]] (for [id task-ids] [id node+port])) keep-assigned))]
     (when-not (empty? reassignment)
-      (log-message "Reassigning " topology-id " to " total-slots-to-use " slots")
-      (log-message "Reassign ids: " (vec reassign-ids))
       (log-message "Available slots: " (pr-str available-slots))
       )
-    (log-message "TOPOLOGY-ASSIGNMENT:" (merge stay-assignment reassignment))
     (mk-scheduler-assignment topology-id (merge stay-assignment reassignment))))
-   
-(defn schedule-topologies [^Topologies topologies ^Cluster cluster]
+
+(defn schedule-topologies-evenly [^Topologies topologies ^Cluster cluster keeper-slots-fn]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
-                  new-assignment (schedule-topology topology cluster)]]
+                  new-assignment (schedule-topology topology cluster keeper-slots-fn)]]
       (.setAssignmentById cluster topology-id new-assignment))))
-
+  
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
-  (schedule-topologies topologies cluster))
-
+  (schedule-topologies-evenly topologies cluster nil))

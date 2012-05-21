@@ -895,6 +895,8 @@
         (log-message "Shutting down master")
         (cancel-timer (:timer nimbus))
         (.disconnect (:storm-cluster-state nimbus))
+        (.cleanup (:downloaders nimbus))
+        (.cleanup (:uploaders nimbus))
         (log-message "Shut down master")
         )
       DaemonCommon

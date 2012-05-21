@@ -478,10 +478,10 @@
 (defn assoc-track-id [cluster track-id]
   (assoc cluster ::track-id track-id))
 
-(defn increment-global! [id key]
+(defn increment-global! [id key amt]
   (-> (RegisteredGlobalState/getState id)
       (get key)
-      .incrementAndGet))
+      (.addAndGet amt)))
 
 (defn global-amt [id key]
   (-> (RegisteredGlobalState/getState id)
@@ -503,10 +503,10 @@
                       worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
                                               (fn [& args#]
                                                 (let [transferrer# (apply old# args#)]
-                                                  (fn [& transfer-args#]
+                                                  (fn [ser# batch#]
                                                     ;; (log-message "Transferring: " transfer-args#)
-                                                    (increment-global! id# "transferred")
-                                                    (apply transferrer# transfer-args#)
+                                                    (increment-global! id# "transferred" (count batch#))
+                                                    (transferrer# ser# batch#)
                                                     ))))
                       ]
        (with-local-cluster [~cluster-sym ~@cluster-args]

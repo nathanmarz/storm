@@ -142,7 +142,21 @@
         storm-conf (normalized-component-conf (:storm-conf worker) worker-context component-id)
         executor-type (executor-type worker-context component-id)
         serializer (KryoTupleSerializer. storm-conf worker-context)
+        batch-transfer->worker (disruptor/disruptor-queue
+                                  (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
+                                  :claim-strategy :single-threaded)
+        worker-transfer-fn (:transfer-fn worker)
+        cached-emit (MutableObject. (ArrayList.))
         ]
+    (disruptor/set-handler
+      batch-transfer->worker
+      (fn [o seq-id batch-end?]
+        (let [^ArrayList alist (.getObject cached-emit)]
+          (.add alist o)
+          (when batch-end?
+            (worker-transfer-fn serializer alist)
+            (.setObject cached-emit (ArrayList.))
+            ))))
     (recursive-map
      :worker worker
      :worker-context worker-context
@@ -153,7 +167,8 @@
      :storm-id (:storm-id worker)
      :conf (:conf worker)
      :storm-active-atom (:storm-active-atom worker)
-     :transfer-fn (partial (:transfer-fn worker) serializer)
+     :batch-transfer-queue batch-transfer->worker
+     :transfer-fn (fn [task tuple] (disruptor/publish batch-transfer->worker [task tuple]))
      :suicide-fn (:suicide-fn worker)
      :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker))
      :type executor-type
@@ -187,11 +202,7 @@
                                                (mk-threads executor-data task-datas))
         threads (dofor [exec other-handlers]
                   (async-loop (fn [] (exec) (when @active 0)) :kill-fn report-error-and-die))]
-    (.setHandler (:receive-queue executor-data)
-                 (reify com.lmax.disruptor.EventHandler
-                   (onEvent [this o seq-id batchEnd?]
-                     (disruptor-handler o seq-id batchEnd?)
-                     )))
+    (disruptor/set-handler (:receive-queue executor-data) disruptor-handler :error-fn report-error-and-die)
     (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
     (reify
@@ -208,6 +219,7 @@
         (doseq [t threads]
           (.interrupt t)
           (.join t))
+        (.shutdown (:batch-transfer-queue executor-data))
         
         (doseq [user-context (map :user-context (vals task-datas))]
           (doseq [hook (.getHooks user-context)]
@@ -240,12 +252,10 @@
       )))
 
 (defn mk-task-receiver [executor-data tuple-action-fn]
-  (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)
-        report-error-and-die (:report-error-and-die executor-data)]
-    (fn [[task-id msg] sequence-id end-of-batch?]
-      ;; TODO: optimize by batching emits onto the transfer queue
-      (with-error-reaction report-error-and-die
-        ;;(log-debug "Processing message " msg)
+  (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)]
+    (fn [tuple-batch sequence-id end-of-batch?]
+      ;;(log-debug "Processing message " msg)
+      (doseq [[task-id msg] tuple-batch]
         (let [^Tuple tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
           (tuple-action-fn task-id tuple)
           )))))

@@ -299,8 +299,10 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
 
+    @Override
     public void cleanup() {
         _delegate.cleanup();
+        _tracked.cleanup();
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

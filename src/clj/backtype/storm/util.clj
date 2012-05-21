@@ -238,6 +238,12 @@
        amap
        )))
 
+(defn map-key [afn amap]
+  (into {}
+    (for [[k v] amap]
+      [(afn k) v]
+      )))
+
 (defn separate [pred aseq]
   [(filter pred aseq) (filter (complement pred) aseq)])
 
@@ -734,3 +740,4 @@
        (map str)
        (str/join "\n")
        ))
+

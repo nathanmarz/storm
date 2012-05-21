@@ -68,19 +68,38 @@
         flatten
         set )))
 
+(defn mk-transfer-local-fn [worker]
+  (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
+        task->short-executor (:task->short-executor worker)]
+    (fn [tuple-batch]
+      (let [grouped (group-by (comp task->short-executor first) tuple-batch)]
+        (doseq [[short-executor pairs] grouped]
+          (let [q (short-executor-receive-queue-map short-executor)]
+            (if q
+              (disruptor/publish q pairs)
+              (log-warn "Received invalid messages for unknown tasks. Dropping... " (pr-str tuple-batch))
+              )))))))
+
 (defn mk-transfer-fn [worker]
-  (let [receive-queue-map (:receive-queue-map worker)
+  (let [local-tasks (-> worker :task-ids set)
+        local-transfer (:transfer-local-fn worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)]
-    (fn [^KryoTupleSerializer serializer task ^Tuple tuple]
-      (if-let [q (receive-queue-map task)]
-        (.publish ^DisruptorQueue q [task tuple])
-        (let [tuple (.serialize serializer tuple)]
-          (.publish transfer-queue [task tuple])
+    (fn [^KryoTupleSerializer serializer tuple-batch]
+      (let [local (ArrayList.)
+            remote (ArrayList.)]
+        (doseq [[task tuple :as pair] tuple-batch]
+          (if (local-tasks task)
+            (.add local pair)
+            (.add remote pair)
+            ))
+        (local-transfer local)
+        (let [serialized-pairs (dofor [[task tuple] remote] [task (.serialize serializer tuple)])]
+          (disruptor/publish transfer-queue serialized-pairs)
           )))))
 
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
-       (map (fn [e] [e (DisruptorQueue. (storm-conf TOPOLOGY-EXECUTOR-BUFFER-SIZE))]))
+       (map (fn [e] [e (disruptor/disruptor-queue (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE))]))
        (into {})
        ))
 
@@ -89,8 +108,9 @@
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
         executors (set (read-worker-executors storm-cluster-state storm-id supervisor-id port))
-        transfer-queue (DisruptorQueue. (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE))
+        transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
+        
         receive-queue-map (->> executor-receive-queue-map
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
                                (into {}))
@@ -125,10 +145,14 @@
       :node+port->socket (atom {})
       :task->node+port (atom {})
       :transfer-queue transfer-queue
-      :receive-queue-map receive-queue-map
       :executor-receive-queue-map executor-receive-queue-map
+      :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
+      :task->short-executor (->> executors
+                                 (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
+                                 (into {}))
       :suicide-fn (mk-suicide-fn conf)
       :uptime (uptime-computer)
+      :transfer-local-fn (mk-transfer-local-fn <>)
       :transfer-fn (mk-transfer-fn <>)
       )))
 
@@ -190,22 +214,22 @@
         drainer (ArrayList.)
         node+port->socket (:node+port->socket worker)
         task->node+port (:task->node+port worker)]
-    (fn [packet _ batch-end?]
-      (with-error-reaction (fn [t] (log-error t) (halt-process! 1 "Error in transfer thread"))
-        (.add drainer packet)
-        (when batch-end?
-          (read-locked (:endpoint-socket-lock worker)
-            (let [node+port->socket @node+port->socket
-                  task->node+port @task->node+port]
-              ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
-              ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
-              
-              (doseq [[task ser-tuple] drainer]
-                ;; TODO: this lookup (with the vector is expensive)
-                (let [socket (node+port->socket (task->node+port task))]
-                  (msg/send socket task ser-tuple)
-                  ))))
-          (.clear drainer))))))
+    (fn [packets _ batch-end?]
+      (.addAll drainer packets)
+      (when batch-end?
+        (read-locked (:endpoint-socket-lock worker)
+          (let [node+port->socket @node+port->socket
+                task->node+port @task->node+port]
+            ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
+            ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
+            
+            (doseq [[task ser-tuple] drainer]
+              ;; TODO: this lookup (with the vector is expensive)
+              ;; TODO: write a batch of tuples here to every target worker                
+              (let [socket (node+port->socket (task->node+port task))]
+                (msg/send socket task ser-tuple)
+                ))))
+        (.clear drainer)))))
 
 (defn launch-receive-thread [worker]
   (log-message "Launching receive-thread for " (:supervisor-id worker) ":" (:port worker))
@@ -213,7 +237,7 @@
     (:mq-context worker)
     (:storm-id worker)
     (:port worker)
-    (:receive-queue-map worker)
+    (:transfer-local-fn worker)
     :kill-fn (fn [t] (halt-process! 11))))
 
 ;; TODO: should worker even take the storm-id as input? this should be
@@ -286,11 +310,8 @@
              (waiting? [this]
                        (timer-waiting? (:timer worker)))
              )]
-    (.setHandler (:transfer-queue worker)
-                 (reify com.lmax.disruptor.EventHandler
-                   (onEvent [this o seq-id batchEnd?]
-                     (transfer-tuples o seq-id batchEnd?)
-                     )))
+    (disruptor/set-handler (:transfer-queue worker) transfer-tuples)
+    
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)

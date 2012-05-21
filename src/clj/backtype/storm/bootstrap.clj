@@ -7,7 +7,8 @@
                      AckFailDelegate AckTracker]))
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback BufferFileInputStream
-                     RegisteredGlobalState ThriftTopologyUtils DisruptorQueue]))
+                     RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
+                     MutableObject]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple Fields MessageId]))
@@ -24,7 +25,7 @@
      (require (quote [backtype.storm [thrift :as thrift] [cluster :as cluster]
                       [event :as event] [process-simulator :as psim]]))
      (require (quote [clojure.set :as set]))
-     (require (quote [backtype.storm [stats :as stats]]))
+     (require (quote [backtype.storm [stats :as stats] [disruptor :as disruptor]]))
      (import (quote [org.apache.log4j PropertyConfigurator Logger]))
 
      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor

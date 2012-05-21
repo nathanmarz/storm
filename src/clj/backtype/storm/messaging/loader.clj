@@ -14,12 +14,12 @@
     (apply afn args)))
 
 (defnk launch-receive-thread!
-  [context storm-id port receive-queue-map
+  [context storm-id port transfer-local-fn
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
   (let [vthread (async-loop
-                 (fn [socket receive-queue-map]
+                 (fn [socket]
                    (let [[task msg :as packet] (msg/recv socket)]
                      (if (= task -1)
                        (do
@@ -27,11 +27,10 @@
                          (.close socket)
                          nil )
                        (do
-                         (if-let [q (receive-queue-map task)]
-                           (.publish ^DisruptorQueue q packet)
-                           (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping..."))
-                          0 ))))
-                 :args-fn (fn [] [(msg/bind context storm-id port) receive-queue-map])
+                         ;; TODO: write a batch of tuples
+                         (transfer-local-fn [packet])
+                         0 ))))
+                 :args-fn (fn [] [(msg/bind context storm-id port)])
                  :daemon daemon
                  :kill-fn kill-fn
                  :priority priority)]

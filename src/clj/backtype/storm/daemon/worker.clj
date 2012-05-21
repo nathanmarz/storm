@@ -198,6 +198,8 @@
             (let [node+port->socket @(:node+port->socket worker)
                   task->node+port @(:task->node+port worker)]
               ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
+              ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
+              
               (doseq [[task ser-tuple] drainer]
                 (let [socket (node+port->socket (task->node+port task))]
                   (msg/send socket task ser-tuple)

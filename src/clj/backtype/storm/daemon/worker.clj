@@ -1,7 +1,6 @@
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent LinkedBlockingQueue])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:gen-class))
 
@@ -71,14 +70,14 @@
 
 (defn mk-transfer-fn [worker]
   (let [receive-queue-map (:receive-queue-map worker)
-        ^LinkedBlockingQueue transfer-queue (:transfer-queue worker)
+        ^DisruptorQueue transfer-queue (:transfer-queue worker)
         ^KryoTupleSerializer serializer (KryoTupleSerializer. (:storm-conf worker) (worker-context worker))]
     (fn [task ^Tuple tuple]
       (if (contains? receive-queue-map task)
         (let [q (receive-queue-map task)]
           (.publish ^DisruptorQueue q [task tuple]))
         (let [tuple (.serialize serializer tuple)]
-          (.put transfer-queue [task tuple]))
+          (.publish transfer-queue [task tuple]))
       ))))
 
 (defn- mk-receive-queue-map [storm-conf executors]
@@ -92,7 +91,7 @@
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
         executors (set (read-worker-executors storm-cluster-state storm-id supervisor-id port))
-        transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
+        transfer-queue (DisruptorQueue. (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
         receive-queue-map (->> executor-receive-queue-map
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
@@ -187,20 +186,23 @@
       ))
      ))
 
-(defn transfer-tuples [worker ^ArrayList drainer]
-  (let [^LinkedBlockingQueue transfer-queue (:transfer-queue worker)
-        felem (.take transfer-queue)]
-    (.add drainer felem)
-    (.drainTo transfer-queue drainer))
-  (read-locked (:endpoint-socket-lock worker)
-    (let [node+port->socket @(:node+port->socket worker)
-          task->node+port @(:task->node+port worker)]
-      ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
-      (doseq [[task ser-tuple] drainer]
-        (let [socket (node+port->socket (task->node+port task))]
-          (msg/send socket task ser-tuple))
-      )))
-  (.clear drainer))
+;; TODO: consider having a max batch size besides what lmax does automagically to prevent latency issues
+(defn mk-transfer-tuples-handler [worker]
+  (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
+        drainer (ArrayList.)]
+    (fn [packet _ batch-end?]
+      (with-error-reaction (fn [t] (log-error t) (halt-process! 1 "Error in transfer thread"))
+        (.add drainer packet)
+        (when batch-end?
+          (read-locked (:endpoint-socket-lock worker)
+            (let [node+port->socket @(:node+port->socket worker)
+                  task->node+port @(:task->node+port worker)]
+              ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
+              (doseq [[task ser-tuple] drainer]
+                (let [socket (node+port->socket (task->node+port task))]
+                  (msg/send socket task ser-tuple)
+                  ))))
+          (.clear drainer))))))
 
 (defn launch-receive-thread [worker]
   (log-message "Launching receive-thread for " (:supervisor-id worker) ":" (:port worker))
@@ -240,10 +242,10 @@
         _ (refresh-storm-active worker nil)
  
         executors (dofor [e (:executors worker)] (executor/mk-executor worker e))
-        threads [(async-loop (fn [& args] (apply transfer-tuples args) 0)
-                             :args-fn (fn [] [worker (ArrayList.)]))]
         receive-thread-shutdown (launch-receive-thread worker)
-                                                              
+        
+        transfer-tuples (mk-transfer-tuples-handler worker)
+                                               
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
                     (doseq [[_ q] (:executor-receive-queue-map worker)]
@@ -264,10 +266,8 @@
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
                     (msg/term (:mq-context worker))
-                    (log-message "Waiting for threads to die")
-                    (doseq [t threads]
-                      (.interrupt t)
-                      (.join t))
+                    (log-message "Waiting for transfer queue to die")
+                    (.shutdown (:transfer-queue worker))
                     (cancel-timer (:timer worker))
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
@@ -281,9 +281,13 @@
               (shutdown*))
              DaemonCommon
              (waiting? [this]
-                       (and
-                        (timer-waiting? (:timer worker))))
+                       (timer-waiting? (:timer worker)))
              )]
+    (.setHandler (:transfer-queue worker)
+                 (reify com.lmax.disruptor.EventHandler
+                   (onEvent [this o seq-id batchEnd?]
+                     (transfer-tuples o seq-id batchEnd?)
+                     )))
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)

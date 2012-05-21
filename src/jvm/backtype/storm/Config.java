@@ -425,6 +425,11 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_EXECUTOR_BUFFER_SIZE="topology.executor.buffer.size";
 
     /**
+     * The size of the Disruptor transfer queue for each worker.
+     */
+    public static String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
+
+    /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */
     public static String TOPOLOGY_NAME="topology.name";  

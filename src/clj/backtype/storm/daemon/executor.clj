@@ -306,9 +306,9 @@
         tuple-action-fn (fn [task-id ^Tuple tuple]
                           (let [id (.getValue tuple 0)
                                 [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
-                            (when-not (= stored-task-id task-id)
-                              (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
                             (when spout-id
+                              (when-not (= stored-task-id task-id)
+                                (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
                               (let [time-delta (time-delta-ms start-time-ms)]
                                 (condp = (.getSourceStreamId tuple)
                                     ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg executor-data (task-datas task-id)

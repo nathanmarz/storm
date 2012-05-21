@@ -208,7 +208,7 @@
       ))
      ))
 
-;; TODO: consider having a max batch size besides what lmax does automagically to prevent latency issues
+;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]
   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
         drainer (ArrayList.)
@@ -225,7 +225,8 @@
             
             (doseq [[task ser-tuple] drainer]
               ;; TODO: this lookup (with the vector is expensive)
-              ;; TODO: write a batch of tuples here to every target worker                
+              ;; TODO: write a batch of tuples here to every target worker  
+              ;; group by node+port, do multipart send              
               (let [socket (node+port->socket (task->node+port task))]
                 (msg/send socket task ser-tuple)
                 ))))

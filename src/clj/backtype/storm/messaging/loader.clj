@@ -27,7 +27,7 @@
                          (.close socket)
                          nil )
                        (do
-                         ;; TODO: write a batch of tuples
+                         ;; TODO: write a batch of tuples, do recv-more until whole batch is received (maybe with a limit)
                          (transfer-local-fn [packet])
                          0 ))))
                  :args-fn (fn [] [(msg/bind context storm-id port)])

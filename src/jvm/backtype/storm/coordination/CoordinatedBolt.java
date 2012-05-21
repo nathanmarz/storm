@@ -278,7 +278,6 @@ public class CoordinatedBolt implements IRichBolt {
             } else {
                 _collector.ack(tuple);
             }
-            
         } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
             int count = (Integer) tuple.getValue(1);

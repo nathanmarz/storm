@@ -272,39 +272,6 @@
                      (let [time-delta (time-delta-ms start-time-ms)]
                        (.add event-queue #(fail-spout-msg executor-data (task-datas task-id) spout-id tuple-info time-delta)))
                      )))
-        send-spout-msg (fn [from-task-id out-stream-id values message-id out-task-id]
-                         (let [task-data (task-datas from-task-id)
-                               tasks-fn (:tasks-fn task-data)
-                               out-tasks (if out-task-id
-                                           (tasks-fn out-task-id out-stream-id values)
-                                           (tasks-fn out-stream-id values))
-                               rooted? (and message-id (has-ackers? storm-conf))
-                               root-id (if rooted? (MessageId/generateId))
-                               out-ids (dofor [t out-tasks] (if rooted? (MessageId/generateId)))
-                               out-tuples (dofor [id out-ids]
-                                            (let [tuple-id (if rooted?
-                                                             (MessageId/makeRootId root-id id)
-                                                             (MessageId/makeUnanchored))]
-                                              (Tuple. worker-context
-                                                      values
-                                                      from-task-id
-                                                      out-stream-id
-                                                      tuple-id)))]
-                           (dorun
-                            (map transfer-fn out-tasks out-tuples))
-                           (if rooted?
-                             (do
-                               (.put pending root-id [from-task-id
-                                                      message-id
-                                                      {:stream out-stream-id :values values}
-                                                      (System/currentTimeMillis)])
-                               (task/send-unanchored (task-datas from-task-id)
-                                                     ACKER-INIT-STREAM-ID
-                                                     [root-id (bit-xor-vals out-ids) from-task-id]))
-                             (when message-id
-                               (.add event-queue #(ack-spout-msg executor-data task-data message-id {:stream out-stream-id :values values} 0))))
-                           (or out-tasks [])
-                           ))
         tuple-action-fn (fn [task-id ^Tuple tuple]
                           (let [id (.getValue tuple 0)
                                 [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
@@ -322,18 +289,50 @@
                             ))]
     (log-message "Opening spout " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
-            :let [^ISpout spout-obj (:object task-data)]]      
+            :let [^ISpout spout-obj (:object task-data)
+                  tasks-fn (:tasks-fn task-data)
+                  send-spout-msg (fn [out-stream-id values message-id out-task-id]
+                                   (let [out-tasks (if out-task-id
+                                                     (tasks-fn out-task-id out-stream-id values)
+                                                     (tasks-fn out-stream-id values))
+                                         rooted? (and message-id (has-ackers? storm-conf))
+                                         root-id (if rooted? (MessageId/generateId))
+                                         out-ids (dofor [t out-tasks] (if rooted? (MessageId/generateId)))
+                                         out-tuples (dofor [id out-ids]
+                                                      (let [tuple-id (if rooted?
+                                                                       (MessageId/makeRootId root-id id)
+                                                                       (MessageId/makeUnanchored))]
+                                                        (Tuple. worker-context
+                                                                values
+                                                                task-id
+                                                                out-stream-id
+                                                                tuple-id)))]
+                                     (dorun
+                                      (map transfer-fn out-tasks out-tuples))
+                                     (if rooted?
+                                       (do
+                                         (.put pending root-id [task-id
+                                                                message-id
+                                                                {:stream out-stream-id :values values}
+                                                                (System/currentTimeMillis)])
+                                         (task/send-unanchored task-data
+                                                               ACKER-INIT-STREAM-ID
+                                                               [root-id (bit-xor-vals out-ids) task-id]))
+                                       (when message-id
+                                         (.add event-queue #(ack-spout-msg executor-data task-data message-id {:stream out-stream-id :values values} 0))))
+                                     (or out-tasks [])
+                                     ))]]      
       (.open spout-obj
              storm-conf
              (:user-context task-data)
              (SpoutOutputCollector.
                (reify ISpoutOutputCollector
                  (^List emit [this ^String stream-id ^List tuple ^Object message-id]
-                   (send-spout-msg task-id stream-id tuple message-id nil)
+                   (send-spout-msg stream-id tuple message-id nil)
                    )
                  (^void emitDirect [this ^int out-task-id ^String stream-id
                                     ^List tuple ^Object message-id]
-                   (send-spout-msg task-id stream-id tuple message-id out-task-id)
+                   (send-spout-msg stream-id tuple message-id out-task-id)
                    )
                  (reportError [this error]
                    (report-error-fn error)
@@ -387,29 +386,6 @@
         pending-acks (HashMap.)
         report-error-fn (:report-error-fn executor-data)
         sampler (:sampler executor-data)
-        bolt-emit (fn [from-task-id stream anchors values task]
-                    (let [task-data (task-datas from-task-id)
-                          tasks-fn (:tasks-fn task-data)
-                          out-tasks (if task
-                                      (tasks-fn task stream values)
-                                      (tasks-fn stream values))]
-                      (doseq [t out-tasks
-                              :let [anchors-to-ids (HashMap.)]]
-                        (doseq [^Tuple a anchors
-                                :let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]]
-                          (when (pos? (count root-ids))
-                            (let [edge-id (MessageId/generateId)]
-                              (put-xor! pending-acks a edge-id)
-                              (doseq [root-id root-ids]
-                                (put-xor! anchors-to-ids root-id edge-id))
-                                )))
-                        (transfer-fn t
-                                     (Tuple. worker-context
-                                             values
-                                             from-task-id
-                                             stream
-                                             (MessageId/makeId anchors-to-ids))))
-                      (or out-tasks [])))
         tuple-action-fn (fn [task-id ^Tuple tuple]
                           ;; synchronization needs to be done with a key provided by this bolt, otherwise:
                           ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
@@ -432,16 +408,38 @@
                             (.execute bolt-obj tuple)))]
     (log-message "Preparing bolt " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
-            :let [^IBolt bolt-obj (:object task-data)]]
+            :let [^IBolt bolt-obj (:object task-data)
+                  tasks-fn (:tasks-fn task-data)
+                  bolt-emit (fn [stream anchors values task]
+                              (let [out-tasks (if task
+                                                (tasks-fn task stream values)
+                                                (tasks-fn stream values))]
+                                (doseq [t out-tasks
+                                        :let [anchors-to-ids (HashMap.)]]
+                                  (doseq [^Tuple a anchors
+                                          :let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]]
+                                    (when (pos? (count root-ids))
+                                      (let [edge-id (MessageId/generateId)]
+                                        (put-xor! pending-acks a edge-id)
+                                        (doseq [root-id root-ids]
+                                          (put-xor! anchors-to-ids root-id edge-id))
+                                          )))
+                                  (transfer-fn t
+                                               (Tuple. worker-context
+                                                       values
+                                                       task-id
+                                                       stream
+                                                       (MessageId/makeId anchors-to-ids))))
+                                (or out-tasks [])))]]
       (.prepare bolt-obj
                 storm-conf
                 (:user-context task-data)
                 (OutputCollector.
                   (reify IOutputCollector
                      (emit [this stream anchors values]
-                       (bolt-emit task-id stream anchors values nil))
+                       (bolt-emit stream anchors values nil))
                      (emitDirect [this task stream anchors values]
-                       (bolt-emit task-id stream anchors values task))
+                       (bolt-emit stream anchors values task))
                      (^void ack [this ^Tuple tuple]
                        (let [ack-val (or (.remove pending-acks tuple) (long 0))]
                          (doseq [[root id] (.. tuple getMessageId getAnchorsToIds)]

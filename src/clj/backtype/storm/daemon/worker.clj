@@ -72,12 +72,11 @@
   (let [receive-queue-map (:receive-queue-map worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)]
     (fn [^KryoTupleSerializer serializer task ^Tuple tuple]
-      (if (contains? receive-queue-map task)
-        (let [q (receive-queue-map task)]
-          (.publish ^DisruptorQueue q [task tuple]))
+      (if-let [q (receive-queue-map task)]
+        (.publish ^DisruptorQueue q [task tuple])
         (let [tuple (.serialize serializer tuple)]
-          (.publish transfer-queue [task tuple]))
-      ))))
+          (.publish transfer-queue [task tuple])
+          )))))
 
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
@@ -188,18 +187,21 @@
 ;; TODO: consider having a max batch size besides what lmax does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]
   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
-        drainer (ArrayList.)]
+        drainer (ArrayList.)
+        node+port->socket (:node+port->socket worker)
+        task->node+port (:task->node+port worker)]
     (fn [packet _ batch-end?]
       (with-error-reaction (fn [t] (log-error t) (halt-process! 1 "Error in transfer thread"))
         (.add drainer packet)
         (when batch-end?
           (read-locked (:endpoint-socket-lock worker)
-            (let [node+port->socket @(:node+port->socket worker)
-                  task->node+port @(:task->node+port worker)]
+            (let [node+port->socket @node+port->socket
+                  task->node+port @task->node+port]
               ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
               ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
               
               (doseq [[task ser-tuple] drainer]
+                ;; TODO: this lookup (with the vector is expensive)
                 (let [socket (node+port->socket (task->node+port task))]
                   (msg/send socket task ser-tuple)
                   ))))

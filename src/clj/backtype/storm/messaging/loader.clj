@@ -27,9 +27,8 @@
                          (.close socket)
                          nil )
                        (do
-                         (if (contains? receive-queue-map task)
-                           (let [q (receive-queue-map task)]
-                             (.publish ^DisruptorQueue q packet))
+                         (if-let [q (receive-queue-map task)]
+                           (.publish ^DisruptorQueue q packet)
                            (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping..."))
                           0 ))))
                  :args-fn (fn [] [(msg/bind context storm-id port) receive-queue-map])

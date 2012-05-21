@@ -471,7 +471,7 @@
   (- (current-time-secs) time-secs))
 
 (defn time-delta-ms [time-ms]
-  (- (System/currentTimeMillis) time-ms))
+  (- (System/currentTimeMillis) (long time-ms)))
 
 (defn parse-int [str]
   (Integer/valueOf str))
@@ -610,7 +610,8 @@
     ))
 
 (defn even-sampler [freq]
-  (let [start (int 0)
+  (let [freq (int freq)
+        start (int 0)
         r (java.util.Random.)
         curr (MutableInt. -1)
         target (MutableInt. (.nextInt r freq))]

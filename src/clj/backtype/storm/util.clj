@@ -3,7 +3,8 @@
   (:import [java.util Map List Collection])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils MutableObject])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
+            MutableObject MutableInt])
   (:import [java.util UUID])
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
@@ -609,19 +610,17 @@
     ))
 
 (defn even-sampler [freq]
-  (let [r (java.util.Random.)
-        state (atom [-1 (.nextInt r freq)])
-        updater (fn [[i target]]
-                  (let [i (inc i)]
-                    (if (>= i freq)
-                      [0 (.nextInt r freq)]
-                      [i target]
-                      )))]
+  (let [start (int 0)
+        r (java.util.Random.)
+        curr (MutableInt. -1)
+        target (MutableInt. (.nextInt r freq))]
     (with-meta
       (fn []
-        (let [[i target] (swap! state updater)]
-          (= i target)
-          ))
+        (let [i (.increment curr)]
+          (when (>= i freq)
+            (.set curr start)
+            (.set target (.nextInt r freq))))
+          (= (.get curr) (.get target)))
       {:rate freq})))
 
 (defn sampler-rate [sampler]

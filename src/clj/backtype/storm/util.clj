@@ -343,7 +343,8 @@
     ))
 
 (defn sleep-secs [secs]
-  (Time/sleep (* (long secs) 1000)))
+  (when (pos? secs)
+    (Time/sleep (* (long secs) 1000))))
 
 (defn sleep-until-secs [target-secs]
   (Time/sleepUntil (* (long target-secs) 1000)))

@@ -111,15 +111,16 @@
         ([^String stream ^List values]
            (when (= true (storm-conf TOPOLOGY-DEBUG))
              (log-message "Emitting: " component-id " " stream " " values))
-           (let [;; TODO: this doesn't seem to be very fast
-                 ;; and seems to be the current bottleneck
-                 out-tasks (mapcat
-                            (fn [[out-component grouper]]
-                              (when (= :direct grouper)
-                                ;;  TODO: this is wrong, need to check how the stream was declared
-                                (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))
-                              (collectify (grouper values)))
-                            (stream->component->grouper stream))]
+           (let [out-tasks (ArrayList.)]
+             (doseq [[out-component grouper] (stream->component->grouper stream)]
+               (when (= :direct grouper)
+                  ;;  TODO: this is wrong, need to check how the stream was declared
+                  (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))
+               (let [comp-tasks (grouper values)]
+                 (if (or (sequential? comp-tasks) (instance? Collection comp-tasks))
+                   (.addAll out-tasks comp-tasks)
+                   (.add out-tasks comp-tasks)
+                   )))
              (apply-hooks user-context .emit (EmitInfo. values stream out-tasks))
              (when (emit-sampler)
                (stats/emitted-tuple! executor-stats stream)

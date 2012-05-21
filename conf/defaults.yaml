@@ -86,5 +86,5 @@ topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
 topology.executor.buffer.size: 16384
-topology.transfer.buffer.size: 131072
+topology.transfer.buffer.size: 1048576
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

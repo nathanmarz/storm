@@ -1,10 +1,10 @@
 package backtype.storm.utils;
 
+import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.MultiThreadedClaimStrategy;
 import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,7 @@ public class DisruptorQueue {
     
     public DisruptorQueue(Number bufferSize) {
         _executor = Executors.newSingleThreadExecutor();
-        _disruptor = new Disruptor(new ObjectEventFactory(), _executor, new MultiThreadedClaimStrategy(bufferSize.intValue()), new YieldingWaitStrategy());
+        _disruptor = new Disruptor(new ObjectEventFactory(), _executor, new MultiThreadedClaimStrategy(bufferSize.intValue()), new BlockingWaitStrategy());
         _handler = new WaiterEventHandler();
         _disruptor.handleEventsWith(_handler);
         _buffer = _disruptor.start();

@@ -10,6 +10,7 @@
  * Stats are tracked on a per-executor basis instead of per-task basis
  * Major optimization for unreliable spouts and unanchored tuples (will use far less CPU)
  * Removed error method from task hooks (to be re-added at a later time)
+ * Switched in memory queues to use Disruptor (major performance improvement)
  * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
 

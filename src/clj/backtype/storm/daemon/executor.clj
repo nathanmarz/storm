@@ -243,6 +243,7 @@
   (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)
         report-error-and-die (:report-error-and-die executor-data)]
     (fn [[task-id msg] sequence-id end-of-batch?]
+      ;; TODO: optimize by batching emits onto the transfer queue
       (with-error-reaction report-error-and-die
         ;;(log-debug "Processing message " msg)
         (let [^Tuple tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
@@ -410,6 +411,7 @@
     (doseq [[task-id task-data] task-datas
             :let [^IBolt bolt-obj (:object task-data)
                   tasks-fn (:tasks-fn task-data)
+                  user-context (:user-context task-data)
                   bolt-emit (fn [stream anchors values task]
                               (let [out-tasks (if task
                                                 (tasks-fn task stream values)
@@ -433,7 +435,7 @@
                                 (or out-tasks [])))]]
       (.prepare bolt-obj
                 storm-conf
-                (:user-context task-data)
+                user-context
                 (OutputCollector.
                   (reify IOutputCollector
                      (emit [this stream anchors values]
@@ -448,7 +450,7 @@
                                                  [root (bit-xor id ack-val)])
                            ))
                        (let [delta (tuple-time-delta! tuple-start-times tuple)]
-                         (task/apply-hooks (:user-context task-data) .boltAck (BoltAckInfo. tuple delta))
+                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
                          (when (sampler)
                            (stats/bolt-acked-tuple! executor-stats
                                                     (.getSourceComponent tuple)
@@ -462,7 +464,7 @@
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
                        (let [delta (tuple-time-delta! tuple-start-times tuple)]
-                         (task/apply-hooks (:user-context task-data) .boltFail (BoltFailInfo. tuple delta))
+                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
                          (when (sampler)
                            (stats/bolt-failed-tuple! executor-stats
                                                      (.getSourceComponent tuple)

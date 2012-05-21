@@ -140,7 +140,9 @@
         task-ids (executor-id->tasks executor-id)
         component-id (.getComponentId worker-context (first task-ids))
         storm-conf (normalized-component-conf (:storm-conf worker) worker-context component-id)
-        executor-type (executor-type worker-context component-id)]
+        executor-type (executor-type worker-context component-id)
+        serializer (KryoTupleSerializer. storm-conf worker-context)
+        ]
     (recursive-map
      :worker worker
      :worker-context worker-context
@@ -151,7 +153,7 @@
      :storm-id (:storm-id worker)
      :conf (:conf worker)
      :storm-active-atom (:storm-active-atom worker)
-     :transfer-fn (:transfer-fn worker)
+     :transfer-fn (partial (:transfer-fn worker) serializer)
      :suicide-fn (:suicide-fn worker)
      :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker))
      :type executor-type

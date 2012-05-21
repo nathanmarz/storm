@@ -70,9 +70,8 @@
 
 (defn mk-transfer-fn [worker]
   (let [receive-queue-map (:receive-queue-map worker)
-        ^DisruptorQueue transfer-queue (:transfer-queue worker)
-        ^KryoTupleSerializer serializer (KryoTupleSerializer. (:storm-conf worker) (worker-context worker))]
-    (fn [task ^Tuple tuple]
+        ^DisruptorQueue transfer-queue (:transfer-queue worker)]
+    (fn [^KryoTupleSerializer serializer task ^Tuple tuple]
       (if (contains? receive-queue-map task)
         (let [q (receive-queue-map task)]
           (.publish ^DisruptorQueue q [task tuple]))

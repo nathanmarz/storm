@@ -91,9 +91,10 @@
         emit-sampler (mk-stats-sampler storm-conf)
         stream->component->grouper (:stream->component->grouper executor-data)
         user-context (:user-context task-data)
-        executor-stats (:stats executor-data)]
+        executor-stats (:stats executor-data)
+        debug? (storm-conf TOPOLOGY-DEBUG)]
     (fn ([^Integer out-task-id ^String stream ^List values]
-          (when (= true (storm-conf TOPOLOGY-DEBUG))
+          (when debug?
             (log-message "Emitting direct: " out-task-id "; " component-id " " stream " " values))
           (let [target-component (.getComponentId worker-context out-task-id)
                 component->grouping (get stream->component->grouper stream)
@@ -109,7 +110,7 @@
             (if out-task-id [out-task-id])
             ))
         ([^String stream ^List values]
-           (when (= true (storm-conf TOPOLOGY-DEBUG))
+           (when debug?
              (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
              (doseq [[out-component grouper] (get stream->component->grouper stream)]

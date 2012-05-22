@@ -72,6 +72,7 @@
   (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
         task->short-executor (:task->short-executor worker)]
     (fn [tuple-batch]
+      ;; TODO: optimize this by using a hashmap for these maps
       (let [grouped (group-by (comp task->short-executor first) tuple-batch)]
         (doseq [[short-executor pairs] grouped]
           (let [q (short-executor-receive-queue-map short-executor)]

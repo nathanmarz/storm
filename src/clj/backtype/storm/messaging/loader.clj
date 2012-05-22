@@ -20,7 +20,9 @@
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
-  (let [receive-batcher (disruptor/disruptor-queue send-buffer-size :claim-strategy :single-threaded)
+  (let [receive-batcher (disruptor/disruptor-queue send-buffer-size
+                                                  :claim-strategy :single-threaded
+                                                  :wait-strategy :yield)
         cached-emit (MutableObject. (ArrayList.))
         vthread (async-loop
                  (fn [socket]

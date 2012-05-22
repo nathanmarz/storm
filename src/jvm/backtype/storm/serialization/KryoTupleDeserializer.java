@@ -3,6 +3,7 @@ package backtype.storm.serialization;
 import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
 import backtype.storm.utils.WritableUtils;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -31,7 +32,7 @@ public class KryoTupleDeserializer implements ITupleDeserializer {
             String streamName = _ids.getStreamName(componentName, streamId);
             MessageId id = MessageId.deserialize(in);
             List<Object> values = _kryo.deserializeFrom(bin);
-            return new Tuple(_context, values, taskId, streamName, id);
+            return new TupleImpl(_context, values, taskId, streamName, id);
         } catch(IOException e) {
             throw new RuntimeException(e);
         }

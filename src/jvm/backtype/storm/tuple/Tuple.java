@@ -56,7 +56,7 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
         }
     }
 
-    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
+    public Tuple(GeneralTopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }
 
@@ -257,13 +257,11 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     
     @Override
     public boolean equals(Object other) {
-        // for OutputCollector
         return this == other;
-    }
+    }    
     
     @Override
     public int hashCode() {
-        // for OutputCollector
         return System.identityHashCode(this);
     }
 

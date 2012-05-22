@@ -78,10 +78,10 @@
         transfer-fn (-> task-data :executor-data :transfer-fn)]
     (doseq [t (tasks-fn stream values)]
       (transfer-fn t
-                   (Tuple. topology-context
-                           values
-                           (.getThisTaskId topology-context)
-                           stream)))))
+                   (TupleImpl. topology-context
+                               values
+                               (.getThisTaskId topology-context)
+                               stream)))))
 
 (defn mk-tasks-fn [task-data]
   (let [executor-data (:executor-data task-data)

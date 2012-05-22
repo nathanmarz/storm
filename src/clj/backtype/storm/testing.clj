@@ -11,7 +11,7 @@
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
-  (:import [backtype.storm.tuple Fields Tuple])
+  (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
@@ -548,5 +548,5 @@
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
         context (TopologyContext. topology (read-storm-config) {(int 1) component} {component [(int 1)]} "test-storm-id" nil nil (int 1) nil [(int 1)])]
-    (Tuple. context values 1 stream)
+    (TupleImpl. context values 1 stream)
     ))

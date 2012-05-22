@@ -261,7 +261,7 @@
     (fn [tuple-batch sequence-id end-of-batch?]
       ;;(log-debug "Processing message " msg)
       (doseq [[task-id msg] tuple-batch]
-        (let [^Tuple tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
+        (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
           (tuple-action-fn task-id tuple)
           )))))
 
@@ -290,7 +290,7 @@
                      (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                        (.add event-queue #(fail-spout-msg executor-data (task-datas task-id) spout-id tuple-info time-delta)))
                      )))
-        tuple-action-fn (fn [task-id ^Tuple tuple]
+        tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           (let [id (.getValue tuple 0)
                                 [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                             (when spout-id
@@ -320,11 +320,11 @@
                                                       (let [tuple-id (if rooted?
                                                                        (MessageId/makeRootId root-id id)
                                                                        (MessageId/makeUnanchored))]
-                                                        (Tuple. worker-context
-                                                                values
-                                                                task-id
-                                                                out-stream-id
-                                                                tuple-id)))]
+                                                        (TupleImpl. worker-context
+                                                                    values
+                                                                    task-id
+                                                                    out-stream-id
+                                                                    tuple-id)))]
                                      (dorun
                                       (map transfer-fn out-tasks out-tuples))
                                      (if rooted?
@@ -386,27 +386,24 @@
      ]
     ))
 
-(defn- tuple-time-delta! [^Map start-times ^Tuple tuple]
-  (let [ms (.remove start-times tuple)]
+(defn- tuple-time-delta! [^TupleImpl tuple]
+  (let [ms (.getSampleStartTime tuple)]
     (if ms
       (time-delta-ms ms))))
 
 (defn put-xor! [^Map pending key id]
   (let [curr (or (.get pending key) (long 0))]
-    ;; TODO: this portion is not thread safe (multiple threads updating same value at same time)
     (.put pending key (bit-xor curr id))))
 
 (defmethod mk-threads :bolt [executor-data task-datas]
   (let [component-id (:component-id executor-data)
-        tuple-start-times (HashMap.)
         transfer-fn (:transfer-fn executor-data)
         worker-context (:worker-context executor-data)
         storm-conf (:storm-conf executor-data)
         executor-stats (:stats executor-data)
-        pending-acks (HashMap.)
         report-error-fn (:report-error-fn executor-data)
         sampler (:sampler executor-data)
-        tuple-action-fn (fn [task-id ^Tuple tuple]
+        tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           ;; synchronization needs to be done with a key provided by this bolt, otherwise:
                           ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
                           ;; TODO: for state sync, need to first send sync messages in a loop and receive tuples until synchronization
@@ -425,7 +422,7 @@
                           ;; need to do it this way to avoid reflection
                           (let [^IBolt bolt-obj (-> task-id task-datas :object)]
                             (when (sampler)
-                              (.put tuple-start-times tuple (System/currentTimeMillis)))
+                              (.setSampleStartTime tuple (System/currentTimeMillis)))
                             (.execute bolt-obj tuple)))]
     (log-message "Preparing bolt " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
@@ -438,20 +435,20 @@
                                                 (tasks-fn stream values))]
                                 (doseq [t out-tasks
                                         :let [anchors-to-ids (HashMap.)]]
-                                  (doseq [^Tuple a anchors
+                                  (doseq [^TupleImpl a anchors
                                           :let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]]
                                     (when (pos? (count root-ids))
                                       (let [edge-id (MessageId/generateId)]
-                                        (put-xor! pending-acks a edge-id)
+                                        (.updateAckVal a edge-id)
                                         (doseq [root-id root-ids]
                                           (put-xor! anchors-to-ids root-id edge-id))
                                           )))
                                   (transfer-fn t
-                                               (Tuple. worker-context
-                                                       values
-                                                       task-id
-                                                       stream
-                                                       (MessageId/makeId anchors-to-ids))))
+                                               (TupleImpl. worker-context
+                                                           values
+                                                           task-id
+                                                           stream
+                                                           (MessageId/makeId anchors-to-ids))))
                                 (or out-tasks [])))]]
       (.prepare bolt-obj
                 storm-conf
@@ -463,13 +460,14 @@
                      (emitDirect [this task stream anchors values]
                        (bolt-emit stream anchors values task))
                      (^void ack [this ^Tuple tuple]
-                       (let [ack-val (or (.remove pending-acks tuple) (long 0))]
+                       (let [^TupleImpl tuple tuple
+                             ack-val (.getAckVal tuple)]
                          (doseq [[root id] (.. tuple getMessageId getAnchorsToIds)]
                            (task/send-unanchored task-data
                                                  ACKER-ACK-STREAM-ID
                                                  [root (bit-xor id ack-val)])
                            ))
-                       (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                       (let [delta (tuple-time-delta! tuple)]
                          (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
                          (when delta
                            (stats/bolt-acked-tuple! executor-stats
@@ -478,12 +476,11 @@
                                                     delta)
                            )))
                      (^void fail [this ^Tuple tuple]
-                       (.remove pending-acks tuple)
                        (doseq [root (.. tuple getMessageId getAnchors)]
                          (task/send-unanchored task-data
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
-                       (let [delta (tuple-time-delta! tuple-start-times tuple)
+                       (let [delta (tuple-time-delta! tuple)
                        ]
                          (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
                          (when delta

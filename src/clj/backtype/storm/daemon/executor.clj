@@ -421,7 +421,7 @@
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
                           (let [^IBolt bolt-obj (-> task-id task-datas :object)]
-                            (.put tuple-start-times tuple (System/currentTimeMillis))                          
+;;                            (.put tuple-start-times tuple (System/currentTimeMillis))                          
                             (.execute bolt-obj tuple)))]
     (log-message "Preparing bolt " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
@@ -465,7 +465,8 @@
                                                  ACKER-ACK-STREAM-ID
                                                  [root (bit-xor id ack-val)])
                            ))
-                       (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                       (let [delta 0 ;; (tuple-time-delta! tuple-start-times tuple)
+                            ]
                          (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
                          (when (sampler)
                            (stats/bolt-acked-tuple! executor-stats
@@ -479,7 +480,8 @@
                          (task/send-unanchored task-data
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
-                       (let [delta (tuple-time-delta! tuple-start-times tuple)]
+                       (let [delta 0 ;;(tuple-time-delta! tuple-start-times tuple)
+                       ]
                          (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
                          (when (sampler)
                            (stats/bolt-failed-tuple! executor-stats

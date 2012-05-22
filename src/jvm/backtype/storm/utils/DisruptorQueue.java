@@ -51,7 +51,7 @@ public class DisruptorQueue {
     
     public void shutdown() {
         _disruptor.shutdown();
-        _executor.shutdown();
+        _executor.shutdownNow();
     }
     
     static class WaiterEventHandler implements EventHandler<MutableObject> {

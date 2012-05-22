@@ -96,7 +96,7 @@
           (when (= true (storm-conf TOPOLOGY-DEBUG))
             (log-message "Emitting direct: " out-task-id "; " component-id " " stream " " values))
           (let [target-component (.getComponentId worker-context out-task-id)
-                component->grouping (stream->component->grouper stream)
+                component->grouping (get stream->component->grouper stream)
                 grouping (get component->grouping target-component)
                 out-task-id (if grouping out-task-id)]
             (when (and (not-nil? grouping) (not= :direct grouping))
@@ -112,7 +112,7 @@
            (when (= true (storm-conf TOPOLOGY-DEBUG))
              (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
-             (doseq [[out-component grouper] (stream->component->grouper stream)]
+             (doseq [[out-component grouper] (get stream->component->grouper stream)]
                (when (= :direct grouper)
                   ;;  TODO: this is wrong, need to check how the stream was declared
                   (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))

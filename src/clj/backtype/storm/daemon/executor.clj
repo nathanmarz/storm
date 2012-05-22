@@ -75,29 +75,35 @@
         :direct
       )))
 
+(defn- outbound-groupings [^WorkerTopologyContext worker-context out-fields component->grouping]
+  (->> component->grouping
+       (filter-key #(-> worker-context
+                        (.getComponentTasks %)
+                        count
+                        pos?))
+       (map (fn [[component tgrouping]]
+               [component
+                (mk-grouper worker-context
+                            out-fields
+                            tgrouping
+                            (.getComponentTasks worker-context component)
+                            )]))
+       (into {})
+       (HashMap.)))
+
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
   [^WorkerTopologyContext worker-context component-id]
-  (let [output-groupings (clojurify-structure (.getTargets worker-context component-id))]
-     (into {}
-       (for [[stream-id component->grouping] output-groupings
-             :let [out-fields (.getComponentOutputFields worker-context component-id stream-id)
-                   component->grouping (filter-key #(-> worker-context
-                                                        (.getComponentTasks %)
-                                                        count
-                                                        pos?)
-                                                    component->grouping)]]         
-         [stream-id
-          (into {}
-                (for [[component tgrouping] component->grouping]
-                  [component (mk-grouper worker-context
-                                         out-fields
-                                         tgrouping
-                                         (.getComponentTasks worker-context component)
-                                         )]
-                  ))]))))
-
-
+  (->> (.getTargets worker-context component-id)
+        clojurify-structure
+        (map (fn [[stream-id component->grouping]]
+               [stream-id
+                (outbound-groupings
+                  worker-context
+                  (.getComponentOutputFields worker-context component-id stream-id)
+                  component->grouping)]))
+         (into {})
+         (HashMap.)))
 
 (defn executor-type [^WorkerTopologyContext context component-id]
   (let [topology (.getRawTopology context)
@@ -278,6 +284,7 @@
         
         pending (TimeCacheMap.
                  (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))
+                 2 ;; microoptimize for performance of .size method
                  (reify TimeCacheMap$ExpiredCallback
                    (expire [this msg-id [task-id spout-id tuple-info start-time-ms]]
                      (let [time-delta (time-delta-ms start-time-ms)]

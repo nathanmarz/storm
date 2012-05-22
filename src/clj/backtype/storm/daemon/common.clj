@@ -225,7 +225,8 @@
        ))
 
 (defn executor-id->tasks [[first-task-id last-task-id]]
-  (range first-task-id (inc last-task-id)))
+  (->> (range first-task-id (inc last-task-id))
+       (map int)))
 
 (defn worker-context [worker]
   (WorkerTopologyContext.  (:system-topology worker)

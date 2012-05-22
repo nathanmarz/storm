@@ -197,7 +197,8 @@
         task-datas (->> executor-data
                         :task-ids
                         (map (fn [t] [t (task/mk-task executor-data t)]))
-                        (into {}))
+                        (into {})
+                        (HashMap.))
         _ (log-message "Loaded executor tasks " (:component-id executor-data) ":" (pr-str executor-id))
         report-error-and-die (:report-error-and-die executor-data)
         component-id (:component-id executor-data)
@@ -288,7 +289,7 @@
                  (reify TimeCacheMap$ExpiredCallback
                    (expire [this msg-id [task-id spout-id tuple-info start-time-ms]]
                      (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
-                       (.add event-queue #(fail-spout-msg executor-data (task-datas task-id) spout-id tuple-info time-delta)))
+                       (.add event-queue #(fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta)))
                      )))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           (let [id (.getValue tuple 0)
@@ -298,9 +299,9 @@
                                 (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
                               (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                                 (condp = (.getSourceStreamId tuple)
-                                    ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg executor-data (task-datas task-id)
+                                    ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg executor-data (get task-datas task-id)
                                                                               spout-id tuple-finished-info time-delta))
-                                    ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg executor-data (task-datas task-id)
+                                    ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg executor-data (get task-datas task-id)
                                                                                   spout-id tuple-finished-info time-delta))
                                     )))
                             ;; TODO: on failure, emit tuple to failure stream
@@ -420,7 +421,7 @@
  
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
-                          (let [^IBolt bolt-obj (-> task-id task-datas :object)]
+                          (let [^IBolt bolt-obj (->> task-id (get task-datas) :object)]
                             (when (sampler)
                               (.setSampleStartTime tuple (System/currentTimeMillis)))
                             (.execute bolt-obj tuple)))]

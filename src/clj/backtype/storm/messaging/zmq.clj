@@ -9,7 +9,7 @@
 (defn parse-packet [^bytes part1 ^bytes part2]
   (let [bb (ByteBuffer/wrap part1)
         port (.getShort bb)]
-    [port part2]
+    [(int port) part2]
     ))
 
 (defn get-bind-zmq-url [local? port]

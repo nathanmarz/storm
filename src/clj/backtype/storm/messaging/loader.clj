@@ -13,6 +13,7 @@
                 var-get)]
     (apply afn args)))
 
+;; TODO: try adding a layer of disruptor single -> other queue batching
 (defnk launch-receive-thread!
   [context storm-id port transfer-local-fn
    :daemon true

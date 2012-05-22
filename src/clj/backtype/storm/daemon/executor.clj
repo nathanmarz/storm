@@ -241,7 +241,7 @@
     (log-message "Failing message " msg-id ": " tuple-info)
     (.fail spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id time-delta))
-    (when ((:sampler executor-data))
+    (when time-delta
       (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
       )))
 
@@ -252,7 +252,7 @@
       (log-message "Acking message " msg-id))
     (.ack spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id time-delta))
-    (when ((:sampler executor-data))
+    (when time-delta
       (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
       )))
 
@@ -280,13 +280,14 @@
         transfer-fn (:transfer-fn executor-data)
         report-error-fn (:report-error-fn executor-data)
         spouts (map :object (vals task-datas))
+        sampler (:sampler executor-data)
         
         pending (TimeCacheMap.
                  (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))
                  2 ;; microoptimize for performance of .size method
                  (reify TimeCacheMap$ExpiredCallback
                    (expire [this msg-id [task-id spout-id tuple-info start-time-ms]]
-                     (let [time-delta (time-delta-ms start-time-ms)]
+                     (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                        (.add event-queue #(fail-spout-msg executor-data (task-datas task-id) spout-id tuple-info time-delta)))
                      )))
         tuple-action-fn (fn [task-id ^Tuple tuple]
@@ -295,7 +296,7 @@
                             (when spout-id
                               (when-not (= stored-task-id task-id)
                                 (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
-                              (let [time-delta (time-delta-ms start-time-ms)]
+                              (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                                 (condp = (.getSourceStreamId tuple)
                                     ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg executor-data (task-datas task-id)
                                                                               spout-id tuple-finished-info time-delta))
@@ -331,7 +332,7 @@
                                          (.put pending root-id [task-id
                                                                 message-id
                                                                 {:stream out-stream-id :values values}
-                                                                (System/currentTimeMillis)])
+                                                                (if (sampler) (System/currentTimeMillis))])
                                          (task/send-unanchored task-data
                                                                ACKER-INIT-STREAM-ID
                                                                [root-id (bit-xor-vals out-ids) task-id]))
@@ -386,7 +387,9 @@
     ))
 
 (defn- tuple-time-delta! [^Map start-times ^Tuple tuple]
-  (time-delta-ms (.remove start-times tuple)))
+  (let [ms (.remove start-times tuple)]
+    (if ms
+      (time-delta-ms ms))))
 
 (defn put-xor! [^Map pending key id]
   (let [curr (or (.get pending key) (long 0))]
@@ -421,7 +424,8 @@
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
                           (let [^IBolt bolt-obj (-> task-id task-datas :object)]
-;;                            (.put tuple-start-times tuple (System/currentTimeMillis))                          
+                            (when (sampler)
+                              (.put tuple-start-times tuple (System/currentTimeMillis)))
                             (.execute bolt-obj tuple)))]
     (log-message "Preparing bolt " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
@@ -465,10 +469,9 @@
                                                  ACKER-ACK-STREAM-ID
                                                  [root (bit-xor id ack-val)])
                            ))
-                       (let [delta 0 ;; (tuple-time-delta! tuple-start-times tuple)
-                            ]
+                       (let [delta (tuple-time-delta! tuple-start-times tuple)]
                          (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
-                         (when (sampler)
+                         (when delta
                            (stats/bolt-acked-tuple! executor-stats
                                                     (.getSourceComponent tuple)
                                                     (.getSourceStreamId tuple)
@@ -480,10 +483,10 @@
                          (task/send-unanchored task-data
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
-                       (let [delta 0 ;;(tuple-time-delta! tuple-start-times tuple)
+                       (let [delta (tuple-time-delta! tuple-start-times tuple)
                        ]
                          (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
-                         (when (sampler)
+                         (when delta
                            (stats/bolt-failed-tuple! executor-stats
                                                      (.getSourceComponent tuple)
                                                      (.getSourceStreamId tuple)

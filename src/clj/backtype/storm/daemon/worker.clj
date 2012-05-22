@@ -258,6 +258,7 @@
     (:storm-id worker)
     (:port worker)
     (:transfer-local-fn worker)
+    (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))
     :kill-fn (fn [t] (halt-process! 11))))
 
 ;; TODO: should worker even take the storm-id as input? this should be

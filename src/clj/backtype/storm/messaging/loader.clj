@@ -1,7 +1,9 @@
 (ns backtype.storm.messaging.loader
   (:use [backtype.storm util log])
-  (:import [backtype.storm.utils DisruptorQueue])
-  (:require [backtype.storm.messaging [local :as local] [protocol :as msg]]))
+  (:import [java.util ArrayList])
+  (:import [backtype.storm.utils DisruptorQueue MutableObject])
+  (:require [backtype.storm.messaging [local :as local] [protocol :as msg]])
+  (:require [backtype.storm [disruptor :as disruptor]]))
 
 (defn mk-local-context []
   (local/mk-local-context))
@@ -13,13 +15,14 @@
                 var-get)]
     (apply afn args)))
 
-;; TODO: try adding a layer of disruptor single -> other queue batching
 (defnk launch-receive-thread!
-  [context storm-id port transfer-local-fn
+  [context storm-id port transfer-local-fn send-buffer-size
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
-  (let [vthread (async-loop
+  (let [receive-batcher (disruptor/disruptor-queue send-buffer-size :claim-strategy :single-threaded)
+        cached-emit (MutableObject. (ArrayList.))
+        vthread (async-loop
                  (fn [socket]
                    (let [[task msg :as packet] (msg/recv socket)]
                      (if (= task -1)
@@ -28,13 +31,21 @@
                          (.close socket)
                          nil )
                        (do
-                         ;; TODO: write a batch of tuples, do recv-more until whole batch is received (maybe with a limit)
-                         (transfer-local-fn [packet])
+                         (disruptor/publish receive-batcher packet)
                          0 ))))
                  :args-fn (fn [] [(msg/bind context storm-id port)])
                  :daemon daemon
                  :kill-fn kill-fn
                  :priority priority)]
+    (disruptor/set-handler
+      receive-batcher
+      (fn [o seq-id batch-end?]
+        (let [^ArrayList alist (.getObject cached-emit)]
+          (.add alist o)
+          (when batch-end?
+            (transfer-local-fn alist)
+            (.setObject cached-emit (ArrayList.))
+            ))))
     (fn []
       (let [kill-socket (msg/connect context storm-id "localhost" port)]
         (log-message "Shutting down receiving-thread: [" storm-id ", " port "]")
@@ -43,6 +54,7 @@
                   (byte-array []))
         (log-message "Waiting for receiving-thread:[" storm-id ", " port "] to die")
         (.join vthread)
+        (.shutdown receive-batcher)
         (.close kill-socket)
         (log-message "Shutdown receiving-thread: [" storm-id ", " port "]")
         ))))

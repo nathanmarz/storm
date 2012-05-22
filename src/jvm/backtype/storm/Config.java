@@ -425,6 +425,12 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
 
     /**
+     * The size of the Disruptor queue for the thread that receives messages from the network
+     * (used to batch messages onto the executor queues).
+     */
+    public static String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
+
+    /**
      * The size of the Disruptor send queue for each executor.
      */
     public static String TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE="topology.executor.send.buffer.size";

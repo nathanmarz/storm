@@ -10,7 +10,6 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +29,7 @@ public class GeneralTopologyContext implements JSONAware {
     private StormTopology _topology;
     private Map<Integer, String> _taskToComponent;
     private Map<String, List<Integer>> _componentToTasks;
+    private Map<String, Map<String, Fields>> _componentToStreamToFields = new HashMap();
     private String _stormId;
     protected Map _stormConf;
     
@@ -41,6 +41,21 @@ public class GeneralTopologyContext implements JSONAware {
         _taskToComponent = taskToComponent;
         _stormId = stormId;
         _componentToTasks = componentToSortedTasks;
+        
+        //precompute this because getComponentOutputFields is called on the critical path
+        //of tuple creation
+        for(String component: getComponentIds()) {
+            Map<String, Fields> streamToFields = _componentToStreamToFields.get(component);
+            if(streamToFields==null) {
+                streamToFields = new HashMap();
+                _componentToStreamToFields.put(component, streamToFields);
+            }
+            ComponentCommon common = getComponentCommon(component);
+            for(String stream: common.get_streams().keySet()) {
+                StreamInfo info = common.get_streams().get(stream);
+                streamToFields.put(stream, new Fields(info.get_output_fields()));                
+            }
+        }
     }
 
     /**
@@ -93,11 +108,11 @@ public class GeneralTopologyContext implements JSONAware {
      * Gets the declared output fields for the specified component/stream.
      */
     public Fields getComponentOutputFields(String componentId, String streamId) {
-        StreamInfo streamInfo = getComponentCommon(componentId).get_streams().get(streamId);
-        if(streamInfo==null) {
+        Fields ret = _componentToStreamToFields.get(componentId).get(streamId);
+        if(ret==null) {
             throw new IllegalArgumentException("No output fields defined for component:stream " + componentId + ":" + streamId);
         }
-        return new Fields(streamInfo.get_output_fields());
+        return ret;
     }
 
     /**

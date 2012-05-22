@@ -18,6 +18,7 @@
       (:storm-conf worker)
       (:task->component worker)
       (:component->sorted-tasks worker)
+      (:component->stream->fields worker)
       (:storm-id worker)
       (supervisor-storm-resources-path
         (supervisor-stormdist-root conf (:storm-id worker)))

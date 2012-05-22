@@ -5,7 +5,6 @@ import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.StreamInfo;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
@@ -17,45 +16,24 @@ import java.util.Set;
 import org.json.simple.JSONValue;
 import org.json.simple.JSONAware;
 
-/**
- * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
- * methods, respectively. This object provides information about the component's
- * place within the topology, such as task ids, inputs and outputs, etc.
- *
- * <p>The TopologyContext is also used to declare ISubscribedState objects to
- * synchronize state with StateSpouts this object is subscribed to.</p>
- */
 public class GeneralTopologyContext implements JSONAware {
     private StormTopology _topology;
     private Map<Integer, String> _taskToComponent;
     private Map<String, List<Integer>> _componentToTasks;
-    private Map<String, Map<String, Fields>> _componentToStreamToFields = new HashMap();
+    private Map<String, Map<String, Fields>> _componentToStreamToFields;
     private String _stormId;
     protected Map _stormConf;
     
     // pass in componentToSortedTasks for the case of running tons of tasks in single executor
     public GeneralTopologyContext(StormTopology topology, Map stormConf,
-            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks, String stormId) {
+            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
+            Map<String, Map<String, Fields>> componentToStreamToFields, String stormId) {
         _topology = topology;
         _stormConf = stormConf;
         _taskToComponent = taskToComponent;
         _stormId = stormId;
         _componentToTasks = componentToSortedTasks;
-        
-        //precompute this because getComponentOutputFields is called on the critical path
-        //of tuple creation
-        for(String component: getComponentIds()) {
-            Map<String, Fields> streamToFields = _componentToStreamToFields.get(component);
-            if(streamToFields==null) {
-                streamToFields = new HashMap();
-                _componentToStreamToFields.put(component, streamToFields);
-            }
-            ComponentCommon common = getComponentCommon(component);
-            for(String stream: common.get_streams().keySet()) {
-                StreamInfo info = common.get_streams().get(stream);
-                streamToFields.put(stream, new Fields(info.get_output_fields()));                
-            }
-        }
+        _componentToStreamToFields = componentToStreamToFields;
     }
 
     /**

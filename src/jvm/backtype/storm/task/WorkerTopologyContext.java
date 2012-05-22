@@ -1,10 +1,9 @@
 package backtype.storm.task;
 
 import backtype.storm.generated.StormTopology;
+import backtype.storm.tuple.Fields;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -15,10 +14,11 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
     private String _pidDir;
     
     public WorkerTopologyContext(StormTopology topology, Map stormConf,
-            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks, String stormId,
+            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
+            Map<String, Map<String, Fields>> componentToStreamToFields, String stormId,
             String codeDir, String pidDir, Integer workerPort,
             List<Integer> workerTasks) {
-        super(topology, stormConf, taskToComponent, componentToSortedTasks, stormId);
+        super(topology, stormConf, taskToComponent, componentToSortedTasks, componentToStreamToFields, stormId);
         _codeDir = codeDir;
         try {
             if(pidDir!=null) {

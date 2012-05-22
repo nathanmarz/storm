@@ -106,6 +106,19 @@
        (into {})
        ))
 
+(defn- stream->fields [^StormTopology topology component]
+  (->> (ThriftTopologyUtils/getComponentCommon topology component)
+       .get_streams
+       (map (fn [[s info]] [s (Fields. (.get_output_fields info))]))
+       (into {})
+       (HashMap.)))
+
+(defn component->stream->fields [^StormTopology topology]
+  (->> (ThriftTopologyUtils/getComponentIds topology)
+       (map (fn [c] [c (stream->fields topology c)]))
+       (into {})
+       (HashMap.)))
+
 (defn worker-data [conf mq-context storm-id supervisor-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
@@ -142,7 +155,8 @@
                                   (log-error t "Error when processing event")
                                   (halt-process! 20 "Error when processing an event")
                                   ))
-      :task->component (storm-task-info topology storm-conf)
+      :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
+      :component->stream->fields (component->stream->fields (:system-topology <>))
       :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
       :endpoint-socket-lock (mk-rw-lock)
       :node+port->socket (atom {})

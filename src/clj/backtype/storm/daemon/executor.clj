@@ -23,10 +23,9 @@
 
 (defn- mk-shuffle-grouper [^List target-tasks]
   (let [num-tasks (count target-tasks)
-        choices (rotating-random-range num-tasks)]
+        choices (rotating-random-range target-tasks)]
     (fn [tuple]
-      (->> (acquire-random-range-id choices)
-           (.get target-tasks)))))
+      (acquire-random-range-id choices))))
 
 (defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^Fields out-fields target-tasks]
   (.prepare grouping context out-fields target-tasks)

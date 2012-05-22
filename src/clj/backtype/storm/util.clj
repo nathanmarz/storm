@@ -5,7 +5,7 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
             MutableObject MutableInt])
-  (:import [java.util UUID])
+  (:import [java.util UUID Random ArrayList List Collections])
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
@@ -566,18 +566,17 @@
          amap)))
 
 
-(defn rotating-random-range [amt]
-  (let [ids (range amt)]
-    {:range ids :state (MutableObject. (shuffle ids))}))
+(defn rotating-random-range [choices]
+  (let [rand (Random.)
+        choices (ArrayList. choices)]
+    (Collections/shuffle choices rand)
+    [(MutableInt. -1) choices rand]))
 
-(defn acquire-random-range-id [rr]
-  (let [{ids :range state :state} rr
-        [ret & rest] (.getObject ^MutableObject state)]
-    (if (= 0 (count rest))
-      (.setObject ^MutableObject state (shuffle ids))
-      (.setObject ^MutableObject state rest))
-    ret
-    ))
+(defn acquire-random-range-id [[^MutableInt curr ^List state ^Random rand]]
+  (when (>= (.increment curr) (.size state))
+    (.set curr 0)
+    (Collections/shuffle state rand))
+  (.get state (.get curr)))
 
 ; this can be rewritten to be tail recursive
 (defn interleave-all [& colls]

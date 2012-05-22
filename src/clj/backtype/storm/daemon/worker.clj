@@ -93,7 +93,10 @@
             (.add remote pair)
             ))
         (local-transfer local)
-        (let [serialized-pairs (dofor [[task tuple] remote] [task (.serialize serializer tuple)])]
+        ;; not using map because the lazy seq shows up in perf profiles
+        (let [serialized-pairs (ArrayList.)]
+          (doseq [[task tuple] remote]
+            (.add serialized-pairs [task (.serialize serializer tuple)]))
           (disruptor/publish transfer-queue serialized-pairs)
           )))))
 
@@ -213,11 +216,13 @@
   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
         drainer (ArrayList.)
         node+port->socket (:node+port->socket worker)
-        task->node+port (:task->node+port worker)]
+        task->node+port (:task->node+port worker)
+        endpoint-socket-lock (:endpoint-socket-lock worker)
+        ]
     (fn [packets _ batch-end?]
       (.addAll drainer packets)
       (when batch-end?
-        (read-locked (:endpoint-socket-lock worker)
+        (read-locked endpoint-socket-lock
           (let [node+port->socket @node+port->socket
                 task->node+port @task->node+port]
             ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)

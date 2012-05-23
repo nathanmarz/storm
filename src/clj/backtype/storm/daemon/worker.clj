@@ -78,7 +78,7 @@
           (let [q (short-executor-receive-queue-map short-executor)]
             (if q
               (disruptor/publish q pairs)
-              (log-warn "Received invalid messages for unknown tasks. Dropping... " (pr-str tuple-batch))
+              (log-warn "Received invalid messages for unknown tasks. Dropping... ")
               )))))))
 
 (defn mk-transfer-fn [worker]

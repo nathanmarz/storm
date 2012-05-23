@@ -28,11 +28,12 @@
 
 (deftype ZMQConnection [socket ^ByteBuffer bb]
   Connection
-  (recv [this]
-    (let [part1 (mq/recv socket)]
-      (when-not (mq/recv-more? socket)
-        (throw (RuntimeException. "Should always receive two-part ZMQ messages")))
-      (parse-packet part1 (mq/recv socket))))
+  (recv-with-flags [this flags]
+    (let [part1 (mq/recv socket flags)]
+      (when part1
+        (when-not (mq/recv-more? socket)
+          (throw (RuntimeException. "Should always receive two-part ZMQ messages")))
+        (parse-packet part1 (mq/recv socket)))))
   (send [this task message]
     (.clear bb)
     (.putShort bb (short task))

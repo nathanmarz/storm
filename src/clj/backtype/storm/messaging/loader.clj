@@ -16,38 +16,34 @@
     (apply afn args)))
 
 (defnk launch-receive-thread!
-  [context storm-id port transfer-local-fn send-buffer-size
+  [context storm-id port transfer-local-fn max-buffer-size
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
-  (let [receive-batcher (disruptor/disruptor-queue send-buffer-size
-                                                  :claim-strategy :single-threaded
-                                                  :wait-strategy :yield)
-        cached-emit (MutableObject. (ArrayList.))
+  (let [max-buffer-size (int max-buffer-size)
         vthread (async-loop
                  (fn [socket]
-                   (let [[task msg :as packet] (msg/recv socket)]
-                     (if (= task -1)
-                       (do
-                         (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
-                         (.close socket)
-                         nil )
-                       (do
-                         (disruptor/publish receive-batcher packet)
-                         0 ))))
+                   (let [batched (ArrayList.)
+                         init (msg/recv socket)]
+                     (loop [[task msg :as packet] init]
+                       (cond (nil? packet)
+                                (do (transfer-local-fn batched)
+                                    0)
+                             (= task -1)
+                                (do
+                                 (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
+                                 (.close socket)
+                                 nil )
+                             :else (do (.add batched packet)
+                                       (if (< (.size batched) max-buffer-size)
+                                        (recur (msg/recv-with-flags socket 1)) ;; 1 is ZMQ/NOBLOCK
+                                        0
+                                        ))
+                             ))))
                  :args-fn (fn [] [(msg/bind context storm-id port)])
                  :daemon daemon
                  :kill-fn kill-fn
                  :priority priority)]
-    (disruptor/set-handler
-      receive-batcher
-      (fn [o seq-id batch-end?]
-        (let [^ArrayList alist (.getObject cached-emit)]
-          (.add alist o)
-          (when batch-end?
-            (transfer-local-fn alist)
-            (.setObject cached-emit (ArrayList.))
-            ))))
     (fn []
       (let [kill-socket (msg/connect context storm-id "localhost" port)]
         (log-message "Shutting down receiving-thread: [" storm-id ", " port "]")
@@ -56,7 +52,6 @@
                   (byte-array []))
         (log-message "Waiting for receiving-thread:[" storm-id ", " port "] to die")
         (.join vthread)
-        (.shutdown receive-batcher)
         (.close kill-socket)
         (log-message "Shutdown receiving-thread: [" storm-id ", " port "]")
         ))))

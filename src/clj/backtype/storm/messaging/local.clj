@@ -13,10 +13,12 @@
 
 (deftype LocalConnection [storm-id port queues-map lock queue]
   Connection
-  (recv [this]
+  (recv-with-flags [this flags]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
-    (.take queue))
+    (if (= flags 1)
+      (.poll queue)
+      (.take queue)))
   (send [this task message]
     (let [send-queue (add-queue! queues-map lock storm-id port)]
       (.put send-queue [task message])

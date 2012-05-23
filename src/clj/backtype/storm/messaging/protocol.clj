@@ -3,7 +3,7 @@
   )
 
 (defprotocol Connection
-  (recv [conn])
+  (recv-with-flags [conn flags])
   (send [conn task message])
   (close [conn])
   )
@@ -13,4 +13,7 @@
   (connect [context storm-id host port])
   (term [context])
   )
+
+(defn recv [conn]
+  (recv-with-flags conn 0))
 

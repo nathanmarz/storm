@@ -781,7 +781,7 @@
 (defmacro fast-map-iter [[bind amap] & body]
   `(let [iter# (map-iter ~amap)]
     (while (iter-has-next? iter#)
-      (let [entry# (.next iter#)
+      (let [entry# (iter-next iter#)
             ~bind (convert-entry entry#)]
         ~@body
         ))))

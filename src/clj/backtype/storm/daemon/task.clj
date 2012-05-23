@@ -69,7 +69,7 @@
     `(let [hooks# (get-context-hooks ~topology-context)]
        (when-not (empty? hooks#)
          (let [info# ~info-form]
-           (doseq [~hook-sym hooks#]
+           (fast-list-iter [~hook-sym hooks#]
              (~method-sym ~hook-sym info#)
              ))))))
 
@@ -77,7 +77,7 @@
   (let [^TopologyContext topology-context (:system-context task-data)
         tasks-fn (:tasks-fn task-data)
         transfer-fn (-> task-data :executor-data :transfer-fn)]
-    (doseq [t (tasks-fn stream values)]
+    (fast-list-iter [t (tasks-fn stream values)]
       (transfer-fn t
                    (TupleImpl. topology-context
                                values
@@ -114,7 +114,7 @@
            (when debug?
              (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
-             (doseq [[out-component grouper] (get stream->component->grouper stream)]
+             (fast-map-iter [[out-component grouper] (get stream->component->grouper stream)]
                (when (= :direct grouper)
                   ;;  TODO: this is wrong, need to check how the stream was declared
                   (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))

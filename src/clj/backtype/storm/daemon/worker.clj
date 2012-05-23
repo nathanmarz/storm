@@ -72,9 +72,9 @@
   (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
         task->short-executor (:task->short-executor worker)]
     (fn [tuple-batch]
-      ;; TODO: optimize this by using a hashmap for these maps
       (let [grouped (group-by (comp task->short-executor first) tuple-batch)]
-        (doseq [[short-executor pairs] grouped]
+        ;;TODO: Need a fast map iter
+        (fast-map-iter [[short-executor pairs] grouped]
           (let [q (short-executor-receive-queue-map short-executor)]
             (if q
               (disruptor/publish q pairs)
@@ -88,16 +88,14 @@
     (fn [^KryoTupleSerializer serializer tuple-batch]
       (let [local (ArrayList.)
             remote (ArrayList.)]
-        (doseq [[task tuple :as pair] tuple-batch]
+        (fast-list-iter [[task tuple :as pair] tuple-batch]
           (if (local-tasks task)
             (.add local pair)
             (.add remote pair)
             ))
         (local-transfer local)
         ;; not using map because the lazy seq shows up in perf profiles
-        (let [serialized-pairs (ArrayList.)]
-          (doseq [[task tuple] remote]
-            (.add serialized-pairs [task (.serialize serializer tuple)]))
+        (let [serialized-pairs (fast-list-for [[task ^TupleImpl tuple] remote] [task (.serialize serializer tuple)])]
           (disruptor/publish transfer-queue serialized-pairs)
           )))))
 
@@ -243,7 +241,7 @@
             ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
             ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
             
-            (doseq [[task ser-tuple] drainer]
+            (fast-list-iter [[task ser-tuple] drainer]
               ;; TODO: this lookup (with the vector is expensive)
               ;; TODO: write a batch of tuples here to every target worker  
               ;; group by node+port, do multipart send              

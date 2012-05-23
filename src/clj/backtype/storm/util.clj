@@ -1,6 +1,6 @@
 (ns backtype.storm.util
   (:import [java.net InetAddress])
-  (:import [java.util Map List Collection])
+  (:import [java.util Map Map$Entry List ArrayList Collection Iterator])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
@@ -740,3 +740,48 @@
        (str/join "\n")
        ))
 
+(defn get-iterator [^Iterable alist]
+  (if alist (.iterator alist)))
+
+(defn iter-has-next? [^Iterator iter]
+  (if iter (.hasNext iter) false))
+
+(defn iter-next [^Iterator iter]
+  (.next iter))
+
+(defmacro fast-list-iter [pairs & body]
+  (let [pairs (partition 2 pairs)
+        lists (map second pairs)
+        elems (map first pairs)
+        iters (map (fn [_] (gensym)) lists)
+        bindings (->> (map (fn [i l] [i `(get-iterator ~l)]) iters lists) (apply concat))
+        tests (map (fn [i] `(iter-has-next? ~i)) iters)
+        assignments (->> (map (fn [e i] [e `(iter-next ~i)]) elems iters) (apply concat))]
+    `(let [~@bindings]
+       (while (and ~@tests)
+         (let [~@assignments]
+           ~@body
+           )))))
+
+(defn fast-list-map [afn alist]
+  (let [ret (ArrayList.)]
+    (fast-list-iter [e alist]
+      (.add ret (afn e)))
+    ret ))
+
+(defmacro fast-list-for [[e alist] & body]
+  `(fast-list-map (fn [~e] ~@body) ~alist))
+
+(defn map-iter [^Map amap]
+  (if amap (-> amap .entrySet .iterator)))
+
+(defn convert-entry [^Map$Entry entry]
+  [(.getKey entry) (.getValue entry)])
+
+(defmacro fast-map-iter [[bind amap] & body]
+  `(let [iter# (map-iter ~amap)]
+    (while (iter-has-next? iter#)
+      (let [entry# (.next iter#)
+            ~bind (convert-entry entry#)]
+        ~@body
+        ))))

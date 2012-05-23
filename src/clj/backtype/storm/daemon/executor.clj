@@ -261,7 +261,7 @@
   (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)]
     (fn [tuple-batch sequence-id end-of-batch?]
       ;;(log-debug "Processing message " msg)
-      (doseq [[task-id msg] tuple-batch]
+      (fast-list-iter [[task-id msg] tuple-batch]
         (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
           (tuple-action-fn task-id tuple)
           )))))
@@ -280,7 +280,7 @@
         worker-context (:worker-context executor-data)
         transfer-fn (:transfer-fn executor-data)
         report-error-fn (:report-error-fn executor-data)
-        spouts (map :object (vals task-datas))
+        spouts (ArrayList. (map :object (vals task-datas)))
         sampler (:sampler executor-data)
         
         pending (TimeCacheMap.
@@ -316,18 +316,17 @@
                                                      (tasks-fn out-stream-id values))
                                          rooted? (and message-id (has-ackers? storm-conf))
                                          root-id (if rooted? (MessageId/generateId))
-                                         out-ids (dofor [t out-tasks] (if rooted? (MessageId/generateId)))
-                                         out-tuples (dofor [id out-ids]
-                                                      (let [tuple-id (if rooted?
-                                                                       (MessageId/makeRootId root-id id)
-                                                                       (MessageId/makeUnanchored))]
-                                                        (TupleImpl. worker-context
-                                                                    values
-                                                                    task-id
-                                                                    out-stream-id
-                                                                    tuple-id)))]
-                                     (dorun
-                                      (map transfer-fn out-tasks out-tuples))
+                                         out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId)))]
+                                     (fast-list-iter [out-task out-tasks id out-ids]
+                                       (let [tuple-id (if rooted?
+                                                          (MessageId/makeRootId root-id id)
+                                                          (MessageId/makeUnanchored))]                                                        
+                                         (transfer-fn out-task
+                                                      (TupleImpl. worker-context
+                                                                  values
+                                                                  task-id
+                                                                  out-stream-id
+                                                                  tuple-id))))
                                      (if rooted?
                                        (do
                                          (.put pending root-id [task-id
@@ -374,13 +373,14 @@
              (when-not @last-active
                (reset! last-active true)
                (log-message "Activating spout " component-id ":" (keys task-datas))
-               (doseq [^ISpout spout spouts] (.activate spout)))
-              (doseq [^ISpout spout spouts] (.nextTuple spout)))
+               (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+               
+              (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
            (do
              (when @last-active
                (reset! last-active false)
                (log-message "Deactivating spout " component-id ":" (keys task-datas))
-               (doseq [^ISpout spout spouts] (.activate spout)))
+               (fast-list-iter [^ISpout spout spouts] (.activate spout)))
              ;; TODO: log that it's getting throttled
              (Time/sleep 100)))
          ))         
@@ -434,22 +434,22 @@
                               (let [out-tasks (if task
                                                 (tasks-fn task stream values)
                                                 (tasks-fn stream values))]
-                                (doseq [t out-tasks
-                                        :let [anchors-to-ids (HashMap.)]]
-                                  (doseq [^TupleImpl a anchors
-                                          :let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]]
-                                    (when (pos? (count root-ids))
-                                      (let [edge-id (MessageId/generateId)]
-                                        (.updateAckVal a edge-id)
-                                        (doseq [root-id root-ids]
-                                          (put-xor! anchors-to-ids root-id edge-id))
-                                          )))
-                                  (transfer-fn t
-                                               (TupleImpl. worker-context
-                                                           values
-                                                           task-id
-                                                           stream
-                                                           (MessageId/makeId anchors-to-ids))))
+                                (fast-list-iter [t out-tasks]
+                                  (let [anchors-to-ids (HashMap.)]
+                                    (fast-list-iter [^TupleImpl a anchors]
+                                      (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
+                                        (when (pos? (count root-ids))
+                                          (let [edge-id (MessageId/generateId)]
+                                            (.updateAckVal a edge-id)
+                                            (fast-list-iter [root-id root-ids]
+                                              (put-xor! anchors-to-ids root-id edge-id))
+                                              ))))
+                                    (transfer-fn t
+                                                 (TupleImpl. worker-context
+                                                             values
+                                                             task-id
+                                                             stream
+                                                             (MessageId/makeId anchors-to-ids)))))
                                 (or out-tasks [])))]]
       (.prepare bolt-obj
                 storm-conf
@@ -463,7 +463,7 @@
                      (^void ack [this ^Tuple tuple]
                        (let [^TupleImpl tuple tuple
                              ack-val (.getAckVal tuple)]
-                         (doseq [[root id] (.. tuple getMessageId getAnchorsToIds)]
+                         (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                            (task/send-unanchored task-data
                                                  ACKER-ACK-STREAM-ID
                                                  [root (bit-xor id ack-val)])
@@ -477,12 +477,11 @@
                                                     delta)
                            )))
                      (^void fail [this ^Tuple tuple]
-                       (doseq [root (.. tuple getMessageId getAnchors)]
+                       (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                          (task/send-unanchored task-data
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
-                       (let [delta (tuple-time-delta! tuple)
-                       ]
+                       (let [delta (tuple-time-delta! tuple)]
                          (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
                          (when delta
                            (stats/bolt-failed-tuple! executor-stats

@@ -38,7 +38,7 @@
     (.clear bb)
     (.putShort bb (short task))
     (mq/send socket (.array bb) ZMQ/SNDMORE)
-    (mq/send socket message ZMQ/NOBLOCK))
+    (mq/send socket message)) ;; TODO: temporarily remove the noblock flag
   (close [this]
     (.close socket)
     ))

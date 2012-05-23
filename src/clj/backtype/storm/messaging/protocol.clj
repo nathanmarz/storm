@@ -17,3 +17,6 @@
 (defn recv [conn]
   (recv-with-flags conn 0))
 
+;; (defn send [conn task message]
+;;   (send-with-flags conn task message 1)) ;; NOBLOCK
+

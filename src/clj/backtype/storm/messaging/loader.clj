@@ -26,20 +26,16 @@
                    (let [batched (ArrayList.)
                          init (msg/recv socket)]
                      (loop [[task msg :as packet] init]
-                       (cond (nil? packet)
-                                (do (transfer-local-fn batched)
-                                    0)
-                             (= task -1)
-                                (do
-                                 (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
-                                 (.close socket)
-                                 nil )
-                             :else (do (.add batched packet)
-                                       (if (< (.size batched) max-buffer-size)
-                                        (recur (msg/recv-with-flags socket 1)) ;; 1 is ZMQ/NOBLOCK
-                                        0
-                                        ))
-                             ))))
+                       (if (= task -1)
+                         (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
+                             (.close socket)
+                             nil )
+                         (do
+                           (when packet (.add batched packet))
+                           (if (and packet (< (.size batched) max-buffer-size))
+                             (recur (msg/recv-with-flags socket 1))
+                             (do (transfer-local-fn batched)
+                                 0 )))))))
                  :args-fn (fn [] [(msg/bind context storm-id port)])
                  :daemon daemon
                  :kill-fn kill-fn

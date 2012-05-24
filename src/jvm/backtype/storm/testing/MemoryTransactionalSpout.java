@@ -26,6 +26,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
     private String _finishedPartitionsId;
     private int _takeAmt;
     private Fields _outFields;
+    private Map<Integer, List<List<Object>>> _initialPartitions;
     
     public MemoryTransactionalSpout(Map<Integer, List<List<Object>>> partitions, Fields outFields, int takeAmt) {
         _id = RegisteredGlobalState.registerState(partitions);
@@ -33,6 +34,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         _finishedPartitionsId = RegisteredGlobalState.registerState(finished);
         _takeAmt = takeAmt;
         _outFields = outFields;
+        _initialPartitions = partitions;
     }
     
     public boolean isExhaustedTuples() {
@@ -149,8 +151,10 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         RegisteredGlobalState.clearState(_finishedPartitionsId);
     }
     
-    private Map<Integer, List<List<Object>>> getQueues() {
-        return (Map<Integer, List<List<Object>>>) RegisteredGlobalState.getState(_id);
+    private Map<Integer, List<List<Object>>> getQueues() {   
+        Map<Integer, List<List<Object>>> ret = (Map<Integer, List<List<Object>>>) RegisteredGlobalState.getState(_id);
+        if(ret!=null) return ret;
+        else return _initialPartitions;
     }
     
     private Map<Integer, Boolean> getFinishedStatuses() {

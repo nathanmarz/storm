@@ -12,6 +12,7 @@
  * Removed error method from task hooks (to be re-added at a later time)
  * Switched in memory queues to use Disruptor (major performance improvement)
  * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
+ * MemoryTransactionalSpout now works on a cluster
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
 
 ## 0.7.2 (unreleased but release candidate available)

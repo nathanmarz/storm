@@ -94,7 +94,11 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
                 int curr = Utils.get(_emptyPartitions, partition, 0) + 1;
                 _emptyPartitions.put(partition, curr);
                 if(curr > _maxSpoutPending) {
-                    getFinishedStatuses().put(partition, true);
+                    Map<Integer, Boolean> finishedStatuses = getFinishedStatuses();
+                    // will be null in remote mode
+                    if(finishedStatuses!=null) {
+                        finishedStatuses.put(partition, true);
+                    }
                 }
             }
             return ret;   

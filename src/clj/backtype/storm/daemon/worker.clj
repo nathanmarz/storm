@@ -19,6 +19,22 @@
             assignment))
     ))
 
+(defnk do-task-heartbeats [worker :tasks nil]
+  ;; stats is how we know what tasks are assigned to this worker 
+  (let [stats (if-not tasks
+                  (into {} (map (fn [t] {t nil}) (:task-ids worker)))
+                  (->> tasks
+                    (map (fn [t] {(task/get-task-id t) (task/render-stats t)}))
+                    (apply merge)))
+        zk-hb {:storm-id (:storm-id worker)
+               :task-stats stats
+               :uptime ((:uptime worker))
+               :time-secs (current-time-secs)
+               }]
+    ;; do the zookeeper heartbeat
+    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:supervisor-id worker) (:port worker) zk-hb)    
+    ))
+
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
         hb (WorkerHeartbeat.
@@ -26,10 +42,12 @@
              (:storm-id worker)
              (:task-ids worker)
              (:port worker))]
-  (log-debug "Doing heartbeat " (pr-str hb))
-  (.put (worker-state conf (:worker-id worker))
+    (log-debug "Doing heartbeat " (pr-str hb))
+    ;; do the local-file-system heartbeat.
+    (.put (worker-state conf (:worker-id worker))
         LS-WORKER-HEARTBEAT
-        hb)))
+        hb)
+    ))
 
 (defn mk-topology-context-builder [worker topology]
   (let [conf (:conf worker)]
@@ -94,6 +112,7 @@
         task-ids (set (read-worker-task-ids storm-cluster-state storm-id supervisor-id port))
         transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
         receive-queue-map (into {} (dofor [tid task-ids] [tid (LinkedBlockingQueue.)]))
+        topology (read-supervisor-topology conf storm-id)
         ret {:conf conf
              :mq-context (if mq-context
                              mq-context
@@ -109,18 +128,19 @@
              :storm-active-atom (atom false)
              :task-ids task-ids
              :storm-conf storm-conf
-             :topology (read-supervisor-topology conf storm-id)
+             :topology topology
              :timer (mk-timer :kill-fn (fn [t]
                                          (log-error t "Error when processing event")
                                          (halt-process! 20 "Error when processing an event")
                                          ))
-             :task->component (storm-task-info storm-cluster-state storm-id)
+             :task->component (storm-task-info topology storm-conf)
              :endpoint-socket-lock (mk-rw-lock)
              :node+port->socket (atom {})
              :task->node+port (atom {})
              :transfer-queue transfer-queue
              :receive-queue-map receive-queue-map
              :suicide-fn (mk-suicide-fn conf)
+             :uptime (uptime-computer)
              }]
     (merge ret
            {:transfer-fn (mk-transfer-fn ret)
@@ -222,6 +242,9 @@
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
         
+        ;; heartbeat immediately to nimbus so that it knows that the worker has been started
+        _ (do-task-heartbeats worker)
+        
         refresh-connections (mk-refresh-connections worker)
 
         _ (refresh-connections nil)
@@ -249,6 +272,7 @@
                       (.interrupt t)
                       (.join t))
                     (cancel-timer (:timer worker))
+                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:cluster-state worker))
@@ -261,12 +285,12 @@
              DaemonCommon
              (waiting? [this]
                        (and
-                        (timer-waiting? (:timer worker))
-                        (every? (memfn waiting?) tasks)))
+                        (timer-waiting? (:timer worker))))
              )]
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
+    (schedule-recurring (:timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-task-heartbeats worker :tasks tasks))
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")

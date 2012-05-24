@@ -1,25 +1,21 @@
 package backtype.storm.task;
 
-import backtype.storm.Config;
-import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.StreamInfo;
 import backtype.storm.hooks.ITaskHook;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
-import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
-import org.json.simple.JSONValue;
 
 /**
  * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
@@ -45,7 +41,15 @@ public class TopologyContext extends GeneralTopologyContext {
         super(topology, stormConf, taskToComponent, stormId);
         _workerPort = workerPort;
         _taskId = taskId;
-        _pidDir = pidDir;
+        try {
+            if(pidDir!=null) {
+                _pidDir = new File(pidDir).getCanonicalPath();
+            } else {
+                _pidDir = null;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not get canonical path for " + _pidDir, e);
+        }
         _codeDir = codeDir;
         _workerTasks = new ArrayList<Integer>(workerTasks);
         Collections.sort(_workerTasks);

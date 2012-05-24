@@ -4,6 +4,7 @@
             InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
+  (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
   )
@@ -23,7 +24,7 @@
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
 (defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
 
-(defrecord StormBase [storm-name launch-time-secs status])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
 (defrecord SupervisorInfo [time-secs hostname meta uptime-secs])
 
@@ -49,7 +50,6 @@
                       ^long transferred
                       ^long failed])
 
-(defrecord TaskHeartbeat [time-secs uptime-secs stats])
 
 (defn new-task-stats []
   (TaskStats. 0 0 0 0 0))
@@ -57,15 +57,6 @@
 ;technically this is only active task ids
 (defn storm-task-ids [storm-cluster-state storm-id]
   (keys (:task->node+port (.assignment-info storm-cluster-state storm-id nil))))
-
-(defn storm-task-info
-  "Returns map from task -> component id"
-  [storm-cluster-state storm-id]
-  (let [task-ids (.task-ids storm-cluster-state storm-id)]
-    (into {}
-      (dofor [id task-ids]
-        [id (:component-id (.task-info storm-cluster-state storm-id id))]
-        ))))
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
@@ -126,15 +117,32 @@
       (throw (InvalidTopologyException. "May not declare inputs for a spout"))
       )))
 
-(defn validate-structure! [^StormTopology topology]
-  ;; TODO: validate that all subscriptions are to valid component/streams
-  )
-
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
            (.getFieldValue topology f)
            )))
+
+(defn validate-structure! [^StormTopology topology]
+  ;; validate all the component subscribe from component+stream which actually exists in the topology
+  ;; and if it is a fields grouping, validate the corresponding field exists  
+  (let [all-components (all-components topology)]
+    (doseq [[id comp] all-components
+            :let [inputs (.. comp get_common get_inputs)]]
+      (doseq [[global-stream-id grouping] inputs
+              :let [source-component-id (.get_componentId global-stream-id)
+                    source-stream-id    (.get_streamId global-stream-id)]]
+        (if-not (contains? all-components source-component-id)
+          (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from non-existent component [" source-component-id "]")))
+          (let [source-streams (-> all-components (get source-component-id) .get_common .get_streams)]
+            (if-not (contains? source-streams source-stream-id)
+              (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from non-existent stream: [" source-stream-id "] of component [" source-component-id "]")))
+              (if (= :fields (thrift/grouping-type grouping))
+                (let [grouping-fields (set (.get_fields grouping))
+                      source-stream-fields (-> source-streams (get source-stream-id) .get_output_fields set)
+                      diff-fields (set/difference grouping-fields source-stream-fields)]
+                  (when-not (empty? diff-fields)
+                    (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from stream: [" source-stream-id "] of component [" source-component-id "] with non-existent fields: " diff-fields)))))))))))))
 
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)
@@ -150,13 +158,14 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
-(defn add-acker! [num-tasks ^StormTopology ret]
+(defn add-acker! [num-executors num-tasks ^StormTopology ret]
   (let [acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
-                                         :p num-tasks)]
+                                         :p num-executors
+                                         :conf {TOPOLOGY-TASKS num-tasks})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do
@@ -187,8 +196,44 @@
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
-    (add-acker! (storm-conf TOPOLOGY-ACKERS) ret)
+    (add-acker! (storm-conf TOPOLOGY-ACKER-EXECUTORS) (storm-conf TOPOLOGY-ACKER-TASKS) ret)
     (add-system-streams! ret)
     (validate-structure! ret)
     ret
     ))
+
+(defn has-ackers? [storm-conf]
+  (let [tasks (storm-conf TOPOLOGY-ACKER-TASKS)]
+    (and (or (nil? tasks) (> tasks 0))
+         (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
+
+(defn component-conf [storm-conf component]
+  (->> component
+      .get_common
+      .get_json_conf
+      from-json
+      (merge storm-conf)))
+
+(defn num-start-executors [component]
+  (thrift/parallelism-hint (.get_common component)))
+
+(defn- component-parallelism [storm-conf component]
+  (let [storm-conf (component-conf storm-conf component)
+        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
+        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+        ]
+    (if max-parallelism
+      (min max-parallelism num-tasks)
+      num-tasks)))
+
+(defn storm-task-info
+  "Returns map from task -> component id"
+  [^StormTopology user-topology storm-conf]
+  (->> (system-topology! storm-conf user-topology)
+       all-components
+       (map-val (partial component-parallelism storm-conf))
+       (sort-by first)
+       (mapcat (fn [[c num-tasks]] (repeat num-tasks c)))
+       (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))
+       (into {})
+       ))

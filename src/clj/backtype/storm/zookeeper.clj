@@ -62,7 +62,8 @@
 
 (def zk-create-modes
   {:ephemeral CreateMode/EPHEMERAL
-   :persistent CreateMode/PERSISTENT})
+   :persistent CreateMode/PERSISTENT
+   :sequential CreateMode/PERSISTENT_SEQUENTIAL})
 
 (defn create-node
   ([^CuratorFramework zk ^String path ^bytes data mode]
@@ -76,8 +77,11 @@
        (.. zk (checkExists) (watched) (forPath (normalize-path path))) 
        (.. zk (checkExists) (forPath (normalize-path path))))))
 
-(defn delete-node [^CuratorFramework zk ^String path]
-  (.. zk (delete) (forPath (normalize-path path))))
+(defnk delete-node [^CuratorFramework zk ^String path :force false]
+  (try-cause  (.. zk (delete) (forPath (normalize-path path)))
+    (catch KeeperException$NoNodeException e
+      (when-not force (throw e))
+      )))
 
 (defn mkdirs [^CuratorFramework zk ^String path]
   (let [path (normalize-path path)]
@@ -121,10 +125,7 @@
                                   ))]
         (doseq [c children]
           (delete-recursive zk (full-path path c)))
-        (try-cause (delete-node zk path)
-                   (catch KeeperException$NoNodeException e
-                                  nil
-                                  ))
+        (delete-node zk path :force true)
         ))))
 
 (defnk mk-inprocess-zookeeper [localdir :port nil]

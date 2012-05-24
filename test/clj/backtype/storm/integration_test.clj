@@ -1,6 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
+  (:import [backtype.storm.generated InvalidTopologyException])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestConfBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
@@ -98,6 +99,46 @@
         (is (= [[1] [2] [3] [4]]
                (read-tuples results "4")))
         ))))
+
+(defn mk-validate-topology-1 []
+  (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                    {"2" (thrift/mk-bolt-spec {"1" ["word"]} (TestWordCounter.) :parallelism-hint 4)}))
+
+(defn mk-invalidate-topology-1 []
+  (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                    {"2" (thrift/mk-bolt-spec {"3" ["word"]} (TestWordCounter.) :parallelism-hint 4)}))
+
+(defn mk-invalidate-topology-2 []
+  (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                    {"2" (thrift/mk-bolt-spec {"1" ["non-exists-field"]} (TestWordCounter.) :parallelism-hint 4)}))
+
+(defn mk-invalidate-topology-3 []
+  (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                    {"2" (thrift/mk-bolt-spec {["1" "non-exists-stream"] ["word"]} (TestWordCounter.) :parallelism-hint 4)}))
+
+(defn try-complete-wc-topology [cluster topology]
+  (try (do
+         (complete-topology cluster
+                            topology
+                            :mock-sources {"1" [["nathan"] ["bob"] ["joey"] ["nathan"]]}
+                            :storm-conf {TOPOLOGY-WORKERS 2})
+         false)
+       (catch InvalidTopologyException e true)))
+
+(deftest test-validate-topology-structure
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [any-error1? (try-complete-wc-topology cluster (mk-validate-topology-1))
+          any-error2? (try-complete-wc-topology cluster (mk-invalidate-topology-1))
+          any-error3? (try-complete-wc-topology cluster (mk-invalidate-topology-2))
+          any-error4? (try-complete-wc-topology cluster (mk-invalidate-topology-3))]
+      (is (= any-error1? false))
+      (is (= any-error2? true))
+      (is (= any-error3? true))
+      (is (= any-error4? true)))))
 
 (defbolt identity-bolt ["num"]
   [tuple collector]

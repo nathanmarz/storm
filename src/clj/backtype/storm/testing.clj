@@ -223,7 +223,7 @@
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
 (defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]
-  (with-var-roots [nimbus/mk-task-component-assignments (fn [& ignored] task->component)
+  (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
                    nimbus/compute-new-task->node+port (fn [& ignored] task->node+port)]
     (submit-local-topology nimbus storm-name conf topology)
     ))
@@ -277,16 +277,20 @@
 
 (defnk aggregated-stat [cluster-map storm-name stat-key :component-ids nil]
   (let [state (:storm-cluster-state cluster-map)
+        nimbus (:nimbus cluster-map)
         storm-id (common/get-storm-id state storm-name)
+        
         component->tasks (reverse-map
                           (common/storm-task-info
-                           state
-                           storm-id))
+                           (.getUserTopology nimbus storm-id)
+                           (from-json (.getTopologyConf nimbus storm-id))))
         component->tasks (if component-ids
                            (select-keys component->tasks component-ids)
                            component->tasks)
         task-ids (apply concat (vals component->tasks))
-        heartbeats (dofor [id task-ids] (.task-heartbeat state storm-id id))
+        assignment (.assignment-info state storm-id nil) 
+        taskbeats (.taskbeats state storm-id (:task->node+port assignment))
+        heartbeats (dofor [id task-ids] (get taskbeats id))
         stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
     (reduce + stats)
     ))

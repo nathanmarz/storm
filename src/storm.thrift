@@ -166,7 +166,6 @@ struct TaskSummary {
   3: required string host;
   4: required i32 port;
   5: required i32 uptime_secs;
-  6: required list<ErrorInfo> errors;
   7: optional TaskStats stats;
 }
 
@@ -176,6 +175,7 @@ struct TopologyInfo {
   3: required i32 uptime_secs;
   4: required list<TaskSummary> tasks;
   5: required string status;
+  6: required map<string, list<ErrorInfo>> errors;
 }
 
 struct KillOptions {
@@ -184,6 +184,8 @@ struct KillOptions {
 
 struct RebalanceOptions {
   1: optional i32 wait_secs;
+  2: optional i32 num_workers;
+  3: optional map<string, i32> num_executors;
 }
 
 
@@ -211,6 +213,7 @@ service Nimbus {
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e);
   StormTopology getTopology(1: string id) throws (1: NotAliveException e);
+  StormTopology getUserTopology(1: string id) throws (1: NotAliveException e);
 }
 
 struct DRPCRequest {

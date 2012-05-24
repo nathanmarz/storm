@@ -10,6 +10,7 @@
 (defprotocol ClusterState
   (set-ephemeral-node [this path data])
   (delete-node [this path])
+  (create-sequential [this path data])
   (set-data [this path data])  ;; if node does not exist, create persistent with this data 
   (get-data [this path watch?])
   (get-children [this path watch?])
@@ -46,6 +47,7 @@
                  ))
      (unregister [this id]
                  (swap! callbacks dissoc id))
+
      (set-ephemeral-node [this path data]
                          (zk/mkdirs zk (parent-path path))
                          (if (zk/exists zk path false)
@@ -57,6 +59,9 @@
                                ))
                            (zk/create-node zk path data :ephemeral)
                            ))
+     
+     (create-sequential [this path data]
+       (zk/create-node zk path data :sequential))
      
      (set-data [this path data]
                ;; note: this does not turn off any existing watches
@@ -92,50 +97,44 @@
   (active-storms [this])
   (storm-base [this storm-id callback])
 
-  (task-storms [this])
-  (task-ids [this storm-id])
-  (task-info [this storm-id task-id])
-  (task-heartbeat [this storm-id task-id]) ;; returns nil if doesn't exist
+  (get-worker-heartbeat [this storm-id node port])
+  (taskbeats [this storm-id task->node+port])
   (supervisors [this callback])
   (supervisor-info [this supervisor-id])  ;; returns nil if doesn't exist
 
   (setup-heartbeats! [this storm-id])
   (teardown-heartbeats! [this storm-id])
-  (teardown-task-errors! [this storm-id])
+  (teardown-topology-errors! [this storm-id])
   (heartbeat-storms [this])
-  (task-error-storms [this])
-  (heartbeat-tasks [this storm-id])
+  (error-topologies [this])
 
-  (set-task! [this storm-id task-id info])
-  (task-heartbeat! [this storm-id task-id info])
-  (remove-task-heartbeat! [this storm-id task-id])
+  (worker-heartbeat! [this storm-id node port info])
+  (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
   (activate-storm! [this storm-id storm-base])
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
   (remove-storm! [this storm-id])
-  (report-task-error [this storm-id task-id error])
-  (task-errors [this storm-id task-id])
+  (report-error [this storm-id task-id error])
+  (errors [this storm-id task-id])
 
   (disconnect [this])
   )
 
 
 (def ASSIGNMENTS-ROOT "assignments")
-(def TASKS-ROOT "tasks")
 (def CODE-ROOT "code")
 (def STORMS-ROOT "storms")
 (def SUPERVISORS-ROOT "supervisors")
-(def TASKBEATS-ROOT "taskbeats")
-(def TASKERRORS-ROOT "taskerrors")
+(def WORKERBEATS-ROOT "workerbeats")
+(def ERRORS-ROOT "errors")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
-(def TASKS-SUBTREE (str "/" TASKS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
-(def TASKBEATS-SUBTREE (str "/" TASKBEATS-ROOT))
-(def TASKERRORS-SUBTREE (str "/" TASKERRORS-ROOT))
+(def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
+(def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
 
 (defn supervisor-path [id]
   (str SUPERVISORS-SUBTREE "/" id))
@@ -146,24 +145,17 @@
 (defn storm-path [id]
   (str STORMS-SUBTREE "/" id))
 
-(defn storm-task-root [storm-id]
-  (str TASKS-SUBTREE "/" storm-id))
+(defn workerbeat-storm-root [storm-id]
+  (str WORKERBEATS-SUBTREE "/" storm-id))
 
-(defn task-path [storm-id task-id]
-  (str (storm-task-root storm-id) "/" task-id))
+(defn workerbeat-path [storm-id node port]
+  (str (workerbeat-storm-root storm-id) "/" node "-" port))
 
-(defn taskbeat-storm-root [storm-id]
-  (str TASKBEATS-SUBTREE "/" storm-id))
+(defn error-storm-root [storm-id]
+  (str ERRORS-SUBTREE "/" storm-id))
 
-(defn taskbeat-path [storm-id task-id]
-  (str (taskbeat-storm-root storm-id) "/" task-id))
-
-(defn taskerror-storm-root [storm-id]
-  (str TASKERRORS-SUBTREE "/" storm-id))
-
-(defn taskerror-path [storm-id task-id]
-  (str (taskerror-storm-root storm-id) "/" task-id))
-
+(defn error-path [storm-id component-id]
+  (str (error-storm-root storm-id) "/" (url-encode component-id)))
 
 (defn- issue-callback! [cb-atom]
   (let [cb @cb-atom]
@@ -184,6 +176,21 @@
     (Utils/deserialize ser)))
 
 (defstruct TaskError :error :time-secs)
+
+(defn- parse-error-path [^String p]
+  (Long/parseLong (.substring p 1)))
+
+
+(defn convert-task-beats [tasks worker-hb]
+  ;; ensures that we only return heartbeats for tasks assigned to this worker
+  (let [task-stats (:task-stats worker-hb)]
+    (->> tasks
+      (map (fn [t] 
+             (if (contains? task-stats t)
+               {t {:time-secs (:time-secs worker-hb)
+                    :uptime (:uptime worker-hb)
+                    :stats (get task-stats t)}})))
+      (into {}))))
 
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defn mk-storm-cluster-state [cluster-state-spec]
@@ -208,7 +215,7 @@
                           (halt-process! 30 "Unknown callback for subtree " subtree args)
                           )
                       )))]
-    (doseq [p [ASSIGNMENTS-SUBTREE TASKS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE TASKBEATS-SUBTREE TASKERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
       (mkdirs cluster-state p))
     (reify
      StormClusterState
@@ -229,34 +236,29 @@
         )
 
       (heartbeat-storms [this]
-        (get-children cluster-state TASKBEATS-SUBTREE false)
+        (get-children cluster-state WORKERBEATS-SUBTREE false)
         )
 
-      (task-error-storms [this]
-         (get-children cluster-state TASKERRORS-SUBTREE false)
-         )
-      
-      (heartbeat-tasks [this storm-id]
-        (get-children cluster-state (taskbeat-storm-root storm-id) false)
+      (error-topologies [this]
+         (get-children cluster-state ERRORS-SUBTREE false)
         )
 
-      (task-storms [this]
-        (get-children cluster-state TASKS-SUBTREE false)
-        )
+      (get-worker-heartbeat [this storm-id node port]
+        (-> cluster-state
+            (get-data (workerbeat-path storm-id node port) false)
+            maybe-deserialize))
 
-      (task-ids [this storm-id]
-        (map parse-int
-          (get-children cluster-state (storm-task-root storm-id) false)
-          ))
-
-      (task-info [this storm-id task-id]
-        (maybe-deserialize (get-data cluster-state (task-path storm-id task-id) false))
-        )
-
-      ;; TODO: add a callback here so that nimbus can respond immediately when it goes down? 
-      (task-heartbeat [this storm-id task-id]
-        (maybe-deserialize (get-data cluster-state (taskbeat-path storm-id task-id) false))
-        )
+      (taskbeats [this storm-id task->node+port]
+        ;; need to take task->node+port in explicitly so that we don't run into a situation where a 
+        ;; long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
+        ;; with an assigned node+port, and only reading tasks from that heartbeat that are actually assigned,
+        ;; we avoid situations like that
+        (let [node+port->tasks (reverse-map task->node+port)
+              all-heartbeats (for [[[node port] tasks] node+port->tasks :let [tasks (set tasks)]]
+                                (->> (get-worker-heartbeat this storm-id node port)
+                                     (convert-task-beats tasks)
+                                     ))]
+          (apply merge all-heartbeats)))
 
       (supervisors [this callback]
         (when callback
@@ -268,31 +270,26 @@
         (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false))
         )
 
-      (set-task! [this storm-id task-id info]
-        (set-data cluster-state (task-path storm-id task-id) (Utils/serialize info))
-        )
+      (worker-heartbeat! [this storm-id node port info]
+        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info)))
 
-      (task-heartbeat! [this storm-id task-id info]
-        (set-data cluster-state (taskbeat-path storm-id task-id) (Utils/serialize info))
-        )
-
-      (remove-task-heartbeat! [this storm-id task-id]
-        (delete-node cluster-state (taskbeat-path storm-id task-id))
+      (remove-worker-heartbeat! [this storm-id node port]
+        (delete-node cluster-state (workerbeat-path storm-id node port))
         )
 
       (setup-heartbeats! [this storm-id]
-        (mkdirs cluster-state (taskbeat-storm-root storm-id)))
+        (mkdirs cluster-state (workerbeat-storm-root storm-id)))
 
       (teardown-heartbeats! [this storm-id]
         (try-cause
-         (delete-node cluster-state (taskbeat-storm-root storm-id))
+         (delete-node cluster-state (workerbeat-storm-root storm-id))
          (catch KeeperException e
            (log-warn-error e "Could not teardown heartbeats for " storm-id)
            )))
 
-      (teardown-task-errors! [this storm-id]
+      (teardown-topology-errors! [this storm-id]
         (try-cause
-         (delete-node cluster-state (taskerror-storm-root storm-id))         
+         (delete-node cluster-state (error-storm-root storm-id))         
          (catch KeeperException e
            (log-warn-error e "Could not teardown errors for " storm-id)
            )))
@@ -306,10 +303,13 @@
         )
 
       (update-storm! [this storm-id new-elems]
-        (set-data cluster-state (storm-path storm-id)
-                                (-> (storm-base this storm-id nil)
-                                    (merge new-elems)
-                                    Utils/serialize)))
+        (let [base (storm-base this storm-id nil)
+              executors (:component->executors base)
+              new-elems (update new-elems :component->executors (partial merge executors))]
+          (set-data cluster-state (storm-path storm-id)
+                                  (-> base
+                                      (merge new-elems)
+                                      Utils/serialize))))
 
       (storm-base [this storm-id callback]
         (when callback
@@ -326,38 +326,34 @@
         )
 
       (remove-storm! [this storm-id]
-        (delete-node cluster-state (storm-task-root storm-id))
         (delete-node cluster-state (assignment-path storm-id))
         (remove-storm-base! this storm-id))
 
-      (report-task-error [this storm-id task-id error]
-                         (let [path (taskerror-path storm-id task-id)
-                               _ (mkdirs cluster-state path)
-                               children (get-children cluster-state path false)
-                               times (sort (map #(Integer/parseInt %) children))                               
-                               ]
-                           (if (>= (count times) 10)
-                             (delete-node cluster-state (str path "/" (first times)))
-                             )
-                           (set-data cluster-state
-                                      (str path "/" (current-time-secs))
-                                      (.getBytes ^String (stringify-error error)))
-                           ))
+      (report-error [this storm-id component-id error]                
+         (let [path (error-path storm-id component-id)
+               data {:time-secs (current-time-secs) :error (stringify-error error)}
+               _ (mkdirs cluster-state path)
+               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data))
+               to-kill (->> (get-children cluster-state path false)
+                            (sort-by parse-error-path)
+                            reverse
+                            (drop 10))]
+           (doseq [k to-kill]
+             (delete-node cluster-state (str path "/" k)))))
 
-      (task-errors [this storm-id task-id]
-                   (let [path (taskerror-path storm-id task-id)
-                         _ (mkdirs cluster-state path)
-                         children (get-children cluster-state path false)
-                         errors (dofor [c children]
-                                       (let [^bytes v (get-data cluster-state (str path "/" c) false)]
-                                         (when v
-                                           (struct TaskError (String. v) (Integer/parseInt c))
-                                           )))
-                         ]
-                     (->> (filter not-nil? errors)
-                          (sort-by :time-secs)
-                          )                     
-                     ))
+      (errors [this storm-id component-id]
+         (let [path (error-path storm-id component-id)
+               _ (mkdirs cluster-state path)
+               children (get-children cluster-state path false)
+               errors (dofor [c children]
+                             (let [data (-> (get-data cluster-state (str path "/" c) false)
+                                            maybe-deserialize)]
+                               (when data
+                                 (struct TaskError (:error data) (:time-secs data))
+                                 )))
+               ]
+           (->> (filter not-nil? errors)
+                (sort-by (comp - :time-secs)))))
       
       (disconnect [this]
         (unregister cluster-state state-id)

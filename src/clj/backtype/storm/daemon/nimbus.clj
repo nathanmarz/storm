@@ -77,7 +77,7 @@
     ))
 
 (defn rebalance-transition [nimbus storm-id status]
-  (fn [time]
+  (fn [time num-workers executor-overrides]
     (let [delay (if time
                   time
                   (get (read-storm-conf (:conf nimbus) storm-id)
@@ -89,6 +89,8 @@
       {:type :rebalancing
        :delay-secs delay
        :old-status status
+       :num-workers num-workers
+       :executor-overrides executor-overrides
        })))
 
 (defn reassign-transition [nimbus storm-id]
@@ -96,6 +98,15 @@
     (reassign-topology nimbus storm-id)
     nil
     ))
+
+(defn do-rebalance [nimbus storm-id status]
+  (.update-storm! (:storm-cluster-state nimbus)
+                  storm-id
+                  (assoc-non-nil
+                    {:component->executors (:executor-overrides status)}
+                    :num-workers
+                    (:num-workers status)))
+  (mk-assignments nimbus storm-id :scratch? true))
 
 (defn state-transitions [nimbus storm-id status]
   {:active {:monitor (reassign-transition nimbus storm-id)
@@ -127,7 +138,7 @@
                                               :do-rebalance))
                  :kill (kill-transition nimbus storm-id)
                  :do-rebalance (fn []
-                                 (mk-assignments nimbus storm-id :scratch? true)
+                                 (do-rebalance nimbus storm-id status)
                                  (:old-status status))
                  }})
 
@@ -292,20 +303,6 @@
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn mk-task-maker [storm-conf id-counter]
-  (fn [[component-id spec]]
-    (let [common (.get_common spec)
-          declared (thrift/parallelism-hint common)
-          storm-conf (merge storm-conf
-                            (from-json (.get_json_conf common)))
-          max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-          parallelism (if max-parallelism
-                        (min declared max-parallelism)
-                        declared)]
-      (for-times parallelism
-                 [(id-counter) component-id])
-      )))
-
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
    (FileUtils/forceMkdir (File. stormroot))
@@ -329,37 +326,14 @@
                       (read-storm-conf conf storm-id)
                       (read-storm-topology conf storm-id))))
 
-;; public so it can be mocked in tests
-(defn mk-task-component-assignments [conf storm-id]
-  (let [storm-conf (read-storm-conf conf storm-id)
-        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
-        counter (mk-counter)
-        tasks (concat
-               (mapcat (mk-task-maker storm-conf counter)
-                       (.get_bolts topology))
-               (mapcat (mk-task-maker storm-conf counter)
-                       (.get_spouts topology))
-               (mapcat (mk-task-maker storm-conf counter)
-                       (.get_state_spouts topology))
-               )]
-    (into {}
-      tasks)
-    ))
-
-(defn- setup-storm-static [conf storm-id storm-cluster-state]
-  (doseq [[task-id component-id] (mk-task-component-assignments conf storm-id)]
-    (.set-task! storm-cluster-state storm-id task-id (TaskInfo. component-id))
-    ))
-
-
 ;; Does not assume that clocks are synchronized. Task heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
 ;; tracked through task-heartbeat-cache
-(defn- alive-tasks [conf storm-id storm-cluster-state task-ids task-start-times task-heartbeats-cache]
+(defn- alive-tasks [conf storm-id taskbeats task-ids task-start-times task-heartbeats-cache]
   (doall
     (filter
       (fn [task-id]
-        (let [heartbeat (.task-heartbeat storm-cluster-state storm-id task-id)
+        (let [heartbeat (get taskbeats task-id)
               reported-time (:time-secs heartbeat)
               {last-nimbus-time :nimbus-time
                last-reported-time :task-reported-time} (get-in @task-heartbeats-cache
@@ -429,19 +403,23 @@
         task-heartbeats-cache (:task-heartbeats-cache nimbus)
         storm-id (.getId topology-details)
         
+        storm-base (.storm-base storm-cluster-state storm-id nil)
+        
+        
         available-slots (available-slots nimbus callback topology-details)
         storm-conf (read-storm-conf conf storm-id)
-        all-task-ids (set (.task-ids storm-cluster-state storm-id))
+        all-task-ids (-> (read-storm-topology conf storm-id) (storm-task-info storm-conf) keys set)
+        taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port existing-assignment))
         existing-assigned (reverse-map (:task->node+port existing-assignment))
         alive-ids (if scratch?
                     all-task-ids
-                    (set (alive-tasks conf storm-id storm-cluster-state
+                    (set (alive-tasks conf storm-id taskbeats
                                       all-task-ids (:task->start-time-secs existing-assignment)
                                       task-heartbeats-cache)))
         
         alive-assigned (filter-val (partial every? alive-ids) existing-assigned)
 
-        total-slots-to-use (min (storm-conf TOPOLOGY-WORKERS)
+        total-slots-to-use (min (:num-workers storm-base)
                                 (+ (count available-slots) (count alive-assigned)))
         keep-assigned (if scratch?
                         {}
@@ -541,13 +519,20 @@
       (mk-assignments nimbus
                       storm-id))))
 
-(defn- start-storm [storm-name storm-cluster-state storm-id]
-  (log-message "Activating " storm-name ": " storm-id)
-  (.activate-storm! storm-cluster-state
-                    storm-id
-                    (StormBase. storm-name
-                                (current-time-secs)
-                                {:type :active})))
+(defn- start-storm [nimbus storm-name storm-id]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        conf (:conf nimbus)
+        storm-conf (read-storm-conf conf storm-id)
+        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
+        executors (->> (all-components topology) (map-val num-start-executors))]
+    (log-message "Activating " storm-name ": " storm-id)
+    (.activate-storm! storm-cluster-state
+                      storm-id
+                      (StormBase. storm-name
+                                  (current-time-secs)
+                                  {:type :active}
+                                  (storm-conf TOPOLOGY-WORKERS)
+                                  executors))))
 
 ;; Master:
 ;; job submit:
@@ -577,7 +562,7 @@
 
 (defn cleanup-storm-ids [conf storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
-        error-ids (set (.task-error-storms storm-cluster-state))
+        error-ids (set (.error-topologies storm-cluster-state))
         code-ids (code-ids conf)
         assigned-ids (set (.active-storms storm-cluster-state))]
     (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
@@ -611,7 +596,10 @@
     (merge storm-conf
            {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
                                           (mapify-serializations base-sers))
-            TOPOLOGY-ACKERS (total-conf TOPOLOGY-ACKERS)})
+            TOPOLOGY-ACKER-TASKS (total-conf TOPOLOGY-ACKER-TASKS)
+            TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
+            TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+            })
     ))
 
 (defn do-cleanup [nimbus]
@@ -624,7 +612,7 @@
         (doseq [id to-cleanup-ids]
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
-          (.teardown-task-errors! storm-cluster-state id)
+          (.teardown-topology-errors! storm-cluster-state id)
           (rmr (master-stormdist-root conf id))
           (swap! (:task-heartbeats-cache nimbus) dissoc id))
         ))))
@@ -653,6 +641,10 @@
       (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
       (.remove-storm! storm-cluster-state corrupt)
       )))
+
+(defn- get-errors [storm-cluster-state storm-id component-id]
+  (->> (.errors storm-cluster-state storm-id component-id)
+       (map #(ErrorInfo. (:error %) (:time-secs %)))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -701,9 +693,8 @@
           (locking (:submit-lock nimbus)
             (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
             (.setup-heartbeats! storm-cluster-state storm-id)
-            (setup-storm-static conf storm-id storm-cluster-state)
-            (mk-assignments nimbus storm-id)
-            (start-storm storm-name storm-cluster-state storm-id))
+            (start-storm nimbus storm-name storm-id)
+            (mk-assignments nimbus storm-id))
           ))
       
       (^void killTopology [this ^String name]
@@ -720,10 +711,14 @@
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (check-storm-active! nimbus storm-name true)
         (let [wait-amt (if (.is_set_wait_secs options)
-                         (.get_wait_secs options)                         
-                         )]
-          (transition-name! nimbus storm-name [:rebalance wait-amt] true)
-          ))      
+                         (.get_wait_secs options))
+              num-workers (if (.is_set_num_workers options)
+                            (.get_num_workers options))
+              executor-overrrides (if (.is_set_num_executors options)
+                                    (.get_num_executors options)
+                                    {})]
+          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrrides] true)
+          ))
 
       (activate [this storm-name]
         (transition-name! nimbus storm-name :activate true)
@@ -788,6 +783,9 @@
       (^StormTopology getTopology [this ^String id]
         (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
 
+      (^StormTopology getUserTopology [this ^String id]
+        (read-storm-topology conf id))
+
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               assigned (assigned-slots storm-cluster-state)
@@ -827,17 +825,22 @@
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              task-info (storm-task-info storm-cluster-state storm-id)
+              task-info (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
+              taskbeats (.taskbeats storm-cluster-state storm-id (:task->node+port assignment))
+              all-components (-> task-info reverse-map keys)
+              errors (->> task-info
+                          reverse-map
+                          keys
+                          (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
+                          (into {}))
               task-summaries (if (empty? (:task->node+port assignment))
                                []
                                (dofor [[task component] task-info]
                                     (let [[node port] (get-in assignment [:task->node+port task])
                                           host (-> assignment :node->host (get node))
-                                          heartbeat (.task-heartbeat storm-cluster-state storm-id task)
-                                          errors (.task-errors storm-cluster-state storm-id task)
-                                          errors (dofor [e errors] (ErrorInfo. (:error e) (:time-secs e)))
+                                          heartbeat (get taskbeats task)
                                           stats (:stats heartbeat)
                                           stats (if stats
                                                   (stats/thriftify-task-stats stats))]
@@ -846,10 +849,7 @@
                                                         component
                                                         host
                                                         port
-                                                        (nil-to-zero
-                                                         (:uptime-secs heartbeat))
-                                                        errors
-                                                        )
+                                                        (nil-to-zero (:uptime-secs heartbeat)))
                                         (.set_stats stats))
                                       )))
               ]
@@ -858,6 +858,7 @@
                          (time-delta (:launch-time-secs base))
                          task-summaries
                          (extract-status-str base)
+                         errors
                          )
           ))
       

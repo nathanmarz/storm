@@ -335,7 +335,7 @@
 (defnk launch-process [command :environment {}]
   (let [command (->> (seq (.split command " "))
                      (filter (complement empty?)))
-        builder (ProcessBuilder. (cons "nohup" command))
+        builder (ProcessBuilder. command)
         process-env (.environment builder)]
     (doseq [[k v] environment]
       (.put process-env k v))
@@ -508,6 +508,9 @@
       (throw (IllegalArgumentException. "Nothing to remove")))
     (concat b (rest e))
     ))
+
+(defn assoc-non-nil [m k v]
+  (if v (assoc m k v) m))
 
 (defn multi-set
   "Returns a map of elem to count"
@@ -689,3 +692,6 @@
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
     (some? #(.startsWith % (str target "/")) entries)
     ))
+
+(defn url-encode [s]
+  (java.net.URLEncoder/encode s))

@@ -1,0 +1,10 @@
+= storm_thrift
+
+Ruby bindings for thrift gem.
+
+== Instructions
+
+To build:
+```
+gem build storm_thrift.gemspec
+```

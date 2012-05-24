@@ -1,0 +1,5 @@
+module StormThrift
+  THRIFT_VERSION = "0.5.0"
+  BINDINGS_CHECKSUM = "fbe2d2f3e49e75806d1e6c98fc92061f06747e94"
+  VERSION = "0.0.1"
+end

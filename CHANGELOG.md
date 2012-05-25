@@ -32,6 +32,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Bug fix: Fixed NPE in CoordinatedBolt it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
  * Bug fix: UI no longer errors for topologies with no assigned tasks (thanks xumingming)
  * Bug fix: emitDirect on SpoutOutputCollector now works
+ * Bug fix: Fixed NPE when giving null parallelism hint for spout in TransactionalTopologyBuilder (thanks xumingming)
 
 ## 0.7.1
 

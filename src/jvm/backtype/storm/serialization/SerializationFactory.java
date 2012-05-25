@@ -9,10 +9,9 @@ import backtype.storm.utils.ListDelegate;
 import backtype.storm.utils.Utils;
 import carbonite.JavaBridge;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.ObjectBuffer;
 import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.serialize.BigIntegerSerializer;
-import com.esotericsoftware.kryo.serialize.SerializableSerializer;
+import com.esotericsoftware.kryo.serializers.DefaultSerializers.BigIntegerSerializer;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,21 +30,21 @@ public class SerializationFactory {
         
         public void overrideDefault(boolean value) {
             _override = value;
-        }
+        }                
         
         @Override
-        protected Serializer newDefaultSerializer(Class type) {
+        public Serializer getDefaultSerializer(Class type) {
             if(_override) {
-                return new SerializableSerializer();
+                return new JavaSerializer();
             } else {
-                return super.newDefaultSerializer(type);
+                return super.getDefaultSerializer(type);
             }
         }        
     }
     
-    public static ObjectBuffer getKryo(Map conf) {
+    public static Kryo getKryo(Map conf) {
         KryoSerializableDefault k = new KryoSerializableDefault();
-        k.setRegistrationOptional((Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION));
+        k.setRegistrationRequired(!((Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION)));
         k.register(byte[].class);
         k.register(ListDelegate.class);
         k.register(ArrayList.class);
@@ -54,9 +53,12 @@ public class SerializationFactory {
         k.register(BigInteger.class, new BigIntegerSerializer());
         k.register(TransactionAttempt.class);
         k.register(Values.class);
-        JavaBridge clojureSerializersBridge = new JavaBridge();
-        clojureSerializersBridge.registerClojureCollections(k);
-        clojureSerializersBridge.registerClojurePrimitives(k);
+        try {
+            JavaBridge.registerPrimitives(k);
+            JavaBridge.registerCollections(k);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
         
         Map<String, String> registrations = normalizeKryoRegister(conf);
 
@@ -87,7 +89,7 @@ public class SerializationFactory {
             }
         }
         k.overrideDefault(true);
-        return new ObjectBuffer(k, 2000, 2000000000);        
+        return k;   
     }
     
     public static class IdDictionary {        

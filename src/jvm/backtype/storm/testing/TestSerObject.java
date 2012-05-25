@@ -14,6 +14,7 @@ public class TestSerObject implements Serializable {
     @Override
     public boolean equals(Object o) {
         TestSerObject other = (TestSerObject) o;
+        if(o==null) return false;
         return f1 == other.f1 && f2 == other.f2;
     }
         

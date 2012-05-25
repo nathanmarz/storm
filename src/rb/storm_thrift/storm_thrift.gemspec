@@ -1,7 +1,4 @@
 # -*- encoding: utf-8 -*-
-$:.push File.expand_path("../lib", __FILE__)
-require "storm_thrift/version"
-
 Gem::Specification.new do |s|
   s.name        = "storm_thrift"
   s.version     = "0.0.1"

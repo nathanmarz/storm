@@ -221,7 +221,7 @@
                 (reset! (:cached-task->node+port worker)
                         (HashMap. my-assignment)))
               (doseq [endpoint remove-connections]
-                (.close (@(:cached-node+port->socket worker) endpoint)))
+                (.close (get @(:cached-node+port->socket worker) endpoint)))
               (apply swap!
                      (:cached-node+port->socket worker)
                      #(HashMap. (dissoc (into {} %1) %&))

@@ -1,6 +1,6 @@
 (ns backtype.storm.util
   (:import [java.net InetAddress])
-  (:import [java.util Map Map$Entry List ArrayList Collection Iterator])
+  (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
@@ -604,9 +604,10 @@
        (<= val upper)))
 
 (defmacro benchmark [& body]
-  `(time
-    (doseq [i# (range 1000000)]
-      ~@body)))
+  `(let [l# (doall (range 1000000))]
+     (time
+       (doseq [i# l#]
+         ~@body))))
 
 (defn rand-sampler [freq]
   (let [r (java.util.Random.)]
@@ -785,3 +786,24 @@
             ~bind (convert-entry entry#)]
         ~@body
         ))))
+
+(defn fast-first [^List alist]
+  (.get alist 0))
+
+(defmacro get-with-default [amap key default-val]
+  `(let [curr# (.get ~amap ~key)]
+     (if curr#
+       curr#
+       (do
+         (let [new# ~default-val]
+           (.put ~amap ~key new#)
+           new#
+           )))))
+
+(defn fast-group-by [afn alist]
+  (let [ret (HashMap.)]
+    (fast-list-iter [e alist]
+      (let [key (afn e)
+            ^List curr (get-with-default ret key (ArrayList.))]
+        (.add curr e)))
+    ret ))

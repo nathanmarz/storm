@@ -70,10 +70,10 @@
 
 (defn mk-transfer-local-fn [worker]
   (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
-        task->short-executor (:task->short-executor worker)]
+        task->short-executor (:task->short-executor worker)
+        task-getter (comp #(get task->short-executor %) fast-first)]
     (fn [tuple-batch]
-      (let [grouped (group-by (comp task->short-executor first) tuple-batch)]
-        ;;TODO: Need a fast map iter
+      (let [grouped (fast-group-by task-getter tuple-batch)]
         (fast-map-iter [[short-executor pairs] grouped]
           (let [q (short-executor-receive-queue-map short-executor)]
             (if q
@@ -165,7 +165,8 @@
       :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
       :task->short-executor (->> executors
                                  (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
-                                 (into {}))
+                                 (into {})
+                                 (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
       :uptime (uptime-computer)
       :transfer-local-fn (mk-transfer-local-fn <>)

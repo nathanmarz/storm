@@ -51,3 +51,7 @@ You must not remove this notice, or any other, from this software.
 * Nicolas Yzet ([@nicoo](https://github.com/nicoo))
 * Fabian Neumann ([@hellp](https://github.com/hellp))
 * Soren Macbeth ([@sorenmacbeth](https://github.com/sorenmacbeth))
+
+## Acknowledgements
+
+YourKit is kindly supporting open source projects with its full-featured Java Profiler. YourKit, LLC is the creator of innovative and intelligent tools for profiling Java and .NET applications. Take a look at YourKit's leading software products: [YourKit Java Profiler](http://www.yourkit.com/java/profiler/index.jsp) and [YourKit .NET Profiler](http://www.yourkit.com/.net/profiler/index.jsp).

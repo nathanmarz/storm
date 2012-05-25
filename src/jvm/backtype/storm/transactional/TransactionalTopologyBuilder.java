@@ -52,7 +52,7 @@ public class TransactionalTopologyBuilder {
         _id = id;
         _spoutId = spoutId;
         _spout = spout;
-        _spoutParallelism = spoutParallelism.intValue();
+        _spoutParallelism = (spoutParallelism == null) ? null : spoutParallelism.intValue();
     }
     
     public TransactionalTopologyBuilder(String id, String spoutId, ITransactionalSpout spout) {

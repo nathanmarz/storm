@@ -14,6 +14,7 @@
  * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
  * MemoryTransactionalSpout now works on a cluster
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
+ * Upgrade Kryo to v2.04
 
 ## 0.7.2 (unreleased but release candidate available)
 

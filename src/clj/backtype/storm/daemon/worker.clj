@@ -173,6 +173,14 @@
       :transfer-fn (mk-transfer-fn <>)
       )))
 
+(defn- endpoint->string [[node port]]
+  (str port "/" node))
+
+(defn string->endpoint [^String s]
+  (let [[port-str node] (.split s "/" 2)]
+    [node (Integer/valueOf port-str)]
+    ))
+
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)
@@ -183,7 +191,11 @@
         (this (fn [& ignored] (schedule (:timer worker) 0 this))))
       ([callback]
         (let [assignment (.assignment-info storm-cluster-state storm-id callback)
-              my-assignment (-> assignment :executor->node+port to-task->node+port (select-keys outbound-tasks))
+              my-assignment (-> assignment
+                                :executor->node+port
+                                to-task->node+port
+                                (select-keys outbound-tasks)
+                                (#(map-val endpoint->string %)))
               ;; we dont need a connection for the local tasks anymore
               needed-connections (->> my-assignment
                                       (filter-key (complement (-> worker :task-ids set)))
@@ -193,10 +205,11 @@
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
               (swap! (:cached-node+port->socket worker)
-                     merge
+                     #(HashMap. (merge (into {} %1) %2))
                      (into {}
-                       (dofor [[node port :as endpoint] new-connections]
-                         [endpoint
+                       (dofor [endpoint-str new-connections
+                               :let [[node port] (string->endpoint endpoint-str)]]
+                         [endpoint-str
                           (msg/connect
                            (:mq-context worker)
                            storm-id
@@ -205,12 +218,13 @@
                           ]
                          )))
               (write-locked (:endpoint-socket-lock worker)
-                (reset! (:cached-task->node+port worker) my-assignment))
+                (reset! (:cached-task->node+port worker)
+                        (HashMap. my-assignment)))
               (doseq [endpoint remove-connections]
                 (.close (@(:cached-node+port->socket worker) endpoint)))
               (apply swap!
                      (:cached-node+port->socket worker)
-                     dissoc
+                     #(HashMap. (dissoc (into {} %1) %&))
                      remove-connections)
           )))))
 
@@ -243,10 +257,9 @@
             ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
             
             (fast-list-iter [[task ser-tuple] drainer]
-              ;; TODO: this lookup (with the vector is expensive)
-              ;; TODO: write a batch of tuples here to every target worker  
+              ;; TODO: consider write a batch of tuples here to every target worker  
               ;; group by node+port, do multipart send              
-              (let [socket (node+port->socket (task->node+port task))]
+              (let [socket (get node+port->socket (get task->node+port task))]
                 (msg/send socket task ser-tuple)
                 ))))
         (.clear drainer)))))

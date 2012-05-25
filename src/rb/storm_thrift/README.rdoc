@@ -4,7 +4,12 @@ Ruby bindings for thrift gem.
 
 == Instructions
 
-To build:
+# Generating ruby bindings:
+```
+thrift --gen rb -o lib/ ../..//storm.thrift
+```
+
+# Building the gem:
 ```
 gem build storm_thrift.gemspec
 ```

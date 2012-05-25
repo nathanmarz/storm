@@ -5,9 +5,7 @@
 #
 
 require 'thrift'
-require 'storm_thrift/thrift/storm_types'
-
-module StormThrift
+require 'storm_types'
 
         module BackType
           module Storm
@@ -91,5 +89,3 @@ module StormThrift
 
           end
         end
-
-end

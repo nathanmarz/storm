@@ -4,8 +4,6 @@
 # DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
 #
 
-module StormThrift
-
 
 module BackType
   module Storm
@@ -778,5 +776,3 @@ module BackType
 
       end
     end
-
-end

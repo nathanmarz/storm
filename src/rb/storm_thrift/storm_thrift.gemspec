@@ -4,7 +4,7 @@ require "storm_thrift/version"
 
 Gem::Specification.new do |s|
   s.name        = "storm_thrift"
-  s.version     = StormThrift::VERSION
+  s.version     = "0.0.1"
   s.authors     = ["Argyris Zymnis"]
   s.email       = ["argyris@twitter.com"]
   s.homepage    = ""

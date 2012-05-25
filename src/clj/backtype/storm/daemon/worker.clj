@@ -158,8 +158,8 @@
       :component->stream->fields (component->stream->fields (:system-topology <>))
       :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
       :endpoint-socket-lock (mk-rw-lock)
-      :node+port->socket (atom {})
-      :task->node+port (atom {})
+      :cached-node+port->socket (atom {})
+      :cached-task->node+port (atom {})
       :transfer-queue transfer-queue
       :executor-receive-queue-map executor-receive-queue-map
       :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
@@ -189,10 +189,10 @@
                                       (filter-key (complement (-> worker :task-ids set)))
                                       vals
                                       set)
-              current-connections (set (keys @(:node+port->socket worker)))
+              current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
-              (swap! (:node+port->socket worker)
+              (swap! (:cached-node+port->socket worker)
                      merge
                      (into {}
                        (dofor [[node port :as endpoint] new-connections]
@@ -205,11 +205,11 @@
                           ]
                          )))
               (write-locked (:endpoint-socket-lock worker)
-                (reset! (:task->node+port worker) my-assignment))
+                (reset! (:cached-task->node+port worker) my-assignment))
               (doseq [endpoint remove-connections]
-                (.close (@(:node+port->socket worker) endpoint)))
+                (.close (@(:cached-node+port->socket worker) endpoint)))
               (apply swap!
-                     (:node+port->socket worker)
+                     (:cached-node+port->socket worker)
                      dissoc
                      remove-connections)
           )))))
@@ -229,8 +229,8 @@
 (defn mk-transfer-tuples-handler [worker]
   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
         drainer (ArrayList.)
-        node+port->socket (:node+port->socket worker)
-        task->node+port (:task->node+port worker)
+        node+port->socket (:cached-node+port->socket worker)
+        task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
         ]
     (fn [packets _ batch-end?]
@@ -299,7 +299,7 @@
                     (doseq [[_ q] (:executor-receive-queue-map worker)]
                       (.haltProcessing q))
                     (doseq [executor executors] (.shutdown executor))
-                    (doseq [[_ socket] @(:node+port->socket worker)]
+                    (doseq [[_ socket] @(:cached-node+port->socket worker)]
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))

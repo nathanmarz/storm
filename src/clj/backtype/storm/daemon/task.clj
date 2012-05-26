@@ -1,7 +1,6 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
@@ -76,6 +75,8 @@
              (~method-sym ~hook-sym info#)
              ))))))
 
+
+;; TODO: this is all expensive... should be precomputed
 (defn send-unanchored [task-data stream values]
   (let [^TopologyContext topology-context (:system-context task-data)
         tasks-fn (:tasks-fn task-data)

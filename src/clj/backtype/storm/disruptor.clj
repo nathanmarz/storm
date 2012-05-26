@@ -1,5 +1,5 @@
 (ns backtype.storm.disruptor
-  (:import [backtype.storm.utils DisruptorQueue])
+  (:import [backtype.storm.utils DisruptorQueue NonBlockingPairDisruptorQueue])
   (:import [com.lmax.disruptor MultiThreadedClaimStrategy SingleThreadedClaimStrategy
               BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy
               BusySpinWaitStrategy])
@@ -26,9 +26,6 @@
                    ((WAIT-STRATEGY wait-strategy))
                    ))
 
-(defn publish [^DisruptorQueue queue obj]
-  (.publish queue obj))
-
 (defn to-halt-function [error-fn]
   (fn [t]
     (when (exception-cause? InterruptedException t)
@@ -40,8 +37,34 @@
 (defnk set-handler [^DisruptorQueue queue handler-fn
                     :error-fn (fn [t] (log-error t) (halt-process! 1 "Error in transfer thread"))]
   (.setHandler queue
-     (reify com.lmax.disruptor.EventHandler
-       (onEvent [this o seq-id batchEnd?]
-         (with-error-reaction (to-halt-function error-fn)
-           (handler-fn o seq-id batchEnd?)
-           )))))
+    (reify com.lmax.disruptor.EventHandler
+      (onEvent [this o seq-id batchEnd?]
+        (with-error-reaction (to-halt-function error-fn)
+          (handler-fn o seq-id batchEnd?)
+          )))))
+
+(defn clojure-handler [afn]
+  (reify com.lmax.disruptor.EventHandler
+    (onEvent [this o seq-id batchEnd?]
+      (afn o seq-id batchEnd?)
+      )))
+
+(defn non-blocking-disruptor-queue [buffer-size]
+  (NonBlockingPairDisruptorQueue. buffer-size))
+
+(defn consume-batch [^NonBlockingPairDisruptorQueue queue handler]
+  (.consumeBatch queue handler))
+
+(defmacro handler [& args]
+  `(clojure-handler (fn ~@args)))
+
+(defprotocol QueuePublish
+  (publish [this o]))
+
+(extend-protocol QueuePublish
+  NonBlockingPairDisruptorQueue
+  (publish [^NonBlockingPairDisruptorQueue this obj]
+    (.publish this obj))
+  DisruptorQueue
+  (publish [^DisruptorQueue this obj]
+    (.publish this obj)))

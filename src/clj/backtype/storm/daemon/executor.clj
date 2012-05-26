@@ -1,7 +1,6 @@
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
@@ -276,7 +275,8 @@
         last-active (atom false)
         component-id (:component-id executor-data)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
-        event-queue (ConcurrentLinkedQueue.)
+        event-queue (disruptor/non-blocking-disruptor-queue (storm-conf TOPOLOGY-SPOUT-EVENT-BUFFER-SIZE))
+        event-handler (disruptor/handler [event _ _] (event))
         worker-context (:worker-context executor-data)
         transfer-fn (:transfer-fn executor-data)
         report-error-fn (:report-error-fn executor-data)
@@ -290,7 +290,7 @@
                  (reify TimeCacheMap$ExpiredCallback
                    (expire [this msg-id [task-id spout-id tuple-info start-time-ms]]
                      (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
-                       (.add event-queue #(fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta)))
+                       (disruptor/publish event-queue #(fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta)))
                      )))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           (let [id (.getValue tuple 0)
@@ -300,10 +300,10 @@
                                 (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
                               (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                                 (condp = (.getSourceStreamId tuple)
-                                    ACKER-ACK-STREAM-ID (.add event-queue #(ack-spout-msg executor-data (get task-datas task-id)
-                                                                              spout-id tuple-finished-info time-delta))
-                                    ACKER-FAIL-STREAM-ID (.add event-queue #(fail-spout-msg executor-data (get task-datas task-id)
-                                                                                  spout-id tuple-finished-info time-delta))
+                                    ACKER-ACK-STREAM-ID (disruptor/publish event-queue #(ack-spout-msg executor-data (get task-datas task-id)
+                                                                  spout-id tuple-finished-info time-delta))
+                                    ACKER-FAIL-STREAM-ID (disruptor/publish event-queue #(fail-spout-msg executor-data (get task-datas task-id)
+                                                                  spout-id tuple-finished-info time-delta))
                                     )))
                             ;; TODO: on failure, emit tuple to failure stream
                             ))]
@@ -338,7 +338,7 @@
                                                                ACKER-INIT-STREAM-ID
                                                                [root-id (bit-xor-vals out-ids) task-id]))
                                        (when message-id
-                                         (.add event-queue #(ack-spout-msg executor-data task-data message-id {:stream out-stream-id :values values} 0))))
+                                         (disruptor/publish event-queue #(ack-spout-msg executor-data task-data message-id {:stream out-stream-id :values values} 0))))
                                      (or out-tasks [])
                                      ))]]      
       (.open spout-obj
@@ -362,11 +362,7 @@
     [(mk-task-receiver executor-data tuple-action-fn)
      (fn []
        ;; This design requires that spouts be non-blocking
-       (loop []
-         (when-let [event (.poll event-queue)]
-           (event)
-           (recur)
-           ))
+       (disruptor/consume-batch event-queue event-handler)
        (if (or (not max-spout-pending)
                (< (.size pending) max-spout-pending))
          (if-let [active? (wait-fn)]

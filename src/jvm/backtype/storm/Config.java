@@ -420,21 +420,26 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
-     * The size of the Disruptor receive queue for each executor.
+     * The size of the Disruptor receive queue for each executor. Must be a power of 2.
      */
     public static String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
 
     /**
      * The maximum number of messages to batch from the thread receiving off the network to the 
-     * executor queues.
+     * executor queues. Must be a power of 2.
      */
     public static String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
 
     /**
-     * The size of the Disruptor send queue for each executor.
+     * The size of the Disruptor send queue for each executor. Must be a power of 2.
      */
     public static String TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE="topology.executor.send.buffer.size";
 
+    /**
+     * The size of the event buffer for a spout executor (where acks and fails are queued for the main thread).
+     * Must be a power of 2.
+     */
+    public static String TOPOLOGY_SPOUT_EVENT_BUFFER_SIZE="topology.spout.event.buffer.size";
 
     /**
      * The size of the Disruptor transfer queue for each worker.

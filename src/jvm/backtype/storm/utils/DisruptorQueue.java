@@ -114,7 +114,7 @@ public class DisruptorQueue {
         }
     }
 
-    static class ObjectEventFactory implements EventFactory<MutableObject> {
+    public static class ObjectEventFactory implements EventFactory<MutableObject> {
         @Override
         public MutableObject newInstance() {
             return new MutableObject();

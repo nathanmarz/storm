@@ -44,8 +44,7 @@
                             ACKER-ACK-STREAM-ID (update-ack curr (.getValue tuple 1))
                             ACKER-FAIL-STREAM-ID (assoc curr :failed true))]
                (.put pending id curr)
-               (when (and curr
-                          (:spout-task curr))
+               (when (and curr (:spout-task curr))
                  (cond (= 0 (:val curr))
                        (do
                          (.remove pending id)
@@ -74,16 +73,16 @@
 
 (defn -prepare [this conf context collector]
   (let [^IBolt ret (mk-acker-bolt)]
-    (container-set! (.state this) ret)
+    (container-set! (.state ^backtype.storm.daemon.acker this) ret)
     (.prepare ret conf context collector)
     ))
 
 (defn -execute [this tuple]
-  (let [^IBolt delegate (container-get (.state this))]
+  (let [^IBolt delegate (container-get (.state ^backtype.storm.daemon.acker this))]
     (.execute delegate tuple)
     ))
 
 (defn -cleanup [this]
-  (let [^IBolt delegate (container-get (.state this))]
+  (let [^IBolt delegate (container-get (.state ^backtype.storm.daemon.acker this))]
     (.cleanup delegate)
     ))

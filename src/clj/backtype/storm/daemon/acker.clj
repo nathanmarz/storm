@@ -1,7 +1,7 @@
 (ns backtype.storm.daemon.acker
   (:import [backtype.storm.task OutputCollector TopologyContext IBolt])
   (:import [backtype.storm.tuple Tuple Fields])
-  (:import [backtype.storm.utils TimeCacheMap])
+  (:import [backtype.storm.utils TimeCacheMap MutableObject])
   (:import [java.util List Map])
   (:use [backtype.storm config util log])
   (:gen-class
@@ -25,16 +25,17 @@
   )
 
 (defn mk-acker-bolt []
-  (let [output-collector (atom nil)
-        pending (atom nil)]
+  (let [output-collector (MutableObject.)
+        pending (MutableObject.)]
     (reify IBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
-               (reset! output-collector collector)
-               (reset! pending (TimeCacheMap. (.maxTopologyMessageTimeout context)))
+               (.setObject output-collector collector)
+               (.setObject pending (TimeCacheMap. (.maxTopologyMessageTimeout context)))
                )
       (^void execute [this ^Tuple tuple]
              (let [id (.getValue tuple 0)
-                   ^TimeCacheMap pending @pending
+                   ^TimeCacheMap pending (.getObject pending)
+                   ^OutputCollector output-collector (.getObject output-collector)
                    curr (.get pending id)
                    curr (condp = (.getSourceStreamId tuple)
                             ACKER-INIT-STREAM-ID (-> curr
@@ -48,7 +49,7 @@
                  (cond (= 0 (:val curr))
                        (do
                          (.remove pending id)
-                         (acker-emit-direct @output-collector
+                         (acker-emit-direct output-collector
                                             (:spout-task curr)
                                             ACKER-ACK-STREAM-ID
                                             [id]
@@ -56,16 +57,16 @@
                        (:failed curr)
                        (do
                          (.remove pending id)
-                         (acker-emit-direct @output-collector
+                         (acker-emit-direct output-collector
                                             (:spout-task curr)
                                             ACKER-FAIL-STREAM-ID
                                             [id]
                                             ))
                        ))
-               (.ack ^OutputCollector @output-collector tuple)
+               (.ack output-collector tuple)
                ))
       (^void cleanup [this]
-        (.cleanup @pending))
+        (.cleanup (.getObject pending)))
       )))
 
 (defn -init []

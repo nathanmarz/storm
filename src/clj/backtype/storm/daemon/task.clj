@@ -64,10 +64,13 @@
 (defn get-context-hooks [^TopologyContext context]
   (.getHooks context))
 
+(defn hooks-empty? [^Collection hooks]
+  (.isEmpty hooks))
+
 (defmacro apply-hooks [topology-context method-sym info-form]
   (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.ITaskHook})]
     `(let [hooks# (get-context-hooks ~topology-context)]
-       (when-not (empty? hooks#)
+       (when-not (hooks-empty? hooks#)
          (let [info# ~info-form]
            (fast-list-iter [~hook-sym hooks#]
              (~method-sym ~hook-sym info#)

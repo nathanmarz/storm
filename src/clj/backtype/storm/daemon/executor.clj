@@ -275,6 +275,7 @@
         last-active (atom false)
         component-id (:component-id executor-data)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
+        ^Integer max-spout-pending (if max-spout-pending (int max-spout-pending))
         event-queue (disruptor/non-blocking-disruptor-queue (storm-conf TOPOLOGY-SPOUT-EVENT-BUFFER-SIZE))
         event-handler (disruptor/handler [event _ _] (event))
         worker-context (:worker-context executor-data)
@@ -338,7 +339,10 @@
                                                                ACKER-INIT-STREAM-ID
                                                                [root-id (bit-xor-vals out-ids) task-id]))
                                        (when message-id
-                                         (disruptor/publish event-queue #(ack-spout-msg executor-data task-data message-id {:stream out-stream-id :values values} 0))))
+                                         (disruptor/publish event-queue
+                                            #(ack-spout-msg executor-data task-data message-id
+                                                            {:stream out-stream-id :values values}
+                                                            (if (sampler) 0)))))
                                      (or out-tasks [])
                                      ))]]      
       (.open spout-obj

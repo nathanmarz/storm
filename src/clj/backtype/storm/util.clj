@@ -367,14 +367,14 @@
                    :daemon false
                    :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
-                   :args-fn (fn [] [])
+                   :factory? false
                    :start true]
   (let [thread (Thread.
                 (fn []
                   (try-cause
-                    (let [args (args-fn)]
+                    (let [afn (if factory? (afn) afn)]
                       (loop []
-                        (let [sleep-time (apply afn args)]
+                        (let [sleep-time (afn)]
                           (when-not (nil? sleep-time)
                             (sleep-secs sleep-time)
                             (recur))

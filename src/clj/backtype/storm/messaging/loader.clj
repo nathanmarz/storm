@@ -22,21 +22,23 @@
    :priority Thread/NORM_PRIORITY]
   (let [max-buffer-size (int max-buffer-size)
         vthread (async-loop
-                 (fn [socket]
-                   (let [batched (ArrayList.)
-                         init (msg/recv socket)]
-                     (loop [[task msg :as packet] init]
-                       (if (= task -1)
-                         (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
-                             (.close socket)
-                             nil )
-                         (do
-                           (when packet (.add batched packet))
-                           (if (and packet (< (.size batched) max-buffer-size))
-                             (recur (msg/recv-with-flags socket 1))
-                             (do (transfer-local-fn batched)
-                                 0 )))))))
-                 :args-fn (fn [] [(msg/bind context storm-id port)])
+                 (fn []
+                   (let [socket (msg/bind context storm-id port)]
+                     (fn []
+                       (let [batched (ArrayList.)
+                             init (msg/recv socket)]
+                         (loop [[task msg :as packet] init]
+                           (if (= task -1)
+                             (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
+                                 (.close socket)
+                                 nil )
+                             (do
+                               (when packet (.add batched packet))
+                               (if (and packet (< (.size batched) max-buffer-size))
+                                 (recur (msg/recv-with-flags socket 1))
+                                 (do (transfer-local-fn batched)
+                                     0 )))))))))
+                 :factory? true
                  :daemon daemon
                  :kill-fn kill-fn
                  :priority priority)]

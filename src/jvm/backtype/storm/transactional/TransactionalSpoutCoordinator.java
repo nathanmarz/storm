@@ -14,6 +14,7 @@ import backtype.storm.utils.Utils;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Random;
 import org.apache.log4j.Logger;
 
 public class TransactionalSpoutCoordinator extends BaseRichSpout { 
@@ -36,6 +37,7 @@ public class TransactionalSpoutCoordinator extends BaseRichSpout {
     TreeMap<BigInteger, TransactionStatus> _activeTx = new TreeMap<BigInteger, TransactionStatus>();
     
     private SpoutOutputCollector _collector;
+    private Random _rand;
     BigInteger _currTransaction;
     int _maxTransactionActive;
     StateInitializer _initializer;
@@ -51,6 +53,7 @@ public class TransactionalSpoutCoordinator extends BaseRichSpout {
     
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+        _rand = new Random(Utils.secureRandomLong());
         _state = TransactionalState.newCoordinatorState(conf, (String) conf.get(Config.TOPOLOGY_TRANSACTIONAL_ID), _spout.getComponentConfiguration());
         _coordinatorState = new RotatingTransactionalState(_state, META_DIR, true);
         _collector = collector;
@@ -127,7 +130,7 @@ public class TransactionalSpoutCoordinator extends BaseRichSpout {
                 for(int i=0; i<_maxTransactionActive; i++) {
                     if((_coordinatorState.hasCache(curr) || _coordinator.isReady())
                             && !_activeTx.containsKey(curr)) {
-                        TransactionAttempt attempt = new TransactionAttempt(curr, Utils.randomLong());
+                        TransactionAttempt attempt = new TransactionAttempt(curr, _rand.nextLong());
                         Object state = _coordinatorState.getState(curr, _initializer);
                         _activeTx.put(curr, new TransactionStatus(attempt));
                         _collector.emit(TRANSACTION_BATCH_STREAM_ID, new Values(attempt, state, previousTransactionId(_currTransaction)), attempt);

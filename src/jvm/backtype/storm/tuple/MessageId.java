@@ -1,20 +1,20 @@
 package backtype.storm.tuple;
 
 import backtype.storm.utils.Utils;
-import backtype.storm.utils.WritableUtils;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 
 public class MessageId {
     private Map<Long, Long> _anchorsToIds;
     
-    public static long generateId() {
-        return Utils.randomLong();
+    public static long generateId(Random rand) {
+        return rand.nextLong();
     }
 
     public static MessageId makeUnanchored() {

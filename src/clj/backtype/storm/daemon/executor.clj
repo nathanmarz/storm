@@ -282,6 +282,7 @@
         report-error-fn (:report-error-fn executor-data)
         spouts (ArrayList. (map :object (vals task-datas)))
         sampler (:sampler executor-data)
+        rand (Random. (Utils/secureRandomLong))
         
         pending (TimeCacheMap.
                  (int (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS))
@@ -315,8 +316,8 @@
                                                      (tasks-fn out-task-id out-stream-id values)
                                                      (tasks-fn out-stream-id values))
                                          rooted? (and message-id (has-ackers? storm-conf))
-                                         root-id (if rooted? (MessageId/generateId))
-                                         out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId)))]
+                                         root-id (if rooted? (MessageId/generateId rand))
+                                         out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
                                      (fast-list-iter [out-task out-tasks id out-ids]
                                        (let [tuple-id (if rooted?
                                                           (MessageId/makeRootId root-id id)
@@ -404,6 +405,7 @@
         executor-stats (:stats executor-data)
         report-error-fn (:report-error-fn executor-data)
         sampler (:sampler executor-data)
+        rand (Random. (Utils/secureRandomLong))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           ;; synchronization needs to be done with a key provided by this bolt, otherwise:
                           ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
@@ -439,7 +441,7 @@
                                     (fast-list-iter [^TupleImpl a anchors]
                                       (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
                                         (when (pos? (count root-ids))
-                                          (let [edge-id (MessageId/generateId)]
+                                          (let [edge-id (MessageId/generateId rand)]
                                             (.updateAckVal a edge-id)
                                             (fast-list-iter [root-id root-ids]
                                               (put-xor! anchors-to-ids root-id edge-id))

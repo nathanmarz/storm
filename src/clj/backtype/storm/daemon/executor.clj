@@ -345,7 +345,8 @@
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
         receive-queue (:receive-queue executor-data)
-        event-handler (mk-task-receiver executor-data tuple-action-fn)]
+        event-handler (mk-task-receiver executor-data tuple-action-fn)
+        has-ackers? (has-ackers? storm-conf)]
     (log-message "Opening spout " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
             :let [^ISpout spout-obj (:object task-data)
@@ -354,7 +355,7 @@
                                    (let [out-tasks (if out-task-id
                                                      (tasks-fn out-task-id out-stream-id values)
                                                      (tasks-fn out-stream-id values))
-                                         rooted? (and message-id (has-ackers? storm-conf))
+                                         rooted? (and message-id has-ackers?)
                                          root-id (if rooted? (MessageId/generateId rand))
                                          out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
                                      (fast-list-iter [out-task out-tasks id out-ids]

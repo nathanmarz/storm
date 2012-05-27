@@ -3,6 +3,8 @@ package backtype.storm.utils;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Expires keys that have not been updated in the configured number of seconds.
@@ -24,8 +26,9 @@ public class TimeCacheMap<K, V> {
 
     private LinkedList<HashMap<K, V>> _buckets;
 
-//    private Thread _cleaner;
+    private Thread _cleaner;
     private ExpiredCallback _callback;
+    private final Object _lock = new Object();
     
     public TimeCacheMap(int expirationSecs, int numBuckets, ExpiredCallback<K, V> callback) {
         if(numBuckets<2) {
@@ -39,29 +42,29 @@ public class TimeCacheMap<K, V> {
         _callback = callback;
         final long expirationMillis = expirationSecs * 1000L;
         final long sleepTime = expirationMillis / (numBuckets-1);
-//        _cleaner = new Thread(new Runnable() {
-//            public void run() {
-//                try {
-//                    while(true) {
-//                        Map<K, V> dead = null;
-//                        Time.sleep(sleepTime);
-//                        synchronized(_lock) {
-//                            dead = _buckets.removeLast();
-//                            _buckets.addFirst(new HashMap<K, V>());
-//                        }
-//                        if(_callback!=null) {
-//                            for(Entry<K, V> entry: dead.entrySet()) {
-//                                _callback.expire(entry.getKey(), entry.getValue());
-//                            }
-//                        }
-//                    }
-//                } catch (InterruptedException ex) {
-//
-//                }
-//            }
-//        });
-//        _cleaner.setDaemon(true);
-//        _cleaner.start();
+        _cleaner = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    while(true) {
+                        Map<K, V> dead = null;
+                        Time.sleep(sleepTime);
+                        synchronized(_lock) {
+                            dead = _buckets.removeLast();
+                            _buckets.addFirst(new HashMap<K, V>());
+                        }
+                        if(_callback!=null) {
+                            for(Entry<K, V> entry: dead.entrySet()) {
+                                _callback.expire(entry.getKey(), entry.getValue());
+                            }
+                        }
+                    }
+                } catch (InterruptedException ex) {
+
+                }
+            }
+        });
+        _cleaner.setDaemon(true);
+        _cleaner.start();
     }
 
     public TimeCacheMap(int expirationSecs, ExpiredCallback<K, V> callback) {
@@ -124,7 +127,7 @@ public class TimeCacheMap<K, V> {
     }
     
     public void cleanup() {
-//        _cleaner.interrupt();
+        _cleaner.interrupt();
     }
     
 }

@@ -184,7 +184,7 @@
         serializer (KryoTupleSerializer. storm-conf (:worker-context executor-data))
         ]
     (disruptor/consume-loop*
-      (:batch-transfer->worker executor-data)
+      (:batch-transfer-queue executor-data)
       (disruptor/handler [o seq-id batch-end?]
         (let [^ArrayList alist (.getObject cached-emit)]
           (.add alist o)
@@ -197,7 +197,6 @@
 (defn mk-executor [worker executor-id]
   (let [executor-data (executor-data worker executor-id)
         _ (log-message "Loading executor " (:component-id executor-data) ":" (pr-str executor-id))
-        active (atom true)
         task-datas (->> executor-data
                         :task-ids
                         (map (fn [t] [t (task/mk-task executor-data t)]))
@@ -213,6 +212,7 @@
         threads (concat handlers
                         [(start-batch-transfer->worker-handler! worker executor-data)
                          ])]
+    ;;technically this is called twice for bolts, but that's ok
     (disruptor/consumer-started! (:receive-queue executor-data))
     (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
@@ -226,11 +226,11 @@
       (shutdown
         [this]
         (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
-        (reset! active false)
+        (disruptor/halt-with-interrupt! (:receive-queue executor-data))
+        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
         (doseq [t threads]
           (.interrupt t)
           (.join t))
-        (.shutdown (:batch-transfer-queue executor-data))
         
         (doseq [user-context (map :user-context (vals task-datas))]
           (doseq [hook (.getHooks user-context)]

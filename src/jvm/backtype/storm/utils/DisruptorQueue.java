@@ -7,7 +7,6 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
-import com.lmax.disruptor.Sequencer;
 import com.lmax.disruptor.WaitStrategy;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -18,6 +17,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class DisruptorQueue {
     static final Object FLUSH_CACHE = new Object();
+    static final Object INTERRUPT = new Object();
     
     RingBuffer<MutableObject> _buffer;
     Sequence _consumer;
@@ -29,18 +29,23 @@ public class DisruptorQueue {
     
     public DisruptorQueue(ClaimStrategy claim, WaitStrategy wait) {
         _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
-        _consumer = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
+        _consumer = new Sequence();
+        _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
-        _barrier = _buffer.newBarrier(_consumer);
     }
     
     public void consumeBatch(EventHandler<Object> handler) {
         consumeBatchToCursor(_barrier.getCursor(), handler);
     }
     
+    public void haltWithInterrupt() {
+        publish(INTERRUPT);
+    }
+    
     public void consumeBatchWhenAvailable(EventHandler<Object> handler) {
         try {
-            final long availableSequence = _barrier.waitFor(_consumer.get() + 1);
+            final long nextSequence = _consumer.get() + 1;
+            final long availableSequence = _barrier.waitFor(nextSequence);
             consumeBatchToCursor(availableSequence, handler);
         } catch (AlertException e) {
             throw new RuntimeException(e);
@@ -61,6 +66,8 @@ public class DisruptorQueue {
                         if(c==null) break;
                         else handler.onEvent(c, curr, true);
                     }
+                } else if(o==INTERRUPT) {
+                    throw new InterruptedException("Disruptor processing interrupted");
                 } else {
                     handler.onEvent(o, curr, curr == cursor);
                 }

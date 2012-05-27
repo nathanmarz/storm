@@ -328,6 +328,8 @@
                     ;;in which case it's a noop
                     (msg/term (:mq-context worker))
                     (log-message "Shutting down transfer thread")
+                    (disruptor/halt-with-interrupt! (:transfer-queue worker))
+
                     (.interrupt transfer-thread)
                     (.join transfer-thread)
                     (log-message "Shut down transfer thread")

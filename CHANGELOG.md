@@ -9,11 +9,14 @@
  * Added button to show/hide system stats (e.g., acker component and stream stats) from the Storm UI (thanks xumingming)
  * Stats are tracked on a per-executor basis instead of per-task basis
  * Major optimization for unreliable spouts and unanchored tuples (will use far less CPU)
+ * Revamped internal of Storm to use LMAX disruptor for internal queuing. Dramatic reductions in contention and CPU usage.
+ * Numerous micro-optimizations all throughout the codebase to reduce CPU usage.
+ * Optimized internals of Storm to use much fewer threads - two fewer threads per spout and one fewer thread per acker.
  * Removed error method from task hooks (to be re-added at a later time)
- * Switched in memory queues to use Disruptor (major performance improvement)
  * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
- * MemoryTransactionalSpout now works on a cluster
+ * MemoryTransactionalSpout now works on a cluster (TODO...)
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
+ * Add TOPOLOGY-TICK-TUPLE-FREQ-SECS config to have Storm automatically send "tick" tuples to a bolt's execute method coming from the __system component and __tick stream at the configured frequency. Meant to be used as a component-specific configuration.
  * Upgrade Kryo to v2.04
 
 ## 0.7.2 (unreleased but release candidate available)

@@ -436,15 +436,15 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE="topology.executor.send.buffer.size";
 
     /**
-     * The size of the event buffer for a spout executor (where acks and fails are queued for the main thread).
-     * Must be a power of 2.
-     */
-    public static String TOPOLOGY_SPOUT_EVENT_BUFFER_SIZE="topology.spout.event.buffer.size";
-
-    /**
      * The size of the Disruptor transfer queue for each worker.
      */
     public static String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
+
+    /**
+     * How often a tick tuple from the "__system" component and "__tick" stream should be sent
+     * to tasks. Meant to be used as a component-specific configuration.
+     */
+     public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.

@@ -101,6 +101,7 @@
 
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
+       ;; TODO: this depends on the type of executor
        (map (fn [e] [e (disruptor/disruptor-queue (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE))]))
        (into {})
        ))
@@ -247,22 +248,23 @@
         task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
         ]
-    (fn [packets _ batch-end?]
-      (.addAll drainer packets)
-      (when batch-end?
-        (read-locked endpoint-socket-lock
-          (let [node+port->socket @node+port->socket
-                task->node+port @task->node+port]
-            ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
-            ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
+    (disruptor/clojure-handler
+      (fn [packets _ batch-end?]
+        (.addAll drainer packets)
+        (when batch-end?
+          (read-locked endpoint-socket-lock
+            (let [node+port->socket @node+port->socket
+                  task->node+port @task->node+port]
+              ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
+              ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
             
-            (fast-list-iter [[task ser-tuple] drainer]
-              ;; TODO: consider write a batch of tuples here to every target worker  
-              ;; group by node+port, do multipart send              
-              (let [socket (get node+port->socket (get task->node+port task))]
-                (msg/send socket task ser-tuple)
-                ))))
-        (.clear drainer)))))
+              (fast-list-iter [[task ser-tuple] drainer]
+                ;; TODO: consider write a batch of tuples here to every target worker  
+                ;; group by node+port, do multipart send              
+                (let [socket (get node+port->socket (get task->node+port task))]
+                  (msg/send socket task ser-tuple)
+                  ))))
+          (.clear drainer))))))
 
 (defn launch-receive-thread [worker]
   (log-message "Launching receive-thread for " (:supervisor-id worker) ":" (:port worker))
@@ -306,29 +308,29 @@
         receive-thread-shutdown (launch-receive-thread worker)
         
         transfer-tuples (mk-transfer-tuples-handler worker)
-                                               
+        
+        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)                                       
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
-                    (doseq [[_ q] (:executor-receive-queue-map worker)]
-                      (.haltProcessing q))
-                    (doseq [executor executors] (.shutdown executor))
                     (doseq [[_ socket] @(:cached-node+port->socket worker)]
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
+                    (log-message "Shutting down receive thread")
                     (receive-thread-shutdown)
+                    (log-message "Shut down receive thread")
                     (log-message "Terminating zmq context")
-                    
-                    ;; now it's safe to shutdown receive queues (nothing left to add messages to it
-                    ;; get deadlocked)
-                    (doseq [[_ q] (:executor-receive-queue-map worker)]
-                      (.shutdown q))
-                    
+                    (log-message "Shutting down executors")
+                    (doseq [executor executors] (.shutdown executor))
+                    (log-message "Shut down executors")
+                                        
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
                     (msg/term (:mq-context worker))
-                    (log-message "Waiting for transfer queue to die")
-                    (.shutdown (:transfer-queue worker))
+                    (log-message "Shutting down transfer thread")
+                    (.interrupt transfer-thread)
+                    (.join transfer-thread)
+                    (log-message "Shut down transfer thread")
                     (cancel-timer (:timer worker))
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
@@ -344,7 +346,6 @@
              (waiting? [this]
                        (timer-waiting? (:timer worker)))
              )]
-    (disruptor/set-handler (:transfer-queue worker) transfer-tuples)
     
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))

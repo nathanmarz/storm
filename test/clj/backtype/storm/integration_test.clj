@@ -2,31 +2,13 @@
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.generated InvalidTopologyException])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestConfBolt])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
+              TestAggregatesCounter TestConfBolt AckFailMapTracker])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   )
 
 (bootstrap)
-
-;; (deftest test-counter
-;;   (with-local-cluster [cluster :supervisors 4]
-;;     (let [state (:storm-cluster-state cluster)
-;;           nimbus (:nimbus cluster)
-;;           topology (thrift/mk-topology
-;;                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
-;;                     {"2" (thrift/mk-bolt-spec {"1" ["word"]} (TestWordCounter.) :parallelism-hint 4)
-;;                      "3" (thrift/mk-bolt-spec {"1" :global} (TestGlobalCount.))
-;;                      "4" (thrift/mk-bolt-spec {"2" :global} (TestAggregatesCounter.))
-;;                      })]
-;;         (submit-local-topology nimbus
-;;                             "counter"
-;;                             {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
-;;                             topology)
-;;         (Thread/sleep 10000)
-;;         (.killTopology nimbus "counter")
-;;         (Thread/sleep 10000)
-;;         )))
 
 (deftest test-basic-topology
   (doseq [zmq-on? [true false]]
@@ -51,6 +33,48 @@
         (is (= [[1] [2] [3] [4]]
                (read-tuples results "4")))
         ))))
+
+(defbolt ack-every-other {} {:prepare true}
+  [conf context collector]
+  (let [state (atom -1)]
+    (bolt
+      (execute [tuple]
+        (let [val (swap! state -)]
+          (when (pos? val)
+            (ack! collector tuple)
+            ))))))
+
+(defn assert-loop [afn ids]
+  (while (not (every? afn ids))
+    (Thread/sleep 1)))
+
+(defn assert-acked [tracker & ids]
+  (assert-loop #(.isAcked tracker %) ids))
+
+(defn assert-failed [tracker & ids]
+  (assert-loop #(.isFailed tracker %) ids))
+
+(deftest test-timeout
+  (with-simulated-time-local-cluster [cluster]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec feeder)}
+                     {"2" (thrift/mk-bolt-spec {"1" :global} ack-every-other)})]      
+      (submit-local-topology (:nimbus cluster)
+                             "timeout-tester"
+                             {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                             topology)
+      (.feed feeder ["a"] 1)
+      (.feed feeder ["b"] 2)
+      (.feed feeder ["c"] 3)
+      (advance-cluster-time cluster 9)
+      (assert-acked tracker 1 3)
+      (is (not (.isFailed tracker 2)))
+      (advance-cluster-time cluster 12)
+      (assert-failed tracker 2)
+      )))
 
 (defn mk-validate-topology-1 []
   (thrift/mk-topology

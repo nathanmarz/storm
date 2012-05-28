@@ -160,35 +160,6 @@
                  (read-tuples results "2")))
         )))
 
-(deftest test-shuffle
-  (with-simulated-time-local-cluster [cluster :supervisors 4]
-    (let [topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
-                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
-                                            :parallelism-hint 6)
-                     })
-          results (complete-topology cluster
-                                     topology
-                                     ;; important for test that
-                                     ;; #tuples = multiple of 4 and 6
-                                     :mock-sources {"1" [["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ["a"] ["b"]
-                                                       ]}
-                                     )]
-      (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
-               (read-tuples results "2")))
-      )))
-
 (defbolt lalala-bolt1 ["word"] [[val :as tuple] collector]
   (let [ret (str val "lalala")]
     (emit-bolt! collector [ret] :anchor tuple)

@@ -9,7 +9,7 @@
  * Added button to show/hide system stats (e.g., acker component and stream stats) from the Storm UI (thanks xumingming)
  * Stats are tracked on a per-executor basis instead of per-task basis
  * Major optimization for unreliable spouts and unanchored tuples (will use far less CPU)
- * Revamped internal of Storm to use LMAX disruptor for internal queuing. Dramatic reductions in contention and CPU usage.
+ * Revamped internals of Storm to use LMAX disruptor for internal queuing. Dramatic reductions in contention and CPU usage.
  * Numerous micro-optimizations all throughout the codebase to reduce CPU usage.
  * Optimized internals of Storm to use much fewer threads - two fewer threads per spout and one fewer thread per acker.
  * Removed error method from task hooks (to be re-added at a later time)

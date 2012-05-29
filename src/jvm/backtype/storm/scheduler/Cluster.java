@@ -103,7 +103,7 @@ public class Cluster {
      * @param topology
      * @return
      */
-    public Map<String, List<ExecutorDetails>> getNeedsSchedulingComponentToTasks(TopologyDetails topology) {
+    public Map<String, List<ExecutorDetails>> getNeedsSchedulingComponentToExecutors(TopologyDetails topology) {
         Map<ExecutorDetails, String> executorToComponents = this.getNeedsSchedulingExecutorToComponents(topology);
         Map<String, List<ExecutorDetails>> componentToExecutors = new HashMap<String, List<ExecutorDetails>>();
         for (ExecutorDetails executor : executorToComponents.keySet()) {
@@ -185,8 +185,8 @@ public class Cluster {
         SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
 
         if (assignment != null) {
-            Set<ExecutorDetails> assignedTasks = assignment.getExecutors();
-            allExecutors.removeAll(assignedTasks);
+            Set<ExecutorDetails> assignedExecutors = assignment.getExecutors();
+            allExecutors.removeAll(assignedExecutors);
         }
 
         List<ExecutorDetails> ret = new ArrayList<ExecutorDetails>(allExecutors.size());

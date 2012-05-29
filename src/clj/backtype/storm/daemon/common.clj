@@ -29,7 +29,7 @@
 ;; component->executors is a map from spout/bolt id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
-(defrecord SupervisorInfo [time-secs hostname meta scheduler-meta all-ports uptime-secs])
+(defrecord SupervisorInfo [time-secs hostname meta scheduler-meta uptime-secs])
 
 (defprotocol DaemonCommon
   (waiting? [this]))

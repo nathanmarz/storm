@@ -246,7 +246,7 @@
        (map-val :hostname)))
 
 (defn- available-slots
-  [nimbus callback topology-details]
+  [nimbus callback topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         
@@ -264,7 +264,7 @@
         ret (.availableSlots inimbus
                      supervisor-details
                      worker-slots
-                     topology-details
+                     topologies
                      )
         ]
     (for [^WorkerSlot slot ret]
@@ -460,7 +460,7 @@
                                          ;; hide the dead-ports from the all-ports
                                          ;; these dead-ports can be reused in next round of assignments
                                          all-ports (-> supervisor-info
-                                                       :all-ports
+                                                       :meta
                                                        set
                                                        (set/difference dead-ports)
                                                        ((fn [ports] (map int ports))))
@@ -995,7 +995,7 @@
   (reify INimbus
     (prepare [this conf local-dir]
       )
-    (availableSlots [this supervisors used-slots topology]
+    (availableSlots [this supervisors used-slots topologies]
       (let [all-slots (->> supervisors
                            (mapcat (fn [^SupervisorDetails s]
                                      (for [p (.getMeta s)]

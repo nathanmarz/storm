@@ -12,7 +12,7 @@
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
 
 ;; used as part of a map from port to this
-(defrecord LocalAssignment [storm-id task-ids])
+(defrecord LocalAssignment [storm-id executors])
 
 (defprotocol SupervisorDaemon
   (get-id [this])
@@ -21,30 +21,30 @@
   )
 
 
-(defn- read-my-tasks [storm-cluster-state storm-id supervisor-id callback]
+(defn- read-my-executors [storm-cluster-state storm-id supervisor-id callback]
   (let [assignment (.assignment-info storm-cluster-state storm-id callback)
-        my-tasks (filter (fn [[_ [node _]]] (= node supervisor-id))
-                         (:task->node+port assignment))
-        port-tasks (apply merge-with
+        my-executors (filter (fn [[_ [node _]]] (= node supervisor-id))
+                               (:executor->node+port assignment))
+        port-executors (apply merge-with
                           concat
-                          (for [[task-id [_ port]] my-tasks]
-                            {port [task-id]}
+                          (for [[executor [_ port]] my-executors]
+                            {port [executor]}
                             ))]
-    (into {} (for [[port task-ids] port-tasks]
+    (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
-               [(Integer. port) (LocalAssignment. storm-id task-ids)]
+               [(Integer. port) (LocalAssignment. storm-id executors)]
                ))
     ))
 
 (defn- read-assignments
-  "Returns map from port to struct containing :storm-id and :task-ids and :master-code-dir"
+  "Returns map from port to struct containing :storm-id and :executors and :master-code-dir"
   [storm-cluster-state supervisor-id callback]
   (let [storm-ids (.assignments storm-cluster-state callback)]
     (apply merge-with
            (fn [& ignored]
              (throw (RuntimeException.
-                     "Should not have multiple storms assigned to one port")))
-           (dofor [sid storm-ids] (read-my-tasks storm-cluster-state sid supervisor-id callback))
+                     "Should not have multiple topologies assigned to one port")))
+           (dofor [sid storm-ids] (read-my-executors storm-cluster-state sid supervisor-id callback))
            )))
 
 (defn- read-storm-code-locations
@@ -80,16 +80,16 @@
     ))
 
 
-(defn matches-an-assignment? [worker-heartbeat assigned-tasks]
-  (let [local-assignment (assigned-tasks (:port worker-heartbeat))]
+(defn matches-an-assignment? [worker-heartbeat assigned-executors]
+  (let [local-assignment (assigned-executors (:port worker-heartbeat))]
     (and local-assignment
          (= (:storm-id worker-heartbeat) (:storm-id local-assignment))
-         (= (set (:task-ids worker-heartbeat)) (set (:task-ids local-assignment))))
+         (= (set (:executors worker-heartbeat)) (set (:executors local-assignment))))
     ))
 
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"
-  [supervisor assigned-tasks]
+  [supervisor assigned-executors]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         now (current-time-secs)
@@ -100,7 +100,7 @@
      (dofor [[id hb] id->heartbeat]
             (let [state (cond
                          (or (not (contains? approved-ids id))
-                             (not (matches-an-assignment? hb assigned-tasks)))
+                             (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
                          (not hb)
                            :not-started
@@ -187,17 +187,16 @@
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-tasks (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS)
-                                  {})
-        allocated (read-allocated-workers supervisor assigned-tasks)
+        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        allocated (read-allocated-workers supervisor assigned-executors)
         keepers (filter-val
                  (fn [[state _]] (= state :valid))
                  allocated)
         keep-ports (set (for [[id [_ hb]] keepers] (:port hb)))
-        reassign-tasks (select-keys-pred (complement keep-ports) assigned-tasks)
+        reassign-executors (select-keys-pred (complement keep-ports) assigned-executors)
         new-worker-ids (into
                         {}
-                        (for [port (keys reassign-tasks)]
+                        (for [port (keys reassign-executors)]
                           [port (uuid)]))
         ]
     ;; 1. to kill are those in allocated that are dead or disallowed
@@ -211,7 +210,7 @@
     ;; 6. wait for workers launch
   
     (log-debug "Syncing processes")
-    (log-debug "Assigned tasks: " assigned-tasks)
+    (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
     (doseq [[id [state heartbeat]] allocated]
       (when (not= :valid state)
@@ -231,7 +230,7 @@
            ))
     (wait-for-workers-launch
      conf
-     (dofor [[port assignment] reassign-tasks]
+     (dofor [[port assignment] reassign-executors]
        (let [id (new-worker-ids port)]
          (log-message "Launching worker with assignment "
                       (pr-str assignment)
@@ -271,6 +270,7 @@
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)
       (log-debug "All assignment: " all-assignment)
       (log-debug "New assignment: " new-assignment)
+      
       ;; download code first
       ;; This might take awhile
       ;;   - should this be done separately from usual monitoring?

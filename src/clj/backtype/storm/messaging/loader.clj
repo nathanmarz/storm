@@ -1,7 +1,9 @@
 (ns backtype.storm.messaging.loader
   (:use [backtype.storm util log])
-  (:import [java.util.concurrent LinkedBlockingQueue])
-  (:require [backtype.storm.messaging [local :as local] [protocol :as msg]]))
+  (:import [java.util ArrayList])
+  (:import [backtype.storm.utils DisruptorQueue MutableObject])
+  (:require [backtype.storm.messaging [local :as local] [protocol :as msg]])
+  (:require [backtype.storm [disruptor :as disruptor]]))
 
 (defn mk-local-context []
   (local/mk-local-context))
@@ -14,24 +16,27 @@
     (apply afn args)))
 
 (defnk launch-receive-thread!
-  [context storm-id port receive-queue-map
+  [context storm-id port transfer-local-fn max-buffer-size
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
-  (let [vthread (async-loop
-                 (fn [socket receive-queue-map]
-                   (let [[task msg] (msg/recv socket)]
-                     (if (= task -1)
-                       (do
-                         (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
-                         (.close socket)
-                         nil )
-                       (do
-                         (if (contains? receive-queue-map task)
-                           (.put ^LinkedBlockingQueue (receive-queue-map task) msg)
-                           (log-message "Receiving-thread:[" storm-id ", " port "] received invalid message for unknown task " task ". Dropping..."))
-                          0 ))))
-                 :args-fn (fn [] [(msg/bind context storm-id port) receive-queue-map])
+  (let [max-buffer-size (int max-buffer-size)
+        vthread (async-loop
+                 (fn [socket]
+                   (let [batched (ArrayList.)
+                         init (msg/recv socket)]
+                     (loop [[task msg :as packet] init]
+                       (if (= task -1)
+                         (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
+                             (.close socket)
+                             nil )
+                         (do
+                           (when packet (.add batched packet))
+                           (if (and packet (< (.size batched) max-buffer-size))
+                             (recur (msg/recv-with-flags socket 1))
+                             (do (transfer-local-fn batched)
+                                 0 )))))))
+                 :args-fn (fn [] [(msg/bind context storm-id port)])
                  :daemon daemon
                  :kill-fn kill-fn
                  :priority priority)]

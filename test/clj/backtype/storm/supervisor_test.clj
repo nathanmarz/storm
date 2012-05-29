@@ -10,37 +10,36 @@
 
 
 (defn worker-assignment
-  "Return [storm-id taskids]"
+  "Return [storm-id executors]"
   [cluster supervisor-id port]
   (let [state (:storm-cluster-state cluster)
         slot-assigns (for [storm-id (.assignments state nil)]
-                        (let [tasks (-> (.assignment-info state storm-id nil)
-                                        :task->node+port
+                        (let [executors (-> (.assignment-info state storm-id nil)
+                                        :executor->node+port
                                         reverse-map
                                         (get [supervisor-id port] ))]
-                          (when tasks [storm-id tasks])
+                          (when executors [storm-id executors])
                           ))
         ret (find-first not-nil? slot-assigns)]
     (when-not ret
-      (throw (RuntimeException. "Could not find assignment for worker")))
+      (throw-runtime "Could not find assignment for worker"))
     ret
     ))
 
-(defn heartbeat-worker [supervisor port storm-id task-ids]
+(defn heartbeat-worker [supervisor port storm-id executors]
   (let [conf (.get-conf supervisor)]
     (worker/do-heartbeat {:conf conf
                           :port port
                           :storm-id storm-id
-                          :task-ids task-ids
+                          :executors executors
                           :worker-id (find-worker-id conf port)})))
 
 (defn heartbeat-workers [cluster supervisor-id ports]
   (let [sup (get-supervisor cluster supervisor-id)]
     (doseq [p ports]
-      (let [[storm-id task-ids] (worker-assignment cluster supervisor-id p)]
-        (heartbeat-worker sup p storm-id task-ids)
-        ))
-    ))
+      (let [[storm-id executors] (worker-assignment cluster supervisor-id p)]
+        (heartbeat-worker sup p storm-id executors)
+        ))))
 
 (defn validate-launched-once [launched supervisor->ports storm-id]
   (let [counts (map count (vals launched))
@@ -73,10 +72,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {1 ["sup1" 1]
-                           2 ["sup1" 2]
-                           3 ["sup1" 3]
-                           4 ["sup1" 3]
+                          {[1] ["sup1" 1]
+                           [2] ["sup1" 2]
+                           [3] ["sup1" 3]
+                           [4] ["sup1" 3]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2 3])
@@ -124,10 +123,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {1 ["sup1" 1]
-                           2 ["sup1" 2]
-                           3 ["sup2" 1]
-                           4 ["sup2" 1]
+                          {[1] ["sup1" 1]
+                           [2] ["sup1" 2]
+                           [3] ["sup2" 1]
+                           [4] ["sup2" 1]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2])
@@ -145,9 +144,9 @@
                           {1 "1"
                            2 "1"
                            3 "1"}
-                          {1 ["sup1" 3]
-                           2 ["sup1" 3]
-                           3 ["sup2" 2]
+                          {[1] ["sup1" 3]
+                           [2] ["sup1" 3]
+                           [3] ["sup2" 2]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [3])

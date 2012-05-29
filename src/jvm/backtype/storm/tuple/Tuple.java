@@ -2,6 +2,7 @@ package backtype.storm.tuple;
 
 import backtype.storm.utils.IndifferentAccessMap;
 import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.TopologyContext;
 import clojure.lang.Seqable;
 import clojure.lang.Indexed;
@@ -15,9 +16,7 @@ import clojure.lang.IMeta;
 import clojure.lang.Keyword;
 import clojure.lang.Symbol;
 import clojure.lang.MapEntry;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The tuple is the main data structure in Storm. A tuple is a named list of values, 
@@ -34,12 +33,12 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     private List<Object> values;
     private int taskId;
     private String streamId;
-    private TopologyContext context;
+    private GeneralTopologyContext context;
     private MessageId id;
     private IPersistentMap _meta = null;
 
     //needs to get taskId explicitly b/c could be in a different task than where it was created
-    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
+    public Tuple(GeneralTopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
         super();
         this.values = values;
         this.taskId = taskId;
@@ -57,7 +56,7 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
         }
     }
 
-    public Tuple(TopologyContext context, List<Object> values, int taskId, String streamId) {
+    public Tuple(GeneralTopologyContext context, List<Object> values, int taskId, String streamId) {
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }
 
@@ -258,13 +257,11 @@ public class Tuple extends IndifferentAccessMap implements Seqable, Indexed, IMe
     
     @Override
     public boolean equals(Object other) {
-        // for OutputCollector
         return this == other;
-    }
+    }    
     
     @Override
     public int hashCode() {
-        // for OutputCollector
         return System.identityHashCode(this);
     }
 

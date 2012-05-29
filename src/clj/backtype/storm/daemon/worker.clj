@@ -1,27 +1,35 @@
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent LinkedBlockingQueue])
-  (:require [backtype.storm.daemon [task :as task]])
+  (:require [backtype.storm.daemon [executor :as executor]])
   (:gen-class))
 
 (bootstrap)
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn read-worker-task-ids [storm-cluster-state storm-id supervisor-id port]
-  (let [assignment (:task->node+port (.assignment-info storm-cluster-state storm-id nil))]
+(defn read-worker-executors [storm-cluster-state storm-id supervisor-id port]
+  (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
-      (mapcat (fn [[task-id loc]]
+      (mapcat (fn [[executor loc]]
               (if (= loc [supervisor-id port])
-                [task-id]
+                [executor]
                 ))
             assignment))
     ))
 
-(defn do-task-heartbeats [worker]
-  (let [zk-hb {:storm-id (:storm-id worker)
-               :taskbeats @(:taskbeats worker)}]
+(defnk do-executor-heartbeats [worker :executors nil]
+  ;; stats is how we know what executors are assigned to this worker 
+  (let [stats (if-not executors
+                  (into {} (map (fn [e] {e nil}) (:executors worker)))
+                  (->> executors
+                    (map (fn [e] {(executor/get-executor-id e) (executor/render-stats e)}))
+                    (apply merge)))
+        zk-hb {:storm-id (:storm-id worker)
+               :executor-stats stats
+               :uptime ((:uptime worker))
+               :time-secs (current-time-secs)
+               }]
     ;; do the zookeeper heartbeat
     (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:supervisor-id worker) (:port worker) zk-hb)    
     ))
@@ -31,7 +39,7 @@
         hb (WorkerHeartbeat.
              (current-time-secs)
              (:storm-id worker)
-             (:task-ids worker)
+             (:executors worker)
              (:port worker))]
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
@@ -40,39 +48,14 @@
         hb)
     ))
 
-(defn mk-topology-context-builder [worker topology]
-  (let [conf (:conf worker)]
-    #(TopologyContext.
-      topology
-      (:storm-conf worker)
-      (:task->component worker)
-      (:storm-id worker)
-      (supervisor-storm-resources-path
-        (supervisor-stormdist-root conf (:storm-id worker)))
-      (worker-pids-root conf (:worker-id worker))
-      %
-      (:port worker)
-      (vec (:task-ids worker)))))
-
-(defn system-topology-context [worker tid]
-  ((mk-topology-context-builder
-    worker
-    (system-topology! (:storm-conf worker) (:topology worker)))
-   tid))
-
-(defn user-topology-context [worker tid]
-  ((mk-topology-context-builder
-    worker
-    (:topology worker))
-   tid))
-
 (defn worker-outbound-tasks
   "Returns seq of task-ids that receive messages from this worker"
   [worker]
-  (let [components (mapcat
+  (let [context (worker-context worker)
+        components (mapcat
                      (fn [task-id]
-                       (->> (system-topology-context worker task-id)
-                            .getThisTargets
+                       (->> (.getComponentId context (int task-id))
+                            (.getTargets context)
                             vals
                             (map keys)
                             (apply concat)))
@@ -82,62 +65,121 @@
         reverse-map
         (select-keys components)
         vals
-        (#(apply concat %))
+        flatten
         set )))
 
+(defn mk-transfer-local-fn [worker]
+  (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
+        task->short-executor (:task->short-executor worker)
+        task-getter (comp #(get task->short-executor %) fast-first)]
+    (fn [tuple-batch]
+      (let [grouped (fast-group-by task-getter tuple-batch)]
+        (fast-map-iter [[short-executor pairs] grouped]
+          (let [q (short-executor-receive-queue-map short-executor)]
+            (if q
+              (disruptor/publish q pairs)
+              (log-warn "Received invalid messages for unknown tasks. Dropping... ")
+              )))))))
+
 (defn mk-transfer-fn [worker]
-  (let [receive-queue-map (:receive-queue-map worker)
-        ^LinkedBlockingQueue transfer-queue (:transfer-queue worker)
-        ^KryoTupleSerializer serializer (KryoTupleSerializer. (:storm-conf worker) (system-topology-context worker nil))]
-    (fn [task ^Tuple tuple]
-      (if (contains? receive-queue-map task)
-        (.put ^LinkedBlockingQueue (receive-queue-map task) tuple)
-        (let [tuple (.serialize serializer tuple)]
-          (.put transfer-queue [task tuple]))
-      ))))
+  (let [local-tasks (-> worker :task-ids set)
+        local-transfer (:transfer-local-fn worker)
+        ^DisruptorQueue transfer-queue (:transfer-queue worker)]
+    (fn [^KryoTupleSerializer serializer tuple-batch]
+      (let [local (ArrayList.)
+            remote (ArrayList.)]
+        (fast-list-iter [[task tuple :as pair] tuple-batch]
+          (if (local-tasks task)
+            (.add local pair)
+            (.add remote pair)
+            ))
+        (local-transfer local)
+        ;; not using map because the lazy seq shows up in perf profiles
+        (let [serialized-pairs (fast-list-for [[task ^TupleImpl tuple] remote] [task (.serialize serializer tuple)])]
+          (disruptor/publish transfer-queue serialized-pairs)
+          )))))
+
+(defn- mk-receive-queue-map [storm-conf executors]
+  (->> executors
+       (map (fn [e] [e (disruptor/disruptor-queue (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE))]))
+       (into {})
+       ))
+
+(defn- stream->fields [^StormTopology topology component]
+  (->> (ThriftTopologyUtils/getComponentCommon topology component)
+       .get_streams
+       (map (fn [[s info]] [s (Fields. (.get_output_fields info))]))
+       (into {})
+       (HashMap.)))
+
+(defn component->stream->fields [^StormTopology topology]
+  (->> (ThriftTopologyUtils/getComponentIds topology)
+       (map (fn [c] [c (stream->fields topology c)]))
+       (into {})
+       (HashMap.)))
 
 (defn worker-data [conf mq-context storm-id supervisor-id port worker-id]
-  (let [cluster-state  (cluster/mk-distributed-cluster-state conf)
+  (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
-        task-ids (set (read-worker-task-ids storm-cluster-state storm-id supervisor-id port))
-        transfer-queue (LinkedBlockingQueue.) ; possibly bound the size of it
-        receive-queue-map (into {} (dofor [tid task-ids] [tid (LinkedBlockingQueue.)]))
-        topology (read-supervisor-topology conf storm-id)
-        taskbeats (atom {})
-        ret {:conf conf
-             :mq-context (if mq-context
-                             mq-context
-                             (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
-                                                        (storm-conf ZMQ-LINGER-MILLIS)
-                                                        (= (conf STORM-CLUSTER-MODE) "local")))
-             :storm-id storm-id
-             :supervisor-id supervisor-id
-             :port port
-             :worker-id worker-id
-             :cluster-state cluster-state
-             :storm-cluster-state storm-cluster-state
-             :storm-active-atom (atom false)
-             :task-ids task-ids
-             :storm-conf storm-conf
-             :topology topology
-             :timer (mk-timer :kill-fn (fn [t]
-                                         (log-error t "Error when processing event")
-                                         (halt-process! 20 "Error when processing an event")
-                                         ))
-             :task->component (storm-task-info topology storm-conf)
-             :endpoint-socket-lock (mk-rw-lock)
-             :node+port->socket (atom {})
-             :task->node+port (atom {})
-             :transfer-queue transfer-queue
-             :receive-queue-map receive-queue-map
-             :suicide-fn (mk-suicide-fn conf)
-             :taskbeats taskbeats
-             }]
-    (merge ret
-           {:transfer-fn (mk-transfer-fn ret)
-            })))
+        executors (set (read-worker-executors storm-cluster-state storm-id supervisor-id port))
+        transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE))
+        executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
+        
+        receive-queue-map (->> executor-receive-queue-map
+                               (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
+                               (into {}))
 
+        topology (read-supervisor-topology conf storm-id)]
+    (recursive-map
+      :conf conf
+      :mq-context (if mq-context
+                      mq-context
+                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
+                                                 (storm-conf ZMQ-LINGER-MILLIS)
+                                                 (= (conf STORM-CLUSTER-MODE) "local")))
+      :storm-id storm-id
+      :supervisor-id supervisor-id
+      :port port
+      :worker-id worker-id
+      :cluster-state cluster-state
+      :storm-cluster-state storm-cluster-state
+      :storm-active-atom (atom false)
+      :executors executors
+      :task-ids (->> receive-queue-map keys (map int) sort)
+      :storm-conf storm-conf
+      :topology topology
+      :system-topology (system-topology! storm-conf topology)
+      :timer (mk-timer :kill-fn (fn [t]
+                                  (log-error t "Error when processing event")
+                                  (halt-process! 20 "Error when processing an event")
+                                  ))
+      :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
+      :component->stream->fields (component->stream->fields (:system-topology <>))
+      :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
+      :endpoint-socket-lock (mk-rw-lock)
+      :cached-node+port->socket (atom {})
+      :cached-task->node+port (atom {})
+      :transfer-queue transfer-queue
+      :executor-receive-queue-map executor-receive-queue-map
+      :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
+      :task->short-executor (->> executors
+                                 (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
+                                 (into {})
+                                 (HashMap.))
+      :suicide-fn (mk-suicide-fn conf)
+      :uptime (uptime-computer)
+      :transfer-local-fn (mk-transfer-local-fn <>)
+      :transfer-fn (mk-transfer-fn <>)
+      )))
+
+(defn- endpoint->string [[node port]]
+  (str port "/" node))
+
+(defn string->endpoint [^String s]
+  (let [[port-str node] (.split s "/" 2)]
+    [node (Integer/valueOf port-str)]
+    ))
 
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
@@ -149,20 +191,25 @@
         (this (fn [& ignored] (schedule (:timer worker) 0 this))))
       ([callback]
         (let [assignment (.assignment-info storm-cluster-state storm-id callback)
-              my-assignment (select-keys (:task->node+port assignment) outbound-tasks)
+              my-assignment (-> assignment
+                                :executor->node+port
+                                to-task->node+port
+                                (select-keys outbound-tasks)
+                                (#(map-val endpoint->string %)))
               ;; we dont need a connection for the local tasks anymore
               needed-connections (->> my-assignment
-                                      (filter-key (complement (:task-ids worker)))
+                                      (filter-key (complement (-> worker :task-ids set)))
                                       vals
                                       set)
-              current-connections (set (keys @(:node+port->socket worker)))
+              current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
-              (swap! (:node+port->socket worker)
-                     merge
+              (swap! (:cached-node+port->socket worker)
+                     #(HashMap. (merge (into {} %1) %2))
                      (into {}
-                       (dofor [[node port :as endpoint] new-connections]
-                         [endpoint
+                       (dofor [endpoint-str new-connections
+                               :let [[node port] (string->endpoint endpoint-str)]]
+                         [endpoint-str
                           (msg/connect
                            (:mq-context worker)
                            storm-id
@@ -171,12 +218,13 @@
                           ]
                          )))
               (write-locked (:endpoint-socket-lock worker)
-                (reset! (:task->node+port worker) my-assignment))
+                (reset! (:cached-task->node+port worker)
+                        (HashMap. my-assignment)))
               (doseq [endpoint remove-connections]
-                (.close (@(:node+port->socket worker) endpoint)))
+                (.close (@(:cached-node+port->socket worker) endpoint)))
               (apply swap!
-                     (:node+port->socket worker)
-                     dissoc
+                     (:cached-node+port->socket worker)
+                     #(HashMap. (dissoc (into {} %1) %&))
                      remove-connections)
           )))))
 
@@ -191,19 +239,30 @@
       ))
      ))
 
-(defn transfer-tuples [worker ^ArrayList drainer]
-  (let [^LinkedBlockingQueue transfer-queue (:transfer-queue worker)
-        felem (.take transfer-queue)]
-    (.add drainer felem)
-    (.drainTo transfer-queue drainer))
-  (read-locked (:endpoint-socket-lock worker)
-    (let [node+port->socket @(:node+port->socket worker)
-          task->node+port @(:task->node+port worker)]
-      (doseq [[task ser-tuple] drainer]
-        (let [socket (node+port->socket (task->node+port task))]
-          (msg/send socket task ser-tuple))
-      )))
-  (.clear drainer))
+;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
+(defn mk-transfer-tuples-handler [worker]
+  (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
+        drainer (ArrayList.)
+        node+port->socket (:cached-node+port->socket worker)
+        task->node+port (:cached-task->node+port worker)
+        endpoint-socket-lock (:endpoint-socket-lock worker)
+        ]
+    (fn [packets _ batch-end?]
+      (.addAll drainer packets)
+      (when batch-end?
+        (read-locked endpoint-socket-lock
+          (let [node+port->socket @node+port->socket
+                task->node+port @task->node+port]
+            ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
+            ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
+            
+            (fast-list-iter [[task ser-tuple] drainer]
+              ;; TODO: consider write a batch of tuples here to every target worker  
+              ;; group by node+port, do multipart send              
+              (let [socket (get node+port->socket (get task->node+port task))]
+                (msg/send socket task ser-tuple)
+                ))))
+        (.clear drainer)))))
 
 (defn launch-receive-thread [worker]
   (log-message "Launching receive-thread for " (:supervisor-id worker) ":" (:port worker))
@@ -211,7 +270,8 @@
     (:mq-context worker)
     (:storm-id worker)
     (:port worker)
-    (:receive-queue-map worker)
+    (:transfer-local-fn worker)
+    (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))
     :kill-fn (fn [t] (halt-process! 11))))
 
 ;; TODO: should worker even take the storm-id as input? this should be
@@ -234,32 +294,41 @@
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
         
+        ;; heartbeat immediately to nimbus so that it knows that the worker has been started
+        _ (do-executor-heartbeats worker)
+        
         refresh-connections (mk-refresh-connections worker)
 
         _ (refresh-connections nil)
         _ (refresh-storm-active worker nil)
  
-        tasks (dofor [tid (:task-ids worker)] (task/mk-task worker (system-topology-context worker tid) (user-topology-context worker tid)))
-        threads [(async-loop (fn [& args] (apply transfer-tuples args) 0)
-                             :args-fn (fn [] [worker (ArrayList.)]))]
+        executors (dofor [e (:executors worker)] (executor/mk-executor worker e))
         receive-thread-shutdown (launch-receive-thread worker)
-                                                              
+        
+        transfer-tuples (mk-transfer-tuples-handler worker)
+                                               
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
-                    (doseq [task tasks] (.shutdown task))
-                    (doseq [[_ socket] @(:node+port->socket worker)]
+                    (doseq [[_ q] (:executor-receive-queue-map worker)]
+                      (.haltProcessing q))
+                    (doseq [executor executors] (.shutdown executor))
+                    (doseq [[_ socket] @(:cached-node+port->socket worker)]
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
                     (receive-thread-shutdown)
                     (log-message "Terminating zmq context")
+                    
+                    ;; now it's safe to shutdown receive queues (nothing left to add messages to it
+                    ;; get deadlocked)
+                    (doseq [[_ q] (:executor-receive-queue-map worker)]
+                      (.shutdown q))
+                    
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
                     (msg/term (:mq-context worker))
-                    (log-message "Waiting for threads to die")
-                    (doseq [t threads]
-                      (.interrupt t)
-                      (.join t))
+                    (log-message "Waiting for transfer queue to die")
+                    (.shutdown (:transfer-queue worker))
                     (cancel-timer (:timer worker))
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
@@ -273,14 +342,14 @@
               (shutdown*))
              DaemonCommon
              (waiting? [this]
-                       (and
-                        (timer-waiting? (:timer worker))
-                        (every? (memfn waiting?) tasks)))
+                       (timer-waiting? (:timer worker)))
              )]
+    (disruptor/set-handler (:transfer-queue worker) transfer-tuples)
+    
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
-    (schedule-recurring (:timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-task-heartbeats worker))
+    (schedule-recurring (:timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors executors))
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")
@@ -289,11 +358,11 @@
 
 (defmethod mk-suicide-fn
   :local [conf]
-  (fn [] (halt-process! 1 "Task died")))
+  (fn [] (halt-process! 1 "Worker died")))
 
 (defmethod mk-suicide-fn
   :distributed [conf]
-  (fn [] (halt-process! 1 "Task died")))
+  (fn [] (halt-process! 1 "Worker died")))
 
 (defn -main [storm-id supervisor-id port-str worker-id]  
   (let [conf (read-storm-config)]

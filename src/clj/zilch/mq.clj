@@ -94,6 +94,9 @@
   ([^ZMQ$Socket socket ^bytes message]
      (send socket message ZMQ/NOBLOCK)))
 
+(defn recv-more? [^ZMQ$Socket socket]
+  (.hasReceiveMore socket))
+
 (defn recv
   ([^ZMQ$Socket socket flags]
      (.recv socket flags))

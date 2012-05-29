@@ -135,15 +135,9 @@ public class TimeCacheMap<K, V> {
             return size;
         }
     }
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            _cleaner.interrupt();
-        } finally {
-            super.finalize();
-        }
+    
+    public void cleanup() {
+        _cleaner.interrupt();
     }
-
     
 }

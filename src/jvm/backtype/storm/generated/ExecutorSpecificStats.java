@@ -21,8 +21,8 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskSpecificStats extends org.apache.thrift7.TUnion<TaskSpecificStats, TaskSpecificStats._Fields> {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("TaskSpecificStats");
+public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpecificStats, ExecutorSpecificStats._Fields> {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ExecutorSpecificStats");
   private static final org.apache.thrift7.protocol.TField BOLT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
   private static final org.apache.thrift7.protocol.TField SPOUT_FIELD_DESC = new org.apache.thrift7.protocol.TField("spout", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
@@ -95,32 +95,32 @@ public class TaskSpecificStats extends org.apache.thrift7.TUnion<TaskSpecificSta
     tmpMap.put(_Fields.SPOUT, new org.apache.thrift7.meta_data.FieldMetaData("spout", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, SpoutStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TaskSpecificStats.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ExecutorSpecificStats.class, metaDataMap);
   }
 
-  public TaskSpecificStats() {
+  public ExecutorSpecificStats() {
     super();
   }
 
-  public TaskSpecificStats(_Fields setField, Object value) {
+  public ExecutorSpecificStats(_Fields setField, Object value) {
     super(setField, value);
   }
 
-  public TaskSpecificStats(TaskSpecificStats other) {
+  public ExecutorSpecificStats(ExecutorSpecificStats other) {
     super(other);
   }
-  public TaskSpecificStats deepCopy() {
-    return new TaskSpecificStats(this);
+  public ExecutorSpecificStats deepCopy() {
+    return new ExecutorSpecificStats(this);
   }
 
-  public static TaskSpecificStats bolt(BoltStats value) {
-    TaskSpecificStats x = new TaskSpecificStats();
+  public static ExecutorSpecificStats bolt(BoltStats value) {
+    ExecutorSpecificStats x = new ExecutorSpecificStats();
     x.set_bolt(value);
     return x;
   }
 
-  public static TaskSpecificStats spout(SpoutStats value) {
-    TaskSpecificStats x = new TaskSpecificStats();
+  public static ExecutorSpecificStats spout(SpoutStats value) {
+    ExecutorSpecificStats x = new ExecutorSpecificStats();
     x.set_spout(value);
     return x;
   }
@@ -260,19 +260,19 @@ public class TaskSpecificStats extends org.apache.thrift7.TUnion<TaskSpecificSta
 
 
   public boolean equals(Object other) {
-    if (other instanceof TaskSpecificStats) {
-      return equals((TaskSpecificStats)other);
+    if (other instanceof ExecutorSpecificStats) {
+      return equals((ExecutorSpecificStats)other);
     } else {
       return false;
     }
   }
 
-  public boolean equals(TaskSpecificStats other) {
+  public boolean equals(ExecutorSpecificStats other) {
     return other != null && getSetField() == other.getSetField() && getFieldValue().equals(other.getFieldValue());
   }
 
   @Override
-  public int compareTo(TaskSpecificStats other) {
+  public int compareTo(ExecutorSpecificStats other) {
     int lastComparison = org.apache.thrift7.TBaseHelper.compareTo(getSetField(), other.getSetField());
     if (lastComparison == 0) {
       return org.apache.thrift7.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());

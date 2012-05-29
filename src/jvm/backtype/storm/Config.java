@@ -428,6 +428,29 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TOPOLOGY_AUTO_TASK_HOOKS="topology.auto.task.hooks";
 
+
+    /**
+     * The size of the Disruptor receive queue for each executor.
+     */
+    public static String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
+
+    /**
+     * The maximum number of messages to batch from the thread receiving off the network to the 
+     * executor queues.
+     */
+    public static String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
+
+    /**
+     * The size of the Disruptor send queue for each executor.
+     */
+    public static String TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE="topology.executor.send.buffer.size";
+
+
+    /**
+     * The size of the Disruptor transfer queue for each worker.
+     */
+    public static String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
+
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */

@@ -5,12 +5,10 @@ import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.StreamInfo;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.ThriftTopologyUtils;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,39 +16,24 @@ import java.util.Set;
 import org.json.simple.JSONValue;
 import org.json.simple.JSONAware;
 
-/**
- * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
- * methods, respectively. This object provides information about the component's
- * place within the topology, such as task ids, inputs and outputs, etc.
- *
- * <p>The TopologyContext is also used to declare ISubscribedState objects to
- * synchronize state with StateSpouts this object is subscribed to.</p>
- */
 public class GeneralTopologyContext implements JSONAware {
     private StormTopology _topology;
     private Map<Integer, String> _taskToComponent;
     private Map<String, List<Integer>> _componentToTasks;
+    private Map<String, Map<String, Fields>> _componentToStreamToFields;
     private String _stormId;
     protected Map _stormConf;
     
+    // pass in componentToSortedTasks for the case of running tons of tasks in single executor
     public GeneralTopologyContext(StormTopology topology, Map stormConf,
-            Map<Integer, String> taskToComponent, String stormId) {
+            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
+            Map<String, Map<String, Fields>> componentToStreamToFields, String stormId) {
         _topology = topology;
         _stormConf = stormConf;
         _taskToComponent = taskToComponent;
         _stormId = stormId;
-        _componentToTasks = new HashMap<String, List<Integer>>();
-        for(Integer task: taskToComponent.keySet()) {
-            String component = taskToComponent.get(task);
-            List<Integer> curr = _componentToTasks.get(component);
-            if(curr==null) curr = new ArrayList<Integer>();
-            curr.add(task);
-            _componentToTasks.put(component, curr);
-        }
-        for(String component: _componentToTasks.keySet()) {
-            List<Integer> tasks = _componentToTasks.get(component);
-            Collections.sort(tasks);
-        }
+        _componentToTasks = componentToSortedTasks;
+        _componentToStreamToFields = componentToStreamToFields;
     }
 
     /**
@@ -103,11 +86,11 @@ public class GeneralTopologyContext implements JSONAware {
      * Gets the declared output fields for the specified component/stream.
      */
     public Fields getComponentOutputFields(String componentId, String streamId) {
-        StreamInfo streamInfo = getComponentCommon(componentId).get_streams().get(streamId);
-        if(streamInfo==null) {
+        Fields ret = _componentToStreamToFields.get(componentId).get(streamId);
+        if(ret==null) {
             throw new IllegalArgumentException("No output fields defined for component:stream " + componentId + ":" + streamId);
         }
-        return new Fields(streamInfo.get_output_fields());
+        return ret;
     }
 
     /**

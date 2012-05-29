@@ -21,8 +21,8 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("TaskStats");
+public class ExecutorStats implements org.apache.thrift7.TBase<ExecutorStats, ExecutorStats._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ExecutorStats");
 
   private static final org.apache.thrift7.protocol.TField EMITTED_FIELD_DESC = new org.apache.thrift7.protocol.TField("emitted", org.apache.thrift7.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift7.protocol.TField TRANSFERRED_FIELD_DESC = new org.apache.thrift7.protocol.TField("transferred", org.apache.thrift7.protocol.TType.MAP, (short)2);
@@ -30,7 +30,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
 
   private Map<String,Map<String,Long>> emitted; // required
   private Map<String,Map<String,Long>> transferred; // required
-  private TaskSpecificStats specific; // required
+  private ExecutorSpecificStats specific; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -114,18 +114,18 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
                 new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
                 new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)))));
     tmpMap.put(_Fields.SPECIFIC, new org.apache.thrift7.meta_data.FieldMetaData("specific", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, TaskSpecificStats.class)));
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ExecutorSpecificStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TaskStats.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ExecutorStats.class, metaDataMap);
   }
 
-  public TaskStats() {
+  public ExecutorStats() {
   }
 
-  public TaskStats(
+  public ExecutorStats(
     Map<String,Map<String,Long>> emitted,
     Map<String,Map<String,Long>> transferred,
-    TaskSpecificStats specific)
+    ExecutorSpecificStats specific)
   {
     this();
     this.emitted = emitted;
@@ -136,7 +136,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TaskStats(TaskStats other) {
+  public ExecutorStats(ExecutorStats other) {
     if (other.is_set_emitted()) {
       Map<String,Map<String,Long>> __this__emitted = new HashMap<String,Map<String,Long>>();
       for (Map.Entry<String, Map<String,Long>> other_element : other.emitted.entrySet()) {
@@ -190,12 +190,12 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       this.transferred = __this__transferred;
     }
     if (other.is_set_specific()) {
-      this.specific = new TaskSpecificStats(other.specific);
+      this.specific = new ExecutorSpecificStats(other.specific);
     }
   }
 
-  public TaskStats deepCopy() {
-    return new TaskStats(this);
+  public ExecutorStats deepCopy() {
+    return new ExecutorStats(this);
   }
 
   @Override
@@ -273,11 +273,11 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
     }
   }
 
-  public TaskSpecificStats get_specific() {
+  public ExecutorSpecificStats get_specific() {
     return this.specific;
   }
 
-  public void set_specific(TaskSpecificStats specific) {
+  public void set_specific(ExecutorSpecificStats specific) {
     this.specific = specific;
   }
 
@@ -318,7 +318,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
       if (value == null) {
         unset_specific();
       } else {
-        set_specific((TaskSpecificStats)value);
+        set_specific((ExecutorSpecificStats)value);
       }
       break;
 
@@ -361,12 +361,12 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof TaskStats)
-      return this.equals((TaskStats)that);
+    if (that instanceof ExecutorStats)
+      return this.equals((ExecutorStats)that);
     return false;
   }
 
-  public boolean equals(TaskStats that) {
+  public boolean equals(ExecutorStats that) {
     if (that == null)
       return false;
 
@@ -422,13 +422,13 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
     return builder.toHashCode();
   }
 
-  public int compareTo(TaskStats other) {
+  public int compareTo(ExecutorStats other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    TaskStats typedOther = (TaskStats)other;
+    ExecutorStats typedOther = (ExecutorStats)other;
 
     lastComparison = Boolean.valueOf(is_set_emitted()).compareTo(typedOther.is_set_emitted());
     if (lastComparison != 0) {
@@ -541,7 +541,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
           break;
         case 3: // SPECIFIC
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
-            this.specific = new TaskSpecificStats();
+            this.specific = new ExecutorSpecificStats();
             this.specific.read(iprot);
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
@@ -613,7 +613,7 @@ public class TaskStats implements org.apache.thrift7.TBase<TaskStats, TaskStats.
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("TaskStats(");
+    StringBuilder sb = new StringBuilder("ExecutorStats(");
     boolean first = true;
 
     sb.append("emitted:");

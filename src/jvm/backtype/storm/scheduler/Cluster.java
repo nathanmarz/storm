@@ -65,7 +65,7 @@ public class Cluster {
      * A topology needs scheduling if one of the following conditions holds:
      * <ul>
      *   <li>Although the topology is assigned slots, but is squeezed. i.e. the topology is assigned less slots than desired.</li>
-     *   <li>There are unassigned tasks in this topology</li>
+     *   <li>There are unassigned executors in this topology</li>
      * </ul>
      */
     public boolean needsScheduling(TopologyDetails topology) {
@@ -76,46 +76,46 @@ public class Cluster {
             return true;
         }
 
-        return this.getUnassignedTasks(topology).size() > 0;
+        return this.getUnassignedExecutors(topology).size() > 0;
     }
 
     /**
-     * Gets a task-id -> component-id map which needs scheduling in this topology.
+     * Gets a executor -> component-id map which needs scheduling in this topology.
      * 
      * @param topology
      * @return
      */
-    public Map<Integer, String> getNeedsSchedulingTaskToComponents(TopologyDetails topology) {
-        Collection<Integer> allTasks = topology.getTasks();
+    public Map<ExecutorDetails, String> getNeedsSchedulingExecutorToComponents(TopologyDetails topology) {
+        Collection<ExecutorDetails> allExecutors = topology.getExecutors();
 
         SchedulerAssignment assignment = this.assignments.get(topology.getId());
         if (assignment != null) {
-            Collection<Integer> assignedTasks = assignment.getTasks();
-            allTasks.removeAll(assignedTasks);
+            Collection<ExecutorDetails> assignedExecutors = assignment.getExecutors();
+            allExecutors.removeAll(assignedExecutors);
         }
 
-        return topology.selectTaskToComponents(allTasks);
+        return topology.selectExecutorToComponents(allExecutors);
     }
     
     /**
-     * Gets a component-id -> tasks map which needs scheduling in this topology.
+     * Gets a component-id -> executors map which needs scheduling in this topology.
      * 
      * @param topology
      * @return
      */
-    public Map<String, List<Integer>> getNeedsSchedulingComponentToTasks(TopologyDetails topology) {
-        Map<Integer, String> taskToComponents = this.getNeedsSchedulingTaskToComponents(topology);
-        Map<String, List<Integer>> componentToTasks = new HashMap<String, List<Integer>>();
-        for (int task : taskToComponents.keySet()) {
-            String component = taskToComponents.get(task);
-            if (!componentToTasks.containsKey(component)) {
-                componentToTasks.put(component, new ArrayList<Integer>());
+    public Map<String, List<ExecutorDetails>> getNeedsSchedulingComponentToTasks(TopologyDetails topology) {
+        Map<ExecutorDetails, String> executorToComponents = this.getNeedsSchedulingExecutorToComponents(topology);
+        Map<String, List<ExecutorDetails>> componentToExecutors = new HashMap<String, List<ExecutorDetails>>();
+        for (ExecutorDetails executor : executorToComponents.keySet()) {
+            String component = executorToComponents.get(executor);
+            if (!componentToExecutors.containsKey(component)) {
+                componentToExecutors.put(component, new ArrayList<ExecutorDetails>());
             }
             
-            componentToTasks.get(component).add(task);
+            componentToExecutors.get(component).add(executor);
         }
         
-        return componentToTasks;
+        return componentToExecutors;
     }
 
 
@@ -130,7 +130,7 @@ public class Cluster {
         List<Integer> usedPorts = new ArrayList<Integer>();
 
         for (SchedulerAssignment assignment : assignments.values()) {
-            for (WorkerSlot slot : assignment.getTaskToSlots().values()) {
+            for (WorkerSlot slot : assignment.getExecutorToSlots().values()) {
                 if (slot.getNodeId().equals(supervisor.getId())) {
                     usedPorts.add(slot.getPort());
                 }
@@ -174,23 +174,23 @@ public class Cluster {
     }
     
     /**
-     * get the unassigned tasks of the topology.
+     * get the unassigned executors of the topology.
      */
-    public List<Integer> getUnassignedTasks(TopologyDetails topology) {
+    public List<ExecutorDetails> getUnassignedExecutors(TopologyDetails topology) {
         if (topology == null) {
-            return new ArrayList<Integer>(0);
+            return new ArrayList<ExecutorDetails>(0);
         }
 
-        Collection<Integer> allTasks = topology.getTasks();
+        Collection<ExecutorDetails> allExecutors = topology.getExecutors();
         SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
 
         if (assignment != null) {
-            Set<Integer> assignedTasks = assignment.getTasks();
-            allTasks.removeAll(assignedTasks);
+            Set<ExecutorDetails> assignedTasks = assignment.getExecutors();
+            allExecutors.removeAll(assignedTasks);
         }
 
-        List<Integer> ret = new ArrayList<Integer>(allTasks.size());
-        ret.addAll(allTasks);
+        List<ExecutorDetails> ret = new ArrayList<ExecutorDetails>(allExecutors.size());
+        ret.addAll(allExecutors);
 
         return ret;
     }
@@ -208,23 +208,23 @@ public class Cluster {
         }
 
         Set<WorkerSlot> slots = new HashSet<WorkerSlot>();
-        slots.addAll(assignment.getTaskToSlots().values());
+        slots.addAll(assignment.getExecutorToSlots().values());
 
         return slots.size();
     }
 
     /**
-     * Assign the slot to the task for this topology.
+     * Assign the slot to the executors for this topology.
      */
-    public void assign(WorkerSlot slot, String topologyId, Collection<Integer> tasks) {
+    public void assign(WorkerSlot slot, String topologyId, Collection<ExecutorDetails> executors) {
         SchedulerAssignment assignment = this.getAssignmentById(topologyId);
 
         if (assignment == null) {
-            assignment = new SchedulerAssignment(topologyId, new HashMap<Integer, WorkerSlot>());
+            assignment = new SchedulerAssignment(topologyId, new HashMap<ExecutorDetails, WorkerSlot>());
             this.assignments.put(topologyId, assignment);
         }
 
-        assignment.assign(slot, tasks);
+        assignment.assign(slot, executors);
     }
 
     /**

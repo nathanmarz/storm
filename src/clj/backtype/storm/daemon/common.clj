@@ -3,6 +3,7 @@
   (:import [backtype.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
@@ -22,13 +23,13 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs])
 
+
+;; component->executors is a map from spout/bolt id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
 (defrecord SupervisorInfo [time-secs hostname meta scheduler-meta all-ports uptime-secs])
-
-(defrecord TaskInfo [component-id])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
@@ -42,22 +43,16 @@
 
 
 
-(defrecord WorkerHeartbeat [time-secs storm-id task-ids port])
+(defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
-(defrecord TaskStats [^long processed
-                      ^long acked
-                      ^long emitted
-                      ^long transferred
-                      ^long failed])
+(defrecord ExecutorStats [^long processed
+                          ^long acked
+                          ^long emitted
+                          ^long transferred
+                          ^long failed])
 
-(defrecord TaskHeartbeat [time-secs uptime-secs stats])
-
-(defn new-task-stats []
-  (TaskStats. 0 0 0 0 0))
-
-;technically this is only active task ids
-(defn storm-task-ids [storm-cluster-state storm-id]
-  (keys (:task->node+port (.assignment-info storm-cluster-state storm-id nil))))
+(defn new-executor-stats []
+  (ExecutorStats. 0 0 0 0 0))
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
@@ -208,33 +203,47 @@
     (and (or (nil? tasks) (> tasks 0))
          (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
 
-(defn component-conf [storm-conf component]
+(defn component-conf [component]
   (->> component
       .get_common
       .get_json_conf
-      from-json
-      (merge storm-conf)))
+      from-json))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))
-
-(defn- component-parallelism [storm-conf component]
-  (let [storm-conf (component-conf storm-conf component)
-        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
-        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        ]
-    (if max-parallelism
-      (min max-parallelism num-tasks)
-      num-tasks)))
 
 (defn storm-task-info
   "Returns map from task -> component id"
   [^StormTopology user-topology storm-conf]
   (->> (system-topology! storm-conf user-topology)
        all-components
-       (map-val (partial component-parallelism storm-conf))
+       (map-val (comp #(get % TOPOLOGY-TASKS) component-conf))
        (sort-by first)
        (mapcat (fn [[c num-tasks]] (repeat num-tasks c)))
        (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))
        (into {})
        ))
+
+(defn executor-id->tasks [[first-task-id last-task-id]]
+  (->> (range first-task-id (inc last-task-id))
+       (map int)))
+
+(defn worker-context [worker]
+  (WorkerTopologyContext.  (:system-topology worker)
+                           (:storm-conf worker)
+                           (:task->component worker)
+                           (:component->sorted-tasks worker)
+                           (:component->stream->fields worker)
+                           (:storm-id worker)
+                           (supervisor-storm-resources-path
+                             (supervisor-stormdist-root (:conf worker) (:storm-id worker)))
+                           (worker-pids-root (:conf worker) (:worker-id worker))
+                           (:port worker)
+                           (:task-ids worker)
+                           ))
+
+
+(defn to-task->node+port [executor->node+port]
+  (->> executor->node+port
+       (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
+       (into {})))

@@ -4,6 +4,7 @@
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
+  (:require [backtype.storm.daemon [common :as common]])
   
   )
 
@@ -98,7 +99,7 @@
   (storm-base [this storm-id callback])
 
   (get-worker-heartbeat [this storm-id node port])
-  (taskbeats [this storm-id task->node+port])
+  (executor-beats [this storm-id executor->node+port])
   (supervisors [this callback])
   (supervisor-info [this supervisor-id])  ;; returns nil if doesn't exist
 
@@ -180,6 +181,18 @@
 (defn- parse-error-path [^String p]
   (Long/parseLong (.substring p 1)))
 
+
+(defn convert-executor-beats [executors worker-hb]
+  ;; ensures that we only return heartbeats for executors assigned to this worker
+  (let [executor-stats (:executor-stats worker-hb)]
+    (->> executors
+      (map (fn [t] 
+             (if (contains? executor-stats t)
+               {t {:time-secs (:time-secs worker-hb)
+                    :uptime (:uptime worker-hb)
+                    :stats (get executor-stats t)}})))
+      (into {}))))
+
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defn mk-storm-cluster-state [cluster-state-spec]
   (let [[solo? cluster-state] (if (satisfies? ClusterState cluster-state-spec)
@@ -236,16 +249,15 @@
             (get-data (workerbeat-path storm-id node port) false)
             maybe-deserialize))
 
-      (taskbeats [this storm-id task->node+port]
-        ;; need to take task->node+port in explicitly so that we don't run into a situation where a 
+      (executor-beats [this storm-id executor->node+port]
+        ;; need to take executor->node+port in explicitly so that we don't run into a situation where a 
         ;; long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
-        ;; with an assigned node+port, and only reading tasks from that heartbeat that are actually assigned,
+        ;; with an assigned node+port, and only reading executors from that heartbeat that are actually assigned,
         ;; we avoid situations like that
-        (let [node+port->tasks (reverse-map task->node+port)
-              all-heartbeats (for [[[node port] tasks] node+port->tasks :let [tasks (set tasks)]]
+        (let [node+port->executors (reverse-map executor->node+port)
+              all-heartbeats (for [[[node port] executors] node+port->executors]
                                 (->> (get-worker-heartbeat this storm-id node port)
-                                     :taskbeats
-                                     (filter-key tasks)
+                                     (convert-executor-beats executors)
                                      ))]
           (apply merge all-heartbeats)))
 

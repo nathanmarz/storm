@@ -19,42 +19,46 @@
 (defn storm-num-workers [state storm-name]
   (let [storm-id (get-storm-id state storm-name)
         assignment (.assignment-info state storm-id nil)]
-    (count (reverse-map (:task->node+port assignment)))
+    (count (reverse-map (:executor->node+port assignment)))
     ))
 
-(defn do-task-heartbeat [cluster storm-id task-id]
-  (let [state (:storm-cluster-state cluster)
-        task->node+port (:task->node+port (.assignment-info state storm-id nil))
-        [node port] (get task->node+port task-id)
-        curr-beat (.get-worker-heartbeat state storm-id node port)
-        taskbeats (:taskbeats curr-beat)]
-    (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :taskbeats (assoc taskbeats task-id (TaskHeartbeat. (current-time-secs) 10 {}))}
-      )))
-
-(defn task-assignment [cluster storm-id task-id]
+(defn executor-assignment [cluster storm-id executor-id]
   (let [state (:storm-cluster-state cluster)
         assignment (.assignment-info state storm-id nil)]
-    ((:task->node+port assignment) task-id)
+    ((:executor->node+port assignment) executor-id)
     ))
+
+(defn executor-start-times [cluster storm-id]
+  (let [state (:storm-cluster-state cluster)
+        assignment (.assignment-info state storm-id nil)]
+    (:executor->start-time-secs assignment)))
+
+(defn do-executor-heartbeat [cluster storm-id executor]
+  (let [state (:storm-cluster-state cluster)
+        executor->node+port (:executor->node+port (.assignment-info state storm-id nil))
+        [node port] (get executor->node+port executor)
+        curr-beat (.get-worker-heartbeat state storm-id node port)
+        stats (:executor-stats curr-beat)]
+    (.worker-heartbeat! state storm-id node port
+      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10 :executor-stats (merge stats {executor nil})}
+      )))
 
 (defn slot-assignments [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
         assignment (.assignment-info state storm-id nil)]
-    (reverse-map (:task->node+port assignment))
-    ))
-
-(defn task-start-times [cluster storm-id]
-  (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
-    (:task->start-time-secs assignment)
+    (reverse-map (:executor->node+port assignment))
     ))
 
 (defn task-ids [cluster storm-id]
   (let [nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
         (storm-task-info (from-json (.getTopologyConf nimbus storm-id)))
-        keys)
+        keys)))
+
+(defn topology-executors [cluster storm-id]
+  (let [state (:storm-cluster-state cluster)
+        assignment (.assignment-info state storm-id nil)]
+    (keys (:executor->node+port assignment))
     ))
 
 (defnk check-consistency [cluster storm-name :assigned? true]
@@ -62,15 +66,21 @@
         storm-id (get-storm-id state storm-name)
         task-ids (task-ids cluster storm-id)
         assignment (.assignment-info state storm-id nil)
-        task->node+port (:task->node+port assignment)
-        all-nodes (set (map first (vals task->node+port)))]
+        executor->node+port (:executor->node+port assignment)
+        task->node+port (to-task->node+port executor->node+port)
+        assigned-task-ids (mapcat executor-id->tasks (keys executor->node+port))
+        all-nodes (set (map first (vals executor->node+port)))]
     (when assigned?
-      (is (= (set task-ids) (set (keys task->node+port)))))
-    (doseq [[t s] task->node+port]
+      (is (= (set task-ids) (set assigned-task-ids)))
+      (doseq [t task-ids]
+        (is (not-nil? (task->node+port t)))))
+    (doseq [[e s] executor->node+port]
       (is (not-nil? s)))
+    
+    ;;(map str (-> (Thread/currentThread) .getStackTrace))
     (is (= all-nodes (set (keys (:node->host assignment)))))
-    (doseq [[t s] task->node+port]
-      (is (not-nil? ((:task->start-time-secs assignment) t))))
+    (doseq [[e s] executor->node+port]
+      (is (not-nil? ((:executor->start-time-secs assignment) e))))
     ))
 
 (deftest test-assignment
@@ -198,9 +208,9 @@
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
 
-      (bind task-id (first (task-ids cluster storm-id3)))
+      (bind executor-id (first (topology-executors cluster storm-id3)))
       
-      (do-task-heartbeat cluster storm-id3 task-id)
+      (do-executor-heartbeat cluster storm-id3 executor-id)
 
       (.killTopology (:nimbus cluster) "test3")
       (advance-cluster-time cluster 6)
@@ -236,73 +246,73 @@
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
       (check-consistency cluster "test")
       (bind storm-id (get-storm-id state "test"))
-      (bind [task-id1 task-id2]  (task-ids cluster storm-id))
-      (bind ass1 (task-assignment cluster storm-id task-id1))
-      (bind ass2 (task-assignment cluster storm-id task-id2))
+      (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
+      (bind ass1 (executor-assignment cluster storm-id executor-id1))
+      (bind ass2 (executor-assignment cluster storm-id executor-id2))
       
       (advance-cluster-time cluster 59)
-      (do-task-heartbeat cluster storm-id task-id1)
-      (do-task-heartbeat cluster storm-id task-id2)
+      (do-executor-heartbeat cluster storm-id executor-id1)
+      (do-executor-heartbeat cluster storm-id executor-id2)
 
       (advance-cluster-time cluster 13)
-      (is (= ass1 (task-assignment cluster storm-id task-id1)))
-      (is (= ass2 (task-assignment cluster storm-id task-id2)))
-      (do-task-heartbeat cluster storm-id task-id1)
+      (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
+      (is (= ass2 (executor-assignment cluster storm-id executor-id2)))
+      (do-executor-heartbeat cluster storm-id executor-id1)
 
       (advance-cluster-time cluster 11)
-      (do-task-heartbeat cluster storm-id task-id1)
-      (is (= ass1 (task-assignment cluster storm-id task-id1)))
+      (do-executor-heartbeat cluster storm-id executor-id1)
+      (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
       (check-consistency cluster "test")
 
       ; have to wait an extra 10 seconds because nimbus may not
       ; resynchronize its heartbeat time till monitor-time secs after
       (advance-cluster-time cluster 11)
-      (do-task-heartbeat cluster storm-id task-id1)
-      (is (= ass1 (task-assignment cluster storm-id task-id1)))
+      (do-executor-heartbeat cluster storm-id executor-id1)
+      (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
       (check-consistency cluster "test")
       
       (advance-cluster-time cluster 11)
-      (is (= ass1 (task-assignment cluster storm-id task-id1)))
-      (is (not= ass2 (task-assignment cluster storm-id task-id2)))
-      (bind ass2 (task-assignment cluster storm-id task-id2))
+      (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
+      (is (not= ass2 (executor-assignment cluster storm-id executor-id2)))
+      (bind ass2 (executor-assignment cluster storm-id executor-id2))
       (check-consistency cluster "test")
 
       (advance-cluster-time cluster 31)
-      (is (not= ass1 (task-assignment cluster storm-id task-id1)))
-      (is (= ass2 (task-assignment cluster storm-id task-id2)))  ; tests launch timeout
+      (is (not= ass1 (executor-assignment cluster storm-id executor-id1)))
+      (is (= ass2 (executor-assignment cluster storm-id executor-id2)))  ; tests launch timeout
       (check-consistency cluster "test")
 
 
-      (bind ass1 (task-assignment cluster storm-id task-id1))
+      (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind active-supervisor (first ass2))
       (kill-supervisor cluster active-supervisor)
 
       (doseq [i (range 12)]
-        (do-task-heartbeat cluster storm-id task-id1)
-        (do-task-heartbeat cluster storm-id task-id2)
+        (do-executor-heartbeat cluster storm-id executor-id1)
+        (do-executor-heartbeat cluster storm-id executor-id2)
         (advance-cluster-time cluster 10)
         )
-      ;; tests that it doesn't reassign tasks if they're heartbeating even if supervisor times out
-      (is (= ass1 (task-assignment cluster storm-id task-id1)))
-      (is (= ass2 (task-assignment cluster storm-id task-id2)))
+      ;; tests that it doesn't reassign executors if they're heartbeating even if supervisor times out
+      (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
+      (is (= ass2 (executor-assignment cluster storm-id executor-id2)))
       (check-consistency cluster "test")
 
       (advance-cluster-time cluster 30)
 
-      (bind ass1 (task-assignment cluster storm-id task-id1))
-      (bind ass2 (task-assignment cluster storm-id task-id2))
+      (bind ass1 (executor-assignment cluster storm-id executor-id1))
+      (bind ass2 (executor-assignment cluster storm-id executor-id2))
       (is (not-nil? ass1))
       (is (not-nil? ass2))
-      (is (not= active-supervisor (first (task-assignment cluster storm-id task-id2))))
-      (is (not= active-supervisor (first (task-assignment cluster storm-id task-id1))))
+      (is (not= active-supervisor (first (executor-assignment cluster storm-id executor-id2))))
+      (is (not= active-supervisor (first (executor-assignment cluster storm-id executor-id1))))
       (check-consistency cluster "test")
 
       (doseq [supervisor-id (.supervisors state nil)]
         (kill-supervisor cluster supervisor-id))
 
       (advance-cluster-time cluster 90)
-      (bind ass1 (task-assignment cluster storm-id task-id1))
-      (bind ass2 (task-assignment cluster storm-id task-id2))
+      (bind ass1 (executor-assignment cluster storm-id executor-id1))
+      (bind ass2 (executor-assignment cluster storm-id executor-id2))
       (is (nil? ass1))
       (is (nil? ass2))
       (check-consistency cluster "test" :assigned? false)
@@ -312,13 +322,13 @@
       (check-consistency cluster "test")
       )))
 
-(defn check-distribution [slot-tasks distribution]
-  (let [dist (multi-set (map count (vals slot-tasks)))]
+(defn check-distribution [slot-executors distribution]
+  (let [dist (multi-set (map count (vals slot-executors)))]
     (is (= dist (multi-set distribution)))
     ))
 
-(defn check-num-nodes [slot-tasks num-nodes]
-  (let [nodes (->> slot-tasks keys (map first) set)]
+(defn check-num-nodes [slot-executors num-nodes]
+  (let [nodes (->> slot-executors keys (map first) set)]
     (is (= num-nodes (count nodes)))
     ))
 
@@ -336,37 +346,37 @@
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 4} topology)  ; distribution should be 2, 2, 2, 3 ideally
       (bind storm-id (get-storm-id state "test"))
-      (bind slot-tasks (slot-assignments cluster storm-id))
-      (check-distribution (slot-assignments cluster storm-id) [9])
+      (bind slot-executors (slot-assignments cluster storm-id))
+      (check-distribution slot-executors [9])
       (check-consistency cluster "test")
 
       (add-supervisor cluster :ports 2)
       (advance-cluster-time cluster 11)
-      (bind slot-tasks (slot-assignments cluster storm-id))
-      (bind task->start (task-start-times cluster storm-id))
-      (check-distribution slot-tasks [3 3 3])
+      (bind slot-executors (slot-assignments cluster storm-id))
+      (bind executor->start (executor-start-times cluster storm-id))
+      (check-distribution slot-executors [3 3 3])
       (check-consistency cluster "test")
 
       (add-supervisor cluster :ports 8)
       ;; this actually works for any time > 0, since zookeeper fires an event causing immediate reassignment
       ;; doesn't work for time = 0 because it's not waiting for cluster yet, so test might happen before reassignment finishes
       (advance-cluster-time cluster 11)
-      (bind slot-tasks2 (slot-assignments cluster storm-id))
-      (bind task->start2 (task-start-times cluster storm-id))
-      (check-distribution slot-tasks2 [2 2 2 3])
+      (bind slot-executors2 (slot-assignments cluster storm-id))
+      (bind executor->start2 (executor-start-times cluster storm-id))
+      (check-distribution slot-executors2 [2 2 2 3])
       (check-consistency cluster "test")
 
-      (bind common (first (find-first (fn [[k v]] (= 3 (count v))) slot-tasks2)))
+      (bind common (first (find-first (fn [[k v]] (= 3 (count v))) slot-executors2)))
       (is (not-nil? common))
-      (is (= (slot-tasks2 common) (slot-tasks common)))
+      (is (= (slot-executors2 common) (slot-executors common)))
       
       ;; check that start times are changed for everything but the common one
-      (bind same-tasks (slot-tasks2 common))
-      (bind changed-tasks (apply concat (vals (dissoc slot-tasks2 common))))
-      (doseq [t same-tasks]
-        (is (= (task->start t) (task->start2 t))))
-      (doseq [t changed-tasks]
-        (is (not= (task->start t) (task->start2 t))))
+      (bind same-executors (slot-executors2 common))
+      (bind changed-executors (apply concat (vals (dissoc slot-executors2 common))))
+      (doseq [t same-executors]
+        (is (= (executor->start t) (executor->start2 t))))
+      (doseq [t changed-executors]
+        (is (not= (executor->start t) (executor->start2 t))))
       )))
 
 (deftest test-rebalance
@@ -390,21 +400,21 @@
 
       (advance-cluster-time cluster 91)
 
-      (bind slot-tasks (slot-assignments cluster storm-id))
+      (bind slot-executors (slot-assignments cluster storm-id))
       ;; check that all workers are on one machine
-      (check-distribution slot-tasks [1 1 1])
-      (check-num-nodes slot-tasks 1)
+      (check-distribution slot-executors [1 1 1])
+      (check-num-nodes slot-executors 1)
       (.rebalance (:nimbus cluster) "test" (RebalanceOptions.))
 
       (advance-cluster-time cluster 31)
-      (check-distribution slot-tasks [1 1 1])
-      (check-num-nodes slot-tasks 1)
+      (check-distribution slot-executors [1 1 1])
+      (check-num-nodes slot-executors 1)
 
 
       (advance-cluster-time cluster 30)
-      (bind slot-tasks (slot-assignments cluster storm-id))
-      (check-distribution slot-tasks [1 1 1])
-      (check-num-nodes slot-tasks 3)
+      (bind slot-executors (slot-assignments cluster storm-id))
+      (check-distribution slot-executors [1 1 1])
+      (check-num-nodes slot-executors 3)
       )))
 
 (deftest test-cleans-corrupt
@@ -472,6 +482,4 @@
        (advance-time-secs! 5)
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
-       )))
-
-  )
+       ))))

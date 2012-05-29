@@ -112,9 +112,10 @@ struct TopologySummary {
   1: required string id;
   2: required string name;
   3: required i32 num_tasks;
-  4: required i32 num_workers;
-  5: required i32 uptime_secs;
-  6: required string status;
+  4: required i32 num_executors;
+  5: required i32 num_workers;
+  6: required i32 uptime_secs;
+  7: required string status;
 }
 
 struct SupervisorSummary {
@@ -147,33 +148,38 @@ struct SpoutStats {
   3: required map<string, map<string, double>> complete_ms_avg;
 }
 
-union TaskSpecificStats {
+union ExecutorSpecificStats {
   1: BoltStats bolt;
   2: SpoutStats spout;
 }
 
 // Stats are a map from the time window (all time or a number indicating number of seconds in the window)
 //    to the stats. Usually stats are a stream id to a count or average.
-struct TaskStats {
+struct ExecutorStats {
   1: required map<string, map<string, i64>> emitted;
   2: required map<string, map<string, i64>> transferred;
-  3: required TaskSpecificStats specific;
+  3: required ExecutorSpecificStats specific;
 }
 
-struct TaskSummary {
-  1: required i32 task_id;
+struct ExecutorInfo {
+  1: required i32 task_start;
+  2: required i32 task_end;
+}
+
+struct ExecutorSummary {
+  1: required ExecutorInfo executor_info;
   2: required string component_id;
   3: required string host;
   4: required i32 port;
   5: required i32 uptime_secs;
-  7: optional TaskStats stats;
+  7: optional ExecutorStats stats;
 }
 
 struct TopologyInfo {
   1: required string id;
   2: required string name;
   3: required i32 uptime_secs;
-  4: required list<TaskSummary> tasks;
+  4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
 }

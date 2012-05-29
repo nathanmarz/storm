@@ -12,7 +12,7 @@ public class TopologyDetails {
     String topologyId;
     Map topologyConf;
     StormTopology topology;
-    Map<Integer, String> taskToComponents;
+    Map<ExecutorDetails, String> executorToComponents;
  
     public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology) {
         this.topologyId = topologyId;
@@ -20,13 +20,13 @@ public class TopologyDetails {
         this.topology = topology;
     }
     
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, Map<Integer, String> taskToComponents) {
+    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, Map<ExecutorDetails, String> executorToComponents) {
         this.topologyId = topologyId;
         this.topologyConf = topologyConf;
         this.topology = topology;
-        this.taskToComponents = new HashMap<Integer, String>(0);
-        if (taskToComponents != null) {
-            this.taskToComponents.putAll(taskToComponents);
+        this.executorToComponents = new HashMap<ExecutorDetails, String>(0);
+        if (executorToComponents != null) {
+            this.executorToComponents.putAll(executorToComponents);
         }
     }
     
@@ -46,23 +46,23 @@ public class TopologyDetails {
         return topology;
     }
 
-    public Map<Integer, String> getTaskToComponents() {
-        return this.taskToComponents;
+    public Map<ExecutorDetails, String> getTaskToComponents() {
+        return this.executorToComponents;
     }
 
-    public Map<Integer, String> selectTaskToComponents(Collection<Integer> tasks) {
-        Map<Integer, String> ret = new HashMap<Integer, String>(tasks.size());
-        for (int task : tasks) {
-            String compId = this.taskToComponents.get(task);
+    public Map<ExecutorDetails, String> selectExecutorToComponents(Collection<ExecutorDetails> executors) {
+        Map<ExecutorDetails, String> ret = new HashMap<ExecutorDetails, String>(executors.size());
+        for (ExecutorDetails executor : executors) {
+            String compId = this.executorToComponents.get(executor);
             if (compId != null) {
-                ret.put(task, compId);
+                ret.put(executor, compId);
             }
         }
         
         return ret;
     }
     
-    public Collection<Integer> getTasks() {
-        return this.taskToComponents.keySet();
+    public Collection<ExecutorDetails> getExecutors() {
+        return this.executorToComponents.keySet();
     }
 }

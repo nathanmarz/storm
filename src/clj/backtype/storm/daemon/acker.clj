@@ -65,7 +65,7 @@
                (.ack ^OutputCollector @output-collector tuple)
                ))
       (^void cleanup [this]
-             )
+        (.cleanup @pending))
       )))
 
 (defn -init []

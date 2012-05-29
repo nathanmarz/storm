@@ -4,9 +4,9 @@ import backtype.storm.tuple.Tuple;
 
 public class BoltAckInfo {
     public Tuple tuple;
-    public long processLatencyMs;
+    public Long processLatencyMs; // null if it wasn't sampled
     
-    public BoltAckInfo(Tuple tuple, long processLatencyMs) {
+    public BoltAckInfo(Tuple tuple, Long processLatencyMs) {
         this.tuple = tuple;
         this.processLatencyMs = processLatencyMs;
     }

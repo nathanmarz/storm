@@ -6,15 +6,15 @@
   (:gen-class
     :implements [backtype.storm.scheduler.IScheduler]))
 
-(defn- keeper-slots [existing-slots num-task-ids num-workers]
+(defn- keeper-slots [existing-slots num-executors num-workers]
   (if (= 0 num-workers)
     {}
-    (let [distribution (atom (integer-divided num-task-ids num-workers))
+    (let [distribution (atom (integer-divided num-executors num-workers))
           keepers (atom {})]
-      (doseq [[node+port task-list] existing-slots :let [task-count (count task-list)]]
-        (when (pos? (get @distribution task-count 0))
-          (swap! keepers assoc node+port task-list)
-          (swap! distribution update-in [task-count] dec)
+      (doseq [[node+port executor-list] existing-slots :let [executor-count (count executor-list)]]
+        (when (pos? (get @distribution executor-count 0))
+          (swap! keepers assoc node+port executor-list)
+          (swap! distribution update-in [executor-count] dec)
           ))
       @keepers
       )))

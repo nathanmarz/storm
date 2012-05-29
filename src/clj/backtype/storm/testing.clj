@@ -4,14 +4,14 @@
              [supervisor :as supervisor]
              [common :as common]
              [worker :as worker]
-             [task :as task]])
+             [executor :as executor]])
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
-  (:import [backtype.storm.tuple Fields Tuple])
+  (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
@@ -222,15 +222,20 @@
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
-(defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]
+(defn mocked-compute-new-topology->executor->node+port [storm-name executor->node+port]
+  (fn [nimbus existing-assignments topologies]
+    (let [topology (.getByName topologies storm-name)
+          topology-id (.getId topology)
+          existing-assignments (into {} (for [[tid assignment] existing-assignments]
+                                          {tid (:executor->node+port assignment)}))
+          new-assignments (assoc existing-assignments topology-id executor->node+port)]
+      new-assignments)))
+
+(defn submit-mocked-assignment [nimbus storm-name conf topology task->component executor->node+port]
   (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
-                   nimbus/compute-new-topology->task->node+port (fn [nimbus existing-assignments topologies]
-                                                                  (let [topology (.getByName topologies storm-name)
-                                                                        topology-id (.getId topology)
-                                                                        existing-assignments (into {} (for [[tid assignment] existing-assignments]
-                                                                                                        {tid (:task->node+port assignment)}))
-                                                                        new-assignments (assoc existing-assignments topology-id task->node+port)]
-                                                                  new-assignments))]
+                   nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
+                                                                     storm-name
+                                                                     executor->node+port)]
     (submit-local-topology nimbus storm-name conf topology)
     ))
 
@@ -484,10 +489,10 @@
 (defn assoc-track-id [cluster track-id]
   (assoc cluster ::track-id track-id))
 
-(defn increment-global! [id key]
+(defn increment-global! [id key amt]
   (-> (RegisteredGlobalState/getState id)
       (get key)
-      .incrementAndGet))
+      (.addAndGet amt)))
 
 (defn global-amt [id key]
   (-> (RegisteredGlobalState/getState id)
@@ -509,10 +514,10 @@
                       worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
                                               (fn [& args#]
                                                 (let [transferrer# (apply old# args#)]
-                                                  (fn [& transfer-args#]
+                                                  (fn [ser# batch#]
                                                     ;; (log-message "Transferring: " transfer-args#)
-                                                    (increment-global! id# "transferred")
-                                                    (apply transferrer# transfer-args#)
+                                                    (increment-global! id# "transferred" (count batch#))
+                                                    (transferrer# ser# batch#)
                                                     ))))
                       ]
        (with-local-cluster [~cluster-sym ~@cluster-args]
@@ -553,6 +558,6 @@
         spout-spec (mk-spout-spec* (TestWordSpout.)
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
-        context (TopologyContext. topology (read-storm-config) {(int 1) component} "test-storm-id" nil nil (int 1) nil [(int 1)])]
-    (Tuple. context values 1 stream)
+        context (TopologyContext. topology (read-storm-config) {(int 1) component} {component [(int 1)]} {component {stream (Fields. fields)}} "test-storm-id" nil nil (int 1) nil [(int 1)])]
+    (TupleImpl. context values 1 stream)
     ))

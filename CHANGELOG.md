@@ -1,10 +1,18 @@
 ## Unreleased
 
+ * Added executor abstraction between workers and tasks. Workers = processes, executors = threads that run many tasks from the same spout or bolt.
  * Eliminate explicit storage of task->component in Zookeeper
  * Number of workers can be dynamically changed at runtime through rebalance command and -n switch
+ * Number of executors for a component can be dynamically changed at runtime through rebalance command and -e switch (multiple -e switches allowed)
  * Use worker heartbeats instead of task heartbeats (thanks xumingming)
+ * UI performance for topologies with many executors/tasks much faster due to optimized usage of Zookeeper (10x improvement)
  * Added button to show/hide system stats (e.g., acker component and stream stats) from the Storm UI (thanks xumingming)
- * Validate that subscriptions come from valid components and streams, and if its a field grouping that the schema is correct (thanks xumingming)
+ * Stats are tracked on a per-executor basis instead of per-task basis
+ * Major optimization for unreliable spouts and unanchored tuples (will use far less CPU)
+ * Removed error method from task hooks (to be re-added at a later time)
+ * Switched in memory queues to use Disruptor (major performance improvement)
+ * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
+ * MemoryTransactionalSpout now works on a cluster
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
 
 ## 0.7.2 (unreleased but release candidate available)
@@ -30,6 +38,9 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Include as much of currently read output as possible when pipe to subprocess is broken in multilang components
  * Lower supervisor worker start timeout to 120 seconds
  * More debug logging in supervisor
+ * "nohup" no longer used by supervisor to launch workers (unnecessary)
+ * Throw helpful error message if StormSubmitter used without using storm client script
+ * Add Values class as a default serialization
  * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)

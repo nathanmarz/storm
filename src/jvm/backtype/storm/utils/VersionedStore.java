@@ -158,8 +158,11 @@ public class VersionedStore {
     
     private List<String> listDir(String dir) throws IOException {
         List<String> ret = new ArrayList<String>();
-        for(File f: new File(dir).listFiles()) {
-            ret.add(f.getAbsolutePath());
+        File[] contents = new File(dir).listFiles();
+        if(contents!=null) {
+            for(File f: contents) {
+                ret.add(f.getAbsolutePath());
+            }
         }
         return ret;
     }

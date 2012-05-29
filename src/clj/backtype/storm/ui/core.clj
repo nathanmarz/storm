@@ -6,8 +6,8 @@
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [trim]])
-  (:import [backtype.storm.generated TaskSpecificStats
-            TaskStats TaskSummary TopologyInfo SpoutStats BoltStats
+  (:import [backtype.storm.generated ExecutorSpecificStats
+            ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId])
   (:import [java.io File])
@@ -25,7 +25,7 @@
 
 (defn get-filled-stats [summs]
   (->> summs
-       (map #(.get_stats ^TaskSummary %))
+       (map #(.get_stats ^ExecutorSummary %))
        (filter not-nil?)))
 
 (defn mk-system-toggle-button [include-sys?]
@@ -101,14 +101,18 @@ function toggleSys() {
         free-slots (- total-slots used-slots)
         total-tasks (->> (.get_topologies summ)
                          (map #(.get_num_tasks ^TopologySummary %))
-                         (reduce +))]
-    (table ["Version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Running tasks"]
+                         (reduce +))
+        total-executors (->> (.get_topologies summ)
+                             (map #(.get_num_executors ^TopologySummary %))
+                             (reduce +))]
+    (table ["Version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Executors" "Tasks"]
            [[(read-storm-version)
              (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
              (count sups)
              used-slots
              free-slots
              total-slots
+             total-executors
              total-tasks]])
     ))
 
@@ -121,13 +125,14 @@ function toggleSys() {
   ;; make the id clickable
   ;; make the table sortable
   (sorted-table
-   ["Name" "Id" "Status" "Uptime" "Num workers" "Num tasks"]
+   ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (.get_id t)
       (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
+      (.get_num_executors t)
       (.get_num_tasks t)
       ])
    :time-cols [2]
@@ -164,7 +169,7 @@ function toggleSys() {
      (.containsKey spouts id) :spout
      )))
 
-(defn task-summary-type [topology ^TaskSummary s]
+(defn executor-summary-type [topology ^ExecutorSummary s]
   (component-type topology (.get_component_id s)))
 
 (defn add-pairs
@@ -230,8 +235,8 @@ function toggleSys() {
        (map-val #(reduce + (vals %)))))
 
 (defn aggregate-common-stats [stats-seq]
-  {:emitted (aggregate-counts (map #(.get_emitted ^TaskStats %) stats-seq))
-   :transferred (aggregate-counts (map #(.get_transferred ^TaskStats %) stats-seq))}
+  {:emitted (aggregate-counts (map #(.get_emitted ^ExecutorStats %) stats-seq))
+   :transferred (aggregate-counts (map #(.get_transferred ^ExecutorStats %) stats-seq))}
   )
 
 (defn mk-include-sys-fn [include-sys?]
@@ -255,15 +260,15 @@ function toggleSys() {
   (let [stats-seq (collectify stats-seq)]
     (merge (pre-process (aggregate-common-stats stats-seq) include-sys?)
            {:acked
-            (aggregate-counts (map #(.. ^TaskStats % get_specific get_bolt get_acked)
+            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_acked)
                                    stats-seq))
             :failed
-            (aggregate-counts (map #(.. ^TaskStats % get_specific get_bolt get_failed)
+            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_failed)
                                    stats-seq))
             :process-latencies
-            (aggregate-averages (map #(.. ^TaskStats % get_specific get_bolt get_process_ms_avg)
+            (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_bolt get_process_ms_avg)
                                      stats-seq)
-                                (map #(.. ^TaskStats % get_specific get_bolt get_acked)
+                                (map #(.. ^ExecutorStats % get_specific get_bolt get_acked)
                                      stats-seq))}
            )))
 
@@ -271,15 +276,15 @@ function toggleSys() {
   (let [stats-seq (collectify stats-seq)]
     (merge (pre-process (aggregate-common-stats stats-seq) include-sys?)
            {:acked
-            (aggregate-counts (map #(.. ^TaskStats % get_specific get_spout get_acked)
+            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_spout get_acked)
                                    stats-seq))
             :failed
-            (aggregate-counts (map #(.. ^TaskStats % get_specific get_spout get_failed)
+            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_spout get_failed)
                                    stats-seq))
             :complete-latencies
-            (aggregate-averages (map #(.. ^TaskStats % get_specific get_spout get_complete_ms_avg)
+            (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_spout get_complete_ms_avg)
                                      stats-seq)
-                                (map #(.. ^TaskStats % get_specific get_spout get_acked)
+                                (map #(.. ^ExecutorStats % get_specific get_spout get_acked)
                                      stats-seq))
             }
            )))
@@ -303,21 +308,22 @@ function toggleSys() {
    })
 
 (defn spout-summary? [topology s]
-  (= :spout (task-summary-type topology s)))
+  (= :spout (executor-summary-type topology s)))
 
 (defn bolt-summary? [topology s]
-  (= :bolt (task-summary-type topology s)))
+  (= :bolt (executor-summary-type topology s)))
 
 (defn topology-summary-table [^TopologyInfo summ]
-  (let [tasks (.get_tasks summ)
-        workers (set (for [^TaskSummary t tasks] [(.get_host t) (.get_port t)]))]
-    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num tasks"]
+  (let [executors (.get_executors summ)
+        workers (set (for [^ExecutorSummary e executors] [(.get_host e) (.get_port e)]))]
+    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
            [[(.get_name summ)
              (.get_id summ)
              (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)
-             (count tasks)
+             (count executors)
+             (sum-tasks executors)
              ]]
            )))
 
@@ -366,7 +372,7 @@ function toggleSys() {
      )))
 
 (defn group-by-comp [summs]
-  (let [ret (group-by #(.get_component_id ^TaskSummary %) summs)]
+  (let [ret (group-by #(.get_component_id ^ExecutorSummary %) summs)]
     (into (sorted-map) ret )))
 
 (defn error-subset [error-str]
@@ -390,7 +396,7 @@ function toggleSys() {
 
 (defn spout-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
-   ["Id" "Parallelism" "Emitted" "Transferred" "Complete latency (ms)"
+   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Complete latency (ms)"
     "Acked" "Failed" "Last error"]
    (for [[id summs] summ-map
          :let [stats-seq (get-filled-stats summs)
@@ -399,6 +405,7 @@ function toggleSys() {
                        stats-seq include-sys?))]]
      [(component-link top-id id)
       (count summs)
+      (sum-tasks summs)
       (get-in stats [:emitted window])
       (get-in stats [:transferred window])
       (float-str (get-in stats [:complete-latencies window]))
@@ -410,7 +417,7 @@ function toggleSys() {
 
 (defn bolt-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
-   ["Id" "Parallelism" "Emitted" "Transferred" "Process latency (ms)"
+   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Process latency (ms)"
     "Acked" "Failed" "Last error"]
    (for [[id summs] summ-map
          :let [stats-seq (get-filled-stats summs)
@@ -420,6 +427,7 @@ function toggleSys() {
                ]]
      [(component-link top-id id)
       (count summs)
+      (sum-tasks summs)
       (get-in stats [:emitted window])
       (get-in stats [:transferred window])
       (float-str (get-in stats [:process-latencies window]))
@@ -440,8 +448,8 @@ function toggleSys() {
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
           topology (.getTopology ^Nimbus$Client nimbus id)
-          spout-summs (filter (partial spout-summary? topology) (.get_tasks summ))
-          bolt-summs (filter (partial bolt-summary? topology) (.get_tasks summ))
+          spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
+          bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
           spout-comp-summs (group-by-comp spout-summs)
           bolt-comp-summs (group-by-comp bolt-summs)
           bolt-comp-summs (filter-key (mk-include-sys-fn include-sys?) bolt-comp-summs)
@@ -458,14 +466,14 @@ function toggleSys() {
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
-  (let [spout-summs (filter (partial spout-summary? topology) (.get_tasks summ))
-        bolt-summs (filter (partial bolt-summary? topology) (.get_tasks summ))
+  (let [spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
+        bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
         spout-comp-summs (group-by-comp spout-summs)
         bolt-comp-summs (group-by-comp bolt-summs)
         ret (if (contains? spout-comp-summs id)
               (spout-comp-summs id)
               (bolt-comp-summs id))]
-    (sort-by #(.get_task_id ^TaskSummary %) ret)
+    (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)
     ))
 
 (defn spout-summary-table [topology-id id stats window]
@@ -500,22 +508,22 @@ function toggleSys() {
         (nil-to-zero (:failed stats))])
      )))
 
-(defn spout-task-table [topology-id tasks window include-sys?]
+(defn spout-executor-table [topology-id executors window include-sys?]
   (sorted-table
    ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
     "Complete latency (ms)" "Acked" "Failed"]
-   (for [^TaskSummary t tasks
-         :let [stats (.get_stats t)
+   (for [^ExecutorSummary e executors
+         :let [stats (.get_stats e)
                stats (if stats
                        (-> stats
                            (aggregate-spout-stats include-sys?)
                            aggregate-spout-streams
                            swap-map-order
                            (get window)))]]
-     [(.get_task_id t)
-      (pretty-uptime-sec (.get_uptime_secs t))
-      (.get_host t)
-      (.get_port t)
+     [(pretty-executor-info (.get_executor_info e))
+      (pretty-uptime-sec (.get_uptime_secs e))
+      (.get_host e)
+      (.get_port e)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (float-str (:complete-latencies stats))
@@ -526,9 +534,9 @@ function toggleSys() {
    :time-cols [1]
    ))
 
-(defn spout-page [window ^TopologyInfo topology-info component tasks include-sys?]
+(defn spout-page [window ^TopologyInfo topology-info component executors include-sys?]
   (let [window-hint (str " (" (window-hint window) ")")
-        stats (get-filled-stats tasks)
+        stats (get-filled-stats executors)
         stream-summary (-> stats (aggregate-spout-stats include-sys?))
         summary (-> stream-summary aggregate-spout-streams)]
     (concat
@@ -536,8 +544,8 @@ function toggleSys() {
      (spout-summary-table (.get_id topology-info) component summary window)
      [[:h2 "Output stats" window-hint]]
      (spout-output-summary-table stream-summary window)
-     [[:h2 "Tasks" window-hint]]
-     (spout-task-table (.get_id topology-info) tasks window include-sys?)
+     [[:h2 "Executors" window-hint]]
+     (spout-executor-table (.get_id topology-info) executors window include-sys?)
      ;; task id, task uptime, stream aggregated stats, last error
      )))
 
@@ -573,22 +581,22 @@ function toggleSys() {
         ])
      )))
 
-(defn bolt-task-table [topology-id tasks window include-sys?]
+(defn bolt-executor-table [topology-id executors window include-sys?]
   (sorted-table
    ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
     "Process latency (ms)" "Acked" "Failed"]
-   (for [^TaskSummary t tasks
-         :let [stats (.get_stats t)
+   (for [^ExecutorSummary e executors
+         :let [stats (.get_stats e)
                stats (if stats
                        (-> stats
                            (aggregate-bolt-stats include-sys?)
                            (aggregate-bolt-streams)
                            swap-map-order
                            (get window)))]]
-     [(.get_task_id t)
-      (pretty-uptime-sec (.get_uptime_secs t))
-      (.get_host t)
-      (.get_port t)
+     [(pretty-executor-info (.get_executor_info e))
+      (pretty-uptime-sec (.get_uptime_secs e))
+      (.get_host e)
+      (.get_port e)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (float-str (:process-latencies stats))
@@ -618,9 +626,9 @@ function toggleSys() {
         ])
      :time-cols [0])))
 
-(defn bolt-page [window ^TopologyInfo topology-info component tasks include-sys?]
+(defn bolt-page [window ^TopologyInfo topology-info component executors include-sys?]
   (let [window-hint (str " (" (window-hint window) ")")
-        stats (get-filled-stats tasks)
+        stats (get-filled-stats executors)
         stream-summary (-> stats (aggregate-bolt-stats include-sys?))
         summary (-> stream-summary aggregate-bolt-streams)]
     (concat
@@ -633,8 +641,8 @@ function toggleSys() {
      [[:h2 "Output stats" window-hint]]
      (bolt-output-summary-table stream-summary window)
 
-     [[:h2 "Tasks"]]
-     (bolt-task-table (.get_id topology-info) tasks window include-sys?)
+     [[:h2 "Executors"]]
+     (bolt-executor-table (.get_id topology-info) executors window include-sys?)
      )))
 
 (defn errors-table [errors-list]
@@ -660,10 +668,11 @@ function toggleSys() {
                      (= type :bolt) (bolt-page window summ component summs include-sys?))]
       (concat
        [[:h2 "Component summary"]
-        (table ["Id" "Topology" "Parallelism"]
+        (table ["Id" "Topology" "Executors" "Tasks"]
                [[component
                  (topology-link (.get_id summ) (.get_name summ))
                  (count summs)
+                 (sum-tasks summs)
                  ]])]
        spec
        [[:h2 "Errors"]

@@ -16,9 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * This spout only works in local mode.
- */
 public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<MemoryTransactionalSpoutMeta> {
     public static String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
     
@@ -26,6 +23,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
     private String _finishedPartitionsId;
     private int _takeAmt;
     private Fields _outFields;
+    private Map<Integer, List<List<Object>>> _initialPartitions;
     
     public MemoryTransactionalSpout(Map<Integer, List<List<Object>>> partitions, Fields outFields, int takeAmt) {
         _id = RegisteredGlobalState.registerState(partitions);
@@ -33,6 +31,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         _finishedPartitionsId = RegisteredGlobalState.registerState(finished);
         _takeAmt = takeAmt;
         _outFields = outFields;
+        _initialPartitions = partitions;
     }
     
     public boolean isExhaustedTuples() {
@@ -95,7 +94,11 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
                 int curr = Utils.get(_emptyPartitions, partition, 0) + 1;
                 _emptyPartitions.put(partition, curr);
                 if(curr > _maxSpoutPending) {
-                    getFinishedStatuses().put(partition, true);
+                    Map<Integer, Boolean> finishedStatuses = getFinishedStatuses();
+                    // will be null in remote mode
+                    if(finishedStatuses!=null) {
+                        finishedStatuses.put(partition, true);
+                    }
                 }
             }
             return ret;   
@@ -149,8 +152,10 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         RegisteredGlobalState.clearState(_finishedPartitionsId);
     }
     
-    private Map<Integer, List<List<Object>>> getQueues() {
-        return (Map<Integer, List<List<Object>>>) RegisteredGlobalState.getState(_id);
+    private Map<Integer, List<List<Object>>> getQueues() {   
+        Map<Integer, List<List<Object>>> ret = (Map<Integer, List<List<Object>>>) RegisteredGlobalState.getState(_id);
+        if(ret!=null) return ret;
+        else return _initialPartitions;
     }
     
     private Map<Integer, Boolean> getFinishedStatuses() {

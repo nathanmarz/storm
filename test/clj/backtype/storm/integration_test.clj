@@ -55,7 +55,7 @@
   (assert-loop #(.isFailed tracker %) ids))
 
 (deftest test-timeout
-  (with-simulated-time-local-cluster [cluster]
+  (with-simulated-time-local-cluster [cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
     (let [feeder (feeder-spout ["field1"])
           tracker (AckFailMapTracker.)
           _ (.setAckFailDelegate feeder tracker)

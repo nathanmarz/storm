@@ -26,9 +26,9 @@ public class TimeCacheMap<K, V> {
 
     private LinkedList<HashMap<K, V>> _buckets;
 
+    private final Object _lock = new Object();
     private Thread _cleaner;
     private ExpiredCallback _callback;
-    private final Object _lock = new Object();
     
     public TimeCacheMap(int expirationSecs, int numBuckets, ExpiredCallback<K, V> callback) {
         if(numBuckets<2) {
@@ -38,6 +38,7 @@ public class TimeCacheMap<K, V> {
         for(int i=0; i<numBuckets; i++) {
             _buckets.add(new HashMap<K, V>());
         }
+
 
         _callback = callback;
         final long expirationMillis = expirationSecs * 1000L;
@@ -81,53 +82,61 @@ public class TimeCacheMap<K, V> {
 
 
     public boolean containsKey(K key) {
-        for(HashMap<K, V> bucket: _buckets) {
-            if(bucket.containsKey(key)) {
-                return true;
+        synchronized(_lock) {
+            for(HashMap<K, V> bucket: _buckets) {
+                if(bucket.containsKey(key)) {
+                    return true;
+                }
             }
+            return false;
         }
-        return false;
     }
 
     public V get(K key) {
-        for(HashMap<K, V> bucket: _buckets) {
-            if(bucket.containsKey(key)) {
-                return bucket.get(key);
+        synchronized(_lock) {
+            for(HashMap<K, V> bucket: _buckets) {
+                if(bucket.containsKey(key)) {
+                    return bucket.get(key);
+                }
             }
+            return null;
         }
-        return null;
     }
 
     public void put(K key, V value) {
-        Iterator<HashMap<K, V>> it = _buckets.iterator();
-        HashMap<K, V> bucket = it.next();
-        bucket.put(key, value);
-        while(it.hasNext()) {
-            bucket = it.next();
-            bucket.remove(key);
+        synchronized(_lock) {
+            Iterator<HashMap<K, V>> it = _buckets.iterator();
+            HashMap<K, V> bucket = it.next();
+            bucket.put(key, value);
+            while(it.hasNext()) {
+                bucket = it.next();
+                bucket.remove(key);
+            }
         }
     }
     
-    
     public Object remove(K key) {
-        for(HashMap<K, V> bucket: _buckets) {
-            if(bucket.containsKey(key)) {
-                return bucket.remove(key);
+        synchronized(_lock) {
+            for(HashMap<K, V> bucket: _buckets) {
+                if(bucket.containsKey(key)) {
+                    return bucket.remove(key);
+                }
             }
+            return null;
         }
-        return null;
     }
 
     public int size() {
-        int size = 0;
-        for(HashMap<K, V> bucket: _buckets) {
-            size+=bucket.size();
+        synchronized(_lock) {
+            int size = 0;
+            for(HashMap<K, V> bucket: _buckets) {
+                size+=bucket.size();
+            }
+            return size;
         }
-        return size;
     }
-    
+
     public void cleanup() {
         _cleaner.interrupt();
-    }
-    
+    }    
 }

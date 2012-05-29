@@ -282,6 +282,13 @@ public class Config extends HashMap<String, Object> {
     public static String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
 
     
+    
+    /**
+     * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
+     * in unit tests to prevent tuples from being accidentally timed out during the test.
+     */
+    public static String TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS = "topology.enable.message.timeouts";
+    
     /**
      * When set to true, Storm will log every message that's emitted.
      */

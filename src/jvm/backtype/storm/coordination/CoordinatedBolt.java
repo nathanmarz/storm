@@ -311,6 +311,7 @@ public class CoordinatedBolt implements IRichBolt {
 
     public void cleanup() {
         _delegate.cleanup();
+        _tracked.cleanup();
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

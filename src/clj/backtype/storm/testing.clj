@@ -101,7 +101,7 @@
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
-                            TOPOLOGY-MESSAGE-TIMEOUT-SECS -1
+                            TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"

@@ -70,6 +70,7 @@ zmq.threads: 1
 zmq.linger.millis: 5000
 
 ### topology.* configs are for specific executing storms
+topology.enable.message.timeouts: true
 topology.debug: false
 topology.optimize: true
 topology.workers: 1

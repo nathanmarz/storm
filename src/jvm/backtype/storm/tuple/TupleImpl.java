@@ -1,7 +1,6 @@
 package backtype.storm.tuple;
 
 import backtype.storm.task.GeneralTopologyContext;
-import backtype.storm.task.TopologyContext;
 import java.util.List;
 
 public class TupleImpl extends Tuple {

@@ -55,7 +55,8 @@
               (fn []
                 (consume-batch-when-available queue handler)
                 0 )
-              :kill-fn kill-fn)]
+              :kill-fn kill-fn
+              )]
      (consumer-started! queue)
      ret
      ))

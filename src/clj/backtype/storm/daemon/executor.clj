@@ -163,7 +163,8 @@
      :conf (:conf worker)
      :storm-active-atom (:storm-active-atom worker)
      :batch-transfer-queue batch-transfer->worker
-     :transfer-fn (fn [task tuple] (disruptor/publish batch-transfer->worker [task tuple]))
+     :transfer-fn (fn [task tuple]
+                    (disruptor/publish batch-transfer->worker [task tuple]))
      :suicide-fn (:suicide-fn worker)
      :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker))
      :type executor-type
@@ -227,15 +228,13 @@
         report-error-and-die (:report-error-and-die executor-data)
         component-id (:component-id executor-data)
 
-        
+        ;; starting the batch-transfer->worker ensures that anything publishing to that queue 
+        ;; doesn't block (because it's a single threaded queue and the caching/consumer started
+        ;; trick isn't thread-safe)
+        system-threads [(start-batch-transfer->worker-handler! worker executor-data)]
         handlers (with-error-reaction report-error-and-die
                    (mk-threads executor-data task-datas))
-        threads (concat handlers
-                        [(start-batch-transfer->worker-handler! worker executor-data)
-                         ])]
-    ;;technically this is called twice for bolts, but that's ok
-    (disruptor/consumer-started! (:receive-queue executor-data))
-    
+        threads (concat handlers system-threads)]    
     (setup-ticks! worker executor-data)
     
     (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
@@ -251,10 +250,12 @@
         [this]
         (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
         (disruptor/halt-with-interrupt! (:receive-queue executor-data))
-        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
         (doseq [t threads]
           (.interrupt t)
           (.join t))
+        ;; must do this after the threads are killed, this ensures that the interrupt message
+        ;; goes through properly
+        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
         
         (doseq [user-context (map :user-context (vals task-datas))]
           (doseq [hook (.getHooks user-context)]
@@ -403,33 +404,33 @@
                    ))
                )))
     (log-message "Opened spout " component-id ":" (keys task-datas))
-    ;; TODO: should redesign this to only use one thread
     [(async-loop
        (fn []
-         ;; This design requires that spouts be non-blocking
-         (disruptor/consume-batch receive-queue event-handler)
-         (if (or (not max-spout-pending)
-                 (< (.size pending) max-spout-pending))
-           (if-let [active? (wait-fn)]
-             (do
-               (when-not @last-active
-                 (reset! last-active true)
-                 (log-message "Activating spout " component-id ":" (keys task-datas))
-                 (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+         (disruptor/consumer-started! (:receive-queue executor-data))
+         (fn []
+           ;; This design requires that spouts be non-blocking
+           (disruptor/consume-batch receive-queue event-handler)
+           (if (or (not max-spout-pending)
+                   (< (.size pending) max-spout-pending))
+             (if-let [active? (wait-fn)]
+               (do
+                 (when-not @last-active
+                   (reset! last-active true)
+                   (log-message "Activating spout " component-id ":" (keys task-datas))
+                   (fast-list-iter [^ISpout spout spouts] (.activate spout)))
                
-                (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
-             (do
-               (when @last-active
-                 (reset! last-active false)
-                 (log-message "Deactivating spout " component-id ":" (keys task-datas))
-                 (fast-list-iter [^ISpout spout spouts] (.activate spout)))
-               ;; TODO: log that it's getting throttled
-               (Time/sleep 100))))
-          0)
+                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
+               (do
+                 (when @last-active
+                   (reset! last-active false)
+                   (log-message "Deactivating spout " component-id ":" (keys task-datas))
+                   (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+                 ;; TODO: log that it's getting throttled
+                 (Time/sleep 100))))
+            0))
       :kill-fn (:report-error-and-die executor-data)
-      )
-      ;; TODO: need to start the consumer
-     ]
+      :factory? true
+      )]
     ))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]

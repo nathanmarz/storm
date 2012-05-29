@@ -150,6 +150,8 @@
         storm-conf (:storm-conf executor-data)]
     (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
       (.addTaskHook ^TopologyContext (:user-context task-data) (-> klass Class/forName .newInstance)))
+    ;; when this is called, the threads for the executor haven't been started yet,
+    ;; so we won't be risking trampling on the single-threaded claim strategy disruptor queue
     (send-unanchored task-data SYSTEM-STREAM-ID ["startup"])
     task-data
     ))

@@ -7,6 +7,7 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
+import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -32,6 +33,9 @@ public class DisruptorQueue {
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
+        if(claim instanceof SingleThreadedClaimStrategy) {
+            consumerStartedFlag = true;
+        }
     }
     
     public void consumeBatch(EventHandler<Object> handler) {
@@ -95,8 +99,10 @@ public class DisruptorQueue {
     }
     
     public void consumerStarted() {
-        consumerStartedFlag = true;
-        flushCache();
+        if(!consumerStartedFlag) {
+            consumerStartedFlag = true;
+            flushCache();
+        }
     }
     
     private void flushCache() {

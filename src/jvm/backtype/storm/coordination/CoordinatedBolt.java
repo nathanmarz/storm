@@ -91,12 +91,14 @@ public class CoordinatedBolt implements IRichBolt {
             int source = tuple.getSourceTask();
             synchronized (_tracked) {
                 TrackingInfo track = _tracked.get(id);
-                if (track != null) track.receivedTupleCount++;
-                Integer count = track.receivedTuples.get(source);
-                if (count == null) {
-                    track.receivedTuples.put(source, 1);
-                } else {
-                    track.receivedTuples.put(source, ++count);
+                if (track != null) {
+                    track.receivedTupleCount++;
+                    Integer count = track.receivedTuples.get(source);
+                    if (count == null) {
+                        track.receivedTuples.put(source, 1);
+                    } else {
+                        track.receivedTuples.put(source, ++count);
+                    }
                 }
             }
             boolean failed = checkFinishId(tuple);

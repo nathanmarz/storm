@@ -4,7 +4,6 @@ import backtype.storm.topology.FailedException;
 import java.util.Map.Entry;
 import backtype.storm.tuple.Values;
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.Config;
 import java.util.Collection;
 import backtype.storm.Constants;
 import backtype.storm.generated.Grouping;
@@ -89,9 +88,9 @@ public class CoordinatedBolt implements IRichBolt {
                 if (track != null)
                     track.receivedTuples++;
             }
-            boolean failed = checkFinishId(tuple);
+            boolean failed = checkFinishId(tuple, TupleType.REGULAR);
             if(failed) {
-                _delegate.fail(tuple);
+                _delegate.fail(tuple);                
             } else {
                 _delegate.ack(tuple);
             }
@@ -104,6 +103,7 @@ public class CoordinatedBolt implements IRichBolt {
                 if (track != null)
                     track.failed = true;
             }
+            checkFinishId(tuple, TupleType.REGULAR);
             _delegate.fail(tuple);
         }
         
@@ -142,6 +142,7 @@ public class CoordinatedBolt implements IRichBolt {
         Map<Integer, Integer> taskEmittedTuples = new HashMap<Integer, Integer>();
         boolean receivedId = false;
         boolean finished = false;
+        List<Tuple> ackTuples = new ArrayList<Tuple>();
         
         @Override
         public String toString() {
@@ -213,51 +214,73 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
 
-    private boolean checkFinishId(Tuple tup) {
-        boolean ret = false;
+    private boolean checkFinishId(Tuple tup, TupleType type) {
         Object id = tup.getValue(0);
+        boolean failed = false;
+        
         synchronized(_tracked) {
             TrackingInfo track = _tracked.get(id);
             try {
-                // if it timed out, then obviously it failed (hence the null check)
-                if(track==null || track.failed) ret = true;
-                if(track!=null
-                        && !track.failed
-                        && track.receivedId 
-                        && (_sourceArgs.isEmpty()
-                            ||
-                           track.reportCount==_numSourceReports &&
-                           track.expectedTupleCount == track.receivedTuples)) {
-                    if(_delegate instanceof FinishedCallback) {
-                        ((FinishedCallback)_delegate).finishedId(id);
+                if(track!=null) {
+                    boolean delayed = false;
+                    if(_idStreamSpec==null && type == TupleType.COORD || _idStreamSpec!=null && type==TupleType.ID) {
+                        track.ackTuples.add(tup);
+                        delayed = true;
                     }
-                    if(!(_sourceArgs.isEmpty() ||
-                         tup.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID) ||
-                         (_idStreamSpec!=null && tup.getSourceGlobalStreamid().equals(_idStreamSpec._id))
-                         )) {
-                        throw new IllegalStateException("Coordination condition met on a non-coordinating tuple. Should be impossible");
+                    if(track.failed) {
+                        failed = true;
+                        for(Tuple t: track.ackTuples) {
+                            _collector.fail(t);
+                        }
+                        _tracked.remove(id);
+                    } else if(track.receivedId
+                             && (_sourceArgs.isEmpty() ||
+                                  track.reportCount==_numSourceReports &&
+                                  track.expectedTupleCount == track.receivedTuples)){
+                        if(_delegate instanceof FinishedCallback) {
+                            ((FinishedCallback)_delegate).finishedId(id);
+                        }
+                        if(!(_sourceArgs.isEmpty() || type!=TupleType.REGULAR)) {
+                            throw new IllegalStateException("Coordination condition met on a non-coordinating tuple. Should be impossible");
+                        }
+                        Iterator<Integer> outTasks = _countOutTasks.iterator();
+                        while(outTasks.hasNext()) {
+                            int task = outTasks.next();
+                            int numTuples = get(track.taskEmittedTuples, task, 0);
+                            _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tup, new Values(id, numTuples));
+                        }
+                        for(Tuple t: track.ackTuples) {
+                            _collector.ack(t);
+                        }
+                        track.finished = true;
+                        _tracked.remove(id);
                     }
-                    Iterator<Integer> outTasks = _countOutTasks.iterator();
-                    while(outTasks.hasNext()) {
-                        int task = outTasks.next();
-                        int numTuples = get(track.taskEmittedTuples, task, 0);
-                        _collector.emitDirect(task, Constants.COORDINATED_STREAM_ID, tup, new Values(id, numTuples));
+                    if(!delayed && type!=TupleType.REGULAR) {
+                        if(track.failed) {
+                            _collector.fail(tup);
+                        } else {
+                            _collector.ack(tup);                            
+                        }
                     }
-                    track.finished = true;
-                    _tracked.remove(id);
+                } else {
+                    if(type!=TupleType.REGULAR) _collector.fail(tup);
                 }
             } catch(FailedException e) {
                 LOG.error("Failed to finish batch", e);
-                track.failed = true;
-                ret = true;
+                for(Tuple t: track.ackTuples) {
+                    _collector.fail(t);
+                }
+                _tracked.remove(id);
+                failed = true;
             }
         }
-        return ret;
+        return failed;
     }
 
     public void execute(Tuple tuple) {
         Object id = tuple.getValue(0);
         TrackingInfo track;
+        TupleType type = getTupleType(tuple);
         synchronized(_tracked) {
             track = _tracked.get(id);
             if(track==null) {
@@ -267,31 +290,18 @@ public class CoordinatedBolt implements IRichBolt {
             }
         }
         
-        if(_idStreamSpec!=null
-                && tuple.getSourceGlobalStreamid().equals(_idStreamSpec._id)) {
+        if(type==TupleType.ID) {
             synchronized(_tracked) {
                 track.receivedId = true;
             }
-            boolean failed = checkFinishId(tuple);
-            if(failed) {
-                _collector.fail(tuple);
-            } else {
-                _collector.ack(tuple);
-            }
-            
-        } else if(!_sourceArgs.isEmpty()
-                && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
+            checkFinishId(tuple, type);            
+        } else if(type==TupleType.COORD) {
             int count = (Integer) tuple.getValue(1);
             synchronized(_tracked) {
                 track.reportCount++;
                 track.expectedTupleCount+=count;
             }
-            boolean failed = checkFinishId(tuple);
-            if(failed) {
-                _collector.fail(tuple);
-            } else {
-                _collector.ack(tuple);
-            }
+            checkFinishId(tuple, type);
         } else {            
             synchronized(_tracked) {
                 _delegate.execute(tuple);
@@ -323,12 +333,31 @@ public class CoordinatedBolt implements IRichBolt {
         @Override
         public void expire(Object id, TrackingInfo val) {
             synchronized(_tracked) {
-                // make sure we don't time out something that has been finished. the combination of 
-                // the flag and the lock ensure this
+                // the combination of the lock and the finished flag ensure that
+                // an id is never timed out if it has been finished
+                val.failed = true;
                 if(!val.finished) {
                     ((TimeoutCallback) _delegate).timeoutId(id);
                 }
             }
         }
-    } 
+    }
+    
+    private TupleType getTupleType(Tuple tuple) {
+        if(_idStreamSpec!=null
+                && tuple.getSourceGlobalStreamid().equals(_idStreamSpec._id)) {
+            return TupleType.ID;
+        } else if(!_sourceArgs.isEmpty()
+                && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {
+            return TupleType.COORD;
+        } else {
+            return TupleType.REGULAR;
+        }
+    }
+    
+    static enum TupleType {
+        REGULAR,
+        ID,
+        COORD
+    }
 }

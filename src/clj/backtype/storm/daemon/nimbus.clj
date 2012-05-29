@@ -302,8 +302,8 @@
         topology (read-storm-topology conf storm-id)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
-                                            (ExecutorDetails. start-task end-task))))]
-    (log-message "MAPK:" executor->component)
+                                            (ExecutorDetails. (int start-task) (int end-task)))))]
+    (log-message "EXECUTOR->COMPONENT:" executor->component)
     (TopologyDetails. storm-id
                       topology-conf
                       topology
@@ -322,6 +322,7 @@
                       (current-time-secs)
                       last-nimbus-time
                       )]
+    (log-message "NIMBUS-TIME:" nimbus-time)
       {:nimbus-time nimbus-time
        :executor-reported-time reported-time}))
 
@@ -348,11 +349,14 @@
   (let [conf (:conf nimbus)
         storm-id (.getId topology-details)
         executor-start-times (:executor->start-time-secs existing-assignment)
-        heartbeats-cache (@(:heartbeats-cache nimbus) storm-id)]
+        heartbeats-cache (@(:heartbeats-cache nimbus) storm-id)
+        _ (log-message "EXECUTOR-START-TIMES:" executor-start-times)]
     (->> all-executors
         (filter (fn [executor]
           (let [start-time (get executor-start-times executor)
-                nimbus-time (-> heartbeats-cache (get executor) :nimbus-time)]
+                nimbus-time (-> heartbeats-cache (get executor) :nimbus-time)
+                _ (log-message "start-time:" start-time)
+                _ (log-message "nimbus-time:" nimbus-time)]
             (if (and start-time
                    (or
                     (< (time-delta start-time)
@@ -420,10 +424,14 @@
                                               :let [storm-conf (read-storm-conf conf tid)
                                                     topology-details (.getById topologies tid)
                                                     all-executors (set (compute-executors nimbus tid))
+                                                    _ (update-heartbeats! nimbus tid all-executors assignment)
+                                                    _ (log-message "ALL-EXECUTORS:" all-executors)
                                                     alive-executors (if (and scratch-topology-id (= scratch-topology-id tid))
                                                                       all-executors
                                                                       (set (alive-executors nimbus topology-details all-executors assignment)))
+                                                    _ (log-message "ALIVE-EXECUTORS:" all-executors)
                                                     dead-executors (set/difference all-executors alive-executors)
+                                                    _ (log-message "DEAD-EXE:" dead-executors)
                                                     dead-slots (->> (:executor->node+port assignment)
                                                                     (filter #(contains? dead-executors (first %)))
                                                                     vals)
@@ -732,6 +740,7 @@
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
                           (when (conf NIMBUS-REASSIGN)
+                            (log-message "RRRRRRRRRRRRRRRRRRRRRR")
                             (mk-assignments nimbus))
                           (do-cleanup nimbus)
                           ))

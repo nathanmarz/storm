@@ -223,7 +223,7 @@
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
 (defn mocked-compute-new-topology->executor->node+port [storm-name executor->node+port]
-  (fn [nimbus existing-assignments topologies]
+  (fn [nimbus existing-assignments topologies scratch-topology-id]
     (let [topology (.getByName topologies storm-name)
           topology-id (.getId topology)
           existing-assignments (into {} (for [[tid assignment] existing-assignments]

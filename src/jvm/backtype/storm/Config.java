@@ -40,6 +40,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static String STORM_LOCAL_DIR = "storm.local.dir";
 
+    /**
+     * A global task scheduler used to assign topologies's tasks to supervisors' wokers.
+     * 
+     * If this is not set, a default system scheduler will be used.
+     */
+    public static String STORM_SCHEDULER = "storm.scheduler";
 
     /**
      * The mode this Storm cluster is running in. Either "distributed" or "local".
@@ -202,6 +208,10 @@ public class Config extends HashMap<String, Object> {
      */
     public static String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
     
+    /**
+     * the metadata configed on the supervisor
+     */    
+    public static String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune

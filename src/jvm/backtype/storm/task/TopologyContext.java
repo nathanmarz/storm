@@ -42,7 +42,11 @@ public class TopologyContext extends GeneralTopologyContext {
         _workerPort = workerPort;
         _taskId = taskId;
         try {
-            _pidDir = new File(pidDir).getCanonicalPath();
+            if(pidDir==null) {
+                _pidDir = null;
+            } else {
+                _pidDir = new File(pidDir).getCanonicalPath();            
+            }
         } catch (IOException e) {
             throw new RuntimeException("Could not get canonical path for " + _pidDir, e);
         }

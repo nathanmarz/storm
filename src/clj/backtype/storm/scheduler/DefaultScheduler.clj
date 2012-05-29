@@ -22,5 +22,3 @@
    
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (EvenScheduler/schedule-topologies-evenly topologies cluster keeper-slots))
-
-

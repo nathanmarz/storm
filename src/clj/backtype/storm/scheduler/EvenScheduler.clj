@@ -22,7 +22,6 @@
   (let [topology-id (.getId topology)
         available-slots (->> (.getAvailableSlots cluster)
                              (map #(vector (.getNodeId %) (.getPort %))))
-        _ (log-message "ALL-E:" (.getExecutors topology))
         all-executors (->> topology
                           .getExecutors
                           (map #(vector (.getStartTask %) (.getEndTask %)))
@@ -32,7 +31,6 @@
                           {}
                           (into {} (for [[^ExecutorDetails executor ^WorkerSlot slot] (.getExecutorToSlots existing-assignment)]
                                      {[(.getStartTask executor) (.getEndTask executor)] [(.getNodeId slot) (.getPort slot)]})))
-        _ (log-message "ENP:" executor->node+port)
         alive-assigned (reverse-map executor->node+port)
         topology-conf (.getConf topology)
         total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
@@ -54,7 +52,6 @@
     (when-not (empty? reassignment)
       (log-message "Available slots: " (pr-str available-slots))
       )
-    (log-message "JAMES:" (merge stay-assignment reassignment))
     (mk-scheduler-assignment topology-id (merge stay-assignment reassignment))))
 
 (defn schedule-topologies-evenly [^Topologies topologies ^Cluster cluster keeper-slots-fn]

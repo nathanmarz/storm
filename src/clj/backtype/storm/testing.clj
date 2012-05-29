@@ -101,6 +101,7 @@
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
+                            TOPOLOGY-MESSAGE-TIMEOUT-SECS -1
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
@@ -312,7 +313,6 @@
     (advance-cluster-time cluster-map 10)
     (Thread/sleep 100)
     ))
-
 
 (defprotocol CompletableSpout
   (exhausted? [this] "Whether all the tuples for this spout have been completed.")

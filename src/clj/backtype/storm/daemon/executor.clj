@@ -154,6 +154,7 @@
     (recursive-map
      :worker worker
      :worker-context worker-context
+     :executor-id executor-id
      :task-ids task-ids
      :component-id component-id
      :storm-conf storm-conf
@@ -202,15 +203,17 @@
         receive-queue (:receive-queue executor-data)
         context (:worker-context executor-data)]
     (when tick-time-secs
-      (schedule-recurring
-        (:timer worker)
-        tick-time-secs
-        tick-time-secs
-        (fn []
-          (disruptor/publish
-            receive-queue
-            [[nil (TupleImpl. context [tick-time-secs] -1 Constants/SYSTEM_TICK_STREAM_ID)]]
-            ))))))
+      (if-not (pos? tick-time-secs)
+        (log-message "Timeouts disabled for executor " (:executor-id executor-data))
+        (schedule-recurring
+          (:timer worker)
+          tick-time-secs
+          tick-time-secs
+          (fn []
+            (disruptor/publish
+              receive-queue
+              [[nil (TupleImpl. context [tick-time-secs] -1 Constants/SYSTEM_TICK_STREAM_ID)]]
+              )))))))
 
 (defn mk-executor [worker executor-id]
   (let [executor-data (executor-data worker executor-id)

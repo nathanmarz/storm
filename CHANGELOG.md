@@ -46,6 +46,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Throw helpful error message if StormSubmitter used without using storm client script
  * Add Values class as a default serialization
  * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
+ * Bug fix: Fixed critical bug in transactional topologies where a batch would be considered successful even if the batch didn't finish
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
  * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method
@@ -53,6 +54,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Bug fix: Fixed NPE in CoordinatedBolt it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
  * Bug fix: UI no longer errors for topologies with no assigned tasks (thanks xumingming)
  * Bug fix: emitDirect on SpoutOutputCollector now works
+ * Bug fix: Fixed NPE when giving null parallelism hint for spout in TransactionalTopologyBuilder (thanks xumingming)
 
 ## 0.7.1
 

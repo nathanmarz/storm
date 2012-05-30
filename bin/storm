@@ -82,12 +82,15 @@ def print_remoteconfvalue(name):
     """
     print name + ": " + confvalue(name, [STORM_DIR + "/conf"])
 
-def exec_storm_class(klass, jvmtype="-server", childopts="", extrajars=[], args=[]):
-    nativepath = confvalue("java.library.path", extrajars)
-    args_str = " ".join(map(lambda s: "\"" + s + "\"", args))
-    command = "java " + jvmtype + " -Dstorm.home=" + STORM_DIR + " " + get_config_opts() + " -Djava.library.path=" + nativepath + " " + childopts + " -cp " + get_classpath(extrajars) + " " + klass + " " + args_str
-    print "Running: " + command    
-    os.system(command)
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]):
+    all_args = [
+        "java", jvmtype, get_config_opts(),
+        "-Dstorm.home=" + STORM_DIR, 
+        "-Djava.library.path=" + confvalue("java.library.path", extrajars),
+        "-cp", get_classpath(extrajars),
+    ] + jvmopts + [klass] + args
+    print "Running: " + " ".join(all_args)
+    os.execvp("java", all_args)
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]
@@ -103,7 +106,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        childopts="-Dstorm.jar=" + jarfile)
+        jvmopts=["-Dstorm.jar=" + jarfile])
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
@@ -208,12 +211,15 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    childopts = confvalue("nimbus.childopts", cppaths) + " -Dlogfile.name=nimbus.log -Dlog4j.configuration=storm.log.properties"
+    jvmopts = confvalue("nimbus.childopts", cppaths).split() + [
+        "-Dlogfile.name=nimbus.log",
+        "-Dlog4j.configuration=storm.log.properties",
+    ]
     exec_storm_class(
         klass, 
         jvmtype="-server", 
         extrajars=cppaths, 
-        childopts=childopts)
+        jvmopts=jvmopts)
 
 def supervisor(klass="backtype.storm.daemon.supervisor"):
     """Syntax: [storm supervisor]
@@ -225,12 +231,15 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    childopts = confvalue("supervisor.childopts", cppaths) + " -Dlogfile.name=supervisor.log -Dlog4j.configuration=storm.log.properties"
+    jvmopts = confvalue("supervisor.childopts", cppaths).split() + [
+        "-Dlogfile.name=supervisor.log",
+        "-Dlog4j.configuration=storm.log.properties",
+    ]
     exec_storm_class(
         klass, 
         jvmtype="-server", 
         extrajars=cppaths, 
-        childopts=childopts)
+        jvmopts=jvmopts)
 
 def ui():
     """Syntax: [storm ui]
@@ -243,11 +252,14 @@ def ui():
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    childopts = confvalue("ui.childopts", cppaths) + " -Dlogfile.name=ui.log -Dlog4j.configuration=storm.log.properties"
+    jvmopts = confvalue("ui.childopts", cppaths).split() + [
+        "-Dlogfile.name=ui.log",
+        "-Dlog4j.configuration=storm.log.properties",
+    ]
     exec_storm_class(
         "backtype.storm.ui.core", 
         jvmtype="-server", 
-        childopts=childopts, 
+        jvmopts=jvmopts, 
         extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
 
 def drpc():
@@ -259,11 +271,11 @@ def drpc():
     See Distributed RPC for more information.
     (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
     """
-    childopts = "-Xmx768m -Dlogfile.name=drpc.log -Dlog4j.configuration=storm.log.properties"
+    jvmopts = ["-Xmx768m", "-Dlogfile.name=drpc.log", "-Dlog4j.configuration=storm.log.properties"]
     exec_storm_class(
         "backtype.storm.daemon.drpc", 
         jvmtype="-server", 
-        childopts=childopts, 
+        jvmopts=jvmopts, 
         extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
 
 def dev_zookeeper():

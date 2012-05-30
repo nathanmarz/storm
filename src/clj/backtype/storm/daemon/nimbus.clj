@@ -443,6 +443,13 @@
                         (map (fn [[sid port]] {sid #{port}}))
                         (apply (partial merge-with set/union)))
         dead-slots (if (nil? dead-slots) {} dead-slots)
+        available-slots (->> topologies
+                             .getTopologies
+                             (available-slots nimbus nil)
+                             (map (fn [[nodeId port]] {nodeId #{port}}))
+                             (apply merge-with set/union))
+        assigned-slots (assigned-slots storm-cluster-state)
+        all-slots (merge-with set/union available-slots assigned-slots)
         supervisor-infos (all-supervisor-info storm-cluster-state)
         supervisors (into {} (for [[sid supervisor-info] supervisor-infos
                                    :let [hostname (:hostname supervisor-info)
@@ -450,9 +457,8 @@
                                          dead-ports (dead-slots sid)
                                          ;; hide the dead-ports from the all-ports
                                          ;; these dead-ports can be reused in next round of assignments
-                                         all-ports (-> supervisor-info
-                                                       :meta
-                                                       set
+                                         all-ports (-> sid
+                                                       all-slots
                                                        (set/difference dead-ports)
                                                        ((fn [ports] (map int ports))))
                                          supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]

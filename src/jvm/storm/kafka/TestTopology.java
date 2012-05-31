@@ -26,7 +26,7 @@ public class TestTopology {
     public static void main(String [] args) throws Exception {
         List<String> hosts = new ArrayList<String>();
         hosts.add("localhost");
-        KafkaConfig kafkaConf = new KafkaConfig(hosts, 3, "test");
+        KafkaConfig kafkaConf = KafkaConfig.fromHostStrings(hosts, 3, "test");
         kafkaConf.scheme = new StringScheme();
         LocalCluster cluster = new LocalCluster();
         TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("id", "spout",

@@ -251,7 +251,7 @@ public class KafkaSpout extends BaseRichSpout {
         TopologyBuilder builder = new TopologyBuilder();
         List<String> hosts = new ArrayList<String>();
         hosts.add("localhost");
-        SpoutConfig spoutConf = new SpoutConfig(hosts, 8, "clicks", "/kafkastorm", "id");
+        SpoutConfig spoutConf = SpoutConfig.fromHostStrings(hosts, 8, "clicks", "/kafkastorm", "id");
         spoutConf.scheme = new StringScheme();
         spoutConf.forceStartOffsetTime(-2);
         

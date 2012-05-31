@@ -16,7 +16,8 @@ public class KafkaPartitionConnections {
     public SimpleConsumer getConsumer(int partition) {
         int hostIndex = partition / _config.partitionsPerHost;
         if(!_kafka.containsKey(hostIndex)) {
-            _kafka.put(hostIndex, new SimpleConsumer(_config.hosts.get(hostIndex), _config.port, _config.socketTimeoutMs, _config.bufferSizeBytes));
+            HostPort hp = _config.hosts.get(hostIndex);
+            _kafka.put(hostIndex, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes));
             
         }
         return _kafka.get(hostIndex);

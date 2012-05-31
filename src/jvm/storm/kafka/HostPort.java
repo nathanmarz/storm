@@ -1,6 +1,8 @@
 package storm.kafka;
 
-public class HostPort {
+import java.io.Serializable;
+
+public class HostPort implements Serializable {
     public String host;
     public int port;
     

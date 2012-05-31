@@ -84,9 +84,12 @@ public class KafkaSpout extends BaseRichSpout {
         
         //returns false if it's reached the end of current batch
         public EmitState next() {
+            LOG.info("Filling from " + _partitions.getConsumer(_partition).host() + " " + _partition);
             if(_waitingToEmit.isEmpty()) fill();
             MessageAndOffset toEmit = _waitingToEmit.pollFirst();
-            if(toEmit==null) return EmitState.NO_EMITTED;
+            if(toEmit==null) {
+                return EmitState.NO_EMITTED;
+            }
             List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.message().payload()));
             _collector.emit(tup, new KafkaMessageId(_partition, actualOffset(toEmit)));
             if(_waitingToEmit.size()>0) {

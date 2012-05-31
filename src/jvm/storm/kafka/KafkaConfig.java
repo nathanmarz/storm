@@ -44,6 +44,7 @@ public class KafkaConfig implements Serializable {
             } else {
                 throw new IllegalArgumentException("Invalid host specification: " + s);
             }
+            ret.add(hp);
         }
         return ret;
     }

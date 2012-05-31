@@ -21,8 +21,7 @@
           task-getter))))
 
 (defn- mk-shuffle-grouper [^List target-tasks]
-  (let [num-tasks (count target-tasks)
-        choices (rotating-random-range target-tasks)]
+  (let [choices (rotating-random-range target-tasks)]
     (fn [tuple]
       (acquire-random-range-id choices))))
 

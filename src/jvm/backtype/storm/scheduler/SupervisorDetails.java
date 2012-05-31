@@ -5,16 +5,16 @@ import java.util.Collection;
 
 public class SupervisorDetails {
 
-    String        id;
+    String id;
     /**
      * hostname of this supervisor
      */
-    String        host;
-    Object        meta;
+    String host;
+    Object meta;
     /**
      * meta data configured for this supervisor
      */
-    Object        schedulerMeta;
+    Object schedulerMeta;
     /**
      * all the ports of the supervisor
      */

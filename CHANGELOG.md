@@ -1,4 +1,4 @@
-## Unreleased
+## 0.7.2
 
 NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable inputs has been reverted to support optimized sending of tuples to colocated tasks
 
@@ -24,6 +24,7 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * "nohup" no longer used by supervisor to launch workers (unnecessary)
  * Throw helpful error message if StormSubmitter used without using storm client script
  * Add Values class as a default serialization
+ * MemoryTransationalSpout can be used in cluster mode
  * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
  * Bug fix: Fixed critical bug in transactional topologies where a batch would be considered successful even if the batch didn't finish
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining

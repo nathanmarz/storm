@@ -65,10 +65,16 @@
     (.shutdown cluster)
     ))
 
-(defn -main [name]
+(defn submit-topology! [name]
   (StormSubmitter/submitTopology
    name
    {TOPOLOGY-DEBUG true
     TOPOLOGY-WORKERS 3}
    (mk-topology)))
+
+(defn -main
+  ([]
+   (run-local!))
+  ([name]
+   (submit-topology! name)))
 

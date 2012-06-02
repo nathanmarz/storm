@@ -465,7 +465,7 @@
               curr-id (if-let [id (.get state LS-ID)]
                         id
                         (generate-supervisor-id))]
-          (.put state LS-ID curr-id)           
+          (.put state LS-ID curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

@@ -501,14 +501,15 @@
                                             (fn [& args#]
                                               (NonRichBoltTracker. (apply old# args#) id#)
                                               ))
-                      worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
-                                              (fn [& args#]
-                                                (let [transferrer# (apply old# args#)]
-                                                  (fn [ser# batch#]
-                                                    ;; (log-message "Transferring: " transfer-args#)
-                                                    (increment-global! id# "transferred" (count batch#))
-                                                    (transferrer# ser# batch#)
-                                                    ))))
+                      executor/mk-executor-transfer-fn
+                          (let [old# executor/mk-executor-transfer-fn]
+                            (fn [& args#]
+                              (let [transferrer# (apply old# args#)]
+                                (fn [& args2#]
+                                  ;; (log-message "Transferring: " transfer-args#)
+                                  (increment-global! id# "transferred" 1)
+                                  (apply transferrer# args2#)
+                                  ))))
                       ]
        (with-local-cluster [~cluster-sym ~@cluster-args]
          (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]

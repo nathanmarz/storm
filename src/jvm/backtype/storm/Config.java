@@ -454,6 +454,12 @@ public class Config extends HashMap<String, Object> {
      public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
     /**
+     * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
+     * via the TopologyContext.
+     */
+     public static String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
+
+    /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */
     public static String TOPOLOGY_NAME="topology.name";  

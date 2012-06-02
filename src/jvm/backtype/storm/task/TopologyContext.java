@@ -35,8 +35,11 @@ public class TopologyContext extends WorkerTopologyContext {
             Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
-            Integer workerPort, List<Integer> workerTasks) {
-        super(topology, stormConf, taskToComponent, componentToSortedTasks, componentToStreamToFields, stormId, codeDir, pidDir, workerPort, workerTasks);
+            Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
+            Map<String, Object> userResources) {
+        super(topology, stormConf, taskToComponent, componentToSortedTasks,
+                componentToStreamToFields, stormId, codeDir, pidDir,
+                workerPort, workerTasks, defaultResources, userResources);
         _taskId = taskId;
     }
 

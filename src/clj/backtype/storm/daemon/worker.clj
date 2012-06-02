@@ -2,6 +2,7 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:require [backtype.storm.daemon [executor :as executor]])
+  (:import [java.util.concurrent Executors])
   (:gen-class))
 
 (bootstrap)
@@ -119,6 +120,19 @@
        (into {})
        (HashMap.)))
 
+(defn- mk-default-resources [worker]
+  (let [conf (:conf worker)
+        thread-pool-size (int (conf TOPOLOGY-WORKER-SHARED-THREAD-POOL-SIZE))]
+    {WorkerTopologyContext/SHARED_EXECUTOR (Executors/newFixedThreadPool thread-pool-size)}
+    ))
+
+(defn- mk-user-resources [worker]
+  ;;TODO: need to invoke a hook provided by the topology, giving it a chance to create user resources.
+  ;; this would be part of the initialization hook
+  ;; need to separate workertopologycontext into WorkerContext and WorkerUserContext.
+  ;; actually just do it via interfaces. just need to make sure to hide setResource from tasks
+  {})
+
 (defn worker-data [conf mq-context storm-id supervisor-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
@@ -170,6 +184,8 @@
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
       :uptime (uptime-computer)
+      :default-shared-resources (mk-default-resources <>)
+      :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
       :transfer-fn (mk-transfer-fn <>)
       )))
@@ -276,6 +292,12 @@
     (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))
     :kill-fn (fn [t] (halt-process! 11))))
 
+(defn- close-resources [worker]
+  (let [dr (:default-shared-resources worker)]
+    (log-message "Shutting down default resources")
+    (.shutdownNow (get dr WorkerTopologyContext/SHARED_EXECUTOR))
+    (log-message "Shut down default resources")))
+
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
 ;; what about if there's inconsistency in assignments? -> but nimbus
@@ -334,6 +356,11 @@
                     (.join transfer-thread)
                     (log-message "Shut down transfer thread")
                     (cancel-timer (:timer worker))
+                    
+                    (close-resources worker)
+                    
+                    ;; TODO: here need to invoke the "shutdown" method of WorkerHook
+                    
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))

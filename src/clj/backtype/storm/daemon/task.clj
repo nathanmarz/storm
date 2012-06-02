@@ -25,6 +25,8 @@
       (int %)
       (:port worker)
       (:task-ids worker)
+      (:default-shared-resources worker)
+      (:user-shared-resources worker)
       )))
 
 (defn system-topology-context [worker tid]

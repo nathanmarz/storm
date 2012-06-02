@@ -263,6 +263,8 @@
                           (worker-pids-root (:conf worker) (:worker-id worker))
                           (:port worker)
                           (:task-ids worker)
+                          (:default-shared-resources worker)
+                          (:user-shared-resources worker)
                           ))
 
 

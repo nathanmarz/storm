@@ -91,5 +91,6 @@ topology.executor.send.buffer.size: 16384 #individual messages
 topology.receiver.buffer.size: 8 # setting it too high causes a lot of problems (heartbeat thread gets starved, throughput plummets)
 topology.transfer.buffer.size: 32 # batched
 topology.tick.tuple.freq.secs: null
+topology.worker.shared.thread.pool.size: 4
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

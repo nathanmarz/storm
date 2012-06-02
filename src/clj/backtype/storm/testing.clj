@@ -501,6 +501,10 @@
                                             (fn [& args#]
                                               (NonRichBoltTracker. (apply old# args#) id#)
                                               ))
+                      ;; criticial that this particular function is overridden here,
+                      ;; since the transferred stat needs to be incremented at the moment
+                      ;; of tuple emission (and not on a separate thread later) for
+                      ;; topologies to be tracked correctly
                       executor/mk-executor-transfer-fn
                           (let [old# executor/mk-executor-transfer-fn]
                             (fn [& args#]

@@ -6,16 +6,16 @@ import java.util.Map;
 
 public class Topologies {
     Map<String, TopologyDetails> topologies;
-    Map<String, String> nameToIds;
+    Map<String, String> nameToId;
     
     public Topologies(Map<String, TopologyDetails> topologies) {
         this.topologies = new HashMap<String, TopologyDetails>(topologies.size());
         this.topologies.putAll(topologies);
-        this.nameToIds = new HashMap<String, String>(topologies.size());
+        this.nameToId = new HashMap<String, String>(topologies.size());
         
         for (String topologyId : topologies.keySet()) {
             TopologyDetails topology = topologies.get(topologyId);
-            this.nameToIds.put(topology.getName(), topologyId);
+            this.nameToId.put(topology.getName(), topologyId);
         }
     }
     
@@ -24,7 +24,7 @@ public class Topologies {
     }
     
     public TopologyDetails getByName(String topologyName) {
-        String topologyId = this.nameToIds.get(topologyName);
+        String topologyId = this.nameToId.get(topologyName);
         
         if (topologyId == null) {
             return null;

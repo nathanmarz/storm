@@ -471,7 +471,7 @@
            {topology-id -> {executor [node port]}}"
   (map-val (fn [^SchedulerAssignment assignment]
              (->> assignment
-                  .getExecutorToSlots
+                  .getExecutorToSlot
                   (#(into {} (for [[^ExecutorDetails executor ^WorkerSlot slot] %]
                               {[(.getStartTask executor) (.getEndTask executor)]
                                [(.getNodeId slot) (.getPort slot)]})))))

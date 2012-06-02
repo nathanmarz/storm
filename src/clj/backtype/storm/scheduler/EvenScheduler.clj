@@ -20,7 +20,7 @@
 (defn get-alive-assigned-node+port->executors [cluster topology-id]
   (let [existing-assignment (.getAssignmentById cluster topology-id)
         executor->slot (if existing-assignment
-                         (.getExecutorToSlots existing-assignment)
+                         (.getExecutorToSlot existing-assignment)
                          {}) 
         executor->node+port (into {} (for [[^ExecutorDetails executor ^WorkerSlot slot] executor->slot
                                            :let [executor [(.getStartTask executor) (.getEndTask executor)]

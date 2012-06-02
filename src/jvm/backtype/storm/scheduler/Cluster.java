@@ -24,21 +24,21 @@ public class Cluster {
     /**
      * a map from hostname to supervisor id.
      */
-    private Map<String, List<String>>        hostToIds;
+    private Map<String, List<String>>        hostToId;
 
     public Cluster(Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignment> assignments){
         this.supervisors = new HashMap<String, SupervisorDetails>(supervisors.size());
         this.supervisors.putAll(supervisors);
         this.assignments = new HashMap<String, SchedulerAssignment>(assignments.size());
         this.assignments.putAll(assignments);
-        this.hostToIds = new HashMap<String, List<String>>();
+        this.hostToId = new HashMap<String, List<String>>();
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
             String host = supervisor.getHost();
             if (!this.supervisors.containsKey(host)) {
-                this.hostToIds.put(host, new ArrayList<String>());
+                this.hostToId.put(host, new ArrayList<String>());
             }
-            this.hostToIds.get(host).add(nodeId);
+            this.hostToId.get(host).add(nodeId);
         }
     }
 
@@ -94,7 +94,7 @@ public class Cluster {
             allExecutors.removeAll(assignedExecutors);
         }
 
-        return topology.selectExecutorToComponents(allExecutors);
+        return topology.selectExecutorToComponent(allExecutors);
     }
     
     /**
@@ -130,7 +130,7 @@ public class Cluster {
         List<Integer> usedPorts = new ArrayList<Integer>();
 
         for (SchedulerAssignment assignment : assignments.values()) {
-            for (WorkerSlot slot : assignment.getExecutorToSlots().values()) {
+            for (WorkerSlot slot : assignment.getExecutorToSlot().values()) {
                 if (slot.getNodeId().equals(supervisor.getId())) {
                     usedPorts.add(slot.getPort());
                 }
@@ -208,7 +208,7 @@ public class Cluster {
         }
 
         Set<WorkerSlot> slots = new HashSet<WorkerSlot>();
-        slots.addAll(assignment.getExecutorToSlots().values());
+        slots.addAll(assignment.getExecutorToSlot().values());
 
         return slots.size();
     }
@@ -321,7 +321,7 @@ public class Cluster {
      * @return the <code>SupervisorDetails</code> object.
      */
     public List<SupervisorDetails> getSupervisorsByHost(String host) {
-        List<String> nodeIds = this.hostToIds.get(host);
+        List<String> nodeIds = this.hostToId.get(host);
         List<SupervisorDetails> ret = new ArrayList<SupervisorDetails>();
 
         if (nodeIds != null) {

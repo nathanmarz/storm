@@ -15,13 +15,13 @@ public class SchedulerAssignment {
     /**
      * assignment detail, a mapping from executor to <code>WorkerSlot</code>
      */
-    Map<ExecutorDetails, WorkerSlot> executorToSlots;
+    Map<ExecutorDetails, WorkerSlot> executorToSlot;
     
     public SchedulerAssignment(String topologyId, Map<ExecutorDetails, WorkerSlot> executorToSlots) {
         this.topologyId = topologyId;
-        this.executorToSlots = new HashMap<ExecutorDetails, WorkerSlot>(0);
+        this.executorToSlot = new HashMap<ExecutorDetails, WorkerSlot>(0);
         if (executorToSlots != null) {
-            this.executorToSlots.putAll(executorToSlots);
+            this.executorToSlot.putAll(executorToSlots);
         }
     }
     
@@ -32,7 +32,7 @@ public class SchedulerAssignment {
      */
     public void assign(WorkerSlot slot, Collection<ExecutorDetails> executors) {
         for (ExecutorDetails executor : executors) {
-            this.executorToSlots.put(executor, slot);
+            this.executorToSlot.put(executor, slot);
         }
     }
  
@@ -42,8 +42,8 @@ public class SchedulerAssignment {
      */
     public void removeSlot(WorkerSlot slot) {
         List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
-        for (ExecutorDetails executor : this.executorToSlots.keySet()) {
-            WorkerSlot ws = this.executorToSlots.get(executor);
+        for (ExecutorDetails executor : this.executorToSlot.keySet()) {
+            WorkerSlot ws = this.executorToSlot.get(executor);
             if (ws.equals(slot)) {
                 executors.add(executor);
             }
@@ -51,7 +51,7 @@ public class SchedulerAssignment {
         
         // remove
         for (ExecutorDetails executor : executors) {
-            this.executorToSlots.remove(executor);
+            this.executorToSlot.remove(executor);
         }
     }
 
@@ -61,7 +61,7 @@ public class SchedulerAssignment {
      * @return
      */
     public boolean isSlotOccupied(WorkerSlot slot) {
-        Collection<WorkerSlot> slots = this.executorToSlots.values();
+        Collection<WorkerSlot> slots = this.executorToSlot.values();
         for (WorkerSlot slot1 : slots) {
             if (slot1.equals(slot)) {
                 return true;
@@ -75,8 +75,8 @@ public class SchedulerAssignment {
         return this.topologyId;
     }
 
-    public Map<ExecutorDetails, WorkerSlot> getExecutorToSlots() {
-        return this.executorToSlots;
+    public Map<ExecutorDetails, WorkerSlot> getExecutorToSlot() {
+        return this.executorToSlot;
     }
 
     /**
@@ -84,6 +84,6 @@ public class SchedulerAssignment {
      * @return
      */
     public Set<ExecutorDetails> getExecutors() {
-        return this.executorToSlots.keySet();
+        return this.executorToSlot.keySet();
     }
 }

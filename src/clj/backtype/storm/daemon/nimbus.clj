@@ -735,7 +735,8 @@
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
                           (when (conf NIMBUS-REASSIGN)
-                            (mk-assignments nimbus))
+                            (locking (:submit-lock nimbus)
+                              (mk-assignments nimbus)))
                           (do-cleanup nimbus)
                           ))
     ;; Schedule Nimbus inbox cleaner

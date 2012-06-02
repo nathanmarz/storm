@@ -39,6 +39,11 @@
                                (log-error t "Error when processing event")
                                (halt-process! 20 "Error when processing an event")
                                ))
+   :scheduler (if (conf STORM-SCHEDULER)
+                (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
+                    (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
+                (do (log-message "Using default scheduler")
+                    (DefaultScheduler.)))
    })
 
 (defn inbox [nimbus]
@@ -463,16 +468,9 @@
                                          supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
                                {sid supervisor-details}))
         cluster (Cluster. supervisors existing-scheduler-assignments)
-        scheduler (if (conf STORM-SCHEDULER)
-                    (do
-                      (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
-                      (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
-                    (do
-                      (log-message "Using system default scheduler")
-                      (DefaultScheduler.)))
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
-        _ (.schedule scheduler topologies cluster)
+        _ (.schedule (:scheduler nimbus) topologies cluster)
         new-scheduler-assignments (.getAssignments cluster)
         ;; add more information to convert SchedulerAssignment to Assignment
         new-topology->executor->node+port (into {} (for [[topology-id assignment] new-scheduler-assignments

@@ -17,49 +17,51 @@
                         (into {} (for [[executor [node port]] executor->node+port]
                                    {(ExecutorDetails. (first executor) (second executor)) (WorkerSlot. node port)}))))
 
+(defn get-alive-assigned-node+port->executors [cluster topology-id]
+  (let [existing-assignment (.getAssignmentById cluster topology-id)
+        executor->slot (if existing-assignment
+                         (.getExecutorToSlots existing-assignment)
+                         {}) 
+        executor->node+port (into {} (for [[^ExecutorDetails executor ^WorkerSlot slot] executor->slot
+                                           :let [executor [(.getStartTask executor) (.getEndTask executor)]
+                                                 node+port [(.getNodeId slot) (.getPort slot)]]]
+                                       {executor node+port}))
+        alive-assigned (reverse-map executor->node+port)]
+    alive-assigned))
 
-(defn- schedule-topology [^TopologyDetails topology ^Cluster cluster keeper-slots-fn]
+(defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
   (let [topology-id (.getId topology)
+        topology-conf (.getConf topology)
         available-slots (->> (.getAvailableSlots cluster)
                              (map #(vector (.getNodeId %) (.getPort %))))
         all-executors (->> topology
                           .getExecutors
                           (map #(vector (.getStartTask %) (.getEndTask %)))
                           set)
-        existing-assignment (.getAssignmentById cluster topology-id)
-        executor->node+port (if-not existing-assignment
-                          {}
-                          (into {} (for [[^ExecutorDetails executor ^WorkerSlot slot] (.getExecutorToSlots existing-assignment)]
-                                     {[(.getStartTask executor) (.getEndTask executor)] [(.getNodeId slot) (.getPort slot)]})))
-        alive-assigned (reverse-map executor->node+port)
-        topology-conf (.getConf topology)
+        alive-assigned (get-alive-assigned-node+port->executors cluster topology-id)
         total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
                                 (+ (count available-slots) (count alive-assigned)))
-        keep-assigned (if keeper-slots-fn
-                        (keeper-slots-fn alive-assigned (count all-executors) total-slots-to-use)
-                        alive-assigned
-                        )
-        freed-slots (keys (apply dissoc alive-assigned (keys keep-assigned)))
-        reassign-slots (take (- total-slots-to-use (count keep-assigned))
+        freed-slots (keys (apply dissoc alive-assigned (keys alive-assigned)))
+        reassign-slots (take (- total-slots-to-use (count alive-assigned))
                              (sort-slots (concat available-slots freed-slots)))
-        reassign-executors (sort (set/difference all-executors (set (apply concat (vals keep-assigned)))))
+        reassign-executors (sort (set/difference all-executors (set (apply concat (vals alive-assigned)))))
         reassignment (into {}
                            (map vector
                                 reassign-executors
                                 ;; for some reason it goes into infinite loop without limiting the repeat-seq
                                 (repeat-seq (count reassign-executors) reassign-slots)))
-        stay-assignment (into {} (mapcat (fn [[node+port executors]] (for [executor executors] [executor node+port])) keep-assigned))]
+        stay-assignment (into {} (mapcat (fn [[node+port executors]] (for [executor executors] [executor node+port])) alive-assigned))]
     (when-not (empty? reassignment)
       (log-message "Available slots: " (pr-str available-slots))
       )
     (mk-scheduler-assignment topology-id (merge stay-assignment reassignment))))
 
-(defn schedule-topologies-evenly [^Topologies topologies ^Cluster cluster keeper-slots-fn]
+(defn schedule-topologies-evenly [^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
-                  new-assignment (schedule-topology topology cluster keeper-slots-fn)]]
+                  new-assignment (schedule-topology topology cluster)]]
       (.setAssignmentById cluster topology-id new-assignment))))
-  
+
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
-  (schedule-topologies-evenly topologies cluster nil))
+  (schedule-topologies-evenly topologies cluster))

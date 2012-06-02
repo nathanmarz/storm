@@ -24,4 +24,17 @@ public class ExecutorDetails {
     public void setEndTask(Integer endTask) {
         this.endTask = endTask;
     }
+    
+    public boolean equals(Object other) {
+        if (other == null || !(other instanceof ExecutorDetails)) {
+            return false;
+        }
+        
+        ExecutorDetails executor = (ExecutorDetails)other;
+        return (this.startTask == executor.startTask) && (this.endTask == executor.endTask);
+    }
+    
+    public int hashCode() {
+        return 13 * this.startTask + 17 * this.endTask;
+    }
 }

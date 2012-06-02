@@ -264,6 +264,17 @@ public class Cluster {
             }
         }
     }
+    
+    /**
+     * free the slots.
+     * 
+     * @param slots
+     */
+    public void freeSlots(Collection<WorkerSlot> slots) {
+        for (WorkerSlot slot : slots) {
+            this.freeSlot(slot);
+        }
+    }
 
     /**
      * Checks the specified slot is occupied.

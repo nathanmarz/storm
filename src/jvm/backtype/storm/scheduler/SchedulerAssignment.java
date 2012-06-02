@@ -1,7 +1,9 @@
 package backtype.storm.scheduler;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,11 +41,17 @@ public class SchedulerAssignment {
      * @param slot
      */
     public void removeSlot(WorkerSlot slot) {
+        List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
         for (ExecutorDetails executor : this.executorToSlots.keySet()) {
             WorkerSlot ws = this.executorToSlots.get(executor);
             if (ws.equals(slot)) {
-                this.executorToSlots.remove(executor);
+                executors.add(executor);
             }
+        }
+        
+        // remove
+        for (ExecutorDetails executor : executors) {
+            this.executorToSlots.remove(executor);
         }
     }
 

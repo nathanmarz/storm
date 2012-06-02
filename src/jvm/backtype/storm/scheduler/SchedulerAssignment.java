@@ -52,7 +52,7 @@ public class SchedulerAssignment {
      * @param slot
      * @return
      */
-    public boolean occupiedSlot(WorkerSlot slot) {
+    public boolean isSlotOccupied(WorkerSlot slot) {
         Collection<WorkerSlot> slots = this.executorToSlots.values();
         for (WorkerSlot slot1 : slots) {
             if (slot1.equals(slot)) {

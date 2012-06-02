@@ -215,10 +215,15 @@ public class Cluster {
 
     /**
      * Assign the slot to the executors for this topology.
+     * 
+     * @throws RuntimeException if the specified slot is already occupied.
      */
     public void assign(WorkerSlot slot, String topologyId, Collection<ExecutorDetails> executors) {
+        if (this.isSlotOccupied(slot)) {
+            new RuntimeException("slot: [" + slot.getNodeId() + ", " + slot.getPort() + "] is already occupied.");
+        }
+        
         SchedulerAssignment assignment = this.getAssignmentById(topologyId);
-
         if (assignment == null) {
             assignment = new SchedulerAssignment(topologyId, new HashMap<ExecutorDetails, WorkerSlot>());
             this.assignments.put(topologyId, assignment);
@@ -252,7 +257,7 @@ public class Cluster {
         if (supervisor != null) {
             // remove the slot from the existing assignments
             for (SchedulerAssignment assignment : this.assignments.values()) {
-                if (assignment.occupiedSlot(slot)) {
+                if (assignment.isSlotOccupied(slot)) {
                     assignment.removeSlot(slot);
                     break;
                 }
@@ -260,6 +265,22 @@ public class Cluster {
         }
     }
 
+    /**
+     * Checks the specified slot is occupied.
+     * 
+     * @param slot the slot be to checked.
+     * @return
+     */
+    public boolean isSlotOccupied(WorkerSlot slot) {
+        for (SchedulerAssignment assignment : this.assignments.values()) {
+            if (assignment.isSlotOccupied(slot)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     /**
      * get the current assignment for the topology.
      */

@@ -12,10 +12,20 @@ More information about Storm can be found on the [project page](http://github.co
 
 Install Leiningen by following the installation instructions [here](https://github.com/technomancy/leiningen).
 
+### To run a Java example:
+
 ```
 lein deps
 lein compile
-java -cp `lein classpath` storm.starter.ExclamationTopology
+java -cp $(lein classpath) storm.starter.ExclamationTopology
+```
+
+### To run a Clojure example:
+
+```
+lein deps
+lein compile
+lein run -m storm.starter.clj.word-count
 ```
 
 ## Maven

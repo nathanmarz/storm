@@ -7,7 +7,7 @@
  * Validate that subscriptions come from valid components and streams, and if its a field grouping that the schema is correct (thanks xumingming)
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
 
-## 0.7.2 (unreleased but release candidate available)
+## 0.7.2
 
 NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable inputs has been reverted to support optimized sending of tuples to colocated tasks
 

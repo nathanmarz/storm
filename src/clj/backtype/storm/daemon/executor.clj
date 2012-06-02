@@ -160,6 +160,7 @@
      :receive-queue ((:executor-receive-queue-map worker) executor-id)
      :storm-id (:storm-id worker)
      :conf (:conf worker)
+     :shared-executor-data (HashMap.)
      :storm-active-atom (:storm-active-atom worker)
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (fn [task tuple]

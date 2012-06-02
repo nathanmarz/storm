@@ -8,6 +8,7 @@
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
+  (:import [java.util HashMap])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
@@ -560,6 +561,7 @@
                   nil
                   [(int 1)]
                   {}
-                  {})]
+                  {}
+                  (HashMap.))]
     (TupleImpl. context values 1 stream)
     ))

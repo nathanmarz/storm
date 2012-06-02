@@ -28,6 +28,7 @@ public class TopologyContext extends WorkerTopologyContext {
     private Integer _taskId;
     private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
+    private Map<String, Object> _executorData;
 
     
     public TopologyContext(StormTopology topology, Map stormConf,
@@ -35,11 +36,12 @@ public class TopologyContext extends WorkerTopologyContext {
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
-            Map<String, Object> userResources) {
+            Map<String, Object> userResources, Map<String, Object> executorData) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
                 componentToStreamToFields, stormId, codeDir, pidDir,
                 workerPort, workerTasks, defaultResources, userResources);
         _taskId = taskId;
+        _executorData = executorData;
     }
 
     /**
@@ -171,6 +173,14 @@ public class TopologyContext extends WorkerTopologyContext {
     public Object getTaskData(String name) {
         return _taskData.get(name);
     }
+
+    public void setExecutorData(String name, Object data) {
+        _executorData.put(name, data);
+    }
+    
+    public Object getExecutorData(String name) {
+        return _executorData.get(name);
+    }    
     
     public void addTaskHook(ITaskHook hook) {
         hook.prepare(_stormConf, this);

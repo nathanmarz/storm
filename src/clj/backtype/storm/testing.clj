@@ -208,7 +208,6 @@
   `(with-simulated-time
     (with-local-cluster ~@args)))
 
-;; TODO: should take in a port symbol and find available port automatically
 (defmacro with-inprocess-zookeeper [port-sym & body]
   `(with-local-tmp [tmp#]
      (let [[~port-sym zks#] (zk/mk-inprocess-zookeeper tmp#)]

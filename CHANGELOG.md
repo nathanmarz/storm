@@ -18,6 +18,7 @@
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
  * Add TOPOLOGY-TICK-TUPLE-FREQ-SECS config to have Storm automatically send "tick" tuples to a bolt's execute method coming from the __system component and __tick stream at the configured frequency. Meant to be used as a component-specific configuration.
  * Upgrade Kryo to v2.04
+ * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
 
 ## 0.7.2 (unreleased but release candidate available)
 

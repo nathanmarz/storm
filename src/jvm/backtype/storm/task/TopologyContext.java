@@ -7,11 +7,10 @@ import backtype.storm.hooks.ITaskHook;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,7 +26,7 @@ import org.apache.commons.lang.NotImplementedException;
  */
 public class TopologyContext extends WorkerTopologyContext {
     private Integer _taskId;
-    private Object _taskData = null;
+    private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
 
     
@@ -165,12 +164,12 @@ public class TopologyContext extends WorkerTopologyContext {
         return getTargets(getThisComponentId());
     }
     
-    public void setTaskData(Object data) {
-        _taskData = data;
+    public void setTaskData(String name, Object data) {
+        _taskData.put(name, data);
     }
     
-    public Object getTaskData() {
-        return _taskData;
+    public Object getTaskData(String name) {
+        return _taskData.get(name);
     }
     
     public void addTaskHook(ITaskHook hook) {

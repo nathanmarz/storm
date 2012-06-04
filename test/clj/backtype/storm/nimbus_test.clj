@@ -432,6 +432,12 @@
       (bind slot-executors (slot-assignments cluster storm-id))
       (check-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 3)
+      
+      (is (thrown? InvalidTopologyException
+                   (.rebalance (:nimbus cluster) "test"
+                     (doto (RebalanceOptions.)
+                       (.set_num_executors {"1" 0})
+                       ))))
       )))
 
 (deftest test-cleans-corrupt

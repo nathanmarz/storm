@@ -12,7 +12,7 @@ public class TopologyDetails {
     String topologyId;
     Map topologyConf;
     StormTopology topology;
-    Map<ExecutorDetails, String> executorToComponents;
+    Map<ExecutorDetails, String> executorToComponent;
  
     public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology) {
         this.topologyId = topologyId;
@@ -24,9 +24,9 @@ public class TopologyDetails {
         this.topologyId = topologyId;
         this.topologyConf = topologyConf;
         this.topology = topology;
-        this.executorToComponents = new HashMap<ExecutorDetails, String>(0);
+        this.executorToComponent = new HashMap<ExecutorDetails, String>(0);
         if (executorToComponents != null) {
-            this.executorToComponents.putAll(executorToComponents);
+            this.executorToComponent.putAll(executorToComponents);
         }
     }
     
@@ -46,14 +46,14 @@ public class TopologyDetails {
         return topology;
     }
 
-    public Map<ExecutorDetails, String> getTaskToComponents() {
-        return this.executorToComponents;
+    public Map<ExecutorDetails, String> getExecutorToComponent() {
+        return this.executorToComponent;
     }
 
-    public Map<ExecutorDetails, String> selectExecutorToComponents(Collection<ExecutorDetails> executors) {
+    public Map<ExecutorDetails, String> selectExecutorToComponent(Collection<ExecutorDetails> executors) {
         Map<ExecutorDetails, String> ret = new HashMap<ExecutorDetails, String>(executors.size());
         for (ExecutorDetails executor : executors) {
-            String compId = this.executorToComponents.get(executor);
+            String compId = this.executorToComponent.get(executor);
             if (compId != null) {
                 ret.put(executor, compId);
             }
@@ -63,6 +63,6 @@ public class TopologyDetails {
     }
     
     public Collection<ExecutorDetails> getExecutors() {
-        return this.executorToComponents.keySet();
+        return this.executorToComponent.keySet();
     }
 }

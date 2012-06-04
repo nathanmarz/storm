@@ -24,21 +24,21 @@ public class Cluster {
     /**
      * a map from hostname to supervisor id.
      */
-    private Map<String, List<String>>        hostToIds;
+    private Map<String, List<String>>        hostToId;
 
     public Cluster(Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignment> assignments){
         this.supervisors = new HashMap<String, SupervisorDetails>(supervisors.size());
         this.supervisors.putAll(supervisors);
         this.assignments = new HashMap<String, SchedulerAssignment>(assignments.size());
         this.assignments.putAll(assignments);
-        this.hostToIds = new HashMap<String, List<String>>();
+        this.hostToId = new HashMap<String, List<String>>();
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
             String host = supervisor.getHost();
             if (!this.supervisors.containsKey(host)) {
-                this.hostToIds.put(host, new ArrayList<String>());
+                this.hostToId.put(host, new ArrayList<String>());
             }
-            this.hostToIds.get(host).add(nodeId);
+            this.hostToId.get(host).add(nodeId);
         }
     }
 
@@ -94,7 +94,7 @@ public class Cluster {
             allExecutors.removeAll(assignedExecutors);
         }
 
-        return topology.selectExecutorToComponents(allExecutors);
+        return topology.selectExecutorToComponent(allExecutors);
     }
     
     /**
@@ -130,7 +130,7 @@ public class Cluster {
         List<Integer> usedPorts = new ArrayList<Integer>();
 
         for (SchedulerAssignment assignment : assignments.values()) {
-            for (WorkerSlot slot : assignment.getExecutorToSlots().values()) {
+            for (WorkerSlot slot : assignment.getExecutorToSlot().values()) {
                 if (slot.getNodeId().equals(supervisor.getId())) {
                     usedPorts.add(slot.getPort());
                 }
@@ -208,20 +208,31 @@ public class Cluster {
         }
 
         Set<WorkerSlot> slots = new HashSet<WorkerSlot>();
-        slots.addAll(assignment.getExecutorToSlots().values());
+        slots.addAll(assignment.getExecutorToSlot().values());
 
         return slots.size();
     }
 
     /**
      * Assign the slot to the executors for this topology.
+     * 
+     * @throws RuntimeException if the specified slot is already occupied.
      */
     public void assign(WorkerSlot slot, String topologyId, Collection<ExecutorDetails> executors) {
+        if (this.isSlotOccupied(slot)) {
+            throw new RuntimeException("slot: [" + slot.getNodeId() + ", " + slot.getPort() + "] is already occupied.");
+        }
+        
         SchedulerAssignment assignment = this.getAssignmentById(topologyId);
-
         if (assignment == null) {
             assignment = new SchedulerAssignment(topologyId, new HashMap<ExecutorDetails, WorkerSlot>());
             this.assignments.put(topologyId, assignment);
+        } else {
+            for (ExecutorDetails executor : executors) {
+                 if (assignment.isExecutorAssigned(executor)) {
+                     throw new RuntimeException("the executor is already assigned, you should unassign it before assign it to another slot.");
+                 }
+            }
         }
 
         assignment.assign(slot, executors);
@@ -252,14 +263,41 @@ public class Cluster {
         if (supervisor != null) {
             // remove the slot from the existing assignments
             for (SchedulerAssignment assignment : this.assignments.values()) {
-                if (assignment.occupiedSlot(slot)) {
-                    assignment.removeSlot(slot);
+                if (assignment.isSlotOccupied(slot)) {
+                    assignment.unassignBySlot(slot);
                     break;
                 }
             }
         }
     }
+    
+    /**
+     * free the slots.
+     * 
+     * @param slots
+     */
+    public void freeSlots(Collection<WorkerSlot> slots) {
+        for (WorkerSlot slot : slots) {
+            this.freeSlot(slot);
+        }
+    }
 
+    /**
+     * Checks the specified slot is occupied.
+     * 
+     * @param slot the slot be to checked.
+     * @return
+     */
+    public boolean isSlotOccupied(WorkerSlot slot) {
+        for (SchedulerAssignment assignment : this.assignments.values()) {
+            if (assignment.isSlotOccupied(slot)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     /**
      * get the current assignment for the topology.
      */
@@ -289,7 +327,7 @@ public class Cluster {
      * @return the <code>SupervisorDetails</code> object.
      */
     public List<SupervisorDetails> getSupervisorsByHost(String host) {
-        List<String> nodeIds = this.hostToIds.get(host);
+        List<String> nodeIds = this.hostToId.get(host);
         List<SupervisorDetails> ret = new ArrayList<SupervisorDetails>();
 
         if (nodeIds != null) {
@@ -323,5 +361,15 @@ public class Cluster {
      */
     public Map<String, SupervisorDetails> getSupervisors() {
         return this.supervisors;
+    }
+    
+    private boolean isExecutorAssigned(ExecutorDetails executor) {
+        for (SchedulerAssignment assignment : this.assignments.values()) {
+            if (assignment.isExecutorAssigned(executor)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

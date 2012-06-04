@@ -47,10 +47,6 @@
     (is (= {[6 10] ["supervisor2" 2]}
            (clojurify-executor->slot (.getExecutorToSlot assignment))))
 
-    ;; test unassignByExecutor
-    (.unassignByExecutor assignment (ExecutorDetails. (int 6) (int 10)))
-    (is (= true
-           (empty? (.getExecutorToSlot assignment))))
     ))
 
 (deftest test-topologies

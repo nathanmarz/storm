@@ -166,14 +166,13 @@
 
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (storm-conf TOPOLOGY-ACKER-EXECUTORS)
-        num-tasks (storm-conf TOPOLOGY-ACKER-TASKS)
         acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-executors
-                                         :conf {TOPOLOGY-TASKS num-tasks
+                                         :conf {TOPOLOGY-TASKS num-executors
                                                 TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
@@ -228,9 +227,7 @@
     ))
 
 (defn has-ackers? [storm-conf]
-  (let [tasks (storm-conf TOPOLOGY-ACKER-TASKS)]
-    (and (or (nil? tasks) (> tasks 0))
-         (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
+  (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))

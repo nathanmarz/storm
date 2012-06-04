@@ -320,20 +320,6 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_TASKS = "topology.tasks";
 
     /**
-     * How many acker tasks should be spawned for the topology. An acker task keeps
-     * track of a subset of the tuples emitted by spouts and detects when a spout
-     * tuple is fully processed. When an acker task detects that a spout tuple
-     * is finished, it sends a message to the spout to acknowledge the tuple. The
-     * number of ackers should be scaled with the amount of throughput going
-     * through the cluster for the topology. Typically, you don't need that many
-     * ackers though.
-     *
-     * <p>If this is set to 0, then Storm will immediately ack tuples as soon
-     * as they come off the spout, effectively disabling reliability.</p>
-     */
-    public static String TOPOLOGY_ACKER_TASKS = "topology.acker.tasks";
-
-    /**
      * How many executors to spawn for ackers.
      *
      * <p>If this is set to 0, then Storm will immediately ack tuples as soon
@@ -519,12 +505,8 @@ public class Config extends HashMap<String, Object> {
     public void setNumWorkers(int workers) {
         put(Config.TOPOLOGY_WORKERS, workers);
     }
-    
-    public void setNumAckerTasks(int numTasks) {
-        put(Config.TOPOLOGY_ACKER_TASKS, numTasks);
-    }
 
-    public void setNumAckerExecutors(int numExecutors) {
+    public void setNumAckers(int numExecutors) {
         put(Config.TOPOLOGY_ACKER_EXECUTORS, numExecutors);
     }
     

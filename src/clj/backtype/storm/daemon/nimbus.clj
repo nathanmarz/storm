@@ -623,7 +623,6 @@
     (merge storm-conf
            {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
                                           (mapify-serializations base-sers))
-            TOPOLOGY-ACKER-TASKS (or (total-conf TOPOLOGY-ACKER-TASKS) (total-conf TOPOLOGY-ACKER-EXECUTORS))
             TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
             TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)
             })

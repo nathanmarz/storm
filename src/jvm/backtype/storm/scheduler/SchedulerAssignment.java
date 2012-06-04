@@ -37,10 +37,23 @@ public class SchedulerAssignment {
     }
  
     /**
+     * Unassign the assignment for executor.
+     */
+    public void unassignByExecutor(ExecutorDetails executor) {
+        this.executorToSlot.remove(executor);
+    }
+    
+    public void unassignByExecutors(Collection<ExecutorDetails> executors) {
+        for (ExecutorDetails executor : executors) {
+            this.unassignByExecutor(executor);
+        }
+    }
+    
+    /**
      * Release the slot occupied by this assignment.
      * @param slot
      */
-    public void removeSlot(WorkerSlot slot) {
+    public void unassignBySlot(WorkerSlot slot) {
         List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
         for (ExecutorDetails executor : this.executorToSlot.keySet()) {
             WorkerSlot ws = this.executorToSlot.get(executor);
@@ -61,16 +74,13 @@ public class SchedulerAssignment {
      * @return
      */
     public boolean isSlotOccupied(WorkerSlot slot) {
-        Collection<WorkerSlot> slots = this.executorToSlot.values();
-        for (WorkerSlot slot1 : slots) {
-            if (slot1.equals(slot)) {
-                return true;
-            }
-        }
-
-        return false;
+        return this.executorToSlot.containsValue(slot);
     }
 
+    public boolean isExecutorAssigned(ExecutorDetails executor) {
+        return this.executorToSlot.containsKey(executor);
+    }
+    
     public String getTopologyId() {
         return this.topologyId;
     }

@@ -220,13 +220,19 @@ public class Cluster {
      */
     public void assign(WorkerSlot slot, String topologyId, Collection<ExecutorDetails> executors) {
         if (this.isSlotOccupied(slot)) {
-            new RuntimeException("slot: [" + slot.getNodeId() + ", " + slot.getPort() + "] is already occupied.");
+            throw new RuntimeException("slot: [" + slot.getNodeId() + ", " + slot.getPort() + "] is already occupied.");
         }
         
         SchedulerAssignment assignment = this.getAssignmentById(topologyId);
         if (assignment == null) {
             assignment = new SchedulerAssignment(topologyId, new HashMap<ExecutorDetails, WorkerSlot>());
             this.assignments.put(topologyId, assignment);
+        } else {
+            for (ExecutorDetails executor : executors) {
+                 if (assignment.isExecutorAssigned(executor)) {
+                     throw new RuntimeException("the executor is already assigned, you should unassign it before assign it to another slot.");
+                 }
+            }
         }
 
         assignment.assign(slot, executors);
@@ -258,7 +264,7 @@ public class Cluster {
             // remove the slot from the existing assignments
             for (SchedulerAssignment assignment : this.assignments.values()) {
                 if (assignment.isSlotOccupied(slot)) {
-                    assignment.removeSlot(slot);
+                    assignment.unassignBySlot(slot);
                     break;
                 }
             }
@@ -355,5 +361,15 @@ public class Cluster {
      */
     public Map<String, SupervisorDetails> getSupervisors() {
         return this.supervisors;
+    }
+    
+    private boolean isExecutorAssigned(ExecutorDetails executor) {
+        for (SchedulerAssignment assignment : this.assignments.values()) {
+            if (assignment.isExecutorAssigned(executor)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

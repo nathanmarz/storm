@@ -35,6 +35,6 @@ public class ExecutorDetails {
     }
     
     public int hashCode() {
-        return 13 * this.startTask + 17 * this.endTask;
+        return this.startTask + 13 * this.endTask;
     }
 }

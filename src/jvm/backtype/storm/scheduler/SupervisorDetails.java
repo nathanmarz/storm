@@ -51,14 +51,4 @@ public class SupervisorDetails {
     public Object getSchedulerMeta() {
         return this.schedulerMeta;
     }
-
-    /**
-     * return all the ports.
-     * 
-     * @return
-     */
-    public Collection<Integer> getAllPorts() {
-        return this.allPorts;
-    }
-
 }

@@ -13,18 +13,10 @@ public class ExecutorDetails {
         return startTask;
     }
 
-    public void setStartTask(Integer startTask) {
-        this.startTask = startTask;
-    }
-
     public Integer getEndTask() {
         return endTask;
     }
 
-    public void setEndTask(Integer endTask) {
-        this.endTask = endTask;
-    }
-    
     public boolean equals(Object other) {
         if (other == null || !(other instanceof ExecutorDetails)) {
             return false;

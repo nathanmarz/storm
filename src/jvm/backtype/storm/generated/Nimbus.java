@@ -35,7 +35,7 @@ public class Nimbus {
 
     public void deactivate(String name) throws NotAliveException, org.apache.thrift7.TException;
 
-    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, org.apache.thrift7.TException;
+    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException;
 
     public String beginFileUpload() throws org.apache.thrift7.TException;
 
@@ -237,7 +237,7 @@ public class Nimbus {
       return;
     }
 
-    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, org.apache.thrift7.TException
+    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException
     {
       send_rebalance(name, options);
       recv_rebalance();
@@ -251,12 +251,15 @@ public class Nimbus {
       sendBase("rebalance", args);
     }
 
-    public void recv_rebalance() throws NotAliveException, org.apache.thrift7.TException
+    public void recv_rebalance() throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException
     {
       rebalance_result result = new rebalance_result();
       receiveBase(result, "rebalance");
       if (result.e != null) {
         throw result.e;
+      }
+      if (result.ite != null) {
+        throw result.ite;
       }
       return;
     }
@@ -711,7 +714,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+      public void getResult() throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -1187,6 +1190,8 @@ public class Nimbus {
           iface.rebalance(args.name, args.options);
         } catch (NotAliveException e) {
           result.e = e;
+        } catch (InvalidTopologyException ite) {
+          result.ite = ite;
         }
         return result;
       }
@@ -5246,12 +5251,15 @@ public class Nimbus {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("rebalance_result");
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift7.protocol.TField ITE_FIELD_DESC = new org.apache.thrift7.protocol.TField("ite", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
     private NotAliveException e; // required
+    private InvalidTopologyException ite; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-      E((short)1, "e");
+      E((short)1, "e"),
+      ITE((short)2, "ite");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -5268,6 +5276,8 @@ public class Nimbus {
         switch(fieldId) {
           case 1: // E
             return E;
+          case 2: // ITE
+            return ITE;
           default:
             return null;
         }
@@ -5314,6 +5324,8 @@ public class Nimbus {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.ITE, new org.apache.thrift7.meta_data.FieldMetaData("ite", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(rebalance_result.class, metaDataMap);
     }
@@ -5322,10 +5334,12 @@ public class Nimbus {
     }
 
     public rebalance_result(
-      NotAliveException e)
+      NotAliveException e,
+      InvalidTopologyException ite)
     {
       this();
       this.e = e;
+      this.ite = ite;
     }
 
     /**
@@ -5334,6 +5348,9 @@ public class Nimbus {
     public rebalance_result(rebalance_result other) {
       if (other.is_set_e()) {
         this.e = new NotAliveException(other.e);
+      }
+      if (other.is_set_ite()) {
+        this.ite = new InvalidTopologyException(other.ite);
       }
     }
 
@@ -5344,6 +5361,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.e = null;
+      this.ite = null;
     }
 
     public NotAliveException get_e() {
@@ -5369,6 +5387,29 @@ public class Nimbus {
       }
     }
 
+    public InvalidTopologyException get_ite() {
+      return this.ite;
+    }
+
+    public void set_ite(InvalidTopologyException ite) {
+      this.ite = ite;
+    }
+
+    public void unset_ite() {
+      this.ite = null;
+    }
+
+    /** Returns true if field ite is set (has been assigned a value) and false otherwise */
+    public boolean is_set_ite() {
+      return this.ite != null;
+    }
+
+    public void set_ite_isSet(boolean value) {
+      if (!value) {
+        this.ite = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -5379,6 +5420,14 @@ public class Nimbus {
         }
         break;
 
+      case ITE:
+        if (value == null) {
+          unset_ite();
+        } else {
+          set_ite((InvalidTopologyException)value);
+        }
+        break;
+
       }
     }
 
@@ -5386,6 +5435,9 @@ public class Nimbus {
       switch (field) {
       case E:
         return get_e();
+
+      case ITE:
+        return get_ite();
 
       }
       throw new IllegalStateException();
@@ -5400,6 +5452,8 @@ public class Nimbus {
       switch (field) {
       case E:
         return is_set_e();
+      case ITE:
+        return is_set_ite();
       }
       throw new IllegalStateException();
     }
@@ -5426,6 +5480,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_ite = true && this.is_set_ite();
+      boolean that_present_ite = true && that.is_set_ite();
+      if (this_present_ite || that_present_ite) {
+        if (!(this_present_ite && that_present_ite))
+          return false;
+        if (!this.ite.equals(that.ite))
+          return false;
+      }
+
       return true;
     }
 
@@ -5437,6 +5500,11 @@ public class Nimbus {
       builder.append(present_e);
       if (present_e)
         builder.append(e);
+
+      boolean present_ite = true && (is_set_ite());
+      builder.append(present_ite);
+      if (present_ite)
+        builder.append(ite);
 
       return builder.toHashCode();
     }
@@ -5455,6 +5523,16 @@ public class Nimbus {
       }
       if (is_set_e()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_ite()).compareTo(typedOther.is_set_ite());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_ite()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.ite, typedOther.ite);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5484,6 +5562,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 2: // ITE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.ite = new InvalidTopologyException();
+              this.ite.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -5500,6 +5586,10 @@ public class Nimbus {
         oprot.writeFieldBegin(E_FIELD_DESC);
         this.e.write(oprot);
         oprot.writeFieldEnd();
+      } else if (this.is_set_ite()) {
+        oprot.writeFieldBegin(ITE_FIELD_DESC);
+        this.ite.write(oprot);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -5515,6 +5605,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("ite:");
+      if (this.ite == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.ite);
       }
       first = false;
       sb.append(")");

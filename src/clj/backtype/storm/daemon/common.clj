@@ -109,19 +109,32 @@
                   (str id " is not a valid stream id"))))))
     ))
 
-(defn validate-basic! [^StormTopology topology]
-  (validate-ids! topology)
-  (doseq [f thrift/SPOUT-FIELDS
-          obj (->> f (.getFieldValue topology) vals)]
-    (if-not (empty? (-> obj .get_common .get_inputs))
-      (throw (InvalidTopologyException. "May not declare inputs for a spout"))
-      )))
-
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
            (.getFieldValue topology f)
            )))
+
+(defn component-conf [component]
+  (->> component
+      .get_common
+      .get_json_conf
+      from-json))
+
+(defn validate-basic! [^StormTopology topology]
+  (validate-ids! topology)
+  (doseq [f thrift/SPOUT-FIELDS
+          obj (->> f (.getFieldValue topology) vals)]
+    (if-not (empty? (-> obj .get_common .get_inputs))
+      (throw (InvalidTopologyException. "May not declare inputs for a spout"))))
+  (doseq [[comp-id comp] (all-components topology)
+          :let [conf (component-conf comp)
+                p (-> comp .get_common thrift/parallelism-hint)]]
+    (when (and (> (conf TOPOLOGY-TASKS) 0)
+               p
+               (<= p 0))
+      (throw (InvalidTopologyException. "Number of executors must be greater than 0 when number of tasks is greater than 0"))
+      )))
 
 (defn validate-structure! [^StormTopology topology]
   ;; validate all the component subscribe from component+stream which actually exists in the topology
@@ -143,12 +156,6 @@
                       diff-fields (set/difference grouping-fields source-stream-fields)]
                   (when-not (empty? diff-fields)
                     (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from stream: [" source-stream-id "] of component [" source-component-id "] with non-existent fields: " diff-fields)))))))))))))
-
-(defn component-conf [component]
-  (->> component
-      .get_common
-      .get_json_conf
-      from-json))
 
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)

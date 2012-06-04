@@ -119,6 +119,23 @@
         )
       )))
 
+(deftest test-zero-executor-or-tasks
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+    (let [state (:storm-cluster-state cluster)
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 0})}
+                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
+                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
+          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+          task-info (storm-component-info cluster "mystorm")]
+      (check-consistency cluster "mystorm")
+      (is (= 0 (count (task-info "1"))))
+      (is (= 2 (count (task-info "2"))))
+      (is (= 5 (count (task-info "3"))))
+      (is (= 2 (storm-num-workers state "mystorm"))) ;; because only 2 executors
+      )))
+
 (deftest test-over-parallelism-assignment
   (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)

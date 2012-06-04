@@ -744,10 +744,14 @@
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)
                             (.get_num_workers options))
-              executor-overrrides (if (.is_set_num_executors options)
+              executor-overrides (if (.is_set_num_executors options)
                                     (.get_num_executors options)
                                     {})]
-          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrrides] true)
+          (doseq [[c num-executors] executor-overrides]
+            (when (<= num-executors 0)
+              (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
+              ))
+          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
           ))
 
       (activate [this storm-name]

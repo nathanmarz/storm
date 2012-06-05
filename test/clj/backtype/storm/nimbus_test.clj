@@ -9,7 +9,7 @@
 
 (bootstrap)
 
-(defn storm-component-info [cluster storm-name]
+(defn storm-component->task-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
         nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
@@ -98,7 +98,7 @@
                       "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
                      )
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
-          task-info (storm-component-info cluster "mystorm")]
+          task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       ;; 3 should be assigned once (if it were optimized, we'd have
       ;; different topology)
@@ -110,7 +110,7 @@
       (submit-local-topology nimbus "storm2" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20} topology2)
       (check-consistency cluster "storm2")
       (is (= 2 (count (.assignments state nil))))
-      (let [task-info (storm-component-info cluster "storm2")]
+      (let [task-info (storm-component->task-info cluster "storm2")]
         (is (= 12 (count (task-info "1"))))
         (is (= 6 (count (task-info "2"))))
         (is (= 8 (count (task-info "3"))))
@@ -128,7 +128,7 @@
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
-          task-info (storm-component-info cluster "mystorm")]
+          task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       (is (= 0 (count (task-info "1"))))
       (is (= 2 (count (task-info "2"))))
@@ -147,7 +147,7 @@
                       "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
                      )
           _ (submit-local-topology nimbus "test" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 7} topology)
-          task-info (storm-component-info cluster "test")]
+          task-info (storm-component->task-info cluster "test")]
       (check-consistency cluster "test")
       (is (= 21 (count (task-info "1"))))
       (is (= 9 (count (task-info "2"))))

@@ -1,7 +1,6 @@
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
-  (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
@@ -11,7 +10,7 @@
 
 (bootstrap)
 
-(defn mk-topology-context-builder [worker topology]
+(defn mk-topology-context-builder [worker executor-data topology]
   (let [conf (:conf worker)]
     #(TopologyContext.
       topology
@@ -26,17 +25,22 @@
       (int %)
       (:port worker)
       (:task-ids worker)
+      (:default-shared-resources worker)
+      (:user-shared-resources worker)
+      (:shared-executor-data executor-data)
       )))
 
-(defn system-topology-context [worker tid]
+(defn system-topology-context [worker executor-data tid]
   ((mk-topology-context-builder
     worker
+    executor-data
     (:system-topology worker))
    tid))
 
-(defn user-topology-context [worker tid]
+(defn user-topology-context [worker executor-data tid]
   ((mk-topology-context-builder
     worker
+    executor-data
     (:topology worker))
    tid))
 
@@ -64,15 +68,20 @@
 (defn get-context-hooks [^TopologyContext context]
   (.getHooks context))
 
+(defn hooks-empty? [^Collection hooks]
+  (.isEmpty hooks))
+
 (defmacro apply-hooks [topology-context method-sym info-form]
   (let [hook-sym (with-meta (gensym "hook") {:tag 'backtype.storm.hooks.ITaskHook})]
     `(let [hooks# (get-context-hooks ~topology-context)]
-       (when-not (empty? hooks#)
+       (when-not (hooks-empty? hooks#)
          (let [info# ~info-form]
            (fast-list-iter [~hook-sym hooks#]
              (~method-sym ~hook-sym info#)
              ))))))
 
+
+;; TODO: this is all expensive... should be precomputed
 (defn send-unanchored [task-data stream values]
   (let [^TopologyContext topology-context (:system-context task-data)
         tasks-fn (:tasks-fn task-data)
@@ -134,8 +143,8 @@
   (recursive-map
     :executor-data executor-data
     :task-id task-id
-    :system-context (system-topology-context (:worker executor-data) task-id)
-    :user-context (user-topology-context (:worker executor-data) task-id)
+    :system-context (system-topology-context (:worker executor-data) executor-data task-id)
+    :user-context (user-topology-context (:worker executor-data) executor-data task-id)
     :tasks-fn (mk-tasks-fn <>)
     :object (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data))
     ))
@@ -146,6 +155,8 @@
         storm-conf (:storm-conf executor-data)]
     (doseq [klass (storm-conf TOPOLOGY-AUTO-TASK-HOOKS)]
       (.addTaskHook ^TopologyContext (:user-context task-data) (-> klass Class/forName .newInstance)))
+    ;; when this is called, the threads for the executor haven't been started yet,
+    ;; so we won't be risking trampling on the single-threaded claim strategy disruptor queue
     (send-unanchored task-data SYSTEM-STREAM-ID ["startup"])
     task-data
     ))

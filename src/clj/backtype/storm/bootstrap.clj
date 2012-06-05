@@ -6,7 +6,9 @@
      (import (quote [backtype.storm.testing FeederSpout TestPlannerBolt TestPlannerSpout
                      AckFailDelegate AckTracker]))
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
-                     TimeCacheMap$ExpiredCallback BufferFileInputStream
+                     TimeCacheMap$ExpiredCallback
+                     RotatingMap RotatingMap$ExpiredCallback
+                     BufferFileInputStream
                      RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
                      MutableObject]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))

@@ -2,6 +2,7 @@
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
   (:require [backtype.storm.daemon [executor :as executor]])
+  (:import [java.util.concurrent Executors])
   (:gen-class))
 
 (bootstrap)
@@ -101,6 +102,7 @@
 
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
+       ;; TODO: this depends on the type of executor
        (map (fn [e] [e (disruptor/disruptor-queue (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE))]))
        (into {})
        ))
@@ -117,6 +119,19 @@
        (map (fn [c] [c (stream->fields topology c)]))
        (into {})
        (HashMap.)))
+
+(defn- mk-default-resources [worker]
+  (let [conf (:conf worker)
+        thread-pool-size (int (conf TOPOLOGY-WORKER-SHARED-THREAD-POOL-SIZE))]
+    {WorkerTopologyContext/SHARED_EXECUTOR (Executors/newFixedThreadPool thread-pool-size)}
+    ))
+
+(defn- mk-user-resources [worker]
+  ;;TODO: need to invoke a hook provided by the topology, giving it a chance to create user resources.
+  ;; this would be part of the initialization hook
+  ;; need to separate workertopologycontext into WorkerContext and WorkerUserContext.
+  ;; actually just do it via interfaces. just need to make sure to hide setResource from tasks
+  {})
 
 (defn worker-data [conf mq-context storm-id supervisor-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
@@ -169,6 +184,8 @@
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
       :uptime (uptime-computer)
+      :default-shared-resources (mk-default-resources <>)
+      :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
       :transfer-fn (mk-transfer-fn <>)
       )))
@@ -221,7 +238,7 @@
                 (reset! (:cached-task->node+port worker)
                         (HashMap. my-assignment)))
               (doseq [endpoint remove-connections]
-                (.close (@(:cached-node+port->socket worker) endpoint)))
+                (.close (get @(:cached-node+port->socket worker) endpoint)))
               (apply swap!
                      (:cached-node+port->socket worker)
                      #(HashMap. (dissoc (into {} %1) %&))
@@ -247,22 +264,23 @@
         task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
         ]
-    (fn [packets _ batch-end?]
-      (.addAll drainer packets)
-      (when batch-end?
-        (read-locked endpoint-socket-lock
-          (let [node+port->socket @node+port->socket
-                task->node+port @task->node+port]
-            ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
-            ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
+    (disruptor/clojure-handler
+      (fn [packets _ batch-end?]
+        (.addAll drainer packets)
+        (when batch-end?
+          (read-locked endpoint-socket-lock
+            (let [node+port->socket @node+port->socket
+                  task->node+port @task->node+port]
+              ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
+              ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
             
-            (fast-list-iter [[task ser-tuple] drainer]
-              ;; TODO: consider write a batch of tuples here to every target worker  
-              ;; group by node+port, do multipart send              
-              (let [socket (get node+port->socket (get task->node+port task))]
-                (msg/send socket task ser-tuple)
-                ))))
-        (.clear drainer)))))
+              (fast-list-iter [[task ser-tuple] drainer]
+                ;; TODO: consider write a batch of tuples here to every target worker  
+                ;; group by node+port, do multipart send              
+                (let [socket (get node+port->socket (get task->node+port task))]
+                  (msg/send socket task ser-tuple)
+                  ))))
+          (.clear drainer))))))
 
 (defn launch-receive-thread [worker]
   (log-message "Launching receive-thread for " (:supervisor-id worker) ":" (:port worker))
@@ -273,6 +291,12 @@
     (:transfer-local-fn worker)
     (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))
     :kill-fn (fn [t] (halt-process! 11))))
+
+(defn- close-resources [worker]
+  (let [dr (:default-shared-resources worker)]
+    (log-message "Shutting down default resources")
+    (.shutdownNow (get dr WorkerTopologyContext/SHARED_EXECUTOR))
+    (log-message "Shut down default resources")))
 
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
@@ -306,30 +330,37 @@
         receive-thread-shutdown (launch-receive-thread worker)
         
         transfer-tuples (mk-transfer-tuples-handler worker)
-                                               
+        
+        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)                                       
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
-                    (doseq [[_ q] (:executor-receive-queue-map worker)]
-                      (.haltProcessing q))
-                    (doseq [executor executors] (.shutdown executor))
                     (doseq [[_ socket] @(:cached-node+port->socket worker)]
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
+                    (log-message "Shutting down receive thread")
                     (receive-thread-shutdown)
+                    (log-message "Shut down receive thread")
                     (log-message "Terminating zmq context")
-                    
-                    ;; now it's safe to shutdown receive queues (nothing left to add messages to it
-                    ;; get deadlocked)
-                    (doseq [[_ q] (:executor-receive-queue-map worker)]
-                      (.shutdown q))
-                    
+                    (log-message "Shutting down executors")
+                    (doseq [executor executors] (.shutdown executor))
+                    (log-message "Shut down executors")
+                                        
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
                     (msg/term (:mq-context worker))
-                    (log-message "Waiting for transfer queue to die")
-                    (.shutdown (:transfer-queue worker))
+                    (log-message "Shutting down transfer thread")
+                    (disruptor/halt-with-interrupt! (:transfer-queue worker))
+
+                    (.interrupt transfer-thread)
+                    (.join transfer-thread)
+                    (log-message "Shut down transfer thread")
                     (cancel-timer (:timer worker))
+                    
+                    (close-resources worker)
+                    
+                    ;; TODO: here need to invoke the "shutdown" method of WorkerHook
+                    
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
@@ -344,7 +375,6 @@
              (waiting? [this]
                        (timer-waiting? (:timer worker)))
              )]
-    (disruptor/set-handler (:transfer-queue worker) transfer-tuples)
     
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))

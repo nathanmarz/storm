@@ -1,20 +1,20 @@
 package backtype.storm.tuple;
 
 import backtype.storm.utils.Utils;
-import backtype.storm.utils.WritableUtils;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 
 public class MessageId {
     private Map<Long, Long> _anchorsToIds;
     
-    public static long generateId() {
-        return Utils.randomLong();
+    public static long generateId(Random rand) {
+        return rand.nextLong();
     }
 
     public static MessageId makeUnanchored() {
@@ -62,16 +62,16 @@ public class MessageId {
         return _anchorsToIds.toString();
     }
 
-    public void serialize(DataOutputStream out) throws IOException {
-        WritableUtils.writeVInt(out, _anchorsToIds.size());
+    public void serialize(Output out) throws IOException {
+        out.writeInt(_anchorsToIds.size(), true);
         for(Entry<Long, Long> anchorToId: _anchorsToIds.entrySet()) {
             out.writeLong(anchorToId.getKey());
             out.writeLong(anchorToId.getValue());
         }
     }
 
-    public static MessageId deserialize(DataInputStream in) throws IOException {
-        int numAnchors = WritableUtils.readVInt(in);
+    public static MessageId deserialize(Input in) throws IOException {
+        int numAnchors = in.readInt(true);
         Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
         for(int i=0; i<numAnchors; i++) {
             anchorsToIds.put(in.readLong(), in.readLong());

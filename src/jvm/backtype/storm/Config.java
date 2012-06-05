@@ -292,6 +292,13 @@ public class Config extends HashMap<String, Object> {
     public static String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
 
     
+    
+    /**
+     * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
+     * in unit tests to prevent tuples from being accidentally timed out during the test.
+     */
+    public static String TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS = "topology.enable.message.timeouts";
+    
     /**
      * When set to true, Storm will log every message that's emitted.
      */
@@ -430,26 +437,37 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
-     * The size of the Disruptor receive queue for each executor.
+     * The size of the Disruptor receive queue for each executor. Must be a power of 2.
      */
     public static String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
 
     /**
      * The maximum number of messages to batch from the thread receiving off the network to the 
-     * executor queues.
+     * executor queues. Must be a power of 2.
      */
     public static String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
 
     /**
-     * The size of the Disruptor send queue for each executor.
+     * The size of the Disruptor send queue for each executor. Must be a power of 2.
      */
     public static String TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE="topology.executor.send.buffer.size";
-
 
     /**
      * The size of the Disruptor transfer queue for each worker.
      */
     public static String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
+
+    /**
+     * How often a tick tuple from the "__system" component and "__tick" stream should be sent
+     * to tasks. Meant to be used as a component-specific configuration.
+     */
+     public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
+
+    /**
+     * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
+     * via the TopologyContext.
+     */
+     public static String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
 
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.

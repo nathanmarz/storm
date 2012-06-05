@@ -1,6 +1,7 @@
 package backtype.storm.task;
 
 import backtype.storm.Config;
+import backtype.storm.Constants;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
@@ -62,7 +63,11 @@ public class GeneralTopologyContext implements JSONAware {
      * @return the component id for the input task id
      */
     public String getComponentId(int taskId) {
-        return _taskToComponent.get(taskId);
+        if(taskId==-1) {
+            return Constants.SYSTEM_COMPONENT_ID;
+        } else {
+            return _taskToComponent.get(taskId);
+        }
     }
 
     /**

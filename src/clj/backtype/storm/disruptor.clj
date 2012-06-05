@@ -26,22 +26,42 @@
                    ((WAIT-STRATEGY wait-strategy))
                    ))
 
-(defn publish [^DisruptorQueue queue obj]
-  (.publish queue obj))
+(defn clojure-handler [afn]
+  (reify com.lmax.disruptor.EventHandler
+    (onEvent [this o seq-id batchEnd?]
+      (afn o seq-id batchEnd?)
+      )))
 
-(defn to-halt-function [error-fn]
-  (fn [t]
-    (when (exception-cause? InterruptedException t)
-      (log-message "Disruptor event handler interrupted")
-      (throw t))
-    (error-fn t)
-    ))
+(defmacro handler [& args]
+  `(clojure-handler (fn ~@args)))
 
-(defnk set-handler [^DisruptorQueue queue handler-fn
-                    :error-fn (fn [t] (log-error t) (halt-process! 1 "Error in transfer thread"))]
-  (.setHandler queue
-     (reify com.lmax.disruptor.EventHandler
-       (onEvent [this o seq-id batchEnd?]
-         (with-error-reaction (to-halt-function error-fn)
-           (handler-fn o seq-id batchEnd?)
-           )))))
+(defn publish [^DisruptorQueue q o]
+  (.publish q o))
+
+(defn consume-batch [^DisruptorQueue queue handler]
+  (.consumeBatch queue handler))
+
+(defn consume-batch-when-available [^DisruptorQueue queue handler]
+  (.consumeBatchWhenAvailable queue handler))
+
+(defn consumer-started! [^DisruptorQueue queue]
+  (.consumerStarted queue))
+
+(defn halt-with-interrupt! [^DisruptorQueue queue]
+  (.haltWithInterrupt queue))
+
+(defnk consume-loop* [^DisruptorQueue queue handler :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))]
+  (let [ret (async-loop
+              (fn []
+                (consume-batch-when-available queue handler)
+                0 )
+              :kill-fn kill-fn
+              )]
+     (consumer-started! queue)
+     ret
+     ))
+
+(defmacro consume-loop [queue & handler-args]
+  `(let [handler# (handler ~@handler-args)]
+     (consume-loop* ~queue handler#)
+     ))

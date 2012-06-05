@@ -135,9 +135,8 @@ public class TimeCacheMap<K, V> {
             return size;
         }
     }
-    
+
     public void cleanup() {
         _cleaner.interrupt();
-    }
-    
+    }    
 }

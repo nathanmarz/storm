@@ -5,6 +5,7 @@
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
+  (:import [backtype.storm.spout NoOpSpout])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
@@ -19,6 +20,9 @@
 (def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
 
 (def SYSTEM-STREAM-ID "__system")
+
+(def SYSTEM-COMPONENT-ID Constants/SYSTEM_COMPONENT_ID)
+(def SYSTEM-TICK-STREAM-ID Constants/SYSTEM_TICK_STREAM_ID)
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
@@ -140,6 +144,12 @@
                   (when-not (empty? diff-fields)
                     (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from stream: [" source-stream-id "] of component [" source-component-id "] with non-existent fields: " diff-fields)))))))))))))
 
+(defn component-conf [component]
+  (->> component
+      .get_common
+      .get_json_conf
+      from-json))
+
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)
         spout-ids (.. topology get_spouts keySet)
@@ -154,14 +164,17 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
-(defn add-acker! [num-executors num-tasks ^StormTopology ret]
-  (let [acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
+(defn add-acker! [storm-conf ^StormTopology ret]
+  (let [num-executors (storm-conf TOPOLOGY-ACKER-EXECUTORS)
+        num-tasks (storm-conf TOPOLOGY-ACKER-TASKS)
+        acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-executors
-                                         :conf {TOPOLOGY-TASKS num-tasks})]
+                                         :conf {TOPOLOGY-TASKS num-tasks
+                                                TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do
@@ -169,8 +182,13 @@
              (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
              ))
     (dofor [[_ spout] (.get_spouts ret)
-            :let [common (.get_common spout)]]
+            :let [common (.get_common spout)
+                  spout-conf (merge
+                               (component-conf spout)
+                               {TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]]
       (do
+        ;; this set up tick tuples to cause timeouts to be triggered
+        (.set_json_conf common (to-json spout-conf))
         (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "init-val" "spout-task"]))
         (.put_to_inputs common
                         (GlobalStreamId. ACKER-COMPONENT-ID ACKER-ACK-STREAM-ID)
@@ -189,11 +207,22 @@
     ;; TODO: consider adding a stats stream for stats aggregation
     ))
 
+(defn add-system-components! [^StormTopology topology]
+  (let [system-spout (thrift/mk-spout-spec*
+                       (NoOpSpout.)
+                       {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
+                        }
+                       :p 0
+                       :conf {TOPOLOGY-TASKS 0})]
+    (.put_to_spouts topology SYSTEM-COMPONENT-ID system-spout)
+    ))
+
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
-    (add-acker! (storm-conf TOPOLOGY-ACKER-EXECUTORS) (storm-conf TOPOLOGY-ACKER-TASKS) ret)
+    (add-acker! storm-conf ret)
     (add-system-streams! ret)
+    (add-system-components! ret)
     (validate-structure! ret)
     ret
     ))
@@ -202,12 +231,6 @@
   (let [tasks (storm-conf TOPOLOGY-ACKER-TASKS)]
     (and (or (nil? tasks) (> tasks 0))
          (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
-
-(defn component-conf [component]
-  (->> component
-      .get_common
-      .get_json_conf
-      from-json))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))
@@ -229,18 +252,20 @@
        (map int)))
 
 (defn worker-context [worker]
-  (WorkerTopologyContext.  (:system-topology worker)
-                           (:storm-conf worker)
-                           (:task->component worker)
-                           (:component->sorted-tasks worker)
-                           (:component->stream->fields worker)
-                           (:storm-id worker)
-                           (supervisor-storm-resources-path
-                             (supervisor-stormdist-root (:conf worker) (:storm-id worker)))
-                           (worker-pids-root (:conf worker) (:worker-id worker))
-                           (:port worker)
-                           (:task-ids worker)
-                           ))
+  (WorkerTopologyContext. (:system-topology worker)
+                          (:storm-conf worker)
+                          (:task->component worker)
+                          (:component->sorted-tasks worker)
+                          (:component->stream->fields worker)
+                          (:storm-id worker)
+                          (supervisor-storm-resources-path
+                            (supervisor-stormdist-root (:conf worker) (:storm-id worker)))
+                          (worker-pids-root (:conf worker) (:worker-id worker))
+                          (:port worker)
+                          (:task-ids worker)
+                          (:default-shared-resources worker)
+                          (:user-shared-resources worker)
+                          ))
 
 
 (defn to-task->node+port [executor->node+port]

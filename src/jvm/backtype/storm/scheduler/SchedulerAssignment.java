@@ -35,5 +35,5 @@ public interface SchedulerAssignment {
      * Return the executors covered by this assignments
      * @return
      */
-    public Set<ExecutorDetails> getExecutors() ;
+    public Set<ExecutorDetails> getExecutors();
 }

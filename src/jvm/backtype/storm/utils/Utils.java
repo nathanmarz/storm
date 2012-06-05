@@ -263,7 +263,7 @@ public class Utils {
         }
     }
     
-    public static long randomLong() {
+    public static long secureRandomLong() {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     

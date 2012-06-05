@@ -13,6 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
@@ -54,6 +55,7 @@ public class ShellBolt implements IBolt {
     private volatile boolean _running = true;
     private volatile Throwable _exception;
     private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    private Random _rand;
     
     private Thread _readerThread;
     private Thread _writerThread;
@@ -68,6 +70,7 @@ public class ShellBolt implements IBolt {
 
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
+        _rand = new Random();
         _process = new ShellProcess(_command);
         _collector = collector;
 
@@ -135,7 +138,7 @@ public class ShellBolt implements IBolt {
         }
 
         //just need an id
-        String genId = Long.toString(MessageId.generateId());
+        String genId = Long.toString(_rand.nextLong());
         _inputs.put(genId, input);
         try {
             JSONObject obj = new JSONObject();

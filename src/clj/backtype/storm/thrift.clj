@@ -96,9 +96,9 @@
     ret
     ))
 
-(defnk mk-spout-spec* [spout outputs :p nil]
+(defnk mk-spout-spec* [spout outputs :p nil :conf nil]
   (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
-              (mk-plain-component-common {} outputs p)))
+              (mk-plain-component-common {} outputs p :conf conf)))
 
 (defn mk-shuffle-grouping []
   (Grouping/shuffle (NullStruct.)))

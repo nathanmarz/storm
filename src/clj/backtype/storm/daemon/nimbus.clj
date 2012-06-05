@@ -39,6 +39,11 @@
                                (log-error t "Error when processing event")
                                (halt-process! 20 "Error when processing an event")
                                ))
+   :scheduler (if (conf STORM-SCHEDULER)
+                (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
+                    (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
+                (do (log-message "Using default scheduler")
+                    (DefaultScheduler.)))
    })
 
 (defn inbox [nimbus]
@@ -514,18 +519,13 @@
                              (apply merge-with set/union))
         assigned-slots (assigned-slots storm-cluster-state)
         all-slots (merge-with set/union available-slots assigned-slots)
+
         supervisors (read-all-supervisor-details nimbus all-slots supervisor->dead-ports)
         cluster (Cluster. supervisors topology->scheduler-assignment)
-        scheduler (if (conf STORM-SCHEDULER)
-                    (do
-                      (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
-                      (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
-                    (do
-                      (log-message "Using system default scheduler")
-                      (DefaultScheduler.)))
+
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
-        _ (.schedule scheduler topologies cluster)
+        _ (.schedule (:scheduler nimbus) topologies cluster)
         new-scheduler-assignments (.getAssignments cluster)
         ;; add more information to convert SchedulerAssignment to Assignment
         new-topology->executor->node+port (compute-topology->executor->node+port new-scheduler-assignments)]
@@ -613,15 +613,15 @@
             :let [existing-assignment (get existing-assignments topology-id)
                   topology-details (.getById topologies topology-id)]]
       (if (= existing-assignment assignment)
-      (log-debug "Assignment for " topology-id " hasn't changed")
-      (do
-        (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
-        (.set-assignment! storm-cluster-state topology-id assignment)
-        (.assignSlots ^INimbus (:inimbus nimbus)
-                      (for [[id port] (newly-added-slots existing-assignment assignment)]
-                        (WorkerSlot. id port))
-                      topology-details)
-        )))))
+        (log-debug "Assignment for " topology-id " hasn't changed")
+        (do
+          (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
+          (.set-assignment! storm-cluster-state topology-id assignment)
+          (.assignSlots ^INimbus (:inimbus nimbus)
+                        (for [[id port] (newly-added-slots existing-assignment assignment)]
+                          (WorkerSlot. id port))
+                        topology-details)
+          )))))
 
 (defn- start-storm [nimbus storm-name storm-id]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -783,7 +783,8 @@
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
                           (when (conf NIMBUS-REASSIGN)
-                            (mk-assignments nimbus))
+                            (locking (:submit-lock nimbus)
+                              (mk-assignments nimbus)))
                           (do-cleanup nimbus)
                           ))
     ;; Schedule Nimbus inbox cleaner

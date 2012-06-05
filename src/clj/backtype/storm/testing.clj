@@ -8,6 +8,7 @@
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
+  (:import [java.util HashMap])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
@@ -101,6 +102,7 @@
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
+                            TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
@@ -206,7 +208,6 @@
   `(with-simulated-time
     (with-local-cluster ~@args)))
 
-;; TODO: should take in a port symbol and find available port automatically
 (defmacro with-inprocess-zookeeper [port-sym & body]
   `(with-local-tmp [tmp#]
      (let [[~port-sym zks#] (zk/mk-inprocess-zookeeper tmp#)]
@@ -323,7 +324,6 @@
     (advance-cluster-time cluster-map 10)
     (Thread/sleep 100)
     ))
-
 
 (defprotocol CompletableSpout
   (exhausted? [this] "Whether all the tuples for this spout have been completed.")
@@ -511,14 +511,20 @@
                                             (fn [& args#]
                                               (NonRichBoltTracker. (apply old# args#) id#)
                                               ))
-                      worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
-                                              (fn [& args#]
-                                                (let [transferrer# (apply old# args#)]
-                                                  (fn [ser# batch#]
-                                                    ;; (log-message "Transferring: " transfer-args#)
-                                                    (increment-global! id# "transferred" (count batch#))
-                                                    (transferrer# ser# batch#)
-                                                    ))))
+                      ;; critical that this particular function is overridden here,
+                      ;; since the transferred stat needs to be incremented at the moment
+                      ;; of tuple emission (and not on a separate thread later) for
+                      ;; topologies to be tracked correctly. This is because "transferred" *must*
+                      ;; be incremented before "processing".
+                      executor/mk-executor-transfer-fn
+                          (let [old# executor/mk-executor-transfer-fn]
+                            (fn [& args#]
+                              (let [transferrer# (apply old# args#)]
+                                (fn [& args2#]
+                                  ;; (log-message "Transferring: " transfer-args#)
+                                  (increment-global! id# "transferred" 1)
+                                  (apply transferrer# args2#)
+                                  ))))
                       ]
        (with-local-cluster [~cluster-sym ~@cluster-args]
          (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
@@ -558,6 +564,20 @@
         spout-spec (mk-spout-spec* (TestWordSpout.)
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
-        context (TopologyContext. topology (read-storm-config) {(int 1) component} {component [(int 1)]} {component {stream (Fields. fields)}} "test-storm-id" nil nil (int 1) nil [(int 1)])]
+        context (TopologyContext.
+                  topology
+                  (read-storm-config)
+                  {(int 1) component}
+                  {component [(int 1)]}
+                  {component {stream (Fields. fields)}}
+                  "test-storm-id"
+                  nil
+                  nil
+                  (int 1)
+                  nil
+                  [(int 1)]
+                  {}
+                  {}
+                  (HashMap.))]
     (TupleImpl. context values 1 stream)
     ))

@@ -5,6 +5,7 @@ import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.utils.WritableUtils;
+import com.esotericsoftware.kryo.io.Input;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -15,23 +16,24 @@ public class KryoTupleDeserializer implements ITupleDeserializer {
     GeneralTopologyContext _context;
     KryoValuesDeserializer _kryo;
     SerializationFactory.IdDictionary _ids;
+    Input _kryoInput;
     
     public KryoTupleDeserializer(final Map conf, final GeneralTopologyContext context) {
         _kryo = new KryoValuesDeserializer(conf);
         _context = context;
         _ids = new SerializationFactory.IdDictionary(context.getRawTopology());
+        _kryoInput = new Input(1);
     }        
 
     public Tuple deserialize(byte[] ser) {
         try {
-            ByteArrayInputStream bin = new ByteArrayInputStream(ser);
-            DataInputStream in = new DataInputStream(bin);
-            int taskId = WritableUtils.readVInt(in);
-            int streamId = WritableUtils.readVInt(in);
+            _kryoInput.setBuffer(ser);
+            int taskId = _kryoInput.readInt(true);
+            int streamId = _kryoInput.readInt(true);
             String componentName = _context.getComponentId(taskId);
             String streamName = _ids.getStreamName(componentName, streamId);
-            MessageId id = MessageId.deserialize(in);
-            List<Object> values = _kryo.deserializeFrom(bin);
+            MessageId id = MessageId.deserialize(_kryoInput);
+            List<Object> values = _kryo.deserializeFrom(_kryoInput);
             return new TupleImpl(_context, values, taskId, streamName, id);
         } catch(IOException e) {
             throw new RuntimeException(e);

@@ -435,6 +435,9 @@
                                 ;; for some reason it goes into infinite loop without limiting the repeat-seq
                                 (repeat-seq (count reassign-ids) reassign-slots)))
         stay-assignment (into {} (mapcat (fn [[node+port task-ids]] (for [id task-ids] [id node+port])) keep-assigned))]
+    (when (< total-slots-to-use (storm-conf TOPOLOGY-WORKERS))
+      (log-warn "Topology [" storm-id "] expects to use " (storm-conf TOPOLOGY-WORKERS) " workers, but only " total-slots-to-use " are available"))
+      
     (when-not (empty? reassignment)
       (log-message "Reassigning " storm-id " to " total-slots-to-use " slots")
       (log-message "Reassign ids: " (vec reassign-ids))

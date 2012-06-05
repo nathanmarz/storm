@@ -35,19 +35,6 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
             this.executorToSlot.put(executor, slot);
         }
     }
- 
-    /**
-     * Unassign the assignment for executor.
-     */
-    public void unassignByExecutor(ExecutorDetails executor) {
-        this.executorToSlot.remove(executor);
-    }
-    
-    public void unassignByExecutors(Collection<ExecutorDetails> executors) {
-        for (ExecutorDetails executor : executors) {
-            this.unassignByExecutor(executor);
-        }
-    }
     
     /**
      * Release the slot occupied by this assignment.

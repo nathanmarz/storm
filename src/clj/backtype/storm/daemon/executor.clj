@@ -516,7 +516,7 @@
                                                  [root (bit-xor id ack-val)])
                            ))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
+                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple (.getThisTaskId user-context) delta))
                          (when delta
                            (stats/bolt-acked-tuple! executor-stats
                                                     (.getSourceComponent tuple)

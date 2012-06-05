@@ -613,15 +613,15 @@
             :let [existing-assignment (get existing-assignments topology-id)
                   topology-details (.getById topologies topology-id)]]
       (if (= existing-assignment assignment)
-      (log-debug "Assignment for " topology-id " hasn't changed")
-      (do
-        (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
-        (.set-assignment! storm-cluster-state topology-id assignment)
-        (.assignSlots ^INimbus (:inimbus nimbus)
-                      (for [[id port] (newly-added-slots existing-assignment assignment)]
-                        (WorkerSlot. id port))
-                      topology-details)
-        )))))
+        (log-debug "Assignment for " topology-id " hasn't changed")
+        (do
+          (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
+          (.set-assignment! storm-cluster-state topology-id assignment)
+          (.assignSlots ^INimbus (:inimbus nimbus)
+                        (for [[id port] (newly-added-slots existing-assignment assignment)]
+                          (WorkerSlot. id port))
+                        topology-details)
+          )))))
 
 (defn- start-storm [nimbus storm-name storm-id]
   (let [storm-cluster-state (:storm-cluster-state nimbus)

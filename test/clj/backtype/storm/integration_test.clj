@@ -34,6 +34,30 @@
                (read-tuples results "4")))
         ))))
 
+(defbolt emit-task-id ["tid"] {:prepare true}
+  [conf context collector]
+  (let [tid (.getThisTaskIndex context)]
+    (bolt
+      (execute [tuple]
+        (emit-bolt! collector [tid] :anchor tuple)
+        (ack! collector tuple)
+        ))))
+
+(deftest test-multi-tasks-per-executor
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true))}
+                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} emit-task-id
+                      :parallelism-hint 3
+                      :conf {TOPOLOGY-TASKS 6})
+                     })
+          results (complete-topology cluster
+                                     topology
+                                     :mock-sources {"1" [["a"] ["a"] ["a"] ["a"] ["a"] ["a"]]})]
+      (is (ms= [[0] [1] [2] [3] [4] [5]]
+               (read-tuples results "2")))
+      )))
+
 (defbolt ack-every-other {} {:prepare true}
   [conf context collector]
   (let [state (atom -1)]

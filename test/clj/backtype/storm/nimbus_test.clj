@@ -440,6 +440,22 @@
                        ))))
       )))
 
+(deftest test-submit-invalid
+  (with-simulated-time-local-cluster [cluster
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 0 :conf {TOPOLOGY-TASKS 1})}
+                        {}))
+     
+      (is (thrown? InvalidTopologyException
+        (submit-local-topology (:nimbus cluster)
+                               "test"
+                               {}
+                               topology)))
+      )))
+
 (deftest test-cleans-corrupt
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]

@@ -7,7 +7,7 @@
   (:import [java.nio.channels Channels WritableByteChannel])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
-            Cluster Topologies SchedulerAssignment DefaultScheduler ExecutorDetails])
+            Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:gen-class
@@ -446,7 +446,7 @@
                                                                       (second executor))
                                                     (WorkerSlot. node port)}
                                                    {})))]]
-             {tid (SchedulerAssignment. tid executor->slot)})))
+             {tid (SchedulerAssignmentImpl. tid executor->slot)})))
 
 (defn- read-all-supervisor-details [nimbus all-slots supervisor->dead-ports]
   "return a map: {topology-id SupervisorDetails}"

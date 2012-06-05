@@ -71,7 +71,7 @@
         assigned-task-ids (mapcat executor-id->tasks (keys executor->node+port))
         all-nodes (set (map first (vals executor->node+port)))]
     (when assigned?
-      (is (= (set task-ids) (set assigned-task-ids)))
+      (is (= (sort task-ids) (sort assigned-task-ids)))
       (doseq [t task-ids]
         (is (not-nil? (task->node+port t)))))
     (doseq [[e s] executor->node+port]

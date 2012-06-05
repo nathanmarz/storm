@@ -2,8 +2,7 @@
   (:use [backtype.storm util log config])
   (:require [clojure.set :as set])
   (:import [backtype.storm.scheduler IScheduler Topologies
-            Cluster TopologyDetails WorkerSlot SchedulerAssignment
-            ExecutorDetails])
+            Cluster TopologyDetails WorkerSlot ExecutorDetails])
   (:gen-class
     :implements [backtype.storm.scheduler.IScheduler]))
 
@@ -11,11 +10,6 @@
   (let [split-up (vals (group-by first all-slots))]
     (apply interleave-all split-up)
     ))
-
-(defn- mk-scheduler-assignment [topology-id executor->node+port]
-  (SchedulerAssignment. topology-id
-                        (into {} (for [[executor [node port]] executor->node+port]
-                                   {(ExecutorDetails. (first executor) (second executor)) (WorkerSlot. node port)}))))
 
 (defn get-alive-assigned-node+port->executors [cluster topology-id]
   (let [existing-assignment (.getAssignmentById cluster topology-id)
@@ -41,9 +35,8 @@
         alive-assigned (get-alive-assigned-node+port->executors cluster topology-id)
         total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
                                 (+ (count available-slots) (count alive-assigned)))
-        freed-slots (keys (apply dissoc alive-assigned (keys alive-assigned)))
         reassign-slots (take (- total-slots-to-use (count alive-assigned))
-                             (sort-slots (concat available-slots freed-slots)))
+                             (sort-slots available-slots))
         reassign-executors (sort (set/difference all-executors (set (apply concat (vals alive-assigned)))))
         reassignment (into {}
                            (map vector
@@ -54,14 +47,19 @@
     (when-not (empty? reassignment)
       (log-message "Available slots: " (pr-str available-slots))
       )
-    (mk-scheduler-assignment topology-id (merge stay-assignment reassignment))))
+    reassignment))
 
 (defn schedule-topologies-evenly [^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
-                  new-assignment (schedule-topology topology cluster)]]
-      (.setAssignmentById cluster topology-id new-assignment))))
+                  new-assignment (schedule-topology topology cluster)
+                  node+port->executors (reverse-map new-assignment)]]
+      (doseq [[node+port executors] node+port->executors
+              :let [^WorkerSlot slot (WorkerSlot. (first node+port) (last node+port))
+                    executors (for [[start-task end-task] executors]
+                                (ExecutorDetails. start-task end-task))]]
+        (.assign cluster slot topology-id executors)))))
 
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (schedule-topologies-evenly topologies cluster))

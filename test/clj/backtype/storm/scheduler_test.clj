@@ -3,7 +3,7 @@
   (:use [backtype.storm bootstrap config testing])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
-            SchedulerAssignment Topologies TopologyDetails]))
+            SchedulerAssignmentImpl Topologies TopologyDetails]))
 
 (bootstrap)
 
@@ -25,7 +25,7 @@
   (let [executor->slot {(ExecutorDetails. (int 1) (int 5)) (WorkerSlot. "supervisor1" (int 1))
                         (ExecutorDetails. (int 6) (int 10)) (WorkerSlot. "supervisor2" (int 2))}
         topology-id "topology1"
-        assignment (SchedulerAssignment. topology-id executor->slot)]
+        assignment (SchedulerAssignmentImpl. topology-id executor->slot)]
     ;; test assign
     (.assign assignment (WorkerSlot. "supervisor1" 1)
              (list (ExecutorDetails. (int 11) (int 15)) (ExecutorDetails. (int 16) (int 20))))
@@ -106,9 +106,9 @@
                          executor12 (WorkerSlot. "supervisor2" (int 4))}
         executor->slot3 {executor21 (WorkerSlot. "supervisor1" (int 5))
                          executor22 (WorkerSlot. "supervisor1" (int 5))}
-        assignment1 (SchedulerAssignment. "topology1" executor->slot1)
-        assignment2 (SchedulerAssignment. "topology2" executor->slot2)
-        assignment3 (SchedulerAssignment. "topology3" executor->slot3)
+        assignment1 (SchedulerAssignmentImpl. "topology1" executor->slot1)
+        assignment2 (SchedulerAssignmentImpl. "topology2" executor->slot2)
+        assignment3 (SchedulerAssignmentImpl. "topology3" executor->slot3)
         cluster (Cluster. {"supervisor1" supervisor1 "supervisor2" supervisor2}
                           {"topology1" assignment1 "topology2" assignment2 "topology3" assignment3})]
     ;; test Cluster constructor
@@ -205,6 +205,9 @@
     (is (= false (.needsScheduling cluster topology1)))
     (is (= true (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 7)))))
 
+    ;; revert the change
+    (.freeSlot cluster (WorkerSlot. "supervisor1" (int 7)))
+
     ;; test Cluster.assign: if a executor is already assigned, there will be an exception
     (let [has-exception (try
                           (.assign cluster (WorkerSlot. "supervisor1" (int 9)) "topology1" (list executor1))
@@ -214,16 +217,13 @@
       (is (= true has-exception)))
 
     ;; test Cluster.assign: if a slot is occupied, there will be an exception
-    (.setAssignmentById cluster "topology1" (SchedulerAssignment. "topology1" {}))
     (let [has-exception (try
-                          (.assign cluster (WorkerSlot. "supervisor2" (int 4)) "topology1" (list executor1))
+                          (.assign cluster (WorkerSlot. "supervisor2" (int 4)) "topology1" (list executor3))
                           false
                           (catch Exception e
                             true))]
       (is (= true has-exception)))
 
-    ;; revert the changes
-    (.setAssignmentById cluster "topology1" assignment1)
     ;; test Cluster.freeSlot
     (.freeSlot cluster (WorkerSlot. "supervisor1" (int 7)))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 7)))))
@@ -238,8 +238,4 @@
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 1)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 3)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 5)))))
-
-    ;; test Cluster.setAssignmentById
-    (.setAssignmentById cluster "topology1" assignment1)
-    (is (= assignment1 (.getAssignmentById cluster "topology1")))
     ))

@@ -19,17 +19,17 @@ public class Cluster {
     /**
      * key: topologyId, value: topology's current assignments.
      */
-    private Map<String, SchedulerAssignment> assignments;
+    private Map<String, SchedulerAssignmentImpl> assignments;
 
     /**
      * a map from hostname to supervisor id.
      */
     private Map<String, List<String>>        hostToId;
 
-    public Cluster(Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignment> assignments){
+    public Cluster(Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments){
         this.supervisors = new HashMap<String, SupervisorDetails>(supervisors.size());
         this.supervisors.putAll(supervisors);
-        this.assignments = new HashMap<String, SchedulerAssignment>(assignments.size());
+        this.assignments = new HashMap<String, SchedulerAssignmentImpl>(assignments.size());
         this.assignments.putAll(assignments);
         this.hostToId = new HashMap<String, List<String>>();
         for (String nodeId : supervisors.keySet()) {
@@ -223,9 +223,9 @@ public class Cluster {
             throw new RuntimeException("slot: [" + slot.getNodeId() + ", " + slot.getPort() + "] is already occupied.");
         }
         
-        SchedulerAssignment assignment = this.getAssignmentById(topologyId);
+        SchedulerAssignmentImpl assignment = (SchedulerAssignmentImpl)this.getAssignmentById(topologyId);
         if (assignment == null) {
-            assignment = new SchedulerAssignment(topologyId, new HashMap<ExecutorDetails, WorkerSlot>());
+            assignment = new SchedulerAssignmentImpl(topologyId, new HashMap<ExecutorDetails, WorkerSlot>());
             this.assignments.put(topologyId, assignment);
         } else {
             for (ExecutorDetails executor : executors) {
@@ -262,7 +262,7 @@ public class Cluster {
 
         if (supervisor != null) {
             // remove the slot from the existing assignments
-            for (SchedulerAssignment assignment : this.assignments.values()) {
+            for (SchedulerAssignmentImpl assignment : this.assignments.values()) {
                 if (assignment.isSlotOccupied(slot)) {
                     assignment.unassignBySlot(slot);
                     break;
@@ -340,20 +340,16 @@ public class Cluster {
     }
 
     /**
-     * Set assignment for the specified topology.
-     * 
-     * @param topologyId the id of the topology the assignment is for.
-     * @param assignment the assignment to be assigned.
-     */
-    public void setAssignmentById(String topologyId, SchedulerAssignment assignment) {
-        this.assignments.put(topologyId, assignment);
-    }
-
-    /**
      * Get all the assignments.
      */
     public Map<String, SchedulerAssignment> getAssignments() {
-        return this.assignments;
+        Map<String, SchedulerAssignment> ret = new HashMap<String, SchedulerAssignment>(this.assignments.size());
+        
+        for (String topologyId : this.assignments.keySet()) {
+            ret.put(topologyId, this.assignments.get(topologyId));
+        }
+        
+        return ret;
     }
 
     /**

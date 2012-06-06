@@ -52,7 +52,7 @@
 (deftest test-topologies
   (let [executor1 (ExecutorDetails. (int 1) (int 5))
         executor2 (ExecutorDetails. (int 6) (int 10))
-        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"} (StormTopology.)
+        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"} (StormTopology.) 1
                                    {executor1 "spout1"
                                     executor2 "bolt1"})
         ;; test topology.selectExecutorToComponent
@@ -60,7 +60,7 @@
         _ (is (= (clojurify-executor->comp {executor1 "spout1"})
                  (clojurify-executor->comp executor->comp)))
         ;; test topologies.getById
-        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"} (StormTopology.) {})
+        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"} (StormTopology.) 1 {})
         topologies (Topologies. {"topology1" topology1 "topology2" topology2})
         _ (is (= "topology1" (->> "topology1"
                                   (.getById topologies)
@@ -84,19 +84,22 @@
         executor21 (ExecutorDetails. (int 201) (int 205))
         executor22 (ExecutorDetails. (int 206) (int 210))
         ;; topology1 needs scheduling: executor3 is NOT assigned a slot.
-        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1" TOPOLOGY-WORKERS 2}
+        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"}
                                     (StormTopology.)
+                                    2
                                     {executor1 "spout1"
                                      executor2 "bolt1"
                                      executor3 "bolt2"})
         ;; topology2 is fully scheduled
-        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2" TOPOLOGY-WORKERS 2}
+        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"}
                                     (StormTopology.)
+                                    2
                                     {executor11 "spout11"
                                      executor12 "bolt12"})
         ;; topology3 needs scheduling, since the assignment is squeezed
-        topology3 (TopologyDetails. "topology3" {TOPOLOGY-NAME "topology-name-3" TOPOLOGY-WORKERS 2}
+        topology3 (TopologyDetails. "topology3" {TOPOLOGY-NAME "topology-name-3"}
                                     (StormTopology.)
+                                    2
                                     {executor21 "spout21"
                                      executor22 "bolt22"})
         topologies (Topologies. {"topology1" topology1 "topology2" topology2 "topology3" topology3})

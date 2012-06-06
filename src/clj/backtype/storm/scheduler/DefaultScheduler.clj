@@ -29,7 +29,6 @@
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
-                  topology-conf (.getConf topology)
                   available-slots (->> (.getAvailableSlots cluster)
                                        (map #(vector (.getNodeId %) (.getPort %))))
                   all-executors (->> topology
@@ -37,7 +36,7 @@
                                      (map #(vector (.getStartTask %) (.getEndTask %)))
                                      set)
                   alive-assigned (EvenScheduler/get-alive-assigned-node+port->executors cluster topology-id)
-                  total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
+                  total-slots-to-use (min (.getNumWorkers topology)
                                           (+ (count available-slots) (count alive-assigned)))
                   bad-slots (bad-slots alive-assigned (count all-executors) total-slots-to-use)]]
       (.freeSlots cluster bad-slots)

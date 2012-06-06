@@ -25,7 +25,6 @@
 
 (defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
   (let [topology-id (.getId topology)
-        topology-conf (.getConf topology)
         available-slots (->> (.getAvailableSlots cluster)
                              (map #(vector (.getNodeId %) (.getPort %))))
         all-executors (->> topology
@@ -33,7 +32,7 @@
                           (map #(vector (.getStartTask %) (.getEndTask %)))
                           set)
         alive-assigned (get-alive-assigned-node+port->executors cluster topology-id)
-        total-slots-to-use (min (topology-conf TOPOLOGY-WORKERS)
+        total-slots-to-use (min (.getNumWorkers topology)
                                 (+ (count available-slots) (count alive-assigned)))
         reassign-slots (take (- total-slots-to-use (count alive-assigned))
                              (sort-slots available-slots))

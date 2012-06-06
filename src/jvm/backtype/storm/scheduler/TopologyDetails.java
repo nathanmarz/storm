@@ -13,17 +13,17 @@ public class TopologyDetails {
     Map topologyConf;
     StormTopology topology;
     Map<ExecutorDetails, String> executorToComponent;
+    int numWorkers;
  
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology) {
+    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, int numWorkers) {
         this.topologyId = topologyId;
         this.topologyConf = topologyConf;
         this.topology = topology;
+        this.numWorkers = numWorkers;
     }
     
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, Map<ExecutorDetails, String> executorToComponents) {
-        this.topologyId = topologyId;
-        this.topologyConf = topologyConf;
-        this.topology = topology;
+    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, int numWorkers, Map<ExecutorDetails, String> executorToComponents) {
+        this(topologyId, topologyConf, topology, numWorkers);
         this.executorToComponent = new HashMap<ExecutorDetails, String>(0);
         if (executorToComponents != null) {
             this.executorToComponent.putAll(executorToComponents);
@@ -40,6 +40,10 @@ public class TopologyDetails {
     
     public Map getConf() {
         return topologyConf;
+    }
+    
+    public int getNumWorkers() {
+        return numWorkers;
     }
     
     public StormTopology getTopology() {

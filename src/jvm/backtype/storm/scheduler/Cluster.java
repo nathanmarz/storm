@@ -69,7 +69,7 @@ public class Cluster {
      * </ul>
      */
     public boolean needsScheduling(TopologyDetails topology) {
-        int desiredNumWorkers = ((Number) topology.getConf().get(Config.TOPOLOGY_WORKERS)).intValue();
+        int desiredNumWorkers = topology.getNumWorkers();
         int assignedNumWorkers = this.getAssignedNumWorkers(topology);
 
         if (desiredNumWorkers > assignedNumWorkers) {

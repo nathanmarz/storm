@@ -299,6 +299,7 @@
         ))))
 
 (declare compute-executor->component)
+
 (defn read-topology-details [nimbus storm-id]
   (let [conf (:conf nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
@@ -310,6 +311,7 @@
     (TopologyDetails. storm-id
                       topology-conf
                       topology
+                      (:num-workers storm-base)
                       executor->component
                       )))
 

@@ -1419,6 +1419,7 @@ class TopologySummary:
    - id
    - name
    - num_tasks
+   - num_executors
    - num_workers
    - uptime_secs
    - status
@@ -1429,15 +1430,17 @@ class TopologySummary:
     (1, TType.STRING, 'id', None, None, ), # 1
     (2, TType.STRING, 'name', None, None, ), # 2
     (3, TType.I32, 'num_tasks', None, None, ), # 3
-    (4, TType.I32, 'num_workers', None, None, ), # 4
-    (5, TType.I32, 'uptime_secs', None, None, ), # 5
-    (6, TType.STRING, 'status', None, None, ), # 6
+    (4, TType.I32, 'num_executors', None, None, ), # 4
+    (5, TType.I32, 'num_workers', None, None, ), # 5
+    (6, TType.I32, 'uptime_secs', None, None, ), # 6
+    (7, TType.STRING, 'status', None, None, ), # 7
   )
 
-  def __init__(self, id=None, name=None, num_tasks=None, num_workers=None, uptime_secs=None, status=None,):
+  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None,):
     self.id = id
     self.name = name
     self.num_tasks = num_tasks
+    self.num_executors = num_executors
     self.num_workers = num_workers
     self.uptime_secs = uptime_secs
     self.status = status
@@ -1468,15 +1471,20 @@ class TopologySummary:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.I32:
-          self.num_workers = iprot.readI32();
+          self.num_executors = iprot.readI32();
         else:
           iprot.skip(ftype)
       elif fid == 5:
         if ftype == TType.I32:
-          self.uptime_secs = iprot.readI32();
+          self.num_workers = iprot.readI32();
         else:
           iprot.skip(ftype)
       elif fid == 6:
+        if ftype == TType.I32:
+          self.uptime_secs = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
         if ftype == TType.STRING:
           self.status = iprot.readString().decode('utf-8')
         else:
@@ -1503,16 +1511,20 @@ class TopologySummary:
       oprot.writeFieldBegin('num_tasks', TType.I32, 3)
       oprot.writeI32(self.num_tasks)
       oprot.writeFieldEnd()
+    if self.num_executors is not None:
+      oprot.writeFieldBegin('num_executors', TType.I32, 4)
+      oprot.writeI32(self.num_executors)
+      oprot.writeFieldEnd()
     if self.num_workers is not None:
-      oprot.writeFieldBegin('num_workers', TType.I32, 4)
+      oprot.writeFieldBegin('num_workers', TType.I32, 5)
       oprot.writeI32(self.num_workers)
       oprot.writeFieldEnd()
     if self.uptime_secs is not None:
-      oprot.writeFieldBegin('uptime_secs', TType.I32, 5)
+      oprot.writeFieldBegin('uptime_secs', TType.I32, 6)
       oprot.writeI32(self.uptime_secs)
       oprot.writeFieldEnd()
     if self.status is not None:
-      oprot.writeFieldBegin('status', TType.STRING, 6)
+      oprot.writeFieldBegin('status', TType.STRING, 7)
       oprot.writeString(self.status.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -1525,6 +1537,8 @@ class TopologySummary:
       raise TProtocol.TProtocolException(message='Required field name is unset!')
     if self.num_tasks is None:
       raise TProtocol.TProtocolException(message='Required field num_tasks is unset!')
+    if self.num_executors is None:
+      raise TProtocol.TProtocolException(message='Required field num_executors is unset!')
     if self.num_workers is None:
       raise TProtocol.TProtocolException(message='Required field num_workers is unset!')
     if self.uptime_secs is None:
@@ -2136,7 +2150,7 @@ class SpoutStats:
   def __ne__(self, other):
     return not (self == other)
 
-class TaskSpecificStats:
+class ExecutorSpecificStats:
   """
   Attributes:
    - bolt
@@ -2183,7 +2197,7 @@ class TaskSpecificStats:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('TaskSpecificStats')
+    oprot.writeStructBegin('ExecutorSpecificStats')
     if self.bolt is not None:
       oprot.writeFieldBegin('bolt', TType.STRUCT, 1)
       self.bolt.write(oprot)
@@ -2210,7 +2224,7 @@ class TaskSpecificStats:
   def __ne__(self, other):
     return not (self == other)
 
-class TaskStats:
+class ExecutorStats:
   """
   Attributes:
    - emitted
@@ -2222,7 +2236,7 @@ class TaskStats:
     None, # 0
     (1, TType.MAP, 'emitted', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 1
     (2, TType.MAP, 'transferred', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 2
-    (3, TType.STRUCT, 'specific', (TaskSpecificStats, TaskSpecificStats.thrift_spec), None, ), # 3
+    (3, TType.STRUCT, 'specific', (ExecutorSpecificStats, ExecutorSpecificStats.thrift_spec), None, ), # 3
   )
 
   def __init__(self, emitted=None, transferred=None, specific=None,):
@@ -2275,7 +2289,7 @@ class TaskStats:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRUCT:
-          self.specific = TaskSpecificStats()
+          self.specific = ExecutorSpecificStats()
           self.specific.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2288,7 +2302,7 @@ class TaskStats:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('TaskStats')
+    oprot.writeStructBegin('ExecutorStats')
     if self.emitted is not None:
       oprot.writeFieldBegin('emitted', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.emitted))
@@ -2341,10 +2355,86 @@ class TaskStats:
   def __ne__(self, other):
     return not (self == other)
 
-class TaskSummary:
+class ExecutorInfo:
   """
   Attributes:
-   - task_id
+   - task_start
+   - task_end
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'task_start', None, None, ), # 1
+    (2, TType.I32, 'task_end', None, None, ), # 2
+  )
+
+  def __init__(self, task_start=None, task_end=None,):
+    self.task_start = task_start
+    self.task_end = task_end
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.task_start = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.task_end = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ExecutorInfo')
+    if self.task_start is not None:
+      oprot.writeFieldBegin('task_start', TType.I32, 1)
+      oprot.writeI32(self.task_start)
+      oprot.writeFieldEnd()
+    if self.task_end is not None:
+      oprot.writeFieldBegin('task_end', TType.I32, 2)
+      oprot.writeI32(self.task_end)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.task_start is None:
+      raise TProtocol.TProtocolException(message='Required field task_start is unset!')
+    if self.task_end is None:
+      raise TProtocol.TProtocolException(message='Required field task_end is unset!')
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ExecutorSummary:
+  """
+  Attributes:
+   - executor_info
    - component_id
    - host
    - port
@@ -2354,17 +2444,17 @@ class TaskSummary:
 
   thrift_spec = (
     None, # 0
-    (1, TType.I32, 'task_id', None, None, ), # 1
+    (1, TType.STRUCT, 'executor_info', (ExecutorInfo, ExecutorInfo.thrift_spec), None, ), # 1
     (2, TType.STRING, 'component_id', None, None, ), # 2
     (3, TType.STRING, 'host', None, None, ), # 3
     (4, TType.I32, 'port', None, None, ), # 4
     (5, TType.I32, 'uptime_secs', None, None, ), # 5
     None, # 6
-    (7, TType.STRUCT, 'stats', (TaskStats, TaskStats.thrift_spec), None, ), # 7
+    (7, TType.STRUCT, 'stats', (ExecutorStats, ExecutorStats.thrift_spec), None, ), # 7
   )
 
-  def __init__(self, task_id=None, component_id=None, host=None, port=None, uptime_secs=None, stats=None,):
-    self.task_id = task_id
+  def __init__(self, executor_info=None, component_id=None, host=None, port=None, uptime_secs=None, stats=None,):
+    self.executor_info = executor_info
     self.component_id = component_id
     self.host = host
     self.port = port
@@ -2381,8 +2471,9 @@ class TaskSummary:
       if ftype == TType.STOP:
         break
       if fid == 1:
-        if ftype == TType.I32:
-          self.task_id = iprot.readI32();
+        if ftype == TType.STRUCT:
+          self.executor_info = ExecutorInfo()
+          self.executor_info.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -2407,7 +2498,7 @@ class TaskSummary:
           iprot.skip(ftype)
       elif fid == 7:
         if ftype == TType.STRUCT:
-          self.stats = TaskStats()
+          self.stats = ExecutorStats()
           self.stats.read(iprot)
         else:
           iprot.skip(ftype)
@@ -2420,10 +2511,10 @@ class TaskSummary:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('TaskSummary')
-    if self.task_id is not None:
-      oprot.writeFieldBegin('task_id', TType.I32, 1)
-      oprot.writeI32(self.task_id)
+    oprot.writeStructBegin('ExecutorSummary')
+    if self.executor_info is not None:
+      oprot.writeFieldBegin('executor_info', TType.STRUCT, 1)
+      self.executor_info.write(oprot)
       oprot.writeFieldEnd()
     if self.component_id is not None:
       oprot.writeFieldBegin('component_id', TType.STRING, 2)
@@ -2449,8 +2540,8 @@ class TaskSummary:
     oprot.writeStructEnd()
 
   def validate(self):
-    if self.task_id is None:
-      raise TProtocol.TProtocolException(message='Required field task_id is unset!')
+    if self.executor_info is None:
+      raise TProtocol.TProtocolException(message='Required field executor_info is unset!')
     if self.component_id is None:
       raise TProtocol.TProtocolException(message='Required field component_id is unset!')
     if self.host is None:
@@ -2479,7 +2570,7 @@ class TopologyInfo:
    - id
    - name
    - uptime_secs
-   - tasks
+   - executors
    - status
    - errors
   """
@@ -2489,16 +2580,16 @@ class TopologyInfo:
     (1, TType.STRING, 'id', None, None, ), # 1
     (2, TType.STRING, 'name', None, None, ), # 2
     (3, TType.I32, 'uptime_secs', None, None, ), # 3
-    (4, TType.LIST, 'tasks', (TType.STRUCT,(TaskSummary, TaskSummary.thrift_spec)), None, ), # 4
+    (4, TType.LIST, 'executors', (TType.STRUCT,(ExecutorSummary, ExecutorSummary.thrift_spec)), None, ), # 4
     (5, TType.STRING, 'status', None, None, ), # 5
     (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, tasks=None, status=None, errors=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
-    self.tasks = tasks
+    self.executors = executors
     self.status = status
     self.errors = errors
 
@@ -2528,12 +2619,12 @@ class TopologyInfo:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.LIST:
-          self.tasks = []
+          self.executors = []
           (_etype227, _size224) = iprot.readListBegin()
           for _i228 in xrange(_size224):
-            _elem229 = TaskSummary()
+            _elem229 = ExecutorSummary()
             _elem229.read(iprot)
-            self.tasks.append(_elem229)
+            self.executors.append(_elem229)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -2581,10 +2672,10 @@ class TopologyInfo:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 3)
       oprot.writeI32(self.uptime_secs)
       oprot.writeFieldEnd()
-    if self.tasks is not None:
-      oprot.writeFieldBegin('tasks', TType.LIST, 4)
-      oprot.writeListBegin(TType.STRUCT, len(self.tasks))
-      for iter243 in self.tasks:
+    if self.executors is not None:
+      oprot.writeFieldBegin('executors', TType.LIST, 4)
+      oprot.writeListBegin(TType.STRUCT, len(self.executors))
+      for iter243 in self.executors:
         iter243.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
@@ -2613,8 +2704,8 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field name is unset!')
     if self.uptime_secs is None:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
-    if self.tasks is None:
-      raise TProtocol.TProtocolException(message='Required field tasks is unset!')
+    if self.executors is None:
+      raise TProtocol.TProtocolException(message='Required field executors is unset!')
     if self.status is None:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
     if self.errors is None:

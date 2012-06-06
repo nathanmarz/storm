@@ -3,7 +3,9 @@
   (:import [backtype.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
+  (:import [backtype.storm.spout NoOpSpout])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
@@ -19,16 +21,19 @@
 
 (def SYSTEM-STREAM-ID "__system")
 
+(def SYSTEM-COMPONENT-ID Constants/SYSTEM_COMPONENT_ID)
+(def SYSTEM-TICK-STREAM-ID Constants/SYSTEM_TICK_STREAM_ID)
+
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host task->node+port task->start-time-secs])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs])
 
+
+;; component->executors is a map from spout/bolt id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
-(defrecord SupervisorInfo [time-secs hostname meta uptime-secs])
-
-(defrecord TaskInfo [component-id])
+(defrecord SupervisorInfo [time-secs hostname meta scheduler-meta uptime-secs])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
@@ -42,21 +47,16 @@
 
 
 
-(defrecord WorkerHeartbeat [time-secs storm-id task-ids port])
+(defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
-(defrecord TaskStats [^long processed
-                      ^long acked
-                      ^long emitted
-                      ^long transferred
-                      ^long failed])
+(defrecord ExecutorStats [^long processed
+                          ^long acked
+                          ^long emitted
+                          ^long transferred
+                          ^long failed])
 
-
-(defn new-task-stats []
-  (TaskStats. 0 0 0 0 0))
-
-;technically this is only active task ids
-(defn storm-task-ids [storm-cluster-state storm-id]
-  (keys (:task->node+port (.assignment-info storm-cluster-state storm-id nil))))
+(defn new-executor-stats []
+  (ExecutorStats. 0 0 0 0 0))
 
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)]
@@ -109,19 +109,32 @@
                   (str id " is not a valid stream id"))))))
     ))
 
-(defn validate-basic! [^StormTopology topology]
-  (validate-ids! topology)
-  (doseq [f thrift/SPOUT-FIELDS
-          obj (->> f (.getFieldValue topology) vals)]
-    (if-not (empty? (-> obj .get_common .get_inputs))
-      (throw (InvalidTopologyException. "May not declare inputs for a spout"))
-      )))
-
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
            (.getFieldValue topology f)
            )))
+
+(defn component-conf [component]
+  (->> component
+      .get_common
+      .get_json_conf
+      from-json))
+
+(defn validate-basic! [^StormTopology topology]
+  (validate-ids! topology)
+  (doseq [f thrift/SPOUT-FIELDS
+          obj (->> f (.getFieldValue topology) vals)]
+    (if-not (empty? (-> obj .get_common .get_inputs))
+      (throw (InvalidTopologyException. "May not declare inputs for a spout"))))
+  (doseq [[comp-id comp] (all-components topology)
+          :let [conf (component-conf comp)
+                p (-> comp .get_common thrift/parallelism-hint)]]
+    (when (and (> (conf TOPOLOGY-TASKS) 0)
+               p
+               (<= p 0))
+      (throw (InvalidTopologyException. "Number of executors must be greater than 0 when number of tasks is greater than 0"))
+      )))
 
 (defn validate-structure! [^StormTopology topology]
   ;; validate all the component subscribe from component+stream which actually exists in the topology
@@ -158,14 +171,16 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
-(defn add-acker! [num-executors num-tasks ^StormTopology ret]
-  (let [acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
+(defn add-acker! [storm-conf ^StormTopology ret]
+  (let [num-executors (storm-conf TOPOLOGY-ACKER-EXECUTORS)
+        acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-executors
-                                         :conf {TOPOLOGY-TASKS num-tasks})]
+                                         :conf {TOPOLOGY-TASKS num-executors
+                                                TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do
@@ -173,8 +188,13 @@
              (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
              ))
     (dofor [[_ spout] (.get_spouts ret)
-            :let [common (.get_common spout)]]
+            :let [common (.get_common spout)
+                  spout-conf (merge
+                               (component-conf spout)
+                               {TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]]
       (do
+        ;; this set up tick tuples to cause timeouts to be triggered
+        (.set_json_conf common (to-json spout-conf))
         (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "init-val" "spout-task"]))
         (.put_to_inputs common
                         (GlobalStreamId. ACKER-COMPONENT-ID ACKER-ACK-STREAM-ID)
@@ -193,47 +213,66 @@
     ;; TODO: consider adding a stats stream for stats aggregation
     ))
 
+(defn add-system-components! [^StormTopology topology]
+  (let [system-spout (thrift/mk-spout-spec*
+                       (NoOpSpout.)
+                       {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
+                        }
+                       :p 0
+                       :conf {TOPOLOGY-TASKS 0})]
+    (.put_to_spouts topology SYSTEM-COMPONENT-ID system-spout)
+    ))
+
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
-    (add-acker! (storm-conf TOPOLOGY-ACKER-EXECUTORS) (storm-conf TOPOLOGY-ACKER-TASKS) ret)
+    (add-acker! storm-conf ret)
     (add-system-streams! ret)
+    (add-system-components! ret)
     (validate-structure! ret)
     ret
     ))
 
 (defn has-ackers? [storm-conf]
-  (let [tasks (storm-conf TOPOLOGY-ACKER-TASKS)]
-    (and (or (nil? tasks) (> tasks 0))
-         (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
-
-(defn component-conf [storm-conf component]
-  (->> component
-      .get_common
-      .get_json_conf
-      from-json
-      (merge storm-conf)))
+  (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))
-
-(defn- component-parallelism [storm-conf component]
-  (let [storm-conf (component-conf storm-conf component)
-        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
-        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        ]
-    (if max-parallelism
-      (min max-parallelism num-tasks)
-      num-tasks)))
 
 (defn storm-task-info
   "Returns map from task -> component id"
   [^StormTopology user-topology storm-conf]
   (->> (system-topology! storm-conf user-topology)
        all-components
-       (map-val (partial component-parallelism storm-conf))
+       (map-val (comp #(get % TOPOLOGY-TASKS) component-conf))
        (sort-by first)
        (mapcat (fn [[c num-tasks]] (repeat num-tasks c)))
        (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))
        (into {})
        ))
+
+(defn executor-id->tasks [[first-task-id last-task-id]]
+  (->> (range first-task-id (inc last-task-id))
+       (map int)))
+
+(defn worker-context [worker]
+  (WorkerTopologyContext. (:system-topology worker)
+                          (:storm-conf worker)
+                          (:task->component worker)
+                          (:component->sorted-tasks worker)
+                          (:component->stream->fields worker)
+                          (:storm-id worker)
+                          (supervisor-storm-resources-path
+                            (supervisor-stormdist-root (:conf worker) (:storm-id worker)))
+                          (worker-pids-root (:conf worker) (:worker-id worker))
+                          (:port worker)
+                          (:task-ids worker)
+                          (:default-shared-resources worker)
+                          (:user-shared-resources worker)
+                          ))
+
+
+(defn to-task->node+port [executor->node+port]
+  (->> executor->node+port
+       (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
+       (into {})))

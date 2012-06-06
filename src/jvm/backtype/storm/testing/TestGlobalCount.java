@@ -7,8 +7,8 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Fields;
 import java.util.Map;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.tuple.Values;
 import org.apache.log4j.Logger;
-import static backtype.storm.utils.Utils.tuple;
 
 
 public class TestGlobalCount extends BaseRichBolt {
@@ -24,7 +24,7 @@ public class TestGlobalCount extends BaseRichBolt {
 
     public void execute(Tuple input) {
         _count++;
-        _collector.emit(tuple(_count));
+        _collector.emit(input, new Values(_count));
         _collector.ack(input);
     }
 

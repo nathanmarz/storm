@@ -5,19 +5,11 @@
   (:import [org.zeromq ZMQ])
   (:require [zilch.mq :as mq]))
 
-(defn mk-packet [task ^bytes message]
-  (let [bb (ByteBuffer/allocate (+ 2 (count message)))]
-    (.putShort bb (short task))
-    (.put bb message)
-    (.array bb)
-    ))
 
-(defn parse-packet [^bytes packet]
-  (let [bb (ByteBuffer/wrap packet)
-        port (.getShort bb)
-        msg (byte-array (- (count packet) 2))]
-    (.get bb msg)
-    [port msg]
+(defn parse-packet [^bytes part1 ^bytes part2]
+  (let [bb (ByteBuffer/wrap part1)
+        port (.getShort bb)]
+    [(int port) part2]
     ))
 
 (defn get-bind-zmq-url [local? port]
@@ -34,15 +26,25 @@
 (defprotocol ZMQContextQuery
   (zmq-context [this]))
 
-(deftype ZMQConnection [socket]
+(deftype ZMQConnection [socket ^ByteBuffer bb]
   Connection
-  (recv [this]
-    (parse-packet (mq/recv socket)))
+  (recv-with-flags [this flags]
+    (let [part1 (mq/recv socket flags)]
+      (when part1
+        (when-not (mq/recv-more? socket)
+          (throw (RuntimeException. "Should always receive two-part ZMQ messages")))
+        (parse-packet part1 (mq/recv socket)))))
   (send [this task message]
-    (mq/send socket (mk-packet task message) ZMQ/NOBLOCK))
+    (.clear bb)
+    (.putShort bb (short task))
+    (mq/send socket (.array bb) ZMQ/SNDMORE)
+    (mq/send socket message)) ;; TODO: temporarily remove the noblock flag
   (close [this]
     (.close socket)
     ))
+
+(defn mk-connection [socket]
+  (ZMQConnection. socket (ByteBuffer/allocate 2)))
 
 (deftype ZMQContext [context linger-ms local?]
   Context
@@ -50,14 +52,14 @@
     (-> context
         (mq/socket mq/pull)
         (mq/bind (get-bind-zmq-url local? port))
-        (ZMQConnection.)
+        mk-connection
         ))
   (connect [this storm-id host port]
     (-> context
         (mq/socket mq/push)
         (mq/set-linger linger-ms)
         (mq/connect (get-connect-zmq-url local? host port))
-        (ZMQConnection.)))
+        mk-connection))
   (term [this]
     (.term context))
   ZMQContextQuery

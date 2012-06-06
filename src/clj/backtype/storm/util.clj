@@ -1,10 +1,11 @@
 (ns backtype.storm.util
   (:import [java.net InetAddress])
-  (:import [java.util Map List Collection])
+  (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils])
-  (:import [java.util UUID])
+  (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
+            MutableObject MutableInt])
+  (:import [java.util UUID Random ArrayList List Collections])
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
@@ -237,6 +238,12 @@
        amap
        )))
 
+(defn map-key [afn amap]
+  (into {}
+    (for [[k v] amap]
+      [(afn k) v]
+      )))
+
 (defn separate [pred aseq]
   [(filter pred aseq) (filter (complement pred) aseq)])
 
@@ -343,7 +350,8 @@
     ))
 
 (defn sleep-secs [secs]
-  (Time/sleep (* (long secs) 1000)))
+  (when (pos? secs)
+    (Time/sleep (* (long secs) 1000))))
 
 (defn sleep-until-secs [target-secs]
   (Time/sleepUntil (* (long target-secs) 1000)))
@@ -359,14 +367,14 @@
                    :daemon false
                    :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
-                   :args-fn (fn [] [])
+                   :factory? false
                    :start true]
   (let [thread (Thread.
                 (fn []
                   (try-cause
-                    (let [args (args-fn)]
+                    (let [afn (if factory? (afn) afn)]
                       (loop []
-                        (let [sleep-time (apply afn args)]
+                        (let [sleep-time (afn)]
                           (when-not (nil? sleep-time)
                             (sleep-secs sleep-time)
                             (recur))
@@ -469,7 +477,7 @@
   (- (current-time-secs) time-secs))
 
 (defn time-delta-ms [time-ms]
-  (- (System/currentTimeMillis) time-ms))
+  (- (System/currentTimeMillis) (long time-ms)))
 
 (defn parse-int [str]
   (Integer/valueOf str))
@@ -558,21 +566,17 @@
          amap)))
 
 
-(defn rotating-random-range [amt]
-  (ref (shuffle (range amt))))
+(defn rotating-random-range [choices]
+  (let [rand (Random.)
+        choices (ArrayList. choices)]
+    (Collections/shuffle choices rand)
+    [(MutableInt. -1) choices rand]))
 
-(defn acquire-random-range-id [rr amt]
-  (dosync
-   (let [ret (first @rr)]
-     (alter
-      rr
-      (fn [rr]
-        (if (= 1 (count rr))
-          (shuffle (range amt))
-          (next rr))
-        ))
-     ret
-     )))
+(defn acquire-random-range-id [[^MutableInt curr ^List state ^Random rand]]
+  (when (>= (.increment curr) (.size state))
+    (.set curr 0)
+    (Collections/shuffle state rand))
+  (.get state (.get curr)))
 
 ; this can be rewritten to be tail recursive
 (defn interleave-all [& colls]
@@ -600,9 +604,10 @@
        (<= val upper)))
 
 (defmacro benchmark [& body]
-  `(time
-    (doseq [i# (range 1000000)]
-      ~@body)))
+  `(let [l# (doall (range 1000000))]
+     (time
+       (doseq [i# l#]
+         ~@body))))
 
 (defn rand-sampler [freq]
   (let [r (java.util.Random.)]
@@ -611,19 +616,18 @@
     ))
 
 (defn even-sampler [freq]
-  (let [r (java.util.Random.)
-        state (atom [-1 (.nextInt r freq)])
-        updater (fn [[i target]]
-                  (let [i (inc i)]
-                    (if (>= i freq)
-                      [0 (.nextInt r freq)]
-                      [i target]
-                      )))]
+  (let [freq (int freq)
+        start (int 0)
+        r (java.util.Random.)
+        curr (MutableInt. -1)
+        target (MutableInt. (.nextInt r freq))]
     (with-meta
       (fn []
-        (let [[i target] (swap! state updater)]
-          (= i target)
-          ))
+        (let [i (.increment curr)]
+          (when (>= i freq)
+            (.set curr start)
+            (.set target (.nextInt r freq))))
+          (= (.get curr) (.get target)))
       {:rate freq})))
 
 (defn sampler-rate [sampler]
@@ -695,3 +699,111 @@
 
 (defn url-encode [s]
   (java.net.URLEncoder/encode s))
+
+(defn join-maps [& maps]
+  (let [all-keys (apply set/union (for [m maps] (-> m keys set)))]
+    (into {}
+      (for [k all-keys]
+        [k (for [m maps] (m k))]
+        ))))
+
+(defn partition-fixed [max-num-chunks aseq]
+  (if (zero? max-num-chunks)
+    []
+    (let [chunks (->> (integer-divided (count aseq) max-num-chunks)
+                      (#(dissoc % 0))
+                      (sort-by (comp - first))
+                      (mapcat (fn [[size amt]] (repeat amt size)))
+                      )]
+      (loop [result []
+             [chunk & rest-chunks] chunks
+             data aseq]
+        (if (nil? chunk)
+          result
+          (let [[c rest-data] (split-at chunk data)]
+            (recur (conj result c)
+                   rest-chunks
+                   rest-data)))))))
+
+
+(defn assoc-apply-self [curr key afn]
+  (assoc curr key (afn curr)))
+
+(defmacro recursive-map [& forms]
+  (->> (partition 2 forms)
+       (map (fn [[key form]] `(assoc-apply-self ~key (fn [~'<>] ~form))))
+       (concat `(-> {}))))
+
+(defn current-stack-trace []
+  (->> (Thread/currentThread)
+       .getStackTrace
+       (map str)
+       (str/join "\n")
+       ))
+
+(defn get-iterator [^Iterable alist]
+  (if alist (.iterator alist)))
+
+(defn iter-has-next? [^Iterator iter]
+  (if iter (.hasNext iter) false))
+
+(defn iter-next [^Iterator iter]
+  (.next iter))
+
+(defmacro fast-list-iter [pairs & body]
+  (let [pairs (partition 2 pairs)
+        lists (map second pairs)
+        elems (map first pairs)
+        iters (map (fn [_] (gensym)) lists)
+        bindings (->> (map (fn [i l] [i `(get-iterator ~l)]) iters lists) (apply concat))
+        tests (map (fn [i] `(iter-has-next? ~i)) iters)
+        assignments (->> (map (fn [e i] [e `(iter-next ~i)]) elems iters) (apply concat))]
+    `(let [~@bindings]
+       (while (and ~@tests)
+         (let [~@assignments]
+           ~@body
+           )))))
+
+(defn fast-list-map [afn alist]
+  (let [ret (ArrayList.)]
+    (fast-list-iter [e alist]
+      (.add ret (afn e)))
+    ret ))
+
+(defmacro fast-list-for [[e alist] & body]
+  `(fast-list-map (fn [~e] ~@body) ~alist))
+
+(defn map-iter [^Map amap]
+  (if amap (-> amap .entrySet .iterator)))
+
+(defn convert-entry [^Map$Entry entry]
+  [(.getKey entry) (.getValue entry)])
+
+(defmacro fast-map-iter [[bind amap] & body]
+  `(let [iter# (map-iter ~amap)]
+    (while (iter-has-next? iter#)
+      (let [entry# (iter-next iter#)
+            ~bind (convert-entry entry#)]
+        ~@body
+        ))))
+
+(defn fast-first [^List alist]
+  (.get alist 0))
+
+(defmacro get-with-default [amap key default-val]
+  `(let [curr# (.get ~amap ~key)]
+     (if curr#
+       curr#
+       (do
+         (let [new# ~default-val]
+           (.put ~amap ~key new#)
+           new#
+           )))))
+
+(defn fast-group-by [afn alist]
+  (let [ret (HashMap.)]
+    (fast-list-iter [e alist]
+      (let [key (afn e)
+            ^List curr (get-with-default ret key (ArrayList.))]
+        (.add curr e)))
+    ret ))

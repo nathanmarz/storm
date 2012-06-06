@@ -4,14 +4,15 @@
              [supervisor :as supervisor]
              [common :as common]
              [worker :as worker]
-             [task :as task]])
+             [executor :as executor]])
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
+  (:import [java.util HashMap])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
-  (:import [backtype.storm.tuple Fields Tuple])
+  (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
   (:import [backtype.storm.generated GlobalStreamId Bolt])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
@@ -101,6 +102,7 @@
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
+                            TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
@@ -206,7 +208,6 @@
   `(with-simulated-time
     (with-local-cluster ~@args)))
 
-;; TODO: should take in a port symbol and find available port automatically
 (defmacro with-inprocess-zookeeper [port-sym & body]
   `(with-local-tmp [tmp#]
      (let [[~port-sym zks#] (zk/mk-inprocess-zookeeper tmp#)]
@@ -222,9 +223,20 @@
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
 
-(defn submit-mocked-assignment [nimbus storm-name conf topology task->component task->node+port]
+(defn mocked-compute-new-topology->executor->node+port [storm-name executor->node+port]
+  (fn [nimbus existing-assignments topologies scratch-topology-id]
+    (let [topology (.getByName topologies storm-name)
+          topology-id (.getId topology)
+          existing-assignments (into {} (for [[tid assignment] existing-assignments]
+                                          {tid (:executor->node+port assignment)}))
+          new-assignments (assoc existing-assignments topology-id executor->node+port)]
+      new-assignments)))
+
+(defn submit-mocked-assignment [nimbus storm-name conf topology task->component executor->node+port]
   (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
-                   nimbus/compute-new-task->node+port (fn [& ignored] task->node+port)]
+                   nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
+                                                                     storm-name
+                                                                     executor->node+port)]
     (submit-local-topology nimbus storm-name conf topology)
     ))
 
@@ -312,7 +324,6 @@
     (advance-cluster-time cluster-map 10)
     (Thread/sleep 100)
     ))
-
 
 (defprotocol CompletableSpout
   (exhausted? [this] "Whether all the tuples for this spout have been completed.")
@@ -478,10 +489,10 @@
 (defn assoc-track-id [cluster track-id]
   (assoc cluster ::track-id track-id))
 
-(defn increment-global! [id key]
+(defn increment-global! [id key amt]
   (-> (RegisteredGlobalState/getState id)
       (get key)
-      .incrementAndGet))
+      (.addAndGet amt)))
 
 (defn global-amt [id key]
   (-> (RegisteredGlobalState/getState id)
@@ -500,14 +511,20 @@
                                             (fn [& args#]
                                               (NonRichBoltTracker. (apply old# args#) id#)
                                               ))
-                      worker/mk-transfer-fn (let [old# worker/mk-transfer-fn]
-                                              (fn [& args#]
-                                                (let [transferrer# (apply old# args#)]
-                                                  (fn [& transfer-args#]
-                                                    ;; (log-message "Transferring: " transfer-args#)
-                                                    (increment-global! id# "transferred")
-                                                    (apply transferrer# transfer-args#)
-                                                    ))))
+                      ;; critical that this particular function is overridden here,
+                      ;; since the transferred stat needs to be incremented at the moment
+                      ;; of tuple emission (and not on a separate thread later) for
+                      ;; topologies to be tracked correctly. This is because "transferred" *must*
+                      ;; be incremented before "processing".
+                      executor/mk-executor-transfer-fn
+                          (let [old# executor/mk-executor-transfer-fn]
+                            (fn [& args#]
+                              (let [transferrer# (apply old# args#)]
+                                (fn [& args2#]
+                                  ;; (log-message "Transferring: " transfer-args#)
+                                  (increment-global! id# "transferred" 1)
+                                  (apply transferrer# args2#)
+                                  ))))
                       ]
        (with-local-cluster [~cluster-sym ~@cluster-args]
          (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
@@ -547,6 +564,20 @@
         spout-spec (mk-spout-spec* (TestWordSpout.)
                                    {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
-        context (TopologyContext. topology (read-storm-config) {(int 1) component} "test-storm-id" nil nil (int 1) nil [(int 1)])]
-    (Tuple. context values 1 stream)
+        context (TopologyContext.
+                  topology
+                  (read-storm-config)
+                  {(int 1) component}
+                  {component [(int 1)]}
+                  {component {stream (Fields. fields)}}
+                  "test-storm-id"
+                  nil
+                  nil
+                  (int 1)
+                  nil
+                  [(int 1)]
+                  {}
+                  {}
+                  (HashMap.))]
+    (TupleImpl. context values 1 stream)
     ))

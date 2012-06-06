@@ -42,6 +42,7 @@
                               )))
                         (.release notifier)))]
     (.setDaemon timer-thread true)
+    (.setPriority timer-thread Thread/MAX_PRIORITY)
     (.start timer-thread)
     {:timer-thread timer-thread
      :queue queue

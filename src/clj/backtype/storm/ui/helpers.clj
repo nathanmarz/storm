@@ -4,6 +4,7 @@
   (:use [clojure [string :only [join]]])
   (:use [backtype.storm.util :only [uuid defnk]])
   (:use [clj-time coerce format])
+  (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
 
@@ -115,3 +116,19 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn url-format [fmt & args]
   (String/format fmt 
     (to-array (map #(java.net.URLEncoder/encode (str %)) args))))
+
+(defn to-tasks [^ExecutorInfo e]
+  (let [start (.get_task_start e)
+        end (.get_task_end e)]
+    (range start (inc end))
+    ))
+
+(defn sum-tasks [executors]
+  (reduce + (->> executors
+                 (map #(.get_executor_info ^ExecutorSummary %))
+                 (map to-tasks)
+                 (map count))))
+
+(defn pretty-executor-info [^ExecutorInfo e]
+  (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
+

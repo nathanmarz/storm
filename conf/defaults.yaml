@@ -5,7 +5,7 @@ java.library.path: "/usr/local/lib:/opt/local/lib:/usr/lib"
 
 ### storm.* configs are general configurations
 # the local dir is where jars are kept
-storm.local.dir: "/mnt/storm"
+storm.local.dir: "storm-local"
 storm.zookeeper.servers:
     - "localhost"
 storm.zookeeper.port: 2181
@@ -70,6 +70,7 @@ zmq.threads: 1
 zmq.linger.millis: 5000
 
 ### topology.* configs are for specific executing storms
+topology.enable.message.timeouts: true
 topology.debug: false
 topology.optimize: true
 topology.workers: 1
@@ -85,5 +86,11 @@ topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
 topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
+topology.executor.receive.buffer.size: 8192 #batched
+topology.executor.send.buffer.size: 16384 #individual messages
+topology.receiver.buffer.size: 8 # setting it too high causes a lot of problems (heartbeat thread gets starved, throughput plummets)
+topology.transfer.buffer.size: 32 # batched
+topology.tick.tuple.freq.secs: null
+topology.worker.shared.thread.pool.size: 4
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

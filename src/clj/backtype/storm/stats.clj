@@ -1,7 +1,7 @@
 (ns backtype.storm.stats
   (:import [backtype.storm.generated Nimbus Nimbus$Processor Nimbus$Iface StormTopology ShellComponent
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
-            ClusterSummary TopologyInfo TopologySummary TaskSummary TaskStats TaskSpecificStats
+            ClusterSummary TopologyInfo TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
             SpoutStats BoltStats ErrorInfo SupervisorSummary])
   (:use [backtype.storm util])
   (:use [clojure.math.numeric-tower :only [ceil]]))
@@ -144,11 +144,11 @@
 
 (def BOLT-FIELDS [:acked :failed :process-latencies])
 ;;acked and failed count individual tuples
-(defrecord BoltTaskStats [common acked failed process-latencies])
+(defrecord BoltExecutorStats [common acked failed process-latencies])
 
 (def SPOUT-FIELDS [:acked :failed :complete-latencies])
 ;;acked and failed count tuple completion
-(defrecord SpoutTaskStats [common acked failed complete-latencies])
+(defrecord SpoutExecutorStats [common acked failed complete-latencies])
 
 (def NUM-STAT-BUCKETS 20)
 ;; 10 minutes, 3 hours, 1 day
@@ -161,20 +161,20 @@
                 ))
 
 (defn mk-bolt-stats [rate]
-  (BoltTaskStats. (mk-common-stats rate)
+  (BoltExecutorStats. (mk-common-stats rate)
                   (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   (atom (apply keyed-avg-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   ))
 
 (defn mk-spout-stats [rate]
-  (SpoutTaskStats. (mk-common-stats rate)
+  (SpoutExecutorStats. (mk-common-stats rate)
                    (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                    (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                    (atom (apply keyed-avg-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                    ))
 
-(defmacro update-task-stat! [stats path & args]
+(defmacro update-executor-stat! [stats path & args]
   (let [path (collectify path)]
     `(swap! (-> ~stats ~@path) update-rolling-window-set ~@args)
     ))
@@ -183,29 +183,29 @@
   `(-> ~stats :common :rate))
 
 (defn emitted-tuple! [stats stream]
-  (update-task-stat! stats [:common :emitted] stream (stats-rate stats)))
+  (update-executor-stat! stats [:common :emitted] stream (stats-rate stats)))
 
 (defn transferred-tuples! [stats stream amt]
-  (update-task-stat! stats [:common :transferred] stream (* (stats-rate stats) amt)))
+  (update-executor-stat! stats [:common :transferred] stream (* (stats-rate stats) amt)))
 
-(defn bolt-acked-tuple! [^BoltTaskStats stats component stream latency-ms]
+(defn bolt-acked-tuple! [^BoltExecutorStats stats component stream latency-ms]
   (let [key [component stream]]
-    (update-task-stat! stats :acked key (stats-rate stats))
-    (update-task-stat! stats :process-latencies key latency-ms)
+    (update-executor-stat! stats :acked key (stats-rate stats))
+    (update-executor-stat! stats :process-latencies key latency-ms)
     ))
 
-(defn bolt-failed-tuple! [^BoltTaskStats stats component stream latency-ms]
+(defn bolt-failed-tuple! [^BoltExecutorStats stats component stream latency-ms]
   (let [key [component stream]]
-    (update-task-stat! stats :failed key (stats-rate stats))
+    (update-executor-stat! stats :failed key (stats-rate stats))
     ))
 
-(defn spout-acked-tuple! [^SpoutTaskStats stats stream latency-ms]
-  (update-task-stat! stats :acked stream (stats-rate stats))
-  (update-task-stat! stats :complete-latencies stream latency-ms)
+(defn spout-acked-tuple! [^SpoutExecutorStats stats stream latency-ms]
+  (update-executor-stat! stats :acked stream (stats-rate stats))
+  (update-executor-stat! stats :complete-latencies stream latency-ms)
   )
 
-(defn spout-failed-tuple! [^SpoutTaskStats stats stream latency-ms]
-  (update-task-stat! stats :failed stream (stats-rate stats))
+(defn spout-failed-tuple! [^SpoutExecutorStats stats stream latency-ms]
+  (update-executor-stat! stats :failed stream (stats-rate stats))
   )
 
 (defn- cleanup-stat! [stat]
@@ -216,13 +216,13 @@
     (cleanup-stat! (f stats))
     ))
 
-(defn cleanup-bolt-stats! [^BoltTaskStats stats]
+(defn cleanup-bolt-stats! [^BoltExecutorStats stats]
   (cleanup-common-stats! (:common stats))
   (doseq [f BOLT-FIELDS]
     (cleanup-stat! (f stats))
     ))
 
-(defn cleanup-spout-stats! [^SpoutTaskStats stats]
+(defn cleanup-spout-stats! [^SpoutExecutorStats stats]
   (cleanup-common-stats! (:common stats))
   (doseq [f SPOUT-FIELDS]
     (cleanup-stat! (f stats))
@@ -240,13 +240,13 @@
    (value-stats stats COMMON-FIELDS)
    {:rate (:rate stats)}))
 
-(defn value-bolt-stats! [^BoltTaskStats stats]
+(defn value-bolt-stats! [^BoltExecutorStats stats]
   (cleanup-bolt-stats! stats)
   (merge (value-common-stats (:common stats))
          (value-stats stats BOLT-FIELDS)
          {:type :bolt}))
 
-(defn value-spout-stats! [^SpoutTaskStats stats]
+(defn value-spout-stats! [^SpoutExecutorStats stats]
   (cleanup-spout-stats! stats)
   (merge (value-common-stats (:common stats))
          (value-stats stats SPOUT-FIELDS)
@@ -255,10 +255,10 @@
 
 (defmulti render-stats! class-selector)
 
-(defmethod render-stats! SpoutTaskStats [stats]
+(defmethod render-stats! SpoutExecutorStats [stats]
   (value-spout-stats! stats))
 
-(defmethod render-stats! BoltTaskStats [stats]
+(defmethod render-stats! BoltExecutorStats [stats]
   (value-bolt-stats! stats))
 
 (defmulti thriftify-specific-stats :type)
@@ -283,7 +283,7 @@
 
 (defmethod thriftify-specific-stats :bolt
   [stats]
-  (TaskSpecificStats/bolt
+  (ExecutorSpecificStats/bolt
    (BoltStats. (window-set-converter (:acked stats) to-global-stream-id)
                (window-set-converter (:failed stats) to-global-stream-id)
                (window-set-converter (:process-latencies stats) to-global-stream-id)))
@@ -291,15 +291,14 @@
 
 (defmethod thriftify-specific-stats :spout
   [stats]
-  (TaskSpecificStats/spout
+  (ExecutorSpecificStats/spout
    (SpoutStats. (window-set-converter (:acked stats))
                 (window-set-converter (:failed stats))
                 (window-set-converter (:complete-latencies stats)))
    ))
 
-(defn thriftify-task-stats [stats]
+(defn thriftify-executor-stats [stats]
   (let [specific-stats (thriftify-specific-stats stats)]
-    (TaskStats. (window-set-converter (:emitted stats))
-                (window-set-converter (:transferred stats))
-                specific-stats)
-    ))
+    (ExecutorStats. (window-set-converter (:emitted stats))
+                    (window-set-converter (:transferred stats))
+                    specific-stats)))

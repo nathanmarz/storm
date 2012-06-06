@@ -170,6 +170,10 @@ def rebalance(*args):
     the workers evenly around the cluster. The topology will then return to 
     its previous state of activation (so a deactivated topology will still 
     be deactivated and an activated topology will go back to being activated).
+    
+    The rebalance command can also be used to change the parallelism of a running topology.
+    Use the -n and -e switches to change the number of workers or number of executors of a component
+    respectively.
     """
     exec_storm_class(
         "backtype.storm.command.rebalance", 

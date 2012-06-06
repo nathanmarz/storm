@@ -1,6 +1,7 @@
 ## Unreleased
 
  * Added executor abstraction between workers and tasks. Workers = processes, executors = threads that run many tasks from the same spout or bolt.
+ * Pluggable scheduler (thanks xumingming)
  * Eliminate explicit storage of task->component in Zookeeper
  * Number of workers can be dynamically changed at runtime through rebalance command and -n switch
  * Number of executors for a component can be dynamically changed at runtime through rebalance command and -e switch (multiple -e switches allowed)

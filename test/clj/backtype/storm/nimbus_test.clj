@@ -480,6 +480,62 @@
                        ))))
       )))
 
+(deftest test-rebalance-change-parallelism
+  (with-simulated-time-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
+                                :parallelism-hint 6
+                                :conf {TOPOLOGY-TASKS 12})}
+                        {}))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster)
+                             "test"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
+      (bind storm-id (get-storm-id state "test"))
+      (bind checker (fn [distribution]
+                      (check-executor-distribution
+                        (slot-assignments cluster storm-id)
+                        distribution)))
+      (checker [2 2 2])
+      
+      (.rebalance (:nimbus cluster) "test"
+                  (doto (RebalanceOptions.)
+                    (.set_num_workers 6)
+                    ))
+      (advance-cluster-time cluster 29)
+      (checker [2 2 2])
+      (advance-cluster-time cluster 3)
+      (checker [1 1 1 1 1 1])
+      
+      (.rebalance (:nimbus cluster) "test"
+                  (doto (RebalanceOptions.)
+                    (.set_num_executors {"1" 1})
+                    ))
+      (advance-cluster-time cluster 29)
+      (checker [1 1 1 1 1 1])
+      (advance-cluster-time cluster 3)
+      (checker [1])
+
+      (.rebalance (:nimbus cluster) "test"
+                  (doto (RebalanceOptions.)
+                    (.set_num_executors {"1" 8})
+                    (.set_num_workers 4)
+                    ))
+      (advance-cluster-time cluster 32)
+      (checker [2 2 2 2])
+      (check-consistency cluster "test")
+      
+      (bind executor-info (->> (storm-component->executor-info cluster "test")
+                               (map-val #(map executor-id->tasks %))))
+      (check-distribution (executor-info "1") [2 2 2 2 1 1 1 1])
+      
+      )))
+
 (deftest test-submit-invalid
   (with-simulated-time-local-cluster [cluster
     :daemon-conf {SUPERVISOR-ENABLE false

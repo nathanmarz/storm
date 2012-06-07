@@ -5,6 +5,7 @@ import sys
 import random
 import subprocess as sub
 import getopt
+import re
 
 def identity(x):
     return x
@@ -81,6 +82,25 @@ def print_remoteconfvalue(name):
     This command must be run on a cluster machine.
     """
     print name + ": " + confvalue(name, [STORM_DIR + "/conf"])
+
+def parse_args(string):
+    """Takes a string of whitespace-separated tokens and parses it into a list.
+    Whitespace inside tokens may be quoted with single quotes, double quotes or
+    backslash (similar to command-line arguments in bash).
+
+    >>> parse_args(r'''"a a" 'b b' c\ c "d'd" 'e"e' 'f\'f' "g\"g" "i""i" 'j''j' k" "k l' l' mm n\\n''')
+    ['a a', 'b b', 'c c', "d'd", 'e"e', "f'f", 'g"g', 'ii', 'jj', 'k k', 'l l', 'mm', r'n\n']
+    """
+    re_split = re.compile(r'''((?:
+        [^\s"'\\] |
+        "(?: [^"\\] | \\.)*" |
+        '(?: [^'\\] | \\.)*' |
+        \\.
+    )+)''', re.VERBOSE)
+    args = re_split.split(string)[1::2]
+    args = [re.compile(r'"((?:[^"\\]|\\.)*)"').sub('\\1', x) for x in args]
+    args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
+    return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]):
     all_args = [
@@ -211,7 +231,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    jvmopts = confvalue("nimbus.childopts", cppaths).split() + [
+    jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
         "-Dlog4j.configuration=storm.log.properties",
     ]
@@ -231,7 +251,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    jvmopts = confvalue("supervisor.childopts", cppaths).split() + [
+    jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
         "-Dlog4j.configuration=storm.log.properties",
     ]
@@ -252,7 +272,7 @@ def ui():
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
-    jvmopts = confvalue("ui.childopts", cppaths).split() + [
+    jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
         "-Dlog4j.configuration=storm.log.properties",
     ]

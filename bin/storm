@@ -102,7 +102,7 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
     all_args = [
         "java", jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR, 
@@ -110,7 +110,10 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         "-cp", get_classpath(extrajars),
     ] + jvmopts + [klass] + args
     print "Running: " + " ".join(all_args)
-    os.execvp("java", all_args)
+    if fork:
+        os.spawnvp(os.P_WAIT, "java", all_args)
+    else:
+        os.execvp("java", all_args) # replaces the current process and never returns
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]
@@ -209,7 +212,8 @@ def shell(resourcesdir, command, *args):
         "backtype.storm.command.shell_submission", 
         args=runnerargs, 
         jvmtype="-client", 
-        extrajars=[CONF_DIR])
+        extrajars=[CONF_DIR],
+        fork=True)
     os.system("rm " + tmpjarpath)
 
 def repl():

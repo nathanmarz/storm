@@ -516,7 +516,7 @@
                                                  [root (bit-xor id ack-val)])
                            ))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple (.getThisTaskId user-context) delta))
+                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
                          (when delta
                            (stats/bolt-acked-tuple! executor-stats
                                                     (.getSourceComponent tuple)
@@ -529,7 +529,7 @@
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple (.getThisTaskId user-context) delta))
+                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
                          (when delta
                            (stats/bolt-failed-tuple! executor-stats
                                                      (.getSourceComponent tuple)

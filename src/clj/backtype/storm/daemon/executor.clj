@@ -529,7 +529,7 @@
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
+                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple (.getThisTaskId user-context) delta))
                          (when delta
                            (stats/bolt-failed-tuple! executor-stats
                                                      (.getSourceComponent tuple)

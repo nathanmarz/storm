@@ -267,11 +267,12 @@
         )))
 
 (defn- fail-spout-msg [executor-data task-data msg-id tuple-info time-delta]
-  (let [^ISpout spout (:object task-data)]
+  (let [^ISpout spout (:object task-data)
+        task-id (:task-id task-data)]
     ;;TODO: need to throttle these when there's lots of failures
     (log-message "Failing message " msg-id ": " tuple-info)
     (.fail spout msg-id)
-    (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id time-delta))
+    (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta
       (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
       )))

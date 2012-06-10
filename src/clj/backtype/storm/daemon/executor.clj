@@ -278,11 +278,12 @@
 
 (defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta]
   (let [storm-conf (:storm-conf executor-data)
-        ^ISpout spout (:object task-data)]
+        ^ISpout spout (:object task-data)
+        task-id (:task-id task-data)]
     (when (= true (storm-conf TOPOLOGY-DEBUG))
       (log-message "Acking message " msg-id))
     (.ack spout msg-id)
-    (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id time-delta))
+    (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id task-id time-delta))
     (when time-delta
       (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
       )))

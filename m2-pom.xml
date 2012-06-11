@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>storm</groupId>
 			<artifactId>storm</artifactId>
-			<version>0.7.1</version>
+			<version>0.7.2</version>
 			<!-- keep storm out of the jar-with-dependencies -->
 			<scope>provided</scope>
 		</dependency>
@@ -51,16 +51,6 @@
 			<groupId>org.twitter4j</groupId>
 			<artifactId>twitter4j-stream</artifactId>
 			<version>2.2.6-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>org.clojure</groupId>
-			<artifactId>clojure</artifactId>
-			<version>1.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.clojure</groupId>
-			<artifactId>clojure-contrib</artifactId>
-			<version>1.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>

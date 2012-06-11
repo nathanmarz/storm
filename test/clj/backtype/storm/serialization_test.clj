@@ -47,6 +47,7 @@
   (is-roundtrip ["a" "bb" "cde"])
   (is-roundtrip [(mk-string (* 64 1024))])
   (is-roundtrip [(mk-string (* 1024 1024))])
+  (is-roundtrip [(mk-string (* 1024 1024 2))])
   )
 
 (deftest test-clojure-serialization

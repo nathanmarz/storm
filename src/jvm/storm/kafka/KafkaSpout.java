@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
 import kafka.api.FetchRequest;
+import kafka.message.Message;
 
 // TODO: need to add blacklisting
 // TODO: need to make a best effort to not re-emit messages if don't have to
@@ -37,6 +38,16 @@ public class KafkaSpout extends BaseRichSpout {
         
         public ZooMeta(String id, long offset) {
             this.id = id;
+            this.offset = offset;
+        }
+    }
+    
+    public static class MessageAndRealOffset {
+        public Message msg;
+        public long offset;
+        
+        public MessageAndRealOffset(Message msg, long offset) {
+            this.msg = msg;
             this.offset = offset;
         }
     }
@@ -64,7 +75,7 @@ public class KafkaSpout extends BaseRichSpout {
         SortedSet<Long> _pending = new TreeSet<Long>();
         Long _committedTo;
         int _partition;
-        LinkedList<MessageAndOffset> _waitingToEmit = new LinkedList<MessageAndOffset>();
+        LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
         
         public PartitionManager(int partition) {
             _partition = partition;
@@ -84,14 +95,13 @@ public class KafkaSpout extends BaseRichSpout {
         
         //returns false if it's reached the end of current batch
         public EmitState next() {
-            LOG.info("Filling from " + _partitions.getConsumer(_partition).host() + " " + _partition);
             if(_waitingToEmit.isEmpty()) fill();
-            MessageAndOffset toEmit = _waitingToEmit.pollFirst();
+            MessageAndRealOffset toEmit = _waitingToEmit.pollFirst();
             if(toEmit==null) {
                 return EmitState.NO_EMITTED;
             }
-            List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.message().payload()));
-            _collector.emit(tup, new KafkaMessageId(_partition, actualOffset(toEmit)));
+            List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
+            _collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
             if(_waitingToEmit.size()>0) {
                 return EmitState.EMITTED_MORE_LEFT;
             } else {
@@ -102,17 +112,17 @@ public class KafkaSpout extends BaseRichSpout {
         private void fill() {
             SimpleConsumer consumer = _partitions.getConsumer(_partition);
             int hostPartition = _partitions.getHostPartition(_partition);
-            //LOG.info("Fetching from Kafka: " + consumer.host() + ":" + hostPartition);
+            LOG.info("Fetching from Kafka: " + consumer.host() + ":" + hostPartition + " from offset " + _emittedToOffset);
             ByteBufferMessageSet msgs = consumer.fetch(
                     new FetchRequest(
                         _spoutConfig.topic,
                         hostPartition,
                         _emittedToOffset,
                         _spoutConfig.fetchSizeBytes));
-            //LOG.info("Fetched " + msgs.underlying().size() + " messages from Kafka: " + consumer.host() + ":" + hostPartition);
+            LOG.info("Fetched " + msgs.underlying().size() + " messages from Kafka: " + consumer.host() + ":" + hostPartition);
             for(MessageAndOffset msg: msgs) {
-                _pending.add(actualOffset(msg));
-                _waitingToEmit.add(msg);
+                _pending.add(_emittedToOffset);
+                _waitingToEmit.add(new MessageAndRealOffset(msg.message(), _emittedToOffset));
                 _emittedToOffset = msg.offset();
             }
         }
@@ -142,12 +152,7 @@ public class KafkaSpout extends BaseRichSpout {
                 _committedTo = committedTo;
             }
         }
-        
-        private long actualOffset(MessageAndOffset msg) {
-            return msg.offset() - msg.message().serializedSize();
-
-        }
-        
+                
         private String committedPath() {
             return _spoutConfig.id + "/" + _partition;
         }

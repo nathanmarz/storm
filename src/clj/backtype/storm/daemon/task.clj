@@ -290,7 +290,8 @@
         ))))
 
 (defn- fail-spout-msg [^ISpout spout ^TopologyContext user-context storm-conf msg-id tuple-info time-delta task-stats sampler]
-  (log-message "Failing message " msg-id ": " tuple-info)
+  (when (= true (storm-conf TOPOLOGY-DEBUG))
+    (log-message "Failing message " msg-id ": " tuple-info))
   (.fail spout msg-id)
   (apply-hooks user-context .spoutFail (SpoutFailInfo. msg-id time-delta))
   (when (sampler)

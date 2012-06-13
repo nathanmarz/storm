@@ -1,4 +1,4 @@
-(defproject storm/storm-kafka "0.7.2-SNAPSHOT"
+(defproject storm/storm-kafka "0.7.3-SNAPSHOT"
   :source-path "src/clj"
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}

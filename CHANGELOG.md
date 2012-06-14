@@ -22,6 +22,11 @@
  * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
  * Added shared worker resources. Storm provides a shared ExecutorService thread pool by default. The number of threads in the pool can be configured with topology.worker.shared.thread.pool.size
 
+## 0.7.3
+
+ * Changed debug level of "Failed message" logging to DEBUG
+ * Bug fix: Fixed critical regression in 0.7.2 that could cause workers to timeout to the supervisors or to Nimbus. 0.7.2 moved all system tasks to the same thread, so if one took a long time it would block the other critical tasks. Now different system tasks run on different threads.
+
 ## 0.7.2
 
 NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable inputs has been reverted to support optimized sending of tuples to colocated tasks

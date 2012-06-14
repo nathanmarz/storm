@@ -89,10 +89,9 @@
 
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"
-  [supervisor assigned-executors]
+  [supervisor assigned-executors now]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        now (current-time-secs)
         id->heartbeat (read-worker-heartbeats conf)
         approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
     (into
@@ -188,7 +187,8 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
-        allocated (read-allocated-workers supervisor assigned-executors)
+        now (current-time-secs)
+        allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
                  (fn [[state _]] (= state :valid))
                  allocated)
@@ -216,6 +216,7 @@
       (when (not= :valid state)
         (log-message
          "Shutting down and clearing state for id " id
+         ". Current supervisor time: " now
          ". State: " state
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)

@@ -87,6 +87,12 @@
           (.put transfer-queue [task tuple]))
       ))))
 
+(defn mk-halting-timer []
+  (mk-timer :kill-fn (fn [t]
+                       (log-error t "Error when processing event")
+                       (halt-process! 20 "Error when processing an event")
+                       )))
+
 (defn worker-data [conf mq-context storm-id supervisor-id port worker-id]
   (let [cluster-state  (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
@@ -110,10 +116,9 @@
              :task-ids task-ids
              :storm-conf storm-conf
              :topology (read-supervisor-topology conf storm-id)
-             :timer (mk-timer :kill-fn (fn [t]
-                                         (log-error t "Error when processing event")
-                                         (halt-process! 20 "Error when processing an event")
-                                         ))
+             :heartbeat-timer (mk-halting-timer)
+             :refresh-connections-timer (mk-halting-timer)
+             :refresh-active-timer (mk-halting-timer)
              :task->component (storm-task-info storm-cluster-state storm-id)
              :endpoint-socket-lock (mk-rw-lock)
              :node+port->socket (atom {})
@@ -134,7 +139,7 @@
         storm-id (:storm-id worker)]
     (fn this
       ([]
-        (this (fn [& ignored] (schedule (:timer worker) 0 this))))
+        (this (fn [& ignored] (schedule (:refresh-connections-timer worker) 0 this))))
       ([callback]
         (let [assignment (.assignment-info storm-cluster-state storm-id callback)
               my-assignment (select-keys (:task->node+port assignment) outbound-tasks)
@@ -170,7 +175,7 @@
 
 (defn refresh-storm-active
   ([worker]
-    (refresh-storm-active worker (fn [& ignored] (schedule (:timer worker) 0 (partial refresh-storm-active worker)))))
+    (refresh-storm-active worker (fn [& ignored] (schedule (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
   ([worker callback]
     (let [base (.storm-base (:storm-cluster-state worker) (:storm-id worker) callback)]
      (reset!
@@ -248,7 +253,11 @@
                     (doseq [t threads]
                       (.interrupt t)
                       (.join t))
-                    (cancel-timer (:timer worker))
+
+                    (cancel-timer (:heartbeat-timer worker))
+                    (cancel-timer (:refresh-connections-timer worker))
+                    (cancel-timer (:refresh-active-timer worker))
+                    
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:cluster-state worker))
@@ -261,12 +270,14 @@
              DaemonCommon
              (waiting? [this]
                        (and
-                        (timer-waiting? (:timer worker))
+                        (timer-waiting? (:heartbeat-timer worker))
+                        (timer-waiting? (:refresh-connections-timer worker))
+                        (timer-waiting? (:refresh-active-timer worker))
                         (every? (memfn waiting?) tasks)))
              )]
-    (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
-    (schedule-recurring (:timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
-    (schedule-recurring (:timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
+    (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
+    (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
+    (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")

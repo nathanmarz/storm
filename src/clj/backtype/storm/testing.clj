@@ -175,8 +175,11 @@
                   supervisors
                   workers) ; because a worker may already be dead
         ]
-    (while (not (every? (memfn waiting?) daemons))
+    (while (not (every? (memfn waiting?) daemons))      
       (Thread/sleep 10)
+;;      (doseq [d daemons]
+;;        (if-not ((memfn waiting?) d)
+;;          (println d)))
       )))
 
 (defn advance-cluster-time

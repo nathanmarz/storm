@@ -12,7 +12,7 @@ public class Time {
     
     private static AtomicBoolean simulating = new AtomicBoolean(false);
     //TODO: should probably use weak references here or something
-    private static Map<Thread, AtomicLong> threadSleepTimes;
+    private static volatile Map<Thread, AtomicLong> threadSleepTimes;
     private static final Object sleepTimesLock = new Object();
     
     private static AtomicLong simulatedCurrTimeMs; //should this be a thread local that's allowed to keep advancing?

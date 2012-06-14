@@ -211,7 +211,7 @@
       (if-not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS)
         (log-message "Timeouts disabled for executor " (:executor-id executor-data))
         (schedule-recurring
-          (:timer worker)
+          (:user-timer worker)
           tick-time-secs
           tick-time-secs
           (fn []

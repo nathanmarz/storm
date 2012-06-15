@@ -208,7 +208,8 @@
         receive-queue (:receive-queue executor-data)
         context (:worker-context executor-data)]
     (when tick-time-secs
-      (if-not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS)
+      (if (and (not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
+               (= :spout (:type executor-data)))
         (log-message "Timeouts disabled for executor " (:executor-id executor-data))
         (schedule-recurring
           (:user-timer worker)

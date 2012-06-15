@@ -108,7 +108,7 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-cp", get_classpath(extrajars),
-    ] + jvmopts + [klass] + args
+    ] + jvmopts + [klass] + list(args)
     print "Running: " + " ".join(all_args)
     if fork:
         os.spawnvp(os.P_WAIT, "java", all_args)

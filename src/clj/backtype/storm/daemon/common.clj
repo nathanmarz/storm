@@ -33,7 +33,7 @@
 ;; component->executors is a map from spout/bolt id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
-(defrecord SupervisorInfo [time-secs hostname meta uptime-secs])
+(defrecord SupervisorInfo [time-secs hostname meta scheduler-meta uptime-secs])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
@@ -109,19 +109,32 @@
                   (str id " is not a valid stream id"))))))
     ))
 
-(defn validate-basic! [^StormTopology topology]
-  (validate-ids! topology)
-  (doseq [f thrift/SPOUT-FIELDS
-          obj (->> f (.getFieldValue topology) vals)]
-    (if-not (empty? (-> obj .get_common .get_inputs))
-      (throw (InvalidTopologyException. "May not declare inputs for a spout"))
-      )))
-
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
            (.getFieldValue topology f)
            )))
+
+(defn component-conf [component]
+  (->> component
+      .get_common
+      .get_json_conf
+      from-json))
+
+(defn validate-basic! [^StormTopology topology]
+  (validate-ids! topology)
+  (doseq [f thrift/SPOUT-FIELDS
+          obj (->> f (.getFieldValue topology) vals)]
+    (if-not (empty? (-> obj .get_common .get_inputs))
+      (throw (InvalidTopologyException. "May not declare inputs for a spout"))))
+  (doseq [[comp-id comp] (all-components topology)
+          :let [conf (component-conf comp)
+                p (-> comp .get_common thrift/parallelism-hint)]]
+    (when (and (> (conf TOPOLOGY-TASKS) 0)
+               p
+               (<= p 0))
+      (throw (InvalidTopologyException. "Number of executors must be greater than 0 when number of tasks is greater than 0"))
+      )))
 
 (defn validate-structure! [^StormTopology topology]
   ;; validate all the component subscribe from component+stream which actually exists in the topology
@@ -144,12 +157,6 @@
                   (when-not (empty? diff-fields)
                     (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from stream: [" source-stream-id "] of component [" source-component-id "] with non-existent fields: " diff-fields)))))))))))))
 
-(defn component-conf [component]
-  (->> component
-      .get_common
-      .get_json_conf
-      from-json))
-
 (defn acker-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)
         spout-ids (.. topology get_spouts keySet)
@@ -166,14 +173,13 @@
 
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (storm-conf TOPOLOGY-ACKER-EXECUTORS)
-        num-tasks (storm-conf TOPOLOGY-ACKER-TASKS)
         acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-executors
-                                         :conf {TOPOLOGY-TASKS num-tasks
+                                         :conf {TOPOLOGY-TASKS num-executors
                                                 TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
@@ -228,9 +234,7 @@
     ))
 
 (defn has-ackers? [storm-conf]
-  (let [tasks (storm-conf TOPOLOGY-ACKER-TASKS)]
-    (and (or (nil? tasks) (> tasks 0))
-         (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))))
+  (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))
@@ -263,6 +267,8 @@
                           (worker-pids-root (:conf worker) (:worker-id worker))
                           (:port worker)
                           (:task-ids worker)
+                          (:default-shared-resources worker)
+                          (:user-shared-resources worker)
                           ))
 
 

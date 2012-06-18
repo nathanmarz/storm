@@ -201,7 +201,7 @@ service Nimbus {
   void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
   void activate(1: string name) throws (1: NotAliveException e);
   void deactivate(1: string name) throws (1: NotAliveException e);
-  void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e);
+  void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 

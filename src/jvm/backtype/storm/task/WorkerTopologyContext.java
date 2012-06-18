@@ -6,20 +6,36 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 public class WorkerTopologyContext extends GeneralTopologyContext {
+    public static final String SHARED_EXECUTOR = "executor";
+    
     private Integer _workerPort;
     private List<Integer> _workerTasks;
     private String _codeDir;
     private String _pidDir;
+    Map<String, Object> _userResources;
+    Map<String, Object> _defaultResources;
     
-    public WorkerTopologyContext(StormTopology topology, Map stormConf,
-            Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
-            Map<String, Map<String, Fields>> componentToStreamToFields, String stormId,
-            String codeDir, String pidDir, Integer workerPort,
-            List<Integer> workerTasks) {
+    public WorkerTopologyContext(
+            StormTopology topology,
+            Map stormConf,
+            Map<Integer, String> taskToComponent,
+            Map<String, List<Integer>> componentToSortedTasks,
+            Map<String, Map<String, Fields>> componentToStreamToFields,
+            String stormId,
+            String codeDir,
+            String pidDir,
+            Integer workerPort,
+            List<Integer> workerTasks,
+            Map<String, Object> defaultResources,
+            Map<String, Object> userResources
+            ) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks, componentToStreamToFields, stormId);
         _codeDir = codeDir;
+        _defaultResources = defaultResources;
+        _userResources = userResources;
         try {
             if(pidDir!=null) {
                 _pidDir = new File(pidDir).getCanonicalPath();
@@ -61,5 +77,13 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
      */
     public String getPIDDir() {
         return _pidDir;
+    }
+    
+    public Object getResource(String name) {
+        return _userResources.get(name);
+    }
+    
+    public ExecutorService getSharedExecutor() {
+        return (ExecutorService) _defaultResources.get(SHARED_EXECUTOR);
     }
 }

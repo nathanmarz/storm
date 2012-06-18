@@ -21,8 +21,7 @@
           task-getter))))
 
 (defn- mk-shuffle-grouper [^List target-tasks]
-  (let [num-tasks (count target-tasks)
-        choices (rotating-random-range target-tasks)]
+  (let [choices (rotating-random-range target-tasks)]
     (fn [tuple]
       (acquire-random-range-id choices))))
 
@@ -141,6 +140,11 @@
   (log-error error)
   (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error))
 
+;; in its own function so that it can be mocked out by tracked topologies
+(defn mk-executor-transfer-fn [batch-transfer->worker]
+  (fn [task tuple]
+    (disruptor/publish batch-transfer->worker [task tuple])))
+
 (defn executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
         task-ids (executor-id->tasks executor-id)
@@ -161,10 +165,10 @@
      :receive-queue ((:executor-receive-queue-map worker) executor-id)
      :storm-id (:storm-id worker)
      :conf (:conf worker)
+     :shared-executor-data (HashMap.)
      :storm-active-atom (:storm-active-atom worker)
      :batch-transfer-queue batch-transfer->worker
-     :transfer-fn (fn [task tuple]
-                    (disruptor/publish batch-transfer->worker [task tuple]))
+     :transfer-fn (mk-executor-transfer-fn batch-transfer->worker)
      :suicide-fn (:suicide-fn worker)
      :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker))
      :type executor-type

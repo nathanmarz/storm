@@ -324,6 +324,8 @@ class Client(Iface):
     self._iprot.readMessageEnd()
     if result.e is not None:
       raise result.e
+    if result.ite is not None:
+      raise result.ite
     return
 
   def beginFileUpload(self, ):
@@ -740,6 +742,8 @@ class Processor(Iface, TProcessor):
       self._handler.rebalance(args.name, args.options)
     except NotAliveException, e:
       result.e = e
+    except InvalidTopologyException, ite:
+      result.ite = ite
     oprot.writeMessageBegin("rebalance", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -1615,15 +1619,18 @@ class rebalance_result:
   """
   Attributes:
    - e
+   - ite
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ite', (InvalidTopologyException, InvalidTopologyException.thrift_spec), None, ), # 2
   )
 
-  def __init__(self, e=None,):
+  def __init__(self, e=None, ite=None,):
     self.e = e
+    self.ite = ite
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1640,6 +1647,12 @@ class rebalance_result:
           self.e.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ite = InvalidTopologyException()
+          self.ite.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1653,6 +1666,10 @@ class rebalance_result:
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)
       self.e.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ite is not None:
+      oprot.writeFieldBegin('ite', TType.STRUCT, 2)
+      self.ite.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

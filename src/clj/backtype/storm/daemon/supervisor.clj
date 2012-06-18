@@ -321,6 +321,7 @@
                                (SupervisorInfo. (current-time-secs)
                                                 (:my-hostname supervisor)
                                                 (.getMetadata isupervisor)
+                                                (conf SUPERVISOR-SCHEDULER-META)
                                                 ((:uptime supervisor)))))]
     (heartbeat-fn)
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
@@ -465,7 +466,7 @@
               curr-id (if-let [id (.get state LS-ID)]
                         id
                         (generate-supervisor-id))]
-          (.put state LS-ID curr-id)           
+          (.put state LS-ID curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

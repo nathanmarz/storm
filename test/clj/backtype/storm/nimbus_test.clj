@@ -9,12 +9,27 @@
 
 (bootstrap)
 
-(defn storm-component-info [cluster storm-name]
+(defn storm-component->task-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
         nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
         (storm-task-info (from-json (.getTopologyConf nimbus storm-id)))
         reverse-map)))
+
+(defn storm-component->executor-info [cluster storm-name]
+  (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
+        nimbus (:nimbus cluster)
+        storm-conf (from-json (.getTopologyConf nimbus storm-id))
+        topology (.getUserTopology nimbus storm-id)
+        task->component (storm-task-info topology storm-conf)
+        state (:storm-cluster-state cluster)
+        get-component (comp task->component first)]
+    (->> (.assignment-info state storm-id nil)
+         :executor->node+port
+         keys
+         (map (fn [e] {e (get-component e)}))
+         (apply merge)
+         reverse-map)))
 
 (defn storm-num-workers [state storm-name]
   (let [storm-id (get-storm-id state storm-name)
@@ -61,6 +76,11 @@
     (keys (:executor->node+port assignment))
     ))
 
+(defn check-distribution [items distribution]
+  (let [dist (->> items (map count) multi-set)]
+    (is (= dist (multi-set distribution)))
+    ))
+
 (defnk check-consistency [cluster storm-name :assigned? true]
   (let [state (:storm-cluster-state cluster)
         storm-id (get-storm-id state storm-name)
@@ -71,7 +91,7 @@
         assigned-task-ids (mapcat executor-id->tasks (keys executor->node+port))
         all-nodes (set (map first (vals executor->node+port)))]
     (when assigned?
-      (is (= (set task-ids) (set assigned-task-ids)))
+      (is (= (sort task-ids) (sort assigned-task-ids)))
       (doseq [t task-ids]
         (is (not-nil? (task->node+port t)))))
     (doseq [[e s] executor->node+port]
@@ -84,7 +104,7 @@
     ))
 
 (deftest test-assignment
-  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-TASKS 0}]
+  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -98,7 +118,7 @@
                       "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
                      )
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
-          task-info (storm-component-info cluster "mystorm")]
+          task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       ;; 3 should be assigned once (if it were optimized, we'd have
       ;; different topology)
@@ -110,7 +130,7 @@
       (submit-local-topology nimbus "storm2" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20} topology2)
       (check-consistency cluster "storm2")
       (is (= 2 (count (.assignments state nil))))
-      (let [task-info (storm-component-info cluster "storm2")]
+      (let [task-info (storm-component->task-info cluster "storm2")]
         (is (= 12 (count (task-info "1"))))
         (is (= 6 (count (task-info "2"))))
         (is (= 8 (count (task-info "3"))))
@@ -119,8 +139,47 @@
         )
       )))
 
+(deftest test-zero-executor-or-tasks
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+    (let [state (:storm-cluster-state cluster)
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 0})}
+                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
+                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
+          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+          task-info (storm-component->task-info cluster "mystorm")]
+      (check-consistency cluster "mystorm")
+      (is (= 0 (count (task-info "1"))))
+      (is (= 2 (count (task-info "2"))))
+      (is (= 5 (count (task-info "3"))))
+      (is (= 2 (storm-num-workers state "mystorm"))) ;; because only 2 executors
+      )))
+
+(deftest test-executor-assignments
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 5})}
+                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
+                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :parallelism-hint 3)})
+          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+          task-info (storm-component->task-info cluster "mystorm")
+          executor-info (->> (storm-component->executor-info cluster "mystorm")
+                             (map-val #(map executor-id->tasks %)))]
+      (check-consistency cluster "mystorm")
+      (is (= 5 (count (task-info "1"))))
+      (check-distribution (executor-info "1") [2 2 1])
+      
+      (is (= 2 (count (task-info "2"))))
+      (check-distribution (executor-info "2") [1 1])
+
+      (is (= 3 (count (task-info "3"))))
+      (check-distribution (executor-info "3") [1 1 1])
+      )))
+
 (deftest test-over-parallelism-assignment
-  (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-TASKS 0}]
+  (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -130,7 +189,7 @@
                       "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
                      )
           _ (submit-local-topology nimbus "test" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 7} topology)
-          task-info (storm-component-info cluster "test")]
+          task-info (storm-component->task-info cluster "test")]
       (check-consistency cluster "test")
       (is (= 21 (count (task-info "1"))))
       (is (= 9 (count (task-info "2"))))
@@ -146,7 +205,7 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-TASK-TIMEOUT-SECS 30
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-TASKS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
@@ -235,7 +294,7 @@
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
                   NIMBUS-SUPERVISOR-TIMEOUT-SECS 100
-                  TOPOLOGY-ACKER-TASKS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
@@ -322,10 +381,8 @@
       (check-consistency cluster "test")
       )))
 
-(defn check-distribution [slot-executors distribution]
-  (let [dist (multi-set (map count (vals slot-executors)))]
-    (is (= dist (multi-set distribution)))
-    ))
+(defn check-executor-distribution [slot-executors distribution]
+  (check-distribution (vals slot-executors) distribution))
 
 (defn check-num-nodes [slot-executors num-nodes]
   (let [nodes (->> slot-executors keys (map first) set)]
@@ -338,7 +395,7 @@
                   NIMBUS-TASK-LAUNCH-SECS 60
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-TASKS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 9)}
@@ -347,14 +404,14 @@
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 4} topology)  ; distribution should be 2, 2, 2, 3 ideally
       (bind storm-id (get-storm-id state "test"))
       (bind slot-executors (slot-assignments cluster storm-id))
-      (check-distribution slot-executors [9])
+      (check-executor-distribution slot-executors [9])
       (check-consistency cluster "test")
 
       (add-supervisor cluster :ports 2)
       (advance-cluster-time cluster 11)
       (bind slot-executors (slot-assignments cluster storm-id))
       (bind executor->start (executor-start-times cluster storm-id))
-      (check-distribution slot-executors [3 3 3])
+      (check-executor-distribution slot-executors [3 3 3])
       (check-consistency cluster "test")
 
       (add-supervisor cluster :ports 8)
@@ -363,7 +420,7 @@
       (advance-cluster-time cluster 11)
       (bind slot-executors2 (slot-assignments cluster storm-id))
       (bind executor->start2 (executor-start-times cluster storm-id))
-      (check-distribution slot-executors2 [2 2 2 3])
+      (check-executor-distribution slot-executors2 [2 2 2 3])
       (check-consistency cluster "test")
 
       (bind common (first (find-first (fn [[k v]] (= 3 (count v))) slot-executors2)))
@@ -384,7 +441,7 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
-                  TOPOLOGY-ACKER-TASKS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
@@ -402,19 +459,97 @@
 
       (bind slot-executors (slot-assignments cluster storm-id))
       ;; check that all workers are on one machine
-      (check-distribution slot-executors [1 1 1])
+      (check-executor-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 1)
       (.rebalance (:nimbus cluster) "test" (RebalanceOptions.))
 
       (advance-cluster-time cluster 31)
-      (check-distribution slot-executors [1 1 1])
+      (check-executor-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 1)
 
 
       (advance-cluster-time cluster 30)
       (bind slot-executors (slot-assignments cluster storm-id))
-      (check-distribution slot-executors [1 1 1])
+      (check-executor-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 3)
+      
+      (is (thrown? InvalidTopologyException
+                   (.rebalance (:nimbus cluster) "test"
+                     (doto (RebalanceOptions.)
+                       (.set_num_executors {"1" 0})
+                       ))))
+      )))
+
+(deftest test-rebalance-change-parallelism
+  (with-simulated-time-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
+                                :parallelism-hint 6
+                                :conf {TOPOLOGY-TASKS 12})}
+                        {}))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster)
+                             "test"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
+      (bind storm-id (get-storm-id state "test"))
+      (bind checker (fn [distribution]
+                      (check-executor-distribution
+                        (slot-assignments cluster storm-id)
+                        distribution)))
+      (checker [2 2 2])
+      
+      (.rebalance (:nimbus cluster) "test"
+                  (doto (RebalanceOptions.)
+                    (.set_num_workers 6)
+                    ))
+      (advance-cluster-time cluster 29)
+      (checker [2 2 2])
+      (advance-cluster-time cluster 3)
+      (checker [1 1 1 1 1 1])
+      
+      (.rebalance (:nimbus cluster) "test"
+                  (doto (RebalanceOptions.)
+                    (.set_num_executors {"1" 1})
+                    ))
+      (advance-cluster-time cluster 29)
+      (checker [1 1 1 1 1 1])
+      (advance-cluster-time cluster 3)
+      (checker [1])
+
+      (.rebalance (:nimbus cluster) "test"
+                  (doto (RebalanceOptions.)
+                    (.set_num_executors {"1" 8})
+                    (.set_num_workers 4)
+                    ))
+      (advance-cluster-time cluster 32)
+      (checker [2 2 2 2])
+      (check-consistency cluster "test")
+      
+      (bind executor-info (->> (storm-component->executor-info cluster "test")
+                               (map-val #(map executor-id->tasks %))))
+      (check-distribution (executor-info "1") [2 2 2 2 1 1 1 1])
+      
+      )))
+
+(deftest test-submit-invalid
+  (with-simulated-time-local-cluster [cluster
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 0 :conf {TOPOLOGY-TASKS 1})}
+                        {}))
+     
+      (is (thrown? InvalidTopologyException
+        (submit-local-topology (:nimbus cluster)
+                               "test"
+                               {}
+                               topology)))
       )))
 
 (deftest test-cleans-corrupt

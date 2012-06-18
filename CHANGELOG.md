@@ -14,10 +14,11 @@
  * Optimized internals of Storm to use much fewer threads - two fewer threads per spout and one fewer thread per acker.
  * Removed error method from task hooks (to be re-added at a later time)
  * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
- * MemoryTransactionalSpout now works on a cluster (TODO...)
+ * MemoryTransactionalSpout now works in cluster mode
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
  * Add TOPOLOGY-TICK-TUPLE-FREQ-SECS config to have Storm automatically send "tick" tuples to a bolt's execute method coming from the __system component and __tick stream at the configured frequency. Meant to be used as a component-specific configuration.
  * Upgrade Kryo to v2.04
+ * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
 
 ## 0.7.2 (unreleased but release candidate available)
 

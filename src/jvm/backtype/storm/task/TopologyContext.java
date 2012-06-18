@@ -7,11 +7,10 @@ import backtype.storm.hooks.ITaskHook;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,17 +26,22 @@ import org.apache.commons.lang.NotImplementedException;
  */
 public class TopologyContext extends WorkerTopologyContext {
     private Integer _taskId;
-    private Object _taskData = null;
+    private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
+    private Map<String, Object> _executorData;
 
     
     public TopologyContext(StormTopology topology, Map stormConf,
             Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
-            Integer workerPort, List<Integer> workerTasks) {
-        super(topology, stormConf, taskToComponent, componentToSortedTasks, componentToStreamToFields, stormId, codeDir, pidDir, workerPort, workerTasks);
+            Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
+            Map<String, Object> userResources, Map<String, Object> executorData) {
+        super(topology, stormConf, taskToComponent, componentToSortedTasks,
+                componentToStreamToFields, stormId, codeDir, pidDir,
+                workerPort, workerTasks, defaultResources, userResources);
         _taskId = taskId;
+        _executorData = executorData;
     }
 
     /**
@@ -162,13 +166,21 @@ public class TopologyContext extends WorkerTopologyContext {
         return getTargets(getThisComponentId());
     }
     
-    public void setTaskData(Object data) {
-        _taskData = data;
+    public void setTaskData(String name, Object data) {
+        _taskData.put(name, data);
     }
     
-    public Object getTaskData() {
-        return _taskData;
+    public Object getTaskData(String name) {
+        return _taskData.get(name);
     }
+
+    public void setExecutorData(String name, Object data) {
+        _executorData.put(name, data);
+    }
+    
+    public Object getExecutorData(String name) {
+        return _executorData.get(name);
+    }    
     
     public void addTaskHook(ITaskHook hook) {
         hook.prepare(_stormConf, this);

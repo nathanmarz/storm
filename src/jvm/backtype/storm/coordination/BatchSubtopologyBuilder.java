@@ -1,7 +1,6 @@
 package backtype.storm.coordination;
 
 import backtype.storm.Constants;
-import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
@@ -13,7 +12,6 @@ import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.InputDeclarer;
 import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.transactional.TransactionalSpoutCoordinator;
 import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,20 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * TODO: check to see if there are two topologies active with the same transactional id 
- * essentially want to implement a file lock on top of zk (use ephemeral nodes?)
- * or just use the topology name?
- * 
- */
-
 public class BatchSubtopologyBuilder {
     Map<String, Component> _bolts = new HashMap<String, Component>();
     Component _masterBolt;
     String _masterId;
     
-    // id is used to store the state of this transactionalspout in zookeeper
-    // it would be very dangerous to have 2 topologies active with the same id in the same cluster    
     public BatchSubtopologyBuilder(String masterBoltId, IBasicBolt masterBolt, Number boltParallelism) {
         Integer p = boltParallelism == null ? null : boltParallelism.intValue();
         _masterBolt = new Component(new BasicBoltExecutor(masterBolt), p);

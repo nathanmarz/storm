@@ -61,7 +61,7 @@ module Storm
       File.open("#{heartbeat_dir}/#{pid}", "w").close
     end
 
-    def emit_bolt(tup, args = {})
+    def emit_bolth(tup, args = {})
       stream = args[:stream]
       anchors = args[:anchors] || args[:anchor] || []
       anchors = [anchors] unless anchors.is_a? Enumerable
@@ -89,8 +89,8 @@ module Storm
       case Storm::Protocol.mode
       when 'spout'
         emit_spout(*args)
-      when 'bolt'
-        emit_bolt(*args)
+      when 'bolth'
+        emit_bolth(*args)
       end
     end
 
@@ -129,7 +129,7 @@ module Storm
     end
   end
 
-  class Bolt
+  class bolth
     include Storm::Protocol
 
     def prepare(conf, context); end
@@ -137,14 +137,14 @@ module Storm
     def process(tuple); end
 
     def run
-      Storm::Protocol.mode = 'bolt'
+      Storm::Protocol.mode = 'bolth'
       prepare(*handshake)
       begin
         while true
           process Tuple.from_hash(read_command)
         end
       rescue Exception => e
-        log 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')
+        log 'Exception in bolth: ' + e.message + ' - ' + e.backtrace.join('\n')
       end
     end
   end

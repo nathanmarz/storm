@@ -1,13 +1,13 @@
 require: "mocks"
 
-class TestBolt : Storm Bolt {
+class Testbolth : Storm bolth {
   def process: tuple {
     emit: $ [tuple values join: ", "]
     ack: tuple
   }
 }
 
-FancySpec describe: Storm Bolt with: {
+FancySpec describe: Storm bolth with: {
   before_each: {
     Storm Protocol Input clear
     Storm Protocol Output clear
@@ -31,7 +31,7 @@ FancySpec describe: Storm Bolt with: {
       tup2 to_json(), task_ids_2 to_json()
     ]
 
-    b = TestBolt new
+    b = Testbolth new
     b run
 
     @out sent select: |m| {

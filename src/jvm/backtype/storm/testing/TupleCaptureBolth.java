@@ -2,7 +2,7 @@ package backtype.storm.testing;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import java.util.ArrayList;
@@ -12,13 +12,13 @@ import java.util.Map;
 import java.util.UUID;
 
 
-public class TupleCaptureBolt implements IRichBolt {
+public class TupleCapturebolth implements IRichbolth {
     public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
 
     private String _name;
     private OutputCollector _collector;
 
-    public TupleCaptureBolt() {
+    public TupleCapturebolth() {
         _name = UUID.randomUUID().toString();
         emitted_tuples.put(_name, new HashMap<String, List<FixedTuple>>());
     }

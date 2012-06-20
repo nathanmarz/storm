@@ -3,7 +3,7 @@ package backtype.storm.testing;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseBatchBolt;
+import backtype.storm.topology.base.BaseBatchbolth;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -12,7 +12,7 @@ import clojure.lang.Numbers;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KeyedSummingBatchBolt extends BaseBatchBolt {
+public class KeyedSummingBatchbolth extends BaseBatchbolth {
     BatchOutputCollector _collector;
     Object _id;
     Map<Object, Number> _sums = new HashMap<Object, Number>();

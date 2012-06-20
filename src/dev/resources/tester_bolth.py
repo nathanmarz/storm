@@ -3,9 +3,9 @@
 import storm
 from random import random
 
-class TesterBolt(storm.Bolt):
+class Testerbolth(storm.bolth):
     def initialize(self, conf, context):
-        storm.emit(['bolt initializing'])
+        storm.emit(['bolth initializing'])
 
     def process(self, tup):
         word = tup.values[0];
@@ -15,4 +15,4 @@ class TesterBolt(storm.Bolt):
         else:
             storm.log(word + ' randomly skipped!')
 
-TesterBolt().run()
+Testerbolth().run()

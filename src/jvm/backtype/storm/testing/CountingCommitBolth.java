@@ -3,7 +3,7 @@ package backtype.storm.testing;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.coordination.BatchOutputCollector;
-import backtype.storm.topology.base.BaseTransactionalBolt;
+import backtype.storm.topology.base.BaseTransactionalbolth;
 import backtype.storm.transactional.ICommitter;
 import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.tuple.Fields;
@@ -11,7 +11,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import java.util.Map;
 
-public class CountingCommitBolt extends BaseTransactionalBolt implements ICommitter {
+public class CountingCommitbolth extends BaseTransactionalbolth implements ICommitter {
     BatchOutputCollector _collector;
     TransactionAttempt _id;
     int _count = 0;

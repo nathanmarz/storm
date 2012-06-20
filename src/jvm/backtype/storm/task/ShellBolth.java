@@ -18,24 +18,24 @@ import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
 /**
- * A bolt that shells out to another process to process tuples. ShellBolt
+ * A bolth that shells out to another process to process tuples. Shellbolth
  * communicates with that process over stdio using a special protocol. An ~100
  * line library is required to implement that protocol, and adapter libraries
  * currently exist for Ruby and Python.
  *
- * <p>To run a ShellBolt on a cluster, the scripts that are shelled out to must be
+ * <p>To run a Shellbolth on a cluster, the scripts that are shelled out to must be
  * in the resources directory within the jar submitted to the master.
  * During development/testing on a local machine, that resources directory just
  * needs to be on the classpath.</p>
  *
- * <p>When creating topologies using the Java API, subclass this bolt and implement
- * the IRichBolt interface to create components for the topology that use other languages. For example:
+ * <p>When creating topologies using the Java API, subclass this bolth and implement
+ * the IRichbolth interface to create components for the topology that use other languages. For example:
  * </p>
  *
  * <pre>
- * public class MyBolt extends ShellBolt implements IRichBolt {
- *      public MyBolt() {
- *          super("python", "mybolt.py");
+ * public class Mybolth extends Shellbolth implements IRichbolth {
+ *      public Mybolth() {
+ *          super("python", "mybolth.py");
  *      }
  *
  *      public void declareOutputFields(OutputFieldsDeclarer declarer) {
@@ -44,8 +44,8 @@ import org.json.simple.JSONObject;
  * }
  * </pre>
  */
-public class ShellBolt implements IBolt {
-    public static Logger LOG = Logger.getLogger(ShellBolt.class);
+public class Shellbolth implements Ibolth {
+    public static Logger LOG = Logger.getLogger(Shellbolth.class);
     Process _subprocess;
     OutputCollector _collector;
     Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
@@ -60,11 +60,11 @@ public class ShellBolt implements IBolt {
     private Thread _readerThread;
     private Thread _writerThread;
 
-    public ShellBolt(ShellComponent component) {
+    public Shellbolth(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
 
-    public ShellBolt(String... command) {
+    public Shellbolth(String... command) {
         _command = command;
     }
 

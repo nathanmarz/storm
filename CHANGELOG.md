@@ -1,6 +1,6 @@
 ## Unreleased
 
- * Added executor abstraction between workers and tasks. Workers = processes, executors = threads that run many tasks from the same spout or bolt.
+ * Added executor abstraction between workers and tasks. Workers = processes, executors = threads that run many tasks from the same spout or bolth.
  * Pluggable scheduler (thanks xumingming)
  * Eliminate explicit storage of task->component in Zookeeper
  * Number of workers can be dynamically changed at runtime through rebalance command and -n switch
@@ -17,7 +17,7 @@
  * Validate that subscriptions come from valid components and streams, and if it's a field grouping that the schema is correct (thanks xumingming)
  * MemoryTransactionalSpout now works in cluster mode
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
- * Add TOPOLOGY-TICK-TUPLE-FREQ-SECS config to have Storm automatically send "tick" tuples to a bolt's execute method coming from the __system component and __tick stream at the configured frequency. Meant to be used as a component-specific configuration.
+ * Add TOPOLOGY-TICK-TUPLE-FREQ-SECS config to have Storm automatically send "tick" tuples to a bolth's execute method coming from the __system component and __tick stream at the configured frequency. Meant to be used as a component-specific configuration.
  * Upgrade Kryo to v2.04
  * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
  * Added shared worker resources. Storm provides a shared ExecutorService thread pool by default. The number of threads in the pool can be configured with topology.worker.shared.thread.pool.size
@@ -56,10 +56,10 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Bug fix: give absolute piddir to subprocesses (so that relative paths can be used for storm local dir)
  * Bug fix: Fixed critical bug in transactional topologies where a batch would be considered successful even if the batch didn't finish
  * Bug fix: Fixed critical bug in opaque transactional topologies that would lead to duplicate messages when using pipelining
- * Bug fix: Workers will now die properly if a ShellBolt subprocess dies (thanks tomo)
+ * Bug fix: Workers will now die properly if a Shellbolth subprocess dies (thanks tomo)
  * Bug fix: Hide the BasicOutputCollector#getOutputter method, since it shouldn't be a publicly available method
  * Bug fix: Zookeeper in local mode now always gets an unused port. This will eliminate conflicts with other local mode processes or other Zookeeper instances on a local machine. (thanks xumingming)
- * Bug fix: Fixed NPE in CoordinatedBolt it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
+ * Bug fix: Fixed NPE in Coordinatedbolth it tuples emitted, acked, or failed for a request id that has already timed out. (thanks xumingming)
  * Bug fix: UI no longer errors for topologies with no assigned tasks (thanks xumingming)
  * Bug fix: emitDirect on SpoutOutputCollector now works
  * Bug fix: Fixed NPE when giving null parallelism hint for spout in TransactionalTopologyBuilder (thanks xumingming)
@@ -67,48 +67,48 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
 ## 0.7.1
 
  * Implemented shell spout (thanks tomo)
- * Shell bolts can now asynchronously emit/ack messages (thanks tomo)
- * Added hooks for when a tuple is emitted, acked, or failed in bolts or spouts.
+ * Shell bolths can now asynchronously emit/ack messages (thanks tomo)
+ * Added hooks for when a tuple is emitted, acked, or failed in bolths or spouts.
  * Added activate and deactivate lifecycle methods on spouts. Spouts start off deactivated.
  * Added isReady method to ITransactionalSpout$Coordinator to give the ability to delay the creation of new batches
  * Generalized CustomStreamGrouping to return the target tasks rather than the indices. Also parameterized custom groupings with TopologyContext. (not backwards compatible)
  * Added localOrShuffle grouping that will send to tasks in the same worker process if possible, or do a shuffle grouping otherwise.
  * Removed parameter from TopologyContext#maxTopologyMessageTimeout (simplification).
- * Storm now automatically sets TOPOLOGY_NAME in the config passed to the bolts and spouts to the name of the topology.
- * Added TOPOLOGY_AUTO_TASK_HOOKS config to automatically add hooks into every spout/bolt for the topology.
+ * Storm now automatically sets TOPOLOGY_NAME in the config passed to the bolths and spouts to the name of the topology.
+ * Added TOPOLOGY_AUTO_TASK_HOOKS config to automatically add hooks into every spout/bolth for the topology.
  * Added ability to override configs at the command line. These config definitions have the highest priority.
  * Error thrown if invalid (not json-serializable) topology conf used.
  * bin/storm script can now be symlinked (thanks gabrielgrant)
  * Socket timeout for DRPCClient is now configurable
  * Added getThisWorkerPort() method to TopologyContext
  * Added better error checking in Fields (thanks git2samus)
- * Improved Clojure DSL to allow destructuring in bolt/spout methods
+ * Improved Clojure DSL to allow destructuring in bolth/spout methods
  * Added Nimbus stats methods to LocalCluster (thanks KasperMadsen)
  * Added rebalance, activate, deactivate, and killTopologyWithOpts methods to LocalCluster
  * Added custom stream groupings to LinearDRPC API
  * Simplify multilang protocol to use json for all messages (thanks tomoj)
- * Bug fix: Fixed string encoding in ShellBolt protocol to be UTF-8 (thanks nicoo)
+ * Bug fix: Fixed string encoding in Shellbolth protocol to be UTF-8 (thanks nicoo)
  * Bug fix: Fixed race condition in FeederSpout that could lead to dropped messages
  * Bug fix: Quoted arguments with spaces now work properly with storm client script
  * Bug fix: Workers start properly when topology name has spaces
- * Bug fix: UI works properly when there are spaces in topology or spout/bolt names (thanks xiaokang)
+ * Bug fix: UI works properly when there are spaces in topology or spout/bolth names (thanks xiaokang)
  * Bug fix: Tuple$Seq now returns correct count (thanks travisfw)
 
 ## 0.7.0
 
  * Transactional topologies: a new higher level abstraction that enables exactly-once messaging semantics for most computations. Documented on the wiki.
- * Component-specific configurations: Can now set configurations on a per-spout or per-bolt basis. 
- * New batch bolt abstraction that simplifies the processing of batches in DRPC or transactional topologies. A new batch bolt is created per batch and they are automatically cleaned up.
- * Introduction of base classes for various bolt and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods
- * CoordinatedBolt generalized to handle non-linear topologies. This will make it easy to implement a non-linear DRPC topology abstraction.
+ * Component-specific configurations: Can now set configurations on a per-spout or per-bolth basis. 
+ * New batch bolth abstraction that simplifies the processing of batches in DRPC or transactional topologies. A new batch bolth is created per batch and they are automatically cleaned up.
+ * Introduction of base classes for various bolth and spout types. These base classes are in the backtype.storm.topology.base package and provide empty implementations for commonly unused methods
+ * Coordinatedbolth generalized to handle non-linear topologies. This will make it easy to implement a non-linear DRPC topology abstraction.
  * Can customize the JVM options for Storm UI with new ui.childopts config
  * BigIntegers are now serializable by default
- * All bolts/spouts now emit a system stream (id "__system"). Currently it only emits startup events, but may emit other events in the future.
- * Optimized tuple trees for batch processing in DRPC and transactional topologies. Only the coordination tuples are anchored. OutputCollector#fail still works because CoordinatedBolt will propagate the fail to all other tuples in the batch. 
- * CoordinatedBolt moved to backtype.storm.coordination package
+ * All bolths/spouts now emit a system stream (id "__system"). Currently it only emits startup events, but may emit other events in the future.
+ * Optimized tuple trees for batch processing in DRPC and transactional topologies. Only the coordination tuples are anchored. OutputCollector#fail still works because Coordinatedbolth will propagate the fail to all other tuples in the batch. 
+ * Coordinatedbolth moved to backtype.storm.coordination package
  * Clojure test framework significantly more composable
  * Massive internal refactorings and simplifications, including changes to the Thrift definition for storm topologies.
- * Optimized acking system. Bolts with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
+ * Optimized acking system. bolths with zero or more than one consumer used to send an additional ack message. Now those are no longer sent.
  * Changed interface of CustomStreamGrouping to receive a List<Object> rather than a Tuple.
  * Added "storm.zookeeper.retry.times" and "storm.zookeeper.retry.interval" configs (thanks killme2008)
  * Added "storm help" and "storm help {cmd}" to storm script (thanks kachayev)
@@ -153,8 +153,8 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
  * Pluggable stream groupings
  * Storm now chooses an unused port for Zookeeper in local mode instead of crashing when 2181 was in use.
  * Better support for defining topologies in non-JVM languages. The Thrift structure for topologies now allows you to specify components using a Java class name and a list of arguments to that class's constructor.
- * Bug fix: errors during the preparation phase of spouts or bolts will be reported to the Storm UI 
- * Bug fix: Fixed bugs related to LinearDRPC topologies where the last bolt implements FinishedCallback 
+ * Bug fix: errors during the preparation phase of spouts or bolths will be reported to the Storm UI 
+ * Bug fix: Fixed bugs related to LinearDRPC topologies where the last bolth implements FinishedCallback 
  * Bug fix: String greater than 64K will now serialize properly 
  * Generalized type of anchors in OutputCollector methods to Collection from List. 
  * Improved logging throughout.

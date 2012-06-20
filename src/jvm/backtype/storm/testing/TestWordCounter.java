@@ -1,6 +1,6 @@
 package backtype.storm.testing;
 
-import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.base.BaseBasicbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Fields;
@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
 import static backtype.storm.utils.Utils.tuple;
 
 
-public class TestWordCounter extends BaseBasicBolt {
+public class TestWordCounter extends BaseBasicbolth {
     public static Logger LOG = Logger.getLogger(TestWordCounter.class);
 
     Map<String, Integer> _counts;

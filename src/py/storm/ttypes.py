@@ -939,21 +939,21 @@ class SpoutSpec:
   def __ne__(self, other):
     return not (self == other)
 
-class Bolt:
+class bolth:
   """
   Attributes:
-   - bolt_object
+   - bolth_object
    - common
   """
 
   thrift_spec = (
     None, # 0
-    (1, TType.STRUCT, 'bolt_object', (ComponentObject, ComponentObject.thrift_spec), None, ), # 1
+    (1, TType.STRUCT, 'bolth_object', (ComponentObject, ComponentObject.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'common', (ComponentCommon, ComponentCommon.thrift_spec), None, ), # 2
   )
 
-  def __init__(self, bolt_object=None, common=None,):
-    self.bolt_object = bolt_object
+  def __init__(self, bolth_object=None, common=None,):
+    self.bolth_object = bolth_object
     self.common = common
 
   def read(self, iprot):
@@ -967,8 +967,8 @@ class Bolt:
         break
       if fid == 1:
         if ftype == TType.STRUCT:
-          self.bolt_object = ComponentObject()
-          self.bolt_object.read(iprot)
+          self.bolth_object = ComponentObject()
+          self.bolth_object.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -986,10 +986,10 @@ class Bolt:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('Bolt')
-    if self.bolt_object is not None:
-      oprot.writeFieldBegin('bolt_object', TType.STRUCT, 1)
-      self.bolt_object.write(oprot)
+    oprot.writeStructBegin('bolth')
+    if self.bolth_object is not None:
+      oprot.writeFieldBegin('bolth_object', TType.STRUCT, 1)
+      self.bolth_object.write(oprot)
       oprot.writeFieldEnd()
     if self.common is not None:
       oprot.writeFieldBegin('common', TType.STRUCT, 2)
@@ -999,8 +999,8 @@ class Bolt:
     oprot.writeStructEnd()
 
   def validate(self):
-    if self.bolt_object is None:
-      raise TProtocol.TProtocolException(message='Required field bolt_object is unset!')
+    if self.bolth_object is None:
+      raise TProtocol.TProtocolException(message='Required field bolth_object is unset!')
     if self.common is None:
       raise TProtocol.TProtocolException(message='Required field common is unset!')
     return
@@ -1099,20 +1099,20 @@ class StormTopology:
   """
   Attributes:
    - spouts
-   - bolts
+   - bolths
    - state_spouts
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.MAP, 'spouts', (TType.STRING,None,TType.STRUCT,(SpoutSpec, SpoutSpec.thrift_spec)), None, ), # 1
-    (2, TType.MAP, 'bolts', (TType.STRING,None,TType.STRUCT,(Bolt, Bolt.thrift_spec)), None, ), # 2
+    (2, TType.MAP, 'bolths', (TType.STRING,None,TType.STRUCT,(bolth, bolth.thrift_spec)), None, ), # 2
     (3, TType.MAP, 'state_spouts', (TType.STRING,None,TType.STRUCT,(StateSpoutSpec, StateSpoutSpec.thrift_spec)), None, ), # 3
   )
 
-  def __init__(self, spouts=None, bolts=None, state_spouts=None,):
+  def __init__(self, spouts=None, bolths=None, state_spouts=None,):
     self.spouts = spouts
-    self.bolts = bolts
+    self.bolths = bolths
     self.state_spouts = state_spouts
 
   def read(self, iprot):
@@ -1138,13 +1138,13 @@ class StormTopology:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.MAP:
-          self.bolts = {}
+          self.bolths = {}
           (_ktype47, _vtype48, _size46 ) = iprot.readMapBegin() 
           for _i50 in xrange(_size46):
             _key51 = iprot.readString().decode('utf-8')
-            _val52 = Bolt()
+            _val52 = bolth()
             _val52.read(iprot)
-            self.bolts[_key51] = _val52
+            self.bolths[_key51] = _val52
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -1178,10 +1178,10 @@ class StormTopology:
         viter61.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
-    if self.bolts is not None:
-      oprot.writeFieldBegin('bolts', TType.MAP, 2)
-      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.bolts))
-      for kiter62,viter63 in self.bolts.items():
+    if self.bolths is not None:
+      oprot.writeFieldBegin('bolths', TType.MAP, 2)
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.bolths))
+      for kiter62,viter63 in self.bolths.items():
         oprot.writeString(kiter62.encode('utf-8'))
         viter63.write(oprot)
       oprot.writeMapEnd()
@@ -1200,8 +1200,8 @@ class StormTopology:
   def validate(self):
     if self.spouts is None:
       raise TProtocol.TProtocolException(message='Required field spouts is unset!')
-    if self.bolts is None:
-      raise TProtocol.TProtocolException(message='Required field bolts is unset!')
+    if self.bolths is None:
+      raise TProtocol.TProtocolException(message='Required field bolths is unset!')
     if self.state_spouts is None:
       raise TProtocol.TProtocolException(message='Required field state_spouts is unset!')
     return
@@ -1847,7 +1847,7 @@ class ErrorInfo:
   def __ne__(self, other):
     return not (self == other)
 
-class BoltStats:
+class bolthStats:
   """
   Attributes:
    - acked
@@ -1939,7 +1939,7 @@ class BoltStats:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('BoltStats')
+    oprot.writeStructBegin('bolthStats')
     if self.acked is not None:
       oprot.writeFieldBegin('acked', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.MAP, len(self.acked))
@@ -2153,18 +2153,18 @@ class SpoutStats:
 class ExecutorSpecificStats:
   """
   Attributes:
-   - bolt
+   - bolth
    - spout
   """
 
   thrift_spec = (
     None, # 0
-    (1, TType.STRUCT, 'bolt', (BoltStats, BoltStats.thrift_spec), None, ), # 1
+    (1, TType.STRUCT, 'bolth', (bolthStats, bolthStats.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'spout', (SpoutStats, SpoutStats.thrift_spec), None, ), # 2
   )
 
-  def __init__(self, bolt=None, spout=None,):
-    self.bolt = bolt
+  def __init__(self, bolth=None, spout=None,):
+    self.bolth = bolth
     self.spout = spout
 
   def read(self, iprot):
@@ -2178,8 +2178,8 @@ class ExecutorSpecificStats:
         break
       if fid == 1:
         if ftype == TType.STRUCT:
-          self.bolt = BoltStats()
-          self.bolt.read(iprot)
+          self.bolth = bolthStats()
+          self.bolth.read(iprot)
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -2198,9 +2198,9 @@ class ExecutorSpecificStats:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('ExecutorSpecificStats')
-    if self.bolt is not None:
-      oprot.writeFieldBegin('bolt', TType.STRUCT, 1)
-      self.bolt.write(oprot)
+    if self.bolth is not None:
+      oprot.writeFieldBegin('bolth', TType.STRUCT, 1)
+      self.bolth.write(oprot)
       oprot.writeFieldEnd()
     if self.spout is not None:
       oprot.writeFieldBegin('spout', TType.STRUCT, 2)

@@ -10,7 +10,7 @@ import backtype.storm.generated.Grouping;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -30,8 +30,8 @@ import static backtype.storm.utils.Utils.get;
  * Coordination requires the request ids to be globally unique for awhile. This is so it doesn't get confused
  * in the case of retries.
  */
-public class CoordinatedBolt implements IRichBolt {
-    public static Logger LOG = Logger.getLogger(CoordinatedBolt.class);
+public class Coordinatedbolth implements IRichbolth {
+    public static Logger LOG = Logger.getLogger(Coordinatedbolth.class);
 
     public static interface FinishedCallback {
         void finishedId(Object id);
@@ -128,7 +128,7 @@ public class CoordinatedBolt implements IRichBolt {
 
     private Map<String, SourceArgs> _sourceArgs;
     private IdStreamSpec _idStreamSpec;
-    private IRichBolt _delegate;
+    private IRichbolth _delegate;
     private Integer _numSourceReports;
     private List<Integer> _countOutTasks = new ArrayList<Integer>();;
     private OutputCollector _collector;
@@ -171,15 +171,15 @@ public class CoordinatedBolt implements IRichBolt {
         }
     }
     
-    public CoordinatedBolt(IRichBolt delegate) {
+    public Coordinatedbolth(IRichbolth delegate) {
         this(delegate, null, null);
     }
 
-    public CoordinatedBolt(IRichBolt delegate, String sourceComponent, SourceArgs sourceArgs, IdStreamSpec idStreamSpec) {
+    public Coordinatedbolth(IRichbolth delegate, String sourceComponent, SourceArgs sourceArgs, IdStreamSpec idStreamSpec) {
         this(delegate, singleSourceArgs(sourceComponent, sourceArgs), idStreamSpec);
     }
     
-    public CoordinatedBolt(IRichBolt delegate, Map<String, SourceArgs> sourceArgs, IdStreamSpec idStreamSpec) {
+    public Coordinatedbolth(IRichbolth delegate, Map<String, SourceArgs> sourceArgs, IdStreamSpec idStreamSpec) {
         _sourceArgs = sourceArgs;
         if(_sourceArgs==null) _sourceArgs = new HashMap<String, SourceArgs>();
         _delegate = delegate;

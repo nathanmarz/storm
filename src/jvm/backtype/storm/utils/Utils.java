@@ -242,8 +242,8 @@ public class Utils {
         if(topology.get_spouts().containsKey(id)) {
             return topology.get_spouts().get(id).get_common();
         }
-        if(topology.get_bolts().containsKey(id)) {
-            return topology.get_bolts().get(id).get_common();
+        if(topology.get_bolths().containsKey(id)) {
+            return topology.get_bolths().get(id).get_common();
         }
         if(topology.get_state_spouts().containsKey(id)) {
             return topology.get_state_spouts().get(id).get_common();

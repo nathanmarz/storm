@@ -3,10 +3,10 @@
   (:import [backtype.storm StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.task OutputCollector IBolt TopologyContext])
+  (:import [backtype.storm.task OutputCollector Ibolth TopologyContext])
   (:import [backtype.storm.spout SpoutOutputCollector ISpout])
   (:import [backtype.storm.utils Utils])
-  (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
+  (:import [backtype.storm.clojure Clojurebolth ClojureSpout])
   (:import [java.util List])
   (:require [backtype.storm [thrift :as thrift]]))
 
@@ -18,11 +18,11 @@
   (let [m (meta avar)]
     [(str (:ns m)) (str (:name m))]))
 
-(defn clojure-bolt* [output-spec fn-var conf-fn-var args]
-  (ClojureBolt. (to-spec fn-var) (to-spec conf-fn-var) args (thrift/mk-output-spec output-spec)))
+(defn clojure-bolth* [output-spec fn-var conf-fn-var args]
+  (Clojurebolth. (to-spec fn-var) (to-spec conf-fn-var) args (thrift/mk-output-spec output-spec)))
 
-(defmacro clojure-bolt [output-spec fn-sym conf-fn-sym args]
-  `(clojure-bolt* ~output-spec (var ~fn-sym) (var ~conf-fn-sym) ~args))
+(defmacro clojure-bolth [output-spec fn-sym conf-fn-sym args]
+  `(clojure-bolth* ~output-spec (var ~fn-sym) (var ~conf-fn-sym) ~args))
 
 (defn clojure-spout* [output-spec fn-var conf-var args]
   (let [m (meta fn-var)]
@@ -41,15 +41,15 @@
     (concat [name args] impl)
     ))
 
-(defmacro bolt [& body]
-  (let [[bolt-fns other-fns] (split-with #(not (symbol? %)) body)
-        fns (normalize-fns bolt-fns)]
-    `(reify IBolt
+(defmacro bolth [& body]
+  (let [[bolth-fns other-fns] (split-with #(not (symbol? %)) body)
+        fns (normalize-fns bolth-fns)]
+    `(reify Ibolth
        ~@fns
        ~@other-fns)))
 
-(defmacro bolt-execute [& body]
-  `(bolt
+(defmacro bolth-execute [& body]
+  `(bolth
      (~'execute ~@body)))
 
 (defmacro spout [& body]
@@ -59,9 +59,9 @@
        ~@fns
        ~@other-fns)))
 
-(defmacro defbolt [name output-spec & [opts & impl :as all]]
+(defmacro defbolth [name output-spec & [opts & impl :as all]]
   (if-not (map? opts)
-    `(defbolt ~name ~output-spec {} ~@all)
+    `(defbolth ~name ~output-spec {} ~@all)
     (let [worker-name (symbol (str name "__"))
           conf-fn-name (symbol (str name "__conf__"))
           params (:params opts)
@@ -72,12 +72,12 @@
                           coll-sym (nth args 1)
                           args (vec (take 1 args))
                           prepargs [(gensym "conf") (gensym "context") coll-sym]]
-                      `(fn ~prepargs (bolt (~'execute ~args ~@impl-body)))))
+                      `(fn ~prepargs (bolth (~'execute ~args ~@impl-body)))))
           definer (if params
                     `(defn ~name [& args#]
-                       (clojure-bolt ~output-spec ~worker-name ~conf-fn-name args#))
+                       (clojure-bolth ~output-spec ~worker-name ~conf-fn-name args#))
                     `(def ~name
-                       (clojure-bolt ~output-spec ~worker-name ~conf-fn-name []))
+                       (clojure-bolth ~output-spec ~worker-name ~conf-fn-name []))
                     )
           ]
       `(do
@@ -138,14 +138,14 @@
   (tuple-values [this collector stream]
     this))
 
-(defnk emit-bolt! [collector values
+(defnk emit-bolth! [collector values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]
   (let [^List anchor (collectify anchor)
         values (tuple-values values collector stream) ]
     (.emit ^OutputCollector (:output-collector collector) stream anchor values)
     ))
 
-(defnk emit-direct-bolt! [collector task values
+(defnk emit-direct-bolth! [collector task values
                           :stream Utils/DEFAULT_STREAM_ID :anchor []]
   (let [^List anchor (collectify anchor)
         values (tuple-values values collector stream) ]
@@ -169,9 +169,9 @@
     (.emitDirect ^SpoutOutputCollector (:output-collector collector) task stream values id)))
 
 (defalias topology thrift/mk-topology)
-(defalias bolt-spec thrift/mk-bolt-spec)
+(defalias bolth-spec thrift/mk-bolth-spec)
 (defalias spout-spec thrift/mk-spout-spec)
-(defalias shell-bolt-spec thrift/mk-shell-bolt-spec)
+(defalias shell-bolth-spec thrift/mk-shell-bolth-spec)
 (defalias shell-spout-spec thrift/mk-shell-spout-spec)
 
 (defn submit-remote-topology [name conf topology]

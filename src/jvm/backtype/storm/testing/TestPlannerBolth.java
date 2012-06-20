@@ -6,10 +6,10 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Fields;
 import java.util.Map;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.topology.base.BaseRichbolth;
 
 
-public class TestPlannerBolt extends BaseRichBolt {
+public class TestPlannerbolth extends BaseRichbolth {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
 
     }

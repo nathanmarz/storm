@@ -2,20 +2,20 @@ package backtype.storm.drpc;
 
 import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
-import backtype.storm.coordination.BatchBoltExecutor;
-import backtype.storm.coordination.CoordinatedBolt;
-import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
-import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
-import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
-import backtype.storm.coordination.IBatchBolt;
+import backtype.storm.coordination.BatchbolthExecutor;
+import backtype.storm.coordination.Coordinatedbolth;
+import backtype.storm.coordination.Coordinatedbolth.FinishedCallback;
+import backtype.storm.coordination.Coordinatedbolth.IdStreamSpec;
+import backtype.storm.coordination.Coordinatedbolth.SourceArgs;
+import backtype.storm.coordination.IBatchbolth;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
-import backtype.storm.topology.BasicBoltExecutor;
-import backtype.storm.topology.BoltDeclarer;
-import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.BasicbolthExecutor;
+import backtype.storm.topology.bolthDeclarer;
+import backtype.storm.topology.IBasicbolth;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.InputDeclarer;
 import backtype.storm.topology.OutputFieldsGetter;
 import backtype.storm.topology.TopologyBuilder;
@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.Map;
 
 
-// need a "final bolt" method, that does fields groupings based on the first field of previous streams.
-// preparerequest needs to emit to a special stream to indicate which task in the last bolt is responsible for that id?
-// -- what if it's shuffle grouping all the way through? need to enforce that last bolt do fields grouping on id...
+// need a "final bolth" method, that does fields groupings based on the first field of previous streams.
+// preparerequest needs to emit to a special stream to indicate which task in the last bolth is responsible for that id?
+// -- what if it's shuffle grouping all the way through? need to enforce that last bolth do fields grouping on id...
 public class LinearDRPCTopologyBuilder {    
     String _function;
     List<Component> _components = new ArrayList<Component>();
@@ -38,33 +38,33 @@ public class LinearDRPCTopologyBuilder {
         _function = function;
     }
         
-    public LinearDRPCInputDeclarer addBolt(IBatchBolt bolt, Number parallelism) {
-        return addBolt(new BatchBoltExecutor(bolt), parallelism);
+    public LinearDRPCInputDeclarer addbolth(IBatchbolth bolth, Number parallelism) {
+        return addbolth(new BatchbolthExecutor(bolth), parallelism);
     }
     
-    public LinearDRPCInputDeclarer addBolt(IBatchBolt bolt) {
-        return addBolt(bolt, 1);
+    public LinearDRPCInputDeclarer addbolth(IBatchbolth bolth) {
+        return addbolth(bolth, 1);
     }
     
     @Deprecated
-    public LinearDRPCInputDeclarer addBolt(IRichBolt bolt, Number parallelism) {
+    public LinearDRPCInputDeclarer addbolth(IRichbolth bolth, Number parallelism) {
         if(parallelism==null) parallelism = 1; 
-        Component component = new Component(bolt, parallelism.intValue());
+        Component component = new Component(bolth, parallelism.intValue());
         _components.add(component);
         return new InputDeclarerImpl(component);
     }
     
     @Deprecated
-    public LinearDRPCInputDeclarer addBolt(IRichBolt bolt) {
-        return addBolt(bolt, null);
+    public LinearDRPCInputDeclarer addbolth(IRichbolth bolth) {
+        return addbolth(bolth, null);
     }
     
-    public LinearDRPCInputDeclarer addBolt(IBasicBolt bolt, Number parallelism) {
-        return addBolt(new BasicBoltExecutor(bolt), parallelism);
+    public LinearDRPCInputDeclarer addbolth(IBasicbolth bolth, Number parallelism) {
+        return addbolth(new BasicbolthExecutor(bolth), parallelism);
     }
 
-    public LinearDRPCInputDeclarer addBolt(IBasicBolt bolt) {
-        return addBolt(bolt, null);
+    public LinearDRPCInputDeclarer addbolth(IBasicbolth bolth) {
+        return addbolth(bolth, null);
     }
         
     public StormTopology createLocalTopology(ILocalDRPC drpc) {
@@ -82,7 +82,7 @@ public class LinearDRPCTopologyBuilder {
         
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout(SPOUT_ID, spout);
-        builder.setBolt(PREPARE_ID, new PrepareRequest())
+        builder.setbolth(PREPARE_ID, new PrepareRequest())
                 .noneGrouping(SPOUT_ID);
         int i=0;
         for(; i<_components.size();i++) {
@@ -90,17 +90,17 @@ public class LinearDRPCTopologyBuilder {
             
             Map<String, SourceArgs> source = new HashMap<String, SourceArgs>();
             if (i==1) {
-                source.put(boltId(i-1), SourceArgs.single());
+                source.put(bolthId(i-1), SourceArgs.single());
             } else if (i>=2) {
-                source.put(boltId(i-1), SourceArgs.all());
+                source.put(bolthId(i-1), SourceArgs.all());
             }
             IdStreamSpec idSpec = null;
-            if(i==_components.size()-1 && component.bolt instanceof FinishedCallback) {
+            if(i==_components.size()-1 && component.bolth instanceof FinishedCallback) {
                 idSpec = IdStreamSpec.makeDetectSpec(PREPARE_ID, PrepareRequest.ID_STREAM);
             }
-            BoltDeclarer declarer = builder.setBolt(
-                    boltId(i),
-                    new CoordinatedBolt(component.bolt, source, idSpec),
+            bolthDeclarer declarer = builder.setbolth(
+                    bolthId(i),
+                    new Coordinatedbolth(component.bolth, source, idSpec),
                     component.parallelism);
             
             for(Map conf: component.componentConfs) {
@@ -117,23 +117,23 @@ public class LinearDRPCTopologyBuilder {
                 if(i==0) {
                     prevId = PREPARE_ID;
                 } else {
-                    prevId = boltId(i-1);
+                    prevId = bolthId(i-1);
                 }
                 for(InputDeclaration declaration: component.declarations) {
                     declaration.declare(prevId, declarer);
                 }
             }
             if(i>0) {
-                declarer.directGrouping(boltId(i-1), Constants.COORDINATED_STREAM_ID); 
+                declarer.directGrouping(bolthId(i-1), Constants.COORDINATED_STREAM_ID); 
             }
         }
         
-        IRichBolt lastBolt = _components.get(_components.size()-1).bolt;
+        IRichbolth lastbolth = _components.get(_components.size()-1).bolth;
         OutputFieldsGetter getter = new OutputFieldsGetter();
-        lastBolt.declareOutputFields(getter);
+        lastbolth.declareOutputFields(getter);
         Map<String, StreamInfo> streams = getter.getFieldsDeclaration();
         if(streams.size()!=1) {
-            throw new RuntimeException("Must declare exactly one stream from last bolt in LinearDRPCTopology");
+            throw new RuntimeException("Must declare exactly one stream from last bolth in LinearDRPCTopology");
         }
         String outputStream = streams.keySet().iterator().next();
         List<String> fields = streams.get(outputStream).get_output_fields();
@@ -141,27 +141,27 @@ public class LinearDRPCTopologyBuilder {
             throw new RuntimeException("Output stream of last component in LinearDRPCTopology must contain exactly two fields. The first should be the request id, and the second should be the result.");
         }
 
-        builder.setBolt(boltId(i), new JoinResult(PREPARE_ID))
-                .fieldsGrouping(boltId(i-1), outputStream, new Fields(fields.get(0)))
+        builder.setbolth(bolthId(i), new JoinResult(PREPARE_ID))
+                .fieldsGrouping(bolthId(i-1), outputStream, new Fields(fields.get(0)))
                 .fieldsGrouping(PREPARE_ID, PrepareRequest.RETURN_STREAM, new Fields("request"));
         i++;
-        builder.setBolt(boltId(i), new ReturnResults())
-                .noneGrouping(boltId(i-1));
+        builder.setbolth(bolthId(i), new ReturnResults())
+                .noneGrouping(bolthId(i-1));
         return builder.createTopology();
     }
     
-    private static String boltId(int index) {
-        return "bolt" + index;
+    private static String bolthId(int index) {
+        return "bolth" + index;
     }
     
     private static class Component {
-        public IRichBolt bolt;
+        public IRichbolth bolth;
         public int parallelism;
         public List<Map> componentConfs;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
         
-        public Component(IRichBolt bolt, int parallelism) {
-            this.bolt = bolt;
+        public Component(IRichbolth bolth, int parallelism) {
+            this.bolth = bolth;
             this.parallelism = parallelism;
             this.componentConfs = new ArrayList();
         }

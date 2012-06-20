@@ -1,10 +1,10 @@
 require: "storm"
 
-class TesterBolt : Storm Bolt {
+class Testerbolth : Storm bolth {
   def process: tuple {
     emit: [tuple values first + "lalala"]
     ack: tuple
   }
 }
 
-TesterBolt new run
+Testerbolth new run

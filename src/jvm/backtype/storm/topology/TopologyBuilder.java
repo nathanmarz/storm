@@ -1,7 +1,7 @@
 package backtype.storm.topology;
 
 import backtype.storm.Config;
-import backtype.storm.generated.Bolt;
+import backtype.storm.generated.bolth;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.GlobalStreamId;
@@ -29,10 +29,10 @@ import org.json.simple.JSONValue;
  *
  * builder.setSpout("1", new TestWordSpout(true), 5);
  * builder.setSpout("2", new TestWordSpout(true), 3);
- * builder.setBolt("3", new TestWordCounter(), 3)
+ * builder.setbolth("3", new TestWordCounter(), 3)
  *          .fieldsGrouping("1", new Fields("word"))
  *          .fieldsGrouping("2", new Fields("word"));
- * builder.setBolt("4", new TestGlobalCount())
+ * builder.setbolth("4", new TestGlobalCount())
  *          .globalGrouping("1");
  *
  * Map conf = new HashMap();
@@ -50,10 +50,10 @@ import org.json.simple.JSONValue;
  *
  * builder.setSpout("1", new TestWordSpout(true), 5);
  * builder.setSpout("2", new TestWordSpout(true), 3);
- * builder.setBolt("3", new TestWordCounter(), 3)
+ * builder.setbolth("3", new TestWordCounter(), 3)
  *          .fieldsGrouping("1", new Fields("word"))
  *          .fieldsGrouping("2", new Fields("word"));
- * builder.setBolt("4", new TestGlobalCount())
+ * builder.setbolth("4", new TestGlobalCount())
  *          .globalGrouping("1");
  *
  * Map conf = new HashMap();
@@ -67,11 +67,11 @@ import org.json.simple.JSONValue;
  * </pre>
  *
  * <p>The pattern for TopologyBuilder is to map component ids to components using the setSpout
- * and setBolt methods. Those methods return objects that are then used to declare
+ * and setbolth methods. Those methods return objects that are then used to declare
  * the inputs for that component.</p>
  */
 public class TopologyBuilder {
-    private Map<String, IRichBolt> _bolts = new HashMap<String, IRichBolt>();
+    private Map<String, IRichbolth> _bolths = new HashMap<String, IRichbolth>();
     private Map<String, IRichSpout> _spouts = new HashMap<String, IRichSpout>();
     private Map<String, ComponentCommon> _commons = new HashMap<String, ComponentCommon>();
 
@@ -81,12 +81,12 @@ public class TopologyBuilder {
     
     
     public StormTopology createTopology() {
-        Map<String, Bolt> boltSpecs = new HashMap<String, Bolt>();
+        Map<String, bolth> bolthSpecs = new HashMap<String, bolth>();
         Map<String, SpoutSpec> spoutSpecs = new HashMap<String, SpoutSpec>();
-        for(String boltId: _bolts.keySet()) {
-            IRichBolt bolt = _bolts.get(boltId);
-            ComponentCommon common = getComponentCommon(boltId, bolt);
-            boltSpecs.put(boltId, new Bolt(ComponentObject.serialized_java(Utils.serialize(bolt)), common));
+        for(String bolthId: _bolths.keySet()) {
+            IRichbolth bolth = _bolths.get(bolthId);
+            ComponentCommon common = getComponentCommon(bolthId, bolth);
+            bolthSpecs.put(bolthId, new bolth(ComponentObject.serialized_java(Utils.serialize(bolth)), common));
         }
         for(String spoutId: _spouts.keySet()) {
             IRichSpout spout = _spouts.get(spoutId);
@@ -95,63 +95,63 @@ public class TopologyBuilder {
             
         }
         return new StormTopology(spoutSpecs,
-                                 boltSpecs,
+                                 bolthSpecs,
                                  new HashMap<String, StateSpoutSpec>());
     }
 
     /**
-     * Define a new bolt in this topology with parallelism of just one thread.
+     * Define a new bolth in this topology with parallelism of just one thread.
      *
-     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
-     * @param bolt the bolt
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolth's outputs.
+     * @param bolth the bolth
      * @return use the returned object to declare the inputs to this component
      */
-    public BoltDeclarer setBolt(String id, IRichBolt bolt) {
-        return setBolt(id, bolt, null);
+    public bolthDeclarer setbolth(String id, IRichbolth bolth) {
+        return setbolth(id, bolth, null);
     }
 
     /**
-     * Define a new bolt in this topology with the specified amount of parallelism.
+     * Define a new bolth in this topology with the specified amount of parallelism.
      *
-     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
-     * @param bolt the bolt
-     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somewhere around the cluster.
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolth's outputs.
+     * @param bolth the bolth
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolth. Each task will run on a thread in a process somewhere around the cluster.
      * @return use the returned object to declare the inputs to this component
      */
-    public BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelism_hint) {
+    public bolthDeclarer setbolth(String id, IRichbolth bolth, Number parallelism_hint) {
         validateUnusedId(id);
-        initCommon(id, bolt, parallelism_hint);
-        _bolts.put(id, bolt);
-        return new BoltGetter(id);
+        initCommon(id, bolth, parallelism_hint);
+        _bolths.put(id, bolth);
+        return new bolthGetter(id);
     }
 
     /**
-     * Define a new bolt in this topology. This defines a basic bolt, which is a
-     * simpler to use but more restricted kind of bolt. Basic bolts are intended
+     * Define a new bolth in this topology. This defines a basic bolth, which is a
+     * simpler to use but more restricted kind of bolth. Basic bolths are intended
      * for non-aggregation processing and automate the anchoring/acking process to
      * achieve proper reliability in the topology.
      *
-     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
-     * @param bolt the basic bolt
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolth's outputs.
+     * @param bolth the basic bolth
      * @return use the returned object to declare the inputs to this component
      */
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt) {
-        return setBolt(id, bolt, null);
+    public bolthDeclarer setbolth(String id, IBasicbolth bolth) {
+        return setbolth(id, bolth, null);
     }
 
     /**
-     * Define a new bolt in this topology. This defines a basic bolt, which is a
-     * simpler to use but more restricted kind of bolt. Basic bolts are intended
+     * Define a new bolth in this topology. This defines a basic bolth, which is a
+     * simpler to use but more restricted kind of bolth. Basic bolths are intended
      * for non-aggregation processing and automate the anchoring/acking process to
      * achieve proper reliability in the topology.
      *
-     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
-     * @param bolt the basic bolt
-     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolth's outputs.
+     * @param bolth the basic bolth
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolth. Each task will run on a thread in a process somwehere around the cluster.
      * @return use the returned object to declare the inputs to this component
      */
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism_hint) {
-        return setBolt(id, new BasicBoltExecutor(bolt), parallelism_hint);
+    public bolthDeclarer setbolth(String id, IBasicbolth bolth, Number parallelism_hint) {
+        return setbolth(id, new BasicbolthExecutor(bolth), parallelism_hint);
     }
 
     /**
@@ -191,8 +191,8 @@ public class TopologyBuilder {
 
 
     private void validateUnusedId(String id) {
-        if(_bolts.containsKey(id)) {
-            throw new IllegalArgumentException("Bolt has already been declared for id " + id);
+        if(_bolths.containsKey(id)) {
+            throw new IllegalArgumentException("bolth has already been declared for id " + id);
         }
         if(_spouts.containsKey(id)) {
             throw new IllegalArgumentException("Spout has already been declared for id " + id);
@@ -244,87 +244,87 @@ public class TopologyBuilder {
         }        
     }
     
-    protected class BoltGetter extends ConfigGetter<BoltDeclarer> implements BoltDeclarer {
-        private String _boltId;
+    protected class bolthGetter extends ConfigGetter<bolthDeclarer> implements bolthDeclarer {
+        private String _bolthId;
 
-        public BoltGetter(String boltId) {
-            super(boltId);
-            _boltId = boltId;
+        public bolthGetter(String bolthId) {
+            super(bolthId);
+            _bolthId = bolthId;
         }
 
-        public BoltDeclarer fieldsGrouping(String componentId, Fields fields) {
+        public bolthDeclarer fieldsGrouping(String componentId, Fields fields) {
             return fieldsGrouping(componentId, Utils.DEFAULT_STREAM_ID, fields);
         }
 
-        public BoltDeclarer fieldsGrouping(String componentId, String streamId, Fields fields) {
+        public bolthDeclarer fieldsGrouping(String componentId, String streamId, Fields fields) {
             return grouping(componentId, streamId, Grouping.fields(fields.toList()));
         }
 
-        public BoltDeclarer globalGrouping(String componentId) {
+        public bolthDeclarer globalGrouping(String componentId) {
             return globalGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public BoltDeclarer globalGrouping(String componentId, String streamId) {
+        public bolthDeclarer globalGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.fields(new ArrayList<String>()));
         }
 
-        public BoltDeclarer shuffleGrouping(String componentId) {
+        public bolthDeclarer shuffleGrouping(String componentId) {
             return shuffleGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public BoltDeclarer shuffleGrouping(String componentId, String streamId) {
+        public bolthDeclarer shuffleGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.shuffle(new NullStruct()));
         }
 
-        public BoltDeclarer localOrShuffleGrouping(String componentId) {
+        public bolthDeclarer localOrShuffleGrouping(String componentId) {
             return localOrShuffleGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public BoltDeclarer localOrShuffleGrouping(String componentId, String streamId) {
+        public bolthDeclarer localOrShuffleGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.local_or_shuffle(new NullStruct()));
         }
         
-        public BoltDeclarer noneGrouping(String componentId) {
+        public bolthDeclarer noneGrouping(String componentId) {
             return noneGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public BoltDeclarer noneGrouping(String componentId, String streamId) {
+        public bolthDeclarer noneGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.none(new NullStruct()));
         }
 
-        public BoltDeclarer allGrouping(String componentId) {
+        public bolthDeclarer allGrouping(String componentId) {
             return allGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public BoltDeclarer allGrouping(String componentId, String streamId) {
+        public bolthDeclarer allGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.all(new NullStruct()));
         }
 
-        public BoltDeclarer directGrouping(String componentId) {
+        public bolthDeclarer directGrouping(String componentId) {
             return directGrouping(componentId, Utils.DEFAULT_STREAM_ID);
         }
 
-        public BoltDeclarer directGrouping(String componentId, String streamId) {
+        public bolthDeclarer directGrouping(String componentId, String streamId) {
             return grouping(componentId, streamId, Grouping.direct(new NullStruct()));
         }
 
-        private BoltDeclarer grouping(String componentId, String streamId, Grouping grouping) {
-            _commons.get(_boltId).put_to_inputs(new GlobalStreamId(componentId, streamId), grouping);
+        private bolthDeclarer grouping(String componentId, String streamId, Grouping grouping) {
+            _commons.get(_bolthId).put_to_inputs(new GlobalStreamId(componentId, streamId), grouping);
             return this;
         }
 
         @Override
-        public BoltDeclarer customGrouping(String componentId, CustomStreamGrouping grouping) {
+        public bolthDeclarer customGrouping(String componentId, CustomStreamGrouping grouping) {
             return customGrouping(componentId, Utils.DEFAULT_STREAM_ID, grouping);
         }
 
         @Override
-        public BoltDeclarer customGrouping(String componentId, String streamId, CustomStreamGrouping grouping) {
+        public bolthDeclarer customGrouping(String componentId, String streamId, CustomStreamGrouping grouping) {
             return grouping(componentId, streamId, Grouping.custom_serialized(Utils.serialize(grouping)));
         }
 
         @Override
-        public BoltDeclarer grouping(GlobalStreamId id, Grouping grouping) {
+        public bolthDeclarer grouping(GlobalStreamId id, Grouping grouping) {
             return grouping(id.get_componentId(), id.get_streamId(), grouping);
         }        
     }

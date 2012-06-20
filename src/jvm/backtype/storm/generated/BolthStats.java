@@ -21,8 +21,8 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("BoltStats");
+public class bolthStats implements org.apache.thrift7.TBase<bolthStats, bolthStats._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("bolthStats");
 
   private static final org.apache.thrift7.protocol.TField ACKED_FIELD_DESC = new org.apache.thrift7.protocol.TField("acked", org.apache.thrift7.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift7.protocol.TField FAILED_FIELD_DESC = new org.apache.thrift7.protocol.TField("failed", org.apache.thrift7.protocol.TType.MAP, (short)2);
@@ -120,13 +120,13 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
                 new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, GlobalStreamId.class), 
                 new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.DOUBLE)))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(BoltStats.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(bolthStats.class, metaDataMap);
   }
 
-  public BoltStats() {
+  public bolthStats() {
   }
 
-  public BoltStats(
+  public bolthStats(
     Map<String,Map<GlobalStreamId,Long>> acked,
     Map<String,Map<GlobalStreamId,Long>> failed,
     Map<String,Map<GlobalStreamId,Double>> process_ms_avg)
@@ -140,7 +140,7 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public BoltStats(BoltStats other) {
+  public bolthStats(bolthStats other) {
     if (other.is_set_acked()) {
       Map<String,Map<GlobalStreamId,Long>> __this__acked = new HashMap<String,Map<GlobalStreamId,Long>>();
       for (Map.Entry<String, Map<GlobalStreamId,Long>> other_element : other.acked.entrySet()) {
@@ -221,8 +221,8 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
     }
   }
 
-  public BoltStats deepCopy() {
-    return new BoltStats(this);
+  public bolthStats deepCopy() {
+    return new bolthStats(this);
   }
 
   @Override
@@ -399,12 +399,12 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof BoltStats)
-      return this.equals((BoltStats)that);
+    if (that instanceof bolthStats)
+      return this.equals((bolthStats)that);
     return false;
   }
 
-  public boolean equals(BoltStats that) {
+  public boolean equals(bolthStats that) {
     if (that == null)
       return false;
 
@@ -460,13 +460,13 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
     return builder.toHashCode();
   }
 
-  public int compareTo(BoltStats other) {
+  public int compareTo(bolthStats other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    BoltStats typedOther = (BoltStats)other;
+    bolthStats typedOther = (bolthStats)other;
 
     lastComparison = Boolean.valueOf(is_set_acked()).compareTo(typedOther.is_set_acked());
     if (lastComparison != 0) {
@@ -693,7 +693,7 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("BoltStats(");
+    StringBuilder sb = new StringBuilder("bolthStats(");
     boolean first = true;
 
     sb.append("acked:");

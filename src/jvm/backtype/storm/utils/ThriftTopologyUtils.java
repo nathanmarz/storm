@@ -1,6 +1,6 @@
 package backtype.storm.utils;
 
-import backtype.storm.generated.Bolt;
+import backtype.storm.generated.bolth;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
@@ -24,8 +24,8 @@ public class ThriftTopologyUtils {
             Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
             if(componentMap.containsKey(componentId)) {
                 Object component = componentMap.get(componentId);
-                if(component instanceof Bolt) {
-                    return ((Bolt) component).get_common();
+                if(component instanceof bolth) {
+                    return ((bolth) component).get_common();
                 }
                 if(component instanceof SpoutSpec) {
                     return ((SpoutSpec) component).get_common();

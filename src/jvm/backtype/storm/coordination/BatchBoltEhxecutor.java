@@ -1,11 +1,11 @@
 package backtype.storm.coordination;
 
-import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
-import backtype.storm.coordination.CoordinatedBolt.TimeoutCallback;
+import backtype.storm.coordination.Coordinatedbolth.FinishedCallback;
+import backtype.storm.coordination.Coordinatedbolth.TimeoutCallback;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.FailedException;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
@@ -13,17 +13,17 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.log4j.Logger;
 
-public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCallback {
-    public static Logger LOG = Logger.getLogger(BatchBoltExecutor.class);    
+public class BatchbolthExecutor implements IRichbolth, FinishedCallback, TimeoutCallback {
+    public static Logger LOG = Logger.getLogger(BatchbolthExecutor.class);    
 
-    byte[] _boltSer;
-    Map<Object, IBatchBolt> _openTransactions;
+    byte[] _bolthSer;
+    Map<Object, IBatchbolth> _openTransactions;
     Map _conf;
     TopologyContext _context;
     BatchOutputCollectorImpl _collector;
     
-    public BatchBoltExecutor(IBatchBolt bolt) {
-        _boltSer = Utils.serialize(bolt);
+    public BatchbolthExecutor(IBatchbolth bolth) {
+        _bolthSer = Utils.serialize(bolth);
     }
     
     @Override
@@ -31,15 +31,15 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
         _conf = conf;
         _context = context;
         _collector = new BatchOutputCollectorImpl(collector);
-        _openTransactions = new HashMap<Object, IBatchBolt>();
+        _openTransactions = new HashMap<Object, IBatchbolth>();
     }
 
     @Override
     public void execute(Tuple input) {
         Object id = input.getValue(0);
-        IBatchBolt bolt = getBatchBolt(id);
+        IBatchbolth bolth = getBatchbolth(id);
         try {
-             bolt.execute(input);
+             bolth.execute(input);
             _collector.ack(input);
         } catch(FailedException e) {
             LOG.error("Failed to process tuple in batch", e);
@@ -53,9 +53,9 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
 
     @Override
     public void finishedId(Object id) {
-        IBatchBolt bolt = getBatchBolt(id);
+        IBatchbolth bolth = getBatchbolth(id);
         _openTransactions.remove(id);
-        bolt.finishBatch();
+        bolth.finishBatch();
     }
 
     @Override
@@ -66,25 +66,25 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        newTransactionalBolt().declareOutputFields(declarer);
+        newTransactionalbolth().declareOutputFields(declarer);
     }
     
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return newTransactionalBolt().getComponentConfiguration();
+        return newTransactionalbolth().getComponentConfiguration();
     }
     
-    private IBatchBolt getBatchBolt(Object id) {
-        IBatchBolt bolt = _openTransactions.get(id);
-        if(bolt==null) {
-            bolt = newTransactionalBolt();
-            bolt.prepare(_conf, _context, _collector, id);
-            _openTransactions.put(id, bolt);            
+    private IBatchbolth getBatchbolth(Object id) {
+        IBatchbolth bolth = _openTransactions.get(id);
+        if(bolth==null) {
+            bolth = newTransactionalbolth();
+            bolth.prepare(_conf, _context, _collector, id);
+            _openTransactions.put(id, bolth);            
         }
-        return bolt;
+        return bolth;
     }
     
-    private IBatchBolt newTransactionalBolt() {
-        return (IBatchBolt) Utils.deserialize(_boltSer);
+    private IBatchbolth newTransactionalbolth() {
+        return (IBatchbolth) Utils.deserialize(_bolthSer);
     }
 }

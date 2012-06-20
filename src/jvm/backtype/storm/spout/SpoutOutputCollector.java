@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * This output collector exposes the API for emitting tuples from an {@link backtype.storm.topology.IRichSpout}.
  * The main difference between this output collector and {@link OutputCollector}
- * for {@link backtype.storm.topology.IRichBolt} is that spouts can tag messages with ids so that they can be
+ * for {@link backtype.storm.topology.IRichbolth} is that spouts can tag messages with ids so that they can be
  * acked or failed later on. This is the Spout portion of Storm's API to
  * guarantee that each message is fully processed at least once.
  */

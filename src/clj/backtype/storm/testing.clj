@@ -14,9 +14,9 @@
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
-  (:import [backtype.storm.generated GlobalStreamId Bolt])
+  (:import [backtype.storm.generated GlobalStreamId bolth])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
-            TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
+            TupleCapturebolth SpoutTracker bolthTracker NonRichbolthTracker
             TestWordSpout MemoryTransactionalSpout])
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator])
   (:import [backtype.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
@@ -380,17 +380,17 @@
 (defn capture-topology [topology]
   (let [topology (.deepCopy topology)
         spouts (.get_spouts topology)
-        bolts (.get_bolts topology)
+        bolths (.get_bolths topology)
         all-streams (apply concat
                            (for [[id spec] (merge (clojurify-structure spouts)
-                                                  (clojurify-structure bolts))]
+                                                  (clojurify-structure bolths))]
                              (for [[stream info] (.. spec get_common get_streams)]
                                [(GlobalStreamId. id stream) (.is_direct info)])))
-        capturer (TupleCaptureBolt.)]
-    (.set_bolts topology
-                (assoc (clojurify-structure bolts)
+        capturer (TupleCapturebolth.)]
+    (.set_bolths topology
+                (assoc (clojurify-structure bolths)
                   (uuid)
-                  (Bolt.                   
+                  (bolth.                   
                    (serialize-component-object capturer)
                    (mk-plain-component-common (into {} (for [[id direct?] all-streams]
                                                          [id (if direct?
@@ -468,17 +468,17 @@
 (defn ms= [& args]  
   (apply = (map multi-set args)))
 
-(def TRACKER-BOLT-ID "+++tracker-bolt")
+(def TRACKER-bolth-ID "+++tracker-bolth")
 
 ;; TODO:  should override system-topology! and wrap everything there
 (defn mk-tracked-topology
   ([tracked-cluster topology]
      (let [track-id (::track-id tracked-cluster)
            ret (.deepCopy topology)]
-       (dofor [[_ bolt] (.get_bolts ret)
-               :let [obj (deserialized-component-object (.get_bolt_object bolt))]]
-              (.set_bolt_object bolt (serialize-component-object
-                                      (BoltTracker. obj track-id))))
+       (dofor [[_ bolth] (.get_bolths ret)
+               :let [obj (deserialized-component-object (.get_bolth_object bolth))]]
+              (.set_bolth_object bolth (serialize-component-object
+                                      (bolthTracker. obj track-id))))
        (dofor [[_ spout] (.get_spouts ret)
                :let [obj (deserialized-component-object (.get_spout_object spout))]]
               (.set_spout_object spout (serialize-component-object
@@ -510,9 +510,9 @@
                                        (.put "spout-emitted" (AtomicInteger. 0))
                                        (.put "transferred" (AtomicInteger. 0))
                                        (.put "processed" (AtomicInteger. 0))))
-     (with-var-roots [acker/mk-acker-bolt (let [old# acker/mk-acker-bolt]
+     (with-var-roots [acker/mk-acker-bolth (let [old# acker/mk-acker-bolth]
                                             (fn [& args#]
-                                              (NonRichBoltTracker. (apply old# args#) id#)
+                                              (NonRichbolthTracker. (apply old# args#) id#)
                                               ))
                       ;; critical that this particular function is overridden here,
                       ;; since the transferred stat needs to be incremented at the moment

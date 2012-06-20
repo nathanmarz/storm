@@ -30,7 +30,7 @@
 (defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs])
 
 
-;; component->executors is a map from spout/bolt id to number of executors for that component
+;; component->executors is a map from spout/bolth id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
 
 (defrecord SupervisorInfo [time-secs hostname meta scheduler-meta uptime-secs])
@@ -158,22 +158,22 @@
                     (throw (InvalidTopologyException. (str "Component: [" id "] subscribes from stream: [" source-stream-id "] of component [" source-component-id "] with non-existent fields: " diff-fields)))))))))))))
 
 (defn acker-inputs [^StormTopology topology]
-  (let [bolt-ids (.. topology get_bolts keySet)
+  (let [bolth-ids (.. topology get_bolths keySet)
         spout-ids (.. topology get_spouts keySet)
         spout-inputs (apply merge
                             (for [id spout-ids]
                               {[id ACKER-INIT-STREAM-ID] ["id"]}
                               ))
-        bolt-inputs (apply merge
-                           (for [id bolt-ids]
+        bolth-inputs (apply merge
+                           (for [id bolth-ids]
                              {[id ACKER-ACK-STREAM-ID] ["id"]
                               [id ACKER-FAIL-STREAM-ID] ["id"]}
                              ))]
-    (merge spout-inputs bolt-inputs)))
+    (merge spout-inputs bolth-inputs)))
 
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (storm-conf TOPOLOGY-ACKER-EXECUTORS)
-        acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
+        acker-bolth (thrift/mk-bolth-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
@@ -181,8 +181,8 @@
                                          :p num-executors
                                          :conf {TOPOLOGY-TASKS num-executors
                                                 TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
-    (dofor [[_ bolt] (.get_bolts ret)
-            :let [common (.get_common bolt)]]
+    (dofor [[_ bolth] (.get_bolths ret)
+            :let [common (.get_common bolth)]]
            (do
              (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
              (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
@@ -203,7 +203,7 @@
                         (GlobalStreamId. ACKER-COMPONENT-ID ACKER-FAIL-STREAM-ID)
                         (thrift/mk-direct-grouping))
         ))
-    (.put_to_bolts ret "__acker" acker-bolt)
+    (.put_to_bolths ret "__acker" acker-bolth)
     ))
 
 (defn add-system-streams! [^StormTopology topology]

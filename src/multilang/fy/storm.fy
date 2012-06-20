@@ -105,7 +105,7 @@ class Storm {
 
   class Tuple {
     """
-    Tuples are used by storm as principal data component sent between bolts and emitted by spouts.
+    Tuples are used by storm as principal data component sent between bolths and emitted by spouts.
     Contains a unique id, the component, stream and task it came from and the values associated with it.
     """
 
@@ -126,10 +126,10 @@ class Storm {
     }
   }
 
-  class Bolt {
+  class bolth {
     """
-    Bolts represent the actual work processes that receive tuples and
-    emit new @Storm Tuple@s on their output stream (possible consumed by other Bolts).
+    bolths represent the actual work processes that receive tuples and
+    emit new @Storm Tuple@s on their output stream (possible consumed by other bolths).
     """
 
     include: Storm Protocol
@@ -140,7 +140,7 @@ class Storm {
 
     def run {
       """
-      Runs the bolt, causing it to receive messages, perform work defined in @Bolt#run
+      Runs the bolth, causing it to receive messages, perform work defined in @bolth#run
       and possibly emit new messages (@Storm Tuple@s).
       """
 

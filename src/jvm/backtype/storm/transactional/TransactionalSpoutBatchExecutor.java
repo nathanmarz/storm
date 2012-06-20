@@ -4,7 +4,7 @@ import backtype.storm.coordination.BatchOutputCollectorImpl;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.FailedException;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import java.math.BigInteger;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
-public class TransactionalSpoutBatchExecutor implements IRichBolt {
+public class TransactionalSpoutBatchExecutor implements IRichbolth {
     public static Logger LOG = Logger.getLogger(TransactionalSpoutBatchExecutor.class);    
 
     BatchOutputCollectorImpl _collector;

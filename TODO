@@ -39,7 +39,7 @@ Use cases:
 
 * Need integration tests that run on an actual storm cluster (scp code/process code/zookeeper code not tested in unit tests)
 
-* bolts with none grouping can be pushed into a bolt. e.g. A -> B -> C
+* bolths with none grouping can be pushed into a bolth. e.g. A -> B -> C
      A -> D -> E
      
 If A -> B and A -> D are shuffle grouping = none, and B -> C and D -> E are not, then both can be run in A, b's branch goes to C and D's branch goes to E
@@ -80,7 +80,7 @@ Each worker can choose a unique id for itself when heart beating
    --> have a "SubscribedState" class that takes care of indexing/etc. --> expose it through topologycontext?
       -- need a way to distinguish between states of different streams
       -- has "add" and "remove" methods
-      -- bolt can give a statemanager object that implements add and remove in the prepare method
+      -- bolth can give a statemanager object that implements add and remove in the prepare method
       -- add(Tuple tuple)
       -- remove(Tuple tuple)
    --> synchronize protocol (when spout or source of data dies):
@@ -90,7 +90,7 @@ Each worker can choose a unique id for itself when heart beating
       --> tie everything together with a unique ID
       --> once task receives everything, has info needed to remove tuples
    --> statespout should do long-polling with timeout
-   --> to do subscriptions, the state should contain something like [url, subscriber]. some bolt appends subscriber to tuples, group by subscriber, and send info back
+   --> to do subscriptions, the state should contain something like [url, subscriber]. some bolth appends subscriber to tuples, group by subscriber, and send info back
         --> how to to fields grouping with an even distribution?
    -->  ********* tasks need to block on startup until they're synchronized *********
           --> send sync messages in a loop until it's synchronized
@@ -133,7 +133,7 @@ statespout synchronization():
 for synchronization to work, task needs to keep track of which tasks sent it tuples, and compare against only that set on synchronization
 
 Need a way to propogate information back up the topology - "subscriptions"
-e.g. browser -> rocket -> bolt -> bolt -> bolt. 
+e.g. browser -> rocket -> bolth -> bolth -> bolth. 
 
 example: #retweets for a subscribed set of tweet ids
 
@@ -159,9 +159,9 @@ subscriptions: rocket -> count (B) tweet id (need to group) -> spout (need to go
 (def spout (feeder-spout ["word"]))
 (def topology (thrift/mk-topology
                     {1 (thrift/mk-spout-spec spout :parallelism-hint 3)}
-                    {2 (thrift/mk-bolt-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
-                     3 (thrift/mk-bolt-spec {1 :global} (TestGlobalCount.))
-                     4 (thrift/mk-bolt-spec {2 :global} (TestAggregatesCounter.))
+                    {2 (thrift/mk-bolth-spec {1 ["word"]} (TestWordCounter.) :parallelism-hint 4)
+                     3 (thrift/mk-bolth-spec {1 :global} (TestGlobalCount.))
+                     4 (thrift/mk-bolth-spec {2 :global} (TestAggregatesCounter.))
                      }))
 (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 4 TOPOLOGY-DEBUG true} topology)
 

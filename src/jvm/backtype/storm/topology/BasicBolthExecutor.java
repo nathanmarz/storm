@@ -6,30 +6,30 @@ import backtype.storm.tuple.Tuple;
 import java.util.Map;
 import org.apache.log4j.Logger;
 
-public class BasicBoltExecutor implements IRichBolt {
-    public static Logger LOG = Logger.getLogger(BasicBoltExecutor.class);    
+public class BasicbolthExecutor implements IRichbolth {
+    public static Logger LOG = Logger.getLogger(BasicbolthExecutor.class);    
     
-    private IBasicBolt _bolt;
+    private IBasicbolth _bolth;
     private transient BasicOutputCollector _collector;
     
-    public BasicBoltExecutor(IBasicBolt bolt) {
-        _bolt = bolt;
+    public BasicbolthExecutor(IBasicbolth bolth) {
+        _bolth = bolth;
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        _bolt.declareOutputFields(declarer);
+        _bolth.declareOutputFields(declarer);
     }
 
     
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        _bolt.prepare(stormConf, context);
+        _bolth.prepare(stormConf, context);
         _collector = new BasicOutputCollector(collector);
     }
 
     public void execute(Tuple input) {
         _collector.setContext(input);
         try {
-            _bolt.execute(input, _collector);
+            _bolth.execute(input, _collector);
             _collector.getOutputter().ack(input);
         } catch(FailedException e) {
             LOG.warn("Failed to process tuple", e);
@@ -38,10 +38,10 @@ public class BasicBoltExecutor implements IRichBolt {
     }
 
     public void cleanup() {
-        _bolt.cleanup();
+        _bolth.cleanup();
     }
 
     public Map<String, Object> getComponentConfiguration() {
-        return _bolt.getComponentConfiguration();
+        return _bolth.getComponentConfiguration();
     }
 }

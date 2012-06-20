@@ -1,16 +1,16 @@
 package backtype.storm.clojure;
 
 import backtype.storm.generated.StreamInfo;
-import backtype.storm.task.ShellBolt;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.task.Shellbolth;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import java.util.Map;
 
-public class RichShellBolt extends ShellBolt implements IRichBolt {
+public class RichShellbolth extends Shellbolth implements IRichbolth {
     private Map<String, StreamInfo> _outputs;
     
-    public RichShellBolt(String[] command, Map<String, StreamInfo> outputs) {
+    public RichShellbolth(String[] command, Map<String, StreamInfo> outputs) {
         super(command);
         _outputs = outputs;
     }

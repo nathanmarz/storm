@@ -1,7 +1,7 @@
 package backtype.storm.hooks;
 
-import backtype.storm.hooks.info.BoltAckInfo;
-import backtype.storm.hooks.info.BoltFailInfo;
+import backtype.storm.hooks.info.bolthAckInfo;
+import backtype.storm.hooks.info.bolthFailInfo;
 import backtype.storm.hooks.info.EmitInfo;
 import backtype.storm.hooks.info.SpoutAckInfo;
 import backtype.storm.hooks.info.SpoutFailInfo;
@@ -30,10 +30,10 @@ public class BaseTaskHook implements ITaskHook {
     }
 
     @Override
-    public void boltAck(BoltAckInfo info) {
+    public void bolthAck(bolthAckInfo info) {
     }
 
     @Override
-    public void boltFail(BoltFailInfo info) {
+    public void bolthFail(bolthFailInfo info) {
     }
 }

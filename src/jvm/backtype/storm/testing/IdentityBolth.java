@@ -2,14 +2,14 @@ package backtype.storm.testing;
 
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.base.BaseBasicbolth;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
-public class IdentityBolt extends BaseBasicBolt {
+public class Identitybolth extends BaseBasicbolth {
     Fields _fields;
     
-    public IdentityBolt(Fields fields) {
+    public Identitybolth(Fields fields) {
         _fields = fields;
     }
 

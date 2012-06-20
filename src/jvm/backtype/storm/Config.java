@@ -18,7 +18,7 @@ import java.util.Map;
  *
  * <p>Note that you may put other configurations in any of the configs. Storm
  * will ignore anything it doesn't recognize, but your topologies are free to make
- * use of them by reading them in the prepare method of Bolts or the open method of 
+ * use of them by reading them in the prepare method of bolths or the open method of 
  * Spouts. .</p>
  */
 public class Config extends HashMap<String, Object> {
@@ -320,10 +320,10 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_WORKERS = "topology.workers";
 
     /**
-     * How many instances to create for a spout/bolt. A task runs on a thread with zero or more
-     * other tasks for the same spout/bolt. The number of tasks for a spout/bolt is always
+     * How many instances to create for a spout/bolth. A task runs on a thread with zero or more
+     * other tasks for the same spout/bolth. The number of tasks for a spout/bolth is always
      * the same throughout the lifetime of a topology, but the number of executors (threads) for 
-     * a spout/bolt can change over time. This allows a topology to scale to more or less resources 
+     * a spout/bolth can change over time. This allows a topology to scale to more or less resources 
      * without redeploying the topology or violating the constraints of Storm (such as a fields grouping
      * guaranteeing that the same value goes to the same task).
      */
@@ -415,7 +415,7 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
     
     /**
-     * A list of task hooks that are automatically added to every spout and bolt in the topology. An example
+     * A list of task hooks that are automatically added to every spout and bolth in the topology. An example
      * of when you'd do this is to add a hook that integrates with your internal 
      * monitoring system. These hooks are instantiated using the zero-arg constructor.
      */

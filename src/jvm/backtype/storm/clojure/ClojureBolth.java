@@ -1,11 +1,11 @@
 package backtype.storm.clojure;
 
-import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.Coordinatedbolth.FinishedCallback;
 import backtype.storm.generated.StreamInfo;
-import backtype.storm.task.IBolt;
+import backtype.storm.task.Ibolth;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -20,15 +20,15 @@ import java.util.List;
 import java.util.Map;
 
 
-public class ClojureBolt implements IRichBolt, FinishedCallback {
+public class Clojurebolth implements IRichbolth, FinishedCallback {
     Map<String, StreamInfo> _fields;
     List<String> _fnSpec;
     List<String> _confSpec;
     List<Object> _params;
     
-    IBolt _bolt;
+    Ibolth _bolth;
     
-    public ClojureBolt(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
+    public Clojurebolth(List fnSpec, List confSpec, List<Object> params, Map<String, StreamInfo> fields) {
         _fnSpec = fnSpec;
         _confSpec = confSpec;
         _params = params;
@@ -49,10 +49,10 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
                 add(collectorMap);
             }};
             
-            _bolt = (IBolt) preparer.applyTo(RT.seq(args));
+            _bolth = (Ibolth) preparer.applyTo(RT.seq(args));
             //this is kind of unnecessary for clojure
             try {
-                _bolt.prepare(stormConf, context, collector);
+                _bolth.prepare(stormConf, context, collector);
             } catch(AbstractMethodError ame) {
                 
             }
@@ -63,13 +63,13 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
 
     @Override
     public void execute(Tuple input) {
-        _bolt.execute(input);
+        _bolth.execute(input);
     }
 
     @Override
     public void cleanup() {
             try {
-                _bolt.cleanup();
+                _bolth.cleanup();
             } catch(AbstractMethodError ame) {
                 
             }
@@ -85,8 +85,8 @@ public class ClojureBolt implements IRichBolt, FinishedCallback {
 
     @Override
     public void finishedId(Object id) {
-        if(_bolt instanceof FinishedCallback) {
-            ((FinishedCallback) _bolt).finishedId(id);
+        if(_bolth instanceof FinishedCallback) {
+            ((FinishedCallback) _bolth).finishedId(id);
         }
     }
 

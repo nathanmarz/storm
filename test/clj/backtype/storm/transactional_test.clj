@@ -4,9 +4,9 @@
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
-  (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
-            KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
-            IdentityBolt CountingCommitBolt OpaqueMemoryTransactionalSpout])
+  (:import [backtype.storm.testing CountingBatchbolth MemoryTransactionalSpout
+            KeyedCountingBatchbolth KeyedCountingCommitterbolth KeyedSummingBatchbolth
+            Identitybolth CountingCommitbolth OpaqueMemoryTransactionalSpout])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -151,11 +151,11 @@
         (.close coordinator)
         ))))
 
-(defn verify-bolt-and-reset! [expected-map emitted-atom]
+(defn verify-bolth-and-reset! [expected-map emitted-atom]
   (is (= expected-map @emitted-atom))
   (reset! emitted-atom {}))
 
-(defn mk-bolt-capture [capturer]
+(defn mk-bolth-capture [capturer]
   (let [adder (fn [amap key newvalue]
                 (update-in
                  amap
@@ -180,11 +180,11 @@
   (TransactionAttempt. (BigInteger. (str txid)) attempt-id))
 
 
-(defn finish! [bolt id]
-  (.finishedId bolt id))
+(defn finish! [bolth id]
+  (.finishedId bolth id))
 
-(deftest test-batch-bolt
-  (let [bolt (BatchBoltExecutor. (CountingBatchBolt.))
+(deftest test-batch-bolth
+  (let [bolth (BatchbolthExecutor. (CountingBatchbolth.))
         capture-atom (atom {})
         attempt1-1 (mk-attempt 1 1)
         attempt1-2 (mk-attempt 1 2)
@@ -193,32 +193,32 @@
         attempt4 (mk-attempt 4 1)
         attempt5 (mk-attempt 5 1)
         attempt6 (mk-attempt 6 1)]
-    (.prepare bolt {} nil (mk-bolt-capture capture-atom))
+    (.prepare bolth {} nil (mk-bolth-capture capture-atom))
 
 
     ;; test that transactions are independent
     
-    (.execute bolt (test-tuple [attempt1-1]))
-    (.execute bolt (test-tuple [attempt1-1]))
-    (.execute bolt (test-tuple [attempt1-2]))
-    (.execute bolt (test-tuple [attempt2-1]))
-    (.execute bolt (test-tuple [attempt1-1]))
+    (.execute bolth (test-tuple [attempt1-1]))
+    (.execute bolth (test-tuple [attempt1-1]))
+    (.execute bolth (test-tuple [attempt1-2]))
+    (.execute bolth (test-tuple [attempt2-1]))
+    (.execute bolth (test-tuple [attempt1-1]))
     
-    (finish! bolt attempt1-1)
+    (finish! bolth attempt1-1)
 
-    (verify-bolt-and-reset! {:ack [[attempt1-1] [attempt1-1] [attempt1-2]
+    (verify-bolth-and-reset! {:ack [[attempt1-1] [attempt1-1] [attempt1-2]
                                    [attempt2-1] [attempt1-1]]
                              "default" [[attempt1-1 3]]}
                             capture-atom)
 
-    (.execute bolt (test-tuple [attempt1-2]))
-    (finish! bolt attempt2-1)
-    (verify-bolt-and-reset! {:ack [[attempt1-2]]
+    (.execute bolth (test-tuple [attempt1-2]))
+    (finish! bolth attempt2-1)
+    (verify-bolth-and-reset! {:ack [[attempt1-2]]
                              "default" [[attempt2-1 1]]}
                             capture-atom)
 
-    (finish! bolt attempt1-2)
-    (verify-bolt-and-reset! {"default" [[attempt1-2 2]]}
+    (finish! bolth attempt1-2)
+    (verify-bolth-and-reset! {"default" [[attempt1-2 2]]}
                             capture-atom)  
     ))
 
@@ -298,30 +298,30 @@
     ))
 
 ;; puts its collector and tuples into the global state to be used externally
-(defbolt controller-bolt {} {:prepare true :params [state-id]}
+(defbolth controller-bolth {} {:prepare true :params [state-id]}
   [conf context collector]
   (let [{tuples :tuples
          collector-atom :collector} (RegisteredGlobalState/getState state-id)]
     (reset! collector-atom collector)
     (reset! tuples [])
-    (bolt
+    (bolth
      (execute [tuple]
               (swap! tuples conj tuple))
      )))
 
-(defmacro with-controller-bolt [[bolt collector-atom tuples-atom] & body]
+(defmacro with-controller-bolth [[bolth collector-atom tuples-atom] & body]
   `(let [~collector-atom (atom nil)
          ~tuples-atom (atom [])
          id# (RegisteredGlobalState/registerState {:collector ~collector-atom
                                                    :tuples ~tuples-atom})
-         ~bolt (controller-bolt id#)]
+         ~bolth (controller-bolth id#)]
      ~@body
      (RegisteredGlobalState/clearState id#)
     ))
 
 (deftest test-transactional-topology
   (with-tracked-cluster [cluster]
-    (with-controller-bolt [controller collector tuples]
+    (with-controller-bolth [controller collector tuples]
       (letlocals
        (bind data (mk-transactional-source))
        (bind builder (TransactionalTopologyBuilder.
@@ -333,38 +333,38 @@
                       2))
 
        (-> builder
-           (.setBolt "id1" (IdentityBolt. (Fields. ["tx" "word" "amt"])) 3)
+           (.setbolth "id1" (Identitybolth. (Fields. ["tx" "word" "amt"])) 3)
            (.shuffleGrouping "spout"))
 
        (-> builder
-           (.setBolt "id2" (IdentityBolt. (Fields. ["tx" "word" "amt"])) 3)
+           (.setbolth "id2" (Identitybolth. (Fields. ["tx" "word" "amt"])) 3)
            (.shuffleGrouping "spout"))
 
        (-> builder
-           (.setBolt "global" (CountingBatchBolt.) 1)
+           (.setbolth "global" (CountingBatchbolth.) 1)
            (.globalGrouping "spout"))
 
        (-> builder
-           (.setBolt "gcommit" (CountingCommitBolt.) 1)
+           (.setbolth "gcommit" (CountingCommitbolth.) 1)
            (.globalGrouping "spout"))
        
        (-> builder
-           (.setBolt "sum" (KeyedSummingBatchBolt.) 2)
+           (.setbolth "sum" (KeyedSummingBatchbolth.) 2)
            (.fieldsGrouping "id1" (Fields. ["word"])))
 
        (-> builder
-           (.setCommitterBolt "count" (KeyedCountingBatchBolt.) 2)
+           (.setCommitterbolth "count" (KeyedCountingBatchbolth.) 2)
            (.fieldsGrouping "id2" (Fields. ["word"])))
 
        (-> builder
-           (.setBolt "count2" (KeyedCountingCommitterBolt.) 3)
+           (.setbolth "count2" (KeyedCountingCommitterbolth.) 3)
            (.fieldsGrouping "sum" (Fields. ["key"]))
            (.fieldsGrouping "count" (Fields. ["key"])))
 
        (bind builder (.buildTopologyBuilder builder))
        
        (-> builder
-           (.setBolt "controller" controller 1)
+           (.setbolth "controller" controller 1)
            (.directGrouping "count2" Constants/COORDINATED_STREAM_ID)
            (.directGrouping "sum" Constants/COORDINATED_STREAM_ID))
 
@@ -564,7 +564,7 @@
                     2))
 
      (-> builder
-         (.setBolt "count" (CountingCommitBolt.) 2)
+         (.setbolth "count" (CountingCommitbolth.) 2)
          (.globalGrouping "spout"))
 
      (add-transactional-data data
@@ -601,7 +601,7 @@
 
 (deftest test-opaque-transactional-topology
   (with-tracked-cluster [cluster]
-    (with-controller-bolt [controller collector tuples]
+    (with-controller-bolth [controller collector tuples]
       (letlocals
        (bind data (mk-transactional-source))
        (bind builder (TransactionalTopologyBuilder.
@@ -613,13 +613,13 @@
                       2))
 
        (-> builder
-           (.setCommitterBolt "count" (KeyedCountingBatchBolt.) 2)
+           (.setCommitterbolth "count" (KeyedCountingBatchbolth.) 2)
            (.fieldsGrouping "spout" (Fields. ["word"])))
 
        (bind builder (.buildTopologyBuilder builder))
        
        (-> builder
-           (.setBolt "controller" controller 1)
+           (.setbolth "controller" controller 1)
            (.directGrouping "spout" Constants/COORDINATED_STREAM_ID)
            (.directGrouping "count" Constants/COORDINATED_STREAM_ID))
 

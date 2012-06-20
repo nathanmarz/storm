@@ -3,7 +3,7 @@ package backtype.storm.drpc;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.base.BaseBasicbolth;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -12,7 +12,7 @@ import java.util.Random;
 import backtype.storm.utils.Utils;
 
 
-public class PrepareRequest extends BaseBasicBolt {
+public class PrepareRequest extends BaseBasicbolth {
     public static final String ARGS_STREAM = Utils.DEFAULT_STREAM_ID;
     public static final String RETURN_STREAM = "ret";
     public static final String ID_STREAM = "id";

@@ -1,11 +1,11 @@
 package backtype.storm.drpc;
 
-import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.Coordinatedbolth.FinishedCallback;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.BasicBoltExecutor;
-import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.BasicbolthExecutor;
+import backtype.storm.topology.IBasicbolth;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.KeyedRoundRobinQueue;
@@ -13,18 +13,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class KeyedFairBolt implements IRichBolt, FinishedCallback {
-    IRichBolt _delegate;
+public class KeyedFairbolth implements IRichbolth, FinishedCallback {
+    IRichbolth _delegate;
     KeyedRoundRobinQueue<Tuple> _rrQueue;
     Thread _executor;
     FinishedCallback _callback;
 
-    public KeyedFairBolt(IRichBolt delegate) {
+    public KeyedFairbolth(IRichbolth delegate) {
         _delegate = delegate;
     }
     
-    public KeyedFairBolt(IBasicBolt delegate) {
-        this(new BasicBoltExecutor(delegate));
+    public KeyedFairbolth(IBasicbolth delegate) {
+        this(new BasicbolthExecutor(delegate));
     }
     
     

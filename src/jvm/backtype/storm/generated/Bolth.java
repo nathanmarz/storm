@@ -21,18 +21,18 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("Bolt");
+public class bolth implements org.apache.thrift7.TBase<bolth, bolth._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("bolth");
 
-  private static final org.apache.thrift7.protocol.TField BOLT_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt_object", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift7.protocol.TField bolth_OBJECT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolth_object", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
   private static final org.apache.thrift7.protocol.TField COMMON_FIELD_DESC = new org.apache.thrift7.protocol.TField("common", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
-  private ComponentObject bolt_object; // required
+  private ComponentObject bolth_object; // required
   private ComponentCommon common; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    BOLT_OBJECT((short)1, "bolt_object"),
+    bolth_OBJECT((short)1, "bolth_object"),
     COMMON((short)2, "common");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -48,8 +48,8 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // BOLT_OBJECT
-          return BOLT_OBJECT;
+        case 1: // bolth_OBJECT
+          return bolth_OBJECT;
         case 2: // COMMON
           return COMMON;
         default:
@@ -96,68 +96,68 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.BOLT_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("bolt_object", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.bolth_OBJECT, new org.apache.thrift7.meta_data.FieldMetaData("bolth_object", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentObject.class)));
     tmpMap.put(_Fields.COMMON, new org.apache.thrift7.meta_data.FieldMetaData("common", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ComponentCommon.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(Bolt.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(bolth.class, metaDataMap);
   }
 
-  public Bolt() {
+  public bolth() {
   }
 
-  public Bolt(
-    ComponentObject bolt_object,
+  public bolth(
+    ComponentObject bolth_object,
     ComponentCommon common)
   {
     this();
-    this.bolt_object = bolt_object;
+    this.bolth_object = bolth_object;
     this.common = common;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public Bolt(Bolt other) {
-    if (other.is_set_bolt_object()) {
-      this.bolt_object = new ComponentObject(other.bolt_object);
+  public bolth(bolth other) {
+    if (other.is_set_bolth_object()) {
+      this.bolth_object = new ComponentObject(other.bolth_object);
     }
     if (other.is_set_common()) {
       this.common = new ComponentCommon(other.common);
     }
   }
 
-  public Bolt deepCopy() {
-    return new Bolt(this);
+  public bolth deepCopy() {
+    return new bolth(this);
   }
 
   @Override
   public void clear() {
-    this.bolt_object = null;
+    this.bolth_object = null;
     this.common = null;
   }
 
-  public ComponentObject get_bolt_object() {
-    return this.bolt_object;
+  public ComponentObject get_bolth_object() {
+    return this.bolth_object;
   }
 
-  public void set_bolt_object(ComponentObject bolt_object) {
-    this.bolt_object = bolt_object;
+  public void set_bolth_object(ComponentObject bolth_object) {
+    this.bolth_object = bolth_object;
   }
 
-  public void unset_bolt_object() {
-    this.bolt_object = null;
+  public void unset_bolth_object() {
+    this.bolth_object = null;
   }
 
-  /** Returns true if field bolt_object is set (has been assigned a value) and false otherwise */
-  public boolean is_set_bolt_object() {
-    return this.bolt_object != null;
+  /** Returns true if field bolth_object is set (has been assigned a value) and false otherwise */
+  public boolean is_set_bolth_object() {
+    return this.bolth_object != null;
   }
 
-  public void set_bolt_object_isSet(boolean value) {
+  public void set_bolth_object_isSet(boolean value) {
     if (!value) {
-      this.bolt_object = null;
+      this.bolth_object = null;
     }
   }
 
@@ -186,11 +186,11 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case BOLT_OBJECT:
+    case bolth_OBJECT:
       if (value == null) {
-        unset_bolt_object();
+        unset_bolth_object();
       } else {
-        set_bolt_object((ComponentObject)value);
+        set_bolth_object((ComponentObject)value);
       }
       break;
 
@@ -207,8 +207,8 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case BOLT_OBJECT:
-      return get_bolt_object();
+    case bolth_OBJECT:
+      return get_bolth_object();
 
     case COMMON:
       return get_common();
@@ -224,8 +224,8 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     }
 
     switch (field) {
-    case BOLT_OBJECT:
-      return is_set_bolt_object();
+    case bolth_OBJECT:
+      return is_set_bolth_object();
     case COMMON:
       return is_set_common();
     }
@@ -236,21 +236,21 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof Bolt)
-      return this.equals((Bolt)that);
+    if (that instanceof bolth)
+      return this.equals((bolth)that);
     return false;
   }
 
-  public boolean equals(Bolt that) {
+  public boolean equals(bolth that) {
     if (that == null)
       return false;
 
-    boolean this_present_bolt_object = true && this.is_set_bolt_object();
-    boolean that_present_bolt_object = true && that.is_set_bolt_object();
-    if (this_present_bolt_object || that_present_bolt_object) {
-      if (!(this_present_bolt_object && that_present_bolt_object))
+    boolean this_present_bolth_object = true && this.is_set_bolth_object();
+    boolean that_present_bolth_object = true && that.is_set_bolth_object();
+    if (this_present_bolth_object || that_present_bolth_object) {
+      if (!(this_present_bolth_object && that_present_bolth_object))
         return false;
-      if (!this.bolt_object.equals(that.bolt_object))
+      if (!this.bolth_object.equals(that.bolth_object))
         return false;
     }
 
@@ -270,10 +270,10 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_bolt_object = true && (is_set_bolt_object());
-    builder.append(present_bolt_object);
-    if (present_bolt_object)
-      builder.append(bolt_object);
+    boolean present_bolth_object = true && (is_set_bolth_object());
+    builder.append(present_bolth_object);
+    if (present_bolth_object)
+      builder.append(bolth_object);
 
     boolean present_common = true && (is_set_common());
     builder.append(present_common);
@@ -283,20 +283,20 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     return builder.toHashCode();
   }
 
-  public int compareTo(Bolt other) {
+  public int compareTo(bolth other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    Bolt typedOther = (Bolt)other;
+    bolth typedOther = (bolth)other;
 
-    lastComparison = Boolean.valueOf(is_set_bolt_object()).compareTo(typedOther.is_set_bolt_object());
+    lastComparison = Boolean.valueOf(is_set_bolth_object()).compareTo(typedOther.is_set_bolth_object());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_bolt_object()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.bolt_object, typedOther.bolt_object);
+    if (is_set_bolth_object()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.bolth_object, typedOther.bolth_object);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -328,10 +328,10 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
         break;
       }
       switch (field.id) {
-        case 1: // BOLT_OBJECT
+        case 1: // bolth_OBJECT
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
-            this.bolt_object = new ComponentObject();
-            this.bolt_object.read(iprot);
+            this.bolth_object = new ComponentObject();
+            this.bolth_object.read(iprot);
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -357,9 +357,9 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    if (this.bolt_object != null) {
-      oprot.writeFieldBegin(BOLT_OBJECT_FIELD_DESC);
-      this.bolt_object.write(oprot);
+    if (this.bolth_object != null) {
+      oprot.writeFieldBegin(bolth_OBJECT_FIELD_DESC);
+      this.bolth_object.write(oprot);
       oprot.writeFieldEnd();
     }
     if (this.common != null) {
@@ -373,14 +373,14 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("Bolt(");
+    StringBuilder sb = new StringBuilder("bolth(");
     boolean first = true;
 
-    sb.append("bolt_object:");
-    if (this.bolt_object == null) {
+    sb.append("bolth_object:");
+    if (this.bolth_object == null) {
       sb.append("null");
     } else {
-      sb.append(this.bolt_object);
+      sb.append(this.bolth_object);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -397,8 +397,8 @@ public class Bolt implements org.apache.thrift7.TBase<Bolt, Bolt._Fields>, java.
 
   public void validate() throws org.apache.thrift7.TException {
     // check for required fields
-    if (!is_set_bolt_object()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'bolt_object' is unset! Struct:" + toString());
+    if (!is_set_bolth_object()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'bolth_object' is unset! Struct:" + toString());
     }
 
     if (!is_set_common()) {

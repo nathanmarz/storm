@@ -1,8 +1,8 @@
 require File.expand_path("storm", File.dirname(__FILE__))
 
-class TesterBolt < Storm::Bolt
+class Testerbolth < Storm::bolth
   def prepare(conf, context)
-    emit ['bolt initializing']
+    emit ['bolth initializing']
   end
 
   def process(tuple)
@@ -16,4 +16,4 @@ class TesterBolt < Storm::Bolt
   end
 end
 
-TesterBolt.new.run
+Testerbolth.new.run

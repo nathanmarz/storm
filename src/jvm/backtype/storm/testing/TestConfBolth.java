@@ -3,22 +3,22 @@ package backtype.storm.testing;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.base.BaseBasicbolth;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import java.util.Map;
 
 
-public class TestConfBolt extends BaseBasicBolt {
+public class TestConfbolth extends BaseBasicbolth {
     Map<String, Object> _componentConf;
     Map<String, Object> _conf;
 
-    public TestConfBolt() {
+    public TestConfbolth() {
         this(null);
     }
         
-    public TestConfBolt(Map<String, Object> componentConf) {
+    public TestConfbolth(Map<String, Object> componentConf) {
         _componentConf = componentConf;
     }        
 

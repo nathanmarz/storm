@@ -109,13 +109,13 @@
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
-                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
-                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
+                    {"2" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 4)
+                     "3" (thrift/mk-bolth-spec {"2" :none} (TestPlannerbolth.))})
           topology2 (thrift/mk-topology
                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 12)}
-                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 6)
-                      "3" (thrift/mk-bolt-spec {"1" :global} (TestPlannerBolt.) :parallelism-hint 8)
-                      "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
+                     {"2" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 6)
+                      "3" (thrift/mk-bolth-spec {"1" :global} (TestPlannerbolth.) :parallelism-hint 8)
+                      "4" (thrift/mk-bolth-spec {"1" :global "2" :none} (TestPlannerbolth.) :parallelism-hint 4)}
                      )
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component->task-info cluster "mystorm")]
@@ -145,8 +145,8 @@
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 0})}
-                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
-                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
+                    {"2" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
+                     "3" (thrift/mk-bolth-spec {"2" :none} (TestPlannerbolth.) :conf {TOPOLOGY-TASKS 5})})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
@@ -161,8 +161,8 @@
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 5})}
-                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
-                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :parallelism-hint 3)})
+                    {"2" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
+                     "3" (thrift/mk-bolth-spec {"2" :none} (TestPlannerbolth.) :parallelism-hint 3)})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component->task-info cluster "mystorm")
           executor-info (->> (storm-component->executor-info cluster "mystorm")
@@ -184,9 +184,9 @@
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 21)}
-                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 9)
-                      "3" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 2)
-                      "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
+                     {"2" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 9)
+                      "3" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 2)
+                      "4" (thrift/mk-bolth-spec {"1" :none} (TestPlannerbolth.) :parallelism-hint 10)}
                      )
           _ (submit-local-topology nimbus "test" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 7} topology)
           task-info (storm-component->task-info cluster "test")]

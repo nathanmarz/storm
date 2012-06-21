@@ -33,12 +33,10 @@ public class BatchNumberList extends BaseBatchBolt {
     @Override
     public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
         _collector = collector;
-        System.out.println("STARTED: " + id);
     }
 
     @Override
     public void execute(Tuple tuple) {
-        System.out.println("RECEIVED: " + tuple.toString());
         if(tuple.getSourceComponent().equals(_wordComponent)) {
             this.word = tuple.getString(1);
         } else {

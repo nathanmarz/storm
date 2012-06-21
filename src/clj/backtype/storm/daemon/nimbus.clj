@@ -679,6 +679,8 @@
     (reify Nimbus$Iface
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
+        (if (.contains storm-name "/")
+          (throw (InvalidTopologyException. "Topology name cannot contains slashes")))
         (check-storm-active! nimbus storm-name false)        
         (swap! (:submitted-count nimbus) inc)
         (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))

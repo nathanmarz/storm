@@ -102,6 +102,7 @@
         stream->component->grouper (:stream->component->grouper executor-data)
         user-context (:user-context task-data)
         executor-stats (:stats executor-data)
+        task-id (:task-id task-data)
         debug? (storm-conf TOPOLOGY-DEBUG)]
     (fn ([^Integer out-task-id ^String stream ^List values]
           (when debug?
@@ -112,7 +113,7 @@
                 out-task-id (if grouping out-task-id)]
             (when (and (not-nil? grouping) (not= :direct grouping))
               (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
-            (apply-hooks user-context .emit (EmitInfo. values stream [out-task-id]))
+            (apply-hooks user-context .emit (EmitInfo. values stream task-id [out-task-id]))
             (when (emit-sampler)
               (stats/emitted-tuple! executor-stats stream)
               (if out-task-id
@@ -132,7 +133,7 @@
                    (.addAll out-tasks comp-tasks)
                    (.add out-tasks comp-tasks)
                    )))
-             (apply-hooks user-context .emit (EmitInfo. values stream out-tasks))
+             (apply-hooks user-context .emit (EmitInfo. values stream task-id out-tasks))
              (when (emit-sampler)
                (stats/emitted-tuple! executor-stats stream)
                (stats/transferred-tuples! executor-stats stream (count out-tasks)))

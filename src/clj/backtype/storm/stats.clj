@@ -2,7 +2,7 @@
   (:import [backtype.storm.generated Nimbus Nimbus$Processor Nimbus$Iface StormTopology ShellComponent
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
             ClusterSummary TopologyInfo TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
-            SpoutStats BoltStats ErrorInfo SupervisorSummary])
+            SpoutStats bolthStats ErrorInfo SupervisorSummary])
   (:use [backtype.storm util])
   (:use [clojure.math.numeric-tower :only [ceil]]))
 
@@ -142,9 +142,9 @@
 (def COMMON-FIELDS [:emitted :transferred])
 (defrecord CommonStats [emitted transferred rate])
 
-(def BOLT-FIELDS [:acked :failed :process-latencies])
+(def bolth-FIELDS [:acked :failed :process-latencies])
 ;;acked and failed count individual tuples
-(defrecord BoltExecutorStats [common acked failed process-latencies])
+(defrecord bolthExecutorStats [common acked failed process-latencies])
 
 (def SPOUT-FIELDS [:acked :failed :complete-latencies])
 ;;acked and failed count tuple completion
@@ -160,8 +160,8 @@
                 rate
                 ))
 
-(defn mk-bolt-stats [rate]
-  (BoltExecutorStats. (mk-common-stats rate)
+(defn mk-bolth-stats [rate]
+  (bolthExecutorStats. (mk-common-stats rate)
                   (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   (atom (apply keyed-avg-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
@@ -188,13 +188,13 @@
 (defn transferred-tuples! [stats stream amt]
   (update-executor-stat! stats [:common :transferred] stream (* (stats-rate stats) amt)))
 
-(defn bolt-acked-tuple! [^BoltExecutorStats stats component stream latency-ms]
+(defn bolth-acked-tuple! [^bolthExecutorStats stats component stream latency-ms]
   (let [key [component stream]]
     (update-executor-stat! stats :acked key (stats-rate stats))
     (update-executor-stat! stats :process-latencies key latency-ms)
     ))
 
-(defn bolt-failed-tuple! [^BoltExecutorStats stats component stream latency-ms]
+(defn bolth-failed-tuple! [^bolthExecutorStats stats component stream latency-ms]
   (let [key [component stream]]
     (update-executor-stat! stats :failed key (stats-rate stats))
     ))
@@ -216,9 +216,9 @@
     (cleanup-stat! (f stats))
     ))
 
-(defn cleanup-bolt-stats! [^BoltExecutorStats stats]
+(defn cleanup-bolth-stats! [^bolthExecutorStats stats]
   (cleanup-common-stats! (:common stats))
-  (doseq [f BOLT-FIELDS]
+  (doseq [f bolth-FIELDS]
     (cleanup-stat! (f stats))
     ))
 
@@ -240,11 +240,11 @@
    (value-stats stats COMMON-FIELDS)
    {:rate (:rate stats)}))
 
-(defn value-bolt-stats! [^BoltExecutorStats stats]
-  (cleanup-bolt-stats! stats)
+(defn value-bolth-stats! [^bolthExecutorStats stats]
+  (cleanup-bolth-stats! stats)
   (merge (value-common-stats (:common stats))
-         (value-stats stats BOLT-FIELDS)
-         {:type :bolt}))
+         (value-stats stats bolth-FIELDS)
+         {:type :bolth}))
 
 (defn value-spout-stats! [^SpoutExecutorStats stats]
   (cleanup-spout-stats! stats)
@@ -258,8 +258,8 @@
 (defmethod render-stats! SpoutExecutorStats [stats]
   (value-spout-stats! stats))
 
-(defmethod render-stats! BoltExecutorStats [stats]
-  (value-bolt-stats! stats))
+(defmethod render-stats! bolthExecutorStats [stats]
+  (value-bolth-stats! stats))
 
 (defmulti thriftify-specific-stats :type)
 
@@ -281,10 +281,10 @@
   (GlobalStreamId. component stream)
   )
 
-(defmethod thriftify-specific-stats :bolt
+(defmethod thriftify-specific-stats :bolth
   [stats]
-  (ExecutorSpecificStats/bolt
-   (BoltStats. (window-set-converter (:acked stats) to-global-stream-id)
+  (ExecutorSpecificStats/bolth
+   (bolthStats. (window-set-converter (:acked stats) to-global-stream-id)
                (window-set-converter (:failed stats) to-global-stream-id)
                (window-set-converter (:process-latencies stats) to-global-stream-id)))
   )

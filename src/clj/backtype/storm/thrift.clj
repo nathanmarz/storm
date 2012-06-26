@@ -1,13 +1,13 @@
 (ns backtype.storm.thrift
   (:import [java.util HashMap])
   (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology StormTopology$_Fields 
-    Bolt Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
+    bolth Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
     GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
+  (:import [backtype.storm.clojure RichShellbolth RichShellSpout])
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config log])
@@ -154,9 +154,9 @@
        (mk-grouping grouping-spec)]
       )))
 
-(defnk mk-bolt-spec* [inputs bolt outputs :p nil :conf nil]
+(defnk mk-bolth-spec* [inputs bolth outputs :p nil :conf nil]
   (let [common (mk-plain-component-common (mk-inputs inputs) outputs p :conf conf)]
-    (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
+    (bolth. (ComponentObject/serialized_java (Utils/serialize bolth))
            common )))
 
 (defnk mk-spout-spec [spout :parallelism-hint nil :p nil :conf nil]
@@ -173,15 +173,15 @@
      script-or-output-spec
      kwargs]))
 
-(defnk mk-bolt-spec [inputs bolt :parallelism-hint nil :p nil :conf nil]
+(defnk mk-bolth-spec [inputs bolth :parallelism-hint nil :p nil :conf nil]
   (let [parallelism-hint (if p p parallelism-hint)]
-    {:obj bolt :inputs inputs :p parallelism-hint :conf conf}
+    {:obj bolth :inputs inputs :p parallelism-hint :conf conf}
     ))
 
-(defn mk-shell-bolt-spec [inputs command script-or-output-spec & kwargs]
+(defn mk-shell-bolth-spec [inputs command script-or-output-spec & kwargs]
   (let [[command output-spec kwargs]
         (shell-component-params command script-or-output-spec kwargs)]
-    (apply mk-bolt-spec inputs (RichShellBolt. command (mk-output-spec output-spec)) kwargs)))
+    (apply mk-bolth-spec inputs (RichShellbolth. command (mk-output-spec output-spec)) kwargs)))
 
 (defn mk-shell-spout-spec [command script-or-output-spec & kwargs]
   (let [[command output-spec kwargs]
@@ -194,16 +194,16 @@
     ))
 
 (defn mk-topology
-  ([spout-map bolt-map]
+  ([spout-map bolth-map]
     (let [builder (TopologyBuilder.)]
       (doseq [[name {spout :obj p :p conf :conf}] spout-map]
         (-> builder (.setSpout name spout (if-not (nil? p) (int p) p)) (.addConfigurations conf)))
-      (doseq [[name {bolt :obj p :p conf :conf inputs :inputs}] bolt-map]
-        (-> builder (.setBolt name bolt (if-not (nil? p) (int p) p)) (.addConfigurations conf) (add-inputs inputs)))
+      (doseq [[name {bolth :obj p :p conf :conf inputs :inputs}] bolth-map]
+        (-> builder (.setbolth name bolth (if-not (nil? p) (int p) p)) (.addConfigurations conf) (add-inputs inputs)))
       (.createTopology builder)
       ))
-  ([spout-map bolt-map state-spout-map]
-     (mk-topology spout-map bolt-map)))
+  ([spout-map bolth-map state-spout-map]
+     (mk-topology spout-map bolth-map)))
 
 ;; clojurify-structure is needed or else every element becomes the same after successive calls
 ;; don't know why this happens

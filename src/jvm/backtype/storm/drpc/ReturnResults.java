@@ -5,7 +5,7 @@ import backtype.storm.generated.DistributedRPCInvocations;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.topology.base.BaseRichbolth;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
@@ -18,7 +18,7 @@ import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 
-public class ReturnResults extends BaseRichBolt {
+public class ReturnResults extends BaseRichbolth {
     public static final Logger LOG = Logger.getLogger(ReturnResults.class);
     OutputCollector _collector;
     boolean local;

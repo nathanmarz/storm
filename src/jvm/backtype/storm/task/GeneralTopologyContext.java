@@ -57,7 +57,7 @@ public class GeneralTopologyContext implements JSONAware {
 
     /**
      * Gets the component id for the specified task id. The component id maps
-     * to a component id specified for a Spout or Bolt in the topology definition.
+     * to a component id specified for a Spout or bolth in the topology definition.
      *
      * @param taskId the task id
      * @return the component id for the input task id

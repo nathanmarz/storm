@@ -3,9 +3,9 @@
   (:use [backtype.storm bootstrap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
+  (:import [backtype.storm.generated SpoutSpec bolth StateSpoutSpec])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
-              EmitInfo BoltFailInfo BoltAckInfo])
+              EmitInfo bolthFailInfo bolthAckInfo])
   (:require [backtype.storm [tuple :as tuple]]))
 
 (bootstrap)
@@ -46,18 +46,18 @@
 
 (defn- get-task-object [^TopologyContext topology component-id]
   (let [spouts (.get_spouts topology)
-        bolts (.get_bolts topology)
+        bolths (.get_bolths topology)
         state-spouts (.get_state_spouts topology)
         obj (Utils/getSetComponentObject
              (cond
               (contains? spouts component-id) (.get_spout_object ^SpoutSpec (get spouts component-id))
-              (contains? bolts component-id) (.get_bolt_object ^Bolt (get bolts component-id))
+              (contains? bolths component-id) (.get_bolth_object ^bolth (get bolths component-id))
               (contains? state-spouts component-id) (.get_state_spout_object ^StateSpoutSpec (get state-spouts component-id))
               true (throw-runtime "Could not find " component-id " in " topology)))
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
                 (ShellSpout. obj)
-                (ShellBolt. obj))
+                (Shellbolth. obj))
               obj )
         obj (if (instance? JavaObject obj)
               (thrift/instantiate-java-object obj)

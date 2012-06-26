@@ -77,12 +77,12 @@ def emitDirect(task, *args, **kwargs):
 
 def __emit(*args, **kwargs):
     global MODE
-    if MODE == Bolt:
-        emitBolt(*args, **kwargs)
+    if MODE == bolth:
+        emitbolth(*args, **kwargs)
     elif MODE == Spout:
         emitSpout(*args, **kwargs)
 
-def emitBolt(tup, stream=None, anchors = [], directTask=None):
+def emitbolth(tup, stream=None, anchors = [], directTask=None):
     global ANCHOR_TUPLE
     if ANCHOR_TUPLE is not None:
         anchors = [ANCHOR_TUPLE]
@@ -133,7 +133,7 @@ class Tuple(object):
                 self.__class__.__name__,
                 ''.join(' %s=%r' % (k, self.__dict__[k]) for k in sorted(self.__dict__.keys())))
 
-class Bolt(object):
+class bolth(object):
     def initialize(self, stormconf, context):
         pass
 
@@ -142,7 +142,7 @@ class Bolt(object):
 
     def run(self):
         global MODE
-        MODE = Bolt
+        MODE = bolth
         conf, context = initComponent()
         self.initialize(conf, context)
         try:
@@ -152,7 +152,7 @@ class Bolt(object):
         except Exception, e:
             log(traceback.format_exc(e))
 
-class BasicBolt(object):
+class Basicbolth(object):
     def initialize(self, stormconf, context):
         pass
 
@@ -161,7 +161,7 @@ class BasicBolt(object):
 
     def run(self):
         global MODE
-        MODE = Bolt
+        MODE = bolth
         global ANCHOR_TUPLE
         conf, context = initComponent()
         self.initialize(conf, context)

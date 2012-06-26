@@ -11,7 +11,7 @@
 ;;     (let [nimbus (:nimbus cluster)
 ;;           topology (thrift/mk-topology
 ;;                       {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
-;;                       {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "fancy" "tester.fy" ["word"] :parallelism-hint 1)}
+;;                       {"2" (thrift/mk-shell-bolth-spec {"1" :shuffle} "fancy" "tester.fy" ["word"] :parallelism-hint 1)}
 ;;                       )]
 ;;       (submit-local-topology nimbus
 ;;                           "test"
@@ -27,7 +27,7 @@
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-shell-spout-spec ["ruby" "tester_spout.rb"] ["word"])}
-                    {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "ruby" "tester_bolt.rb" ["word"] :parallelism-hint 1)})]
+                    {"2" (thrift/mk-shell-bolth-spec {"1" :shuffle} "ruby" "tester_bolth.rb" ["word"] :parallelism-hint 1)})]
       (submit-local-topology nimbus
                              "test"
                              {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
@@ -42,7 +42,7 @@
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                       {"1" (thrift/mk-shell-spout-spec ["python" "tester_spout.py"] ["word"])}
-                      {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} ["python" "tester_bolt.py"] ["word"] :parallelism-hint 1)}
+                      {"2" (thrift/mk-shell-bolth-spec {"1" :shuffle} ["python" "tester_bolth.py"] ["word"] :parallelism-hint 1)}
                       )]
       (submit-local-topology nimbus
                           "test"

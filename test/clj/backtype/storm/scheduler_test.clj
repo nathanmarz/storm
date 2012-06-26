@@ -54,7 +54,7 @@
         executor2 (ExecutorDetails. (int 6) (int 10))
         topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"} (StormTopology.) 1
                                    {executor1 "spout1"
-                                    executor2 "bolt1"})
+                                    executor2 "bolth1"})
         ;; test topology.selectExecutorToComponent
         executor->comp (.selectExecutorToComponent topology1 (list executor1))
         _ (is (= (clojurify-executor->comp {executor1 "spout1"})
@@ -88,20 +88,20 @@
                                     (StormTopology.)
                                     2
                                     {executor1 "spout1"
-                                     executor2 "bolt1"
-                                     executor3 "bolt2"})
+                                     executor2 "bolth1"
+                                     executor3 "bolth2"})
         ;; topology2 is fully scheduled
         topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"}
                                     (StormTopology.)
                                     2
                                     {executor11 "spout11"
-                                     executor12 "bolt12"})
+                                     executor12 "bolth12"})
         ;; topology3 needs scheduling, since the assignment is squeezed
         topology3 (TopologyDetails. "topology3" {TOPOLOGY-NAME "topology-name-3"}
                                     (StormTopology.)
                                     2
                                     {executor21 "spout21"
-                                     executor22 "bolt22"})
+                                     executor22 "bolth22"})
         topologies (Topologies. {"topology1" topology1 "topology2" topology2 "topology3" topology3})
         executor->slot1 {executor1 (WorkerSlot. "supervisor1" (int 1))
                          executor2 (WorkerSlot. "supervisor2" (int 2))}
@@ -145,7 +145,7 @@
                 set)))
 
     ;; test Cluster.getNeedsSchedulingExecutorToComponents
-    (is (= {executor3 "bolt2"}
+    (is (= {executor3 "bolth2"}
            (.getNeedsSchedulingExecutorToComponents cluster topology1)))
     (is (= true
            (empty? (.getNeedsSchedulingExecutorToComponents cluster topology2))))
@@ -153,7 +153,7 @@
            (empty? (.getNeedsSchedulingExecutorToComponents cluster topology3))))
 
     ;; test Cluster.getNeedsSchedulingComponentToExecutors
-    (is (= {"bolt2" #{[(.getStartTask executor3) (.getEndTask executor3)]}}
+    (is (= {"bolth2" #{[(.getStartTask executor3) (.getEndTask executor3)]}}
            (clojurify-component->executors (.getNeedsSchedulingComponentToExecutors cluster topology1))))
     (is (= true
            (empty? (.getNeedsSchedulingComponentToExecutors cluster topology2))))

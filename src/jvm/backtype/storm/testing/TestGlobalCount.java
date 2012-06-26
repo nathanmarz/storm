@@ -1,6 +1,6 @@
 package backtype.storm.testing;
 
-import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.topology.base.BaseRichbolth;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
@@ -11,7 +11,7 @@ import backtype.storm.tuple.Values;
 import org.apache.log4j.Logger;
 
 
-public class TestGlobalCount extends BaseRichBolt {
+public class TestGlobalCount extends BaseRichbolth {
     public static Logger LOG = Logger.getLogger(TestWordCounter.class);
 
     private int _count;

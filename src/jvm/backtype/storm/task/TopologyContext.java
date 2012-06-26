@@ -17,7 +17,7 @@ import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
 
 /**
- * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
+ * A TopologyContext is given to bolths and spouts in their "prepare" and "open"
  * methods, respectively. This object provides information about the component's
  * place within the topology, such as task ids, inputs and outputs, etc.
  *
@@ -110,7 +110,7 @@ public class TopologyContext extends WorkerTopologyContext {
 
     /**
      * Gets the component id for this task. The component id maps
-     * to a component id specified for a Spout or Bolt in the topology definition.
+     * to a component id specified for a Spout or bolth in the topology definition.
      * @return
      */
     public String getThisComponentId() {

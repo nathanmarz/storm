@@ -31,7 +31,7 @@ union Grouping {
   2: NullStruct shuffle; // tuple is sent to random task
   3: NullStruct all; // tuple is sent to every task
   4: NullStruct none; // tuple is sent to a single task (storm's choice) -> allows storm to optimize the topology by bundling tasks into a single process
-  5: NullStruct direct; // this bolt expects the source bolt to send tuples directly to it
+  5: NullStruct direct; // this bolth expects the source bolth to send tuples directly to it
   6: JavaObject custom_object;
   7: binary custom_serialized;
   8: NullStruct local_or_shuffle; // prefer sending to tasks in the same worker process, otherwise shuffle
@@ -76,8 +76,8 @@ struct SpoutSpec {
   // and setting TOPOLOGY_MAX_TASK_PARALLELISM to 1
 }
 
-struct Bolt {
-  1: required ComponentObject bolt_object;
+struct bolth {
+  1: required ComponentObject bolth_object;
   2: required ComponentCommon common;
 }
 
@@ -92,7 +92,7 @@ struct StormTopology {
   //ids must be unique across maps
   // #workers to use is in conf
   1: required map<string, SpoutSpec> spouts;
-  2: required map<string, Bolt> bolts;
+  2: required map<string, bolth> bolths;
   3: required map<string, StateSpoutSpec> state_spouts;
 }
 
@@ -136,7 +136,7 @@ struct ErrorInfo {
   2: required i32 error_time_secs;
 }
 
-struct BoltStats {
+struct bolthStats {
   1: required map<string, map<GlobalStreamId, i64>> acked;  
   2: required map<string, map<GlobalStreamId, i64>> failed;  
   3: required map<string, map<GlobalStreamId, double>> process_ms_avg;
@@ -149,7 +149,7 @@ struct SpoutStats {
 }
 
 union ExecutorSpecificStats {
-  1: BoltStats bolt;
+  1: bolthStats bolth;
   2: SpoutStats spout;
 }
 

@@ -63,7 +63,7 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
 
     /**
      * Gets the location of the external resources for this worker on the
-     * local filesystem. These external resources typically include bolts implemented
+     * local filesystem. These external resources typically include bolths implemented
      * in other languages, such as Ruby or Python.
      */
     public String getCodeDir() {

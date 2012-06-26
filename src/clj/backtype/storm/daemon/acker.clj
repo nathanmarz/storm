@@ -1,5 +1,5 @@
 (ns backtype.storm.daemon.acker
-  (:import [backtype.storm.task OutputCollector TopologyContext IBolt])
+  (:import [backtype.storm.task OutputCollector TopologyContext Ibolth])
   (:import [backtype.storm.tuple Tuple Fields])
   (:import [backtype.storm.utils RotatingMap MutableObject])
   (:import [java.util List Map])
@@ -7,7 +7,7 @@
   (:use [backtype.storm config util log])
   (:gen-class
    :init init
-   :implements [backtype.storm.task.IBolt]
+   :implements [backtype.storm.task.Ibolth]
    :constructors {[] []}
    :state state ))
 
@@ -25,10 +25,10 @@
   (.emitDirect collector task stream values)
   )
 
-(defn mk-acker-bolt []
+(defn mk-acker-bolth []
   (let [output-collector (MutableObject.)
         pending (MutableObject.)]
-    (reify IBolt
+    (reify Ibolth
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (.setObject output-collector collector)
                (.setObject pending (RotatingMap. 2))
@@ -76,17 +76,17 @@
   [[] (container)])
 
 (defn -prepare [this conf context collector]
-  (let [^IBolt ret (mk-acker-bolt)]
+  (let [^Ibolth ret (mk-acker-bolth)]
     (container-set! (.state ^backtype.storm.daemon.acker this) ret)
     (.prepare ret conf context collector)
     ))
 
 (defn -execute [this tuple]
-  (let [^IBolt delegate (container-get (.state ^backtype.storm.daemon.acker this))]
+  (let [^Ibolth delegate (container-get (.state ^backtype.storm.daemon.acker this))]
     (.execute delegate tuple)
     ))
 
 (defn -cleanup [this]
-  (let [^IBolt delegate (container-get (.state ^backtype.storm.daemon.acker this))]
+  (let [^Ibolth delegate (container-get (.state ^backtype.storm.daemon.acker this))]
     (.cleanup delegate)
     ))

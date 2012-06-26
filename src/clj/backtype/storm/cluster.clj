@@ -377,7 +377,7 @@
 
 ;; which tasks they talk to, etc. (immutable until shutdown)
 ;; everyone reads this in full to understand structure
-;; /tasks/{storm id}/{task id} ; just contains bolt id
+;; /tasks/{storm id}/{task id} ; just contains bolth id
 
 
 ;; supervisors send heartbeats here, master doesn't subscribe but checks asynchronously

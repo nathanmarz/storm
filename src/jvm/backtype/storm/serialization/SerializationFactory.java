@@ -102,7 +102,7 @@ public class SerializationFactory {
 
         public IdDictionary(StormTopology topology) {
             List<String> componentNames = new ArrayList<String>(topology.get_spouts().keySet());
-            componentNames.addAll(topology.get_bolts().keySet());
+            componentNames.addAll(topology.get_bolths().keySet());
             componentNames.addAll(topology.get_state_spouts().keySet());
                         
             for(String name: componentNames) {

@@ -3,7 +3,7 @@
 (defmacro bootstrap []
   '(do
      (import (quote [backtype.storm Constants]))
-     (import (quote [backtype.storm.testing FeederSpout TestPlannerBolt TestPlannerSpout
+     (import (quote [backtype.storm.testing FeederSpout TestPlannerbolth TestPlannerSpout
                      AckFailDelegate AckTracker]))
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback
@@ -14,12 +14,12 @@
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple TupleImpl Fields MessageId]))
-     (import (quote [backtype.storm.task IBolt IOutputCollector
-                     OutputCollector TopologyContext ShellBolt
+     (import (quote [backtype.storm.task Ibolth IOutputCollector
+                     OutputCollector TopologyContext Shellbolth
                      GeneralTopologyContext WorkerTopologyContext]))
-     (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
-                     IBatchBolt BatchBoltExecutor]))
-     (import (quote [backtype.storm.drpc KeyedFairBolt]))
+     (import (quote [backtype.storm.coordination Coordinatedbolth Coordinatedbolth$SourceArgs 
+                     IBatchbolth BatchbolthExecutor]))
+     (import (quote [backtype.storm.drpc KeyedFairbolth]))
      (import (quote [backtype.storm.daemon Shutdownable]))
      (require (quote [backtype.storm.messaging.loader :as msg-loader]))
      (require (quote [backtype.storm.messaging.protocol :as msg]))
@@ -35,7 +35,7 @@
                      NotAliveException AlreadyAliveException
                      InvalidTopologyException ClusterSummary TopologyInfo
                      TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
-                     SpoutStats BoltStats ErrorInfo SupervisorSummary ExecutorInfo
+                     SpoutStats bolthStats ErrorInfo SupervisorSummary ExecutorInfo
                      KillOptions RebalanceOptions JavaObject JavaObjectArg]))
      (import (quote [backtype.storm.daemon.common StormBase Assignment
                      SupervisorInfo WorkerHeartbeat]))

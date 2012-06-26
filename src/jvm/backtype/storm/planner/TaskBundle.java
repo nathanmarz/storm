@@ -1,14 +1,14 @@
 package backtype.storm.planner;
 
-import backtype.storm.task.IBolt;
+import backtype.storm.task.Ibolth;
 import java.io.Serializable;
 
 
 public class TaskBundle implements Serializable {
-    public IBolt task;
+    public Ibolth task;
     public int componentId;
     
-    public TaskBundle(IBolt task, int componentId) {
+    public TaskBundle(Ibolth task, int componentId) {
         this.task = task;
         this.componentId = componentId;
     }

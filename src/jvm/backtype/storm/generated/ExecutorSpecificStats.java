@@ -23,12 +23,12 @@ import org.slf4j.LoggerFactory;
 
 public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpecificStats, ExecutorSpecificStats._Fields> {
   private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ExecutorSpecificStats");
-  private static final org.apache.thrift7.protocol.TField BOLT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift7.protocol.TField bolth_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolth", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
   private static final org.apache.thrift7.protocol.TField SPOUT_FIELD_DESC = new org.apache.thrift7.protocol.TField("spout", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    BOLT((short)1, "bolt"),
+    bolth((short)1, "bolth"),
     SPOUT((short)2, "spout");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -44,8 +44,8 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // BOLT
-          return BOLT;
+        case 1: // bolth
+          return bolth;
         case 2: // SPOUT
           return SPOUT;
         default:
@@ -90,8 +90,8 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.BOLT, new org.apache.thrift7.meta_data.FieldMetaData("bolt", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, BoltStats.class)));
+    tmpMap.put(_Fields.bolth, new org.apache.thrift7.meta_data.FieldMetaData("bolth", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, bolthStats.class)));
     tmpMap.put(_Fields.SPOUT, new org.apache.thrift7.meta_data.FieldMetaData("spout", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, SpoutStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -113,9 +113,9 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
     return new ExecutorSpecificStats(this);
   }
 
-  public static ExecutorSpecificStats bolt(BoltStats value) {
+  public static ExecutorSpecificStats bolth(bolthStats value) {
     ExecutorSpecificStats x = new ExecutorSpecificStats();
-    x.set_bolt(value);
+    x.set_bolth(value);
     return x;
   }
 
@@ -129,11 +129,11 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
     switch (setField) {
-      case BOLT:
-        if (value instanceof BoltStats) {
+      case bolth:
+        if (value instanceof bolthStats) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type BoltStats for field 'bolt', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type bolthStats for field 'bolth', but got " + value.getClass().getSimpleName());
       case SPOUT:
         if (value instanceof SpoutStats) {
           break;
@@ -149,12 +149,12 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
     _Fields setField = _Fields.findByThriftId(field.id);
     if (setField != null) {
       switch (setField) {
-        case BOLT:
-          if (field.type == BOLT_FIELD_DESC.type) {
-            BoltStats bolt;
-            bolt = new BoltStats();
-            bolt.read(iprot);
-            return bolt;
+        case bolth:
+          if (field.type == bolth_FIELD_DESC.type) {
+            bolthStats bolth;
+            bolth = new bolthStats();
+            bolth.read(iprot);
+            return bolth;
           } else {
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
@@ -181,9 +181,9 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   @Override
   protected void writeValue(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
     switch (setField_) {
-      case BOLT:
-        BoltStats bolt = (BoltStats)value_;
-        bolt.write(oprot);
+      case bolth:
+        bolthStats bolth = (bolthStats)value_;
+        bolth.write(oprot);
         return;
       case SPOUT:
         SpoutStats spout = (SpoutStats)value_;
@@ -197,8 +197,8 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   @Override
   protected org.apache.thrift7.protocol.TField getFieldDesc(_Fields setField) {
     switch (setField) {
-      case BOLT:
-        return BOLT_FIELD_DESC;
+      case bolth:
+        return bolth_FIELD_DESC;
       case SPOUT:
         return SPOUT_FIELD_DESC;
       default:
@@ -221,17 +221,17 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   }
 
 
-  public BoltStats get_bolt() {
-    if (getSetField() == _Fields.BOLT) {
-      return (BoltStats)getFieldValue();
+  public bolthStats get_bolth() {
+    if (getSetField() == _Fields.bolth) {
+      return (bolthStats)getFieldValue();
     } else {
-      throw new RuntimeException("Cannot get field 'bolt' because union is currently set to " + getFieldDesc(getSetField()).name);
+      throw new RuntimeException("Cannot get field 'bolth' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void set_bolt(BoltStats value) {
+  public void set_bolth(bolthStats value) {
     if (value == null) throw new NullPointerException();
-    setField_ = _Fields.BOLT;
+    setField_ = _Fields.bolth;
     value_ = value;
   }
 
@@ -249,8 +249,8 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
     value_ = value;
   }
 
-  public boolean is_set_bolt() {
-    return setField_ == _Fields.BOLT;
+  public boolean is_set_bolth() {
+    return setField_ == _Fields.bolth;
   }
 
 

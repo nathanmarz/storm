@@ -4,7 +4,7 @@
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
-              EmitInfo BoltFailInfo BoltAckInfo])
+              EmitInfo bolthFailInfo bolthAckInfo])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   )
@@ -105,10 +105,10 @@
 (defn executor-type [^WorkerTopologyContext context component-id]
   (let [topology (.getRawTopology context)
         spouts (.get_spouts topology)
-        bolts (.get_bolts topology)
+        bolths (.get_bolths topology)
         ]
     (cond (contains? spouts component-id) :spout
-          (contains? bolts component-id) :bolt
+          (contains? bolths component-id) :bolth
           :else (throw-runtime "Could not find " component-id " in topology " topology))))
 
 (defn executor-selector [executor-data & _] (:type executor-data))
@@ -172,7 +172,7 @@
      :suicide-fn (:suicide-fn worker)
      :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker))
      :type executor-type
-     ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)
+     ;; TODO: should refactor this to be part of the executor specific map (spout or bolth with :common field)
      :stats (mk-executor-stats <> (sampling-rate storm-conf))
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id)
@@ -182,7 +182,7 @@
                              ((:suicide-fn <>)))
      :deserializer (KryoTupleDeserializer. storm-conf worker-context)
      :sampler (mk-stats-sampler storm-conf)
-     ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolt-data function?
+     ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolth-data function?
      )))
 
 (defn start-batch-transfer->worker-handler! [worker executor-data]
@@ -447,7 +447,7 @@
   (let [curr (or (.get pending key) (long 0))]
     (.put pending key (bit-xor curr id))))
 
-(defmethod mk-threads :bolt [executor-data task-datas]
+(defmethod mk-threads :bolth [executor-data task-datas]
   (let [component-id (:component-id executor-data)
         transfer-fn (:transfer-fn executor-data)
         worker-context (:worker-context executor-data)
@@ -457,7 +457,7 @@
         sampler (:sampler executor-data)
         rand (Random. (Utils/secureRandomLong))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
-                          ;; synchronization needs to be done with a key provided by this bolt, otherwise:
+                          ;; synchronization needs to be done with a key provided by this bolth, otherwise:
                           ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
                           ;; TODO: for state sync, need to first send sync messages in a loop and receive tuples until synchronization
                           ;; buffer other tuples until fully synchronized, then process all of those tuples
@@ -473,16 +473,16 @@
  
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
-                          (let [^IBolt bolt-obj (->> task-id (get task-datas) :object)]
+                          (let [^Ibolth bolth-obj (->> task-id (get task-datas) :object)]
                             (when (sampler)
                               (.setSampleStartTime tuple (System/currentTimeMillis)))
-                            (.execute bolt-obj tuple)))]
-    (log-message "Preparing bolt " component-id ":" (keys task-datas))
+                            (.execute bolth-obj tuple)))]
+    (log-message "Preparing bolth " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
-            :let [^IBolt bolt-obj (:object task-data)
+            :let [^Ibolth bolth-obj (:object task-data)
                   tasks-fn (:tasks-fn task-data)
                   user-context (:user-context task-data)
-                  bolt-emit (fn [stream anchors values task]
+                  bolth-emit (fn [stream anchors values task]
                               (let [out-tasks (if task
                                                 (tasks-fn task stream values)
                                                 (tasks-fn stream values))]
@@ -503,15 +503,15 @@
                                                              stream
                                                              (MessageId/makeId anchors-to-ids)))))
                                 (or out-tasks [])))]]
-      (.prepare bolt-obj
+      (.prepare bolth-obj
                 storm-conf
                 user-context
                 (OutputCollector.
                   (reify IOutputCollector
                      (emit [this stream anchors values]
-                       (bolt-emit stream anchors values nil))
+                       (bolth-emit stream anchors values nil))
                      (emitDirect [this task stream anchors values]
-                       (bolt-emit stream anchors values task))
+                       (bolth-emit stream anchors values task))
                      (^void ack [this ^Tuple tuple]
                        (let [^TupleImpl tuple tuple
                              ack-val (.getAckVal tuple)]
@@ -521,9 +521,9 @@
                                                  [root (bit-xor id ack-val)])
                            ))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
+                         (task/apply-hooks user-context .bolthAck (bolthAckInfo. tuple delta))
                          (when delta
-                           (stats/bolt-acked-tuple! executor-stats
+                           (stats/bolth-acked-tuple! executor-stats
                                                     (.getSourceComponent tuple)
                                                     (.getSourceStreamId tuple)
                                                     delta)
@@ -534,9 +534,9 @@
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
+                         (task/apply-hooks user-context .bolthFail (bolthFailInfo. tuple delta))
                          (when delta
-                           (stats/bolt-failed-tuple! executor-stats
+                           (stats/bolth-failed-tuple! executor-stats
                                                      (.getSourceComponent tuple)
                                                      (.getSourceStreamId tuple)
                                                      delta)
@@ -545,7 +545,7 @@
                        (report-error-fn error)
                        )))))
 
-    (log-message "Prepared bolt " component-id ":" (keys task-datas))
+    (log-message "Prepared bolth " component-id ":" (keys task-datas))
     ;; TODO: can get any SubscribedState objects out of the context now
     [(disruptor/consume-loop*
       (:receive-queue executor-data)
@@ -557,12 +557,12 @@
 (defmethod close-component :spout [executor-data spout]
   (.close spout))
 
-(defmethod close-component :bolt [executor-data bolt]
-  (.cleanup bolt))
+(defmethod close-component :bolth [executor-data bolth]
+  (.cleanup bolth))
 
 ;; TODO: refactor this to be part of an executor-specific map
 (defmethod mk-executor-stats :spout [_ rate]
   (stats/mk-spout-stats rate))
 
-(defmethod mk-executor-stats :bolt [_ rate]
-  (stats/mk-bolt-stats rate))
+(defmethod mk-executor-stats :bolth [_ rate]
+  (stats/mk-bolth-stats rate))

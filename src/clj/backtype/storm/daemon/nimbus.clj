@@ -277,8 +277,8 @@
       )))
 
 (defn- optimize-topology [topology]
-  ;; TODO: create new topology by collapsing bolts into CompoundSpout
-  ;; and CompoundBolt
+  ;; TODO: create new topology by collapsing bolths into CompoundSpout
+  ;; and Compoundbolth
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 

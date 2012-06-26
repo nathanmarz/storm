@@ -11,7 +11,7 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
-                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
+                    {"2" (thrift/mk-bolth-spec {"1" :shuffle} (TestGlobalCount.)
                                             :parallelism-hint 6)
                      })
           results (complete-topology cluster
@@ -36,20 +36,20 @@
                (read-tuples results "2")))
       )))
 
-(defbolt id-bolt ["val"] [tuple collector]
-  (emit-bolt! collector (.getValues tuple))
+(defbolth id-bolth ["val"] [tuple collector]
+  (emit-bolth! collector (.getValues tuple))
   (ack! collector tuple))
 
 (deftest test-custom-groupings
   (with-simulated-time-local-cluster [cluster]
     (let [topology (topology
                     {"1" (spout-spec (TestWordSpout. true))}
-                    {"2" (bolt-spec {"1" (NGrouping. 2)}
-                                  id-bolt
+                    {"2" (bolth-spec {"1" (NGrouping. 2)}
+                                  id-bolth
                                   :p 4)
-                     "3" (bolt-spec {"1" (JavaObject. "backtype.storm.testing.NGrouping"
+                     "3" (bolth-spec {"1" (JavaObject. "backtype.storm.testing.NGrouping"
                                                       [(JavaObjectArg/int_arg 3)])}
-                                  id-bolt
+                                  id-bolth
                                   :p 6)
                      })
           results (complete-topology cluster

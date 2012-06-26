@@ -1,21 +1,21 @@
 package backtype.storm.transactional;
 
-import backtype.storm.coordination.IBatchBolt;
-import backtype.storm.coordination.BatchBoltExecutor;
+import backtype.storm.coordination.IBatchbolth;
+import backtype.storm.coordination.BatchbolthExecutor;
 import backtype.storm.Config;
 import backtype.storm.Constants;
-import backtype.storm.coordination.CoordinatedBolt;
-import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
-import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
+import backtype.storm.coordination.Coordinatedbolth;
+import backtype.storm.coordination.Coordinatedbolth.IdStreamSpec;
+import backtype.storm.coordination.Coordinatedbolth.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
-import backtype.storm.topology.BasicBoltExecutor;
-import backtype.storm.topology.BoltDeclarer;
-import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.BasicbolthExecutor;
+import backtype.storm.topology.bolthDeclarer;
+import backtype.storm.topology.IBasicbolth;
+import backtype.storm.topology.IRichbolth;
 import backtype.storm.topology.InputDeclarer;
 import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
@@ -42,7 +42,7 @@ public class TransactionalTopologyBuilder {
     String _id;
     String _spoutId;
     ITransactionalSpout _spout;
-    Map<String, Component> _bolts = new HashMap<String, Component>();
+    Map<String, Component> _bolths = new HashMap<String, Component>();
     Integer _spoutParallelism;
     List<Map> _spoutConfs = new ArrayList();
     
@@ -79,36 +79,36 @@ public class TransactionalTopologyBuilder {
         return new SpoutDeclarerImpl();
     }
     
-    public BoltDeclarer setBolt(String id, IBatchBolt bolt) {
-        return setBolt(id, bolt, null);
+    public bolthDeclarer setbolth(String id, IBatchbolth bolth) {
+        return setbolth(id, bolth, null);
     }
     
-    public BoltDeclarer setBolt(String id, IBatchBolt bolt, Number parallelism) {
-        return setBolt(id, new BatchBoltExecutor(bolt), parallelism, bolt instanceof ICommitter);
+    public bolthDeclarer setbolth(String id, IBatchbolth bolth, Number parallelism) {
+        return setbolth(id, new BatchbolthExecutor(bolth), parallelism, bolth instanceof ICommitter);
     }
 
-    public BoltDeclarer setCommitterBolt(String id, IBatchBolt bolt) {
-        return setCommitterBolt(id, bolt, null);
+    public bolthDeclarer setCommitterbolth(String id, IBatchbolth bolth) {
+        return setCommitterbolth(id, bolth, null);
     }
     
-    public BoltDeclarer setCommitterBolt(String id, IBatchBolt bolt, Number parallelism) {
-        return setBolt(id, new BatchBoltExecutor(bolt), parallelism, true);
+    public bolthDeclarer setCommitterbolth(String id, IBatchbolth bolth, Number parallelism) {
+        return setbolth(id, new BatchbolthExecutor(bolth), parallelism, true);
     }      
     
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt) {
-        return setBolt(id, bolt, null);
+    public bolthDeclarer setbolth(String id, IBasicbolth bolth) {
+        return setbolth(id, bolth, null);
     }    
     
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism) {
-        return setBolt(id, new BasicBoltExecutor(bolt), parallelism, false);
+    public bolthDeclarer setbolth(String id, IBasicbolth bolth, Number parallelism) {
+        return setbolth(id, new BasicbolthExecutor(bolth), parallelism, false);
     }
     
-    private BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelism, boolean committer) {
+    private bolthDeclarer setbolth(String id, IRichbolth bolth, Number parallelism, boolean committer) {
         Integer p = null;
         if(parallelism!=null) p = parallelism.intValue();
-        Component component = new Component(bolt, p, committer);
-        _bolts.put(id, component);
-        return new BoltDeclarerImpl(component);
+        Component component = new Component(bolth, p, committer);
+        _bolths.put(id, component);
+        return new bolthDeclarerImpl(component);
     }
     
     public TopologyBuilder buildTopologyBuilder() {
@@ -120,9 +120,9 @@ public class TransactionalTopologyBuilder {
         }
         declarer.addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
 
-        BoltDeclarer emitterDeclarer = 
-                builder.setBolt(_spoutId,
-                        new CoordinatedBolt(new TransactionalSpoutBatchExecutor(_spout),
+        bolthDeclarer emitterDeclarer = 
+                builder.setbolth(_spoutId,
+                        new Coordinatedbolth(new TransactionalSpoutBatchExecutor(_spout),
                                              null,
                                              null),
                         _spoutParallelism)
@@ -131,10 +131,10 @@ public class TransactionalTopologyBuilder {
         if(_spout instanceof ICommitterTransactionalSpout) {
             emitterDeclarer.allGrouping(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);
         }
-        for(String id: _bolts.keySet()) {
-            Component component = _bolts.get(id);
+        for(String id: _bolths.keySet()) {
+            Component component = _bolths.get(id);
             Map<String, SourceArgs> coordinatedArgs = new HashMap<String, SourceArgs>();
-            for(String c: componentBoltSubscriptions(component)) {
+            for(String c: componentbolthSubscriptions(component)) {
                 coordinatedArgs.put(c, SourceArgs.all());
             }
             
@@ -142,15 +142,15 @@ public class TransactionalTopologyBuilder {
             if(component.committer) {
                 idSpec = IdStreamSpec.makeDetectSpec(coordinator, TransactionalSpoutCoordinator.TRANSACTION_COMMIT_STREAM_ID);          
             }
-            BoltDeclarer input = builder.setBolt(id,
-                                                  new CoordinatedBolt(component.bolt,
+            bolthDeclarer input = builder.setbolth(id,
+                                                  new Coordinatedbolth(component.bolth,
                                                                       coordinatedArgs,
                                                                       idSpec),
                                                   component.parallelism);
             for(Map conf: component.componentConfs) {
                 input.addConfigurations(conf);
             }
-            for(String c: componentBoltSubscriptions(component)) {
+            for(String c: componentbolthSubscriptions(component)) {
                 input.directGrouping(c, Constants.COORDINATED_STREAM_ID);
             }
             for(InputDeclaration d: component.declarations) {
@@ -167,7 +167,7 @@ public class TransactionalTopologyBuilder {
         return buildTopologyBuilder().createTopology();
     }
     
-    private Set<String> componentBoltSubscriptions(Component component) {
+    private Set<String> componentbolthSubscriptions(Component component) {
         Set<String> ret = new HashSet<String>();
         for(InputDeclaration d: component.declarations) {
             ret.add(d.getComponent());
@@ -176,14 +176,14 @@ public class TransactionalTopologyBuilder {
     }
 
     private static class Component {
-        public IRichBolt bolt;
+        public IRichbolth bolth;
         public Integer parallelism;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
         public List<Map> componentConfs = new ArrayList<Map>();
         public boolean committer;
         
-        public Component(IRichBolt bolt, Integer parallelism, boolean committer) {
-            this.bolt = bolt;
+        public Component(IRichbolth bolth, Integer parallelism, boolean committer) {
+            this.bolth = bolth;
             this.parallelism = parallelism;
             this.committer = committer;
         }
@@ -202,15 +202,15 @@ public class TransactionalTopologyBuilder {
         }        
     }
     
-    private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
+    private class bolthDeclarerImpl extends BaseConfigurationDeclarer<bolthDeclarer> implements bolthDeclarer {
         Component _component;
         
-        public BoltDeclarerImpl(Component component) {
+        public bolthDeclarerImpl(Component component) {
             _component = component;
         }
         
         @Override
-        public BoltDeclarer fieldsGrouping(final String component, final Fields fields) {
+        public bolthDeclarer fieldsGrouping(final String component, final Fields fields) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -226,7 +226,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer fieldsGrouping(final String component, final String streamId, final Fields fields) {
+        public bolthDeclarer fieldsGrouping(final String component, final String streamId, final Fields fields) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -242,7 +242,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer globalGrouping(final String component) {
+        public bolthDeclarer globalGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -258,7 +258,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer globalGrouping(final String component, final String streamId) {
+        public bolthDeclarer globalGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -274,7 +274,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer shuffleGrouping(final String component) {
+        public bolthDeclarer shuffleGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -290,7 +290,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer shuffleGrouping(final String component, final String streamId) {
+        public bolthDeclarer shuffleGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -306,7 +306,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer localOrShuffleGrouping(final String component) {
+        public bolthDeclarer localOrShuffleGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -322,7 +322,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer localOrShuffleGrouping(final String component, final String streamId) {
+        public bolthDeclarer localOrShuffleGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -338,7 +338,7 @@ public class TransactionalTopologyBuilder {
         }
         
         @Override
-        public BoltDeclarer noneGrouping(final String component) {
+        public bolthDeclarer noneGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -354,7 +354,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer noneGrouping(final String component, final String streamId) {
+        public bolthDeclarer noneGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -370,7 +370,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer allGrouping(final String component) {
+        public bolthDeclarer allGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -386,7 +386,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer allGrouping(final String component, final String streamId) {
+        public bolthDeclarer allGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -402,7 +402,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer directGrouping(final String component) {
+        public bolthDeclarer directGrouping(final String component) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -418,7 +418,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer directGrouping(final String component, final String streamId) {
+        public bolthDeclarer directGrouping(final String component, final String streamId) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -434,7 +434,7 @@ public class TransactionalTopologyBuilder {
         }
         
         @Override
-        public BoltDeclarer customGrouping(final String component, final CustomStreamGrouping grouping) {
+        public bolthDeclarer customGrouping(final String component, final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -450,7 +450,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer customGrouping(final String component, final String streamId, final CustomStreamGrouping grouping) {
+        public bolthDeclarer customGrouping(final String component, final String streamId, final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -466,7 +466,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer grouping(final GlobalStreamId stream, final Grouping grouping) {
+        public bolthDeclarer grouping(final GlobalStreamId stream, final Grouping grouping) {
             addDeclaration(new InputDeclaration() {
                 @Override
                 public void declare(InputDeclarer declarer) {
@@ -486,7 +486,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer addConfigurations(Map conf) {
+        public bolthDeclarer addConfigurations(Map conf) {
             _component.componentConfs.add(conf);
             return this;
         }

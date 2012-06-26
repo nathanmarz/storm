@@ -3,7 +3,7 @@
   (:import [backtype.storm.drpc ReturnResults DRPCSpout
             LinearDRPCTopologyBuilder])
   (:import [backtype.storm.topology FailedException])
-  (:import [backtype.storm.coordination CoordinatedBolt$FinishedCallback])
+  (:import [backtype.storm.coordination Coordinatedbolth$FinishedCallback])
   (:import [backtype.storm LocalDRPC LocalCluster])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated DRPCExecutionException])
@@ -14,8 +14,8 @@
 
 (bootstrap)
 
-(defbolt exclamation-bolt ["result" "return-info"] [tuple collector]
-  (emit-bolt! collector
+(defbolth exclamation-bolth ["result" "return-info"] [tuple collector]
+  (emit-bolth! collector
               [(str (.getString tuple 0) "!!!") (.getValue tuple 1)]
               :anchor tuple)
   (ack! collector tuple)
@@ -27,9 +27,9 @@
         cluster (LocalCluster.)
         topology (topology
                   {"1" (spout-spec spout)}
-                  {"2" (bolt-spec {"1" :shuffle}
-                                exclamation-bolt)
-                   "3" (bolt-spec {"2" :shuffle}
+                  {"2" (bolth-spec {"1" :shuffle}
+                                exclamation-bolth)
+                   "3" (bolth-spec {"2" :shuffle}
                                 (ReturnResults.))})]
     (.submitTopology cluster "test" {} topology)
 
@@ -42,8 +42,8 @@
     (.shutdown drpc)
     ))
 
-(defbolt exclamation-bolt-drpc ["id" "result"] [tuple collector]
-  (emit-bolt! collector
+(defbolth exclamation-bolth-drpc ["id" "result"] [tuple collector]
+  (emit-bolth! collector
               [(.getValue tuple 0) (str (.getString tuple 1) "!!!")]
               :anchor tuple)
   (ack! collector tuple)
@@ -54,7 +54,7 @@
         cluster (LocalCluster.)
         builder (LinearDRPCTopologyBuilder. "test")
         ]
-    (.addBolt builder exclamation-bolt-drpc 3)
+    (.addbolth builder exclamation-bolth-drpc 3)
     (.submitTopology cluster
                      "builder-test"
                      {}
@@ -70,45 +70,45 @@
 (defn safe-inc [v]
   (if v (inc v) 1))
 
-(defbolt partial-count ["request" "count"] {:prepare true}
+(defbolth partial-count ["request" "count"] {:prepare true}
   [conf context collector]
   (let [counts (atom {})]
-    (bolt
+    (bolth
      (execute [tuple]
               (let [id (.getValue tuple 0)]
                 (swap! counts update-in [id] safe-inc)
                 (ack! collector tuple)
                 ))
-     CoordinatedBolt$FinishedCallback
+     Coordinatedbolth$FinishedCallback
      (finishedId [this id]
-                 (emit-bolt! collector [id (get @counts id 0)])
+                 (emit-bolth! collector [id (get @counts id 0)])
                  ))
     ))
 
 (defn safe+ [v1 v2]
   (if v1 (+ v1 v2) v2))
 
-(defbolt count-aggregator ["request" "total"] {:prepare true}
+(defbolth count-aggregator ["request" "total"] {:prepare true}
   [conf context collector]
   (let [counts (atom {})]
-    (bolt
+    (bolth
      (execute [tuple]
               (let [id (.getValue tuple 0)
                     count (.getValue tuple 1)]
                 (swap! counts update-in [id] safe+ count)
                 (ack! collector tuple)
                 ))
-     CoordinatedBolt$FinishedCallback
+     Coordinatedbolth$FinishedCallback
      (finishedId [this id]
-                 (emit-bolt! collector [id (get @counts id 0)])
+                 (emit-bolth! collector [id (get @counts id 0)])
                  ))
     ))
 
-(defbolt create-tuples ["request"] [tuple collector]
+(defbolth create-tuples ["request"] [tuple collector]
   (let [id (.getValue tuple 0)
         amt (Integer/parseInt (.getValue tuple 1))]
     (doseq [i (range (* amt amt))]
-      (emit-bolt! collector [id] :anchor tuple))
+      (emit-bolth! collector [id] :anchor tuple))
     (ack! collector tuple)
     ))
 
@@ -117,10 +117,10 @@
         cluster (LocalCluster.)
         builder (LinearDRPCTopologyBuilder. "square")
         ]
-    (.addBolt builder create-tuples 3)
-    (doto (.addBolt builder partial-count 3)
+    (.addbolth builder create-tuples 3)
+    (doto (.addbolth builder partial-count 3)
       (.shuffleGrouping))
-    (doto (.addBolt builder count-aggregator 3)
+    (doto (.addbolth builder count-aggregator 3)
       (.fieldsGrouping (Fields. ["request"])))
 
     (.submitTopology cluster
@@ -137,21 +137,21 @@
     (.shutdown drpc)
     ))
 
-(defbolt id-bolt ["request" "val"] [tuple collector]
-  (emit-bolt! collector
+(defbolth id-bolth ["request" "val"] [tuple collector]
+  (emit-bolth! collector
               (.getValues tuple)
               :anchor tuple)
   (ack! collector tuple))
 
-(defbolt emit-finish ["request" "result"] {:prepare true}
+(defbolth emit-finish ["request" "result"] {:prepare true}
   [conf context collector]
-  (bolt
+  (bolth
    (execute [tuple]
             (ack! collector tuple)
             )
-   CoordinatedBolt$FinishedCallback
+   Coordinatedbolth$FinishedCallback
    (finishedId [this id]
-               (emit-bolt! collector [id "done"])
+               (emit-bolth! collector [id "done"])
                )))
 
 (deftest test-drpc-coordination-tricky
@@ -159,10 +159,10 @@
         cluster (LocalCluster.)
         builder (LinearDRPCTopologyBuilder. "tricky")
         ]
-    (.addBolt builder id-bolt 3)
-    (doto (.addBolt builder id-bolt 3)
+    (.addbolth builder id-bolth 3)
+    (doto (.addbolth builder id-bolth 3)
       (.shuffleGrouping))
-    (doto (.addBolt builder emit-finish 3)
+    (doto (.addbolth builder emit-finish 3)
       (.fieldsGrouping (Fields. ["request"])))
 
     (.submitTopology cluster
@@ -176,12 +176,12 @@
     (.shutdown drpc)
     ))
 
-(defbolt fail-finish-bolt ["request" "result"] {:prepare true}
+(defbolth fail-finish-bolth ["request" "result"] {:prepare true}
   [conf context collector]
-  (bolt
+  (bolth
    (execute [tuple]
             (ack! collector tuple))
-   CoordinatedBolt$FinishedCallback
+   Coordinatedbolth$FinishedCallback
    (finishedId [this id]
                (throw (FailedException.))
                )))
@@ -191,7 +191,7 @@
         cluster (LocalCluster.)
         builder (LinearDRPCTopologyBuilder. "fail2")
         ]
-    (.addBolt builder fail-finish-bolt 3)
+    (.addbolth builder fail-finish-bolth 3)
 
     (.submitTopology cluster
                      "fail2"

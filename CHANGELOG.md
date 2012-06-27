@@ -22,6 +22,11 @@
  * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
  * Added shared worker resources. Storm provides a shared ExecutorService thread pool by default. The number of threads in the pool can be configured with topology.worker.shared.thread.pool.size
 
+## 0.7.4 (unreleased)
+
+ * Bug fix: Disallow slashes in topology names since it causes Nimbus to break by affecting local filesystem and zookeeper paths
+ * Bug fix: Prevent slow loading tasks from causing worker timeouts by launching the heartbeat thread before tasks are loaded
+
 ## 0.7.3
 
  * Changed debug level of "Failed message" logging to DEBUG

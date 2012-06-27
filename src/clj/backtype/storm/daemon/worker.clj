@@ -226,6 +226,8 @@
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
         _ (heartbeat-fn)
+        ;; launch the heartbeat thread before tasks are loaded, so that slow-loading tasks don't cause the supervisor to kill the worker
+        _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
         
         refresh-connections (mk-refresh-connections worker)
 
@@ -277,7 +279,6 @@
              )]
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
-    (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")

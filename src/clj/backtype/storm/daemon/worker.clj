@@ -328,12 +328,20 @@
         ;; heartbeat immediately to nimbus so that it knows that the worker has been started
         _ (do-executor-heartbeats worker)
         
+        
+        executors (atom nil)
+        ;; launch heartbeat threads immediately so that slow-loading tasks don't cause the worker to timeout
+        ;; to the supervisor
+        _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
+        _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
+
+        
         refresh-connections (mk-refresh-connections worker)
 
         _ (refresh-connections nil)
         _ (refresh-storm-active worker nil)
  
-        executors (dofor [e (:executors worker)] (executor/mk-executor worker e))
+        _ (reset! executors (dofor [e (:executors worker)] (executor/mk-executor worker e)))
         receive-thread-shutdown (launch-receive-thread worker)
         
         transfer-tuples (mk-transfer-tuples-handler worker)
@@ -350,7 +358,7 @@
                     (log-message "Shut down receive thread")
                     (log-message "Terminating zmq context")
                     (log-message "Shutting down executors")
-                    (doseq [executor executors] (.shutdown executor))
+                    (doseq [executor @executors] (.shutdown executor))
                     (log-message "Shut down executors")
                                         
                     ;;this is fine because the only time this is shared is when it's a local context,
@@ -395,8 +403,6 @@
     
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
-    (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
-    (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors executors))
 
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")

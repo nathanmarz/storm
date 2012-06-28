@@ -34,6 +34,8 @@ public class ZkKafkaPartitionConnections extends KafkaPartitionConnections {
                 HostPort hp = getBrokerHost(path);
                 int hostIndex = _pathToHostIndex.get(path);
                 _kafka.put(hostIndex, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes));
+            } else {
+                throw new RuntimeException("Kafka producer node changed but don't know how to deal with event: " + event.getType());
             }
         }
     };
@@ -51,13 +53,20 @@ public class ZkKafkaPartitionConnections extends KafkaPartitionConnections {
     }
 
     @Override
+    public int getNumberOfHosts() {
+        return _kafka.size();
+    }
+
+    @Override
     public SimpleConsumer getConsumer(int partition) {
         int hostIndex = partition / _config.partitionsPerHost;
-        if(!_kafka.containsKey(hostIndex)) {
-            HostPort hp = _config.hosts.get(hostIndex);
-            _kafka.put(hostIndex, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes));
-        }
         return _kafka.get(hostIndex);
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        _zkClient.close();
     }
 
     private HostPort getBrokerHost(String zkPath) {

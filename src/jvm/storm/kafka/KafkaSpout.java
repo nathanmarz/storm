@@ -204,7 +204,7 @@ public class KafkaSpout extends BaseRichSpout {
             _partitions = new KafkaPartitionConnections(_spoutConfig);
         }
 
-        int totalPartitions = _spoutConfig.partitionsPerHost * _spoutConfig.hosts.size();
+        int totalPartitions = _spoutConfig.partitionsPerHost * _partitions.getNumberOfHosts();
         int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
         for(int p = context.getThisTaskIndex(); p < totalPartitions; p+=numTasks) {
             _managedPartitions.add(p);

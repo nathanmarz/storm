@@ -26,6 +26,10 @@ public class KafkaPartitionConnections {
         return globalPartition % _config.partitionsPerHost;
     }
 
+    public int getNumberOfHosts() {
+        return _config.hosts.size();
+    }
+
     public void close() {
         for(SimpleConsumer consumer: _kafka.values()) {
             consumer.close();

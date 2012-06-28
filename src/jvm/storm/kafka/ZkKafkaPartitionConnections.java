@@ -66,15 +66,19 @@ public class ZkKafkaPartitionConnections extends KafkaPartitionConnections {
     @Override
     public void close() {
         super.close();
-        _zkClient.close();
+        try {
+           _zkClient.close();
+        } catch(InterruptedException e) {
+           throw new RuntimeException("Error while closing client");
+        }
     }
 
     private HostPort getBrokerHost(String zkPath) {
         try {
             String zkData = new String(_zkClient.getData(_brokerZkPath + "/" + zkPath, true, new Stat()));
             String[] hostString = zkData.split(":");
-            String host = hostString[hostString.length - 1];
-            int port = Integer.parseInt(hostString[hostString.length - 2]);
+            String host = hostString[hostString.length - 2];
+            int port = Integer.parseInt(hostString[hostString.length - 1]);
             return new HostPort(host, port);
         } catch(KeeperException e) {
             throw new RuntimeException("Could not get broker data: " + e);

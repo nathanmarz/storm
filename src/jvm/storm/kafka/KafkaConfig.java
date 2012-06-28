@@ -16,22 +16,24 @@ public class KafkaConfig implements Serializable {
     public String topic;
     public long startOffsetTime = -2;
     public boolean forceFromStart = false;
+    public String brokerZkHost = null;
+    public String brokerZkPath = null;
 
     public KafkaConfig(List<HostPort> hosts, int partitionsPerHost, String topic) {
         this.hosts = hosts;
         this.partitionsPerHost = partitionsPerHost;
         this.topic = topic;
     }
-    
+
     public static KafkaConfig fromHostStrings(List<String> hosts, int partitionsPerHost, String topic) {
         return new KafkaConfig(convertHosts(hosts), partitionsPerHost, topic);
     }
-    
+
     public void forceStartOffsetTime(long millis) {
         startOffsetTime = millis;
         forceFromStart = true;
     }
-    
+
     public static List<HostPort> convertHosts(List<String> hosts) {
         List<HostPort> ret = new ArrayList<HostPort>();
         for(String s: hosts) {

@@ -97,7 +97,7 @@ def parse_args(string):
         '(?: [^'\\] | \\.)*' |
         \\.
     )+)''', re.VERBOSE)
-    args = re_split.split(string)[1::2]
+    args = re_split.split(string or '')[1::2]
     args = [re.compile(r'"((?:[^"\\]|\\.)*)"').sub('\\1', x) for x in args]
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]

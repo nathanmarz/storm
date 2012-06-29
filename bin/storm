@@ -84,7 +84,7 @@ def print_remoteconfvalue(name):
     print name + ": " + confvalue(name, [STORM_DIR + "/conf"])
 
 def parse_args(string):
-    """Takes a string of whitespace-separated tokens and parses it into a list.
+    r"""Takes a string of whitespace-separated tokens and parses it into a list.
     Whitespace inside tokens may be quoted with single quotes, double quotes or
     backslash (similar to command-line arguments in bash).
 

@@ -21,6 +21,7 @@
  * Upgrade Kryo to v2.04
  * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
  * Added shared worker resources. Storm provides a shared ExecutorService thread pool by default. The number of threads in the pool can be configured with topology.worker.shared.thread.pool.size
+ * Improve CustomStreamGrouping interface to make it more flexible by providing more information
 
 ## 0.7.4
 

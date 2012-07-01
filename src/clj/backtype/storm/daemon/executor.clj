@@ -14,7 +14,7 @@
 (defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
         task-getter (fn [i] (.get target-tasks i))]
-    (fn [^List values]
+    (fn [task-id ^List values]
       (-> (.select out-fields group-fields values)
           tuple/list-hash-code
           (mod num-tasks)
@@ -22,32 +22,32 @@
 
 (defn- mk-shuffle-grouper [^List target-tasks]
   (let [choices (rotating-random-range target-tasks)]
-    (fn [tuple]
+    (fn [task-id tuple]
       (acquire-random-range-id choices))))
 
-(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^Fields out-fields target-tasks]
-  (.prepare grouping context out-fields target-tasks)
-  (fn [^List values]
-    (.chooseTasks grouping values)
+(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
+  (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
+  (fn [task-id ^List values]
+    (.chooseTasks grouping task-id values)
     ))
 
 (defn- mk-grouper
   "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
-  [^WorkerTopologyContext context ^Fields out-fields thrift-grouping ^List target-tasks]
+  [^WorkerTopologyContext context component-id stream-id ^Fields out-fields thrift-grouping ^List target-tasks]
   (let [num-tasks (count target-tasks)
         random (Random.)
         target-tasks (vec (sort target-tasks))]
     (condp = (thrift/grouping-type thrift-grouping)
       :fields
         (if (thrift/global-grouping? thrift-grouping)
-          (fn [tuple]
+          (fn [task-id tuple]
             ;; It's possible for target to have multiple tasks if it reads multiple sources
             (first target-tasks))
           (let [group-fields (Fields. (thrift/field-grouping thrift-grouping))]
             (mk-fields-grouper out-fields group-fields target-tasks)
             ))
       :all
-        (fn [tuple] target-tasks)
+        (fn [task-id tuple] target-tasks)
       :shuffle
         (mk-shuffle-grouper target-tasks)
       :local-or-shuffle
@@ -58,21 +58,21 @@
             (mk-shuffle-grouper (vec same-tasks))
             (mk-shuffle-grouper target-tasks)))
       :none
-        (fn [tuple]
+        (fn [task-id tuple]
           (let [i (mod (.nextInt random) num-tasks)]
             (.get target-tasks i)
             ))
       :custom-object
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
-          (mk-custom-grouper grouping context out-fields target-tasks))
+          (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :custom-serialized
         (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping))]
-          (mk-custom-grouper grouping context out-fields target-tasks))
+          (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :direct
         :direct
       )))
 
-(defn- outbound-groupings [^WorkerTopologyContext worker-context out-fields component->grouping]
+(defn- outbound-groupings [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping]
   (->> component->grouping
        (filter-key #(-> worker-context
                         (.getComponentTasks %)
@@ -81,6 +81,8 @@
        (map (fn [[component tgrouping]]
                [component
                 (mk-grouper worker-context
+                            this-component-id
+                            stream-id
                             out-fields
                             tgrouping
                             (.getComponentTasks worker-context component)
@@ -97,6 +99,8 @@
                [stream-id
                 (outbound-groupings
                   worker-context
+                  component-id
+                  stream-id
                   (.getComponentOutputFields worker-context component-id stream-id)
                   component->grouping)]))
          (into {})

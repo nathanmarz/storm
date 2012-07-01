@@ -32,7 +32,7 @@
 
      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor
                      Nimbus$Iface StormTopology ShellComponent
-                     NotAliveException AlreadyAliveException
+                     NotAliveException AlreadyAliveException GlobalStreamId
                      InvalidTopologyException ClusterSummary TopologyInfo
                      TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
                      SpoutStats BoltStats ErrorInfo SupervisorSummary ExecutorInfo

@@ -1,8 +1,8 @@
 package backtype.storm.testing;
 
+import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.task.WorkerTopologyContext;
-import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +16,7 @@ public class NGrouping implements CustomStreamGrouping {
     }
     
     @Override
-    public void prepare(WorkerTopologyContext context, Fields outFields, List<Integer> targetTasks) {
+    public void prepare(WorkerTopologyContext context, GlobalStreamId stream, List<Integer> targetTasks) {
         targetTasks = new ArrayList<Integer>(targetTasks);
         Collections.sort(targetTasks);
         _outTasks = new ArrayList<Integer>();
@@ -26,7 +26,7 @@ public class NGrouping implements CustomStreamGrouping {
     }
 
     @Override
-    public List<Integer> chooseTasks(List<Object> values) {
+    public List<Integer> chooseTasks(int taskId, List<Object> values) {
         return _outTasks;
     }
     

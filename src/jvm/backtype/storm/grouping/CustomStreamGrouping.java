@@ -1,7 +1,7 @@
 package backtype.storm.grouping;
 
+import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.WorkerTopologyContext;
-import backtype.storm.tuple.Fields;
 import java.io.Serializable;
 import java.util.List;
 
@@ -13,7 +13,7 @@ public interface CustomStreamGrouping extends Serializable {
      * 
      * It also tells the grouping the metadata on the stream this grouping will be used on.
      */
-   void prepare(WorkerTopologyContext context, Fields outFields, List<Integer> targetTasks);
+   void prepare(WorkerTopologyContext context, GlobalStreamId stream, List<Integer> targetTasks);
     
    /**
      * This function implements a custom stream grouping. It takes in as input
@@ -22,5 +22,5 @@ public interface CustomStreamGrouping extends Serializable {
      * 
      * @param values the values to group on
      */
-   List<Integer> chooseTasks(List<Object> values); 
+   List<Integer> chooseTasks(int taskId, List<Object> values); 
 }

@@ -23,6 +23,11 @@
  * Added shared worker resources. Storm provides a shared ExecutorService thread pool by default. The number of threads in the pool can be configured with topology.worker.shared.thread.pool.size
  * Improve CustomStreamGrouping interface to make it more flexible by providing more information
 
+## 0.7.5 (unreleased)
+
+ * Storm is now less aggressive about halting process when there are Zookeeper errors, preferring to wait until client calls return exceptions.
+ * Bug fix: Realize task ids when worker heartbeats to supervisor. Some users were hitting deserialization problems here in very rare cases (thanks herberteuler)
+
 ## 0.7.4
 
  * Bug fix: Disallow slashes in topology names since it causes Nimbus to break by affecting local filesystem and zookeeper paths

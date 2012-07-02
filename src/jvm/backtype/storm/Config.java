@@ -78,9 +78,15 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_ZOOKEEPER_ROOT = "storm.zookeeper.root";
 
     /**
-     * The timeout for clients to ZooKeeper.
+     * The session timeout for clients to ZooKeeper.
      */
     public static String STORM_ZOOKEEPER_SESSION_TIMEOUT = "storm.zookeeper.session.timeout";
+
+    /**
+     * The connection timeout for clients to ZooKeeper.
+     */
+    public static String STORM_ZOOKEEPER_CONNECTION_TIMEOUT = "storm.zookeeper.connection.timeout";
+    
     
     /**
      * The number of times to retry a Zookeeper operation.

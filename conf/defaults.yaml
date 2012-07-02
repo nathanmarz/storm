@@ -11,6 +11,7 @@ storm.zookeeper.servers:
 storm.zookeeper.port: 2181
 storm.zookeeper.root: "/storm"
 storm.zookeeper.session.timeout: 20000
+storm.zookeeper.connection.timeout: 15000
 storm.zookeeper.retry.times: 5
 storm.zookeeper.retry.interval: 1000
 storm.cluster.mode: "distributed" # can be distributed or local

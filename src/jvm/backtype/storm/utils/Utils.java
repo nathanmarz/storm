@@ -8,6 +8,8 @@ import clojure.lang.IFn;
 import clojure.lang.RT;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.framework.api.CuratorEvent;
+import com.netflix.curator.framework.api.CuratorListener;
 import com.netflix.curator.retry.RetryNTimes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -276,7 +278,8 @@ public class Utils {
         try {
             CuratorFramework ret =  CuratorFrameworkFactory.newClient(zkStr,
                                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
-                                        15000, new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)),
+                                        new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
                                                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
             return ret;
         } catch (IOException e) {

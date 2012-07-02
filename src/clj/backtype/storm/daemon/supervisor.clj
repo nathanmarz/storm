@@ -32,7 +32,8 @@
                             ))]
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
-               [(Integer. port) (LocalAssignment. storm-id executors)]
+               ;; doall is to avoid serialization/deserialization problems with lazy seqs
+               [(Integer. port) (LocalAssignment. storm-id (doall executors))]
                ))
     ))
 

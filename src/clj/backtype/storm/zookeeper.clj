@@ -42,21 +42,21 @@
                  (watcher (zk-keeper-states (.getState event))
                           (zk-event-types (.getType event))
                           (.getPath event))))))))
-    (.. fk
-        (getUnhandledErrorListenable)
-        (addListener
-         (reify UnhandledErrorListener
-           (unhandledError [this msg error]
-             (if (or (exception-cause? InterruptedException error)
-                     (exception-cause? java.nio.channels.ClosedByInterruptException error))
-               (do (log-warn-error error "Zookeeper exception " msg)
-                   (let [to-throw (InterruptedException.)]
-                     (.initCause to-throw error)
-                     (throw to-throw)
-                     ))
-               (do (log-error error "Unrecoverable Zookeeper error " msg)
-                   (halt-process! 1 "Unrecoverable Zookeeper error")))
-             ))))
+;;    (.. fk
+;;        (getUnhandledErrorListenable)
+;;        (addListener
+;;         (reify UnhandledErrorListener
+;;           (unhandledError [this msg error]
+;;             (if (or (exception-cause? InterruptedException error)
+;;                     (exception-cause? java.nio.channels.ClosedByInterruptException error))
+;;               (do (log-warn-error error "Zookeeper exception " msg)
+;;                   (let [to-throw (InterruptedException.)]
+;;                     (.initCause to-throw error)
+;;                     (throw to-throw)
+;;                     ))
+;;               (do (log-error error "Unrecoverable Zookeeper error " msg)
+;;                   (halt-process! 1 "Unrecoverable Zookeeper error")))
+;;             ))))
     (.start fk)
     fk))
 

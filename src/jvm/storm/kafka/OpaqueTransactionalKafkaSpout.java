@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import kafka.javaapi.consumer.SimpleConsumer;
 import org.apache.log4j.Logger;
+import storm.kafka.KafkaConfig.StaticHosts;
 
 
 public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransactionalSpout<BatchMeta> {
@@ -61,10 +62,10 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
     }
     
     class Emitter implements IOpaquePartitionedTransactionalSpout.Emitter<BatchMeta> {
-        KafkaPartitionConnections _connections;
+        StaticPartitionConnections _connections;
         
         public Emitter() {
-            _connections = new KafkaPartitionConnections(_config);
+            _connections = new StaticPartitionConnections(_config);
         }
 
         @Override
@@ -87,7 +88,8 @@ public class OpaqueTransactionalKafkaSpout implements IOpaquePartitionedTransact
 
         @Override
         public int numPartitions() {
-            return _config.hosts.size() * _config.partitionsPerHost;
+            StaticHosts hosts = (StaticHosts) _config.hosts;
+            return hosts.hosts.size() * hosts.partitionsPerHost;
         }
 
         @Override

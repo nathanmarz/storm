@@ -9,6 +9,7 @@ import backtype.storm.transactional.TransactionalTopologyBuilder;
 import backtype.storm.tuple.Tuple;
 import java.util.ArrayList;
 import java.util.List;
+import storm.kafka.KafkaConfig.StaticHosts;
 
 public class TestTopology {
     public static class PrinterBolt extends BaseBasicBolt {
@@ -26,7 +27,7 @@ public class TestTopology {
     public static void main(String [] args) throws Exception {
         List<String> hosts = new ArrayList<String>();
         hosts.add("localhost");
-        KafkaConfig kafkaConf = KafkaConfig.fromHostStrings(hosts, 3, "test");
+        KafkaConfig kafkaConf = new KafkaConfig(StaticHosts.fromHostString(hosts, 3), "test");
         kafkaConf.scheme = new StringScheme();
         LocalCluster cluster = new LocalCluster();
         TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("id", "spout",

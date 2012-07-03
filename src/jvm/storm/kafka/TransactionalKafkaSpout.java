@@ -14,6 +14,7 @@ import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
+import storm.kafka.KafkaConfig.StaticHosts;
 
 
 public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<BatchMeta> {
@@ -43,10 +44,13 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
     }
     
     class Emitter implements IPartitionedTransactionalSpout.Emitter<BatchMeta> {
-        KafkaPartitionConnections _connections;
+        StaticPartitionConnections _connections;
+        int partitionsPerHost;
         
         public Emitter() {
-            _connections = new KafkaPartitionConnections(_config);
+            _connections = new StaticPartitionConnections(_config);
+            StaticHosts hosts = (StaticHosts) _config.hosts;
+            partitionsPerHost = hosts.partitionsPerHost;            
         }
         
         @Override
@@ -60,7 +64,7 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
         public void emitPartitionBatch(TransactionAttempt attempt, BatchOutputCollector collector, int partition, BatchMeta meta) {
             SimpleConsumer consumer = _connections.getConsumer(partition);
                         
-            ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition % _config.partitionsPerHost, meta.offset, _config.fetchSizeBytes));
+            ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition % partitionsPerHost, meta.offset, _config.fetchSizeBytes));
             long offset = meta.offset;
             for(MessageAndOffset msg: msgs) {
                 if(offset == meta.nextOffset) break;
@@ -97,7 +101,8 @@ public class TransactionalKafkaSpout extends BasePartitionedTransactionalSpout<B
     }
     
     private int computeNumPartitions() {
-        return _config.hosts.size() * _config.partitionsPerHost;        
+        StaticHosts hosts = (StaticHosts) _config.hosts;
+        return hosts.hosts.size() * hosts.partitionsPerHost;      
     }
     
     @Override

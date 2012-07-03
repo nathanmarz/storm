@@ -42,6 +42,7 @@ public class PartitionManager {
     
     public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, SpoutConfig spoutConfig, TransactionalState state, GlobalPartitionId id) {
         _state = state;
+        _partition = id;
         _connections = connections;
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;

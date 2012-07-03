@@ -62,6 +62,7 @@ def confvalue(name, extrapaths):
         tokens = line.split(" ")
         if tokens[0] == "VALUE:":
             return " ".join(tokens[1:])
+    return ""
 
 def print_localconfvalue(name):
     """Syntax: [storm localconfvalue conf-name]
@@ -97,7 +98,7 @@ def parse_args(string):
         '(?: [^'\\] | \\.)*' |
         \\.
     )+)''', re.VERBOSE)
-    args = re_split.split(string or '')[1::2]
+    args = re_split.split(string)[1::2]
     args = [re.compile(r'"((?:[^"\\]|\\.)*)"').sub('\\1', x) for x in args]
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class KafkaConfig implements Serializable {
-    public static interface BrokerHosts {
+    public static interface BrokerHosts extends Serializable {
         
     }
     

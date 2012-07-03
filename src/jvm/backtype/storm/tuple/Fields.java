@@ -65,4 +65,9 @@ public class Fields implements Iterable<String>, Serializable {
             _index.put(_fields.get(i), i);
         }
     }
+
+    @Override
+    public String toString() {
+        return _fields.toString();
+    }    
 }

@@ -20,7 +20,7 @@
   )
 
 (defn mk-distributed-cluster-state [conf]
-  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT))]
+  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)]
     (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
     (.close zk))
   (let [callbacks (atom {})
@@ -28,6 +28,7 @@
         zk (zk/mk-client conf
                          (conf STORM-ZOOKEEPER-SERVERS)
                          (conf STORM-ZOOKEEPER-PORT)
+                         :auth-conf conf
                          :root (conf STORM-ZOOKEEPER-ROOT)
                          :watcher (fn [state type path]
                                      (when @active

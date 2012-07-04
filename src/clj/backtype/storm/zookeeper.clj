@@ -9,7 +9,7 @@
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxn$Factory])
   (:import [java.net InetSocketAddress BindException])
   (:import [java.io File])
-  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.utils Utils ZookeeperAuthInfo])
   (:use [backtype.storm util log config]))
 
 (def zk-keeper-states
@@ -30,8 +30,8 @@
 (defn- default-watcher [state type path]
   (log-message "Zookeeper state update: " state type path))
 
-(defnk mk-client [conf servers port :root "" :watcher default-watcher]
-  (let [fk (Utils/newCurator conf servers port root)]
+(defnk mk-client [conf servers port :root "" :watcher default-watcher :auth-conf nil]
+  (let [fk (Utils/newCurator conf servers port root (when auth-conf (ZookeeperAuthInfo. auth-conf)))]
     (.. fk
         (getCuratorListenable)
         (addListener

@@ -8,8 +8,6 @@ import clojure.lang.IFn;
 import clojure.lang.RT;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.api.CuratorEvent;
-import com.netflix.curator.framework.api.CuratorListener;
 import com.netflix.curator.retry.RetryNTimes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -269,19 +267,28 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
+    
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
+        return newCurator(conf, servers, port, root, null);
+    }
+    
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
         List<String> serverPorts = new ArrayList<String>();
         for(String zkServer: (List<String>) servers) {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root; 
         try {
-            CuratorFramework ret =  CuratorFrameworkFactory.newClient(zkStr,
-                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
-                                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)),
-                                        new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                                                               Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
-            return ret;
+            
+            CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                    .connectString(zkStr)
+                    .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+                    .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+                    .retryPolicy(new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)), Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+            if(auth!=null && auth.scheme!=null) {
+                builder = builder.authorization(auth.scheme, auth.payload);
+            }            
+            return builder.build();
         } catch (IOException e) {
            throw new RuntimeException(e);
         }

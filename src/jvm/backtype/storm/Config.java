@@ -93,6 +93,16 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_ZOOKEEPER_RETRY_INTERVAL="storm.zookeeper.retry.interval";
 
     /**
+     * The Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
+     */
+    public static String STORM_ZOOKEEPER_AUTH_SCHEME="storm.zookeeper.auth.scheme";
+    
+    /**
+     * A string representing the payload for Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
+     */
+    public static String STORM_ZOOKEEPER_AUTH_PAYLOAD="storm.zookeeper.auth.payload";
+    
+    /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.
      */
     public static String STORM_ID = "storm.id";

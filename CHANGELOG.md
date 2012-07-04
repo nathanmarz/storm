@@ -27,6 +27,7 @@
 
  * Zookeeper connection timeout is now configurable (via storm.zookeeper.connection.timeout config)
  * Storm is now less aggressive about halting process when there are Zookeeper errors, preferring to wait until client calls return exceptions.
+ * Can configure Zookeeper authentication for Storm's Zookeeper clients via "storm.zookeeper.auth.scheme" and "storm.zookeeper.auth.payload" configs
  * Bug fix: Realize task ids when worker heartbeats to supervisor. Some users were hitting deserialization problems here in very rare cases (thanks herberteuler)
 
 ## 0.7.4

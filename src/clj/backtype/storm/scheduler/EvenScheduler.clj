@@ -41,8 +41,7 @@
                            (map vector
                                 reassign-executors
                                 ;; for some reason it goes into infinite loop without limiting the repeat-seq
-                                (repeat-seq (count reassign-executors) reassign-slots)))
-        stay-assignment (into {} (mapcat (fn [[node+port executors]] (for [executor executors] [executor node+port])) alive-assigned))]
+                                (repeat-seq (count reassign-executors) reassign-slots)))]
     (when-not (empty? reassignment)
       (log-message "Available slots: " (pr-str available-slots))
       )

@@ -515,7 +515,6 @@
                                                                                existing-assignments
                                                                                topology->alive-executors)
         available-slots (->> topologies
-                             .getTopologies
                              (available-slots nimbus nil)
                              (map (fn [[node-id port]] {node-id #{port}}))
                              (apply merge-with set/union))
@@ -625,7 +624,7 @@
             (newly-added-slots existing-assignment assignment))
          (apply concat)
          (map (fn [[id port]] (WorkerSlot. id port)))
-         (.assignSlots ^INimbus (:inimbus nimbus) (.getTopologies topologies))
+         (.assignSlots ^INimbus (:inimbus nimbus) topologies)
          )))
 
 (defn- start-storm [nimbus storm-name storm-id]

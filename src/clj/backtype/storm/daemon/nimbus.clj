@@ -619,11 +619,14 @@
         (do
           (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
           (.set-assignment! storm-cluster-state topology-id assignment)
-          (.assignSlots ^INimbus (:inimbus nimbus)
-                        (for [[id port] (newly-added-slots existing-assignment assignment)]
-                          (WorkerSlot. id port))
-                        topology-details)
-          )))))
+          )))
+    (->> (dofor [[topology-id assignment] new-assignments
+            :let [existing-assignment (get existing-assignments topology-id)]]
+            (newly-added-slots existing-assignment assignment))
+         (apply concat)
+         (map (fn [[id port]] (WorkerSlot. id port)))
+         (.assignSlots ^INimbus (:inimbus nimbus) (.getTopologies topologies))
+         )))
 
 (defn- start-storm [nimbus storm-name storm-id]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1053,7 +1056,7 @@
                            set)]
         (set/difference all-slots (set used-slots))
         ))
-    (assignSlots [this slot topology]
+    (assignSlots [this topologies slots]
       )
     ))
 

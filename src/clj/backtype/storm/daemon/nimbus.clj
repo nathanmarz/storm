@@ -463,10 +463,11 @@
                                                    {})))]]
              {tid (SchedulerAssignmentImpl. tid executor->slot)})))
 
-(defn- read-all-supervisor-details [nimbus all-slots supervisor->dead-ports]
+(defn- read-all-supervisor-details [nimbus all-slots available-slots supervisor->dead-ports]
   "return a map: {topology-id SupervisorDetails}"
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         supervisor-infos (all-supervisor-info storm-cluster-state)
+        nonexistent-supervisor-slots (apply dissoc available-slots (keys supervisor-infos))
         all-supervisor-details (into {} (for [[sid supervisor-info] supervisor-infos
                                               :let [hostname (:hostname supervisor-info)
                                                     scheduler-meta (:scheduler-meta supervisor-info)
@@ -479,7 +480,11 @@
                                                                   ((fn [ports] (map int ports))))
                                                     supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
                                           {sid supervisor-details}))]
-    all-supervisor-details))
+    (merge all-supervisor-details 
+           (into {}
+              (for [[sid ports] nonexistent-supervisor-slots]
+                [sid (SupervisorDetails. sid nil ports)]))
+           )))
 
 (defn- compute-topology->executor->node+port [scheduler-assignments]
   "convert {topology-id -> SchedulerAssignment} to
@@ -529,7 +534,7 @@
         assigned-slots (assigned-slots storm-cluster-state)
         all-slots (merge-with set/union available-slots assigned-slots)
 
-        supervisors (read-all-supervisor-details nimbus all-slots supervisor->dead-ports)
+        supervisors (read-all-supervisor-details nimbus all-slots available-slots supervisor->dead-ports)
         cluster (Cluster. supervisors topology->scheduler-assignment)
 
         ;; call scheduler.schedule to schedule all the topologies

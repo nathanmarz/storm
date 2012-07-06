@@ -24,6 +24,12 @@ public class SupervisorDetails {
         this.id = id;
         this.meta = meta;
     }
+    
+    public SupervisorDetails(String id, Object meta, Collection<Integer> allPorts){
+        this.id = id;
+        this.meta = meta;
+        this.allPorts = allPorts;
+    }
 
     public SupervisorDetails(String id, String host, Object schedulerMeta, Collection<Integer> allPorts){
         this.id = id;

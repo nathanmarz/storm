@@ -17,4 +17,6 @@ public interface INimbus {
     // set the task id to {nodeid-port}
     // this should be called after the assignment is changed in ZK
     void assignSlots(Topologies topologies, Collection<WorkerSlot> newSlots);
+    
+    IScheduler getForcedScheduler(); 
 }

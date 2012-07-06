@@ -26,25 +26,33 @@
    ))
 
 (defn nimbus-data [conf inimbus]
-  {:conf conf
-   :inimbus inimbus
-   :submitted-count (atom 0)
-   :storm-cluster-state (cluster/mk-storm-cluster-state conf)
-   :submit-lock (Object.)
-   :heartbeats-cache (atom {})
-   :downloaders (file-cache-map conf)
-   :uploaders (file-cache-map conf)
-   :uptime (uptime-computer)
-   :timer (mk-timer :kill-fn (fn [t]
-                               (log-error t "Error when processing event")
-                               (halt-process! 20 "Error when processing an event")
-                               ))
-   :scheduler (if (conf STORM-SCHEDULER)
-                (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
-                    (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
-                (do (log-message "Using default scheduler")
-                    (DefaultScheduler.)))
-   })
+  (let [forced-scheduler (.getForcedScheduler inimbus)]
+    {:conf conf
+     :inimbus inimbus
+     :submitted-count (atom 0)
+     :storm-cluster-state (cluster/mk-storm-cluster-state conf)
+     :submit-lock (Object.)
+     :heartbeats-cache (atom {})
+     :downloaders (file-cache-map conf)
+     :uploaders (file-cache-map conf)
+     :uptime (uptime-computer)
+     :timer (mk-timer :kill-fn (fn [t]
+                                 (log-error t "Error when processing event")
+                                 (halt-process! 20 "Error when processing an event")
+                                 ))
+     :scheduler (cond
+                  forced-scheduler
+                  (do (log-message "Using forced scheduler from INimbus " (class forced-scheduler))
+                      forced-scheduler)
+                  
+                  (conf STORM-SCHEDULER)
+                  (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
+                      (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
+                  
+                  :else
+                  (do (log-message "Using default scheduler")
+                      (DefaultScheduler.)))
+     }))
 
 (defn inbox [nimbus]
   (master-inbox (:conf nimbus)))
@@ -1057,6 +1065,8 @@
         ))
     (assignSlots [this topologies slots]
       )
+    (getForcedScheduler [this]
+      nil )
     ))
 
 (defn -main []

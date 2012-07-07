@@ -200,7 +200,9 @@
       (disruptor/handler [o seq-id batch-end?]
         (let [^ArrayList alist (.getObject cached-emit)]
           (.add alist o)
+          (log-message "Received " o " in batch-transfer->worker handler")
           (when batch-end?
+            (log-message "Sending " alist " to worker-transfer-fn")
             (worker-transfer-fn serializer alist)
             (.setObject cached-emit (ArrayList.))
             )))

@@ -336,6 +336,7 @@
 (extend-type FixedTupleSpout
   CompletableSpout
   (exhausted? [this]
+    (println "EXHAUST: " (-> this .getSourceTuples count) " vs " (.getCompleted this))
     (= (-> this .getSourceTuples count)
        (.getCompleted this)))
   (cleanup [this]

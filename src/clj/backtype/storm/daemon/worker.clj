@@ -87,6 +87,7 @@
         local-transfer (:transfer-local-fn worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)]
     (fn [^KryoTupleSerializer serializer tuple-batch]
+      (log-message "In worker transfer-fn: " tuple-batch)
       (let [local (ArrayList.)
             remote (ArrayList.)]
         (fast-list-iter [[task tuple :as pair] tuple-batch]
@@ -270,9 +271,12 @@
         node+port->socket (:cached-node+port->socket worker)
         task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
+        des (backtype.storm.serialization.KryoTupleDeserializer. (read-storm-config) (worker-context worker))
+
         ]
     (disruptor/clojure-handler
       (fn [packets _ batch-end?]
+        (log-message "Transferring " (dofor [[t msg] packets] (.deserialize des msg)))
         (.addAll drainer packets)
         (when batch-end?
           (read-locked endpoint-socket-lock
@@ -297,6 +301,7 @@
     (:port worker)
     (:transfer-local-fn worker)
     (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))
+    (worker-context worker)
     :kill-fn (fn [t] (halt-process! 11))))
 
 (defn- close-resources [worker]

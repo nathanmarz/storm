@@ -1,5 +1,5 @@
 (ns backtype.storm.messaging.loader
-  (:use [backtype.storm util log])
+  (:use [backtype.storm util log config])
   (:import [java.util ArrayList])
   (:import [backtype.storm.utils DisruptorQueue MutableObject])
   (:require [backtype.storm.messaging [local :as local] [protocol :as msg]])
@@ -16,18 +16,21 @@
     (apply afn args)))
 
 (defnk launch-receive-thread!
-  [context storm-id port transfer-local-fn max-buffer-size
+  [context storm-id port transfer-local-fn max-buffer-size tcontext
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
   (let [max-buffer-size (int max-buffer-size)
         vthread (async-loop
                  (fn []
-                   (let [socket (msg/bind context storm-id port)]
+                   (let [des (backtype.storm.serialization.KryoTupleDeserializer. (read-storm-config) tcontext)
+                         socket (msg/bind context storm-id port)]
                      (fn []
                        (let [batched (ArrayList.)
                              init (msg/recv socket)]
                          (loop [[task msg :as packet] init]
+                           (when (and msg (not= task -1))
+                             (log-message "Receive thread " task " " (.deserialize des msg)))
                            (if (= task -1)
                              (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
                                  (.close socket)
@@ -36,7 +39,9 @@
                                (when packet (.add batched packet))
                                (if (and packet (< (.size batched) max-buffer-size))
                                  (recur (msg/recv-with-flags socket 1))
-                                 (do (transfer-local-fn batched)
+                                 (do
+                                    ;; (log-message "Receive thread sending local batch" (dofor [msg batched] (deserialize-tuple context msg)))
+                                    (transfer-local-fn batched)
                                      0 )))))))))
                  :factory? true
                  :daemon daemon

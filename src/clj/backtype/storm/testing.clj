@@ -14,7 +14,7 @@
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
-  (:import [backtype.storm.generated GlobalStreamId Bolt])
+  (:import [backtype.storm.generated GlobalStreamId Bolt KillOptions])
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
             TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
             TestWordSpout MemoryTransactionalSpout])
@@ -440,7 +440,7 @@
       (while (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
-      (.killTopology (:nimbus cluster-map) storm-name)
+      (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
       (while (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))
       (when cleanup-state

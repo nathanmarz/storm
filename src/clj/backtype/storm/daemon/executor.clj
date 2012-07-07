@@ -259,12 +259,10 @@
         [this]
         (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
         (disruptor/halt-with-interrupt! (:receive-queue executor-data))
+        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
         (doseq [t threads]
           (.interrupt t)
           (.join t))
-        ;; must do this after the threads are killed, this ensures that the interrupt message
-        ;; goes through properly
-        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
         
         (doseq [user-context (map :user-context (vals task-datas))]
           (doseq [hook (.getHooks user-context)]

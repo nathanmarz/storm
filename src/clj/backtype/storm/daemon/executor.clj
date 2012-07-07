@@ -433,7 +433,7 @@
                  (when @last-active
                    (reset! last-active false)
                    (log-message "Deactivating spout " component-id ":" (keys task-datas))
-                   (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+                   (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
                  ;; TODO: log that it's getting throttled
                  (Time/sleep 100))))
             0))

@@ -21,7 +21,7 @@
    :spin (fn [] (BusySpinWaitStrategy.))
     })
 
-(defnk disruptor-queue [buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
+(defnk disruptor-queue [buffer-size :claim-strategy :multi-threaded :wait-strategy :sleep]
   (DisruptorQueue. ((CLAIM-STRATEGY claim-strategy) buffer-size)
                    ((WAIT-STRATEGY wait-strategy))
                    ))

@@ -21,6 +21,11 @@
    :spin (fn [] (BusySpinWaitStrategy.))
     })
 
+
+;; NOTE: can't use :block strategy, as sometimes the consumer stays blocked even when there's an item on the queue.
+;; This would manifest itself in Trident when doing 1 batch at a time processing, and the ack_init message
+;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue, 
+;; unblocking the consumer
 (defnk disruptor-queue [buffer-size :claim-strategy :multi-threaded :wait-strategy :sleep]
   (DisruptorQueue. ((CLAIM-STRATEGY claim-strategy) buffer-size)
                    ((WAIT-STRATEGY wait-strategy))

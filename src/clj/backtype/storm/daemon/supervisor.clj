@@ -474,7 +474,7 @@
       (confirmAssigned [this port]
         true)
       (getMetadata [this]
-        (get @conf-atom SUPERVISOR-SLOTS-PORTS))
+        (doall (map int (get @conf-atom SUPERVISOR-SLOTS-PORTS))))
       (getId [this]
         @id-atom)
       (killedWorker [this port]

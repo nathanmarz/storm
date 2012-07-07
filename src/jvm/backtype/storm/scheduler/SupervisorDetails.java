@@ -25,20 +25,26 @@ public class SupervisorDetails {
         this.meta = meta;
     }
     
-    public SupervisorDetails(String id, Object meta, Collection<Integer> allPorts){
+    public SupervisorDetails(String id, Object meta, Collection<Number> allPorts){
         this.id = id;
         this.meta = meta;
-        this.allPorts = allPorts;
+        setAllPorts(allPorts);
     }
 
-    public SupervisorDetails(String id, String host, Object schedulerMeta, Collection<Integer> allPorts){
+    public SupervisorDetails(String id, String host, Object schedulerMeta, Collection<Number> allPorts){
         this.id = id;
         this.host = host;
         this.schedulerMeta = schedulerMeta;
 
+        setAllPorts(allPorts);
+    }
+
+    private void setAllPorts(Collection<Number> allPorts) {
         this.allPorts = new ArrayList<Integer>();
-        if (allPorts != null && !allPorts.isEmpty()) {
-            this.allPorts.addAll(allPorts);
+        if(allPorts!=null) {
+            for(Number n: allPorts) {
+                this.allPorts.add(n.intValue());
+            }
         }
     }
 

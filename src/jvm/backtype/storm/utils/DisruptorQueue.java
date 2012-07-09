@@ -10,6 +10,7 @@ import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -49,8 +50,10 @@ public class DisruptorQueue {
     public void consumeBatchWhenAvailable(EventHandler<Object> handler) {
         try {
             final long nextSequence = _consumer.get() + 1;
-            final long availableSequence = _barrier.waitFor(nextSequence);
-            consumeBatchToCursor(availableSequence, handler);
+            final long availableSequence = _barrier.waitFor(nextSequence, 10, TimeUnit.MILLISECONDS);
+            if(availableSequence >= nextSequence) {
+                consumeBatchToCursor(availableSequence, handler);
+            }
         } catch (AlertException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {

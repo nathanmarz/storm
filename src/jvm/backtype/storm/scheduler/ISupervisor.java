@@ -1,6 +1,7 @@
 package backtype.storm.scheduler;
 
 import java.util.Map;
+import java.util.Collection;
 
 
 public interface ISupervisor {
@@ -13,4 +14,5 @@ public interface ISupervisor {
     // calls this before actually killing the worker locally...
     // sends a "task finished" update
     void killedWorker(int port);
+    void assigned(Collection<Integer> ports);
 }

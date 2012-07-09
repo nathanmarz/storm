@@ -301,6 +301,7 @@
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
+      (.assigned isupervisor (keys new-assignment))
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
@@ -478,6 +479,8 @@
       (getId [this]
         @id-atom)
       (killedWorker [this port]
+        )
+      (assigned [this ports]
         ))))
 
 (defn -main []

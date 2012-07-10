@@ -465,6 +465,13 @@ public class Config extends HashMap<String, Object> {
      */
      public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
+
+    /**
+     * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
+     * vs. throughput
+     */
+     public static String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
+    
     /**
      * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
      * via the TopologyContext.

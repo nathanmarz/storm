@@ -93,5 +93,6 @@ topology.receiver.buffer.size: 8 # setting it too high causes a lot of problems 
 topology.transfer.buffer.size: 32 # batched
 topology.tick.tuple.freq.secs: null
 topology.worker.shared.thread.pool.size: 4
+topology.disruptor.wait.strategy: "com.lmax.disruptor.BlockingWaitStrategy"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

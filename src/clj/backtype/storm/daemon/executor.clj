@@ -157,7 +157,8 @@
         executor-type (executor-type worker-context component-id)
         batch-transfer->worker (disruptor/disruptor-queue
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
-                                  :claim-strategy :single-threaded)
+                                  :claim-strategy :single-threaded
+                                  :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         ]
     (recursive-map
      :worker worker

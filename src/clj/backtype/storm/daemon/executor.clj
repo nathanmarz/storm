@@ -325,7 +325,7 @@
         ^Integer max-spout-pending (if max-spout-pending (int max-spout-pending))
         worker-context (:worker-context executor-data)
         transfer-fn (:transfer-fn executor-data)
-        report-error-fn (:report-error-fn executor-data)
+        report-error-fn (:report-error executor-data)
         spouts (ArrayList. (map :object (vals task-datas)))
         sampler (:sampler executor-data)
         rand (Random. (Utils/secureRandomLong))
@@ -456,7 +456,7 @@
         worker-context (:worker-context executor-data)
         storm-conf (:storm-conf executor-data)
         executor-stats (:stats executor-data)
-        report-error-fn (:report-error-fn executor-data)
+        report-error-fn (:report-error executor-data)
         sampler (:sampler executor-data)
         rand (Random. (Utils/secureRandomLong))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]

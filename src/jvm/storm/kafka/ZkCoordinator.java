@@ -15,9 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import kafka.javaapi.consumer.SimpleConsumer;
+import org.apache.log4j.Logger;
 import storm.kafka.KafkaConfig.ZkHosts;
 
 public class ZkCoordinator implements PartitionCoordinator {
+    public static Logger LOG = Logger.getLogger(ZkCoordinator.class);
+    
     SpoutConfig _config;
     int _taskIndex;
     int _totalTasks;
@@ -60,12 +63,14 @@ public class ZkCoordinator implements PartitionCoordinator {
     public List<PartitionManager> getMyManagedPartitions() {
         if(_lastRefreshTime==null || (System.currentTimeMillis() - _lastRefreshTime) > _refreshFreqMs) {
             refresh();
+            _lastRefreshTime = System.currentTimeMillis();
         }
         return _cachedList;
     }
     
     void refresh() {
         try {
+            LOG.info("Refreshing partition manager connections");
             String topicBrokersPath = _brokerConf.brokerZkPath + "/topics/" + _config.topic;
             String brokerInfoPath = _brokerConf.brokerZkPath + "/ids";
             List<String> children = _curator.getChildren().forPath(topicBrokersPath);
@@ -98,13 +103,15 @@ public class ZkCoordinator implements PartitionCoordinator {
             Set<GlobalPartitionId> deletedPartitions = new HashSet<GlobalPartitionId>(curr);
             deletedPartitions.removeAll(mine);
             
+            LOG.info("Deleted partition managers: " + deletedPartitions.toString());
+            
             for(GlobalPartitionId id: deletedPartitions) {
                 PartitionManager man = _managers.remove(id);
                 man.close();
             }
+            LOG.info("New partition managers: " + newPartitions.toString());
             
             for(GlobalPartitionId id: newPartitions) {
-                SimpleConsumer consumer = _connections.register(id.host, id.partition);
                 PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _config, _state, id);
                 _managers.put(id, man);
             }
@@ -113,6 +120,7 @@ public class ZkCoordinator implements PartitionCoordinator {
             throw new RuntimeException(e);
         }
         _cachedList = new ArrayList<PartitionManager>(_managers.values());
+        LOG.info("Finished refreshing");
     }
 
     @Override

@@ -68,7 +68,7 @@ public class PartitionManager {
         }
         List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
         collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
-        if(_waitingToEmit.size()>0) {
+        if(!_waitingToEmit.isEmpty()) {
             return EmitState.EMITTED_MORE_LEFT;
         } else {
             return EmitState.EMITTED_END;
@@ -89,6 +89,7 @@ public class PartitionManager {
             _waitingToEmit.add(new MessageAndRealOffset(msg.message(), _emittedToOffset));
             _emittedToOffset = msg.offset();
         }
+        LOG.info("Added " + msgs.underlying().size() + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition + " to internal buffers");
     }
 
     public void ack(Long offset) {
@@ -105,6 +106,7 @@ public class PartitionManager {
     }
 
     public void commit() {
+        LOG.info("Committing offset for " + _partition);
         long committedTo;
         if(_pending.isEmpty()) {
             committedTo = _emittedToOffset;
@@ -112,9 +114,12 @@ public class PartitionManager {
             committedTo = _pending.first();
         }
         if(committedTo!=_committedTo) {
+            LOG.info("Writing committed offset to ZK: " + committedTo);
             _state.setData(committedPath(), new ZooMeta(_topologyInstanceId, committedTo));
+            LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;
         }
+        LOG.info("Comitted offset for " + _partition);
     }
 
     private String committedPath() {

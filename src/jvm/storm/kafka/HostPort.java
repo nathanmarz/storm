@@ -24,5 +24,12 @@ public class HostPort implements Serializable {
     @Override
     public int hashCode() {
         return host.hashCode();
-    }    
+    }
+
+    @Override
+    public String toString() {
+        return host + ":" + port;
+    }
+    
+    
 }

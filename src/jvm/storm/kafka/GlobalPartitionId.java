@@ -20,6 +20,9 @@ public class GlobalPartitionId {
     public int hashCode() {
         return 13 * host.hashCode() + partition;
     }
-    
-    
+
+    @Override
+    public String toString() {
+        return host.toString() + ":" + partition;
+    }
 }

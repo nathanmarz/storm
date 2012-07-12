@@ -62,12 +62,19 @@ public class PartitionManager {
     //returns false if it's reached the end of current batch
     public EmitState next(SpoutOutputCollector collector) {
         if(_waitingToEmit.isEmpty()) fill();
-        MessageAndRealOffset toEmit = _waitingToEmit.pollFirst();
-        if(toEmit==null) {
-            return EmitState.NO_EMITTED;
+        while(true) {
+            MessageAndRealOffset toEmit = _waitingToEmit.pollFirst();
+            if(toEmit==null) {
+                return EmitState.NO_EMITTED;
+            }
+            List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
+            if(tup!=null) {
+                collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+                break;
+            } else {
+                ack(toEmit.offset);
+            }
         }
-        List<Object> tup = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
-        collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
         if(!_waitingToEmit.isEmpty()) {
             return EmitState.EMITTED_MORE_LEFT;
         } else {

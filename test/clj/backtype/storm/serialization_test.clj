@@ -3,6 +3,7 @@
   (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer
             KryoValuesSerializer KryoValuesDeserializer])
   (:import [backtype.storm.testing TestSerObject])
+  (:import [java.nio ByteBuffer])
   (:use [backtype.storm util config])
   )
 
@@ -56,3 +57,7 @@
   (is-roundtrip [#{:a :b :c}])
   (is-roundtrip [#{:a :b} 1 2 ["a" 3 5 #{5 6}]])
   (is-roundtrip [{:a [1 2 #{:a :b 1}] :b 3}]))
+
+(deftest test-bytebuffer-serialization
+  (is-roundtrip [(ByteBuffer/wrap (byte-array (map byte [0 1 2 3 4])))])
+  (is-roundtrip [(.asReadOnlyBuffer (ByteBuffer/wrap (byte-array (map byte [0 1 2 3 4]))))]))

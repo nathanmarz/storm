@@ -76,7 +76,7 @@ public class SerializationFactory {
                 if(serializerClass == null) {
                     k.register(klass);
                 } else {
-                    k.register(klass, (Serializer) serializerClass.newInstance());
+                    k.register(klass, resolveSerializerInstance(k, klass, serializerClass));
                 }
                 
             } catch (ClassNotFoundException e) {
@@ -85,10 +85,6 @@ public class SerializationFactory {
                 } else {
                     throw new RuntimeException(e);
                 }
-            } catch (InstantiationException e) {
-                throw new RuntimeException(e);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);                
             }
         }
         k.overrideDefault(true);
@@ -129,6 +125,29 @@ public class SerializationFactory {
                 i++;
             }
             return ret;
+        }
+    }
+    
+    private static Serializer resolveSerializerInstance(Kryo k, Class superClass, Class<? extends Serializer> serializerClass) {
+        try {
+            try {
+                return serializerClass.getConstructor(Kryo.class, Class.class).newInstance(k, superClass);
+            } catch (Exception ex1) {
+                try {
+                    return serializerClass.getConstructor(Kryo.class).newInstance(k);
+                } catch (Exception ex2) {
+                    try {
+                        return serializerClass.getConstructor(Class.class).newInstance(superClass);
+                    } catch (Exception ex3) {
+                        return serializerClass.newInstance();
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Unable to create serializer \""
+                                               + serializerClass.getName()
+                                               + "\" for class: "
+                                               + superClass.getName(), ex);
         }
     }
     

@@ -14,7 +14,6 @@ import carbonite.JavaBridge;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers.BigIntegerSerializer;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,7 +37,7 @@ public class SerializationFactory {
         @Override
         public Serializer getDefaultSerializer(Class type) {
             if(_override) {
-                return new JavaSerializer();
+                return new SerializableSerializer();
             } else {
                 return super.getDefaultSerializer(type);
             }

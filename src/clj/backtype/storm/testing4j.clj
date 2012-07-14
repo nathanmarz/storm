@@ -3,7 +3,8 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.daemon nimbus])
-  (:import [backtype.storm.testing TestJob MockedSources TrackedTopology Cluster])
+  (:import [backtype.storm.testing TestJob MockedSources TrackedTopology Cluster
+            MkClusterParam])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm testing util log])
   (:gen-class
@@ -24,8 +25,9 @@
                        [java.util.Map backtype.storm.generated.StormTopology]
                        java.util.Map]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.TestJob] void]
-             ^:static [withSimulatedTimeLocalCluster [backtype.storm.Config backtype.storm.testing.TestJob] void]
+             ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
              ^:static [withTrackedCluster [backtype.storm.testing.TestJob] void]
+             ^:static [withTrackedCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
              ^:static [readTuples [java.util.Map String String] java.util.List]
              ^:static [readTuples [java.util.Map String] java.util.List]
              ^:static [submitLocalTopology [Object String
@@ -61,12 +63,30 @@
      (-completeTopology clusterMap topology (MockedSources.))))
 
 (defn -withSimulatedTimeLocalCluster
-  ([^Config daemonConf ^TestJob code]
-     (with-simulated-time-local-cluster [cluster :daemon-conf daemonConf]
-       (let [cluster (Cluster. cluster)]
-         (.run code cluster))))
+  ([^MkClusterParam mkClusterParam ^TestJob code]
+     (let [supervisors (or (.getSupervisors mkClusterParam) 2)
+           ports-per-supervisor (or (.getPortsPerSupervisor mkClusterParam) 3)
+           daemon-conf (or (.getDaemonConf mkClusterParam) {})]
+       (with-simulated-time-local-cluster [cluster :supervisors supervisors
+                                           :ports-per-supervisor ports-per-supervisor
+                                           :daemon-conf daemon-conf]
+         (let [cluster (Cluster. cluster)]
+           (.run code cluster)))))
   ([^TestJob code]
-     (-withSimulatedTimeLocalCluster (Config.) code)))
+     (-withSimulatedTimeLocalCluster (MkClusterParam.) code)))
+
+(defn -withTrackedCluster
+  ([^MkClusterParam mkClusterParam ^TestJob code]
+     (let [supervisors (or (.getSupervisors mkClusterParam) 2)
+           ports-per-supervisor (or (.getPortsPerSupervisor mkClusterParam) 3)
+           daemon-conf (or (.getDaemonConf mkClusterParam) {})]
+       (with-tracked-cluster [cluster :supervisors supervisors
+                              :ports-per-supervisor ports-per-supervisor
+                              :daemon-conf daemon-conf]
+         (let [cluster (Cluster. cluster)]
+           (.run code cluster)))))
+  ([^TestJob code]
+     (-withTrackedCluster (MkClusterParam.) code)))
 
 (defn- find-tuples [^List fixed-tuples ^String stream]
   (let [ret (ArrayList.)]
@@ -88,10 +108,7 @@
 (defn -submitLocalTopology [^Object nimbus ^String topologyName ^Config config ^StormTopology topology]
   (submit-local-topology nimbus topologyName config topology))
 
-(defn -withTrackedCluster [^TestJob code]
-  (with-tracked-cluster [cluster]
-    (let [cluster (Cluster. cluster)]
-      (.run code cluster))))
+
 
 (defn -mkTrackedTopology [^Cluster trackedCluster ^StormTopology topology]
   (-> (mk-tracked-topology trackedCluster topology)

@@ -12,6 +12,7 @@ import backtype.storm.testing.AckFailMapTracker;
 import backtype.storm.testing.AckTracker;
 import backtype.storm.testing.Cluster;
 import backtype.storm.testing.FeederSpout;
+import backtype.storm.testing.MkClusterParam;
 import backtype.storm.testing.MockedSources;
 import backtype.storm.testing.TestAggregatesCounter;
 import backtype.storm.testing.TestGlobalCount;
@@ -96,7 +97,10 @@ public class TestingTest extends TestCase {
     public void testTimeout() {
 		Config daemonConfig = new Config();
 		daemonConfig.put(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS, true);
-    	Testing.withSimulatedTimeLocalCluster(daemonConfig, new TestJob() {
+		
+		MkClusterParam mkClusterParam = new MkClusterParam();
+		mkClusterParam.setDaemonConf(daemonConfig);
+    	Testing.withSimulatedTimeLocalCluster(mkClusterParam, new TestJob() {
 			@Override
 			public void run(Cluster cluster) {
 				AckFailMapTracker tracker = new AckFailMapTracker();

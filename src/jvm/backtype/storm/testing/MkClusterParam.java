@@ -6,8 +6,17 @@ import backtype.storm.Config;
  * The param arg for <code>Testing.withSimulatedTimeCluster</code> and <code>Testing.withTrackedCluster</code>
  */
 public class MkClusterParam {
+	/**
+	 * count of supervisors for the cluster.
+	 */
 	private Integer supervisors;
+	/**
+	 * count of port for each supervisor
+	 */
 	private Integer portsPerSupervisor;
+	/**
+	 * cluster config
+	 */
 	private Config daemonConf;
 	
 	public Integer getSupervisors() {

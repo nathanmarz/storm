@@ -6,9 +6,21 @@ import backtype.storm.Config;
  * The param class for the <code>Testing.completeTopology</code>.
  */
 public class CompleteTopologyParam {
+	/**
+	 * The mocked spout sources
+	 */
 	private MockedSources mockedSources;
+	/**
+	 * the config for the topology when it was submitted to the cluster
+	 */
 	private Config stormConf;
+	/**
+	 * whether cleanup the state?
+	 */
 	private Boolean cleanupState;
+	/**
+	 * the topology name you want to submit to the cluster
+	 */
 	private String topologyName;
 	
 	public MockedSources getMockedSources() {

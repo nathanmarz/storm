@@ -9,6 +9,9 @@ import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 
 public class MockedSources {
+	/**
+	 * mocked spout sources for the [spout, stream] pair.
+	 */
     private Map<String, List<FixedTuple>> data = new HashMap<String, List<FixedTuple>>();
     
     /**

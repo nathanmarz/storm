@@ -1,42 +1,28 @@
 package backtype.storm.testing;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import backtype.storm.Config;
-import clojure.lang.Keyword;
 
-public class MkClusterParam extends HashMap<Object, Object>{
-	public MkClusterParam() {}
-	
-	public MkClusterParam(Map map) {
-		super(map);
-	}
+public class MkClusterParam {
+	private Integer supervisors;
+	private Integer portsPerSupervisor;
+	private Config daemonConf;
 	
 	public Integer getSupervisors() {
-		Object supervisors = get(Keyword.intern("supervisors"));
-		return (supervisors == null) ? null : (Integer)supervisors;
+		return supervisors;
 	}
-	
-	public void setSupervisors(int supervisors) {
-		put(Keyword.intern("supervisors"), supervisors);
+	public void setSupervisors(Integer supervisors) {
+		this.supervisors = supervisors;
 	}
-	
 	public Integer getPortsPerSupervisor() {
-		Object portsPerSupervisor = get(Keyword.intern("ports-per-supervisor"));
-		return (portsPerSupervisor == null) ? null : (Integer)portsPerSupervisor;
+		return portsPerSupervisor;
 	}
-	
-	public void setPortsPerSupervisor(int portsPerSupervisor) {
-		put(Keyword.intern("ports-per-supervisor"), portsPerSupervisor);
+	public void setPortsPerSupervisor(Integer portsPerSupervisor) {
+		this.portsPerSupervisor = portsPerSupervisor;
 	}
-	
 	public Config getDaemonConf() {
-		Object daemonConf = get(Keyword.intern("daemon-conf"));
-		return (daemonConf == null) ? null : (Config)daemonConf;
+		return daemonConf;
 	}
-	
-	public void setDaemonConf(Config config) {
-		put(Keyword.intern("daemon-conf"), config);
+	public void setDaemonConf(Config daemonConf) {
+		this.daemonConf = daemonConf;
 	}
 }

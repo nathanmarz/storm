@@ -11,6 +11,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.AckFailMapTracker;
 import backtype.storm.testing.AckTracker;
 import backtype.storm.testing.Cluster;
+import backtype.storm.testing.CompleteTopologyParam;
 import backtype.storm.testing.FeederSpout;
 import backtype.storm.testing.MkClusterParam;
 import backtype.storm.testing.MockedSources;
@@ -31,7 +32,14 @@ import backtype.storm.utils.Utils;
 public class TestingTest extends TestCase {
     
     public void testBasicTopology() {
-        Testing.withSimulatedTimeLocalCluster(new TestJob() {
+    	MkClusterParam mkClusterParam = new MkClusterParam();
+    	mkClusterParam.setSupervisors(4);
+    	Config daemonConf = new Config();
+    	daemonConf.put(Config.STORM_LOCAL_MODE_ZMQ, false);
+    	mkClusterParam.setDaemonConf(daemonConf);
+    	
+        Testing.withSimulatedTimeLocalCluster(mkClusterParam, new TestJob() {
+
             @Override
             public void run(Cluster cluster) {
                 // build the test topology
@@ -41,6 +49,8 @@ public class TestingTest extends TestCase {
                 builder.setBolt("3", new TestGlobalCount()).globalGrouping("1");
                 builder.setBolt("4", new TestAggregatesCounter()).globalGrouping("2");
                 StormTopology topology = builder.createTopology();
+
+                // complete the topology
                 
                 // prepare the mock data
                 MockedSources mockedSources = new MockedSources();
@@ -50,8 +60,10 @@ public class TestingTest extends TestCase {
                 Config conf = new Config();
                 conf.setNumWorkers(2);
                 
-                // complete the topology
-                Map result = Testing.completeTopology(cluster, topology, mockedSources, conf);
+                CompleteTopologyParam completeTopologyParam = new CompleteTopologyParam();
+                completeTopologyParam.setMockedSources(mockedSources);
+                completeTopologyParam.setStormConf(conf);
+                Map result = Testing.completeTopology(cluster, topology, completeTopologyParam);
                 
                 // check whether the result is right
                 assertTrue(Testing.eq(Utils.list(new Values("nathan"), new Values("bob"), new Values("joey"), new Values("nathan")), 
@@ -72,7 +84,7 @@ public class TestingTest extends TestCase {
 			@Override
 			public void run(Cluster cluster) {
 				AckTracker tracker = new AckTracker();
-				FeederSpout feederSpout =  ackTrackingFeeder(tracker, "num");
+				FeederSpout feederSpout = ackTrackingFeeder(tracker, "num");
 								
 				TopologyBuilder builder = new TopologyBuilder();
 				builder.setSpout("1", feederSpout);

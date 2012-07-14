@@ -4,25 +4,17 @@
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.daemon nimbus])
   (:import [backtype.storm.testing TestJob MockedSources TrackedTopology Cluster
-            MkClusterParam])
+            MkClusterParam CompleteTopologyParam])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm testing util log])
   (:gen-class
    :name backtype.storm.Testing
    :methods [^:static [completeTopology
-                       [java.util.Map backtype.storm.generated.StormTopology
-                        backtype.storm.testing.MockedSources backtype.storm.Config Boolean String]
+                       [backtype.storm.testing.Cluster  backtype.storm.generated.StormTopology
+                        backtype.storm.testing.CompleteTopologyParam]
                        java.util.Map]
              ^:static [completeTopology
-                       [java.util.Map backtype.storm.generated.StormTopology
-                        backtype.storm.testing.MockedSources backtype.storm.Config Boolean]
-                       java.util.Map]
-             ^:static [completeTopology
-                       [java.util.Map backtype.storm.generated.StormTopology
-                        backtype.storm.testing.MockedSources backtype.storm.Config]
-                       java.util.Map]
-             ^:static [completeTopology
-                       [java.util.Map backtype.storm.generated.StormTopology]
+                       [backtype.storm.testing.Cluster backtype.storm.generated.StormTopology]
                        java.util.Map]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.TestJob] void]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
@@ -43,24 +35,18 @@
   )
 
 (defn -completeTopology
-  ([^Map clusterMap ^StormTopology topology
-    ^MockedSources mockedSources ^Config stormConf
-    ^Boolean cleanupState ^String topologyName]
-     (complete-topology clusterMap topology :mock-sources (.getData mockedSources)
-                     :storm-conf stormConf :cleanup-state cleanupState
-                     :topology-name topologyName))
-  ([^Map clusterMap ^StormTopology topology
-    ^MockedSources mockedSources ^Config stormConf
-    ^Boolean cleanupState]
-     (-completeTopology clusterMap topology mockedSources stormConf cleanupState nil))
-  ([^Map clusterMap ^StormTopology topology
-    ^MockedSources mockedSources ^Config stormConf]
-     (-completeTopology clusterMap topology mockedSources stormConf true))
-  ([^Map clusterMap ^StormTopology topology
-    ^MockedSources mockedSources]
-     (-completeTopology clusterMap topology mockedSources (Config.)))
-  ([^Map clusterMap ^StormTopology topology]
-     (-completeTopology clusterMap topology (MockedSources.))))
+  ([^Cluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
+     (let [mocked-sources (or (-> completeTopologyParam .getMockedSources .getData) {})
+           storm-conf (or (.getStormConf completeTopologyParam) {})
+           cleanup-state (or (.getCleanupState completeTopologyParam) true)
+           topology-name (or (.getTopologyName completeTopologyParam))]
+       (complete-topology cluster topology
+                          :mock-sources mocked-sources
+                          :storm-conf storm-conf
+                          :cleanup-state cleanup-state
+                          :topology-name topology-name)))
+  ([^Cluster cluster ^StormTopology topology]
+     (-completeTopology cluster topology (CompleteTopologyParam.))))
 
 (defn -withSimulatedTimeLocalCluster
   ([^MkClusterParam mkClusterParam ^TestJob code]

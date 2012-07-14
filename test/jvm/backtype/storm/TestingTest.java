@@ -8,6 +8,7 @@ import junit.framework.TestCase;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.testing.AckFailMapTracker;
 import backtype.storm.testing.AckTracker;
 import backtype.storm.testing.Cluster;
 import backtype.storm.testing.FeederSpout;
@@ -92,6 +93,87 @@ public class TestingTest extends TestCase {
     	});
     }
     
+    public void testTimeout() {
+		Config daemonConfig = new Config();
+		daemonConfig.put(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS, true);
+    	Testing.withSimulatedTimeLocalCluster(daemonConfig, new TestJob() {
+			@Override
+			public void run(Cluster cluster) {
+				AckFailMapTracker tracker = new AckFailMapTracker();
+				FeederSpout feeder =  createFeederSpout("field1");
+				feeder.setAckFailDelegate(tracker);
+				
+				TopologyBuilder builder = new TopologyBuilder();
+				builder.setSpout("1", feeder);
+				builder.setBolt("2", new AckEveryOtherBolt()).globalGrouping("1");
+				StormTopology topology = builder.createTopology();
+				
+				Config topologyConfig = new Config();
+				topologyConfig.setMessageTimeoutSecs(10);
+				
+				Testing.submitLocalTopology(cluster.getNimbus(), "timeout-tester", topologyConfig, topology);
+				
+				feeder.feed(new Values("a"), 1);
+				feeder.feed(new Values("b"), 2);
+				feeder.feed(new Values("c"), 3);
+				
+				Testing.advanceClusterTime(cluster, 9);
+				assertAcked(tracker, 1, 3);
+				assertFalse(tracker.isFailed(2));
+				Testing.advanceClusterTime(cluster, 12);
+				assertFailed(tracker, 2);
+			}
+    	});
+    }
+    
+	public static void assertAcked(AckFailMapTracker tracker, Object... ids) {
+		boolean notAllAcked = true;
+
+		while (notAllAcked) {
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			int notAckedCnt = 0;
+			for (int i = 0; i < ids.length; i++) {
+				if (!tracker.isAcked(ids[i])) {
+					notAckedCnt += 1;
+					break;
+				}
+			}
+
+			if (notAckedCnt == 0) {
+				notAllAcked = false;
+			}
+		}
+	}
+    
+	public static void assertFailed(AckFailMapTracker tracker, Object... ids) {
+		boolean notAllFailed = true;
+
+		while (notAllFailed) {
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			int notFailedCnt = 0;
+			for (int i = 0; i < ids.length; i++) {
+				if (!tracker.isFailed(ids[i])) {
+					notFailedCnt += 1;
+					break;
+				}
+			}
+
+			if (notFailedCnt == 0) {
+				notAllFailed = false;
+			}
+		}
+	}
+
     public static FeederSpout ackTrackingFeeder(AckTracker tracker, String... fields) {
     	FeederSpout feeder = createFeederSpout(fields);
     	feeder.setAckFailDelegate(tracker);
@@ -157,6 +239,29 @@ public class TestingTest extends TestCase {
 		@Override
 		public void declareOutputFields(OutputFieldsDeclarer declarer) {
 			declarer.declare(new Fields("num"));
+		}
+    }
+    
+    static class AckEveryOtherBolt extends BaseRichBolt {
+    	boolean flag = false;
+    	OutputCollector _collector;
+    	
+        @Override
+        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+            _collector = collector;
+        }
+        
+        public void execute(Tuple input) {
+        	flag = !flag;
+        	
+        	if (flag) {
+        		_collector.ack(input);
+        	}
+        }
+
+		@Override
+		public void declareOutputFields(OutputFieldsDeclarer declarer) {
+
 		}
     }
 }

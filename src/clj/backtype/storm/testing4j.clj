@@ -24,6 +24,7 @@
                        [java.util.Map backtype.storm.generated.StormTopology]
                        java.util.Map]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.TestJob] void]
+             ^:static [withSimulatedTimeLocalCluster [backtype.storm.Config backtype.storm.testing.TestJob] void]
              ^:static [withTrackedCluster [backtype.storm.testing.TestJob] void]
              ^:static [readTuples [java.util.Map String String] java.util.List]
              ^:static [readTuples [java.util.Map String] java.util.List]
@@ -59,10 +60,13 @@
   ([^Map clusterMap ^StormTopology topology]
      (-completeTopology clusterMap topology (MockedSources.))))
 
-(defn -withSimulatedTimeLocalCluster [^TestJob code]
-  (with-simulated-time-local-cluster [cluster]
-    (let [cluster (Cluster. cluster)]
-      (.run code cluster))))
+(defn -withSimulatedTimeLocalCluster
+  ([^Config daemonConf ^TestJob code]
+     (with-simulated-time-local-cluster [cluster :daemon-conf daemonConf]
+       (let [cluster (Cluster. cluster)]
+         (.run code cluster))))
+  ([^TestJob code]
+     (-withSimulatedTimeLocalCluster (Config.) code)))
 
 (defn- find-tuples [^List fixed-tuples ^String stream]
   (let [ret (ArrayList.)]
@@ -101,9 +105,9 @@
 
 (defn -advanceClusterTime
   ([^Cluster cluster ^Integer secs ^Integer step]
-     (advance-cluster-time secs step))
+     (advance-cluster-time cluster secs step))
   ([^Cluster cluster ^Integer secs]
-      (-advanceClusterTime secs 1)))
+      (-advanceClusterTime cluster secs 1)))
 
 (defn- eq [^Object obj1 ^Object obj2]
   (let [obj1 (clojurify-structure obj1)

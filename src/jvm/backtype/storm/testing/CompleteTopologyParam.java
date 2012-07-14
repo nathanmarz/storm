@@ -2,6 +2,9 @@ package backtype.storm.testing;
 
 import backtype.storm.Config;
 
+/**
+ * The param class for the <code>Testing.completeTopology</code>.
+ */
 public class CompleteTopologyParam {
 	private MockedSources mockedSources;
 	private Config stormConf;

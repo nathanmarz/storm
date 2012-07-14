@@ -13,6 +13,7 @@ import backtype.storm.testing.AckTracker;
 import backtype.storm.testing.Cluster;
 import backtype.storm.testing.CompleteTopologyParam;
 import backtype.storm.testing.FeederSpout;
+import backtype.storm.testing.IdentityBolt;
 import backtype.storm.testing.MkClusterParam;
 import backtype.storm.testing.MockedSources;
 import backtype.storm.testing.TestAggregatesCounter;
@@ -88,8 +89,8 @@ public class TestingTest extends TestCase {
 								
 				TopologyBuilder builder = new TopologyBuilder();
 				builder.setSpout("1", feederSpout);
-				builder.setBolt("2", new IdentityBolt()).shuffleGrouping("1");
-				builder.setBolt("3", new IdentityBolt()).shuffleGrouping("1");
+				builder.setBolt("2", new IdentityBolt(new Fields("num"))).shuffleGrouping("1");
+				builder.setBolt("3", new IdentityBolt(new Fields("num"))).shuffleGrouping("1");
 				builder.setBolt("4", new AggBolt(4)).shuffleGrouping("2").shuffleGrouping("3");
 				StormTopology topology = builder.createTopology();
 				
@@ -204,25 +205,6 @@ public class TestingTest extends TestCase {
     public static void checker(AckTracker tracker, int val) {
     	assertEquals(val, tracker.getNumAcks());
     	tracker.resetNumAcks();
-    }
-
-    static class IdentityBolt extends BaseRichBolt {
-        OutputCollector _collector;
-
-        @Override
-        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
-            _collector = collector;
-        }
-        
-        public void execute(Tuple input) {
-        	_collector.emit(input, input.getValues());
-        	_collector.ack(input);
-        }
-
-		@Override
-		public void declareOutputFields(OutputFieldsDeclarer declarer) {
-			declarer.declare(new Fields("num"));
-		}
     }
     
     static class AggBolt extends BaseRichBolt {

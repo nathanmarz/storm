@@ -2,6 +2,9 @@ package backtype.storm.testing;
 
 import backtype.storm.Config;
 
+/**
+ * The param arg for <code>Testing.withSimulatedTimeCluster</code> and <code>Testing.withTrackedCluster</code>
+ */
 public class MkClusterParam {
 	private Integer supervisors;
 	private Integer portsPerSupervisor;

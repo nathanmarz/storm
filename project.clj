@@ -29,7 +29,9 @@
                  ]
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
-                    ]
+                     ]
+  :plugins [[lein-junit "1.0.0"]]
+  :junit [["target/classes"]]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
   :extra-classpath-dirs ["src/ui"]
   :aot :all

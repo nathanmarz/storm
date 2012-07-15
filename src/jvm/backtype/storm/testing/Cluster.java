@@ -29,4 +29,8 @@ public class Cluster extends HashMap {
 	public Object getNimbus() {
 		return get(Keyword.intern("nimbus"));
 	}
+	
+	public Object getClusterState() {
+		return get(Keyword.intern("storm-cluster-state"));
+	}
 }

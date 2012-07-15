@@ -16,6 +16,9 @@
              ^:static [completeTopology
                        [backtype.storm.testing.Cluster backtype.storm.generated.StormTopology]
                        java.util.Map]
+             ^:static [withSimulatedTime [Runnable] void]
+             ^:static [withLocalCluster [backtype.storm.testing.TestJob] void]
+             ^:static [withLocalCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.TestJob] void]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
              ^:static [withTrackedCluster [backtype.storm.testing.TestJob] void]
@@ -47,6 +50,23 @@
                           :topology-name topology-name)))
   ([^Cluster cluster ^StormTopology topology]
      (-completeTopology cluster topology (CompleteTopologyParam.))))
+
+(defn -withSimulatedTime [^Runnable code]
+  (with-simulated-time
+    (.run code)))
+
+(defn -withLocalCluster
+  ([^MkClusterParam mkClusterParam ^TestJob code]
+     (let [supervisors (or (.getSupervisors mkClusterParam) 2)
+           ports-per-supervisor (or (.getPortsPerSupervisor mkClusterParam) 3)
+           daemon-conf (or (.getDaemonConf mkClusterParam) {})]
+       (with-local-cluster [cluster :supervisors supervisors
+                            :ports-per-supervisor ports-per-supervisor
+                            :daemon-conf daemon-conf]
+         (let [cluster (Cluster. cluster)]
+           (.run code cluster)))))
+  ([^TestJob code]
+     (-withLocalCluster (MkClusterParam.) code)))
 
 (defn -withSimulatedTimeLocalCluster
   ([^MkClusterParam mkClusterParam ^TestJob code]

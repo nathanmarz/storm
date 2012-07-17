@@ -330,6 +330,9 @@
   (let [reported-time (:time-secs hb)
         {last-nimbus-time :nimbus-time
          last-reported-time :executor-reported-time} curr
+        reported-time (cond reported-time reported-time
+                            last-reported-time last-reported-time
+                            :else 0)
         nimbus-time (if (or (not last-nimbus-time)
                         (not= last-reported-time reported-time))
                       (current-time-secs)
@@ -343,12 +346,11 @@
     (into {}
       (for [executor all-executors :let [curr (cache executor)]]
         [executor
-          (if (contains? executor-beats executor)
-            (update-executor-cache curr (executor-beats executor))
-            curr
-            )]))))
+         (update-executor-cache curr (get executor-beats executor))]
+         ))))
 
 (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
+  (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         executor-beats (.executor-beats storm-cluster-state storm-id (:executor->node+port existing-assignment))
         cache (update-heartbeat-cache (@(:heartbeats-cache nimbus) storm-id)
@@ -364,6 +366,11 @@
 
 (defn- alive-executors
   [nimbus ^TopologyDetails topology-details all-executors existing-assignment]
+  (log-debug "Computing alive executors for " (.getId topology-details) "\n"
+             "Executors: " (pr-str all-executors) "\n"
+             "Assignment: " (pr-str existing-assignment) "\n"
+             "Heartbeat cache: " (pr-str (@(:heartbeats-cache nimbus) (.getId topology-details)))
+             )
   (let [conf (:conf nimbus)
         storm-id (.getId topology-details)
         executor-start-times (:executor->start-time-secs existing-assignment)

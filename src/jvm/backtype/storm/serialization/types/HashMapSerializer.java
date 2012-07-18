@@ -8,10 +8,6 @@ import java.util.Map;
 
 
 public class HashMapSerializer extends MapSerializer {
-    public HashMapSerializer(Kryo kryo) {
-        super(kryo);
-    }
-
     @Override
     public Map create(Kryo kryo, Input input, Class<Map> type) {
         return new HashMap();

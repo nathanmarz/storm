@@ -21,7 +21,7 @@
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
                  [org.slf4j/slf4j-log4j12 "1.5.8"]
-                 [storm/carbonite "1.2.1"]
+                 [storm/carbonite "1.4.0"]
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  [storm/tools.cli "0.2.2"]

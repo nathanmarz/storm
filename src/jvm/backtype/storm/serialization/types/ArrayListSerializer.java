@@ -8,10 +8,6 @@ import java.util.Collection;
 
 
 public class ArrayListSerializer extends CollectionSerializer {
-    public ArrayListSerializer(Kryo kryo) {
-        super(kryo);
-    }
-
     @Override
     public Collection create(Kryo kryo, Input input, Class<Collection> type) {
         return new ArrayList();

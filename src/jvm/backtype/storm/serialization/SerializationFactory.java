@@ -50,9 +50,9 @@ public class SerializationFactory {
         k.setReferences(false);
         k.register(byte[].class);
         k.register(ListDelegate.class);
-        k.register(ArrayList.class, new ArrayListSerializer(k));
-        k.register(HashMap.class, new HashMapSerializer(k));
-        k.register(HashSet.class, new HashSetSerializer(k));
+        k.register(ArrayList.class, new ArrayListSerializer());
+        k.register(HashMap.class, new HashMapSerializer());
+        k.register(HashSet.class, new HashSetSerializer());
         k.register(BigInteger.class, new BigIntegerSerializer());
         k.register(TransactionAttempt.class);
         k.register(Values.class);

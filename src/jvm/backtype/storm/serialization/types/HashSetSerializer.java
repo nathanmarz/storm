@@ -8,10 +8,6 @@ import java.util.HashSet;
 
 
 public class HashSetSerializer extends CollectionSerializer {
-    public HashSetSerializer(Kryo kryo) {
-        super(kryo);
-    }
-
     @Override
     public Collection create(Kryo kryo, Input input, Class<Collection> type) {
         return new HashSet();

@@ -794,6 +794,13 @@
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
+(def DISALLOWED-TOPOLOGY-NAME-STRS #{"/" "." ":" "\\"})
+
+(defn validate-topology-name! [name]
+  (if (some #(.contains name %) DISALLOWED-TOPOLOGY-NAME-STRS)
+    (throw (InvalidTopologyException.
+      (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -820,8 +827,7 @@
     (reify Nimbus$Iface
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (if (.contains storm-name "/")
-          (throw (InvalidTopologyException. "Topology name cannot contains slashes")))
+        (validate-topology-name! storm-name)
         (check-storm-active! nimbus storm-name false)
         (swap! (:submitted-count nimbus) inc)
         (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))

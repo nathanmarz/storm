@@ -25,6 +25,7 @@
  * Enhanced INimbus interface to allow for forced schedulers and better integration with global scheduler
  * Added assigned method to ISupervisor so it knows exactly what's running and not running
  * Custom serializers can now have one of four constructors: (), (Kryo), (Class), or (Kryo, Class)
+ * Disallow ":", ".", and "\" from topology names
 
 ## 0.7.5 (unreleased)
 

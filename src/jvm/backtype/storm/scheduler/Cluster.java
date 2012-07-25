@@ -84,8 +84,7 @@ public class Cluster {
      * @return
      */
     public Map<ExecutorDetails, String> getNeedsSchedulingExecutorToComponents(TopologyDetails topology) {
-        Collection<ExecutorDetails> allExecutors = new ArrayList<ExecutorDetails>();
-        allExecutors.addAll(topology.getExecutors());
+        Collection<ExecutorDetails> allExecutors = new HashSet(topology.getExecutors());
         
         SchedulerAssignment assignment = this.assignments.get(topology.getId());
         if (assignment != null) {
@@ -175,13 +174,12 @@ public class Cluster {
     /**
      * get the unassigned executors of the topology.
      */
-    public List<ExecutorDetails> getUnassignedExecutors(TopologyDetails topology) {
+    public Collection<ExecutorDetails> getUnassignedExecutors(TopologyDetails topology) {
         if (topology == null) {
             return new ArrayList<ExecutorDetails>(0);
         }
 
-        List<ExecutorDetails> ret = new ArrayList<ExecutorDetails>();
-        ret.addAll(topology.getExecutors());
+        Collection<ExecutorDetails> ret = new HashSet(topology.getExecutors());
         
         SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
         if (assignment != null) {

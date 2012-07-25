@@ -31,10 +31,21 @@ import backtype.storm.tuple.Values;
 import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 
+/**
+ * This class is the unit test for backtype.storm.Testing. Also it provides the samples about how to 
+ * use these testing apis.
+ * 
+ * @author xumingmingv Jul 21, 2012 12:04:41 AM
+ */
 public class TestingTest extends TestCase {
 
 	public void testWithSimulatedTime() {
 		assertFalse(Time.isSimulating());
+		/**
+		 * <code>Testing.withSimulatedTime</code> create a context in which the time is simulated.
+		 * you can use <code>Time.isSimulating</code> to check whether we're simulating the time.
+		 * use <code>Time.advanceTime</code> to advance the simulated time.
+		 */
 		Testing.withSimulatedTime(new Runnable() {
 			@Override
 			public void run() {
@@ -51,6 +62,13 @@ public class TestingTest extends TestCase {
 		Config daemonConf = new Config();
 		daemonConf.put(Config.SUPERVISOR_ENABLE, false);
 		daemonConf.put(Config.TOPOLOGY_ACKER_EXECUTORS, 0);
+		
+		/**
+		 * when testing your topology, you need a <code>LocalCluster</code> to run your topologies, you need
+		 * to create it, after using it, you need to stop it. Using <code>Testing.withLocalCluster</code> you
+		 * don't need to do any of this, just use the <code>cluster</code> provided through the param of 
+		 * <code>TestJob.run</code>.
+		 */
 		Testing.withLocalCluster(mkClusterParam, new TestJob() {
 			@Override
 			public void run(Cluster cluster) {
@@ -67,8 +85,10 @@ public class TestingTest extends TestCase {
 		daemonConf.put(Config.STORM_LOCAL_MODE_ZMQ, false);
 		mkClusterParam.setDaemonConf(daemonConf);
 
+		/**
+		 * This is a combination of <code>Testing.withLocalCluster</code> and <code>Testing.withSimulatedTime</code>.
+		 */
 		Testing.withSimulatedTimeLocalCluster(mkClusterParam, new TestJob() {
-
 			@Override
 			public void run(Cluster cluster) {
 				// build the test topology
@@ -96,6 +116,9 @@ public class TestingTest extends TestCase {
 				CompleteTopologyParam completeTopologyParam = new CompleteTopologyParam();
 				completeTopologyParam.setMockedSources(mockedSources);
 				completeTopologyParam.setStormConf(conf);
+				/**
+				 * TODO
+				 */
 				Map result = Testing.completeTopology(cluster, topology,
 						completeTopologyParam);
 
@@ -118,6 +141,9 @@ public class TestingTest extends TestCase {
 	}
 
 	public void testAckBranching() {
+		/**
+		 * TODO
+		 */
 		Testing.withTrackedCluster(new TestJob() {
 			@Override
 			public void run(Cluster cluster) {
@@ -171,6 +197,9 @@ public class TestingTest extends TestCase {
 				Config topologyConfig = new Config();
 				topologyConfig.setMessageTimeoutSecs(10);
 
+				/**
+				 * TODO
+				 */
 				Testing.submitLocalTopology(cluster.getNimbus(),
 						"timeout-tester", topologyConfig, topology);
 
@@ -178,6 +207,9 @@ public class TestingTest extends TestCase {
 				feeder.feed(new Values("b"), 2);
 				feeder.feed(new Values("c"), 3);
 
+				/**
+				 * TODO
+				 */
 				Testing.advanceClusterTime(cluster, 9);
 				assertAcked(tracker, 1, 3);
 				assertFalse(tracker.isFailed(2));

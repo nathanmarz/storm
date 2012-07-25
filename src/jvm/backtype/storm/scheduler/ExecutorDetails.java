@@ -1,19 +1,19 @@
 package backtype.storm.scheduler;
 
 public class ExecutorDetails {
-    Integer startTask;
-    Integer endTask;
+    int startTask;
+    int endTask;
 
-    public ExecutorDetails(Integer startTask, Integer endTask){
+    public ExecutorDetails(int startTask, int endTask){
         this.startTask = startTask;
         this.endTask = endTask;
     }
 
-    public Integer getStartTask() {
+    public int getStartTask() {
         return startTask;
     }
 
-    public Integer getEndTask() {
+    public int getEndTask() {
         return endTask;
     }
 
@@ -28,5 +28,10 @@ public class ExecutorDetails {
     
     public int hashCode() {
         return this.startTask + 13 * this.endTask;
+    }
+    
+    @Override
+    public String toString() {
+    	return "[" + this.startTask + ", " + this.endTask + "]";
     }
 }

@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import backtype.storm.Config;
-
 public class Cluster {
 
     /**
@@ -86,8 +84,9 @@ public class Cluster {
      * @return
      */
     public Map<ExecutorDetails, String> getNeedsSchedulingExecutorToComponents(TopologyDetails topology) {
-        Collection<ExecutorDetails> allExecutors = topology.getExecutors();
-
+        Collection<ExecutorDetails> allExecutors = new ArrayList<ExecutorDetails>();
+        allExecutors.addAll(topology.getExecutors());
+        
         SchedulerAssignment assignment = this.assignments.get(topology.getId());
         if (assignment != null) {
             Collection<ExecutorDetails> assignedExecutors = assignment.getExecutors();
@@ -181,17 +180,15 @@ public class Cluster {
             return new ArrayList<ExecutorDetails>(0);
         }
 
-        Collection<ExecutorDetails> allExecutors = topology.getExecutors();
+        List<ExecutorDetails> ret = new ArrayList<ExecutorDetails>();
+        ret.addAll(topology.getExecutors());
+        
         SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
-
         if (assignment != null) {
             Set<ExecutorDetails> assignedExecutors = assignment.getExecutors();
-            allExecutors.removeAll(assignedExecutors);
+            ret.removeAll(assignedExecutors);
         }
-
-        List<ExecutorDetails> ret = new ArrayList<ExecutorDetails>(allExecutors.size());
-        ret.addAll(allExecutors);
-
+        
         return ret;
     }
 
@@ -352,15 +349,5 @@ public class Cluster {
      */
     public Map<String, SupervisorDetails> getSupervisors() {
         return this.supervisors;
-    }
-    
-    private boolean isExecutorAssigned(ExecutorDetails executor) {
-        for (SchedulerAssignment assignment : this.assignments.values()) {
-            if (assignment.isExecutorAssigned(executor)) {
-                return true;
-            }
-        }
-        
-        return false;
     }
 }

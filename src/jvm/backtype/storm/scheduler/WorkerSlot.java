@@ -27,4 +27,9 @@ public class WorkerSlot {
         WorkerSlot other = (WorkerSlot) o;
         return this.port == other.port && this.nodeId.equals(other.nodeId);
     }    
+    
+    @Override
+    public String toString() {
+    	return this.nodeId + ":" + this.port;
+    }
 }

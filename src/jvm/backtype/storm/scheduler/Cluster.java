@@ -258,15 +258,10 @@ public class Cluster {
      * @param slot
      */
     public void freeSlot(WorkerSlot slot) {
-        SupervisorDetails supervisor = this.supervisors.get(slot.getNodeId());
-
-        if (supervisor != null) {
-            // remove the slot from the existing assignments
-            for (SchedulerAssignmentImpl assignment : this.assignments.values()) {
-                if (assignment.isSlotOccupied(slot)) {
-                    assignment.unassignBySlot(slot);
-                    break;
-                }
+        // remove the slot from the existing assignments
+        for (SchedulerAssignmentImpl assignment : this.assignments.values()) {
+            if (assignment.isSlotOccupied(slot)) {
+                assignment.unassignBySlot(slot);
             }
         }
     }

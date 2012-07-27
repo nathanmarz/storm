@@ -1,6 +1,7 @@
 #!/usr/local/bin/thrift --gen java:beans,nocamel,hashcode
 
 namespace java backtype.storm.generated
+namespace rb BackType.Storm
 
 union JavaObjectArg {
   1: i32 int_arg;
@@ -17,7 +18,7 @@ struct JavaObject {
 }
 
 struct NullStruct {
-  
+
 }
 
 struct GlobalStreamId {
@@ -64,7 +65,7 @@ struct ComponentCommon {
   // topology.max.task.parallelism: null // can replace isDistributed with this
   // topology.max.spout.pending: null
   // topology.kryo.register // this is the only additive one
-  
+
   // component specific configuration
   4: optional string json_conf;
 }
@@ -122,7 +123,7 @@ struct SupervisorSummary {
   1: required string host;
   2: required i32 uptime_secs;
   3: required i32 num_workers;
-  4: required i32 num_used_workers;  
+  4: required i32 num_used_workers;
 }
 
 struct ClusterSummary {
@@ -137,8 +138,8 @@ struct ErrorInfo {
 }
 
 struct BoltStats {
-  1: required map<string, map<GlobalStreamId, i64>> acked;  
-  2: required map<string, map<GlobalStreamId, i64>> failed;  
+  1: required map<string, map<GlobalStreamId, i64>> acked;
+  2: required map<string, map<GlobalStreamId, i64>> failed;
   3: required map<string, map<GlobalStreamId, double>> process_ms_avg;
 }
 
@@ -208,11 +209,11 @@ service Nimbus {
   string beginFileUpload();
   void uploadChunk(1: string location, 2: binary chunk);
   void finishFileUpload(1: string location);
-  
+
   string beginFileDownload(1: string file);
   //can stop downloading chunks when receive 0-length byte array back
   binary downloadChunk(1: string id);
-  
+
   // stats functions
   ClusterSummary getClusterInfo();
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e);
@@ -238,5 +239,5 @@ service DistributedRPC {
 service DistributedRPCInvocations {
   void result(1: string id, 2: string result);
   DRPCRequest fetchRequest(1: string functionName);
-  void failRequest(1: string id);  
+  void failRequest(1: string id);
 }

@@ -53,6 +53,7 @@ You must not remove this notice, or any other, from this software.
 * Soren Macbeth ([@sorenmacbeth](https://github.com/sorenmacbeth))
 * Ashley  Brown ([@ashleywbrown](https://github.com/ashleywbrown))
 * Guanpeng Xu ([@herberteuler](https://github.com/herberteuler))
+* Vinod Chandru ([@vinodc](https://github.com/vinodc))
 
 ## Acknowledgements
 

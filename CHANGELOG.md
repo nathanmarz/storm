@@ -27,6 +27,7 @@
  * Custom serializers can now have one of four constructors: (), (Kryo), (Class), or (Kryo, Class)
  * Disallow ":", ".", and "\" from topology names
  * Errors in multilang subprocesses that go to stderr will be captured and logged to the worker logs (thanks vinodc)
+ * Use exec instead of forked child process for daemon processes (thanks ept)
 
 ## 0.7.5 (unreleased)
 

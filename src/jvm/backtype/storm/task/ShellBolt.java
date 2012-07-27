@@ -79,7 +79,7 @@ public class ShellBolt implements IBolt {
             Number subpid = _process.launch(stormConf, context);
             LOG.info("Launched subprocess with pid " + subpid);
         } catch (IOException e) {
-            throw new RuntimeException("Error when launching multilang subprocess", e);
+            throw new RuntimeException("Error when launching multilang subprocess\n" + _process.getErrorsString(), e);
         }
 
         // reader

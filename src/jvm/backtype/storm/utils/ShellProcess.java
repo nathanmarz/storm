@@ -68,6 +68,18 @@ public class ShellProcess {
         }
     }
 
+    public String getErrorsString() {
+        if(processErrorStream!=null) {
+            try {
+                return IOUtils.toString(processErrorStream);
+            } catch(IOException e) {
+                return "(Unable to capture error stream)";
+            }
+        } else {
+            return "";
+        }
+    }
+
     private String readString() throws IOException {
         StringBuilder line = new StringBuilder();
 
@@ -84,7 +96,7 @@ public class ShellProcess {
                         errorMessage.append(" Currently read output: " + line.toString() + "\n");
                     }
                     errorMessage.append("Shell Process Exception:\n");
-                    errorMessage.append(IOUtils.toString(processErrorStream) + "\n");
+                    errorMessage.append(getErrorsString() + "\n");
                     throw new RuntimeException(errorMessage.toString());
                 }
                 if(subline.equals("end")) {

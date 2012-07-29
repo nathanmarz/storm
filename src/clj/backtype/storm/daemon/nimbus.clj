@@ -255,12 +255,12 @@
        )))
 
 (defn- available-slots
-  [nimbus callback topologies]
+  [nimbus topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         
-        supervisor-ids (.supervisors storm-cluster-state callback)
-        supervisor-infos (all-supervisor-info storm-cluster-state callback)
+        supervisor-ids (.supervisors storm-cluster-state nil)
+        supervisor-infos (all-supervisor-info storm-cluster-state nil)
         existing-slots (assigned-slots storm-cluster-state)
 
         supervisor-details (for [[id info] supervisor-infos]
@@ -367,6 +367,8 @@
              "Assignment: " (pr-str existing-assignment) "\n"
              "Heartbeat cache: " (pr-str (@(:heartbeats-cache nimbus) (.getId topology-details)))
              )
+  ;; TODO: need to consider all executors associated with a dead executor (in same slot) dead as well,
+  ;; don't just rely on heartbeat being the same
   (let [conf (:conf nimbus)
         storm-id (.getId topology-details)
         executor-start-times (:executor->start-time-secs existing-assignment)
@@ -511,6 +513,16 @@
 
 ;; TODO: slots that have dead executor should be reused as long as supervisor is active
 
+
+;; (defn- assigned-slots-from-scheduler-assignments [topology->assignment]
+;;   (->> topology->assignment
+;;        vals
+;;        (map (fn [^SchedulerAssignment a] (.getExecutorToSlot a)))
+;;        (mapcat vals)
+;;        (map (fn [^WorkerSlot s] {(.getNodeId s) #{(.getPort s)}}))
+;;        (apply merge-with set/union)
+;;        ))
+
 ;; public so it can be mocked out
 (defn compute-new-topology->executor->node+port [nimbus existing-assignments topologies scratch-topology-id]
   (let [conf (:conf nimbus)
@@ -531,7 +543,7 @@
                                                                                existing-assignments
                                                                                topology->alive-executors)
         available-slots (->> topologies
-                             (available-slots nimbus nil)
+                             (available-slots nimbus)
                              (map (fn [[node-id port]] {node-id #{port}}))
                              (apply merge-with set/union))
         assigned-slots (assigned-slots storm-cluster-state)

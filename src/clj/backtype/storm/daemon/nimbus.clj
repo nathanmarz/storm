@@ -255,7 +255,7 @@
        )))
 
 (defn- available-slots
-  [nimbus topologies]
+  [nimbus topologies-missing-assignments topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         
@@ -274,6 +274,7 @@
                      supervisor-details
                      worker-slots
                      topologies
+                     topologies-missing-assignments
                      )
         ]
     (for [^WorkerSlot slot ret]
@@ -542,8 +543,17 @@
         topology->scheduler-assignment (compute-topology->scheduler-assignment nimbus
                                                                                existing-assignments
                                                                                topology->alive-executors)
+
+        missing-assignment-topologies (->> topologies
+                                           .getTopologies
+                                           (map (memfn getId))
+                                           (filter (fn [t]
+                                                      (let [alle (get topology->executors t)
+                                                            alivee (get topology->alive-executors t)]
+                                                            (or (empty? alle) (not= alle alivee))
+                                                            ))))
         available-slots (->> topologies
-                             (available-slots nimbus)
+                             (available-slots nimbus missing-assignment-topologies)
                              (map (fn [[node-id port]] {node-id #{port}}))
                              (apply merge-with set/union))
         assigned-slots (assigned-slots storm-cluster-state)
@@ -1101,7 +1111,7 @@
   (reify INimbus
     (prepare [this conf local-dir]
       )
-    (availableSlots [this supervisors used-slots topologies]
+    (availableSlots [this supervisors used-slots topologies topologies-missing-assignments]
       (let [all-slots (->> supervisors
                            (mapcat (fn [^SupervisorDetails s]
                                      (for [p (.getMeta s)]

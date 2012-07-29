@@ -254,10 +254,6 @@
               supervisor-ids))
        )))
 
-(defn get-node->host [storm-cluster-state callback]
-  (->> (all-supervisor-info storm-cluster-state callback)
-       (map-val :hostname)))
-
 (defn- available-slots
   [nimbus callback topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -583,6 +579,14 @@
                       set)]
     (set/difference new-slots old-slots)))
 
+
+(defn basic-supervisor-details-map [storm-cluster-state]
+  (let [infos (all-supervisor-info storm-cluster-state)]
+    (->> infos
+         (map (fn [[id info]]
+                 [id (SupervisorDetails. id (:hostname info) (:scheduler-meta info) nil)]))
+         (into {}))))
+
 ;; get existing assignment (just the executor->node+port map) -> default to {}
 ;; filter out ones which have a executor timeout
 ;; figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many executors should be in each slot (e.g., 4, 4, 4, 5)
@@ -591,7 +595,7 @@
 (defnk mk-assignments [nimbus :scratch-topology-id nil]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
-        node->host (get-node->host storm-cluster-state nil)
+        ^INimbus inimbus (:inimbus nimbus) 
         ;; read all the topologies
         topology-ids (.active-storms storm-cluster-state)
         topologies (into {} (for [tid topology-ids]
@@ -611,20 +615,32 @@
                                        existing-assignments
                                        topologies
                                        scratch-topology-id)
+        
+        
         now-secs (current-time-secs)
+        
+        basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state)
+        
         ;; construct the final Assignments by adding start-times etc into it
         new-assignments (into {} (for [[topology-id executor->node+port] topology->executor->node+port
                                         :let [existing-assignment (get existing-assignments topology-id)
-                                             all-node->host (merge (:node->host existing-assignment) node->host)
-                                             reassign-executors (changed-executors (:executor->node+port existing-assignment) executor->node+port)
-                                             start-times (merge (:executor->start-time-secs existing-assignment)
+                                              all-nodes (->> executor->node+port vals (map first) set)
+                                              node->host (->> all-nodes
+                                                              (mapcat (fn [node]
+                                                                        (if-let [host (.getHostName inimbus basic-supervisor-details-map node)]
+                                                                          [[node host]]
+                                                                          )))
+                                                              (into {}))
+                                              all-node->host (merge (:node->host existing-assignment) node->host)
+                                              reassign-executors (changed-executors (:executor->node+port existing-assignment) executor->node+port)
+                                              start-times (merge (:executor->start-time-secs existing-assignment)
                                                                 (into {}
                                                                       (for [id reassign-executors]
                                                                         [id now-secs]
                                                                         )))]]
                                    {topology-id (Assignment.
                                                  (master-stormdist-root conf topology-id)
-                                                 (select-keys all-node->host (map first (vals executor->node+port)))
+                                                 (select-keys all-node->host all-nodes)
                                                  executor->node+port
                                                  start-times)}))]
 
@@ -644,7 +660,7 @@
             (newly-added-slots existing-assignment assignment))
          (apply concat)
          (map (fn [[id port]] (WorkerSlot. id port)))
-         (.assignSlots ^INimbus (:inimbus nimbus) topologies)
+         (.assignSlots inimbus topologies)
          )))
 
 (defn- start-storm [nimbus storm-name storm-id]
@@ -1085,6 +1101,9 @@
       )
     (getForcedScheduler [this]
       nil )
+    (getHostName [this supervisors node-id]
+      (if-let [^SupervisorDetails supervisor (get supervisors node-id)]
+        (.getHost supervisor)))
     ))
 
 (defn -main []

@@ -18,5 +18,8 @@ public interface INimbus {
     // this should be called after the assignment is changed in ZK
     void assignSlots(Topologies topologies, Collection<WorkerSlot> newSlots);
     
+    // map from node id to supervisor details
+    String getHostName(Map<String, SupervisorDetails> existingSupervisors, String nodeId);
+    
     IScheduler getForcedScheduler(); 
 }

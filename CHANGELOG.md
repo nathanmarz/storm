@@ -28,9 +28,7 @@
  * Disallow ":", ".", and "\" from topology names
  * Errors in multilang subprocesses that go to stderr will be captured and logged to the worker logs (thanks vinodc)
  * Use exec instead of forked child process for daemon processes (thanks ept)
-
-## 0.7.5 (unreleased)
-
+ * Workers detect and warn for missing outbound connections from assignment, drop messages for which there's no outbound connection
  * Zookeeper connection timeout is now configurable (via storm.zookeeper.connection.timeout config)
  * Storm is now less aggressive about halting process when there are Zookeeper errors, preferring to wait until client calls return exceptions.
  * Can configure Zookeeper authentication for Storm's Zookeeper clients via "storm.zookeeper.auth.scheme" and "storm.zookeeper.auth.payload" configs

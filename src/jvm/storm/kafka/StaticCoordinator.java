@@ -1,6 +1,5 @@
 package storm.kafka;
 
-import backtype.storm.transactional.state.TransactionalState;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +11,7 @@ public class StaticCoordinator implements PartitionCoordinator {
     Map<GlobalPartitionId, PartitionManager> _managers = new HashMap<GlobalPartitionId, PartitionManager>();
     List<PartitionManager> _allManagers = new ArrayList();
     
-    public StaticCoordinator(DynamicPartitionConnections connections, SpoutConfig config, int taskIndex, int totalTasks, TransactionalState state, String topologyInstanceId) {
+    public StaticCoordinator(DynamicPartitionConnections connections, SpoutConfig config, KafkaSpoutState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         StaticHosts hosts = (StaticHosts) config.hosts;
         List<GlobalPartitionId> allPartitionIds = new ArrayList();
         for(HostPort h: hosts.hosts) {
@@ -22,7 +21,7 @@ public class StaticCoordinator implements PartitionCoordinator {
         }
         for(int i=taskIndex; i<allPartitionIds.size(); i+=totalTasks) {
             GlobalPartitionId myPartition = allPartitionIds.get(i);
-            _managers.put(myPartition, new PartitionManager(connections, topologyInstanceId, config, state, myPartition));
+            _managers.put(myPartition, new PartitionManager(connections, topologyInstanceId, state, config, myPartition));
             
         }
         

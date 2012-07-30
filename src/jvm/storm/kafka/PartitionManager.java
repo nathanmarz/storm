@@ -1,12 +1,8 @@
 package storm.kafka;
 
 import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.utils.Utils;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -14,7 +10,6 @@ import kafka.message.MessageAndOffset;
 import org.apache.log4j.Logger;
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
-import storm.kafka.KafkaSpout.ZooMeta;
 
 public class PartitionManager {  
     public static final Logger LOG = Logger.getLogger(PartitionManager.class);
@@ -33,27 +28,27 @@ public class PartitionManager {
     SortedSet<Long> _pending = new TreeSet<Long>();
     Long _committedTo;
     LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
-    TransactionalState _state;
     GlobalPartitionId _partition;
     SpoutConfig _spoutConfig;
     String _topologyInstanceId;
     SimpleConsumer _consumer;
     DynamicPartitionConnections _connections;
+    KafkaSpoutState _state;
     
-    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, SpoutConfig spoutConfig, TransactionalState state, GlobalPartitionId id) {
-        _state = state;
+    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, KafkaSpoutState state, SpoutConfig spoutConfig, GlobalPartitionId id) {
         _partition = id;
         _connections = connections;
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;
-        ZooMeta zooMeta = (ZooMeta) _state.getData(committedPath());
-        _consumer = connections.register(id.host, id.partition); 
+        _consumer = connections.register(id.host, id.partition);
+	_state = state;
 
-        //the id stuff makes sure the spout doesn't reset the offset if it restarts
-        if(zooMeta==null || (!topologyInstanceId.equals(zooMeta.id) && spoutConfig.forceFromStart)) {
+	Map<String, Object> st = _state.readData(committedPath());
+        if(st==null || (!topologyInstanceId.equals((String)st.get("id")) && spoutConfig.forceFromStart)) {
             _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
         } else {
-            _committedTo = zooMeta.offset;
+            _committedTo = (Long)st.get("offset");
+	    LOG.info("Read last commit offset from zookeeper: " + _committedTo);
         }
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
         _emittedToOffset = _committedTo;
@@ -122,7 +117,12 @@ public class PartitionManager {
         }
         if(committedTo!=_committedTo) {
             LOG.info("Writing committed offset to ZK: " + committedTo);
-            _state.setData(committedPath(), new ZooMeta(_topologyInstanceId, committedTo));
+
+	    Map<String, Object> data = new LinkedHashMap<String, Object>();
+	    data.put("id", _topologyInstanceId);
+	    data.put("offset", committedTo);
+	    _state.writeData(committedPath(), data);
+
             LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;
         }
@@ -130,10 +130,11 @@ public class PartitionManager {
     }
 
     private String committedPath() {
-        return _spoutConfig.id + "/" + _partition;
+        return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition;
     }
     
     public void close() {
         _connections.unregister(_partition.host, _partition.partition);
     }
 }
+

@@ -5,7 +5,6 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.transactional.state.TransactionalState;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
@@ -18,20 +17,6 @@ import storm.kafka.PartitionManager.KafkaMessageId;
 // TODO: need to add blacklisting
 // TODO: need to make a best effort to not re-emit messages if don't have to
 public class KafkaSpout extends BaseRichSpout {
-    public static class ZooMeta implements Serializable {
-        String id;
-        long offset;
-
-        public ZooMeta() {
-
-        }
-
-        public ZooMeta(String id, long offset) {
-            this.id = id;
-            this.offset = offset;
-        }
-    }
-
     public static class MessageAndRealOffset {
         public Message msg;
         public long offset;
@@ -50,14 +35,12 @@ public class KafkaSpout extends BaseRichSpout {
 
     public static final Logger LOG = Logger.getLogger(KafkaSpout.class);
 
-    
-
     String _uuid = UUID.randomUUID().toString();
     SpoutConfig _spoutConfig;
     SpoutOutputCollector _collector;
-    TransactionalState _state;
     PartitionCoordinator _coordinator;
     DynamicPartitionConnections _connections;
+    KafkaSpoutState _state;
     
     long _lastUpdateMs = 0;
 
@@ -70,31 +53,19 @@ public class KafkaSpout extends BaseRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
-        Map stateConf = new HashMap(conf);
+
+	List<String> zkServers = _spoutConfig.zkServers;
+        if(zkServers==null) zkServers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+	_state = new KafkaSpoutState(zkServers);
 
         _connections = new DynamicPartitionConnections(_spoutConfig);
-        List<String> zkServers = _spoutConfig.zkServers;
-        if(zkServers==null) zkServers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-
-        Integer zkPort = _spoutConfig.zkPort;
-        if(zkPort==null) zkPort = ((Number) conf.get(Config.STORM_ZOOKEEPER_PORT)).intValue();
-
-        String zkRoot = _spoutConfig.zkRoot;
-
-        stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, zkServers);
-        stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_PORT, zkPort);
-        stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_ROOT, zkRoot);
-
-        Config componentConf = new Config();
-        componentConf.registerSerialization(ZooMeta.class);
 
         // using TransactionalState like this is a hack
-        _state = TransactionalState.newUserState(stateConf, _spoutConfig.id, componentConf);
         int totalTasks = context.getComponentTasks(context.getThisComponentId()).size();
         if(_spoutConfig.hosts instanceof KafkaConfig.StaticHosts) {
-            _coordinator = new StaticCoordinator(_connections, _spoutConfig, context.getThisTaskIndex(), totalTasks, _state, _uuid);
+            _coordinator = new StaticCoordinator(_connections, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         } else {
-            _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, context.getThisTaskIndex(), totalTasks, _state, _uuid);
+            _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         }
 
     }

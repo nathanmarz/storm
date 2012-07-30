@@ -1,7 +1,6 @@
 package storm.kafka;
 
 import backtype.storm.Config;
-import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.utils.Utils;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
@@ -21,10 +20,9 @@ import storm.kafka.KafkaConfig.ZkHosts;
 public class ZkCoordinator implements PartitionCoordinator {
     public static Logger LOG = Logger.getLogger(ZkCoordinator.class);
     
-    SpoutConfig _config;
+    SpoutConfig _spoutConfig;
     int _taskIndex;
     int _totalTasks;
-    TransactionalState _state;
     String _topologyInstanceId;
     CuratorFramework _curator;
     Map<GlobalPartitionId, PartitionManager> _managers = new HashMap();
@@ -33,17 +31,17 @@ public class ZkCoordinator implements PartitionCoordinator {
     int _refreshFreqMs;
     ZkHosts _brokerConf;
     DynamicPartitionConnections _connections;
+    KafkaSpoutState _state;
     
-    public ZkCoordinator(DynamicPartitionConnections connections, Map conf, SpoutConfig config, int taskIndex, int totalTasks, TransactionalState state, String topologyInstanceId) {
-        _config = config;
+    public ZkCoordinator(DynamicPartitionConnections connections, Map conf, SpoutConfig spoutConfig, KafkaSpoutState state, int taskIndex, int totalTasks, String topologyInstanceId) {
+        _spoutConfig = spoutConfig;
         _connections = connections;
         _taskIndex = taskIndex;
         _totalTasks = totalTasks;
-        _state = state;
         _topologyInstanceId = topologyInstanceId;
+	_state = state;
                 
-                
-        _brokerConf = (ZkHosts) config.hosts;
+        _brokerConf = (ZkHosts) _spoutConfig.hosts;
         _refreshFreqMs = _brokerConf.refreshFreqSecs * 1000;
         try {
             _curator = CuratorFrameworkFactory.newClient(
@@ -56,7 +54,6 @@ public class ZkCoordinator implements PartitionCoordinator {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        
     }
     
     @Override
@@ -71,7 +68,7 @@ public class ZkCoordinator implements PartitionCoordinator {
     void refresh() {
         try {
             LOG.info("Refreshing partition manager connections");
-            String topicBrokersPath = _brokerConf.brokerZkPath + "/topics/" + _config.topic;
+            String topicBrokersPath = _brokerConf.brokerZkPath + "/topics/" + _spoutConfig.topic;
             String brokerInfoPath = _brokerConf.brokerZkPath + "/ids";
             List<String> children = _curator.getChildren().forPath(topicBrokersPath);
             
@@ -112,7 +109,7 @@ public class ZkCoordinator implements PartitionCoordinator {
             LOG.info("New partition managers: " + newPartitions.toString());
             
             for(GlobalPartitionId id: newPartitions) {
-                PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _config, _state, id);
+                PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _spoutConfig, id);
                 _managers.put(id, man);
             }
             

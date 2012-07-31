@@ -38,7 +38,7 @@
     ))
 
 (defn- read-assignments
-  "Returns map from port to struct containing :storm-id and :executors and :master-code-dir"
+  "Returns map from port to struct containing :storm-id and :executors"
   [storm-cluster-state supervisor-id callback]
   (let [storm-ids (.assignments storm-cluster-state callback)]
     (apply merge-with
@@ -250,6 +250,12 @@
          id)))
     ))
 
+(defn assigned-storm-ids-from-port-assignments [assignment]
+  (->> assignment
+       vals
+       (map :storm-id)
+       set))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
@@ -258,7 +264,6 @@
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
           storm-code-map (read-storm-code-locations storm-cluster-state sync-callback)
-          assigned-storm-ids (set (keys storm-code-map))
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           all-assignment (read-assignments
                            storm-cluster-state
@@ -266,6 +271,7 @@
                            sync-callback)
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
+          assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
           existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
@@ -278,7 +284,8 @@
       ;;   - should this be done separately from usual monitoring?
       ;; should we only download when topology is assigned to this supervisor?
       (doseq [[storm-id master-code-dir] storm-code-map]
-        (when-not (downloaded-storm-ids storm-id)
+        (when (and (not (downloaded-storm-ids storm-id))
+                   (assigned-storm-ids storm-id))
           (log-message "Downloading code for storm id "
              storm-id
              " from "

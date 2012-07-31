@@ -1,0 +1,76 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>storm</groupId>
+	<artifactId>storm-kafka</artifactId>
+	<version>0.72.1-SNAPSHOT</version>
+	<name>Storm Kafka Support</name>
+	<description>Storm Kafka Support</description>
+
+	<licenses>
+		<license>
+			<name>Eclipse Public License - v 1.0</name>
+			<url>http://www.eclipse.org/legal/epl-v10.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<scm>
+		<connection>scm:git:git@github.com:boneill42/storm-kafka.git</connection>
+		<developerConnection>scm:git:git@github.com:boneill42/storm-kafka.git</developerConnection>
+		<url>:git@github.com:boneill42/storm-cassandra.git</url>
+	</scm>
+
+	<developers>
+		<developer>
+			<id>boneill42</id>
+			<name>Brian O'Neill</name>
+			<email>bone@alumni.brown.edu</email>
+		</developer>
+	</developers>
+
+ 	<repositories>
+		<repository>
+			<id>clojars.org</id>
+			<url>http://clojars.org/repo</url>
+		</repository>
+	</repositories> 
+        
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka</artifactId>
+			<version>0.7.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-library</artifactId>
+			<version>2.8.0</version>
+		</dependency>
+		<dependency>
+			<groupId>storm</groupId>
+			<artifactId>storm</artifactId>
+			<version>0.7.2</version>
+		</dependency>
+        </dependencies>
+	<build>
+                <sourceDirectory>src/jvm</sourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+
+		</plugins>
+
+	</build>
+</project>

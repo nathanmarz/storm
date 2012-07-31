@@ -102,18 +102,20 @@ public class DRPCSpout extends BaseRichSpout {
             }
         } else {
             DistributedRPCInvocations.Iface drpc = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(_local_drpc_id);
-            try {
-                DRPCRequest req = drpc.fetchRequest(_function);
-                if(req.get_request_id().length() > 0) {
-                    Map returnInfo = new HashMap();
-                    returnInfo.put("id", req.get_request_id());
-                    returnInfo.put("host", _local_drpc_id);
-                    returnInfo.put("port", 0);
-                    gotRequest = true;
-                    _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), 0));
+            if(drpc!=null) { // can happen during shutdown of drpc while topology is still up
+                try {
+                    DRPCRequest req = drpc.fetchRequest(_function);
+                    if(req.get_request_id().length() > 0) {
+                        Map returnInfo = new HashMap();
+                        returnInfo.put("id", req.get_request_id());
+                        returnInfo.put("host", _local_drpc_id);
+                        returnInfo.put("port", 0);
+                        gotRequest = true;
+                        _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), 0));
+                    }
+                } catch (TException e) {
+                    throw new RuntimeException(e);
                 }
-            } catch (TException e) {
-                throw new RuntimeException(e);
             }
         }
         if(!gotRequest) {

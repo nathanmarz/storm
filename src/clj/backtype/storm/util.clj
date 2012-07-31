@@ -328,7 +328,7 @@
   (try-cause
     (exec-command! (str "unzip -qq " jarpath " " dir "/** -d " destdir))
   (catch ExecuteException e
-    (log-message "Error when trying to extract " dir " from " jarpath))
+    (log-message "Could not extract " dir " from " jarpath))
   ))
 
 (defn ensure-process-killed! [pid]

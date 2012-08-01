@@ -1,10 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<parent>
-		<groupId>org.sonatype.oss</groupId>
-		<artifactId>oss-parent</artifactId>
-		<version>7</version>
-	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>storm</groupId>
@@ -20,27 +15,14 @@
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
-	<scm>
-		<connection>scm:git:git@github.com:boneill42/storm-kafka.git</connection>
-		<developerConnection>scm:git:git@github.com:boneill42/storm-kafka.git</developerConnection>
-		<url>:git@github.com:boneill42/storm-cassandra.git</url>
-	</scm>
-
-	<developers>
-		<developer>
-			<id>boneill42</id>
-			<name>Brian O'Neill</name>
-			<email>bone@alumni.brown.edu</email>
-		</developer>
-	</developers>
 
  	<repositories>
 		<repository>
 			<id>clojars.org</id>
 			<url>http://clojars.org/repo</url>
 		</repository>
-	</repositories> 
-        
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.kafka</groupId>

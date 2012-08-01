@@ -40,7 +40,7 @@ public class KafkaSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
     PartitionCoordinator _coordinator;
     DynamicPartitionConnections _connections;
-    KafkaSpoutState _state;
+    ZkState _state;
     
     long _lastUpdateMs = 0;
 
@@ -54,9 +54,15 @@ public class KafkaSpout extends BaseRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
 
-	List<String> zkServers = _spoutConfig.zkServers;
+	Map stateConf = new HashMap(conf);
+        List<String> zkServers = _spoutConfig.zkServers;
         if(zkServers==null) zkServers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-	_state = new KafkaSpoutState(zkServers);
+        Integer zkPort = _spoutConfig.zkPort;
+        if(zkPort==null) zkPort = ((Number) conf.get(Config.STORM_ZOOKEEPER_PORT)).intValue();
+        stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, zkServers);
+        stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_PORT, zkPort);
+        stateConf.put(Config.TRANSACTIONAL_ZOOKEEPER_ROOT, _spoutConfig.zkRoot);
+	_state = new ZkState(stateConf);
 
         _connections = new DynamicPartitionConnections(_spoutConfig);
 
@@ -68,6 +74,11 @@ public class KafkaSpout extends BaseRichSpout {
             _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         }
 
+    }
+
+    @Override
+    public void close() {
+	_state.close();
     }
 
     @Override

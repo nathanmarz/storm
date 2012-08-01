@@ -33,9 +33,9 @@ public class PartitionManager {
     String _topologyInstanceId;
     SimpleConsumer _consumer;
     DynamicPartitionConnections _connections;
-    KafkaSpoutState _state;
+    ZkState _state;
     
-    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, KafkaSpoutState state, SpoutConfig spoutConfig, GlobalPartitionId id) {
+    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, SpoutConfig spoutConfig, GlobalPartitionId id) {
         _partition = id;
         _connections = connections;
         _spoutConfig = spoutConfig;
@@ -43,7 +43,7 @@ public class PartitionManager {
         _consumer = connections.register(id.host, id.partition);
 	_state = state;
 
-	Map<String, Object> st = _state.readData(committedPath());
+	Map<String, Object> st = _state.readJSON(committedPath());
         if(st==null || (!topologyInstanceId.equals((String)st.get("id")) && spoutConfig.forceFromStart)) {
             _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
         } else {
@@ -121,7 +121,7 @@ public class PartitionManager {
 	    Map<String, Object> data = new LinkedHashMap<String, Object>();
 	    data.put("id", _topologyInstanceId);
 	    data.put("offset", committedTo);
-	    _state.writeData(committedPath(), data);
+	    _state.writeJSON(committedPath(), data);
 
             LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;

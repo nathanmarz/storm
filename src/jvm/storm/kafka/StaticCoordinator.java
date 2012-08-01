@@ -11,7 +11,7 @@ public class StaticCoordinator implements PartitionCoordinator {
     Map<GlobalPartitionId, PartitionManager> _managers = new HashMap<GlobalPartitionId, PartitionManager>();
     List<PartitionManager> _allManagers = new ArrayList();
     
-    public StaticCoordinator(DynamicPartitionConnections connections, SpoutConfig config, KafkaSpoutState state, int taskIndex, int totalTasks, String topologyInstanceId) {
+    public StaticCoordinator(DynamicPartitionConnections connections, SpoutConfig config, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         StaticHosts hosts = (StaticHosts) config.hosts;
         List<GlobalPartitionId> allPartitionIds = new ArrayList();
         for(HostPort h: hosts.hosts) {

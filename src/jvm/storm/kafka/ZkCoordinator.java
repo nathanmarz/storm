@@ -31,9 +31,9 @@ public class ZkCoordinator implements PartitionCoordinator {
     int _refreshFreqMs;
     ZkHosts _brokerConf;
     DynamicPartitionConnections _connections;
-    KafkaSpoutState _state;
+    ZkState _state;
     
-    public ZkCoordinator(DynamicPartitionConnections connections, Map conf, SpoutConfig spoutConfig, KafkaSpoutState state, int taskIndex, int totalTasks, String topologyInstanceId) {
+    public ZkCoordinator(DynamicPartitionConnections connections, Map conf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         _spoutConfig = spoutConfig;
         _connections = connections;
         _taskIndex = taskIndex;

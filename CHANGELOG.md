@@ -18,7 +18,7 @@
  * MemoryTransactionalSpout now works in cluster mode
  * Only track errors on a component by component basis to reduce the amount stored in zookeeper (to speed up UI). A side effect of this change is the removal of the task page in the UI.
  * Add TOPOLOGY-TICK-TUPLE-FREQ-SECS config to have Storm automatically send "tick" tuples to a bolt's execute method coming from the __system component and __tick stream at the configured frequency. Meant to be used as a component-specific configuration.
- * Upgrade Kryo to v2.16
+ * Upgrade Kryo to v2.17
  * Tuple is now an interface and is much cleaner. The Clojure DSL helpers have been moved to TupleImpl
  * Added shared worker resources. Storm provides a shared ExecutorService thread pool by default. The number of threads in the pool can be configured with topology.worker.shared.thread.pool.size
  * Improve CustomStreamGrouping interface to make it more flexible by providing more information
@@ -34,6 +34,7 @@
  * Can configure Zookeeper authentication for Storm's Zookeeper clients via "storm.zookeeper.auth.scheme" and "storm.zookeeper.auth.payload" configs
  * Supervisors only download code for topologies assigned to them
  * Bug fix: Realize task ids when worker heartbeats to supervisor. Some users were hitting deserialization problems here in very rare cases (thanks herberteuler)
+ * Bug fix: Fix bug where a topology's status would get corrupted to true if nimbus is restarted while status is rebalancing
 
 ## 0.7.4
 

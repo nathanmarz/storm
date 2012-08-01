@@ -130,7 +130,8 @@
    :killed {:startup (fn [] (delay-event nimbus
                                          storm-id
                                          (:kill-time-secs status)
-                                         :remove))
+                                         :remove)
+                             nil)
             :kill (kill-transition nimbus storm-id)
             :remove (fn []
                       (log-message "Killing topology: " storm-id)
@@ -141,7 +142,8 @@
    :rebalancing {:startup (fn [] (delay-event nimbus
                                               storm-id
                                               (:delay-secs status)
-                                              :do-rebalance))
+                                              :do-rebalance)
+                                 nil)
                  :kill (kill-transition nimbus storm-id)
                  :do-rebalance (fn []
                                  (do-rebalance nimbus storm-id status)

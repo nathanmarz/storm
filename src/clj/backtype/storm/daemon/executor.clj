@@ -275,22 +275,24 @@
         )))
 
 (defn- fail-spout-msg [executor-data task-data msg-id tuple-info time-delta]
-  (let [^ISpout spout (:object task-data)]
+  (let [^ISpout spout (:object task-data)
+        task-id (:task-id task-data)]
     ;;TODO: need to throttle these when there's lots of failures
     (log-message "Failing message " msg-id ": " tuple-info)
     (.fail spout msg-id)
-    (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id time-delta))
+    (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta
       (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
       )))
 
 (defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta]
   (let [storm-conf (:storm-conf executor-data)
-        ^ISpout spout (:object task-data)]
+        ^ISpout spout (:object task-data)
+        task-id (:task-id task-data)]
     (when (= true (storm-conf TOPOLOGY-DEBUG))
       (log-message "Acking message " msg-id))
     (.ack spout msg-id)
-    (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id time-delta))
+    (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id task-id time-delta))
     (when time-delta
       (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
       )))
@@ -525,7 +527,7 @@
                                                  [root (bit-xor id ack-val)])
                            ))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple delta))
+                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
                          (when delta
                            (stats/bolt-acked-tuple! executor-stats
                                                     (.getSourceComponent tuple)
@@ -538,7 +540,7 @@
                                                ACKER-FAIL-STREAM-ID
                                                [root]))
                        (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple delta))
+                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
                          (when delta
                            (stats/bolt-failed-tuple! executor-stats
                                                      (.getSourceComponent tuple)

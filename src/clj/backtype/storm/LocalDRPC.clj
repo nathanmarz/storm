@@ -1,5 +1,5 @@
 (ns backtype.storm.LocalDRPC
-  (:use [backtype.storm.daemon drpc])
+  (:require [backtype.storm.daemon [drpc :as drpc]])
   (:use [backtype.storm util])
   (:import [backtype.storm.utils InprocMessaging ServiceRegistry])
   (:gen-class
@@ -9,7 +9,7 @@
    :state state ))
 
 (defn -init []
-  (let [handler (service-handler)
+  (let [handler (drpc/service-handler)
         id (ServiceRegistry/registerService handler)
         ]
     [[] {:service-id id :handler handler}]

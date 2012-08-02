@@ -35,6 +35,7 @@
  * Supervisors only download code for topologies assigned to them
  * Include task id information in task hooks (thanks velvia)
  * Use execvp to spawn daemons (replaces the python launcher process) (thanks ept)
+ * Expanded INimbus/ISupervisor interfaces to provide more information (used in Storm/Mesos integration)
  * Bug fix: Realize task ids when worker heartbeats to supervisor. Some users were hitting deserialization problems here in very rare cases (thanks herberteuler)
  * Bug fix: Fix bug where a topology's status would get corrupted to true if nimbus is restarted while status is rebalancing
 

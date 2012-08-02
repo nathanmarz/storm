@@ -26,6 +26,7 @@ public class GroupedMultiReducerExecutor implements MultiReducer<Map<TridentTupl
         }
         _groupFields = groupFields;
         _inputFields = inputFields;
+        _reducer = reducer;
     }
     
     @Override
@@ -48,11 +49,11 @@ public class GroupedMultiReducerExecutor implements MultiReducer<Map<TridentTupl
         ProjectionFactory inputFactory = _inputFactories.get(streamIndex);
         
         TridentTuple group = groupFactory.create(full);
-        TridentTuple input = groupFactory.create(full);
+        TridentTuple input = inputFactory.create(full);
         
         Object curr;
         if(!state.containsKey(group)) {
-            curr = _reducer.init(collector);
+            curr = _reducer.init(collector, group);
             state.put(group, curr);
         } else {
             curr = state.get(group);

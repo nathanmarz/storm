@@ -30,15 +30,15 @@ public class JoinerMultiReducer implements GroupedMultiReducer<JoinState> {
     public void prepare(Map conf, TridentMultiReducerContext context) {
         int[] sizes = new int[_sideFields.size() + 1];
         sizes[0] = _numGroupFields;
-        for(int i=0; i<_sideFields.size()-1; i++) {
+        for(int i=0; i<_sideFields.size(); i++) {
             sizes[i+1] = _sideFields.get(i).size();
         }
         _factory = new ComboList.Factory(sizes);
     }
 
     @Override
-    public JoinState init(TridentCollector collector) {
-        return new JoinState(_types.size());
+    public JoinState init(TridentCollector collector, TridentTuple group) {
+        return new JoinState(_types.size(), group);
     }
 
     @Override
@@ -49,6 +49,7 @@ public class JoinerMultiReducer implements GroupedMultiReducer<JoinState> {
         if(side.isEmpty()) {
             state.numSidesReceived++;
         }
+                
         side.add(input);
         if(state.numSidesReceived == state.sides.length) {
             emitCrossJoin(state, collector, streamIndex, input);
@@ -92,12 +93,13 @@ public class JoinerMultiReducer implements GroupedMultiReducer<JoinState> {
         boolean keepGoing = true;
         //emit cross-join of all emitted tuples
         while(keepGoing) {
-            List[] combined = new List[sides.length];
+            List[] combined = new List[sides.length+1];
+            combined[0] = state.group;
             for(int i=0; i<sides.length; i++) {
                 if(i==overrideIndex) {
-                    combined[i] = overrideTuple;
+                    combined[i+1] = overrideTuple;
                 } else {
-                    combined[i] = sides[i].get(indices[i]);                
+                    combined[i+1] = sides[i].get(indices[i]);                
                 }
             }
             collector.emit(_factory.create(combined));
@@ -125,10 +127,12 @@ public class JoinerMultiReducer implements GroupedMultiReducer<JoinState> {
         List<List>[] sides;
         int numSidesReceived = 0;
         int[] indices;
+        TridentTuple group;
         
-        public JoinState(int numSides) {
+        public JoinState(int numSides, TridentTuple group) {
             sides = new List[numSides];
             indices = new int[numSides];
+            this.group = group;
             for(int i=0; i<numSides; i++) {
                 sides[i] = new ArrayList<List>();
             }            

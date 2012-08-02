@@ -67,15 +67,19 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         
         @Override
         public void emitBatch(TransactionAttempt tx, Object coordinatorMeta, TridentCollector collector) {
+            long txid = tx.getTransactionId();
+            
             long now = System.currentTimeMillis();
             if(now - lastRotate > rotateTime) {
                 Map<Long, List<Object>> failed = idsMap.rotate();
-                for(List<Object> failedIds: failed.values()) {
-                    for(Object id: failedIds) {
-                        _spout.fail(id);
-                    }
+                for(Long id: failed.keySet()) {
+                    fail(id);
                 }
                 lastRotate = now;
+            }
+            
+            if(idsMap.containsKey(txid)) {
+                fail(txid);
             }
             
             _collector.reset(collector);
@@ -89,7 +93,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
                     break;
                 }
             }
-            idsMap.put(tx.getTransactionId(), _collector.ids);
+            idsMap.put(txid, _collector.ids);
 
         }
 
@@ -105,7 +109,16 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
                     _spout.ack(id);
                 }
             }
-        }         
+        }
+        
+        private void fail(long batchId) {
+            List<Object> ids = (List<Object>) idsMap.remove(batchId);
+            if(ids!=null) {
+                for(Object id: ids) {
+                    _spout.fail(id);
+                }
+            }
+        }
         
         @Override
         public void close() {

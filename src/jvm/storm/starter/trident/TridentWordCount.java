@@ -1,4 +1,4 @@
-package storm.starter;
+package storm.starter.trident;
 
 import storm.trident.testing.FixedBatchSpout;
 import backtype.storm.Config;

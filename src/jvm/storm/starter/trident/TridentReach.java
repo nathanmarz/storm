@@ -1,4 +1,4 @@
-package storm.starter;
+package storm.starter.trident;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;

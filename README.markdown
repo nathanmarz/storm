@@ -51,7 +51,7 @@ You must not remove this notice, or any other, from this software.
 * Nicolas Yzet ([@nicoo](https://github.com/nicoo))
 * Fabian Neumann ([@hellp](https://github.com/hellp))
 * Soren Macbeth ([@sorenmacbeth](https://github.com/sorenmacbeth))
-* Ashley  Brown ([@ashleywbrown](https://github.com/ashleywbrown))
+* Ashley Brown ([@ashleywbrown](https://github.com/ashleywbrown))
 * Guanpeng Xu ([@herberteuler](https://github.com/herberteuler))
 * Vinod Chandru ([@vinodc](https://github.com/vinodc))
 * Martin Kleppmann ([@ept](https://github.com/ept))

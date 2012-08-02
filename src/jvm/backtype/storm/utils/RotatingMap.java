@@ -48,7 +48,7 @@ public class RotatingMap<K, V> {
         this(numBuckets, null);
     }   
     
-    public void rotate() {
+    public Map<K, V> rotate() {
         Map<K, V> dead = _buckets.removeLast();
         _buckets.addFirst(new HashMap<K, V>());
         if(_callback!=null) {
@@ -56,6 +56,7 @@ public class RotatingMap<K, V> {
                 _callback.expire(entry.getKey(), entry.getValue());
             }
         }
+        return dead;
     }
 
     public boolean containsKey(K key) {

@@ -28,7 +28,6 @@
  * Custom serializers can now have one of four constructors: (), (Kryo), (Class), or (Kryo, Class)
  * Disallow ":", ".", and "\" from topology names
  * Errors in multilang subprocesses that go to stderr will be captured and logged to the worker logs (thanks vinodc)
- * Use exec instead of forked child process for daemon processes (thanks ept)
  * Workers detect and warn for missing outbound connections from assignment, drop messages for which there's no outbound connection
  * Zookeeper connection timeout is now configurable (via storm.zookeeper.connection.timeout config)
  * Storm is now less aggressive about halting process when there are Zookeeper errors, preferring to wait until client calls return exceptions.

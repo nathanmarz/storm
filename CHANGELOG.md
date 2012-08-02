@@ -1,5 +1,6 @@
 ## Unreleased
 
+ * Added Trident, the new high-level abstraction for intermixing high throughput, stateful stream processing with low-latency distributed querying
  * Added executor abstraction between workers and tasks. Workers = processes, executors = threads that run many tasks from the same spout or bolt.
  * Pluggable scheduler (thanks xumingming)
  * Eliminate explicit storage of task->component in Zookeeper

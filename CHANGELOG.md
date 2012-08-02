@@ -34,6 +34,8 @@
  * Storm is now less aggressive about halting process when there are Zookeeper errors, preferring to wait until client calls return exceptions.
  * Can configure Zookeeper authentication for Storm's Zookeeper clients via "storm.zookeeper.auth.scheme" and "storm.zookeeper.auth.payload" configs
  * Supervisors only download code for topologies assigned to them
+ * Include task id information in task hooks (thanks velvia)
+ * Use execvp to spawn daemons (replaces the python launcher process) (thanks ept)
  * Bug fix: Realize task ids when worker heartbeats to supervisor. Some users were hitting deserialization problems here in very rare cases (thanks herberteuler)
  * Bug fix: Fix bug where a topology's status would get corrupted to true if nimbus is restarted while status is rebalancing
 

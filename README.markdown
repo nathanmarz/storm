@@ -55,6 +55,7 @@ You must not remove this notice, or any other, from this software.
 * Guanpeng Xu ([@herberteuler](https://github.com/herberteuler))
 * Vinod Chandru ([@vinodc](https://github.com/vinodc))
 * Martin Kleppmann ([@ept](https://github.com/ept))
+* Evan Chan ([@velvia](https://github.com/velvia))
 
 ## Acknowledgements
 

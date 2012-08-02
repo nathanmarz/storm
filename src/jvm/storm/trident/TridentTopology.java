@@ -53,6 +53,7 @@ import storm.trident.spout.IPartitionedTridentSpout;
 import storm.trident.spout.ITridentSpout;
 import storm.trident.spout.OpaquePartitionedTridentSpoutExecutor;
 import storm.trident.spout.PartitionedTridentSpoutExecutor;
+import storm.trident.spout.RichSpoutBatchExecutor;
 import storm.trident.state.StateFactory;
 import storm.trident.state.StateSpec;
 import storm.trident.topology.TridentTopologyBuilder;
@@ -86,9 +87,13 @@ public class TridentTopology {
     
     
     // automatically turn it into a batch spout, should take parameters as to how much to batch
-    public Stream newStream(IRichSpout spout) {
-        Node n = new SpoutNode(getUniqueStreamId(), TridentUtils.getSingleOutputStreamFields(spout), null, spout, SpoutNode.SpoutType.BATCH);
-        return addNode(n);
+//    public Stream newStream(IRichSpout spout) {
+//        Node n = new SpoutNode(getUniqueStreamId(), TridentUtils.getSingleOutputStreamFields(spout), null, spout, SpoutNode.SpoutType.BATCH);
+//        return addNode(n);
+//    }
+    
+     public Stream newStream(String txId, IRichSpout spout) {
+        return newStream(txId, new RichSpoutBatchExecutor(spout));
     }
     
     public Stream newStream(String txId, IBatchSpout spout) {

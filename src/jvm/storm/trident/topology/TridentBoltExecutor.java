@@ -83,6 +83,8 @@ public class TridentBoltExecutor implements IRichBolt {
     Map<String, CoordSpec> _coordSpecs;
     Map<String, CoordCondition> _coordConditions;
     ITridentBatchBolt _bolt;
+    long _messageTimeoutMs;
+    long _lastRotate;
     
     RotatingMap _batches;
     
@@ -170,7 +172,9 @@ public class TridentBoltExecutor implements IRichBolt {
     TopologyContext _context;
     
     @Override
-    public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+    public void prepare(Map conf, TopologyContext context, OutputCollector collector) {        
+        _messageTimeoutMs = context.maxTopologyMessageTimeout() * 1000L;
+        _lastRotate = System.currentTimeMillis();
         _batches = new RotatingMap(2);
         _context = context;
         _collector = collector;
@@ -268,7 +272,11 @@ public class TridentBoltExecutor implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         if(tuple.getSourceStreamId().equals(Constants.SYSTEM_TICK_STREAM_ID)) {
-            _batches.rotate();
+            long now = System.currentTimeMillis();
+            if(now - _lastRotate > _messageTimeoutMs) {
+                _batches.rotate();
+                _lastRotate = now;
+            }
             return;
         }
         String batchGroup = _batchGroupIds.get(tuple.getSourceGlobalStreamid());
@@ -347,7 +355,7 @@ public class TridentBoltExecutor implements IRichBolt {
     public Map<String, Object> getComponentConfiguration() {
         Map<String, Object> ret = _bolt.getComponentConfiguration();
         if(ret==null) ret = new HashMap();
-        ret.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, null);
+        ret.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 5);
         // TODO: Need to be able to set the tick tuple time to the message timeout, ideally without parameterization
         return ret;
     }

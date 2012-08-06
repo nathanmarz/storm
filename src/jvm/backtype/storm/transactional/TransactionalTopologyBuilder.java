@@ -32,12 +32,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * TODO: check to see if there are two topologies active with the same transactional id 
- * essentially want to implement a file lock on top of zk (use ephemeral nodes?)
- * or just use the topology name?
+ * Trident subsumes the functionality provided by transactional topologies, so this 
+ * class is deprecated.
  * 
  */
-
+@Deprecated
 public class TransactionalTopologyBuilder {
     String _id;
     String _spoutId;

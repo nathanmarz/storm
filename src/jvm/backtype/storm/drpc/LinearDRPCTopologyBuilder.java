@@ -26,9 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 
-// need a "final bolt" method, that does fields groupings based on the first field of previous streams.
-// preparerequest needs to emit to a special stream to indicate which task in the last bolt is responsible for that id?
-// -- what if it's shuffle grouping all the way through? need to enforce that last bolt do fields grouping on id...
+// Trident subsumes the functionality provided by this class, so it's deprecated
+@Deprecated
 public class LinearDRPCTopologyBuilder {    
     String _function;
     List<Component> _components = new ArrayList<Component>();

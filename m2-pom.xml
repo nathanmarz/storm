@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>storm</groupId>
 			<artifactId>storm</artifactId>
-			<version>0.7.2</version>
+			<version>0.8.0</version>
 			<!-- keep storm out of the jar-with-dependencies -->
 			<scope>provided</scope>
 		</dependency>

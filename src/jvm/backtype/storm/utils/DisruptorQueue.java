@@ -65,7 +65,9 @@ public class DisruptorQueue {
     private void consumeBatchToCursor(long cursor, EventHandler<Object> handler) {
         for(long curr = _consumer.get() + 1; curr <= cursor; curr++) {
             try {
-                Object o = _buffer.get(curr).o;
+                MutableObject mo = _buffer.get(curr);
+                Object o = mo.o;
+                mo.setObject(null);
                 if(o==FLUSH_CACHE) {
                     Object c = null;
                     while(true) {                        

@@ -53,6 +53,7 @@ public class CachedBatchReadsMap<T> implements MapState<T> {
 
     @Override
     public void beginCommit(Long txid) {
+        _cached.clear(); //if a commit was pending and failed, we need to make sure to clear the cache
         _delegate.beginCommit(txid);
     }
 

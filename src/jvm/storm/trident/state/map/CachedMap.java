@@ -9,24 +9,24 @@ import storm.trident.util.LRUMap;
 /**
  * Useful to layer over a map that communicates with a database. you generally layer opaque map over this over your database store
  * @author nathan
- * @param <T> 
+ * @param <T>
  */
 public class CachedMap<T> implements IBackingMap<T> {
-    LRUMap _cache;
-    IBackingMap _delegate;
-    
-    public CachedMap(IBackingMap delegate, int cacheSize) {
-        _cache = new LRUMap(cacheSize);
+    LRUMap<List<Object>, T> _cache;
+    IBackingMap<T> _delegate;
+
+    public CachedMap(IBackingMap<T> delegate, int cacheSize) {
+        _cache = new LRUMap<List<Object>, T>(cacheSize);
         _delegate = delegate;
-    }    
-    
+    }
+
     @Override
     public List<T> multiGet(List<List<Object>> keys) {
-        Map<List<Object>, T> results = new HashMap();
-        List<List<Object>> toGet = new ArrayList();
+        Map<List<Object>, T> results = new HashMap<List<Object>, T>();
+        List<List<Object>> toGet = new ArrayList<List<Object>>();
         for(List<Object> key: keys) {
             if(_cache.containsKey(key)) {
-                results.put(key, (T) _cache.get(key));                
+                results.put(key, _cache.get(key));
             } else {
                 toGet.add(key);
             }
@@ -39,8 +39,8 @@ public class CachedMap<T> implements IBackingMap<T> {
             _cache.put(key, val);
             results.put(key, val);
         }
-        
-        List<T> ret = new ArrayList(keys.size());
+
+        List<T> ret = new ArrayList<T>(keys.size());
         for(List<Object> key: keys) {
             ret.add(results.get(key));
         }
@@ -48,14 +48,14 @@ public class CachedMap<T> implements IBackingMap<T> {
     }
 
     @Override
-    public void multiPut(List<List<Object>> keys, List<T> vals) {
-        cache(keys, vals);
-        _delegate.multiPut(keys, vals);
+    public void multiPut(List<List<Object>> keys, List<T> values) {
+        cache(keys, values);
+        _delegate.multiPut(keys, values);
     }
-    
-    private void cache(List<List<Object>> keys, List<T> vals) {
+
+    private void cache(List<List<Object>> keys, List<T> values) {
         for(int i=0; i<keys.size(); i++) {
-            _cache.put(keys.get(i), vals.get(i));
+            _cache.put(keys.get(i), values.get(i));
         }
     }
 

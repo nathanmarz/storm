@@ -1,0 +1,144 @@
+(ns backtype.storm.testing4j-test
+  (:use [clojure.test])
+  (:use [backtype.storm config clojure testing])
+  (:require [backtype.storm.integration-test :as it])
+  (:require [backtype.storm.thrift :as thrift])
+  (:import [backtype.storm Testing Config ILocalCluster])
+  (:import [backtype.storm.tuple Values])
+  (:import [backtype.storm.utils Time Utils])
+  (:import [backtype.storm.testing MkClusterParam TestJob MockedSources TestWordSpout
+            TestWordCounter TestGlobalCount TestAggregatesCounter CompleteTopologyParam
+            AckFailMapTracker]))
+
+(deftest test-with-simulated-time
+  (is (= false (Time/isSimulating)))
+  (Testing/withSimulatedTime (fn []
+                               (is (= true (Time/isSimulating)))))
+  (is (= false (Time/isSimulating))))
+
+(deftest test-with-local-cluster
+  (let [mk-cluster-param (doto (MkClusterParam.)
+                           (.setSupervisors (int 2))
+                           (.setPortsPerSupervisor (int 5)))
+        daemon-conf (doto (Config.)
+                      (.put SUPERVISOR-ENABLE false)
+                      (.put TOPOLOGY-ACKER-EXECUTORS 0))]
+    (Testing/withLocalCluster mk-cluster-param (reify TestJob
+                                                 (^void run [this ^ILocalCluster cluster]
+                                                   (is (not (nil? cluster)))
+                                                   (is (not (nil? (.getState cluster))))
+                                                   (is (not (nil? (:nimbus (.getState cluster))))))))))
+
+(deftest test-with-simulated-time-local-cluster
+  (let [mk-cluster-param (doto (MkClusterParam.)
+                           (.setSupervisors (int 2)))
+        daemon-conf (doto (Config.)
+                      (.put SUPERVISOR-ENABLE false)
+                      (.put TOPOLOGY-ACKER-EXECUTORS 0))]
+    (is (not (Time/isSimulating)))
+    (Testing/withSimulatedTimeLocalCluster mk-cluster-param (reify TestJob
+                                                              (^void run [this ^ILocalCluster cluster]
+                                                                (is (not (nil? cluster)))
+                                                                (is (not (nil? (.getState cluster))))
+                                                                (is (not (nil? (:nimbus (.getState cluster)))))
+                                                                (is (Time/isSimulating)))))
+    (is (not (Time/isSimulating)))))
+
+(deftest test-complete-topology
+  (doseq [zmq-on? [true false]
+          :let [daemon-conf (doto (Config.)
+                              (.put STORM-LOCAL-MODE-ZMQ zmq-on?))
+                mk-cluster-param (doto (MkClusterParam.)
+                                   (.setSupervisors (int 4))
+                                   (.setDaemonConf daemon-conf))]]
+    (Testing/withSimulatedTimeLocalCluster
+     (reify TestJob
+       (^void run [this ^ILocalCluster cluster]
+         (let [topology (thrift/mk-topology
+                         {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 3)}
+                         {"2" (thrift/mk-bolt-spec {"1" ["word"]} (TestWordCounter.) :parallelism-hint 4)
+                          "3" (thrift/mk-bolt-spec {"1" :global} (TestGlobalCount.))
+                          "4" (thrift/mk-bolt-spec {"2" :global} (TestAggregatesCounter.))
+                          })
+               mocked-sources (doto (MockedSources.)
+                                (.addMockData "1" (into-array Values [(Values. (into-array ["nathan"]))
+                                                                      (Values. (into-array ["bob"]))
+                                                                      (Values. (into-array ["joey"]))
+                                                                      (Values. (into-array ["nathan"]))]) 
+                                              ))
+               storm-conf (doto (Config.)
+                            (.setNumWorkers 2))
+               complete-topology-param (doto (CompleteTopologyParam.)
+                                         (.setMockedSources mocked-sources)
+                                         (.setStormConf storm-conf))
+               results (Testing/completeTopology cluster
+                                                 topology
+                                                 complete-topology-param)]
+           (is (Testing/eq [["nathan"] ["bob"] ["joey"] ["nathan"]]
+                           (Testing/readTuples results "1")))
+           #_(is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
+                      (read-tuples results "2")))
+           #_(is (= [[1] [2] [3] [4]]
+                    (read-tuples results "3")))
+           #_(is (= [[1] [2] [3] [4]]
+                    (read-tuples results "4")))
+           ))))))
+
+(deftest test-with-tracked-cluster
+  (Testing/withTrackedCluster
+   (reify TestJob
+     (^void run [this ^ILocalCluster cluster]
+       (let [[feeder checker] (it/ack-tracking-feeder ["num"])
+             tracked (Testing/mkTrackedTopology
+                      cluster
+                      (topology
+                       {"1" (spout-spec feeder)}
+                       {"2" (bolt-spec {"1" :shuffle} it/identity-bolt)
+                        "3" (bolt-spec {"1" :shuffle} it/identity-bolt)
+                        "4" (bolt-spec
+                             {"2" :shuffle
+                              "3" :shuffle}
+                             (it/agg-bolt 4))}))]
+         (Testing/submitLocalTopology cluster
+                                      "test-acking2"
+                                      (Config.)
+                                      (.getTopology tracked))
+         (.feed feeder [1])
+         (Testing/trackedWait tracked (int 1))
+         (checker 0)
+         (.feed feeder [1])
+         (Testing/trackedWait tracked (int 1))
+         (checker 2)
+         )))))
+
+(deftest test-advance-cluster-time
+  (let [daemon-conf (doto (Config.)
+                      (.put TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true))
+        mk-cluster-param (doto (MkClusterParam.)
+                           (.setDaemonConf daemon-conf))]
+    (Testing/withSimulatedTimeLocalCluster
+     mk-cluster-param
+     (reify TestJob
+       (^void run [this ^ILocalCluster cluster]
+         (let [feeder (feeder-spout ["field1"])
+               tracker (AckFailMapTracker.)
+               _ (.setAckFailDelegate feeder tracker)
+               topology (thrift/mk-topology
+                         {"1" (thrift/mk-spout-spec feeder)}
+                         {"2" (thrift/mk-bolt-spec {"1" :global} it/ack-every-other)})
+               storm-conf (doto (Config.)
+                            (.put TOPOLOGY-MESSAGE-TIMEOUT-SECS 10))]      
+           (Testing/submitLocalTopology cluster
+                                        "timeout-tester"
+                                        storm-conf
+                                        topology)
+           (.feed feeder ["a"] 1)
+           (.feed feeder ["b"] 2)
+           (.feed feeder ["c"] 3)
+           (Testing/advanceClusterTime cluster (int 9))
+           (it/assert-acked tracker 1 3)
+           (is (not (.isFailed tracker 2)))
+           (Testing/advanceClusterTime cluster (int 12))
+           (it/assert-failed tracker 2)
+           ))))))
+

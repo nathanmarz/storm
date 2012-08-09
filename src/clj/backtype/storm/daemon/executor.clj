@@ -278,7 +278,7 @@
   (let [^ISpout spout (:object task-data)
         task-id (:task-id task-data)]
     ;;TODO: need to throttle these when there's lots of failures
-    (log-message "Failing message " msg-id ": " tuple-info)
+    (log-debug "Failing message " msg-id ": " tuple-info)
     (.fail spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta

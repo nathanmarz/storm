@@ -1,3 +1,10 @@
+## Unreleased
+
+ * Changed debug level of "Failed message" logging to DEBUG
+ * Deprecated LinearDRPCTopologyBuilder, TimeCacheMap, and transactional topologies
+ * Bug fix: When an item is consumed off an internal buffer, the entry on the buffer is nulled to allow GC to happen on that data
+ * Bug fix: Helper class for Trident MapStates now clear their read cache when a new commit happens, preventing updates from spilling over from a failed batch attempt to the next attempt
+
 ## 0.8.0
 
  * Added Trident, the new high-level abstraction for intermixing high throughput, stateful stream processing with low-latency distributed querying

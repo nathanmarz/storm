@@ -11,10 +11,6 @@ public class TrackedTopology extends HashMap{
 		super(map);
 	}
 	
-	public Cluster getCluster() {
-		return (Cluster)get(Keyword.intern("cluster"));
-	}
-	
 	public StormTopology getTopology() {
 		return (StormTopology)get(Keyword.intern("topology"));
 	}

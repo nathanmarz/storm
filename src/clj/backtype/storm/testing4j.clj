@@ -1,20 +1,20 @@
 (ns backtype.storm.testing4j
   (:import [java.util Map List Collection ArrayList])
-  (:import [backtype.storm Config])
+  (:import [backtype.storm Config ILocalCluster LocalCluster])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.daemon nimbus])
-  (:import [backtype.storm.testing TestJob MockedSources TrackedTopology Cluster
+  (:import [backtype.storm.testing TestJob MockedSources TrackedTopology
             MkClusterParam CompleteTopologyParam])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm testing util log])
   (:gen-class
    :name backtype.storm.Testing
    :methods [^:static [completeTopology
-                       [backtype.storm.testing.Cluster  backtype.storm.generated.StormTopology
+                       [backtype.storm.ILocalCluster  backtype.storm.generated.StormTopology
                         backtype.storm.testing.CompleteTopologyParam]
                        java.util.Map]
              ^:static [completeTopology
-                       [backtype.storm.testing.Cluster backtype.storm.generated.StormTopology]
+                       [backtype.storm.ILocalCluster backtype.storm.generated.StormTopology]
                        java.util.Map]
              ^:static [withSimulatedTime [Runnable] void]
              ^:static [withLocalCluster [backtype.storm.testing.TestJob] void]
@@ -28,26 +28,26 @@
              ^:static [submitLocalTopology [Object String
                                             backtype.storm.Config backtype.storm.generated.StormTopology]
                        void]
-             ^:static [mkTrackedTopology [backtype.storm.testing.Cluster backtype.storm.generated.StormTopology] backtype.storm.testing.TrackedTopology]
+             ^:static [mkTrackedTopology [backtype.storm.ILocalCluster backtype.storm.generated.StormTopology] backtype.storm.testing.TrackedTopology]
              ^:static [trackedWait [backtype.storm.testing.TrackedTopology] void]
              ^:static [trackedWait [backtype.storm.testing.TrackedTopology Integer] void]
-             ^:static [advanceClusterTime [backtype.storm.testing.Cluster Integer Integer] void]
-             ^:static [advanceClusterTime [backtype.storm.testing.Cluster Integer] void]
+             ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer Integer] void]
+             ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer] void]
              ^:static [eq [java.util.Collection java.util.Collection] boolean]
              ^:static [eq [java.util.Map java.util.Map] boolean]]))
 
 (defn -completeTopology
-  ([^Cluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
+  ([^ILocalCluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
      (let [mocked-sources (or (-> completeTopologyParam .getMockedSources .getData) {})
            storm-conf (or (.getStormConf completeTopologyParam) {})
            cleanup-state (or (.getCleanupState completeTopologyParam) true)
            topology-name (or (.getTopologyName completeTopologyParam))]
-       (complete-topology cluster topology
+       (complete-topology (.getState cluster) topology
                           :mock-sources mocked-sources
                           :storm-conf storm-conf
                           :cleanup-state cleanup-state
                           :topology-name topology-name)))
-  ([^Cluster cluster ^StormTopology topology]
+  ([^ILocalCluster cluster ^StormTopology topology]
      (-completeTopology cluster topology (CompleteTopologyParam.))))
 
 (defn -withSimulatedTime [^Runnable code]
@@ -61,7 +61,7 @@
      (~cluster-type [cluster# :supervisors supervisors#
                      :ports-per-supervisor ports-per-supervisor#
                      :daemon-conf daemon-conf#]
-                    (let [cluster# (Cluster. cluster#)]
+                    (let [cluster# (LocalCluster. cluster#)]
                       (.run ~code cluster#)))))
   
 (defn -withLocalCluster
@@ -102,8 +102,8 @@
 (defn -submitLocalTopology [^Object nimbus ^String topologyName ^Config config ^StormTopology topology]
   (submit-local-topology nimbus topologyName config topology))
 
-(defn -mkTrackedTopology [^Cluster trackedCluster ^StormTopology topology]
-  (-> (mk-tracked-topology trackedCluster topology)
+(defn -mkTrackedTopology [^ILocalCluster trackedCluster ^StormTopology topology]
+  (-> (mk-tracked-topology (.getState trackedCluster) topology)
       (TrackedTopology.)))
 
 (defn -trackedWait
@@ -113,9 +113,9 @@
      (-trackedWait trackedTopology 1)))
 
 (defn -advanceClusterTime
-  ([^Cluster cluster ^Integer secs ^Integer step]
-     (advance-cluster-time cluster secs step))
-  ([^Cluster cluster ^Integer secs]
+  ([^ILocalCluster cluster ^Integer secs ^Integer step]
+     (advance-cluster-time (.getState cluster) secs step))
+  ([^ILocalCluster cluster ^Integer secs]
       (-advanceClusterTime cluster secs 1)))
 
 (defn- eq [^Object obj1 ^Object obj2]

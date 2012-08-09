@@ -24,4 +24,6 @@ public interface ILocalCluster {
     StormTopology getTopology(String id);
     ClusterSummary getClusterInfo();
     TopologyInfo getTopologyInfo(String id);
+    Map getState();
+    Object getNimbus();
 }

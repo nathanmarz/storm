@@ -6,11 +6,11 @@ import java.util.Map;
 
 import junit.framework.TestCase;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.scheduler.Cluster;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.AckFailMapTracker;
 import backtype.storm.testing.AckTracker;
-import backtype.storm.testing.Cluster;
 import backtype.storm.testing.CompleteTopologyParam;
 import backtype.storm.testing.FeederSpout;
 import backtype.storm.testing.IdentityBolt;
@@ -71,9 +71,8 @@ public class TestingTest extends TestCase {
 		 */
 		Testing.withLocalCluster(mkClusterParam, new TestJob() {
 			@Override
-			public void run(Cluster cluster) {
-				assertNotNull(cluster.getNimbus());
-				assertNotNull(cluster.getClusterState());
+			public void run(ILocalCluster cluster) {
+				assertNotNull(cluster.getState());
 			}
 		});
 	}
@@ -90,7 +89,7 @@ public class TestingTest extends TestCase {
 		 */
 		Testing.withSimulatedTimeLocalCluster(mkClusterParam, new TestJob() {
 			@Override
-			public void run(Cluster cluster) {
+			public void run(ILocalCluster cluster) {
 				// build the test topology
 				TopologyBuilder builder = new TopologyBuilder();
 				builder.setSpout("1", new TestWordSpout(true), 3);
@@ -146,7 +145,7 @@ public class TestingTest extends TestCase {
 		 */
 		Testing.withTrackedCluster(new TestJob() {
 			@Override
-			public void run(Cluster cluster) {
+			public void run(ILocalCluster cluster) {
 				AckTracker tracker = new AckTracker();
 				FeederSpout feederSpout = ackTrackingFeeder(tracker, "num");
 
@@ -183,7 +182,7 @@ public class TestingTest extends TestCase {
 		mkClusterParam.setDaemonConf(daemonConfig);
 		Testing.withSimulatedTimeLocalCluster(mkClusterParam, new TestJob() {
 			@Override
-			public void run(Cluster cluster) {
+			public void run(ILocalCluster cluster) {
 				AckFailMapTracker tracker = new AckFailMapTracker();
 				FeederSpout feeder = createFeederSpout("field1");
 				feeder.setAckFailDelegate(tracker);

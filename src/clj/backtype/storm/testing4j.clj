@@ -25,7 +25,7 @@
              ^:static [withTrackedCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
              ^:static [readTuples [java.util.Map String String] java.util.List]
              ^:static [readTuples [java.util.Map String] java.util.List]
-             ^:static [submitLocalTopology [Object String
+             ^:static [submitLocalTopology [backtype.storm.ILocalCluster String
                                             backtype.storm.Config backtype.storm.generated.StormTopology]
                        void]
              ^:static [mkTrackedTopology [backtype.storm.ILocalCluster backtype.storm.generated.StormTopology] backtype.storm.testing.TrackedTopology]
@@ -99,8 +99,8 @@
   ([^Map result ^String componentId]
      (-readTuples result componentId Utils/DEFAULT_STREAM_ID)))
 
-(defn -submitLocalTopology [^Object nimbus ^String topologyName ^Config config ^StormTopology topology]
-  (submit-local-topology nimbus topologyName config topology))
+(defn -submitLocalTopology [^ILocalCluster cluster ^String topologyName ^Config config ^StormTopology topology]
+  (submit-local-topology (.getNimbus cluster) topologyName config topology))
 
 (defn -mkTrackedTopology [^ILocalCluster trackedCluster ^StormTopology topology]
   (-> (mk-tracked-topology (.getState trackedCluster) topology)

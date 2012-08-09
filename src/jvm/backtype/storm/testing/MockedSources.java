@@ -33,7 +33,7 @@ public class MockedSources {
         }
     }
     
-    public void addMockedData(String spoutId, Values... valueses) {
+    public void addMockData(String spoutId, Values... valueses) {
         this.addMockData(spoutId, Utils.DEFAULT_STREAM_ID, valueses);
     }
     

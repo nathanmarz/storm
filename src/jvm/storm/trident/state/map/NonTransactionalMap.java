@@ -2,13 +2,12 @@ package storm.trident.state.map;
 
 import java.util.ArrayList;
 import java.util.List;
-import storm.trident.state.TransactionalValue;
 import storm.trident.state.ValueUpdater;
 
 
 public class NonTransactionalMap<T> implements MapState<T> {
-    public static MapState build(IBackingMap<TransactionalValue> backing) {
-        return new NonTransactionalMap(backing);
+    public static <T> MapState<T> build(IBackingMap<T> backing) {
+        return new NonTransactionalMap<T>(backing);
     }
     
     IBackingMap<T> _backing;

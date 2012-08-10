@@ -20,4 +20,5 @@ NANNY
 _release
 *.zip
 .lein-deps-sum
+*.iml
 

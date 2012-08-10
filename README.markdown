@@ -56,6 +56,7 @@ You must not remove this notice, or any other, from this software.
 * Vinod Chandru ([@vinodc](https://github.com/vinodc))
 * Martin Kleppmann ([@ept](https://github.com/ept))
 * Evan Chan ([@velvia](https://github.com/velvia))
+* Sjoerd Mulder ([@sjoerdmulder](https://github.com/sjoerdmulder))
 
 ## Acknowledgements
 

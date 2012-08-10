@@ -1,4 +1,4 @@
-(defproject storm "0.8.1-wip2-SNAPSHOT"
+(defproject storm "0.8.1-experimental-wip2"
   :source-path "src/clj"
   :test-path "test/clj"
   :java-source-path "src/jvm"
@@ -27,6 +27,7 @@
                  [storm/tools.cli "0.2.2"]
                  [com.googlecode.disruptor/disruptor "2.10.1"]
                  [storm/jgrapht "0.8.3"]
+                 [com.google.guava/guava "13.0"]
                  ]
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]

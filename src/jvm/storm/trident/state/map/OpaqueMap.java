@@ -8,24 +8,24 @@ import java.util.List;
 
 
 public class OpaqueMap<T> implements MapState<T> {
-    public static <T> MapState<T> build(IBackingMap<OpaqueValue<T>> backing) {
+    public static <T> MapState<T> build(IBackingMap<OpaqueValue> backing) {
         return new CachedBatchReadsMap<T>(new OpaqueMap<T>(backing));
     }
     
-    IBackingMap<OpaqueValue<T>> _backing;
+    IBackingMap<OpaqueValue> _backing;
     Long _currTx;
     
-    protected OpaqueMap(IBackingMap<OpaqueValue<T>> backing) {
+    protected OpaqueMap(IBackingMap<OpaqueValue> backing) {
         _backing = backing;
     }
     
     @Override
     public List<T> multiGet(List<List<Object>> keys) {
-        List<OpaqueValue<T>> curr = _backing.multiGet(keys);
+        List<OpaqueValue> curr = _backing.multiGet(keys);
         List<T> ret = new ArrayList<T>(curr.size());
-        for(OpaqueValue<T> val: curr) {
+        for(OpaqueValue val: curr) {
             if(val!=null) {
-                ret.add(val.get(_currTx));
+                ret.add((T) val.get(_currTx));
             } else {
                 ret.add(null);
             }
@@ -35,8 +35,8 @@ public class OpaqueMap<T> implements MapState<T> {
 
     @Override
     public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
-        List<OpaqueValue<T>> curr = _backing.multiGet(keys);
-        List<OpaqueValue<T>> newVals = new ArrayList<OpaqueValue<T>>(curr.size());
+        List<OpaqueValue> curr = _backing.multiGet(keys);
+        List<OpaqueValue> newVals = new ArrayList<OpaqueValue>(curr.size());
         List<T> ret = new ArrayList<T>();
         for(int i=0; i<curr.size(); i++) {
             OpaqueValue<T> val = curr.get(i);

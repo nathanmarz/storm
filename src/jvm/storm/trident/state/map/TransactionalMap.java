@@ -8,24 +8,24 @@ import java.util.List;
 
 
 public class TransactionalMap<T> implements MapState<T> {
-    public static <T> MapState<T> build(IBackingMap<TransactionalValue<T>> backing) {
+    public static <T> MapState<T> build(IBackingMap<TransactionalValue> backing) {
         return new CachedBatchReadsMap<T>(new TransactionalMap<T>(backing));
     }
     
-    IBackingMap<TransactionalValue<T>> _backing;
+    IBackingMap<TransactionalValue> _backing;
     Long _currTx;
     
-    protected TransactionalMap(IBackingMap<TransactionalValue<T>> backing) {
+    protected TransactionalMap(IBackingMap<TransactionalValue> backing) {
         _backing = backing;
     }
     
     @Override
     public List<T> multiGet(List<List<Object>> keys) {
-        List<TransactionalValue<T>> vals = _backing.multiGet(keys);
+        List<TransactionalValue> vals = _backing.multiGet(keys);
         List<T> ret = new ArrayList<T>(vals.size());
-        for(TransactionalValue<T> v: vals) {
+        for(TransactionalValue v: vals) {
             if(v!=null) {
-                ret.add(v.getVal());
+                ret.add((T) v.getVal());
             } else {
                 ret.add(null);
             }
@@ -35,8 +35,8 @@ public class TransactionalMap<T> implements MapState<T> {
 
     @Override
     public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
-        List<TransactionalValue<T>> curr = _backing.multiGet(keys);
-        List<TransactionalValue<T>> newVals = new ArrayList<TransactionalValue<T>>(curr.size());
+        List<TransactionalValue> curr = _backing.multiGet(keys);
+        List<TransactionalValue> newVals = new ArrayList<TransactionalValue>(curr.size());
         List<T> ret = new ArrayList<T>();
         for(int i=0; i<curr.size(); i++) {
             TransactionalValue<T> val = curr.get(i);
@@ -60,7 +60,7 @@ public class TransactionalMap<T> implements MapState<T> {
 
     @Override
     public void multiPut(List<List<Object>> keys, List<T> vals) {
-        List<TransactionalValue<T>> newVals = new ArrayList<TransactionalValue<T>>(vals.size());
+        List<TransactionalValue> newVals = new ArrayList<TransactionalValue>(vals.size());
         for(T val: vals) {
             newVals.add(new TransactionalValue<T>(_currTx, val));
         }

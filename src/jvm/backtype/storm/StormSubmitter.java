@@ -1,9 +1,6 @@
 package backtype.storm;
 
-import backtype.storm.generated.AlreadyAliveException;
-import backtype.storm.generated.InvalidTopologyException;
-import backtype.storm.generated.Nimbus;
-import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.*;
 import backtype.storm.utils.BufferFileInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
@@ -53,8 +50,11 @@ public class StormSubmitter {
                 LOG.info("Submitting topology " + name + " in local mode");
                 localNimbus.submitTopology(name, null, serConf, topology);
             } else {
-                submitJar(conf);
                 NimbusClient client = NimbusClient.getConfiguredClient(conf);
+                if(topologyNameExists(conf, name)) {
+                    throw new RuntimeException("Topology with name `" + name + "` already exists on cluster");
+                }
+                submitJar(conf);
                 try {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
                     client.getClient().submitTopology(name, submittedJar, serConf, topology);
@@ -65,6 +65,24 @@ public class StormSubmitter {
             LOG.info("Finished submitting topology: " +  name);
         } catch(TException e) {
             throw new RuntimeException(e);
+        }
+    }
+    
+    private static boolean topologyNameExists(Map conf, String name) {
+        NimbusClient client = NimbusClient.getConfiguredClient(conf);
+        try {
+            ClusterSummary summary = client.getClient().getClusterInfo();
+            for(TopologySummary s : summary.get_topologies()) {
+                if(s.get_name().equals(name)) {  
+                    return true;
+                } 
+            }  
+            return false;
+
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            client.close();
         }
     }
 

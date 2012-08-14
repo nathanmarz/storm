@@ -10,14 +10,15 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.trident.topology.MasterBatchCoordinator;
 import storm.trident.topology.state.RotatingTransactionalState;
 import storm.trident.topology.state.TransactionalState;
 
 
 public class TridentSpoutCoordinator implements IBasicBolt {
-    public static final Logger LOG = Logger.getLogger(TridentSpoutCoordinator.class);
+    public static final Logger LOG = LoggerFactory.getLogger(TridentSpoutCoordinator.class);
     private static final String META_DIR = "meta";
 
     ITridentSpout _spout;

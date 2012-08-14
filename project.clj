@@ -9,10 +9,11 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-                 [storm/libthrift7 "0.7.0"]
+                 [storm/libthrift7 "0.7.0"
+                   :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]
-                 [log4j/log4j "1.2.16"]
-                 [com.netflix.curator/curator-framework "1.0.1"]
+                 [com.netflix.curator/curator-framework "1.0.1"
+                     :exclusions [log4j/log4j]]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
                  [compojure "0.6.4"]
@@ -20,7 +21,6 @@
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
-                 [org.slf4j/slf4j-log4j12 "1.5.8"]
                  [storm/carbonite "1.5.0"]
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
@@ -28,7 +28,9 @@
                  [com.googlecode.disruptor/disruptor "2.10.1"]
                  [storm/jgrapht "0.8.3"]
                  [com.google.guava/guava "13.0"]
-                 ]
+
+                 [ch.qos.logback/logback-classic "1.0.6"]
+                 [org.slf4j/log4j-over-slf4j "1.6.6"]]
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
                     ]

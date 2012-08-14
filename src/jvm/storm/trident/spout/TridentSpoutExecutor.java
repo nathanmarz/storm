@@ -11,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.trident.operation.TridentCollector;
 import storm.trident.topology.BatchInfo;
 import storm.trident.topology.ITridentBatchBolt;
@@ -21,7 +22,7 @@ import storm.trident.tuple.ConsList;
 public class TridentSpoutExecutor implements ITridentBatchBolt {
     public static String ID_FIELD = "$tx";
     
-    public static Logger LOG = Logger.getLogger(TridentSpoutExecutor.class);    
+    public static Logger LOG = LoggerFactory.getLogger(TridentSpoutExecutor.class);    
 
     AddIdCollector _collector;
     ITridentSpout _spout;

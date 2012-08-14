@@ -22,7 +22,7 @@ cp CHANGELOG.md $DIR/
 
 echo $RELEASE > $DIR/RELEASE
 
-cp -R log4j $DIR/
+cp -R logback $DIR/
 mkdir $DIR/logs
 
 mkdir $DIR/conf

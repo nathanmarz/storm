@@ -242,7 +242,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlog4j.configuration=storm.log.properties",
+        "-Dlogback.configurationFile=logback/production.xml",
     ]
     exec_storm_class(
         klass, 
@@ -262,7 +262,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlog4j.configuration=storm.log.properties",
+        "-Dlogback.configurationFile=logback/production.xml",
     ]
     exec_storm_class(
         klass, 
@@ -283,7 +283,7 @@ def ui():
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlog4j.configuration=storm.log.properties",
+        "-Dlogback.configurationFile=logback/production.xml",
     ]
     exec_storm_class(
         "backtype.storm.ui.core", 
@@ -300,7 +300,7 @@ def drpc():
     See Distributed RPC for more information.
     (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
     """
-    jvmopts = ["-Xmx768m", "-Dlogfile.name=drpc.log", "-Dlog4j.configuration=storm.log.properties"]
+    jvmopts = ["-Xmx768m", "-Dlogfile.name=drpc.log", "-Dlogback.configurationFile=logback/production.xml"]
     exec_storm_class(
         "backtype.storm.daemon.drpc", 
         jvmtype="-server", 

@@ -28,7 +28,8 @@
                       [event :as event] [process-simulator :as psim]]))
      (require (quote [clojure.set :as set]))
      (require (quote [backtype.storm [stats :as stats] [disruptor :as disruptor]]))
-     (import (quote [org.apache.log4j PropertyConfigurator Logger]))
+     (import (quote [org.apache.log4j PropertyConfigurator]))
+     (import (quote [org.slf4j Logger]))
 
      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor
                      Nimbus$Iface StormTopology ShellComponent

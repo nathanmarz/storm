@@ -14,7 +14,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.json.simple.JSONObject;
 
 /**
@@ -45,7 +46,7 @@ import org.json.simple.JSONObject;
  * </pre>
  */
 public class ShellBolt implements IBolt {
-    public static Logger LOG = Logger.getLogger(ShellBolt.class);
+    public static Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
     Process _subprocess;
     OutputCollector _collector;
     Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();

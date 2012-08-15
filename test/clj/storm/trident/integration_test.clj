@@ -1,7 +1,7 @@
 (ns storm.trident.integration-test
   (:use [clojure test])
   (:require [backtype.storm [testing :as t]])
-  (:import [storm.trident.testing Split CountAsAggregator])
+  (:import [storm.trident.testing Split CountAsAggregator StringLength])
   (:use [storm.trident testing])
   (:use [backtype.storm util]))
   
@@ -53,4 +53,25 @@
           (is (= [[1]] (exec-drpc drpc "numwords" "the")))
           (is (= [[0]] (exec-drpc drpc "numwords" "")))
           (is (= [[8]] (exec-drpc drpc "numwords" "1 2 3 4 5 6 7 8")))
+          )))))
+          
+(deftest test-split-merge
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind drpc-stream (-> topo (.newDRPCStream "splitter" drpc)))
+        (bind s1
+          (-> drpc-stream
+              (.each (fields "args") (Split.) (fields "word"))
+              (.project (fields "word"))))
+        (bind s2
+          (-> drpc-stream
+              (.each (fields "args") (StringLength.) (fields "len"))
+              (.project (fields "len"))))
+
+        (.merge topo [s1 s2])
+        (with-topology [cluster topo]
+          (is (t/ms= [[7] ["the"] ["man"]] (exec-drpc drpc "splitter" "the man")))
+          (is (t/ms= [[5] ["hello"]] (exec-drpc drpc "splitter" "hello")))
           )))))

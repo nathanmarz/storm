@@ -6,8 +6,8 @@
       <!-- daily rollover -->
       <fileNamePattern>${storm.home}/logs/${logfile.name}.%d{yyyy-MM-dd}.log</fileNamePattern>
 
-      <!-- keep 2 days' worth of history -->
-      <maxHistory>2</maxHistory>
+      <!-- keep 7 days' worth of history -->
+      <maxHistory>7</maxHistory>
     </rollingPolicy>
 
     <encoder>

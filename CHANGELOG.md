@@ -3,9 +3,11 @@
  * Changed debug level of "Failed message" logging to DEBUG
  * Deprecated LinearDRPCTopologyBuilder, TimeCacheMap, and transactional topologies
  * During "storm jar", whether topology is already running or not is checked before submitting jar to save time (thanks jasonjckn)
+ * Added BaseMultiReducer class to Trident that provides empty implementations of prepare and cleanup
  * Bug fix: When an item is consumed off an internal buffer, the entry on the buffer is nulled to allow GC to happen on that data
  * Bug fix: Helper class for Trident MapStates now clear their read cache when a new commit happens, preventing updates from spilling over from a failed batch attempt to the next attempt
  * Bug fix: Fix NonTransactionalMap to take in an IBackingMap for regular values rather than TransactionalValue (thanks sjoerdmulder)
+ * Bug fix: Fix NPE when no input fields given for regular Aggregator
 
 ## 0.8.0
 

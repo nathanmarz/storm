@@ -8,6 +8,7 @@
  * Bug fix: Helper class for Trident MapStates now clear their read cache when a new commit happens, preventing updates from spilling over from a failed batch attempt to the next attempt
  * Bug fix: Fix NonTransactionalMap to take in an IBackingMap for regular values rather than TransactionalValue (thanks sjoerdmulder)
  * Bug fix: Fix NPE when no input fields given for regular Aggregator
+ * Bug fix: Fix "fields size" error that would sometimes occur when splitting a stream with multiple eaches
 
 ## 0.8.0
 

@@ -54,9 +54,6 @@ public class Utils {
 
     public static Object deserialize(byte[] serialized) {
         try {
-        	System.out.println("context class loader: " + Thread.currentThread().getContextClassLoader());
-        	System.out.println("Utils.classloader: " + Utils.class.getClassLoader());
-        	System.out.println("Utils.classloader.parent: " + Utils.class.getClassLoader().getParent());
             ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
             StormObjectInputStream ois = new StormObjectInputStream(bis);
             Object ret = ois.readObject();

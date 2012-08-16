@@ -1,19 +1,16 @@
-(defproject storm "0.8.1-wip2-SNAPSHOT"
-  :source-path "src/clj"
-  :test-path "test/clj"
-  :java-source-path "src/jvm"
-  :javac-options {:debug "true" :fork "true"}
-  :resources-path "conf"
-  :dev-resources-path "src/dev"
-  :repositories {"sonatype" "http://oss.sonatype.org/content/groups/public/"}
+(defproject storm/storm "0.8.1-wip2-SNAPSHOT"
+  :url "http://storm-project.clj"
+  :description "Distributed and fault-tolerant realtime computation"
+  :license {:name "Eclipse Public License - Version 1.0" :url "https://github.com/nathanmarz/storm/blob/master/LICENSE.html"}
+
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
                  [storm/libthrift7 "0.7.0"
-                   :exclusions [org.slf4j/slf4j-api]]
+                  :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]
                  [com.netflix.curator/curator-framework "1.0.1"
-                     :exclusions [log4j/log4j]]
+                  :exclusions [log4j/log4j]]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
                  [compojure "0.6.4"]
@@ -27,14 +24,28 @@
                  [storm/tools.cli "0.2.2"]
                  [com.googlecode.disruptor/disruptor "2.10.1"]
                  [storm/jgrapht "0.8.3"]
-                 [com.google.guava/guava "13.0"]
+                 [com.google.guava/guava "13.0"]]
 
-                 [ch.qos.logback/logback-classic "1.0.6"]
-                 [org.slf4j/log4j-over-slf4j "1.6.6"]]
-  :dev-dependencies [
-                     [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
-                    ]
+  :source-paths ["src/clj"]
+  :java-source-paths ["src/jvm"]
+  :test-paths ["test/clj"]
+  :resource-paths ["conf"]
+
+  :profiles {:dev {:resource-paths ["src/dev"]
+                   :dependencies [[ch.qos.logback/logback-classic "1.0.6"]
+                                  [org.slf4j/log4j-over-slf4j "1.6.6"]]}
+             :release {:dependencies [[ch.qos.logback/logback-classic "1.0.6"]
+                                      [org.slf4j/log4j-over-slf4j "1.6.6"]]}
+             :lib {:dependencies [[ch.qos.logback/logback-classic "1.0.6"]
+                                   [org.slf4j/log4j-over-slf4j "1.6.6"]]}}
+
+  :plugins [[lein-swank "1.4.4"]]
+
+  :repositories {"sonatype"
+                 "http://oss.sonatype.org/content/groups/public/"}
+
+  :javac-options {:debug true}
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
-  :extra-classpath-dirs ["src/ui"]
+
   :aot :all
-)
+  :min-lein-version "2.0.0")

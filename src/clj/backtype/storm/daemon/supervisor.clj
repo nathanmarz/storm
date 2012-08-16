@@ -411,7 +411,7 @@
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
                        " -Dstorm.home=" (System/getProperty "storm.home")
-                       " -Dlogback.configurationFile=logback/production.xml"
+                       " -Dlogback.configurationFile=logback/cluster.xml"
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:supervisor-id supervisor)
                        " " port " " worker-id)]

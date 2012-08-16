@@ -48,9 +48,11 @@
             (.newDRPCStream "numwords" drpc)
             (.each (fields "args") (Split.) (fields "word"))
             (.aggregate (CountAsAggregator.) (fields "count"))
+            (.parallelismHint 2) ;;this makes sure batchGlobal is working correctly
             (.project (fields "count")))
         (with-topology [cluster topo]
-          (is (= [[1]] (exec-drpc drpc "numwords" "the")))
+          (doseq [i (range 100)]
+            (is (= [[1]] (exec-drpc drpc "numwords" "the"))))
           (is (= [[0]] (exec-drpc drpc "numwords" "")))
           (is (= [[8]] (exec-drpc drpc "numwords" "1 2 3 4 5 6 7 8")))
           )))))

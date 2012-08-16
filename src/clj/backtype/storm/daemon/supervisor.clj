@@ -412,6 +412,8 @@
                        " -Dlogfile.name=" logfilename
                        " -Dstorm.home=" (System/getProperty "storm.home")
                        " -Dlog4j.configuration=storm.log.properties"
+                       " -Dtopology.classpath=" stormjar
+                       " -Djava.system.class.loader=backtype.storm.classloader.TopologyClassLoader "
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:supervisor-id supervisor)
                        " " port " " worker-id)]

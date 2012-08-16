@@ -21,6 +21,13 @@
                       conf
                       topology))
 
+(defn -submitTopologyWithOpts [this name conf topology submit-opts]
+  (submit-local-topology-with-opts (:nimbus (. this state))
+                      name
+                      conf
+                      topology
+                      submit-opts))
+
 (defn -shutdown [this]
   (kill-local-storm-cluster (. this state)))
 

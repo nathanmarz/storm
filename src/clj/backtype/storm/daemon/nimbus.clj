@@ -15,7 +15,6 @@
 
 (bootstrap)
 
-
 (defn file-cache-map [conf]
   (TimeCacheMap.
    (int (conf NIMBUS-FILE-COPY-EXPIRATION-SECS))
@@ -687,7 +686,8 @@
          (.assignSlots inimbus topologies)
          )))
 
-(defn- start-storm [nimbus storm-name storm-id]
+(defn- start-storm [nimbus storm-name storm-id topology-initial-status]
+  {:pre [(#{:active :inactive} topology-initial-status)]}                
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
         storm-conf (read-storm-conf conf storm-id)
@@ -698,7 +698,7 @@
                       storm-id
                       (StormBase. storm-name
                                   (current-time-secs)
-                                  {:type :active}
+                                  {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
                                   num-executors))))
 
@@ -842,7 +842,7 @@
 (defn validate-topology-name! [name]
   (if (some #(.contains name %) DISALLOWED-TOPOLOGY-NAME-STRS)
     (throw (InvalidTopologyException.
-      (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
+            (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -867,215 +867,226 @@
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))
-    (reify Nimbus$Iface
-      (^void submitTopology
-        [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (validate-topology-name! storm-name)
-        (check-storm-active! nimbus storm-name false)
-        (swap! (:submitted-count nimbus) inc)
-        (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
-              storm-conf (normalize-conf
-                          conf
-                          (-> serializedConf
-                              from-json
-                              (assoc STORM-ID storm-id)
-                              (assoc TOPOLOGY-NAME storm-name))
-                          topology)
-              total-storm-conf (merge conf storm-conf)
-              topology (normalize-topology total-storm-conf topology)
-              topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
-                         (optimize-topology topology)
-                         topology)
-              storm-cluster-state (:storm-cluster-state nimbus)]
-          (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-          (log-message "Received topology submission for " storm-name " with conf " storm-conf)
-          ;; lock protects against multiple topologies being submitted at once and
-          ;; cleanup thread killing topology in b/w assignment and starting the topology
-          (locking (:submit-lock nimbus)
-            (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
-            (.setup-heartbeats! storm-cluster-state storm-id)
-            (start-storm nimbus storm-name storm-id)
-            (mk-assignments nimbus))
-          ))
-      
-      (^void killTopology [this ^String name]
-        (.killTopologyWithOpts this name (KillOptions.)))
+    (letfn [(submit-topology-with-opts              
+              [storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology & {:keys [topology-initial-status]}]
+              (validate-topology-name! storm-name)
+              (check-storm-active! nimbus storm-name false)
+              (swap! (:submitted-count nimbus) inc)
+              (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
+                    storm-conf (normalize-conf
+                                conf
+                                (-> serializedConf
+                                    from-json
+                                    (assoc STORM-ID storm-id)
+                                    (assoc TOPOLOGY-NAME storm-name))
+                                topology)
+                    total-storm-conf (merge conf storm-conf)
+                    topology (normalize-topology total-storm-conf topology)
+                    topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
+                               (optimize-topology topology)
+                               topology)
+                    storm-cluster-state (:storm-cluster-state nimbus)]
+                (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
+                (log-message "Received topology submission for " storm-name " with conf " storm-conf)
+                ;; lock protects against multiple topologies being submitted at once and
+                ;; cleanup thread killing topology in b/w assignment and starting the topology
+                (locking (:submit-lock nimbus)
+                  (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+                  (.setup-heartbeats! storm-cluster-state storm-id)
+                  (start-storm nimbus storm-name storm-id topology-initial-status)
+                  (mk-assignments nimbus))))]
+      (reify Nimbus$Iface
+        (^void submitTopologyWithOpts
+          [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology ^SubmitOptions submitOptions]
+          (assert (not-nil? submitOptions))            
+          (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
+                                          TopologyInitialStatus/ACTIVE :active}]
+            (submit-topology-with-opts storm-name uploadedJarLocation serializedConf topology
+              :topology-initial-status (thrift-status->kw-status (.get_initial_status submitOptions)))))        
+        
+        (^void submitTopology
+          [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
+          (submit-topology-with-opts storm-name uploadedJarLocation serializedConf topology
+            :topology-initial-status :active))
+        
+        (^void killTopology [this ^String name]
+          (.killTopologyWithOpts this name (KillOptions.)))
 
-      (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (check-storm-active! nimbus storm-name true)
-        (let [wait-amt (if (.is_set_wait_secs options)
-                         (.get_wait_secs options)                         
-                         )]
-          (transition-name! nimbus storm-name [:kill wait-amt] true)
-          ))
+        (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
+          (check-storm-active! nimbus storm-name true)
+          (let [wait-amt (if (.is_set_wait_secs options)
+                           (.get_wait_secs options)                         
+                           )]
+            (transition-name! nimbus storm-name [:kill wait-amt] true)
+            ))
 
-      (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (check-storm-active! nimbus storm-name true)
-        (let [wait-amt (if (.is_set_wait_secs options)
-                         (.get_wait_secs options))
-              num-workers (if (.is_set_num_workers options)
-                            (.get_num_workers options))
-              executor-overrides (if (.is_set_num_executors options)
-                                    (.get_num_executors options)
-                                    {})]
-          (doseq [[c num-executors] executor-overrides]
-            (when (<= num-executors 0)
-              (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
-              ))
-          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
-          ))
+        (^void rebalance [this ^String storm-name ^RebalanceOptions options]
+          (check-storm-active! nimbus storm-name true)
+          (let [wait-amt (if (.is_set_wait_secs options)
+                           (.get_wait_secs options))
+                num-workers (if (.is_set_num_workers options)
+                              (.get_num_workers options))
+                executor-overrides (if (.is_set_num_executors options)
+                                     (.get_num_executors options)
+                                     {})]
+            (doseq [[c num-executors] executor-overrides]
+              (when (<= num-executors 0)
+                (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
+                ))
+            (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
+            ))
 
-      (activate [this storm-name]
-        (transition-name! nimbus storm-name :activate true)
-        )
+        (activate [this storm-name]
+          (transition-name! nimbus storm-name :activate true)
+          )
 
-      (deactivate [this storm-name]
-        (transition-name! nimbus storm-name :inactivate true))
+        (deactivate [this storm-name]
+          (transition-name! nimbus storm-name :inactivate true))
 
-      (beginFileUpload [this]
-        (let [fileloc (str (inbox nimbus) "/stormjar-" (uuid) ".jar")]
-          (.put (:uploaders nimbus)
-                fileloc
-                (Channels/newChannel (FileOutputStream. fileloc)))
-          (log-message "Uploading file from client to " fileloc)
-          fileloc
-          ))
+        (beginFileUpload [this]
+          (let [fileloc (str (inbox nimbus) "/stormjar-" (uuid) ".jar")]
+            (.put (:uploaders nimbus)
+                  fileloc
+                  (Channels/newChannel (FileOutputStream. fileloc)))
+            (log-message "Uploading file from client to " fileloc)
+            fileloc
+            ))
 
-      (^void uploadChunk [this ^String location ^ByteBuffer chunk]
-        (let [uploaders (:uploaders nimbus)
-              ^WritableByteChannel channel (.get uploaders location)]
-          (when-not channel
-            (throw (RuntimeException.
-                    "File for that location does not exist (or timed out)")))
-          (.write channel chunk)
-          (.put uploaders location channel)
-          ))
+        (^void uploadChunk [this ^String location ^ByteBuffer chunk]
+          (let [uploaders (:uploaders nimbus)
+                ^WritableByteChannel channel (.get uploaders location)]
+            (when-not channel
+              (throw (RuntimeException.
+                      "File for that location does not exist (or timed out)")))
+            (.write channel chunk)
+            (.put uploaders location channel)
+            ))
 
-      (^void finishFileUpload [this ^String location]
-        (let [uploaders (:uploaders nimbus)
-              ^WritableByteChannel channel (.get uploaders location)]
-          (when-not channel
-            (throw (RuntimeException.
-                    "File for that location does not exist (or timed out)")))
-          (.close channel)
-          (log-message "Finished uploading file from client: " location)
-          (.remove uploaders location)
-          ))
+        (^void finishFileUpload [this ^String location]
+          (let [uploaders (:uploaders nimbus)
+                ^WritableByteChannel channel (.get uploaders location)]
+            (when-not channel
+              (throw (RuntimeException.
+                      "File for that location does not exist (or timed out)")))
+            (.close channel)
+            (log-message "Finished uploading file from client: " location)
+            (.remove uploaders location)
+            ))
 
-      (^String beginFileDownload [this ^String file]
-        (let [is (BufferFileInputStream. file)
-              id (uuid)]
-          (.put (:downloaders nimbus) id is)
-          id
-          ))
+        (^String beginFileDownload [this ^String file]
+          (let [is (BufferFileInputStream. file)
+                id (uuid)]
+            (.put (:downloaders nimbus) id is)
+            id
+            ))
 
-      (^ByteBuffer downloadChunk [this ^String id]
-        (let [downloaders (:downloaders nimbus)
-              ^BufferFileInputStream is (.get downloaders id)]
-          (when-not is
-            (throw (RuntimeException.
-                    "Could not find input stream for that id")))
-          (let [ret (.read is)]
-            (.put downloaders id is)
-            (when (empty? ret)
-              (.remove downloaders id))
-            (ByteBuffer/wrap ret)
-            )))
+        (^ByteBuffer downloadChunk [this ^String id]
+          (let [downloaders (:downloaders nimbus)
+                ^BufferFileInputStream is (.get downloaders id)]
+            (when-not is
+              (throw (RuntimeException.
+                      "Could not find input stream for that id")))
+            (let [ret (.read is)]
+              (.put downloaders id is)
+              (when (empty? ret)
+                (.remove downloaders id))
+              (ByteBuffer/wrap ret)
+              )))
 
-      (^String getTopologyConf [this ^String id]
-        (to-json (read-storm-conf conf id)))
+        (^String getTopologyConf [this ^String id]
+          (to-json (read-storm-conf conf id)))
 
-      (^StormTopology getTopology [this ^String id]
-        (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
+        (^StormTopology getTopology [this ^String id]
+          (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
 
-      (^StormTopology getUserTopology [this ^String id]
-        (read-storm-topology conf id))
+        (^StormTopology getUserTopology [this ^String id]
+          (read-storm-topology conf id))
 
-      (^ClusterSummary getClusterInfo [this]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              assigned (assigned-slots storm-cluster-state)
-              supervisor-infos (all-supervisor-info storm-cluster-state)
-              ;; TODO: need to get the port info about supervisors...
-              ;; in standalone just look at metadata, otherwise just say N/A?
-              supervisor-summaries (dofor [[id info] supervisor-infos]
-                                          (let [ports (set (:meta info))
-                                                ]
-                                            (SupervisorSummary. (:hostname info)
-                                                                (:uptime-secs info)
-                                                                (count ports)
-                                                                (count (assigned id)))
+        (^ClusterSummary getClusterInfo [this]
+          (let [storm-cluster-state (:storm-cluster-state nimbus)
+                assigned (assigned-slots storm-cluster-state)
+                supervisor-infos (all-supervisor-info storm-cluster-state)
+                ;; TODO: need to get the port info about supervisors...
+                ;; in standalone just look at metadata, otherwise just say N/A?
+                supervisor-summaries (dofor [[id info] supervisor-infos]
+                                            (let [ports (set (:meta info))
+                                                  ]
+                                              (SupervisorSummary. (:hostname info)
+                                                                  (:uptime-secs info)
+                                                                  (count ports)
+                                                                  (count (assigned id)))
+                                              ))
+                nimbus-uptime ((:uptime nimbus))
+                bases (topology-bases storm-cluster-state)
+                topology-summaries (dofor [[id base] bases]
+                                          (let [assignment (.assignment-info storm-cluster-state id nil)]
+                                            (TopologySummary. id
+                                                              (:storm-name base)
+                                                              (->> (:executor->node+port assignment)
+                                                                   keys
+                                                                   (mapcat executor-id->tasks)
+                                                                   count) 
+                                                              (->> (:executor->node+port assignment)
+                                                                   keys
+                                                                   count)                                                            
+                                                              (->> (:executor->node+port assignment)
+                                                                   vals
+                                                                   set
+                                                                   count)
+                                                              (time-delta (:launch-time-secs base))
+                                                              (extract-status-str base))
+                                            ))]
+            (ClusterSummary. supervisor-summaries
+                             nimbus-uptime
+                             topology-summaries)
+            ))
+        
+        (^TopologyInfo getTopologyInfo [this ^String storm-id]
+          (let [storm-cluster-state (:storm-cluster-state nimbus)
+                task->component (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
+                base (.storm-base storm-cluster-state storm-id nil)
+                assignment (.assignment-info storm-cluster-state storm-id nil)
+                beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
+                all-components (-> task->component reverse-map keys)
+                errors (->> all-components
+                            (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
+                            (into {}))
+                executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
+                                          (let [host (-> assignment :node->host (get node))
+                                                heartbeat (get beats executor)
+                                                stats (:stats heartbeat)
+                                                stats (if stats
+                                                        (stats/thriftify-executor-stats stats))]
+                                            (doto
+                                                (ExecutorSummary. (thriftify-executor-id executor)
+                                                                  (-> executor first task->component)
+                                                                  host
+                                                                  port
+                                                                  (nil-to-zero (:uptime heartbeat)))
+                                              (.set_stats stats))
                                             ))
-              nimbus-uptime ((:uptime nimbus))
-              bases (topology-bases storm-cluster-state)
-              topology-summaries (dofor [[id base] bases]
-                                        (let [assignment (.assignment-info storm-cluster-state id nil)]
-                                          (TopologySummary. id
-                                                            (:storm-name base)
-                                                            (->> (:executor->node+port assignment)
-                                                                 keys
-                                                                 (mapcat executor-id->tasks)
-                                                                 count) 
-                                                            (->> (:executor->node+port assignment)
-                                                                keys
-                                                                count)                                                            
-                                                            (->> (:executor->node+port assignment)
-                                                                 vals
-                                                                 set
-                                                                 count)
-                                                            (time-delta (:launch-time-secs base))
-                                                            (extract-status-str base))
-                                          ))]
-          (ClusterSummary. supervisor-summaries
-                           nimbus-uptime
-                           topology-summaries)
-          ))
-      
-      (^TopologyInfo getTopologyInfo [this ^String storm-id]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              task->component (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
-              base (.storm-base storm-cluster-state storm-id nil)
-              assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
-              all-components (-> task->component reverse-map keys)
-              errors (->> all-components
-                          (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
-                          (into {}))
-              executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
-                                    (let [host (-> assignment :node->host (get node))
-                                          heartbeat (get beats executor)
-                                          stats (:stats heartbeat)
-                                          stats (if stats
-                                                  (stats/thriftify-executor-stats stats))]
-                                      (doto
-                                          (ExecutorSummary. (thriftify-executor-id executor)
-                                                            (-> executor first task->component)
-                                                            host
-                                                            port
-                                                            (nil-to-zero (:uptime heartbeat)))
-                                        (.set_stats stats))
-                                      ))
-              ]
-          (TopologyInfo. storm-id
-                         (:storm-name base)
-                         (time-delta (:launch-time-secs base))
-                         executor-summaries
-                         (extract-status-str base)
-                         errors
-                         )
-          ))
-      
-      Shutdownable
-      (shutdown [this]
-        (log-message "Shutting down master")
-        (cancel-timer (:timer nimbus))
-        (.disconnect (:storm-cluster-state nimbus))
-        (.cleanup (:downloaders nimbus))
-        (.cleanup (:uploaders nimbus))
-        (log-message "Shut down master")
-        )
-      DaemonCommon
-      (waiting? [this]
-        (timer-waiting? (:timer nimbus))))))
+                ]
+            (TopologyInfo. storm-id
+                           (:storm-name base)
+                           (time-delta (:launch-time-secs base))
+                           executor-summaries
+                           (extract-status-str base)
+                           errors
+                           )
+            ))
+        
+        Shutdownable
+        (shutdown [this]
+          (log-message "Shutting down master")
+          (cancel-timer (:timer nimbus))
+          (.disconnect (:storm-cluster-state nimbus))
+          (.cleanup (:downloaders nimbus))
+          (.cleanup (:uploaders nimbus))
+          (log-message "Shut down master")
+          )
+        DaemonCommon
+        (waiting? [this]
+          (timer-waiting? (:timer nimbus)))))))
 
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)

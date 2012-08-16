@@ -14,6 +14,20 @@ except:
   fastbinary = None
 
 
+class TopologyInitialStatus:
+  ACTIVE = 1
+  INACTIVE = 2
+
+  _VALUES_TO_NAMES = {
+    1: "ACTIVE",
+    2: "INACTIVE",
+  }
+
+  _NAMES_TO_VALUES = {
+    "ACTIVE": 1,
+    "INACTIVE": 2,
+  }
+
 
 class JavaObjectArg:
   """
@@ -2864,6 +2878,68 @@ class RebalanceOptions:
     oprot.writeStructEnd()
 
   def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class SubmitOptions:
+  """
+  Attributes:
+   - initial_status
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'initial_status', None, None, ), # 1
+  )
+
+  def __init__(self, initial_status=None,):
+    self.initial_status = initial_status
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.initial_status = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('SubmitOptions')
+    if self.initial_status is not None:
+      oprot.writeFieldBegin('initial_status', TType.I32, 1)
+      oprot.writeI32(self.initial_status)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.initial_status is None:
+      raise TProtocol.TProtocolException(message='Required field initial_status is unset!')
     return
 
 

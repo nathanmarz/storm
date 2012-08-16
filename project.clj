@@ -1,4 +1,4 @@
-(defproject storm "0.8.1-wip3"
+(defproject storm "0.8.1-wip4-SNAPSHOT"
   :source-path "src/clj"
   :test-path "test/clj"
   :java-source-path "src/jvm"

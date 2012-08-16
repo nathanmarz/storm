@@ -5,6 +5,7 @@ import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+import backtype.storm.generated.StormTopology;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -105,10 +106,8 @@ public class TridentReach {
         
     }
     
-    public static void main(String[] args) throws Exception {
+    public static StormTopology buildTopology(LocalDRPC drpc) {
         TridentTopology topology = new TridentTopology();
-        LocalDRPC drpc = new LocalDRPC();
-        
         TridentState urlToTweeters = 
                 topology.newStaticState(
                     new StaticSingleKeyMapState.Factory(TWEETERS_DB));
@@ -126,11 +125,16 @@ public class TridentReach {
                 .groupBy(new Fields("follower"))
                 .aggregate(new One(), new Fields("one"))
                 .aggregate(new Fields("one"), new Sum(), new Fields("reach"));
-        
+        return topology.build();
+    }
+    
+    public static void main(String[] args) throws Exception {
+        LocalDRPC drpc = new LocalDRPC();
+
         Config conf = new Config();
         LocalCluster cluster = new LocalCluster();
         
-        cluster.submitTopology("reach", conf, topology.build());
+        cluster.submitTopology("reach", conf, buildTopology(drpc));
         
         Thread.sleep(2000);
         

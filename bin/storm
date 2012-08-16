@@ -292,6 +292,16 @@ def ui():
         extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
 
 def run(main_class, topology_classpath, *args):
+    """Syntax: [storm run full-topology-class-name user-jars other-args]
+
+    Runs the topology in local mode. This command is useful when your topology
+    has dependencies which is conflict with Storm's dependencies, using this command
+    the storm's dependencies and your topology's dependencies are isolated.
+
+    e.g. Your topology relies on a different version of log4j, then you can use
+    the following command:
+      storm run storm.starter.MyTopology /path/to/log4j-1.5.6.jar:/path/to/my-topology.jar
+    """
     cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Djava.system.class.loader=backtype.storm.classloader.TopologyClassLoader",

@@ -36,8 +36,7 @@
                                   [org.slf4j/log4j-over-slf4j "1.6.6"]]}
              :release {:dependencies [[ch.qos.logback/logback-classic "1.0.6"]
                                       [org.slf4j/log4j-over-slf4j "1.6.6"]]}
-             :lib {:dependencies [[ch.qos.logback/logback-classic "1.0.6"]
-                                   [org.slf4j/log4j-over-slf4j "1.6.6"]]}}
+             :lib {:dependencies [[log4j/log4j "1.2.16"]]}}
 
   :plugins [[lein-swank "1.4.4"]]
 

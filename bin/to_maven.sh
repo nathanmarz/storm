@@ -11,8 +11,8 @@ echo ==== Storm Jar ====
 $LEIN with-profile release clean
 $LEIN with-profile release jar
 $LEIN with-profile release pom
-scp storm*jar pom.xml clojars@clojars.org:
-rm -f *.jar *.xml
+scp target/storm*jar pom.xml clojars@clojars.org:
+rm -Rf target *.xml
 
 echo ==== Storm-Lib Jar ====
 rm conf/logback.xml
@@ -20,9 +20,9 @@ $LEIN with-profile lib clean
 $LEIN with-profile lib jar
 $LEIN with-profile lib pom
 sed -i '' -e 's/artifactId\>storm/artifactId\>storm-lib/g' pom.xml
-mv storm-$RELEASE.jar storm-lib-$RELEASE.jar
-scp storm*jar pom.xml clojars@clojars.org:
-rm -f *.jar *.xml
+mv target/storm-$RELEASE.jar target/storm-lib-$RELEASE.jar
+scp target/storm*jar pom.xml clojars@clojars.org:
+rm -Rf target *.xml
 
 git checkout conf/logback.xml
 

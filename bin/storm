@@ -133,6 +133,15 @@ def jar(jarfile, klass, *args):
         jvmopts=["-Dstorm.jar=" + jarfile])
 
 def add_platform_jar(*args):
+    """Syntax: [storm add-platform-jar /path/to/a.jar /path/to/b.jar ...]
+
+    Adds the specified jars to the cluster. If you have a very large topology 
+    jar the upload time can slow since you're going over the network to wherever 
+    your Storm cluster is. This command lets you add a jar to the storm cluster
+    which your topologies depends on, then you can specify the dependencies with
+    "topology.platform.jars" config. For more detail, have a look at:
+    https://github.com/nathanmarz/storm/issues/281
+    """
     exec_storm_class(
         "backtype.storm.command.add_platform_jar",
         jvmtype="-client",
@@ -140,6 +149,10 @@ def add_platform_jar(*args):
         args=args)
 
 def delete_platform_jar(*args):
+    """Syntax: [storm delete-platform-jar a.jar b.jar ...]
+
+    Deletes a specified platform jar from the cluster.
+    """
     exec_storm_class(
         "backtype.storm.command.delete_platform_jar",
         jvmtype="-client",
@@ -147,6 +160,10 @@ def delete_platform_jar(*args):
         args=args)
 
 def list_platform_jars(*args):
+    """Syntax: [storm list-platform-jars]
+
+    Lists all the platform jars in the storm cluster.
+    """
     exec_storm_class(
         "backtype.storm.command.list_platform_jars",
         jvmtype="-client",

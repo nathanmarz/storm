@@ -10,6 +10,7 @@
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
+  (:require [clojure.string :as string])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -938,6 +939,24 @@
           fileloc
           ))
 
+      (^String addPlatformJar [this ^String jar-name]
+        (let [fileloc (str (platform-jars-dir (read-storm-config)) "/" jar-name)]
+          (.put (:uploaders nimbus)
+                fileloc
+                (Channels/newChannel (FileOutputStream. fileloc)))
+          (log-message "Uploading file from client to " fileloc)
+          fileloc
+          ))
+      
+      (^void deletePlatformJar [this ^String jar-name]
+        (let [fileloc (str (platform-jars-dir (read-storm-config)) "/" jar-name)]
+          (rmpath fileloc)))
+      
+      (^String listPlatformJars [this]
+        (let [jars-dir (platform-jars-dir (read-storm-config))
+              jars (read-dir-contents jars-dir)]
+          (string/join ":" jars)))
+      
       (^void uploadChunk [this ^String location ^ByteBuffer chunk]
         (let [uploaders (:uploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]

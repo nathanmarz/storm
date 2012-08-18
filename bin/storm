@@ -132,6 +132,27 @@ def jar(jarfile, klass, *args):
         args=args,
         jvmopts=["-Dstorm.jar=" + jarfile])
 
+def add_platform_jar(*args):
+    exec_storm_class(
+        "backtype.storm.command.add_platform_jar",
+        jvmtype="-client",
+        extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+        args=args)
+
+def delete_platform_jar(*args):
+    exec_storm_class(
+        "backtype.storm.command.delete_platform_jar",
+        jvmtype="-client",
+        extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+        args=args)
+
+def list_platform_jars(*args):
+    exec_storm_class(
+        "backtype.storm.command.list_platform_jars",
+        jvmtype="-client",
+        extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+        args=args)
+
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
 
@@ -364,7 +385,9 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version}
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version,
+            "add-platform-jar": add_platform_jar, "list-platform-jars": list_platform_jars,
+            "delete-platform-jar": delete_platform_jar}
 
 def parse_config(config_list):
     global CONFIG_OPTS

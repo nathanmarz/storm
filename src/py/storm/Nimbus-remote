@@ -32,6 +32,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void finishFileUpload(string location)'
   print '  string beginFileDownload(string file)'
   print '  string downloadChunk(string id)'
+  print '  string addPlatformJar(string jarName)'
+  print '  void deletePlatformJar(string jarName)'
+  print '  string listPlatformJars()'
   print '  ClusterSummary getClusterInfo()'
   print '  TopologyInfo getTopologyInfo(string id)'
   print '  string getTopologyConf(string id)'
@@ -152,6 +155,24 @@ elif cmd == 'downloadChunk':
     print 'downloadChunk requires 1 args'
     sys.exit(1)
   pp.pprint(client.downloadChunk(args[0],))
+
+elif cmd == 'addPlatformJar':
+  if len(args) != 1:
+    print 'addPlatformJar requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.addPlatformJar(args[0],))
+
+elif cmd == 'deletePlatformJar':
+  if len(args) != 1:
+    print 'deletePlatformJar requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.deletePlatformJar(args[0],))
+
+elif cmd == 'listPlatformJars':
+  if len(args) != 0:
+    print 'listPlatformJars requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.listPlatformJars())
 
 elif cmd == 'getClusterInfo':
   if len(args) != 0:

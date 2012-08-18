@@ -92,20 +92,30 @@ public class StormSubmitter {
         if(submittedJar==null) {
             LOG.info("Jar not uploaded to master yet. Submitting jar...");
             String localJar = System.getProperty("storm.jar");
-            submittedJar = submitJar(conf, localJar);
+            submittedJar = submitJar(conf, localJar, JarType.TOPOLOGY_JAR);
         } else {
             LOG.info("Jar already uploaded to master. Not submitting jar.");
         }
     }
     
     public static String submitJar(Map conf, String localJar) {
+    	return submitJar(conf, localJar, JarType.TOPOLOGY_JAR);
+    }
+    
+    public static String submitJar(Map conf, String localJar, JarType jarType) {
         if(localJar==null) {
-            throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");
+            throw new RuntimeException("Must upload jar using the 'storm' client script so that StormSubmitter knows which jar to upload.");
         }
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
         try {
-            String uploadLocation = client.getClient().beginFileUpload();
-            LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
+            String uploadLocation = null;
+            if (jarType == JarType.TOPOLOGY_JAR) {
+            	uploadLocation = client.getClient().beginFileUpload();
+            } else if (jarType == JarType.PLATFORM_JAR) {
+            	String jarName = getJarName(localJar);
+            	uploadLocation = client.getClient().addPlatformJar(jarName);
+            }
+            LOG.info("Uploading jar " + localJar + " to assigned location: " + uploadLocation);
             BufferFileInputStream is = new BufferFileInputStream(localJar);
             while(true) {
                 byte[] toSubmit = is.read();
@@ -113,12 +123,26 @@ public class StormSubmitter {
                 client.getClient().uploadChunk(uploadLocation, ByteBuffer.wrap(toSubmit));
             }
             client.getClient().finishFileUpload(uploadLocation);
-            LOG.info("Successfully uploaded topology jar to assigned location: " + uploadLocation);
+            LOG.info("Successfully uploaded jar to assigned location: " + uploadLocation);
             return uploadLocation;
         } catch(Exception e) {
             throw new RuntimeException(e);            
         } finally {
             client.close();
         }
+    }
+    
+    public static String addPlatformJar(Map conf, String localJar) {
+    	return submitJar(conf, localJar, JarType.PLATFORM_JAR);
+    }
+    
+    private static String getJarName(String jarPath) {
+    	String[] pathes = jarPath.split("/");
+    	return pathes[pathes.length - 1];
+    }
+    
+    public static enum JarType {
+    	TOPOLOGY_JAR,
+    	PLATFORM_JAR
     }
 }

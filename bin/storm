@@ -241,7 +241,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     """
     cppaths = [STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
-        "-Dlogfile.name=nimbus",
+        "-Dlogfile.name=nimbus.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
     exec_storm_class(
@@ -261,7 +261,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     """
     cppaths = [STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
-        "-Dlogfile.name=supervisor",
+        "-Dlogfile.name=supervisor.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
     exec_storm_class(
@@ -282,7 +282,7 @@ def ui():
     """
     cppaths = [STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
-        "-Dlogfile.name=ui",
+        "-Dlogfile.name=ui.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
     exec_storm_class(
@@ -301,7 +301,7 @@ def drpc():
     (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
     """
     jvmopts = ["-Xmx768m", 
-        "-Dlogfile.name=drpc", 
+        "-Dlogfile.name=drpc.log", 
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml"
     ]
     exec_storm_class(

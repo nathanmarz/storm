@@ -940,7 +940,7 @@
           ))
 
       (^String addPlatformJar [this ^String jar-name]
-        (let [fileloc (str (platform-jars-dir (read-storm-config)) "/" jar-name)]
+        (let [fileloc (str (nimbus-platform-jars-dir (read-storm-config)) "/" jar-name)]
           (.put (:uploaders nimbus)
                 fileloc
                 (Channels/newChannel (FileOutputStream. fileloc)))
@@ -949,11 +949,11 @@
           ))
       
       (^void deletePlatformJar [this ^String jar-name]
-        (let [fileloc (str (platform-jars-dir (read-storm-config)) "/" jar-name)]
+        (let [fileloc (str (nimbus-platform-jars-dir (read-storm-config)) "/" jar-name)]
           (rmpath fileloc)))
       
       (^String listPlatformJars [this]
-        (let [jars-dir (platform-jars-dir (read-storm-config))
+        (let [jars-dir (nimbus-platform-jars-dir (read-storm-config))
               jars (read-dir-contents jars-dir)]
           (string/join ":" jars)))
       

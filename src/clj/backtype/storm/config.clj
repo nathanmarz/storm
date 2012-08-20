@@ -97,8 +97,8 @@
 (defn master-inimbus-dir [conf]
   (str (master-local-dir conf) "/inimbus"))
 
-(defn platform-jars-dir [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) "/platform-jars")]
+(defn nimbus-platform-jars-dir [conf]
+  (let [ret (str (master-local-dir conf) "/platform-jars")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 
@@ -107,6 +107,11 @@
     (FileUtils/forceMkdir (File. ret))
     ret
     ))
+
+(defn supervisor-platform-jars-dir [conf]
+  (let [ret (str (supervisor-local-dir conf) "/platform-jars")]
+    (FileUtils/forceMkdir (File. ret))
+    ret))
 
 (defn supervisor-isupervisor-dir [conf]
   (str (supervisor-local-dir conf) "/isupervisor"))

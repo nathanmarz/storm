@@ -484,6 +484,11 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_NAME="topology.name";  
     
     /**
+     * All the platform jars the topology depends on.
+     */
+    public static String TOPOLOGY_PLATFORM_JARS="topology.platform.jars";  
+    
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";

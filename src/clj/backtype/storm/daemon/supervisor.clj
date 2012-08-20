@@ -380,6 +380,17 @@
   )
 
 ;; distributed implementation
+(defn download-platform-jars [conf]
+  "Downloads the needed platform jars."
+  (when (conf TOPOLOGY-PLATFORM-JARS)
+    (let [supervisor-jars-dir (supervisor-platform-jars-dir conf)
+          needed-platform-jars (conf TOPOLOGY-PLATFORM-JARS)]
+      (doseq [jar needed-platform-jars
+              :let [nimbus-jar (str (nimbus-platform-jars-dir conf) "/" jar)
+                    supervisor-jar (str (supervisor-platform-jars-dir conf) "/" jar)]]
+        (when-not (exists-file? supervisor-jar)
+          (Utils/downloadFromMaster conf nimbus-jar supervisor-jar)
+          (log-message "Downloaded platform jar " jar " to " supervisor-jar))))))
 
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
@@ -393,6 +404,9 @@
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+      ;; downloads the platform jars
+      (println "DOWNLOADING PLATFORM JAR")
+      (download-platform-jars conf)
       ))
 
 

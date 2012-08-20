@@ -10,6 +10,7 @@
  * Bug fix: Fix NPE when no input fields given for regular Aggregator
  * Bug fix: Fix IndexOutOfBoundsExceptions when a bolt for global aggregation had a parallelism greater than 1 (possible with splitting, stateQuerying, and multiReduce)
  * Bug fix: Fix "fields size" error that would sometimes occur when splitting a stream with multiple eaches
+ * Bug fix: Fix bug where a committer spout (including opaque spouts) could cause Trident processing to halt
 
 ## 0.8.0
 

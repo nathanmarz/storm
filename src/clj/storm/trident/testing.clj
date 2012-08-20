@@ -1,5 +1,5 @@
 (ns storm.trident.testing
-  (:import [storm.trident.testing FeederBatchSpout MemoryMapState MemoryMapState$Factory])
+  (:import [storm.trident.testing FeederBatchSpout FeederCommitterBatchSpout MemoryMapState MemoryMapState$Factory TuplifyArgs])
   (:import [backtype.storm LocalDRPC])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated KillOptions])
@@ -14,8 +14,14 @@
   (let [res (.execute drpc function-name args)]
     (from-json res)))
 
+(defn exec-drpc-tuples [^LocalDRPC drpc function-name tuples]
+  (exec-drpc drpc function-name (to-json tuples)))
+
 (defn feeder-spout [fields]
   (FeederBatchSpout. fields))
+
+(defn feeder-committer-spout [fields]
+  (FeederCommitterBatchSpout. fields))
 
 (defn feed [feeder tuples]
   (.feed feeder tuples))
@@ -46,3 +52,11 @@
   (import 'storm.trident.TridentTopology)
   (import '[storm.trident.operation.builtin Count Sum Equals MapGet Debug FilterNull FirstN])
   )
+
+(defn drpc-tuples-input [topology function-name drpc outfields]
+  (-> topology
+      (.newDRPCStream function-name drpc)
+      (.each (fields "args") (TuplifyArgs.) outfields)
+      ))
+
+

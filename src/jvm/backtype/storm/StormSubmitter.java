@@ -7,7 +7,8 @@ import backtype.storm.utils.Utils;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
@@ -17,7 +18,7 @@ import org.json.simple.JSONValue;
  * submit your topologies.
  */
 public class StormSubmitter {
-    public static Logger LOG = Logger.getLogger(StormSubmitter.class);    
+    public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
 
     private static Nimbus.Iface localNimbus = null;
 

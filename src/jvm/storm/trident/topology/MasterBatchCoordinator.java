@@ -13,12 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Random;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.trident.spout.ITridentSpout;
 import storm.trident.topology.state.TransactionalState;
 
 public class MasterBatchCoordinator extends BaseRichSpout { 
-    public static final Logger LOG = Logger.getLogger(MasterBatchCoordinator.class);
+    public static final Logger LOG = LoggerFactory.getLogger(MasterBatchCoordinator.class);
     
     public static final long INIT_TXID = 1L;
     

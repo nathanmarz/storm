@@ -15,17 +15,22 @@ import storm.trident.spout.ITridentSpout;
 import storm.trident.topology.TransactionAttempt;
 import storm.trident.topology.TridentTopologyBuilder;
 
-public class FeederBatchSpout implements ITridentSpout {
+public class FeederBatchSpout implements ITridentSpout, IFeeder {
 
     String _id;
     String _semaphoreId;
     Fields _outFields;
+    boolean _waitToEmit = true;
     
 
     public FeederBatchSpout(List<String> fields) {
         _outFields = new Fields(fields);
         _id = RegisteredGlobalState.registerState(new CopyOnWriteArrayList());
         _semaphoreId = RegisteredGlobalState.registerState(new CopyOnWriteArrayList());
+    }
+    
+    public void setWaitToEmit(boolean trueIfWait) {
+        _waitToEmit = trueIfWait;
     }
     
     public void feed(Object tuples) {
@@ -93,6 +98,7 @@ public class FeederBatchSpout implements ITridentSpout {
         
         @Override
         public boolean isReady(long txid) {
+            if(!_waitToEmit) return true;
             List allBatches = (List) RegisteredGlobalState.getState(_id);
             if(allBatches.size() > _masterEmitted) {
                 _masterEmitted++;

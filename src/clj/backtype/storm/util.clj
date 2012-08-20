@@ -488,8 +488,8 @@
 (defn collectify [obj]
   (if (or (sequential? obj) (instance? Collection obj)) obj [obj]))
 
-(defn to-json [^Map m]
-  (JSONValue/toJSONString m))
+(defn to-json [obj]
+  (JSONValue/toJSONString obj))
 
 (defn from-json [^String str]
   (if str

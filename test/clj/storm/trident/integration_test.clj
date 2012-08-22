@@ -1,7 +1,7 @@
 (ns storm.trident.integration-test
   (:use [clojure test])
   (:require [backtype.storm [testing :as t]])
-  (:import [storm.trident.testing Split CountAsAggregator StringLength])
+  (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter])
   (:use [storm.trident testing])
   (:use [backtype.storm util]))
   
@@ -118,6 +118,27 @@
           (is (t/ms= [[5] ["hello"]] (exec-drpc drpc "splitter" "hello")))
           )))))
 
+(deftest test-multiple-groupings-same-stream
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind drpc-stream (-> topo (.newDRPCStream "tester" drpc)
+                                   (.each (fields "args") (TrueFilter.))))
+        (bind s1
+          (-> drpc-stream
+              (.groupBy (fields "args"))
+              (.aggregate (CountAsAggregator.) (fields "count"))))
+        (bind s2
+          (-> drpc-stream
+              (.groupBy (fields "args"))
+              (.aggregate (CountAsAggregator.) (fields "count"))))
+
+        (.merge topo [s1 s2])
+        (with-topology [cluster topo]
+          (is (t/ms= [["the" 1] ["the" 1]] (exec-drpc drpc "tester" "the")))
+          (is (t/ms= [["aaaaa" 1] ["aaaaa" 1]] (exec-drpc drpc "tester" "aaaaa")))
+          )))))
 
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]

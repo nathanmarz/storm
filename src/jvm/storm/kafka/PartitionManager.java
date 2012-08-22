@@ -60,12 +60,12 @@ public class PartitionManager {
             LOG.warn("Error reading and/or parsing at ZkNode: " + committedPath(), e); 
         }
 
-        if(jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
+        if(!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
+            _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
+	    LOG.info("Using startOffsetTime to choose last commit offset.");
+        } else if(jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
             _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, -1, 1)[0];
 	    LOG.info("Setting last commit offset to HEAD.");
-        } else if(!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
-            _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
-	    LOG.info("Using startOffsetTime for choose last commit offset.");
         } else {
             _committedTo = jsonOffset;
 	    LOG.info("Read last commit offset from zookeeper: " + _committedTo);

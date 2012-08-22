@@ -47,7 +47,7 @@ public class PartitionManager {
 	_state = state;
         _stormConf = stormConf;
 
-	Map<String, Object> st = _state.readJSON(committedPath());
+	Map<Object, Object> st = _state.readJSON(committedPath());
         if(st==null || (!topologyInstanceId.equals((String)st.get("topology-id")) && spoutConfig.forceFromStart)) {
             _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
         } else {

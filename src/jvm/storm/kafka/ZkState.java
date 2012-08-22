@@ -23,7 +23,7 @@ public class ZkState {
         for(String server: (List<String>)stateConf.get(Config.TRANSACTIONAL_ZOOKEEPER_SERVERS)) {
             serverPorts = serverPorts + server + ":" + port + ",";
         }
-	return CuratorFrameworkFactory.newClient("localhost:2181,", 
+	return CuratorFrameworkFactory.newClient(serverPorts,
 		Utils.getInt(stateConf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)), 
 		15000, 
 		new RetryNTimes(Utils.getInt(stateConf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
@@ -66,11 +66,11 @@ public class ZkState {
         }
     }
 
-    public Map<String,Object> readJSON(String path) {
+    public Map<Object,Object> readJSON(String path) {
 	try {
 	    byte[] b = readBytes(path);
 	    if(b==null) return null;
-	    return (Map<String,Object>)JSONValue.parse(new String(b, "UTF-8"));
+	    return (Map<Object,Object>)JSONValue.parse(new String(b, "UTF-8"));
 	} catch(Exception e) {
 	    throw new RuntimeException(e);
 	}

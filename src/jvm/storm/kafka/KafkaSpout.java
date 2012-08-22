@@ -69,7 +69,7 @@ public class KafkaSpout extends BaseRichSpout {
         // using TransactionalState like this is a hack
         int totalTasks = context.getComponentTasks(context.getThisComponentId()).size();
         if(_spoutConfig.hosts instanceof KafkaConfig.StaticHosts) {
-            _coordinator = new StaticCoordinator(_connections, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
+            _coordinator = new StaticCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         } else {
             _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         }

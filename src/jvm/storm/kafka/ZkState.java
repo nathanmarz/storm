@@ -30,6 +30,11 @@ public class ZkState {
 				Utils.getInt(stateConf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
     }
 
+    public CuratorFramework getCurator() {
+	assert _curator != null;
+        return _curator;
+    }
+
     public ZkState(Map stateConf) {
 	stateConf = new HashMap(stateConf);
 
@@ -41,7 +46,7 @@ public class ZkState {
 	}
     }
 
-    public void writeJSON(String path, Map<String,Object> data) {
+    public void writeJSON(String path, Map<Object,Object> data) {
 	LOG.info("Writing " + path + " the data " + data.toString());
         writeBytes(path, JSONValue.toJSONString(data).getBytes(Charset.forName("UTF-8")));
     }
@@ -85,5 +90,6 @@ public class ZkState {
 
     public void close() {
 	_curator.close();
+	_curator = null;
     }
 }

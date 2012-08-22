@@ -32,13 +32,15 @@ public class ZkCoordinator implements PartitionCoordinator {
     ZkHosts _brokerConf;
     DynamicPartitionConnections _connections;
     ZkState _state;
+    Map _stormConf;
     
-    public ZkCoordinator(DynamicPartitionConnections connections, Map conf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
+    public ZkCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         _spoutConfig = spoutConfig;
         _connections = connections;
         _taskIndex = taskIndex;
         _totalTasks = totalTasks;
         _topologyInstanceId = topologyInstanceId;
+        _stormConf = stormConf;
 	_state = state;
                 
         _brokerConf = (ZkHosts) _spoutConfig.hosts;
@@ -46,10 +48,10 @@ public class ZkCoordinator implements PartitionCoordinator {
         try {
             _curator = CuratorFrameworkFactory.newClient(
                     _brokerConf.brokerZkStr,
-                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+                    Utils.getInt(stormConf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
                     15000,
-                    new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+                    new RetryNTimes(Utils.getInt(stormConf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                    Utils.getInt(stormConf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
             _curator.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -77,8 +79,6 @@ public class ZkCoordinator implements PartitionCoordinator {
                 try {
                     byte[] numPartitionsData = _curator.getData().forPath(topicBrokersPath + "/" + c);
                     byte[] hostPortData = _curator.getData().forPath(brokerInfoPath + "/" + c);
-
-
 
                     HostPort hp = getBrokerHost(hostPortData);
                     int numPartitions = getNumPartitions(numPartitionsData);
@@ -109,7 +109,7 @@ public class ZkCoordinator implements PartitionCoordinator {
             LOG.info("New partition managers: " + newPartitions.toString());
             
             for(GlobalPartitionId id: newPartitions) {
-                PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _spoutConfig, id);
+                PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _stormConf, _spoutConfig, id);
                 _managers.put(id, man);
             }
             

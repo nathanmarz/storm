@@ -1,7 +1,9 @@
 package storm.kafka;
 
+import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.utils.Utils;
+import com.google.common.collect.ImmutableMap;
 import java.util.*;
 import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
@@ -34,17 +36,19 @@ public class PartitionManager {
     SimpleConsumer _consumer;
     DynamicPartitionConnections _connections;
     ZkState _state;
+    Map _stormConf;
     
-    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, SpoutConfig spoutConfig, GlobalPartitionId id) {
+    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, Map stormConf, SpoutConfig spoutConfig, GlobalPartitionId id) {
         _partition = id;
         _connections = connections;
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;
         _consumer = connections.register(id.host, id.partition);
 	_state = state;
+        _stormConf = stormConf;
 
 	Map<String, Object> st = _state.readJSON(committedPath());
-        if(st==null || (!topologyInstanceId.equals((String)st.get("id")) && spoutConfig.forceFromStart)) {
+        if(st==null || (!topologyInstanceId.equals((String)st.get("topology-id")) && spoutConfig.forceFromStart)) {
             _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
         } else {
             _committedTo = (Long)st.get("offset");
@@ -118,9 +122,14 @@ public class PartitionManager {
         if(committedTo!=_committedTo) {
             LOG.info("Writing committed offset to ZK: " + committedTo);
 
-	    Map<String, Object> data = new LinkedHashMap<String, Object>();
-	    data.put("id", _topologyInstanceId);
-	    data.put("offset", committedTo);
+            Map<Object, Object> data = (Map<Object,Object>)ImmutableMap.builder()
+                .put("topology", ImmutableMap.of("id", _topologyInstanceId, 
+                                                 "name", _stormConf.get(Config.TOPOLOGY_NAME)))
+                .put("offset", committedTo)
+                .put("partition", _partition.partition)
+                .put("broker", ImmutableMap.of("host", _partition.host.host,
+                                               "port", _partition.host.port))
+                .put("topic", _spoutConfig.topic).build();
 	    _state.writeJSON(committedPath(), data);
 
             LOG.info("Wrote committed offset to ZK: " + committedTo);

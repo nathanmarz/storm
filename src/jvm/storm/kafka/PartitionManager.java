@@ -47,13 +47,30 @@ public class PartitionManager {
 	_state = state;
         _stormConf = stormConf;
 
-	Map<Object, Object> st = _state.readJSON(committedPath());
-        if(st==null || (!topologyInstanceId.equals((String)st.get("topology-id")) && spoutConfig.forceFromStart)) {
+        String jsonTopologyId = null;
+        Long jsonOffset = null;
+        try { 
+            Map<Object, Object> json = _state.readJSON(committedPath());
+            if(json != null) {
+                jsonTopologyId = (String)((Map<Object,Object>)json.get("topology")).get("id");
+                jsonOffset = (Long)json.get("offset");
+            }
+        }
+        catch(Throwable e) { 
+            LOG.warn("Error reading and/or parsing at ZkNode: " + committedPath(), e); 
+        }
+
+        if(jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
+            _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, -1, 1)[0];
+	    LOG.info("Setting last commit offset to HEAD.");
+        } else if(!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
             _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
+	    LOG.info("Using startOffsetTime for choose last commit offset.");
         } else {
-            _committedTo = (Long)st.get("offset");
+            _committedTo = jsonOffset;
 	    LOG.info("Read last commit offset from zookeeper: " + _committedTo);
         }
+
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
         _emittedToOffset = _committedTo;
     }

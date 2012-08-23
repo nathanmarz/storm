@@ -139,6 +139,22 @@
           (is (t/ms= [["the" 1] ["the" 1]] (exec-drpc drpc "tester" "the")))
           (is (t/ms= [["aaaaa" 1] ["aaaaa" 1]] (exec-drpc drpc "tester" "aaaaa")))
           )))))
+          
+(deftest test-multi-repartition
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind drpc-stream (-> topo (.newDRPCStream "tester" drpc)
+                                   (.each (fields "args") (Split.) (fields "word"))
+                                   (.shuffle)
+                                   (.shuffle)
+                                   (.aggregate (CountAsAggregator.) (fields "count"))
+                                   ))
+        (with-topology [cluster topo]
+          (is (t/ms= [[2]] (exec-drpc drpc "tester" "the man")))
+          (is (t/ms= [[1]] (exec-drpc drpc "tester" "aaa")))
+          )))))
 
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]

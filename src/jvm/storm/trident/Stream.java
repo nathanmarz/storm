@@ -21,6 +21,7 @@ import storm.trident.operation.impl.GlobalBatchToPartition;
 import storm.trident.operation.impl.ReducerAggStateUpdater;
 import storm.trident.operation.impl.IndexHashBatchToPartition;
 import storm.trident.operation.impl.SingleEmitAggregator.BatchToPartition;
+import storm.trident.operation.impl.TrueFilter;
 import storm.trident.partition.GlobalGrouping;
 import storm.trident.partition.IdentityGrouping;
 import storm.trident.partition.IndexHashGrouping;
@@ -94,7 +95,11 @@ public class Stream implements IAggregatableStream {
     }
     
     public Stream partition(Grouping grouping) {
-        return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, getOutputFields(), grouping));       
+        if(_node instanceof PartitionNode) {
+            return each(new Fields(), new TrueFilter()).partition(grouping);
+        } else {
+            return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, getOutputFields(), grouping));       
+        }
     }
     
     public Stream applyAssembly(Assembly assembly) {

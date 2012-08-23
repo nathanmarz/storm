@@ -12,6 +12,7 @@
  * Bug fix: Fix "fields size" error that would sometimes occur when splitting a stream with multiple eaches
  * Bug fix: Fix bug where a committer spout (including opaque spouts) could cause Trident processing to halt
  * Bug fix: Fix Trident bug where multiple groupings on same stream would cause tuples to be duplicate dto all consumers
+ * Bug fix: Fixed error when repartitioning stream twice in a row without any operations in between
 
 ## 0.8.0
 

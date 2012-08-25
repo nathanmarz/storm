@@ -99,10 +99,10 @@
                              {"2" :shuffle
                               "3" :shuffle}
                              (it/agg-bolt 4))}))]
-         (Testing/submitLocalTopology cluster
-                                      "test-acking2"
-                                      (Config.)
-                                      (.getTopology tracked))
+         (.submitTopology cluster
+                          "test-acking2"
+                          (Config.)
+                          (.getTopology tracked))
          (.feed feeder [1])
          (Testing/trackedWait tracked (int 1))
          (checker 0)
@@ -128,10 +128,10 @@
                          {"2" (thrift/mk-bolt-spec {"1" :global} it/ack-every-other)})
                storm-conf (doto (Config.)
                             (.put TOPOLOGY-MESSAGE-TIMEOUT-SECS 10))]      
-           (Testing/submitLocalTopology cluster
-                                        "timeout-tester"
-                                        storm-conf
-                                        topology)
+           (.submitTopology cluster
+                            "timeout-tester"
+                            storm-conf
+                            topology)
            (.feed feeder ["a"] 1)
            (.feed feeder ["b"] 2)
            (.feed feeder ["c"] 3)

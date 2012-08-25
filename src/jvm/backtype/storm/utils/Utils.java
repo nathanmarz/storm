@@ -342,13 +342,4 @@ public class Utils {
         buffer.get(ret, 0, ret.length);
         return ret;
     }
-    
-    public static List<Object> list(Object... objects) {
-    	List<Object> ret = new ArrayList<Object>();
-    	for (int i = 0; i < objects.length; i++) {
-    		ret.add(objects[i]);
-    	}
-    	
-    	return ret;
-    }
 }

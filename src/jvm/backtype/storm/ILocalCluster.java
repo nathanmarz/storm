@@ -25,5 +25,4 @@ public interface ILocalCluster {
     ClusterSummary getClusterInfo();
     TopologyInfo getTopologyInfo(String id);
     Map getState();
-    Object getNimbus();
 }

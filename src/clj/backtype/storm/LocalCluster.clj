@@ -54,5 +54,3 @@
 (defn -getState [this]
   (.state this))
 
-(defn -getNimbus [this]
-  (:nimbus (.state this)))

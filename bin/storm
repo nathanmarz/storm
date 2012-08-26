@@ -23,6 +23,7 @@ else:
     normclasspath = identity
 
 CONF_DIR = os.path.expanduser("~/.storm")
+ORIGINAL_CONFFILE = False
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 CONFIG_OPTS = []
 
@@ -55,6 +56,10 @@ def confvalue(name, extrapaths):
     command = [
         "java", "-client", get_config_opts(), "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
     ]
+    global ORIGINAL_CONFFILE
+    if ORIGINAL_CONFFILE:
+      global CONF_FILE
+      command.append(CONF_FILE)
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
     lines = output.split("\n")
@@ -382,6 +387,10 @@ def parse_config_opts(args):
     token = curr.pop()
     if token == "-c":
       config_list.append(curr.pop())
+    elif token == "-conffile":
+      global CONF_FILE, ORIGINAL_CONFFILE
+      ORIGINAL_CONFFILE = True
+      CONF_FILE = curr.pop()
     else:
       args_list.append(token)
   

@@ -382,20 +382,23 @@ def parse_config_opts(args):
   curr.reverse()
   config_list = []
   args_list = []
-  
+
   while len(curr) > 0:
     token = curr.pop()
     if token == "-c":
       config_list.append(curr.pop())
+    elif token == "-confdir":
+      global CONF_DIR
+      CONF_DIR = os.path.expanduser(curr.pop())
     elif token == "-conffile":
       global CONF_FILE, ORIGINAL_CONFFILE
       ORIGINAL_CONFFILE = True
       CONF_FILE = curr.pop()
     else:
       args_list.append(token)
-  
+
   return config_list, args_list
-    
+
 def main():
     if len(sys.argv) <= 1:
         print_usage()

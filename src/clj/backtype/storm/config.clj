@@ -62,8 +62,10 @@
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
 
-(defn read-storm-config []
-  (clojurify-structure (Utils/readStormConfig)))
+(defn read-storm-config
+  ([] (clojurify-structure (Utils/readStormConfig)))
+  ([file] (clojurify-structure (Utils/readStormConfig file))))
+
 
 (defn read-yaml-config [name]
   (clojurify-structure (Utils/findAndReadConfigFile name true)))

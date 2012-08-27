@@ -4,10 +4,11 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BasicBoltExecutor implements IRichBolt {
-    public static Logger LOG = Logger.getLogger(BasicBoltExecutor.class);    
+    public static Logger LOG = LoggerFactory.getLogger(BasicBoltExecutor.class);    
     
     private IBasicBolt _bolt;
     private transient BasicOutputCollector _collector;

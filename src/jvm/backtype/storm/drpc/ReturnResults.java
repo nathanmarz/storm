@@ -13,13 +13,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 
 public class ReturnResults extends BaseRichBolt {
-    public static final Logger LOG = Logger.getLogger(ReturnResults.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ReturnResults.class);
     OutputCollector _collector;
     boolean local;
 

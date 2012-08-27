@@ -80,12 +80,16 @@ public class SubtopologyBolt implements ITridentBatchBolt {
                     }
                 }
                 List<TupleReceiver> targets = new ArrayList();
+                boolean outgoingNode = false;
                 for(Node cn: TridentUtils.getChildren(_graph, n)) {
                     if(_nodes.contains(cn)) {
                         targets.add(((ProcessorNode) cn).processor);
                     } else {
-                        targets.add(new BridgeReceiver(batchCollector));
+                        outgoingNode = true;
                     }
+                }
+                if(outgoingNode) {
+                    targets.add(new BridgeReceiver(batchCollector));
                 }
                 
                 TridentContext triContext = new TridentContext(

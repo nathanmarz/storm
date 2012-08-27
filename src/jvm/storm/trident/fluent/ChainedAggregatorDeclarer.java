@@ -60,11 +60,16 @@ public class ChainedAggregatorDeclarer implements ChainedFullAggregatorDeclarer,
         Set<String> allInFields = new HashSet<String>();
         for(int i=0; i<_aggs.size(); i++) {
             AggSpec spec = _aggs.get(i);
-            inputFields[i] = spec.inFields;
+            Fields infields = spec.inFields;
+            if(infields==null) infields = new Fields();
+            Fields outfields = spec.outFields;
+            if(outfields==null) outfields = new Fields();
+
+            inputFields[i] = infields;
             aggs[i] = spec.agg;
-            outSizes[i] = spec.outFields.size();  
-            allOutFields.addAll(spec.outFields.toList());
-            allInFields.addAll(spec.inFields.toList());
+            outSizes[i] = outfields.size();  
+            allOutFields.addAll(outfields.toList());
+            allInFields.addAll(infields.toList());
         }
         if(new HashSet(allOutFields).size() != allOutFields.size()) {
             throw new IllegalArgumentException("Output fields for chained aggregators must be distinct: " + allOutFields.toString());

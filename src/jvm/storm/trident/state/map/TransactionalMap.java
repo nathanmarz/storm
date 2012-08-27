@@ -1,14 +1,15 @@
 package storm.trident.state.map;
 
-import java.util.ArrayList;
-import java.util.List;
 import storm.trident.state.TransactionalValue;
 import storm.trident.state.ValueUpdater;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class TransactionalMap<T> implements MapState<T> {
-    public static MapState build(IBackingMap<TransactionalValue> backing) {
-        return new CachedBatchReadsMap(new TransactionalMap(backing));
+    public static <T> MapState<T> build(IBackingMap<TransactionalValue> backing) {
+        return new CachedBatchReadsMap<T>(new TransactionalMap<T>(backing));
     }
     
     IBackingMap<TransactionalValue> _backing;
@@ -24,7 +25,7 @@ public class TransactionalMap<T> implements MapState<T> {
         List<T> ret = new ArrayList<T>(vals.size());
         for(TransactionalValue v: vals) {
             if(v!=null) {
-                ret.add((T) v.getVal());            
+                ret.add((T) v.getVal());
             } else {
                 ret.add(null);
             }
@@ -35,22 +36,22 @@ public class TransactionalMap<T> implements MapState<T> {
     @Override
     public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
         List<TransactionalValue> curr = _backing.multiGet(keys);
-        List<TransactionalValue> newVals = new ArrayList(curr.size());
-        List<T> ret = new ArrayList();
+        List<TransactionalValue> newVals = new ArrayList<TransactionalValue>(curr.size());
+        List<T> ret = new ArrayList<T>();
         for(int i=0; i<curr.size(); i++) {
-            TransactionalValue val = curr.get(i);
-            ValueUpdater updater = updaters.get(i);
-            TransactionalValue newVal;
+            TransactionalValue<T> val = curr.get(i);
+            ValueUpdater<T> updater = updaters.get(i);
+            TransactionalValue<T> newVal;
             if(val==null) {
-                newVal = new TransactionalValue(_currTx, updater.update(null));
+                newVal = new TransactionalValue<T>(_currTx, updater.update(null));
             } else {
                 if(_currTx!=null && _currTx.equals(val.getTxid())) {
                     newVal = val;
                 } else {
-                    newVal = new TransactionalValue(_currTx, updater.update(val.getVal()));
+                    newVal = new TransactionalValue<T>(_currTx, updater.update(val.getVal()));
                 }    
             }
-            ret.add((T)newVal.getVal());
+            ret.add(newVal.getVal());
             newVals.add(newVal);
         }
         _backing.multiPut(keys, newVals);
@@ -61,7 +62,7 @@ public class TransactionalMap<T> implements MapState<T> {
     public void multiPut(List<List<Object>> keys, List<T> vals) {
         List<TransactionalValue> newVals = new ArrayList<TransactionalValue>(vals.size());
         for(T val: vals) {
-            newVals.add(new TransactionalValue(_currTx, val));
+            newVals.add(new TransactionalValue<T>(_currTx, val));
         }
         _backing.multiPut(keys, newVals);
     }

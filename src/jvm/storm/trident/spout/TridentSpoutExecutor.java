@@ -48,7 +48,6 @@ public class TridentSpoutExecutor implements ITridentBatchBolt {
         // there won't be a BatchInfo for the success stream
         TransactionAttempt attempt = (TransactionAttempt) input.getValue(0);
         if(input.getSourceStreamId().equals(MasterBatchCoordinator.COMMIT_STREAM_ID)) {
-            _collector.setBatch(info.batchId);
             if(attempt.equals(_activeBatches.get(attempt.getTransactionId()))) {
                 ((ICommitterTridentSpout.Emitter) _emitter).commit(attempt);
                 _activeBatches.remove(attempt.getTransactionId());

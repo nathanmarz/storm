@@ -50,7 +50,7 @@ public class LRUMemoryMapState<T> implements IBackingMap<T> {
 
     @Override
     public List<T> multiGet(List<List<Object>> keys) {
-        List<T> ret = new ArrayList();
+        List<T> ret = new ArrayList<T>();
         for(List<Object> key: keys) {
             ret.add(db.get(key));
         }

@@ -83,12 +83,14 @@ public class TridentTopologyBuilder {
         return coordId.substring(SPOUT_COORD_PREFIX.length());
     }
     
-    Map<GlobalStreamId, String> fleshOutStreamBatchIds() {
+    Map<GlobalStreamId, String> fleshOutStreamBatchIds(boolean includeCommitStream) {
         Map<GlobalStreamId, String> ret = new HashMap<GlobalStreamId, String>(_batchIds);
         Set<String> allBatches = new HashSet(_batchIds.values());
         for(String b: allBatches) {
             ret.put(new GlobalStreamId(masterCoordinator(b), MasterBatchCoordinator.BATCH_STREAM_ID), b);
-            ret.put(new GlobalStreamId(masterCoordinator(b), MasterBatchCoordinator.COMMIT_STREAM_ID), b);
+            if(includeCommitStream) {
+                ret.put(new GlobalStreamId(masterCoordinator(b), MasterBatchCoordinator.COMMIT_STREAM_ID), b);
+            }
             // DO NOT include the success stream as part of the batch. it should not trigger coordination tuples,
             // and is just a metadata tuple to assist in cleanup, should not trigger batch tracking
         }
@@ -111,7 +113,8 @@ public class TridentTopologyBuilder {
     
     public StormTopology buildTopology() {        
         TopologyBuilder builder = new TopologyBuilder();
-        Map<GlobalStreamId, String> batchIds = fleshOutStreamBatchIds();
+        Map<GlobalStreamId, String> batchIdsForSpouts = fleshOutStreamBatchIds(false);
+        Map<GlobalStreamId, String> batchIdsForBolts = fleshOutStreamBatchIds(true);
 
         Map<String, List<String>> batchesToCommitIds = new HashMap<String, List<String>>();
         Map<String, List<ITridentSpout>> batchesToSpouts = new HashMap<String, List<ITridentSpout>>();
@@ -152,7 +155,7 @@ public class TridentTopologyBuilder {
                             c.commitStateId,
                             c.streamName,
                             ((ITridentSpout) c.spout)),
-                            batchIds,
+                            batchIdsForSpouts,
                             specs),
                         c.parallelism);
                 bd.allGrouping(spoutCoordinator(id), MasterBatchCoordinator.BATCH_STREAM_ID);
@@ -186,7 +189,7 @@ public class TridentTopologyBuilder {
             Map<String, CoordSpec> specs = new HashMap();
             
             for(GlobalStreamId s: getBoltSubscriptionStreams(id)) {
-                String batch = batchIds.get(s);
+                String batch = batchIdsForBolts.get(s);
                 if(!specs.containsKey(batch)) specs.put(batch, new CoordSpec());
                 CoordSpec spec = specs.get(batch);
                 CoordType ct;
@@ -202,7 +205,7 @@ public class TridentTopologyBuilder {
                 specs.get(b).commitStream = new GlobalStreamId(masterCoordinator(b), MasterBatchCoordinator.COMMIT_STREAM_ID);
             }
             
-            BoltDeclarer d = builder.setBolt(id, new TridentBoltExecutor(c.bolt, batchIds, specs), c.parallelism);
+            BoltDeclarer d = builder.setBolt(id, new TridentBoltExecutor(c.bolt, batchIdsForBolts, specs), c.parallelism);
             for(Map conf: c.componentConfs) {
                 d.addConfigurations(conf);
             }

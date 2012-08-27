@@ -17,14 +17,14 @@ public class OpaqueValue<T> {
         this(currTxid, val, null);
     }
     
-    public OpaqueValue update(Long batchTxid, T newVal) {
+    public OpaqueValue<T> update(Long batchTxid, T newVal) {
         T prev;
         if(batchTxid!=null && batchTxid.equals(this.currTxid)) {
             prev = this.prev;
         } else {
             prev = this.curr;
         }
-        return new OpaqueValue(batchTxid, newVal, prev);
+        return new OpaqueValue<T>(batchTxid, newVal, prev);
     }
     
     public T get(Long batchTxid) {

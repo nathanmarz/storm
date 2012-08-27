@@ -1,14 +1,14 @@
 package storm.trident.state.map;
 
+import storm.trident.state.ValueUpdater;
+
 import java.util.ArrayList;
 import java.util.List;
-import storm.trident.state.TransactionalValue;
-import storm.trident.state.ValueUpdater;
 
 
 public class NonTransactionalMap<T> implements MapState<T> {
-    public static MapState build(IBackingMap<TransactionalValue> backing) {
-        return new NonTransactionalMap(backing);
+    public static <T> MapState<T> build(IBackingMap<T> backing) {
+        return new NonTransactionalMap<T>(backing);
     }
     
     IBackingMap<T> _backing;
@@ -25,11 +25,11 @@ public class NonTransactionalMap<T> implements MapState<T> {
     @Override
     public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
         List<T> curr = _backing.multiGet(keys);
-        List<T> ret = new ArrayList(curr.size());
+        List<T> ret = new ArrayList<T>(curr.size());
         for(int i=0; i<curr.size(); i++) {
             T currVal = curr.get(i);
-            ValueUpdater updater = updaters.get(i);
-            ret.add((T) updater.update(currVal));
+            ValueUpdater<T> updater = updaters.get(i);
+            ret.add(updater.update(currVal));
         }
         _backing.multiPut(keys, ret);
         return ret;

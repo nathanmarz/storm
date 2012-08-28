@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.serialization.types.ArrayListSerializer;
+import backtype.storm.serialization.types.ByteBufferSerializer;
 import backtype.storm.serialization.types.HashMapSerializer;
 import backtype.storm.serialization.types.HashSetSerializer;
 import backtype.storm.transactional.TransactionAttempt;
@@ -15,6 +16,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers.BigIntegerSerializer;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +58,10 @@ public class SerializationFactory {
         k.register(BigInteger.class, new BigIntegerSerializer());
         k.register(TransactionAttempt.class);
         k.register(Values.class);
+        k.register(ByteBuffer.class, new ByteBufferSerializer());
         try {
+            k.register(Class.forName("java.nio.HeapByteBuffer"), new ByteBufferSerializer());
+            k.register(Class.forName("java.nio.HeapByteBufferR"), new ByteBufferSerializer());
             JavaBridge.registerPrimitives(k);
             JavaBridge.registerCollections(k);
         } catch(Exception e) {

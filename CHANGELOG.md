@@ -11,7 +11,7 @@
  * Bug fix: Fix IndexOutOfBoundsExceptions when a bolt for global aggregation had a parallelism greater than 1 (possible with splitting, stateQuerying, and multiReduce)
  * Bug fix: Fix "fields size" error that would sometimes occur when splitting a stream with multiple eaches
  * Bug fix: Fix bug where a committer spout (including opaque spouts) could cause Trident processing to halt
- * Bug fix: Fix Trident bug where multiple groupings on same stream would cause tuples to be duplicate dto all consumers
+ * Bug fix: Fix Trident bug where multiple groupings on same stream would cause tuples to be duplicated to all consumers
  * Bug fix: Fixed error when repartitioning stream twice in a row without any operations in between
  * Bug fix: Fix rare bug in supervisor where it would continuously fail to clean up workers because the worker was already partially cleaned up
 

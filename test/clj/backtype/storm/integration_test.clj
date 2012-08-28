@@ -370,6 +370,29 @@
 ;;       (Thread/sleep 10000)
 ;;       )))
 
+(deftest test-kryo-decorators-config
+  (with-simulated-time-local-cluster [cluster
+                                      :daemon-conf {TOPOLOGY-OPTIMIZE false
+                                                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
+                                                    TOPOLOGY-KRYO-DECORATORS ["this-is-overriden"]}]
+    (letlocals
+     (bind builder (TopologyBuilder.))
+     (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
+     (-> builder
+         (.setBolt "2"
+                   (TestConfBolt.
+                    {TOPOLOGY-KRYO-DECORATORS ["one" "two"]}))
+         (.shuffleGrouping "1"))
+     
+     (bind results
+           (complete-topology cluster
+                              (.createTopology builder)
+                              :storm-conf {TOPOLOGY-KRYO-DECORATORS ["one" "three"]}
+                              :mock-sources {"1" [[TOPOLOGY-KRYO-DECORATORS]]}))
+     (is (= {"topology.kryo.decorators" (list "one" "two" "three")}            
+            (->> (read-tuples results "2")
+                 (apply concat)
+                 (apply hash-map)))))))
 
 (deftest test-component-specific-config
   (with-simulated-time-local-cluster [cluster

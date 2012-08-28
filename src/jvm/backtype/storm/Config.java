@@ -373,6 +373,14 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
 
     /**
+     * A list of classes that customize storm's kryo instance during start-up.
+     * Each listed class name must implement IKryoDecorator. During start-up the 
+     * listed class is instantiated with 0 arguments, then its 'decorate' method 
+     * is called with storm's kryo instance as the only argument.
+     */
+    public static String TOPOLOGY_KRYO_DECORATORS = "topology.kryo.decorators";
+
+    /**
      * Whether or not Storm should skip the loading of kryo registrations for which it
      * does not know the class or have the serializer implementation. Otherwise, the task will
      * fail to load and will throw an error at runtime. The use case of this is if you want to
@@ -556,7 +564,7 @@ public class Config extends HashMap<String, Object> {
         register.put(klass.getName(), serializerClass.getName());
         getRegisteredSerializations().add(register);        
     }
-    
+
     public void setSkipMissingKryoRegistrations(boolean skip) {
         put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
     }

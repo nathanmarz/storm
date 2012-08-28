@@ -88,6 +88,27 @@ public class SerializationFactory {
             }
         }
         k.overrideDefault(true);
+
+        if (conf.get(Config.TOPOLOGY_KRYO_DECORATORS) != null) {
+            for(String klassName : (List<String>)conf.get(Config.TOPOLOGY_KRYO_DECORATORS)) {
+                try {
+                    Class klass = Class.forName(klassName);
+                    IKryoDecorator decorator = (IKryoDecorator)klass.newInstance();
+                    decorator.decorate(k);
+                } catch(ClassNotFoundException e) {
+                    if(skipMissing) {
+                        LOG.info("Could not find kryo decorator named " + klassName + ". Skipping registration...");
+                    } else {
+                        throw new RuntimeException(e);
+                    }
+                } catch(InstantiationException e) {
+                    throw new RuntimeException(e);
+                } catch(IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } 
+            }
+        }
+        
         return k;   
     }
     

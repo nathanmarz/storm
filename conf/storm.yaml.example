@@ -13,6 +13,10 @@
 #     - org.mycompany.MyType
 #     - org.mycompany.MyType2: org.mycompany.MyType2Serializer
 #
+## List of custom kryo decorators
+# topology.kryo.decorators:
+#     - org.mycompany.MyDecorator
+#
 ## Locations of the drpc servers
 # drpc.servers:
 #     - "server1"

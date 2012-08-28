@@ -768,24 +768,27 @@
 (defn normalize-conf [conf storm-conf ^StormTopology topology]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
-  (let [base-sers (storm-conf TOPOLOGY-KRYO-REGISTER)
-        base-sers (if base-sers base-sers (conf TOPOLOGY-KRYO-REGISTER))
-        component-sers (mapcat                        
-                        #(-> (ThriftTopologyUtils/getComponentCommon topology %)
-                             .get_json_conf
-                             from-json
-                             (get TOPOLOGY-KRYO-REGISTER))
-                        (ThriftTopologyUtils/getComponentIds topology))
-        total-conf (merge conf storm-conf)]
+  (let [component-confs (map
+                         #(-> (ThriftTopologyUtils/getComponentCommon topology %)
+                              .get_json_conf
+                              from-json)
+                         (ThriftTopologyUtils/getComponentIds topology))
+        total-conf (merge conf storm-conf)
+
+        get-merged-conf-val (fn [k merge-fn]
+                              (merge-fn
+                               (concat
+                                (mapcat #(get % k) component-confs)
+                                (or (get storm-conf k)
+                                    (get conf k)))))]
     ;; topology level serialization registrations take priority
     ;; that way, if there's a conflict, a user can force which serialization to use
+    ;; append component conf to storm-conf
     (merge storm-conf
-           {TOPOLOGY-KRYO-REGISTER (merge (mapify-serializations component-sers)
-                                          (mapify-serializations base-sers))
+           {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)
+            TOPOLOGY-KRYO-REGISTER (get-merged-conf-val TOPOLOGY-KRYO-REGISTER mapify-serializations)
             TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
-            TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-            })
-    ))
+            TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})))
 
 (defn do-cleanup [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)

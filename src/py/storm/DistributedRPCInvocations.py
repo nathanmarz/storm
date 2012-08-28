@@ -227,7 +227,7 @@ class result_args:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.result = iprot.readString().decode('utf-8')
+          self.result = iprot.readString();
         else:
           iprot.skip(ftype)
       else:
@@ -246,7 +246,7 @@ class result_args:
       oprot.writeFieldEnd()
     if self.result is not None:
       oprot.writeFieldBegin('result', TType.STRING, 2)
-      oprot.writeString(self.result.encode('utf-8'))
+      oprot.writeString(self.result)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

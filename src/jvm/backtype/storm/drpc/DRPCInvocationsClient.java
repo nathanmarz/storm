@@ -8,6 +8,10 @@ import org.apache.thrift7.transport.TFramedTransport;
 import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.*;
+
 public class DRPCInvocationsClient implements DistributedRPCInvocations.Iface {
     private TTransport conn;
     private DistributedRPCInvocations.Client client;
@@ -38,10 +42,33 @@ public class DRPCInvocationsClient implements DistributedRPCInvocations.Iface {
         return port;
     }       
 
-    public void result(String id, String result) throws TException {
+    public void result(String id, ByteBuffer result) throws TException {
         try {
             if(client==null) connect();
             client.result(id, result);
+        } catch(TException e) {
+            client = null;
+            throw e;
+        }
+    }
+
+    /**
+    * Overloaded method which accepts a string as a result and converts it to a ByteBuffer in the background
+    **/
+    public void result(String id, String result) throws TException, java.nio.charset.CharacterCodingException {
+        try {
+            if(client==null) connect();
+
+            Charset charset = Charset.defaultCharset();    
+
+            CharsetEncoder encoder = charset.newEncoder();
+
+            ByteBuffer binaryResult = encoder.encode( CharBuffer.wrap( result ) );
+
+            client.result(id, binaryResult);
+        } catch( java.nio.charset.CharacterCodingException e ) {
+            client = null;
+            throw e;
         } catch(TException e) {
             client = null;
             throw e;

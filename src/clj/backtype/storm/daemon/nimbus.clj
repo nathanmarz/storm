@@ -783,7 +783,6 @@
                                     (get conf k)))))]
     ;; topology level serialization registrations take priority
     ;; that way, if there's a conflict, a user can force which serialization to use
-    ;; ABA = AB
     ;; append component conf to storm-conf
     (merge storm-conf
            {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)

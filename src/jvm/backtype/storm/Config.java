@@ -373,6 +373,11 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
 
     /**
+     * JTODO
+     */
+    public static String TOPOLOGY_KRYO_DECORATORS = "topology.kryo.decorators";
+
+    /**
      * Whether or not Storm should skip the loading of kryo registrations for which it
      * does not know the class or have the serializer implementation. Otherwise, the task will
      * fail to load and will throw an error at runtime. The use case of this is if you want to
@@ -556,6 +561,10 @@ public class Config extends HashMap<String, Object> {
         register.put(klass.getName(), serializerClass.getName());
         getRegisteredSerializations().add(register);        
     }
+
+    public void registerKryoDecorator(Class klass) {
+        getRegisteredKryoDecorators().add(klass.getName());
+    }
     
     public void setSkipMissingKryoRegistrations(boolean skip) {
         put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
@@ -582,5 +591,12 @@ public class Config extends HashMap<String, Object> {
             put(Config.TOPOLOGY_KRYO_REGISTER, new ArrayList());
         }
         return (List) get(Config.TOPOLOGY_KRYO_REGISTER);
+    }
+
+    private List getRegisteredKryoDecorators() {
+        if(!containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {
+            put(Config.TOPOLOGY_KRYO_DECORATORS, new ArrayList());
+        }
+        return (List) get(Config.TOPOLOGY_KRYO_DECORATORS);
     }
 }

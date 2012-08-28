@@ -31,14 +31,16 @@
    (is (thrown? Exception
      (roundtrip [obj] {TOPOLOGY-KRYO-REGISTER {"backtype.storm.testing.TestSerObject" nil}
                        TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false})))
-   (= [obj] (roundtrip [obj] {TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION true}))
-   ))
+   (is (= [obj] (roundtrip [obj] {TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION true})))))
 
 (deftest test-kryo-decorator
   (letlocals
    (bind obj (TestSerObject. 1 2))
-   (= [obj] (roundtrip [obj] {TOPOLOGY-KRYO-DECORATORS ["backtype.storm.testing.TestKryoDecorator"]
-                              TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false}))))
+   (is (thrown? Exception
+                (roundtrip [obj] {TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false})))
+   
+   (is (= [obj] (roundtrip [obj] {TOPOLOGY-KRYO-DECORATORS ["backtype.storm.testing.TestKryoDecorator"]
+                                  TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false})))))
 
 (defn mk-string [size]
   (let [builder (StringBuilder.)]

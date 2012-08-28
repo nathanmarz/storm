@@ -373,7 +373,10 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
 
     /**
-     * JTODO
+     * A list of classes that customize storm's kryo instance during start-up.
+     * Each listed class name must implement IKryoDecorator. During start-up the 
+     * listed class is instantiated with 0 arguments, then its 'decorate' method 
+     * is called with storm's kryo instance as the only argument.
      */
     public static String TOPOLOGY_KRYO_DECORATORS = "topology.kryo.decorators";
 
@@ -562,10 +565,6 @@ public class Config extends HashMap<String, Object> {
         getRegisteredSerializations().add(register);        
     }
 
-    public void registerKryoDecorator(Class klass) {
-        getRegisteredKryoDecorators().add(klass.getName());
-    }
-    
     public void setSkipMissingKryoRegistrations(boolean skip) {
         put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
     }
@@ -591,12 +590,5 @@ public class Config extends HashMap<String, Object> {
             put(Config.TOPOLOGY_KRYO_REGISTER, new ArrayList());
         }
         return (List) get(Config.TOPOLOGY_KRYO_REGISTER);
-    }
-
-    private List getRegisteredKryoDecorators() {
-        if(!containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {
-            put(Config.TOPOLOGY_KRYO_DECORATORS, new ArrayList());
-        }
-        return (List) get(Config.TOPOLOGY_KRYO_DECORATORS);
     }
 }

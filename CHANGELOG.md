@@ -14,6 +14,7 @@
  * Bug fix: Fix Trident bug where multiple groupings on same stream would cause tuples to be duplicated to all consumers
  * Bug fix: Fixed error when repartitioning stream twice in a row without any operations in between
  * Bug fix: Fix rare bug in supervisor where it would continuously fail to clean up workers because the worker was already partially cleaned up
+ * Bug fix: Fix emitDirect in storm.py
 
 ## 0.8.0
 

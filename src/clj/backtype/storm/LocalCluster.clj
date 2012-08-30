@@ -1,5 +1,5 @@
 (ns backtype.storm.LocalCluster
-  (:use [backtype.storm testing])
+  (:use [backtype.storm testing config])
   (:gen-class
    :init init
    :implements [backtype.storm.ILocalCluster]
@@ -7,7 +7,7 @@
    :state state ))
 
 (defn -init []
-  (let [ret (mk-local-storm-cluster)]
+  (let [ret (mk-local-storm-cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true})]
     [[] ret]
     ))
 

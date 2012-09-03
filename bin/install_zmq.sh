@@ -20,6 +20,8 @@ cd zeromq-2.1.7
 make
 sudo make install
 
+cd ../
+
 #install jzmq (both native and into local maven cache)
 git clone https://github.com/nathanmarz/jzmq.git
 cd jzmq

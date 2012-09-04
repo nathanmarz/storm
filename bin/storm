@@ -396,7 +396,6 @@ def main():
         sys.exit(-1)
     global CONFIG_OPTS
     config_list, args = parse_config_opts(sys.argv[1:])
-    import pdb; pdb.set_trace()
     parse_config(config_list)
     COMMAND = args[0]
     ARGS = args[1:]

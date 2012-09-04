@@ -52,12 +52,22 @@ public class Fields implements Iterable<String>, Serializable {
         return _fields.iterator();
     }
     
+    /**
+     * Returns the position of the specified field.
+     */
     public int fieldIndex(String field) {
         Integer ret = _index.get(field);
         if(ret==null) {
             throw new IllegalArgumentException(field + " does not exist");
         }
         return ret;
+    }
+    
+    /**
+     * Returns true if this contains the specified name of the field.
+     */
+    public boolean contains(String field) {
+        return _index.containsKey(field);
     }
     
     private void index() {

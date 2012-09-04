@@ -26,6 +26,10 @@
         (is (= (.fieldIndex fields "foo") 0))
         (is (= (.fieldIndex fields "bar") 1))
         (is (thrown? IllegalArgumentException (.fieldIndex fields "baz"))))
+      (testing ".contains"
+        (is (= (.contains fields "foo") true))
+        (is (= (.contains fields "bar") true))
+        (is (= (.contains fields "baz") false)))
       (testing ".toList"
         (is (instance? List (.toList fields)))
         (is (= (count (.toList fields)) 2))

@@ -21,7 +21,15 @@ public interface Tuple {
      */
     public int size();
     
+    /**
+     * Returns the position of the specified field in this tuple.
+     */
     public int fieldIndex(String field);
+    
+    /**
+     * Returns true if this tuple contains the specified name of the field.
+     */
+    public boolean contains(String field);
     
     /**
      * Gets the field at position i in the tuple. Returns object since tuples are dynamically typed.
@@ -139,5 +147,8 @@ public interface Tuple {
      */
     public String getSourceStreamId();
     
+    /**
+     * Gets the message id that associated with this tuple.
+     */
     public MessageId getMessageId();
 }

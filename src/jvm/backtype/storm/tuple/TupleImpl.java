@@ -74,6 +74,10 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
         return getFields().fieldIndex(field);
     }
     
+    public boolean contains(String field) {
+        return getFields().contains(field);
+    }
+    
     public Object getValue(int i) {
         return values.get(i);
     }

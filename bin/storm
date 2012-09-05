@@ -4,7 +4,6 @@ import os
 import sys
 import random
 import subprocess as sub
-import getopt
 import re
 
 def identity(x):
@@ -25,6 +24,9 @@ else:
 CONF_DIR = os.path.expanduser("~/.storm")
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 CONFIG_OPTS = []
+
+def get_jvm_opts():
+    return os.environ("JVM_OPTS", "")
 
 def get_config_opts():
     global CONFIG_OPTS
@@ -105,7 +107,8 @@ def parse_args(string):
 
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
     all_args = [
-        "java", jvmtype, get_config_opts(),
+        "java", jvmtype, get_jvm_opts(), get_config_opts(),
+        "-Djava.net.preferIPv4Stack=true",  # default ipv4
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-cp", get_classpath(extrajars),

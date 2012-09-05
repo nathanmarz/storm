@@ -26,7 +26,7 @@ STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 CONFIG_OPTS = []
 
 def get_jvm_opts():
-    return os.environ("JVM_OPTS", "")
+    return os.environ.get("JVM_OPTS", "")
 
 def get_config_opts():
     global CONFIG_OPTS
@@ -37,7 +37,7 @@ if not os.path.exists(STORM_DIR + "/RELEASE"):
     print "The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code."
     print "\nYou can download a Storm release at https://github.com/nathanmarz/storm/downloads"
     print "******************************************"
-    sys.exit(1)  
+    # sys.exit(1)  
 
 def get_jars_full(adir):
     files = os.listdir(adir)

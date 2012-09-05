@@ -1,5 +1,6 @@
 ## Unreleased
 
+ * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology
  * Changed log level of "Failed message" logging to DEBUG
  * Deprecated LinearDRPCTopologyBuilder, TimeCacheMap, and transactional topologies
  * During "storm jar", whether topology is already running or not is checked before submitting jar to save time (thanks jasonjckn)

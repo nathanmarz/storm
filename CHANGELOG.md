@@ -7,6 +7,7 @@
  * Added Negate builtin operation to reverse a Filter
  * Added topology.kryo.decorators config that allows functions to be plugged in to customize Kryo (thanks jasonjckn)
  * Enable message timeouts when using LocalCluster
+ * Add contains method on Tuple (thanks okapies)
  * Bug fix: When an item is consumed off an internal buffer, the entry on the buffer is nulled to allow GC to happen on that data
  * Bug fix: Helper class for Trident MapStates now clear their read cache when a new commit happens, preventing updates from spilling over from a failed batch attempt to the next attempt
  * Bug fix: Fix NonTransactionalMap to take in an IBackingMap for regular values rather than TransactionalValue (thanks sjoerdmulder)

@@ -30,8 +30,8 @@
              ^:static [trackedWait [backtype.storm.testing.TrackedTopology Integer] void]
              ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer Integer] void]
              ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer] void]
-             ^:static [eq [java.util.Collection java.util.Collection] boolean]
-             ^:static [eq [java.util.Map java.util.Map] boolean]]))
+             ^:static [multiseteq [java.util.Collection java.util.Collection] boolean]
+             ^:static [multiseteq [java.util.Map java.util.Map] boolean]]))
 
 (defn -completeTopology
   ([^ILocalCluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
@@ -112,13 +112,13 @@
   ([^ILocalCluster cluster ^Integer secs]
       (-advanceClusterTime cluster secs 1)))
 
-(defn- eq [^Object obj1 ^Object obj2]
+(defn- multiseteq [^Object obj1 ^Object obj2]
   (let [obj1 (clojurify-structure obj1)
         obj2 (clojurify-structure obj2)]
     (ms= obj1 obj2)))
 
-(defn -eq [^Collection coll1 ^Collection coll2]
-     (eq coll1 coll2))
+(defn -multiseteq [^Collection coll1 ^Collection coll2]
+     (multiseteq coll1 coll2))
 
-(defn -eq [^Map coll1 ^Map coll2]
-  (eq coll1 coll2))
+(defn -multiseteq [^Map coll1 ^Map coll2]
+  (multiseteq coll1 coll2))

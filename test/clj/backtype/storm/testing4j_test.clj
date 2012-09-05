@@ -74,14 +74,14 @@
                results (Testing/completeTopology cluster
                                                  topology
                                                  complete-topology-param)]
-           (is (Testing/eq [["nathan"] ["bob"] ["joey"] ["nathan"]]
+           (is (Testing/multiseteq [["nathan"] ["bob"] ["joey"] ["nathan"]]
                            (Testing/readTuples results "1")))
-           #_(is (ms= [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
-                      (read-tuples results "2")))
-           #_(is (= [[1] [2] [3] [4]]
-                    (read-tuples results "3")))
-           #_(is (= [[1] [2] [3] [4]]
-                    (read-tuples results "4")))
+           (is (Testing/multiseteq [["nathan" 1] ["nathan" 2] ["bob" 1] ["joey" 1]]
+                           (read-tuples results "2")))
+           (is (= [[1] [2] [3] [4]]
+                  (Testing/readTuples results "3")))
+           (is (= [[1] [2] [3] [4]]
+                  (Testing/readTuples results "4")))
            ))))))
 
 (deftest test-with-tracked-cluster

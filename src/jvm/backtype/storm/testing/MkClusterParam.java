@@ -1,6 +1,6 @@
 package backtype.storm.testing;
 
-import backtype.storm.Config;
+import java.util.Map;
 
 /**
  * The param arg for <code>Testing.withSimulatedTimeCluster</code> and <code>Testing.withTrackedCluster</code>
@@ -17,7 +17,7 @@ public class MkClusterParam {
 	/**
 	 * cluster config
 	 */
-	private Config daemonConf;
+	private Map daemonConf;
 	
 	public Integer getSupervisors() {
 		return supervisors;
@@ -31,10 +31,10 @@ public class MkClusterParam {
 	public void setPortsPerSupervisor(Integer portsPerSupervisor) {
 		this.portsPerSupervisor = portsPerSupervisor;
 	}
-	public Config getDaemonConf() {
+	public Map getDaemonConf() {
 		return daemonConf;
 	}
-	public void setDaemonConf(Config daemonConf) {
+	public void setDaemonConf(Map daemonConf) {
 		this.daemonConf = daemonConf;
 	}
 }

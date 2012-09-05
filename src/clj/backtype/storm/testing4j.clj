@@ -38,7 +38,7 @@
      (let [mocked-sources (or (-> completeTopologyParam .getMockedSources .getData) {})
            storm-conf (or (.getStormConf completeTopologyParam) {})
            cleanup-state (or (.getCleanupState completeTopologyParam) true)
-           topology-name (or (.getTopologyName completeTopologyParam))]
+           topology-name (.getTopologyName completeTopologyParam)]
        (complete-topology (.getState cluster) topology
                           :mock-sources mocked-sources
                           :storm-conf storm-conf

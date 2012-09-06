@@ -808,3 +808,8 @@
             ^List curr (get-with-default ret key (ArrayList.))]
         (.add curr e)))
     ret ))
+
+(defn new-instance [klass]
+  (let [klass (if (string? klass) (Class/forName klass) klass)]
+    (.newInstance klass)
+    ))

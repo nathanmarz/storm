@@ -10,7 +10,7 @@
                      RotatingMap RotatingMap$ExpiredCallback
                      BufferFileInputStream
                      RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
-                     MutableObject]))
+                     MutableObject MutableLong]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple TupleImpl Fields MessageId]))

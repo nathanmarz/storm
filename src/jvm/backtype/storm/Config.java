@@ -412,6 +412,20 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
     
     /**
+     * A class that implements a strategy for what to do when a spout needs to wait. Waiting is
+     * triggered in one of two conditions:
+     * 
+     * 1. nextTuple emits no tuples
+     * 2. The spout has hit maxSpoutPending and can't emit any more tuples
+     */
+    public static String TOPOLOGY_SPOUT_WAIT_STRATEGY="topology.spout.wait.strategy"; 
+
+    /**
+     * The amount of milliseconds the SleepEmptyEmitStrategy should sleep for.
+     */
+    public static String TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS="topology.sleep.spout.wait.strategy.time.ms";     
+    
+    /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
      */

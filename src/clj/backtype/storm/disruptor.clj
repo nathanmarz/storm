@@ -25,7 +25,7 @@
 (defn- mk-wait-strategy [spec]
   (if (keyword? spec)
     ((WAIT-STRATEGY spec))
-    (-> (str spec) Class/forName .newInstance)
+    (-> (str spec) new-instance)
     ))
 
 ;; :block strategy requires using a timeout on waitFor (implemented in DisruptorQueue), as sometimes the consumer stays blocked even when there's an item on the queue.

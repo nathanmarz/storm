@@ -47,7 +47,7 @@
                   
                   (conf STORM-SCHEDULER)
                   (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
-                      (-> (conf STORM-SCHEDULER) (Class/forName) .newInstance))
+                      (-> (conf STORM-SCHEDULER) new-instance))
                   
                   :else
                   (do (log-message "Using default scheduler")

@@ -3,6 +3,7 @@
   (:use [backtype.storm bootstrap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
+  (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
               EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]])
@@ -128,6 +129,8 @@
                         TOPOLOGY-MAX-TASK-PARALLELISM
                         TOPOLOGY-TRANSACTIONAL-ID
                         TOPOLOGY-TICK-TUPLE-FREQ-SECS
+                        TOPOLOGY-SLEEP-SPOUT-WAIT-STRATEGY-TIME-MS
+                        TOPOLOGY-SPOUT-WAIT-STRATEGY
                         )
         spec-conf (-> general-context
                       (.getComponentCommon component-id)
@@ -319,9 +322,16 @@
   (let [p (storm-conf TOPOLOGY-MAX-SPOUT-PENDING)]
     (if p (* p num-tasks))))
 
+(defn init-spout-wait-strategy [storm-conf]
+  (let [ret (-> storm-conf (get TOPOLOGY-SPOUT-WAIT-STRATEGY) new-instance)]
+    (.prepare ret storm-conf)
+    ret
+    ))
+
 (defmethod mk-threads :spout [executor-data task-datas]
   (let [wait-fn (fn [] @(:storm-active-atom executor-data))
         storm-conf (:storm-conf executor-data)
+        ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
         last-active (atom false)
         component-id (:component-id executor-data)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
@@ -360,12 +370,15 @@
                                 ))))
         receive-queue (:receive-queue executor-data)
         event-handler (mk-task-receiver executor-data tuple-action-fn)
-        has-ackers? (has-ackers? storm-conf)]
+        has-ackers? (has-ackers? storm-conf)
+        emitted-count (MutableLong. 0)
+        empty-emit-streak (MutableLong. 0)]
     (log-message "Opening spout " component-id ":" (keys task-datas))
     (doseq [[task-id task-data] task-datas
             :let [^ISpout spout-obj (:object task-data)
                   tasks-fn (:tasks-fn task-data)
                   send-spout-msg (fn [out-stream-id values message-id out-task-id]
+                                   (.increment emitted-count)
                                    (let [out-tasks (if out-task-id
                                                      (tasks-fn out-task-id out-stream-id values)
                                                      (tasks-fn out-stream-id values))
@@ -396,7 +409,7 @@
                                                 {:stream out-stream-id :values values}
                                                 (if (sampler) 0))))
                                      (or out-tasks [])
-                                     ))]]      
+                                     ))]]
       (.open spout-obj
              storm-conf
              (:user-context task-data)
@@ -420,24 +433,31 @@
          (fn []
            ;; This design requires that spouts be non-blocking
            (disruptor/consume-batch receive-queue event-handler)
-           (if (or (not max-spout-pending)
-                   (< (.size pending) max-spout-pending))
-             (if-let [active? (wait-fn)]
-               (do
-                 (when-not @last-active
-                   (reset! last-active true)
-                   (log-message "Activating spout " component-id ":" (keys task-datas))
-                   (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+           (let [active? (wait-fn)
+                 curr-count (.get emitted-count)]
+             (if (or (not max-spout-pending)
+                     (< (.size pending) max-spout-pending))
+               (if active?
+                 (do
+                   (when-not @last-active
+                     (reset! last-active true)
+                     (log-message "Activating spout " component-id ":" (keys task-datas))
+                     (fast-list-iter [^ISpout spout spouts] (.activate spout)))
                
-                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
-               (do
-                 (when @last-active
-                   (reset! last-active false)
-                   (log-message "Deactivating spout " component-id ":" (keys task-datas))
-                   (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
-                 ;; TODO: log that it's getting throttled
-                 (Time/sleep 100))))
-            0))
+                   (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
+                 (do
+                   (when @last-active
+                     (reset! last-active false)
+                     (log-message "Deactivating spout " component-id ":" (keys task-datas))
+                     (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
+                   ;; TODO: log that it's getting throttled
+                   (Time/sleep 100))))
+             (if (and (= curr-count (.get emitted-count)) active?)
+                (do (.increment empty-emit-streak)
+                    (.emptyEmit spout-wait-strategy (.get empty-emit-streak)))
+                (.set empty-emit-streak 0)
+                ))
+            0 ))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
       )]

@@ -13,7 +13,7 @@
                  [org.twitter4j/twitter4j-stream "2.2.6-SNAPSHOT"]
                  ]
 
-  :dev-dependencies [[storm "0.8.0"]
+  :dev-dependencies [[storm "0.8.1"]
                      [org.clojure/clojure "1.4.0"]
                      ])
 

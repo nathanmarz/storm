@@ -333,7 +333,6 @@
         sampler (:sampler executor-data)
         rand (Random. (Utils/secureRandomLong))
         
-        ;; TODO: need to change this to use a rotating map
         pending (RotatingMap.
                  2 ;; microoptimize for performance of .size method
                  (reify RotatingMap$ExpiredCallback

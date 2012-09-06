@@ -58,6 +58,7 @@ You must not remove this notice, or any other, from this software.
 * Evan Chan ([@velvia](https://github.com/velvia))
 * Sjoerd Mulder ([@sjoerdmulder](https://github.com/sjoerdmulder))
 * Yuta Okamoto ([@okapies](https://github.com/okapies))
+* Barry Hart ([@barrywhart](https://github.com/barrywhart))
 
 ## Acknowledgements
 

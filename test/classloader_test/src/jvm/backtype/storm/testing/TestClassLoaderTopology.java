@@ -12,11 +12,12 @@ import backtype.storm.generated.AlreadyAliveException;
 import backtype.storm.generated.InvalidTopologyException;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.BasicBoltExecutor;
+import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -27,7 +28,7 @@ public class TestClassLoaderTopology {
 	public static void main(String[] args) throws AlreadyAliveException, InvalidTopologyException, InterruptedException {		
 		TopologyBuilder builder = new TopologyBuilder();
 		builder.setSpout("spout", new TestClassLoaderSpout());
-		builder.setBolt("bolt", new TestClassLoaderBolt()).allGrouping("spout");
+		builder.setBolt("bolt", new BasicBoltExecutor(new TestClassLoaderBolt())).allGrouping("spout");
 		StormTopology topology = builder.createTopology();
 		
 		ILocalCluster cluster = new LocalCluster();
@@ -61,29 +62,39 @@ public class TestClassLoaderTopology {
 		}
 	}
 
-	public static class TestClassLoaderBolt extends BaseRichBolt {
+	public static class TestClassLoaderBolt implements IBasicBolt {
 		private static final long serialVersionUID = 8886285645997459434L;
 
-		@SuppressWarnings("rawtypes")
 		@Override
-		public void prepare(Map stormConf, TopologyContext context,
-				OutputCollector collector) {
+		public void declareOutputFields(OutputFieldsDeclarer declarer) {
 			// empty
 		}
 
 		@Override
-		public void execute(Tuple input) {
+		public Map<String, Object> getComponentConfiguration() {
+			return null;
+		}
+
+		@Override
+		public void prepare(Map stormConf, TopologyContext context) {
+			// empty
+		}
+
+		@Override
+		public void execute(Tuple input, BasicOutputCollector collector) {
 			// Write the output to a file, so we can check it later(by the run.sh)
 			File file = new File("/tmp/storm-classloader-test.txt");
 			FileOutputStream stream = null;
 			try {
 				stream = new FileOutputStream(file);
-				stream.write("\n\n=======================================================================\n".getBytes());
+				stream.write("\n\n=================================================================================\n".getBytes());
+				stream.write(("Storm::backtype.storm.topology.BasicBoltExecutor loaded by " + BasicBoltExecutor.class.getClassLoader() + "\n").getBytes());
+				stream.write(("classloader_test::backtype.storm.testing.TestClassLoaderTopology$TestClassLoaderBolt loaded by " + TestClassLoaderBolt.class.getClassLoader() + "\n").getBytes());
 				// Bar.foo will load the backtype.storm.testing.Foo from Storm core
-				stream.write((Bar.foo() + "\n").getBytes());
+				stream.write(("Storm::backtype.storm.testing.Foo loaded by " + Bar.foo() + "\n").getBytes());
 				// The following loads the backtype.storm.testing.Foo from classloader_test.
 				stream.write(("classloader_test::backtype.storm.testing.Foo loaded by " + Foo.class.getClassLoader() + "\n").getBytes());
-				stream.write("=======================================================================\n".getBytes());
+				stream.write("=================================================================================\n".getBytes());
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
@@ -98,7 +109,7 @@ public class TestClassLoaderTopology {
 		}
 
 		@Override
-		public void declareOutputFields(OutputFieldsDeclarer declarer) {
+		public void cleanup() {
 			// empty
 		}
 	}

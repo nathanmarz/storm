@@ -13,10 +13,12 @@ To run the test, run the following command:
 So you will something like the following at the end of the output:
 
 ```bash
-=======================================================================
-Storm::backtype.storm.testing.Foo loaded by sun.misc.Launcher$AppClassLoader@425224ee
-classloader_test::backtype.storm.testing.Foo loaded by backtype.storm.classloader.TopologyClassLoader@31d520c4
-=======================================================================
+=================================================================================
+Storm::backtype.storm.topology.BasicBoltExecutor loaded by sun.misc.Launcher$AppClassLoader@1ef6a746
+classloader_test::backtype.storm.testing.TestClassLoaderTopology$TestClassLoaderBolt loaded by backtype.storm.classloader.TopologyClassLoader@53ef9f1d
+Storm::backtype.storm.testing.Foo loaded by sun.misc.Launcher$AppClassLoader@1ef6a746
+classloader_test::backtype.storm.testing.Foo loaded by backtype.storm.classloader.TopologyClassLoader@53ef9f1d
+=================================================================================
 ```
 
 ## License

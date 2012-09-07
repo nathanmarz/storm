@@ -1,6 +1,6 @@
 ## 0.8.1
 
- * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology
+ * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology (thanks xumingming)
  * Implemented pluggable spout wait strategy that is invoked when a spout emits nothing from nextTuple or when a spout hits the MAX_SPOUT_PENDING limit
  * Spouts now have a default wait strategy of a 1 millisecond sleep
  * Changed log level of "Failed message" logging to DEBUG

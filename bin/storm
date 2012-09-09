@@ -136,28 +136,34 @@ def add_platform_jar(*args):
     """Syntax: [storm add-platform-jar /path/to/a.jar /path/to/b.jar ...]
 
     Adds the specified jars to the cluster. If you have a very large topology 
-    jar the upload time can slow since you're going over the network to wherever 
-    your Storm cluster is. This command lets you add a jar to the storm cluster
-    which your topologies depends on, then you can specify the dependencies with
-    "topology.platform.jars" config. For more detail, have a look at:
-    https://github.com/nathanmarz/storm/issues/281
+    jar, the upload time can be slow since the big jar will go over the network to
+    wherever your Storm cluster is. This command lets you add a jar which your 
+    topologies depends on to the storm cluster, then you can specify the dependencies 
+    with "topology.platform.jars" config. For more detail, have a look at:
+    https://github.com/nathanmarz/storm/issues/281.
     """
-    exec_storm_class(
-        "backtype.storm.command.add_platform_jar",
-        jvmtype="-client",
-        extrajars=[CONF_DIR, STORM_DIR + "/bin"],
-        args=args)
+    if len(args) == 0:
+        print_usage(command="add-platform-jar")
+    else:
+        exec_storm_class(
+            "backtype.storm.command.add_platform_jar",
+            jvmtype="-client",
+            extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+            args=args)
 
 def delete_platform_jar(*args):
     """Syntax: [storm delete-platform-jar a.jar b.jar ...]
 
-    Deletes a specified platform jar from the cluster.
+    Deletes specified platform jar(s) from the cluster.
     """
-    exec_storm_class(
-        "backtype.storm.command.delete_platform_jar",
-        jvmtype="-client",
-        extrajars=[CONF_DIR, STORM_DIR + "/bin"],
-        args=args)
+    if len(args) == 0:
+        print_usage(command="delete-platform-jar")
+    else:
+        exec_storm_class(
+            "backtype.storm.command.delete_platform_jar",
+            jvmtype="-client",
+            extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+            args=args)
 
 def list_platform_jars(*args):
     """Syntax: [storm list-platform-jars]

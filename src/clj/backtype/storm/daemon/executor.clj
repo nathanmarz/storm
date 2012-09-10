@@ -379,8 +379,6 @@
       (fn []
         ;; If topology was started in inactive state, don't call (.open spout) until it's activated first.
         (sleep-until-true (fn [] @(:storm-active-atom executor-data)))
-        (reset! open-or-prepare-was-called? true)
-
         
         (log-message "Opening spout " component-id ":" (keys task-datas))
         (doseq [[task-id task-data] task-datas
@@ -433,8 +431,8 @@
                       )
                     (reportError [this error]
                       (report-error error)
-                      ))
-                  )))
+                      )))))
+        (reset! open-or-prepare-was-called? true) 
         (log-message "Opened spout " component-id ":" (keys task-datas))
         
         (disruptor/consumer-started! (:receive-queue executor-data))
@@ -510,8 +508,7 @@
     [(async-loop
       (fn []
         (sleep-until-true (fn [] @(:storm-active-atom executor-data)))
-        (reset! open-or-prepare-was-called? true)                
-
+        
         (log-message "Preparing bolt " component-id ":" (keys task-datas))
         (doseq [[task-id task-data] task-datas
                 :let [^IBolt bolt-obj (:object task-data)
@@ -579,6 +576,7 @@
                        (reportError [this error]
                          (report-error error)
                          )))))
+        (reset! open-or-prepare-was-called? true)        
         (log-message "Prepared bolt " component-id ":" (keys task-datas))          
 
         (let [receive-queue (:receive-queue executor-data)

@@ -1,11 +1,9 @@
 package storm.trident.testing;
 
+import backtype.storm.state.ITupleCollection;
 import backtype.storm.tuple.Values;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
@@ -15,7 +13,7 @@ import storm.trident.state.map.OpaqueMap;
 import storm.trident.state.map.SnapshottableMap;
 
 
-public class MemoryMapState<T> implements IBackingMap<T> {
+public class MemoryMapState<T> implements IBackingMap<T>, ITupleCollection {
     public static class Factory implements StateFactory {
         String _id;
         
@@ -62,4 +60,27 @@ public class MemoryMapState<T> implements IBackingMap<T> {
             db.put(key, val);
         }
     }    
+
+    @Override
+    public Iterator<List<Object>> getTuples() {
+        return new Iterator<List<Object>>() {
+            private Iterator<Map.Entry<List<Object>,T>> it = db.entrySet().iterator();
+
+            public boolean hasNext() {
+                return it.hasNext();
+            }
+
+            public List<Object> next() {
+                Map.Entry<List<Object>,T> e = it.next();
+                List<Object> ret = new ArrayList<Object>(e.getKey().size()+1);
+                ret.addAll(e.getKey());
+                ret.add(e.getValue());
+                return ret;
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        };
+    }
 }

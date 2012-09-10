@@ -1,7 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.generated InvalidTopologyException])
+  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
               TestAggregatesCounter TestConfBolt AckFailMapTracker])
   (:use [backtype.storm bootstrap testing])
@@ -275,6 +275,50 @@
   [tuple collector]
   (emit-bolt! collector [1] :anchor [tuple tuple])
   (ack! collector tuple))
+
+(def bolt-prepared? (atom false))
+(defbolt prepare-tracked-bolt [] {:prepare true}
+  [conf context collector]  
+  (reset! bolt-prepared? true)
+  (bolt
+   (execute [tuple]
+            (ack! collector tuple))))
+
+(def spout-opened? (atom false))
+(defspout open-tracked-spout ["val"]
+  [conf context collector]
+  (reset! spout-opened? true)
+  (spout
+   (nextTuple [])))
+
+(deftest test-submit-inactive-topology
+  (with-tracked-cluster [cluster]
+    (let [[feeder checker] (ack-tracking-feeder ["num"])
+          tracked (mk-tracked-topology
+                   cluster
+                   (topology
+                    {"1" (spout-spec feeder)
+                     "2" (spout-spec open-tracked-spout)}
+                    {"3" (bolt-spec {"1" :shuffle} prepare-tracked-bolt)}))]
+      (reset! bolt-prepared? false)
+      (reset! spout-opened? false)
+      
+      (submit-local-topology-with-opts (:nimbus cluster)
+        "test"
+        {}
+        (:topology tracked)
+        (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      (.feed feeder [1])
+      (Thread/sleep 5000)
+      (is (= 0 (global-amt (-> tracked :cluster :backtype.storm.testing/track-id) "spout-emitted")))
+      (is (not @bolt-prepared?))
+      (is (not @spout-opened?))
+
+      (.activate (:nimbus cluster) "test")
+      (tracked-wait tracked 1)
+      (checker 1)
+      (is @bolt-prepared?)
+      (is @spout-opened?))))
 
 (deftest test-acking-self-anchor
   (with-tracked-cluster [cluster]

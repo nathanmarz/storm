@@ -4,6 +4,7 @@ import backtype.storm.state.ITupleCollection;
 import backtype.storm.tuple.Values;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import storm.trident.state.OpaqueValue;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 import storm.trident.state.map.CachedMap;
@@ -74,10 +75,10 @@ public class LRUMemoryMapState<T> implements IBackingMap<T>, ITupleCollection {
             }
 
             public List<Object> next() {
-                Map.Entry<List<Object>,T> e = it.next();
-                List<Object> ret = new ArrayList<Object>(e.getKey().size()+1);
+                Map.Entry<List<Object>, T> e = it.next();
+                List<Object> ret = new ArrayList<Object>();
                 ret.addAll(e.getKey());
-                ret.add(e.getValue());
+                ret.add(((OpaqueValue)e.getValue()).getCurr());
                 return ret;
             }
 

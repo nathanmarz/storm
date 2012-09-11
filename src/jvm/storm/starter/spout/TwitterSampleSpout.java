@@ -1,3 +1,5 @@
+/*
+
 package storm.starter.spout;
 
 import backtype.storm.Config;
@@ -100,3 +102,4 @@ public class TwitterSampleSpout extends BaseRichSpout {
     }
     
 }
+*/

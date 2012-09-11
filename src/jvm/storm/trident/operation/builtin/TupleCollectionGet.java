@@ -14,16 +14,15 @@ public class TupleCollectionGet extends BaseQueryFunction<State, Object> {
     @Override
     public List<Object> batchRetrieve(State state, List<TridentTuple> args) {
         List<Object> ret = new ArrayList<Object>(args.size());
-        Iterator<List<Object>> tuplesIterator = ((ITupleCollection)state).getTuples();
         for(int i=0; i<args.size(); i++) {
-            ret.add(tuplesIterator);
+            ret.add(((ITupleCollection)state).getTuples());
         }
         return ret;
     }
 
     @Override
     public void execute(TridentTuple tuple, Object result, TridentCollector collector) {
-        Iterator<List<Object>> tuplesIterator = (Iterator<List<Object>>) result;
+        Iterator<List<Object>> tuplesIterator = (Iterator<List<Object>>)result;
         while(tuplesIterator.hasNext()) {
             collector.emit(tuplesIterator.next());
         }

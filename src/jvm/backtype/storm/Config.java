@@ -536,6 +536,12 @@ public class Config extends HashMap<String, Object> {
     public static String ZMQ_LINGER_MILLIS = "zmq.linger.millis";
 
     /**
+     * The high water for the ZeroMQ push sockets used for networking. Use this config to prevent buffer explosion
+     * on the networking layer.
+     */
+    public static String ZMQ_HWM = "zmq.hwm";
+        
+    /**
      * This value is passed to spawned JVMs (e.g., Nimbus, Supervisor, and Workers)
      * for the java.library.path value. java.library.path tells the JVM where 
      * to look for native libraries. It is necessary to set this config correctly since

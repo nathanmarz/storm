@@ -160,6 +160,7 @@
                       mq-context
                       (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
                                                  (storm-conf ZMQ-LINGER-MILLIS)
+                                                 (storm-conf ZMQ-HWM)
                                                  (= (conf STORM-CLUSTER-MODE) "local")))
       :storm-id storm-id
       :supervisor-id supervisor-id

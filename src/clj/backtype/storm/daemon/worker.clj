@@ -324,7 +324,7 @@
   (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id
                " and conf " conf)
   (if-not (local-mode? conf)
-    (redirect-stdio-to-log4j!))
+    (redirect-stdio-to-slf4j!))
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
   (when (= :distributed (cluster-mode conf))

@@ -22,3 +22,5 @@ _release
 .lein-deps-sum
 *.iml
 
+/.project/
+/.lein-plugins/

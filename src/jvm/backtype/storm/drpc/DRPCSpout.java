@@ -16,12 +16,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
-    public static Logger LOG = Logger.getLogger(DRPCSpout.class);
+    public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
     List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();

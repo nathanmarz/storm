@@ -239,10 +239,10 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     See Setting up a Storm cluster for more information.
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
-    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    cppaths = [STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlog4j.configuration=storm.log.properties",
+        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
     exec_storm_class(
         klass, 
@@ -259,10 +259,10 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     See Setting up a Storm cluster for more information.
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
-    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    cppaths = [STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlog4j.configuration=storm.log.properties",
+        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
     exec_storm_class(
         klass, 
@@ -280,16 +280,16 @@ def ui():
     See Setting up a Storm cluster for more information.
     (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
     """
-    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    cppaths = [STORM_DIR + "/conf"]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlog4j.configuration=storm.log.properties",
+        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
     exec_storm_class(
         "backtype.storm.ui.core", 
         jvmtype="-server", 
         jvmopts=jvmopts, 
-        extrajars=[STORM_DIR + "/log4j", STORM_DIR, STORM_DIR + "/conf"])
+        extrajars=[STORM_DIR, STORM_DIR + "/conf"])
 
 def drpc():
     """Syntax: [storm drpc]
@@ -300,12 +300,15 @@ def drpc():
     See Distributed RPC for more information.
     (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
     """
-    jvmopts = ["-Xmx768m", "-Dlogfile.name=drpc.log", "-Dlog4j.configuration=storm.log.properties"]
+    jvmopts = ["-Xmx768m", 
+        "-Dlogfile.name=drpc.log", 
+        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml"
+    ]
     exec_storm_class(
         "backtype.storm.daemon.drpc", 
         jvmtype="-server", 
         jvmopts=jvmopts, 
-        extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
+        extrajars=[STORM_DIR + "/conf"])
 
 def dev_zookeeper():
     """Syntax: [storm dev-zookeeper]
@@ -314,11 +317,11 @@ def dev_zookeeper():
     "storm.zookeeper.port" as its port. This is only intended for development/testing, the
     Zookeeper instance launched is not configured to be used in production.
     """
-    cppaths = [STORM_DIR + "/log4j", STORM_DIR + "/conf"]
+    cppaths = [STORM_DIR + "/conf"]
     exec_storm_class(
         "backtype.storm.command.dev_zookeeper", 
         jvmtype="-server", 
-        extrajars=[STORM_DIR + "/log4j", STORM_DIR + "/conf"])
+        extrajars=[STORM_DIR + "/conf"])
 
 def version():
   """Syntax: [storm version]

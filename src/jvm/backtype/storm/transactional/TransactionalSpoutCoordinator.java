@@ -15,10 +15,11 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Random;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionalSpoutCoordinator extends BaseRichSpout { 
-    public static final Logger LOG = Logger.getLogger(TransactionalSpoutCoordinator.class);
+    public static final Logger LOG = LoggerFactory.getLogger(TransactionalSpoutCoordinator.class);
     
     public static final BigInteger INIT_TXID = BigInteger.ONE;
     

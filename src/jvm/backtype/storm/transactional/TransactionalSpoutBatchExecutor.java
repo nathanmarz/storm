@@ -10,10 +10,11 @@ import backtype.storm.tuple.Tuple;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.TreeMap;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionalSpoutBatchExecutor implements IRichBolt {
-    public static Logger LOG = Logger.getLogger(TransactionalSpoutBatchExecutor.class);    
+    public static Logger LOG = LoggerFactory.getLogger(TransactionalSpoutBatchExecutor.class);    
 
     BatchOutputCollectorImpl _collector;
     ITransactionalSpout _spout;

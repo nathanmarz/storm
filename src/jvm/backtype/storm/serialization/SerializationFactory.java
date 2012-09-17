@@ -22,10 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializationFactory {
-    public static final Logger LOG = Logger.getLogger(SerializationFactory.class);
+    public static final Logger LOG = LoggerFactory.getLogger(SerializationFactory.class);
     
     public static class KryoSerializableDefault extends Kryo {
         boolean _override = false;

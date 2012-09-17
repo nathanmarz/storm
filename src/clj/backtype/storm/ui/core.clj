@@ -19,7 +19,7 @@
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
 (defmacro with-nimbus [nimbus-sym & body]
-  `(thrift/with-nimbus-connection [~nimbus-sym "localhost" (*STORM-CONF* NIMBUS-THRIFT-PORT)]
+  `(thrift/with-nimbus-connection [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
      ~@body
      ))
 

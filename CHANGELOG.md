@@ -1,3 +1,8 @@
+## 0.8.2
+
+ * Added high water mark to ZeroMQ sockets (defaults to 10000) configurable with zmq.hwm
+ * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)
+
 ## 0.8.1
 
  * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology (thanks xumingming)

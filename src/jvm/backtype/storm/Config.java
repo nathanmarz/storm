@@ -501,6 +501,18 @@ public class Config extends HashMap<String, Object> {
      */
      public static String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
 
+     /**
+      * The interval in seconds to use for determining whether to throttle error reported to Zookeeper. For example, 
+      * an interval of 10 seconds with topology.max.error.report.per.interval set to 5 will only allow 5 errors to be
+      * reported to Zookeeper per task for every 10 second interval of time.
+      */
+     public static String TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS="topology.error.throttle.interval.secs";
+
+     /**
+      * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
+      */
+     public static String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
+
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */

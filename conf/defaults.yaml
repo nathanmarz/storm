@@ -97,5 +97,7 @@ topology.worker.shared.thread.pool.size: 4
 topology.disruptor.wait.strategy: "com.lmax.disruptor.BlockingWaitStrategy"
 topology.spout.wait.strategy: "backtype.storm.spout.SleepSpoutWaitStrategy"
 topology.sleep.spout.wait.strategy.time.ms: 1
+topology.error.throttle.interval.secs: 10
+topology.max.error.report.per.interval: 5
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

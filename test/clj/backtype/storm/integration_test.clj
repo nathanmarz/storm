@@ -488,6 +488,54 @@
              (read-tuples results "2")
              )))))
 
+(defbolt report-errors-bolt {}
+  [tuple collector]
+  (doseq [i (range (.getValue tuple 0))]
+    (report-error! collector (RuntimeException.)))
+  (ack! collector tuple))
+
+(deftest test-throttled-errors
+  (with-simulated-time
+    (with-tracked-cluster [cluster]
+      (let [state (:storm-cluster-state cluster)
+            [feeder checker] (ack-tracking-feeder ["num"])
+            tracked (mk-tracked-topology
+                     cluster
+                     (topology
+                       {"1" (spout-spec feeder)}
+                       {"2" (bolt-spec {"1" :shuffle} report-errors-bolt)}))
+            _       (submit-local-topology (:nimbus cluster)
+                                             "test-errors"
+                                             {TOPOLOGY-ERROR-THROTTLE-INTERVAL-SECS 10
+                                              TOPOLOGY-MAX-ERROR-REPORT-PER-INTERVAL 4
+                                              TOPOLOGY-DEBUG true
+                                              }
+                                             (:topology tracked))
+            storm-id (get-storm-id state "test-errors")
+            errors-count (fn [] (count (.errors state storm-id "2")))]
+        ;; so it launches the topology
+        (advance-cluster-time cluster 2)
+        (.feed feeder [6])
+        (tracked-wait tracked 1)
+        (is (= 4 (errors-count)))
+        
+        (advance-time-secs! 5)
+        (.feed feeder [2])
+        (tracked-wait tracked 1)
+        (is (= 4 (errors-count)))
+        
+        (advance-time-secs! 6)
+        (.feed feeder [2])
+        (tracked-wait tracked 1)
+        (is (= 6 (errors-count)))
+        
+        (advance-time-secs! 6)
+        (.feed feeder [3])
+        (tracked-wait tracked 1)
+        (is (= 8 (errors-count)))
+        
+        ))))
+
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology
   )

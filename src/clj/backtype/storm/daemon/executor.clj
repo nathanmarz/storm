@@ -143,9 +143,24 @@
   (render-stats [this])
   (get-executor-id [this]))
 
-(defn report-error [executor error]
-  (log-error error)
-  (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error))
+(defn throttled-report-error-fn [executor]
+  (let [storm-conf (:storm-conf executor)
+        error-interval-secs (storm-conf TOPOLOGY-ERROR-THROTTLE-INTERVAL-SECS)
+        max-per-interval (storm-conf TOPOLOGY-MAX-ERROR-REPORT-PER-INTERVAL)
+        interval-start-time (atom (current-time-secs))
+        interval-errors (atom 0)
+        ]
+    (fn [error]
+      (log-error error)
+      (when (> (time-delta @interval-start-time)
+               error-interval-secs)
+        (reset! interval-errors 0)
+        (reset! interval-start-time (current-time-secs)))
+      (swap! interval-errors inc)
+
+      (when (<= @interval-errors max-per-interval)
+        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error)
+        ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies
 (defn mk-executor-transfer-fn [batch-transfer->worker]
@@ -184,7 +199,7 @@
      :stats (mk-executor-stats <> (sampling-rate storm-conf))
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id)
-     :report-error (partial report-error <>)
+     :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
                              ((:report-error <>) error)
                              ((:suicide-fn <>)))

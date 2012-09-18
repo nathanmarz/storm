@@ -1,3 +1,10 @@
+## 0.8.2
+
+ * Added high water mark to ZeroMQ sockets (defaults to 10000) configurable with zmq.hwm
+ * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)
+ * Added report-error! to Clojure DSL
+ * Automatically throttle errors sent to Zookeeper/Storm UI when too many are reported in a time interval (all errors are still logged) Configured with TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL and TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
+ 
 ## 0.8.1
 
  * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology (thanks xumingming)

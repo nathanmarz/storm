@@ -1,4 +1,4 @@
-## 0.8.2
+## Unreleased
 
  * Added high water mark to ZeroMQ sockets (defaults to 10000) configurable with zmq.hwm
  * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)

@@ -36,6 +36,15 @@ import org.yaml.snakeyaml.Yaml;
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
 
+    public static Object newInstance(String klass) {
+        try {
+            Class c = Class.forName(klass);
+            return c.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
     public static byte[] serialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();

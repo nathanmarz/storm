@@ -1,6 +1,7 @@
 package backtype.storm;
 
 import backtype.storm.serialization.IKryoDecorator;
+import backtype.storm.serialization.IKryoFactory;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -382,6 +383,14 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_KRYO_DECORATORS = "topology.kryo.decorators";
 
     /**
+     * Class that specifies how to create a Kryo instance for serialization. Storm will then apply
+     * topology.kryo.register and topology.kryo.decorators on top of this. The default implementation
+     * implements topology.fall.back.on.java.serialization and turns references off.
+     */
+    public static String TOPOLOGY_KRYO_FACTORY = "topology.kryo.factory";
+
+    
+    /**
      * Whether or not Storm should skip the loading of kryo registrations for which it
      * does not know the class or have the serializer implementation. Otherwise, the task will
      * fail to load and will throw an error at runtime. The use case of this is if you want to
@@ -600,6 +609,10 @@ public class Config extends HashMap<String, Object> {
     
     public void registerDecorator(Class<? extends IKryoDecorator> klass) {
         getRegisteredDecorators().add(klass.getName());
+    }
+    
+    public void setKryoFactory(Class<? extends IKryoFactory> klass) {
+        put(Config.TOPOLOGY_KRYO_FACTORY, klass.getName());
     }
 
     public void setSkipMissingKryoRegistrations(boolean skip) {

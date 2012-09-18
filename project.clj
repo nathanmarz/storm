@@ -36,3 +36,4 @@
   :extra-classpath-dirs ["src/ui"]
   :aot :all
 )
+

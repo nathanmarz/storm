@@ -158,6 +158,9 @@
 (defn fail! [collector ^Tuple tuple]
   (.fail ^OutputCollector (:output-collector collector) tuple))
 
+(defn report-error! [collector ^Tuple tuple]
+  (.reportError ^OutputCollector (:output-collector collector) tuple))
+
 (defnk emit-spout! [collector values
                     :stream Utils/DEFAULT_STREAM_ID :id nil]
   (let [values (tuple-values values collector stream)]

@@ -418,6 +418,11 @@
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
+          ;; add the platform jars to the classpath
+          platform-jars (storm-conf TOPOLOGY-PLATFORM-JARS)
+          platform-jars-dir (supervisor-platform-jars-dir conf)
+          platform-jars (map #(str platform-jars-dir "/" %) platform-jars)
+          classpath (add-to-classpath classpath platform-jars)
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"
                                  (str port))

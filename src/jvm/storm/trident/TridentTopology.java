@@ -357,7 +357,7 @@ public class TridentTopology {
         TridentTopologyBuilder builder = new TridentTopologyBuilder();
         
         Map<Node, String> spoutIds = genSpoutIds(spoutNodes);
-        Map<Group, String> boltIds = genBoltIds(mergedGroups);
+        Map<Group, String> boltIds = genBoltIds(mergedGroups, new HashSet<String>(spoutIds.values()));
         
         for(SpoutNode sn: spoutNodes) {
             Integer parallelism = parallelisms.get(grouper.nodeGroup(sn));
@@ -483,25 +483,43 @@ public class TridentTopology {
     
     private static Map<Node, String> genSpoutIds(Collection<SpoutNode> spoutNodes) {
         Map<Node, String> ret = new HashMap();
-        int ctr = 0;
+        Set<String> existingIds = new HashSet<String>();
         for(SpoutNode n: spoutNodes) {
-            ret.put(n, "spout" + ctr);
-            ctr++;
+        	String spoutId = genComponentName(n.name, "spout", existingIds);
+            ret.put(n, spoutId);
+            existingIds.add(spoutId);
         }
         return ret;
     }
-
-    private static Map<Group, String> genBoltIds(Collection<Group> groups) {
+    
+    private static Map<Group, String> genBoltIds(Collection<Group> groups, Set<String> existingIds) {
         Map<Group, String> ret = new HashMap();
-        int ctr = 0;
         for(Group g: groups) {
             if(!isSpoutGroup(g)) {
-                ret.put(g, "bolt" + ctr);
-                ctr++;
+            	String boltId = genComponentName(g.getGroupName(), "bolt", existingIds);
+                ret.put(g, boltId);
+                existingIds.add(boltId);
             }
         }
         return ret;
     }    
+    
+    private static String genComponentName(String origName, String prefix, Set<String> existingIds) {
+    	String ret = origName;
+    	int currMaxId = 0;
+    	if (ret == null) {
+    		ret = prefix + ++currMaxId;
+    		while(existingIds.contains(ret)) {
+    			ret = prefix + ++currMaxId;
+    		}
+    	} else {
+    		while(existingIds.contains(ret)) {
+    			ret = ret + ++currMaxId;
+    		}
+    	}
+    	
+    	return ret;
+    }
     
     private static Map<String, String> getOutputStreamBatchGroups(Group g, Map<Node, String> batchGroupMap) {
         Map<String, String> ret = new HashMap();

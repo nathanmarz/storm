@@ -18,6 +18,7 @@ public class Node implements Serializable {
     public Integer parallelismHint = null;
     public NodeStateInfo stateInfo = null;
     public int creationIndex;
+    public String name;
     
     public Node(String streamId, Fields allOutputFields) {
         this.nodeId = UUID.randomUUID().toString();

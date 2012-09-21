@@ -50,6 +50,11 @@ public class Stream implements IAggregatableStream {
         _node = node;
     }
     
+    public Stream name(String name) {
+    	_node.name = name;
+    	return this;
+    }
+    
     public Stream parallelismHint(int hint) {
         _node.parallelismHint = hint;
         return this;

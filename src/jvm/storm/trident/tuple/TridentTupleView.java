@@ -30,7 +30,11 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
             Map<String, ValuePointer> parentFieldIndex = parent.getFieldIndex();
             _fieldIndex = new HashMap<String, ValuePointer>();
             for(String f: projectFields) {
-                _fieldIndex.put(f, parentFieldIndex.get(f));
+            	ValuePointer vp = parentFieldIndex.get(f);
+            	if (vp == null) {
+            		throw new IllegalArgumentException("Project field '" + f + "' doesn't exist in parent factory.");
+            	}
+                _fieldIndex.put(f, vp);
             }            
             _index = ValuePointer.buildIndex(projectFields, _fieldIndex);
         }

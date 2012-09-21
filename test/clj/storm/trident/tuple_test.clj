@@ -33,6 +33,9 @@
     (is (= 3 (.getValueByField pt "a")))
     (is (= 6 (.getValueByField pt2 "d")))
     (is (= 9 (.getValueByField pt2 "a")))
+
+    ;; test non-existent field
+    (is (thrown? IllegalArgumentException (TridentTupleView$ProjectionFactory. fresh-factory (fields "not-exists")))) 
     ))
 
 (deftest test-appends

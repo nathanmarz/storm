@@ -212,7 +212,12 @@ service Nimbus {
   string beginFileDownload(1: string file);
   //can stop downloading chunks when receive 0-length byte array back
   binary downloadChunk(1: string id);
-  
+
+  // platform related methods
+  string addPlatformJar(1: string jarName);
+  void deletePlatformJar(1: string jarName);
+  string listPlatformJars();
+
   // stats functions
   ClusterSummary getClusterInfo();
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e);

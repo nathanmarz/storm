@@ -380,6 +380,19 @@
   )
 
 ;; distributed implementation
+(defn download-platform-jars [conf storm-id]
+  "Downloads the needed platform jars."
+  (let [conf (read-supervisor-storm-conf conf storm-id)]
+    (when (conf TOPOLOGY-PLATFORM-JARS)
+      (log-message "Downloading platform jars for: " storm-id)
+      (let [supervisor-jars-dir (supervisor-platform-jars-dir conf)
+            needed-platform-jars (conf TOPOLOGY-PLATFORM-JARS)]
+        (doseq [jar needed-platform-jars
+                :let [nimbus-jar (str (nimbus-platform-jars-dir conf) "/" jar)
+                      supervisor-jar (str (supervisor-platform-jars-dir conf) "/" jar)]]
+          (when-not (exists-file? supervisor-jar)
+            (Utils/downloadFromMaster conf nimbus-jar supervisor-jar)
+            (log-message "Downloaded platform jar " jar " to " supervisor-jar)))))))
 
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
@@ -393,6 +406,8 @@
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+      ;; downloads the platform jars
+      (download-platform-jars conf storm-id)
       ))
 
 
@@ -403,6 +418,11 @@
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
+          ;; add the platform jars to the classpath
+          platform-jars (storm-conf TOPOLOGY-PLATFORM-JARS)
+          platform-jars-dir (supervisor-platform-jars-dir conf)
+          platform-jars (map #(str platform-jars-dir "/" %) platform-jars)
+          classpath (add-to-classpath classpath platform-jars)
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"
                                  (str port))

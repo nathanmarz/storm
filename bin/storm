@@ -132,6 +132,50 @@ def jar(jarfile, klass, *args):
         args=args,
         jvmopts=["-Dstorm.jar=" + jarfile])
 
+def add_platform_jar(*args):
+    """Syntax: [storm add-platform-jar /path/to/a.jar /path/to/b.jar ...]
+
+    Adds the specified jars to the cluster. If you have a very large topology 
+    jar, the upload time can be slow since the big jar will go over the network to
+    wherever your Storm cluster is. This command lets you add a jar which your 
+    topologies depends on to the storm cluster, then you can specify the dependencies 
+    with "topology.platform.jars" config. For more detail, have a look at:
+    https://github.com/nathanmarz/storm/issues/281.
+    """
+    if len(args) == 0:
+        print_usage(command="add-platform-jar")
+    else:
+        exec_storm_class(
+            "backtype.storm.command.add_platform_jar",
+            jvmtype="-client",
+            extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+            args=args)
+
+def delete_platform_jar(*args):
+    """Syntax: [storm delete-platform-jar a.jar b.jar ...]
+
+    Deletes specified platform jar(s) from the cluster.
+    """
+    if len(args) == 0:
+        print_usage(command="delete-platform-jar")
+    else:
+        exec_storm_class(
+            "backtype.storm.command.delete_platform_jar",
+            jvmtype="-client",
+            extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+            args=args)
+
+def list_platform_jars(*args):
+    """Syntax: [storm list-platform-jars]
+
+    Lists all the platform jars in the storm cluster.
+    """
+    exec_storm_class(
+        "backtype.storm.command.list_platform_jars",
+        jvmtype="-client",
+        extrajars=[CONF_DIR, STORM_DIR + "/bin"],
+        args=args)
+
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
 
@@ -364,7 +408,9 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version}
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version,
+            "add-platform-jar": add_platform_jar, "list-platform-jars": list_platform_jars,
+            "delete-platform-jar": delete_platform_jar}
 
 def parse_config(config_list):
     global CONFIG_OPTS

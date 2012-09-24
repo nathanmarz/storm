@@ -29,6 +29,7 @@ nimbus.inbox.jar.expiration.secs: 3600
 nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
+nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 
 ### ui.* configs are for the master
 ui.port: 8080

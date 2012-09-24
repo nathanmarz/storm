@@ -36,6 +36,7 @@
      :downloaders (file-cache-map conf)
      :uploaders (file-cache-map conf)
      :uptime (uptime-computer)
+     :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
                                  (halt-process! 20 "Error when processing an event")
@@ -872,6 +873,10 @@
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
         (validate-topology-name! storm-name)
         (check-storm-active! nimbus storm-name false)
+        (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+              storm-name
+              (from-json serializedConf)
+              topology)
         (swap! (:submitted-count nimbus) inc)
         (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
               storm-conf (normalize-conf

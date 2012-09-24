@@ -194,6 +194,14 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
 
     /**
+     * A custom class that implements ITopologyValidator that is run whenever a
+     * topology is submitted. Can be used to provide business-specific logic for
+     * whether topologies are allowed to run or not.
+     */
+    public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
+    
+    
+    /**
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";

@@ -1,10 +1,7 @@
 import sys
 import os
 import traceback
-from collections import deque
-
-try:
-    import simplejson as json
+from collection
 except ImportError:
     import json
 

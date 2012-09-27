@@ -530,6 +530,12 @@ public class Config extends HashMap<String, Object> {
       */
      public static String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
 
+
+     /**
+      * How often a batch can be emitted in a Trident topology.
+      */
+     public static String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
+
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */

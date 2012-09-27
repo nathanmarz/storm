@@ -8,6 +8,7 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
+import backtype.storm.utils.WindowedTimeThrottler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ public class MasterBatchCoordinator extends BaseRichSpout {
     
     List<String> _managedSpoutIds;
     List<ITridentSpout> _spouts;
+    WindowedTimeThrottler _throttler;
     
     boolean _active = true;
     
@@ -67,6 +69,7 @@ public class MasterBatchCoordinator extends BaseRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _rand = new Random(Utils.secureRandomLong());
+        _throttler = new WindowedTimeThrottler((Number)conf.get(Config.TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS), 1);
         for(String spoutId: _managedSpoutIds) {
             _states.add(TransactionalState.newCoordinatorState(conf, spoutId));
         }
@@ -152,9 +155,11 @@ public class MasterBatchCoordinator extends BaseRichSpout {
                 Long curr = _currTransaction;
                 for(int i=0; i<_maxTransactionActive; i++) {
                     if(!_activeTx.containsKey(curr) && isReady(curr)) {
+                      
                         TransactionAttempt attempt = new TransactionAttempt(curr, _rand.nextLong());
                         _activeTx.put(curr, new TransactionStatus(attempt));
                         _collector.emit(BATCH_STREAM_ID, new Values(attempt), attempt);
+                        _throttler.markEvent();
                     }
                     curr = nextTransactionId(curr);
                 }
@@ -163,6 +168,7 @@ public class MasterBatchCoordinator extends BaseRichSpout {
     }
     
     private boolean isReady(long txid) {
+        if(_throttler.isThrottled()) return false;
         //TODO: make this strategy configurable?... right now it goes if anyone is ready
         for(ITridentSpout.BatchCoordinator coord: _coordinators) {
             if(coord.isReady(txid)) return true;

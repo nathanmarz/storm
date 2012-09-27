@@ -904,7 +904,8 @@
               (mk-assignments nimbus)))
 
           (catch Throwable e
-            (log-warn-error e "Topology submission exception. (topology name='" storm-name "')"))))
+            (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
+            (throw e))))
 
       (^void killTopology [this ^String name]
         (.killTopologyWithOpts this name (KillOptions.)))

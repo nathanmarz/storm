@@ -3,7 +3,7 @@ package storm.trident.topology;
 
 public class TransactionAttempt {
     Long _txid;
-    long _attemptId;
+    int _attemptId;
     
     
     // for kryo compatibility
@@ -11,7 +11,7 @@ public class TransactionAttempt {
         
     }
     
-    public TransactionAttempt(Long txid, long attemptId) {
+    public TransactionAttempt(Long txid, int attemptId) {
         _txid = txid;
         _attemptId = attemptId;
     }
@@ -20,7 +20,7 @@ public class TransactionAttempt {
         return _txid;
     }
     
-    public long getAttemptId() {
+    public int getAttemptId() {
         return _attemptId;
     }
 

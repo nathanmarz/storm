@@ -239,10 +239,15 @@ public class MasterBatchCoordinator extends BaseRichSpout {
     private TreeMap<Long, Integer> getStoredCurrAttempts(long currTransaction, int maxBatches) {
         TreeMap<Long, Integer> ret = new TreeMap<Long, Integer>();
         for(TransactionalState state: _states) {
-            Map<Number, Number> attempts = (Map) state.getData(CURRENT_ATTEMPTS);
+            Map<Object, Number> attempts = (Map) state.getData(CURRENT_ATTEMPTS);
             if(attempts==null) attempts = new HashMap();
-            for(Number n: attempts.keySet()) {
-                long txid = n.longValue();
+            for(Object o: attempts.keySet()) {
+                // this is because json doesn't allow numbers as keys...
+                // TODO: replace json with a better form of encoding
+                if(o instanceof String) {
+                    o = Long.parseLong((String) o);
+                }
+                long txid = ((Number) o).longValue();
                 int attemptId = ((Number) attempts.get(txid)).intValue();
                 Integer curr = ret.get(txid);
                 if(curr==null || attemptId > curr) {

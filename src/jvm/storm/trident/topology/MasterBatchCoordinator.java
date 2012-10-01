@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import org.apache.log4j.Logger;
 import storm.trident.spout.ITridentSpout;
@@ -241,14 +242,17 @@ public class MasterBatchCoordinator extends BaseRichSpout {
         for(TransactionalState state: _states) {
             Map<Object, Number> attempts = (Map) state.getData(CURRENT_ATTEMPTS);
             if(attempts==null) attempts = new HashMap();
-            for(Object o: attempts.keySet()) {
+            for(Entry<Object, Number> e: attempts.entrySet()) {
                 // this is because json doesn't allow numbers as keys...
                 // TODO: replace json with a better form of encoding
-                if(o instanceof String) {
-                    o = Long.parseLong((String) o);
+                Number txidObj;
+                if(e.getKey() instanceof String) {
+                    txidObj = Long.parseLong((String) e.getKey());
+                } else {
+                    txidObj = (Number) e.getKey();
                 }
-                long txid = ((Number) o).longValue();
-                int attemptId = ((Number) attempts.get(txid)).intValue();
+                long txid = ((Number) txidObj).longValue();
+                int attemptId = ((Number) e.getValue()).intValue();
                 Integer curr = ret.get(txid);
                 if(curr==null || attemptId > curr) {
                     ret.put(txid, attemptId);

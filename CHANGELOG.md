@@ -8,6 +8,8 @@
  * Add ability to plug in custom code into Nimbus to allow/disallow topologies to be submitted via NIMBUS_TOPOLOGY_VALIDATOR config
  * Added TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS config to control how often a batch can be emitted in a Trident topology. Defaults to 500 milliseconds. This is used to prevent too much load from being placed on Zookeeper in the case that batches are being processed super quickly.
  * Log any topology submissions errors in nimbus.log
+ * Add static helpers in Config when using regular maps
+ * Make Trident much more memory efficient during failures by immediately removing state for failed attempts when a more recent attempt is seen
  
 ## 0.8.1
 

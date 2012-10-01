@@ -1,7 +1,9 @@
 package storm.trident.topology;
 
+import storm.trident.spout.IBatchID;
 
-public class TransactionAttempt {
+
+public class TransactionAttempt implements IBatchID {
     Long _txid;
     int _attemptId;
     
@@ -17,6 +19,10 @@ public class TransactionAttempt {
     }
     
     public Long getTransactionId() {
+        return _txid;
+    }
+    
+    public Object getId() {
         return _txid;
     }
     

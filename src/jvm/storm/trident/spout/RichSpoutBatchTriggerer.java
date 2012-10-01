@@ -1,5 +1,6 @@
 package storm.trident.spout;
 
+import backtype.storm.Config;
 import backtype.storm.generated.Grouping;
 import backtype.storm.spout.ISpoutOutputCollector;
 import backtype.storm.spout.SpoutOutputCollector;
@@ -100,7 +101,11 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return _delegate.getComponentConfiguration();
+        Map<String, Object> conf = _delegate.getComponentConfiguration();
+        if(conf==null) conf = new HashMap();
+        else conf = new HashMap(conf);
+        Config.registerSerialization(conf, RichSpoutBatchId.class, RichSpoutBatchIdSerializer.class);
+        return conf;
     }
     
     static class FinishCondition {
@@ -122,7 +127,8 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
 
         @Override
         public List<Integer> emit(String ignore, List<Object> values, Object msgId) {
-            long batchId = _rand.nextLong();
+            long batchIdVal = _rand.nextLong();
+            Object batchId = new RichSpoutBatchId(batchIdVal);
             FinishCondition finish = new FinishCondition();
             finish.msgId = msgId;
             List<Integer> tasks = _collector.emit(_stream, new ConsList(batchId, values));
@@ -136,7 +142,7 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
                 _collector.emitDirect(t, _coordStream, new Values(batchId, count), r);
                 finish.vals.add(r);
             }
-            _finishConditions.put(batchId, finish);
+            _finishConditions.put(batchIdVal, finish);
             return tasks;
         }
 

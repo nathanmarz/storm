@@ -10,6 +10,7 @@
  * Log any topology submissions errors in nimbus.log
  * Add static helpers in Config when using regular maps
  * Make Trident much more memory efficient during failures by immediately removing state for failed attempts when a more recent attempt is seen
+ * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  
 ## 0.8.1
 

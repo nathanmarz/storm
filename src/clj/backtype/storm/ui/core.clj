@@ -454,6 +454,7 @@ function toggleSys() {
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
           topology (.getTopology ^Nimbus$Client nimbus id)
+          topology-conf (.getTopologyConf ^Nimbus$Client nimbus id)
           spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
           bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
           spout-comp-summs (group-by-comp spout-summs)
@@ -469,6 +470,8 @@ function toggleSys() {
        (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Bolts (" window-hint ")"]]
        (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+       [[:h2 "Topology Configuration"]]
+       (configuration-table (from-json topology-conf))
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]

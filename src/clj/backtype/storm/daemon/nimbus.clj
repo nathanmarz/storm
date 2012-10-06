@@ -991,6 +991,9 @@
             (ByteBuffer/wrap ret)
             )))
 
+      (^String getNimbusConf [this]
+        (to-json (:conf nimbus)))
+
       (^String getTopologyConf [this ^String id]
         (to-json (read-storm-conf conf id)))
 

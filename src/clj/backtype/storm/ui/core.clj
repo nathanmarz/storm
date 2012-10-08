@@ -676,7 +676,7 @@
          (-> (component-page id component (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
-  (GET "/topology/:id/activate" [id]
+  (POST "/topology/:id/activate" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
@@ -685,7 +685,7 @@
         )
       )
     (resp/redirect (str "/topology/" id)))
-  (GET "/topology/:id/deactivate" [id]
+  (POST "/topology/:id/deactivate" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
@@ -694,7 +694,7 @@
         )
       )
     (resp/redirect (str "/topology/" id)))
-  (GET "/topology/:id/rebalance" [id]
+  (POST "/topology/:id/rebalance" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
@@ -703,7 +703,7 @@
         )
       )
     (resp/redirect (str "/topology/" id)))
-  (GET "/topology/:id/kill" [id]
+  (POST "/topology/:id/kill" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]

@@ -39,7 +39,16 @@ function toggleSys() {
 }
 
 function confirmAction(id, name, action) {
-    if (confirm('Do you realy want to ' + action + ' topology ' + name + '?')) {
-        window.location.href = '/topology/' + id + '/' + action;
+    if (confirm('Do you realy want to ' + action + ' topology "' + name + '"?')) {
+        $("input[type=button]").attr("disabled", "disabled");
+
+        $.ajax({
+            type:'POST',
+            url:'/topology/' + id + '/' + action
+        }).always(function () {
+            window.location.reload();
+        }).fail(function () {
+            alert("Error while communicating with Nimbus.")
+        });
     }
 }

@@ -52,7 +52,19 @@ public class Group {
         }        
         return ret;        
     }
-
+    
+    // Returns the name of node which has the largest creationIndex & name is not null.
+    public String getGroupName() {
+    	Node target = null;
+    	for (Node n : nodes) {
+    		if (n.name != null && (target == null || (target != null && n.creationIndex > target.creationIndex))) {
+    			target = n;
+    		}
+    	}
+    	
+    	return target == null ? null : target.name;
+    }
+    
     @Override
     public int hashCode() {
         return id.hashCode();

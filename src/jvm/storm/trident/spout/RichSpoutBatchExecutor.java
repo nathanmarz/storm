@@ -73,6 +73,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
             if(now - lastRotate > rotateTime) {
                 Map<Long, List<Object>> failed = idsMap.rotate();
                 for(Long id: failed.keySet()) {
+                    //TODO: this isn't right... it's not in the map anymore
                     fail(id);
                 }
                 lastRotate = now;

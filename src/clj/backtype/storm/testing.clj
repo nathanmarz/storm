@@ -103,6 +103,7 @@
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
+                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"

@@ -58,6 +58,12 @@ public class StormSubmitter {
                 try {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
                     client.getClient().submitTopology(name, submittedJar, serConf, topology);
+                } catch(InvalidTopologyException e) {
+                    LOG.warn("Topology submission exception", e);
+                    throw e;
+                } catch(AlreadyAliveException e) {
+                    LOG.warn("Topology already alive exception", e);
+                    throw e;
                 } finally {
                     client.close();
                 }

@@ -292,31 +292,30 @@
    (nextTuple [])))
 
 (deftest test-submit-inactive-topology
-  (with-tracked-cluster [cluster]
-    (let [[feeder checker] (ack-tracking-feeder ["num"])
-          tracked (mk-tracked-topology
-                   cluster
-                   (topology
-                    {"1" (spout-spec feeder)
-                     "2" (spout-spec open-tracked-spout)}
-                    {"3" (bolt-spec {"1" :shuffle} prepare-tracked-bolt)}))]
+  (with-simulated-time-local-cluster [cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec feeder)
+                     "2" (thrift/mk-spout-spec open-tracked-spout)}
+                    {"3" (thrift/mk-bolt-spec {"1" :global} prepare-tracked-bolt)})]
       (reset! bolt-prepared? false)
-      (reset! spout-opened? false)
+      (reset! spout-opened? false)      
       
       (submit-local-topology-with-opts (:nimbus cluster)
         "test"
-        {}
-        (:topology tracked)
+        {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+        topology
         (SubmitOptions. TopologyInitialStatus/INACTIVE))
-      (.feed feeder [1])
-      (Thread/sleep 5000)
-      (is (= 0 (global-amt (-> tracked :cluster :backtype.storm.testing/track-id) "spout-emitted")))
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 9)
       (is (not @bolt-prepared?))
-      (is (not @spout-opened?))
-
-      (.activate (:nimbus cluster) "test")
-      (tracked-wait tracked 1)
-      (checker 1)
+      (is (not @spout-opened?))        
+      (.activate (:nimbus cluster) "test")              
+      
+      (advance-cluster-time cluster 12)
+      (assert-acked tracker 1)
       (is @bolt-prepared?)
       (is @spout-opened?))))
 

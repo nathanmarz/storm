@@ -683,36 +683,28 @@
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.activate nimbus name)
-        (log-message "Activating topology: " name)
-        )
-      )
+        (log-message "Activating topology: " name)))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/deactivate" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.deactivate nimbus name)
-        (log-message "Deactivating topology: " name)
-        )
-      )
+        (log-message "Deactivating topology: " name)))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/rebalance" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.rebalance nimbus name (RebalanceOptions.))
-        (log-message "Rebalancing topology: " name)
-        )
-      )
+        (log-message "Rebalancing topology: " name)))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/kill" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.killTopology nimbus name)
-        (log-message "Killing topology: " name)
-        )
-      )
+        (log-message "Killing topology: " name)))
     (resp/redirect (str "/topology/" id)))
   (route/resources "/")
   (route/not-found "Page not found"))

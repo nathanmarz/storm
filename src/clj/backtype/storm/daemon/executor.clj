@@ -344,12 +344,6 @@
     ret
     ))
 
-(defn sleep-until-true [wait-fn]
-  (loop []
-    (when-not (wait-fn)
-      (Time/sleep 100)
-      (recur))))
-
 (defmethod mk-threads :spout [executor-data task-datas]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
@@ -393,7 +387,8 @@
     [(async-loop
       (fn []
         ;; If topology was started in inactive state, don't call (.open spout) until it's activated first.
-        (sleep-until-true (fn [] @(:storm-active-atom executor-data)))
+        (while (not @(:storm-active-atom executor-data))
+          (Thread/sleep 100))
         
         (log-message "Opening spout " component-id ":" (keys task-datas))
         (doseq [[task-id task-data] task-datas
@@ -522,7 +517,9 @@
 
     [(async-loop
       (fn []
-        (sleep-until-true (fn [] @(:storm-active-atom executor-data)))
+        ;; If topology was started in inactive state, don't call prepare bolt until it's activated first.
+        (while (not @(:storm-active-atom executor-data))          
+          (Thread/sleep 100))
         
         (log-message "Preparing bolt " component-id ":" (keys task-datas))
         (doseq [[task-id task-data] task-datas

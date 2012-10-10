@@ -10,10 +10,6 @@ public class SnapshottableMap<T> implements MapState<T>, Snapshottable<T> {
     MapState<T> _delegate;
     List<List<Object>> _keys;
 
-    protected void setDelegate(MapState<T> delegate) {
-        _delegate = delegate;
-    }
-
     public SnapshottableMap(MapState<T> delegate, List<Object> snapshotKey) {
         _delegate = delegate;
         _keys = Arrays.asList(snapshotKey);

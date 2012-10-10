@@ -12,7 +12,7 @@ import storm.trident.state.ValueUpdater;
 import storm.trident.state.map.*;
 import storm.trident.state.snapshot.Snapshottable;
 
-public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection {
+public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, MapState<T> {
 
     MemoryMapStateBacking<OpaqueValue> _backing;
     SnapshottableMap<T> _delegate;
@@ -44,6 +44,18 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection {
 
     public Iterator<List<Object>> getTuples() {
         return _backing.getTuples();
+    }
+
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+        return _delegate.multiUpdate(keys, updaters);
+    }
+
+    public void multiPut(List<List<Object>> keys, List<T> vals) {
+        _delegate.multiPut(keys, vals);
+    }
+
+    public List<T> multiGet(List<List<Object>> keys) {
+        return _delegate.multiGet(keys);
     }
 
     public static class Factory implements StateFactory {

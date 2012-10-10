@@ -47,6 +47,18 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection 
         return _backing.getTuples();
     }
 
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+        return _delegate.multiUpdate(keys, updaters);
+    }
+
+    public void multiPut(List<List<Object>> keys, List<T> vals) {
+        _delegate.multiPut(keys, vals);
+    }
+
+    public List<T> multiGet(List<List<Object>> keys) {
+        return _delegate.multiGet(keys);
+    }
+
     public static class Factory implements StateFactory {
 
         String _id;

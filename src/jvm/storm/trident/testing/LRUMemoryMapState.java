@@ -13,7 +13,7 @@ import storm.trident.state.map.*;
 import storm.trident.state.snapshot.Snapshottable;
 import storm.trident.util.LRUMap;
 
-public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection {
+public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection, MapState<T> {
 
     LRUMemoryMapStateBacking<OpaqueValue> _backing;
     SnapshottableMap<T> _delegate;

@@ -37,6 +37,22 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
+        submitTopology(name, stormConf, topology, new SubmitOptions(TopologyInitialStatus.ACTIVE));
+    }    
+    
+    /**
+     * Submits a topology to run on the cluster. A topology runs forever or until 
+     * explicitly killed.
+     *
+     *
+     * @param name the name of the storm.
+     * @param stormConf the topology-specific configuration. See {@link Config}. 
+     * @param topology the processing to execute.
+     * @param options to manipulate the starting of the topology
+     * @throws AlreadyAliveException if a topology with this name is already running
+     * @throws InvalidTopologyException if an invalid topology was submitted
+     */
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
@@ -57,7 +73,7 @@ public class StormSubmitter {
                 submitJar(conf);
                 try {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
-                    client.getClient().submitTopology(name, submittedJar, serConf, topology);
+                    client.getClient().submitTopologyWithOpts(name, submittedJar, serConf, topology, opts);
                 } catch(InvalidTopologyException e) {
                     LOG.warn("Topology submission exception", e);
                     throw e;

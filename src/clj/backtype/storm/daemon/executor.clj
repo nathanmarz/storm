@@ -288,8 +288,9 @@
           (doseq [hook (.getHooks user-context)]
             (.cleanup hook)))
         (.disconnect (:storm-cluster-state executor-data))
-        (doseq [obj (map :object (vals task-datas))]
-          (close-component executor-data obj))
+        (when @(:open-or-prepare-was-called? executor-data)
+          (doseq [obj (map :object (vals task-datas))]
+            (close-component executor-data obj)))
         (log-message "Shut down executor " component-id ":" (pr-str executor-id)))
         )))
 
@@ -601,12 +602,10 @@
       :factory? true)]))
 
 (defmethod close-component :spout [executor-data spout]
-  (when @(:open-or-prepare-was-called? executor-data)
-    (.close spout)))
+  (.close spout))
 
 (defmethod close-component :bolt [executor-data bolt]
-  (when @(:open-or-prepare-was-called? executor-data)    
-    (.cleanup bolt)))
+  (.cleanup bolt))
 
 ;; TODO: refactor this to be part of an executor-specific map
 (defmethod mk-executor-stats :spout [_ rate]

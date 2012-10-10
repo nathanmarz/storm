@@ -36,6 +36,7 @@
      :downloaders (file-cache-map conf)
      :uploaders (file-cache-map conf)
      :uptime (uptime-computer)
+     :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
                                  (halt-process! 20 "Error when processing an event")
@@ -870,34 +871,42 @@
     (reify Nimbus$Iface
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (validate-topology-name! storm-name)
-        (check-storm-active! nimbus storm-name false)
-        (swap! (:submitted-count nimbus) inc)
-        (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
-              storm-conf (normalize-conf
-                          conf
-                          (-> serializedConf
-                              from-json
-                              (assoc STORM-ID storm-id)
-                              (assoc TOPOLOGY-NAME storm-name))
-                          topology)
-              total-storm-conf (merge conf storm-conf)
-              topology (normalize-topology total-storm-conf topology)
-              topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
-                         (optimize-topology topology)
-                         topology)
-              storm-cluster-state (:storm-cluster-state nimbus)]
-          (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-          (log-message "Received topology submission for " storm-name " with conf " storm-conf)
-          ;; lock protects against multiple topologies being submitted at once and
-          ;; cleanup thread killing topology in b/w assignment and starting the topology
-          (locking (:submit-lock nimbus)
-            (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
-            (.setup-heartbeats! storm-cluster-state storm-id)
-            (start-storm nimbus storm-name storm-id)
-            (mk-assignments nimbus))
-          ))
-      
+        (try
+          (validate-topology-name! storm-name)
+          (check-storm-active! nimbus storm-name false)
+          (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                     storm-name
+                     (from-json serializedConf)
+                     topology)
+          (swap! (:submitted-count nimbus) inc)
+          (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
+                storm-conf (normalize-conf
+                            conf
+                            (-> serializedConf
+                                from-json
+                                (assoc STORM-ID storm-id)
+                                (assoc TOPOLOGY-NAME storm-name))
+                            topology)
+                total-storm-conf (merge conf storm-conf)
+                topology (normalize-topology total-storm-conf topology)
+                topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
+                           (optimize-topology topology)
+                           topology)
+                storm-cluster-state (:storm-cluster-state nimbus)]
+            (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
+            (log-message "Received topology submission for " storm-name " with conf " storm-conf)
+            ;; lock protects against multiple topologies being submitted at once and
+            ;; cleanup thread killing topology in b/w assignment and starting the topology
+            (locking (:submit-lock nimbus)
+              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+              (.setup-heartbeats! storm-cluster-state storm-id)
+              (start-storm nimbus storm-name storm-id)
+              (mk-assignments nimbus)))
+
+          (catch Throwable e
+            (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
+            (throw e))))
+
       (^void killTopology [this ^String name]
         (.killTopologyWithOpts this name (KillOptions.)))
 

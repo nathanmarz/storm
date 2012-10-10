@@ -1,3 +1,17 @@
+## Unreleased
+
+ * Added high water mark to ZeroMQ sockets (defaults to 10000) configurable with zmq.hwm
+ * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)
+ * Added report-error! to Clojure DSL
+ * Automatically throttle errors sent to Zookeeper/Storm UI when too many are reported in a time interval (all errors are still logged) Configured with TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL and TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
+ * Kryo instance used for serialization can now be controlled via IKryoFactory interface and TOPOLOGY_KRYO_FACTORY config
+ * Add ability to plug in custom code into Nimbus to allow/disallow topologies to be submitted via NIMBUS_TOPOLOGY_VALIDATOR config
+ * Added TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS config to control how often a batch can be emitted in a Trident topology. Defaults to 500 milliseconds. This is used to prevent too much load from being placed on Zookeeper in the case that batches are being processed super quickly.
+ * Log any topology submissions errors in nimbus.log
+ * Add static helpers in Config when using regular maps
+ * Make Trident much more memory efficient during failures by immediately removing state for failed attempts when a more recent attempt is seen
+ * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
+ 
 ## 0.8.1
 
  * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology (thanks xumingming)

@@ -46,17 +46,19 @@
 (defn mk-connection [socket]
   (ZMQConnection. socket (ByteBuffer/allocate 2)))
 
-(deftype ZMQContext [context linger-ms local?]
+(deftype ZMQContext [context linger-ms hwm local?]
   Context
   (bind [this storm-id port]
     (-> context
         (mq/socket mq/pull)
+        (mq/set-hwm hwm)
         (mq/bind (get-bind-zmq-url local? port))
         mk-connection
         ))
   (connect [this storm-id host port]
     (-> context
         (mq/socket mq/push)
+        (mq/set-hwm hwm)
         (mq/set-linger linger-ms)
         (mq/connect (get-connect-zmq-url local? host port))
         mk-connection))
@@ -66,6 +68,6 @@
   (zmq-context [this]
     context))
 
-(defn mk-zmq-context [num-threads linger local?]
-  (ZMQContext. (mq/context num-threads) linger local?))
+(defn mk-zmq-context [num-threads linger hwm local?]
+  (ZMQContext. (mq/context num-threads) linger hwm local?))
 

@@ -60,6 +60,7 @@ You must not remove this notice, or any other, from this software.
 * Yuta Okamoto ([@okapies](https://github.com/okapies))
 * Barry Hart ([@barrywhart](https://github.com/barrywhart))
 * Sergey Lukjanov([@Frostman](https://github.com/Frostman))
+* Ross Feinstein([@rnfein](https://github.com/rnfein))
 
 ## Acknowledgements
 

@@ -11,6 +11,7 @@
  * Add static helpers in Config when using regular maps
  * Make Trident much more memory efficient during failures by immediately removing state for failed attempts when a more recent attempt is seen
  * Add ability to name portions of a Trident computation and have those names appear in the Storm UI
+ * Show Nimbus and topology configurations through Storm UI (thanks rnfein)
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  
 ## 0.8.1

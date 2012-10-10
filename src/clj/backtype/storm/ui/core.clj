@@ -114,6 +114,10 @@
       (.get_num_used_workers s)])
    :time-cols [1]))
 
+(defn configuration-table [conf]
+  (sorted-table ["Key" "Value"]
+    (map #(vector (key %) (str (val %))) conf)))
+
 (defn main-page []
   (with-nimbus nimbus
     (let [summ (.getClusterInfo ^Nimbus$Client nimbus)]
@@ -124,6 +128,8 @@
        (main-topology-summary-table (.get_topologies summ))
        [[:h2 "Supervisor summary"]]
        (supervisor-summary-table (.get_supervisors summ))
+       [[:h2 "Nimbus Configuration"]]
+       (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
        ))))
 
 (defn component-type [^StormTopology topology id]
@@ -419,6 +425,7 @@
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
           topology (.getTopology ^Nimbus$Client nimbus id)
+          topology-conf (.getTopologyConf ^Nimbus$Client nimbus id)
           spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
           bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
           spout-comp-summs (group-by-comp spout-summs)
@@ -443,6 +450,8 @@
        (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Bolts (" window-hint ")"]]
        (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+       [[:h2 "Topology Configuration"]]
+       (configuration-table (from-json topology-conf))
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]

@@ -590,76 +590,137 @@ public class Config extends HashMap<String, Object> {
      * it is not a production grade zookeeper setup.
      */
     public static String DEV_ZOOKEEPER_PATH = "dev.zookeeper.path";
-    
-    public void setDebug(boolean isOn) {
-        put(Config.TOPOLOGY_DEBUG, isOn);
+        
+    public static void setDebug(Map conf, boolean isOn) {
+        conf.put(Config.TOPOLOGY_DEBUG, isOn);
     } 
 
+    public void setDebug(boolean isOn) {
+        setDebug(this, isOn);
+    }
+    
+    @Deprecated
     public void setOptimize(boolean isOn) {
         put(Config.TOPOLOGY_OPTIMIZE, isOn);
     } 
     
+    public static void setNumWorkers(Map conf, int workers) {
+        conf.put(Config.TOPOLOGY_WORKERS, workers);
+    }
+
     public void setNumWorkers(int workers) {
-        put(Config.TOPOLOGY_WORKERS, workers);
+        setNumWorkers(this, workers);
+    }
+
+    public static void setNumAckers(Map conf, int numExecutors) {
+        conf.put(Config.TOPOLOGY_ACKER_EXECUTORS, numExecutors);
     }
 
     public void setNumAckers(int numExecutors) {
-        put(Config.TOPOLOGY_ACKER_EXECUTORS, numExecutors);
+        setNumAckers(this, numExecutors);
     }
     
+    public static void setMessageTimeoutSecs(Map conf, int secs) {
+        conf.put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
+    }
+
     public void setMessageTimeoutSecs(int secs) {
-        put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
+        setMessageTimeoutSecs(this, secs);
     }
     
+    public static void registerSerialization(Map conf, Class klass) {
+        getRegisteredSerializations(conf).add(klass.getName());
+    }
+
     public void registerSerialization(Class klass) {
-        getRegisteredSerializations().add(klass.getName());
+        registerSerialization(this, klass);
     }
     
-    public void registerSerialization(Class klass, Class<? extends Serializer> serializerClass) {
+    public static void registerSerialization(Map conf, Class klass, Class<? extends Serializer> serializerClass) {
         Map<String, String> register = new HashMap<String, String>();
         register.put(klass.getName(), serializerClass.getName());
-        getRegisteredSerializations().add(register);        
+        getRegisteredSerializations(conf).add(register);        
+    }
+
+    public void registerSerialization(Class klass, Class<? extends Serializer> serializerClass) {
+        registerSerialization(this, klass, serializerClass);
     }
     
+    public static void registerDecorator(Map conf, Class<? extends IKryoDecorator> klass) {
+        getRegisteredDecorators(conf).add(klass.getName());
+    }
+
     public void registerDecorator(Class<? extends IKryoDecorator> klass) {
-        getRegisteredDecorators().add(klass.getName());
+        registerDecorator(this, klass);
     }
     
+    public static void setKryoFactory(Map conf, Class<? extends IKryoFactory> klass) {
+        conf.put(Config.TOPOLOGY_KRYO_FACTORY, klass.getName());
+    }
+
     public void setKryoFactory(Class<? extends IKryoFactory> klass) {
-        put(Config.TOPOLOGY_KRYO_FACTORY, klass.getName());
+        setKryoFactory(this, klass);
+    }
+
+    public static void setSkipMissingKryoRegistrations(Map conf, boolean skip) {
+        conf.put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
     }
 
     public void setSkipMissingKryoRegistrations(boolean skip) {
-        put(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS, skip);
+       setSkipMissingKryoRegistrations(this, skip);
     }
     
+    public static void setMaxTaskParallelism(Map conf, int max) {
+        conf.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, max);
+    }
+
     public void setMaxTaskParallelism(int max) {
-        put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, max);
+        setMaxTaskParallelism(this, max);
     }
     
+    public static void setMaxSpoutPending(Map conf, int max) {
+        conf.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, max);
+    }
+
     public void setMaxSpoutPending(int max) {
-        put(Config.TOPOLOGY_MAX_SPOUT_PENDING, max);
+        setMaxSpoutPending(this, max);
     }
     
+    public static void setStatsSampleRate(Map conf, double rate) {
+        conf.put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
+    }    
+
     public void setStatsSampleRate(double rate) {
-        put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
+        setStatsSampleRate(this, rate);
+    }    
+
+    public static void setFallBackOnJavaSerialization(Map conf, boolean fallback) {
+        conf.put(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION, fallback);
     }    
 
     public void setFallBackOnJavaSerialization(boolean fallback) {
-        put(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION, fallback);
+        setFallBackOnJavaSerialization(this, fallback);
     }    
     
-    private List getRegisteredSerializations() {
-        if(!containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
-            put(Config.TOPOLOGY_KRYO_REGISTER, new ArrayList());
+    private static List getRegisteredSerializations(Map conf) {
+        List ret;
+        if(!conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
+            ret = new ArrayList();
+        } else {
+            ret = new ArrayList((List) conf.get(Config.TOPOLOGY_KRYO_REGISTER));
         }
-        return (List) get(Config.TOPOLOGY_KRYO_REGISTER);
+        conf.put(Config.TOPOLOGY_KRYO_REGISTER, ret);
+        return ret;
     }
     
-    private List getRegisteredDecorators() {
-        if(!containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {
-            put(Config.TOPOLOGY_KRYO_DECORATORS, new ArrayList());
+    private static List getRegisteredDecorators(Map conf) {
+        List ret;
+        if(!conf.containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {
+            ret = new ArrayList();
+        } else {
+            ret = new ArrayList((List) conf.get(Config.TOPOLOGY_KRYO_DECORATORS));            
         }
-        return (List) get(Config.TOPOLOGY_KRYO_DECORATORS);
+        conf.put(Config.TOPOLOGY_KRYO_DECORATORS, ret);
+        return ret;
     }
 }

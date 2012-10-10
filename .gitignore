@@ -21,4 +21,6 @@ _release
 *.zip
 .lein-deps-sum
 *.iml
-
+*.ipr
+*.iws
+.idea

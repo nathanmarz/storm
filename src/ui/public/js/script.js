@@ -27,7 +27,7 @@ $.tablesorter.addParser({
     type:'numeric'
 });
 
-$(function(){
+$(function () {
     $(".js-only").show();
 });
 
@@ -42,17 +42,40 @@ function toggleSys() {
     window.location = window.location;
 }
 
-function confirmAction(id, name, action) {
-    if (confirm('Do you realy want to ' + action + ' topology "' + name + '"?')) {
-        $("input[type=button]").attr("disabled", "disabled");
-
-        $.ajax({
-            type:'POST',
-            url:'/topology/' + id + '/' + action
-        }).always(function () {
-            window.location.reload();
-        }).fail(function () {
-            alert("Error while communicating with Nimbus.")
-        });
+function ensureInt(n) {
+    var isInt = /^\d+$/.test(n);
+    if (!isInt) {
+        alert("'" + n + "' is not integer.");
     }
+
+    return isInt;
+}
+
+function confirmAction(id, name, action, wait, defaultWait) {
+    var opts = {
+        type:'POST',
+        url:'/topology/' + id + '/' + action
+    };
+    if (wait) {
+        var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +
+                              'If yes, please, specify wait time in seconds:',
+                              defaultWait);
+
+        if (waitSecs != null && waitSecs != "" && ensureInt(waitSecs)) {
+            opts.url += '/' + waitSecs;
+        } else {
+            return false;
+        }
+    } else if (!confirm('Do you really want to ' + action + ' topology "' + name + '"?')) {
+        return false;
+    }
+
+    $("input[type=button]").attr("disabled", "disabled");
+    $.ajax(opts).always(function () {
+        window.location.reload();
+    }).fail(function () {
+        alert("Error while communicating with Nimbus.")
+    });
+
+    return false;
 }

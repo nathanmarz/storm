@@ -9,7 +9,8 @@
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
-            Nimbus$Client StormTopology GlobalStreamId RebalanceOptions])
+            Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
+            KillOptions])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -413,11 +414,11 @@
     "All time"
     (pretty-uptime-sec window)))
 
-(defn topology-action-button [id name action command enabled]
+(defn topology-action-button [id name action command is-wait default-wait enabled]
   [:input {:type "button"
            :value action
            (if enabled :enabled :disabled) ""
-           :onclick (str "confirmAction('" id "', '" name "', '" command "')")}])
+           :onclick (str "confirmAction('" id "', '" name "', '" command "', " is-wait ", " default-wait ")")}])
 
 (defn topology-page [id window include-sys?]
   (with-nimbus nimbus
@@ -439,10 +440,10 @@
        [(topology-summary-table summ)]
        [[:h2 {:class "js-only"} "Topology actions"]]
        [[:p {:class "js-only"} (concat
-         [(topology-action-button id name "Activate" "activate" (= "INACTIVE" status))]
-         [(topology-action-button id name "Deactivate" "deactivate" (= "ACTIVE" status))]
-         [(topology-action-button id name "Rebalance" "rebalance" (not= "KILLED" status))]
-         [(topology-action-button id name "Kill" "kill" (not= "KILLED" status))]
+         [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
+         [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
+         [(topology-action-button id name "Rebalance" "rebalance" true 30 (not= "KILLED" status))]
+         [(topology-action-button id name "Kill" "kill" true 30 (not= "KILLED" status))]
        )]]
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
@@ -701,19 +702,23 @@
         (.deactivate nimbus name)
         (log-message "Deactivating topology: " name)))
     (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/rebalance" [id]
+  (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.rebalance nimbus name (RebalanceOptions.))
-        (log-message "Rebalancing topology: " name)))
+            name (.get_name tplg)
+            options (RebalanceOptions.)]
+        (.set_wait_secs options (Integer/parseInt wait-time))
+        (.rebalance nimbus name options)
+        (log-message "Rebalancing topology: " name " with wait time: " wait-time " secs")))
     (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/kill" [id]
+  (POST "/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.killTopology nimbus name)
-        (log-message "Killing topology: " name)))
+            name (.get_name tplg)
+            options (KillOptions.)]
+        (.set_wait_secs options (Integer/parseInt wait-time))
+        (.killTopologyWithOpts nimbus name options)
+        (log-message "Killing topology: " name " with wait time: " wait-time " secs")))
     (resp/redirect (str "/topology/" id)))
   (route/resources "/")
   (route/not-found "Page not found"))

@@ -14,6 +14,7 @@
  * Show Nimbus and topology configurations through Storm UI (thanks rnfein)
  * Added ITupleCollection interface for TridentState's and TupleCollectionGet QueryFunction for getting the full contents of a state. MemoryMapState and LRUMemoryMapState implement this
  * Can now submit a topology in inactive state. Storm will wait to call open/prepare on the spouts/bolts until it is first activated.
+ * Can now activate, deactive, rebalance, and kill topologies from the Storm UI (thanks Frostman)
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  
 ## 0.8.1

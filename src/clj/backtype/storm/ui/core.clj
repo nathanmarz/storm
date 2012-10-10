@@ -30,7 +30,8 @@
        (filter not-nil?)))
 
 (defn mk-system-toggle-button [include-sys?]
-  [:p [:input {:type "button"
+  [:p {:class "js-only"}
+    [:input {:type "button"
              :value (str (if include-sys? "Hide" "Show") " System Stats")
              :onclick "toggleSys()"}]])
 
@@ -39,6 +40,7 @@
    [:head
     [:title "Storm UI"]
     (include-css "/css/bootstrap-1.1.0.css")
+    (include-css "/css/style.css")
     (include-js "/js/jquery-1.6.2.min.js")
     (include-js "/js/jquery.tablesorter.min.js")
     (include-js "/js/jquery.cookies.2.2.0.min.js")
@@ -428,8 +430,8 @@
       (concat
        [[:h2 "Topology summary"]]
        [(topology-summary-table summ)]
-       [[:h2 "Topology actions"]]
-       [[:p (concat
+       [[:h2 {:class "js-only"} "Topology actions"]]
+       [[:p {:class "js-only"} (concat
          [(topology-action-button id name "Activate" "activate" (= "INACTIVE" status))]
          [(topology-action-button id name "Deactivate" "deactivate" (= "ACTIVE" status))]
          [(topology-action-button id name "Rebalance" "rebalance" (not= "KILLED" status))]

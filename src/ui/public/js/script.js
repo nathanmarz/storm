@@ -27,6 +27,10 @@ $.tablesorter.addParser({
     type:'numeric'
 });
 
+$(function(){
+    $(".js-only").show();
+});
+
 function toggleSys() {
     var sys = $.cookies.get('sys') || false;
     sys = !sys;

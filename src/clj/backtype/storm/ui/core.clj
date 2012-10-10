@@ -426,7 +426,7 @@
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
           topology (.getTopology ^Nimbus$Client nimbus id)
-          topology-conf (.getTopologyConf ^Nimbus$Client nimbus id)
+          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))
           spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
           bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
           spout-comp-summs (group-by-comp spout-summs)
@@ -434,6 +434,7 @@
           bolt-comp-summs (filter-key (mk-include-sys-fn include-sys?) bolt-comp-summs)
           name (.get_name summ)
           status (.get_status summ)
+          msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
           ]
       (concat
        [[:h2 "Topology summary"]]
@@ -442,8 +443,8 @@
        [[:p {:class "js-only"} (concat
          [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
          [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
-         [(topology-action-button id name "Rebalance" "rebalance" true 30 (not= "KILLED" status))]
-         [(topology-action-button id name "Kill" "kill" true 30 (not= "KILLED" status))]
+         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (not= "KILLED" status))]
+         [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
        )]]
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
@@ -452,7 +453,7 @@
        [[:h2 "Bolts (" window-hint ")"]]
        (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Topology Configuration"]]
-       (configuration-table (from-json topology-conf))
+       (configuration-table topology-conf)
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]

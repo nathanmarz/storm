@@ -903,7 +903,7 @@
               (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
-                                            TopologyInitialStatus/ACTIVE :active}]
+                                              TopologyInitialStatus/ACTIVE :active}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))
               (mk-assignments nimbus)))
           (catch Throwable e
@@ -913,7 +913,7 @@
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
         (.submitTopologyWithOpts this storm-name uploadedJarLocation serializedConf topology
-                                 (SubmitOptions. TopologyInitialStatus/ACTIV
+                                 (SubmitOptions. TopologyInitialStatus/ACTIVE)))
       
       (^void killTopology [this ^String name]
         (.killTopologyWithOpts this name (KillOptions.)))

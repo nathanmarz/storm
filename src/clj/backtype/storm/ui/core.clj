@@ -42,7 +42,7 @@
     (include-js "/js/jquery.tablesorter.min.js")
     (include-js "/js/jquery.cookies.2.2.0.min.js")
     ]
-   [:script "$.tablesorter.addParser({ 
+   [:script "$.tablesorter.addParser({
         id: 'stormtimestr', 
         is: function(s) { 
             return false; 
@@ -140,7 +140,7 @@ function toggleSys() {
    ))
 
 (defn supervisor-summary-table [summs]
-  (sorted-table 
+  (sorted-table
    ["Host" "Uptime" "Slots" "Used slots"]
    (for [^SupervisorSummary s summs]
      [(.get_host s)
@@ -148,6 +148,10 @@ function toggleSys() {
       (.get_num_workers s)
       (.get_num_used_workers s)])
    :time-cols [1]))
+
+(defn configuration-table [conf]
+  (sorted-table ["Key" "Value"]
+    (map #(vector (key %) (str (val %))) conf)))
 
 (defn main-page []
   (with-nimbus nimbus
@@ -158,7 +162,9 @@ function toggleSys() {
        [[:h2 "Topology summary"]]
        (main-topology-summary-table (.get_topologies summ))
        [[:h2 "Supervisor summary"]]
-       (supervisor-summary-table (.get_supervisors summ))       
+       (supervisor-summary-table (.get_supervisors summ))
+       [[:h2 "Nimbus Configuration"]]
+       (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
        ))))
 
 (defn component-type [^StormTopology topology id]
@@ -255,7 +261,7 @@ function toggleSys() {
         stream-summary (-> stream-summary (dissoc :emitted) (assoc :emitted emitted))
         stream-summary (-> stream-summary (dissoc :transferred) (assoc :transferred transferred))]
     stream-summary))
-    
+
 (defn aggregate-bolt-stats [stats-seq include-sys?]
   (let [stats-seq (collectify stats-seq)]
     (merge (pre-process (aggregate-common-stats stats-seq) include-sys?)
@@ -448,6 +454,7 @@ function toggleSys() {
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
           topology (.getTopology ^Nimbus$Client nimbus id)
+          topology-conf (.getTopologyConf ^Nimbus$Client nimbus id)
           spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
           bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
           spout-comp-summs (group-by-comp spout-summs)
@@ -463,6 +470,8 @@ function toggleSys() {
        (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Bolts (" window-hint ")"]]
        (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+       [[:h2 "Topology Configuration"]]
+       (configuration-table (from-json topology-conf))
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
@@ -637,7 +646,7 @@ function toggleSys() {
 
      [[:h2 "Input stats" window-hint]]
      (bolt-input-summary-table stream-summary window)
-     
+
      [[:h2 "Output stats" window-hint]]
      (bolt-output-summary-table stream-summary window)
 

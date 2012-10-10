@@ -44,19 +44,25 @@ import storm.trident.util.TridentUtils;
 public class Stream implements IAggregatableStream {
     Node _node;
     TridentTopology _topology;
+    String _name;
     
-    protected Stream(TridentTopology topology, Node node) {
+    protected Stream(TridentTopology topology, String name, Node node) {
         _topology = topology;
         _node = node;
+        _name = name;
+    }
+    
+    public Stream name(String name) {
+        return new Stream(_topology, name, _node);
     }
     
     public Stream parallelismHint(int hint) {
         _node.parallelismHint = hint;
         return this;
     }
-    
+        
     public Stream project(Fields keepFields) {
-        return _topology.addSourcedNode(this, new ProcessorNode(_topology.getUniqueStreamId(), keepFields, new Fields(), new ProjectedProcessor(keepFields)));
+        return _topology.addSourcedNode(this, new ProcessorNode(_topology.getUniqueStreamId(), _name, keepFields, new Fields(), new ProjectedProcessor(keepFields)));
     }
 
     public GroupedStream groupBy(Fields fields) {
@@ -98,7 +104,7 @@ public class Stream implements IAggregatableStream {
         if(_node instanceof PartitionNode) {
             return each(new Fields(), new TrueFilter()).partition(grouping);
         } else {
-            return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, getOutputFields(), grouping));       
+            return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, _name, getOutputFields(), grouping));       
         }
     }
     
@@ -110,6 +116,7 @@ public class Stream implements IAggregatableStream {
     public Stream each(Fields inputFields, Function function, Fields functionFields) {
         return _topology.addSourcedNode(this,
                 new ProcessorNode(_topology.getUniqueStreamId(),
+                    _name,
                     TridentUtils.fieldsConcat(getOutputFields(), functionFields),
                     functionFields,
                     new EachProcessor(inputFields, function)));
@@ -120,6 +127,7 @@ public class Stream implements IAggregatableStream {
     public Stream partitionAggregate(Fields inputFields, Aggregator agg, Fields functionFields) {
         return _topology.addSourcedNode(this,
                 new ProcessorNode(_topology.getUniqueStreamId(),
+                    _name,
                     functionFields,
                     functionFields,
                     new AggregateProcessor(inputFields, agg)));
@@ -128,6 +136,7 @@ public class Stream implements IAggregatableStream {
     public Stream stateQuery(TridentState state, Fields inputFields, QueryFunction function, Fields functionFields) {
         String stateId = state._node.stateInfo.id;
         Node n = new ProcessorNode(_topology.getUniqueStreamId(),
+                        _name,
                         TridentUtils.fieldsConcat(getOutputFields(), functionFields),
                         functionFields,
                         new StateQueryProcessor(stateId, inputFields, function));
@@ -142,6 +151,7 @@ public class Stream implements IAggregatableStream {
     public TridentState partitionPersist(StateSpec stateSpec, Fields inputFields, StateUpdater updater, Fields functionFields) {
         String id = _topology.getUniqueStateId();
         ProcessorNode n = new ProcessorNode(_topology.getUniqueStreamId(),
+                    _name,
                     functionFields,
                     functionFields,
                     new PartitionPersistProcessor(id, inputFields, updater));

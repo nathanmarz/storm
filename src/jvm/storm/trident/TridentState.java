@@ -13,7 +13,7 @@ public class TridentState {
     }
     
     public Stream newValuesStream() {
-        return new Stream(_topology, _node);
+        return new Stream(_topology, _node.name, _node);
     }
     
     public TridentState parallelismHint(int parallelism) {

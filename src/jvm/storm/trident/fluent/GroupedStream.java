@@ -26,6 +26,10 @@ public class GroupedStream implements IAggregatableStream, GlobalAggregationSche
         _stream = stream;
     }
     
+    public GroupedStream name(String name) {
+        return new GroupedStream(_stream.name(name), _groupFields);
+    }
+    
     public ChainedAggregatorDeclarer chainedAgg() {
         return new ChainedAggregatorDeclarer(this, this);
     }

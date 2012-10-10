@@ -694,14 +694,14 @@
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.activate nimbus name)
-        (log-message "Activating topology: " name)))
+        (log-message "Activating topology '" name "'")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/deactivate" [id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.deactivate nimbus name)
-        (log-message "Deactivating topology: " name)))
+        (log-message "Deactivating topology '" name "'")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
@@ -710,7 +710,7 @@
             options (RebalanceOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.rebalance nimbus name options)
-        (log-message "Rebalancing topology: " name " with wait time: " wait-time " secs")))
+        (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
@@ -719,7 +719,7 @@
             options (KillOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
-        (log-message "Killing topology: " name " with wait time: " wait-time " secs")))
+        (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
     (resp/redirect (str "/topology/" id)))
   (route/resources "/")
   (route/not-found "Page not found"))

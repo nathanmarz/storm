@@ -443,7 +443,7 @@
        [[:p {:class "js-only"} (concat
          [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
          [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
-         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (not= "KILLED" status))]
+         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (or (= "ACTIVE" status) (= "INACTIVE" status)))]
          [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
        )]]
        [[:h2 "Topology stats"]]

@@ -32,6 +32,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void finishFileUpload(string location)'
   print '  string beginFileDownload(string file)'
   print '  string downloadChunk(string id)'
+  print '  string getNimbusConf()'
   print '  ClusterSummary getClusterInfo()'
   print '  TopologyInfo getTopologyInfo(string id)'
   print '  string getTopologyConf(string id)'
@@ -152,6 +153,12 @@ elif cmd == 'downloadChunk':
     print 'downloadChunk requires 1 args'
     sys.exit(1)
   pp.pprint(client.downloadChunk(args[0],))
+
+elif cmd == 'getNimbusConf':
+  if len(args) != 0:
+    print 'getNimbusConf requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.getNimbusConf())
 
 elif cmd == 'getClusterInfo':
   if len(args) != 0:

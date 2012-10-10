@@ -50,7 +50,7 @@
 (defn bootstrap-imports []
   (import 'backtype.storm.LocalDRPC)
   (import 'storm.trident.TridentTopology)
-  (import '[storm.trident.operation.builtin Count Sum Equals MapGet Debug FilterNull FirstN])
+  (import '[storm.trident.operation.builtin Count Sum Equals MapGet Debug FilterNull FirstN TupleCollectionGet])
   )
 
 (defn drpc-tuples-input [topology function-name drpc outfields]

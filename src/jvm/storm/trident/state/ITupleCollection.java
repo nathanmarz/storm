@@ -1,4 +1,4 @@
-package backtype.storm.state;
+package storm.trident.state;
 
 import java.util.Iterator;
 import java.util.List;

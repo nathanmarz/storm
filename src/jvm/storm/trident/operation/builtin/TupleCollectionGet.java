@@ -1,6 +1,6 @@
 package storm.trident.operation.builtin;
 
-import backtype.storm.state.ITupleCollection;
+import storm.trident.state.ITupleCollection;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -9,11 +9,11 @@ import storm.trident.state.BaseQueryFunction;
 import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
 
-public class TupleCollectionGet extends BaseQueryFunction<State, Object> {
+public class TupleCollectionGet extends BaseQueryFunction<State, Iterator<List<Object>>> {
 
     @Override
-    public List<Object> batchRetrieve(State state, List<TridentTuple> args) {
-        List<Object> ret = new ArrayList<Object>(args.size());
+    public List<Iterator<List<Object>>> batchRetrieve(State state, List<TridentTuple> args) {
+        List<Iterator<List<Object>>> ret = new ArrayList(args.size());
         for(int i=0; i<args.size(); i++) {
             ret.add(((ITupleCollection)state).getTuples());
         }
@@ -21,8 +21,7 @@ public class TupleCollectionGet extends BaseQueryFunction<State, Object> {
     }
 
     @Override
-    public void execute(TridentTuple tuple, Object result, TridentCollector collector) {
-        Iterator<List<Object>> tuplesIterator = (Iterator<List<Object>>)result;
+    public void execute(TridentTuple tuple, Iterator<List<Object>> tuplesIterator, TridentCollector collector) {
         while(tuplesIterator.hasNext()) {
             collector.emit(tuplesIterator.next());
         }

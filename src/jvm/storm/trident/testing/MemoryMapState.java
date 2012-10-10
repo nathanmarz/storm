@@ -1,6 +1,6 @@
 package storm.trident.testing;
 
-import backtype.storm.state.ITupleCollection;
+import storm.trident.state.ITupleCollection;
 import backtype.storm.tuple.Values;
 import java.util.*;
 import java.util.Map.Entry;

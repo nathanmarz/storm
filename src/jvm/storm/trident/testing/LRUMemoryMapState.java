@@ -3,88 +3,122 @@ package storm.trident.testing;
 import backtype.storm.state.ITupleCollection;
 import backtype.storm.tuple.Values;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import storm.trident.state.OpaqueValue;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
-import storm.trident.state.map.CachedMap;
-import storm.trident.state.map.IBackingMap;
-import storm.trident.state.map.OpaqueMap;
-import storm.trident.state.map.SnapshottableMap;
+import storm.trident.state.ValueUpdater;
+import storm.trident.state.map.*;
+import storm.trident.state.snapshot.Snapshottable;
 import storm.trident.util.LRUMap;
 
+public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection {
 
-public class LRUMemoryMapState<T> implements IBackingMap<T>, ITupleCollection {
-    
+    LRUMemoryMapStateBacking<OpaqueValue> _backing;
+    SnapshottableMap<T> _delegate;
+
+    public LRUMemoryMapState(int cacheSize, String id) {
+        _backing = new LRUMemoryMapStateBacking(cacheSize, id);
+        _delegate = new SnapshottableMap(OpaqueMap.build(_backing), new Values("$MEMORY-MAP-STATE-GLOBAL$"));
+    }
+
+    public T update(ValueUpdater updater) {
+        return _delegate.update(updater);
+    }
+
+    public void set(T o) {
+        _delegate.set(o);
+    }
+
+    public T get() {
+        return _delegate.get();
+    }
+
+    public void beginCommit(Long txid) {
+        _delegate.beginCommit(txid);
+    }
+
+    public void commit(Long txid) {
+        _delegate.commit(txid);
+    }
+
+    public Iterator<List<Object>> getTuples() {
+        return _backing.getTuples();
+    }
+
     public static class Factory implements StateFactory {
+
         String _id;
         int _maxSize;
-        
+
         public Factory(int maxSize) {
-            _maxSize = maxSize;
             _id = UUID.randomUUID().toString();
+            _maxSize = maxSize;
         }
-        
+
         @Override
         public State makeState(Map conf, int partitionIndex, int numPartitions) {
-            return new SnapshottableMap(OpaqueMap.build(new CachedMap(new LRUMemoryMapState(_maxSize, _id), 10)), new Values("$MEMORY-MAP-STATE-GLOBAL$"));
-        }        
-    }
-    
-    public static void clearAll() {
-        _dbs.clear();
-    }
-    
-    static ConcurrentHashMap<String,  Map<List<Object>, Object>> _dbs = new ConcurrentHashMap<String, Map<List<Object>, Object>>();
-    
-    Map<List<Object>, T> db;
-    Long currTx;
-    
-    public LRUMemoryMapState(int cacheSize, String id) {
-        if(!_dbs.containsKey(id)) {
-           _dbs.put(id, new LRUMap<List<Object>, Object>(cacheSize));
+            return new LRUMemoryMapState(_maxSize, _id);
         }
-        this.db = (Map<List<Object>, T>) _dbs.get(id);
     }
 
-    @Override
-    public List<T> multiGet(List<List<Object>> keys) {
-        List<T> ret = new ArrayList<T>();
-        for(List<Object> key: keys) {
-            ret.add(db.get(key));
+    static ConcurrentHashMap<String, Map<List<Object>, Object>> _dbs = new ConcurrentHashMap<String, Map<List<Object>, Object>>();
+    static class LRUMemoryMapStateBacking<T> implements IBackingMap<T>, ITupleCollection {
+
+        public static void clearAll() {
+            _dbs.clear();
         }
-        return ret;
-    }
+        Map<List<Object>, T> db;
+        Long currTx;
 
-    @Override
-    public void multiPut(List<List<Object>> keys, List<T> vals) {
-        for(int i=0; i<keys.size(); i++) {
-            List<Object> key = keys.get(i);
-            T val = vals.get(i);
-            db.put(key, val);
+        public LRUMemoryMapStateBacking(int cacheSize, String id) {
+            if (!_dbs.containsKey(id)) {
+                _dbs.put(id, new LRUMap<List<Object>, Object>(cacheSize));
+            }
+            this.db = (Map<List<Object>, T>) _dbs.get(id);
         }
-    }    
 
-    @Override
-    public Iterator<List<Object>> getTuples() {
-        return new Iterator<List<Object>>() {
-            private Iterator<Map.Entry<List<Object>,T>> it = db.entrySet().iterator();
-
-            public boolean hasNext() {
-                return it.hasNext();
+        @Override
+        public List<T> multiGet(List<List<Object>> keys) {
+            List<T> ret = new ArrayList();
+            for (List<Object> key : keys) {
+                ret.add(db.get(key));
             }
+            return ret;
+        }
 
-            public List<Object> next() {
-                Map.Entry<List<Object>, T> e = it.next();
-                List<Object> ret = new ArrayList<Object>();
-                ret.addAll(e.getKey());
-                ret.add(((OpaqueValue)e.getValue()).getCurr());
-                return ret;
+        @Override
+        public void multiPut(List<List<Object>> keys, List<T> vals) {
+            for (int i = 0; i < keys.size(); i++) {
+                List<Object> key = keys.get(i);
+                T val = vals.get(i);
+                db.put(key, val);
             }
+        }
 
-            public void remove() {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-        };
+        @Override
+        public Iterator<List<Object>> getTuples() {
+            return new Iterator<List<Object>>() {
+
+                private Iterator<Map.Entry<List<Object>, T>> it = db.entrySet().iterator();
+
+                public boolean hasNext() {
+                    return it.hasNext();
+                }
+
+                public List<Object> next() {
+                    Map.Entry<List<Object>, T> e = it.next();
+                    List<Object> ret = new ArrayList<Object>();
+                    ret.addAll(e.getKey());
+                    ret.add(((OpaqueValue)e.getValue()).getCurr());
+                    return ret;
+                }
+
+                public void remove() {
+                    throw new UnsupportedOperationException("Not supported yet.");
+                }
+            };
+        }
     }
 }

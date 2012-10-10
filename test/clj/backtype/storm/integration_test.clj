@@ -1,7 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.generated InvalidTopologyException])
+  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
               TestAggregatesCounter TestConfBolt AckFailMapTracker])
   (:use [backtype.storm bootstrap testing])
@@ -275,6 +275,49 @@
   [tuple collector]
   (emit-bolt! collector [1] :anchor [tuple tuple])
   (ack! collector tuple))
+
+(def bolt-prepared? (atom false))
+(defbolt prepare-tracked-bolt [] {:prepare true}
+  [conf context collector]  
+  (reset! bolt-prepared? true)
+  (bolt
+   (execute [tuple]
+            (ack! collector tuple))))
+
+(def spout-opened? (atom false))
+(defspout open-tracked-spout ["val"]
+  [conf context collector]
+  (reset! spout-opened? true)
+  (spout
+   (nextTuple [])))
+
+(deftest test-submit-inactive-topology
+  (with-simulated-time-local-cluster [cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec feeder)
+                     "2" (thrift/mk-spout-spec open-tracked-spout)}
+                    {"3" (thrift/mk-bolt-spec {"1" :global} prepare-tracked-bolt)})]
+      (reset! bolt-prepared? false)
+      (reset! spout-opened? false)      
+      
+      (submit-local-topology-with-opts (:nimbus cluster)
+        "test"
+        {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+        topology
+        (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 9)
+      (is (not @bolt-prepared?))
+      (is (not @spout-opened?))        
+      (.activate (:nimbus cluster) "test")              
+      
+      (advance-cluster-time cluster 12)
+      (assert-acked tracker 1)
+      (is @bolt-prepared?)
+      (is @spout-opened?))))
 
 (deftest test-acking-self-anchor
   (with-tracked-cluster [cluster]

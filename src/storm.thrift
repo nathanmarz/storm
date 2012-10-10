@@ -194,9 +194,17 @@ struct RebalanceOptions {
   3: optional map<string, i32> num_executors;
 }
 
+enum TopologyInitialStatus {
+    ACTIVE = 1,
+    INACTIVE = 2
+}
+struct SubmitOptions {
+  1: required TopologyInitialStatus initial_status;
+}
 
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
+  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
   void killTopology(1: string name) throws (1: NotAliveException e);
   void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
   void activate(1: string name) throws (1: NotAliveException e);

@@ -22,6 +22,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print ''
   print 'Functions:'
   print '  void submitTopology(string name, string uploadedJarLocation, string jsonConf, StormTopology topology)'
+  print '  void submitTopologyWithOpts(string name, string uploadedJarLocation, string jsonConf, StormTopology topology, SubmitOptions options)'
   print '  void killTopology(string name)'
   print '  void killTopologyWithOpts(string name, KillOptions options)'
   print '  void activate(string name)'
@@ -93,6 +94,12 @@ if cmd == 'submitTopology':
     print 'submitTopology requires 4 args'
     sys.exit(1)
   pp.pprint(client.submitTopology(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'submitTopologyWithOpts':
+  if len(args) != 5:
+    print 'submitTopologyWithOpts requires 5 args'
+    sys.exit(1)
+  pp.pprint(client.submitTopologyWithOpts(args[0],args[1],args[2],eval(args[3]),eval(args[4]),))
 
 elif cmd == 'killTopology':
   if len(args) != 1:

@@ -8,6 +8,14 @@
  * Add ability to plug in custom code into Nimbus to allow/disallow topologies to be submitted via NIMBUS_TOPOLOGY_VALIDATOR config
  * Added TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS config to control how often a batch can be emitted in a Trident topology. Defaults to 500 milliseconds. This is used to prevent too much load from being placed on Zookeeper in the case that batches are being processed super quickly.
  * Log any topology submissions errors in nimbus.log
+ * Add static helpers in Config when using regular maps
+ * Make Trident much more memory efficient during failures by immediately removing state for failed attempts when a more recent attempt is seen
+ * Add ability to name portions of a Trident computation and have those names appear in the Storm UI
+ * Show Nimbus and topology configurations through Storm UI (thanks rnfein)
+ * Added ITupleCollection interface for TridentState's and TupleCollectionGet QueryFunction for getting the full contents of a state. MemoryMapState and LRUMemoryMapState implement this
+ * Can now submit a topology in inactive state. Storm will wait to call open/prepare on the spouts/bolts until it is first activated.
+ * Can now activate, deactive, rebalance, and kill topologies from the Storm UI (thanks Frostman)
+ * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  
 ## 0.8.1
 

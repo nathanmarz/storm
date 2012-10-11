@@ -22,6 +22,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print ''
   print 'Functions:'
   print '  void submitTopology(string name, string uploadedJarLocation, string jsonConf, StormTopology topology)'
+  print '  void submitTopologyWithOpts(string name, string uploadedJarLocation, string jsonConf, StormTopology topology, SubmitOptions options)'
   print '  void killTopology(string name)'
   print '  void killTopologyWithOpts(string name, KillOptions options)'
   print '  void activate(string name)'
@@ -32,6 +33,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void finishFileUpload(string location)'
   print '  string beginFileDownload(string file)'
   print '  string downloadChunk(string id)'
+  print '  string getNimbusConf()'
   print '  ClusterSummary getClusterInfo()'
   print '  TopologyInfo getTopologyInfo(string id)'
   print '  string getTopologyConf(string id)'
@@ -93,6 +95,12 @@ if cmd == 'submitTopology':
     sys.exit(1)
   pp.pprint(client.submitTopology(args[0],args[1],args[2],eval(args[3]),))
 
+elif cmd == 'submitTopologyWithOpts':
+  if len(args) != 5:
+    print 'submitTopologyWithOpts requires 5 args'
+    sys.exit(1)
+  pp.pprint(client.submitTopologyWithOpts(args[0],args[1],args[2],eval(args[3]),eval(args[4]),))
+
 elif cmd == 'killTopology':
   if len(args) != 1:
     print 'killTopology requires 1 args'
@@ -152,6 +160,12 @@ elif cmd == 'downloadChunk':
     print 'downloadChunk requires 1 args'
     sys.exit(1)
   pp.pprint(client.downloadChunk(args[0],))
+
+elif cmd == 'getNimbusConf':
+  if len(args) != 0:
+    print 'getNimbusConf requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.getNimbusConf())
 
 elif cmd == 'getClusterInfo':
   if len(args) != 0:

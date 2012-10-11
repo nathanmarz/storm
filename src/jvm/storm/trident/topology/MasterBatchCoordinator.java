@@ -7,13 +7,13 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
 import backtype.storm.utils.WindowedTimeThrottler;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.Random;
 import org.apache.log4j.Logger;
 import storm.trident.spout.ITridentSpout;
 import storm.trident.topology.state.TransactionalState;
@@ -29,13 +29,14 @@ public class MasterBatchCoordinator extends BaseRichSpout {
     public static final String SUCCESS_STREAM_ID = "$success";
 
     private static final String CURRENT_TX = "currtx";
+    private static final String CURRENT_ATTEMPTS = "currattempts";
     
     private List<TransactionalState> _states = new ArrayList();
     
     TreeMap<Long, TransactionStatus> _activeTx = new TreeMap<Long, TransactionStatus>();
+    TreeMap<Long, Integer> _attemptIds;
     
     private SpoutOutputCollector _collector;
-    private Random _rand;
     Long _currTransaction;
     int _maxTransactionActive;
     
@@ -68,7 +69,6 @@ public class MasterBatchCoordinator extends BaseRichSpout {
         
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        _rand = new Random(Utils.secureRandomLong());
         _throttler = new WindowedTimeThrottler((Number)conf.get(Config.TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS), 1);
         for(String spoutId: _managedSpoutIds) {
             _states.add(TransactionalState.newCoordinatorState(conf, spoutId));
@@ -82,6 +82,8 @@ public class MasterBatchCoordinator extends BaseRichSpout {
         } else {
             _maxTransactionActive = active.intValue();
         }
+        _attemptIds = getStoredCurrAttempts(_currTransaction, _maxTransactionActive);
+
         
         for(int i=0; i<_spouts.size(); i++) {
             String txId = _managedSpoutIds.get(i);
@@ -110,6 +112,7 @@ public class MasterBatchCoordinator extends BaseRichSpout {
                 status.status = AttemptStatus.PROCESSED;
             } else if(status.status==AttemptStatus.COMMITTING) {
                 _activeTx.remove(tx.getTransactionId());
+                _attemptIds.remove(tx.getTransactionId());
                 _collector.emit(SUCCESS_STREAM_ID, new Values(tx));
                 _currTransaction = nextTransactionId(tx.getTransactionId());
                 for(TransactionalState state: _states) {
@@ -155,8 +158,21 @@ public class MasterBatchCoordinator extends BaseRichSpout {
                 Long curr = _currTransaction;
                 for(int i=0; i<_maxTransactionActive; i++) {
                     if(!_activeTx.containsKey(curr) && isReady(curr)) {
-                      
-                        TransactionAttempt attempt = new TransactionAttempt(curr, _rand.nextLong());
+                        // by using a monotonically increasing attempt id, downstream tasks
+                        // can be memory efficient by clearing out state for old attempts
+                        // as soon as they see a higher attempt id for a transaction
+                        Integer attemptId = _attemptIds.get(curr);
+                        if(attemptId==null) {
+                            attemptId = 0;
+                        } else {
+                            attemptId++;
+                        }
+                        _attemptIds.put(curr, attemptId);
+                        for(TransactionalState state: _states) {
+                            state.setData(CURRENT_ATTEMPTS, _attemptIds);
+                        }
+                        
+                        TransactionAttempt attempt = new TransactionAttempt(curr, attemptId);
                         _activeTx.put(curr, new TransactionStatus(attempt));
                         _collector.emit(BATCH_STREAM_ID, new Values(attempt), attempt);
                         _throttler.markEvent();
@@ -218,6 +234,33 @@ public class MasterBatchCoordinator extends BaseRichSpout {
                 ret = curr;
             }
         }
+        return ret;
+    }
+    
+    private TreeMap<Long, Integer> getStoredCurrAttempts(long currTransaction, int maxBatches) {
+        TreeMap<Long, Integer> ret = new TreeMap<Long, Integer>();
+        for(TransactionalState state: _states) {
+            Map<Object, Number> attempts = (Map) state.getData(CURRENT_ATTEMPTS);
+            if(attempts==null) attempts = new HashMap();
+            for(Entry<Object, Number> e: attempts.entrySet()) {
+                // this is because json doesn't allow numbers as keys...
+                // TODO: replace json with a better form of encoding
+                Number txidObj;
+                if(e.getKey() instanceof String) {
+                    txidObj = Long.parseLong((String) e.getKey());
+                } else {
+                    txidObj = (Number) e.getKey();
+                }
+                long txid = ((Number) txidObj).longValue();
+                int attemptId = ((Number) e.getValue()).intValue();
+                Integer curr = ret.get(txid);
+                if(curr==null || attemptId > curr) {
+                    ret.put(txid, attemptId);
+                }                
+            }
+        }
+        ret.headMap(currTransaction).clear();
+        ret.tailMap(currTransaction + maxBatches - 1).clear();
         return ret;
     }
 }

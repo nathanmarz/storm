@@ -14,7 +14,7 @@ public class SpoutNode extends Node {
     public SpoutType type;
     
     public SpoutNode(String streamId, Fields allOutputFields, String txid, Object spout, SpoutType type) {
-        super(streamId, allOutputFields);
+        super(streamId, null, allOutputFields);
         this.txId = txid;
         this.spout = spout;
         this.type = type;

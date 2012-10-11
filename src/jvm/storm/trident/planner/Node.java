@@ -13,16 +13,18 @@ public class Node implements Serializable {
     
     private String nodeId;
     
+    public String name = null;
     public Fields allOutputFields;
     public String streamId;
     public Integer parallelismHint = null;
     public NodeStateInfo stateInfo = null;
     public int creationIndex;
     
-    public Node(String streamId, Fields allOutputFields) {
+    public Node(String streamId, String name, Fields allOutputFields) {
         this.nodeId = UUID.randomUUID().toString();
         this.allOutputFields = allOutputFields;
         this.streamId = streamId;
+        this.name = name;
         this.creationIndex = INDEX.incrementAndGet();
     }
 

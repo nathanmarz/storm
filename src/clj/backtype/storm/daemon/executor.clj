@@ -184,6 +184,7 @@
      :executor-id executor-id
      :task-ids task-ids
      :component-id component-id
+     :open-or-prepare-was-called? (atom false)
      :storm-conf storm-conf
      :receive-queue ((:executor-receive-queue-map worker) executor-id)
      :storm-id (:storm-id worker)
@@ -287,8 +288,9 @@
           (doseq [hook (.getHooks user-context)]
             (.cleanup hook)))
         (.disconnect (:storm-cluster-state executor-data))
-        (doseq [obj (map :object (vals task-datas))]
-          (close-component executor-data obj))
+        (when @(:open-or-prepare-was-called? executor-data)
+          (doseq [obj (map :object (vals task-datas))]
+            (close-component executor-data obj)))
         (log-message "Shut down executor " component-id ":" (pr-str executor-id)))
         )))
 
@@ -344,18 +346,12 @@
     ))
 
 (defmethod mk-threads :spout [executor-data task-datas]
-  (let [wait-fn (fn [] @(:storm-active-atom executor-data))
-        storm-conf (:storm-conf executor-data)
+  (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
-        last-active (atom false)
-        component-id (:component-id executor-data)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
-        ^Integer max-spout-pending (if max-spout-pending (int max-spout-pending))
-        worker-context (:worker-context executor-data)
-        transfer-fn (:transfer-fn executor-data)
-        report-error-fn (:report-error executor-data)
+        ^Integer max-spout-pending (if max-spout-pending (int max-spout-pending))        
+        last-active (atom false)        
         spouts (ArrayList. (map :object (vals task-datas)))
-        sampler (:sampler executor-data)
         rand (Random. (Utils/secureRandomLong))
         
         pending (RotatingMap.
@@ -376,11 +372,11 @@
                                     (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
                                   (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                                     (condp = stream-id
-                                        ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
-                                                              spout-id tuple-finished-info time-delta)
-                                        ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
-                                                               spout-id tuple-finished-info time-delta)                                    
-                                        )))
+                                      ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
+                                                                         spout-id tuple-finished-info time-delta)
+                                      ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
+                                                                           spout-id tuple-finished-info time-delta)                                    
+                                      )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
         receive-queue (:receive-queue executor-data)
@@ -388,95 +384,99 @@
         has-ackers? (has-ackers? storm-conf)
         emitted-count (MutableLong. 0)
         empty-emit-streak (MutableLong. 0)]
-    (log-message "Opening spout " component-id ":" (keys task-datas))
-    (doseq [[task-id task-data] task-datas
-            :let [^ISpout spout-obj (:object task-data)
-                  tasks-fn (:tasks-fn task-data)
-                  send-spout-msg (fn [out-stream-id values message-id out-task-id]
-                                   (.increment emitted-count)
-                                   (let [out-tasks (if out-task-id
-                                                     (tasks-fn out-task-id out-stream-id values)
-                                                     (tasks-fn out-stream-id values))
-                                         rooted? (and message-id has-ackers?)
-                                         root-id (if rooted? (MessageId/generateId rand))
-                                         out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
-                                     (fast-list-iter [out-task out-tasks id out-ids]
-                                       (let [tuple-id (if rooted?
-                                                          (MessageId/makeRootId root-id id)
-                                                          (MessageId/makeUnanchored))]                                                        
-                                         (transfer-fn out-task
-                                                      (TupleImpl. worker-context
-                                                                  values
-                                                                  task-id
-                                                                  out-stream-id
-                                                                  tuple-id))))
-                                     (if rooted?
-                                       (do
-                                         (.put pending root-id [task-id
-                                                                message-id
-                                                                {:stream out-stream-id :values values}
-                                                                (if (sampler) (System/currentTimeMillis))])
-                                         (task/send-unanchored task-data
-                                                               ACKER-INIT-STREAM-ID
-                                                               [root-id (bit-xor-vals out-ids) task-id]))
-                                       (when message-id
-                                            (ack-spout-msg executor-data task-data message-id
-                                                {:stream out-stream-id :values values}
-                                                (if (sampler) 0))))
-                                     (or out-tasks [])
-                                     ))]]
-      (.open spout-obj
-             storm-conf
-             (:user-context task-data)
-             (SpoutOutputCollector.
-               (reify ISpoutOutputCollector
-                 (^List emit [this ^String stream-id ^List tuple ^Object message-id]
-                   (send-spout-msg stream-id tuple message-id nil)
-                   )
-                 (^void emitDirect [this ^int out-task-id ^String stream-id
-                                    ^List tuple ^Object message-id]
-                   (send-spout-msg stream-id tuple message-id out-task-id)
-                   )
-                 (reportError [this error]
-                   (report-error-fn error)
-                   ))
-               )))
-    (log-message "Opened spout " component-id ":" (keys task-datas))
+   
     [(async-loop
-       (fn []
-         (disruptor/consumer-started! (:receive-queue executor-data))
-         (fn []
-           ;; This design requires that spouts be non-blocking
-           (disruptor/consume-batch receive-queue event-handler)
-           (let [active? (wait-fn)
-                 curr-count (.get emitted-count)]
-             (if (or (not max-spout-pending)
-                     (< (.size pending) max-spout-pending))
-               (if active?
-                 (do
-                   (when-not @last-active
-                     (reset! last-active true)
-                     (log-message "Activating spout " component-id ":" (keys task-datas))
-                     (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+      (fn []
+        ;; If topology was started in inactive state, don't call (.open spout) until it's activated first.
+        (while (not @(:storm-active-atom executor-data))
+          (Thread/sleep 100))
+        
+        (log-message "Opening spout " component-id ":" (keys task-datas))
+        (doseq [[task-id task-data] task-datas
+                :let [^ISpout spout-obj (:object task-data)
+                      tasks-fn (:tasks-fn task-data)
+                      send-spout-msg (fn [out-stream-id values message-id out-task-id]
+                                       (.increment emitted-count)
+                                       (let [out-tasks (if out-task-id
+                                                         (tasks-fn out-task-id out-stream-id values)
+                                                         (tasks-fn out-stream-id values))
+                                             rooted? (and message-id has-ackers?)
+                                             root-id (if rooted? (MessageId/generateId rand))
+                                             out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
+                                         (fast-list-iter [out-task out-tasks id out-ids]
+                                                         (let [tuple-id (if rooted?
+                                                                          (MessageId/makeRootId root-id id)
+                                                                          (MessageId/makeUnanchored))]                                                        
+                                                           (transfer-fn out-task
+                                                                        (TupleImpl. worker-context
+                                                                                    values
+                                                                                    task-id
+                                                                                    out-stream-id
+                                                                                    tuple-id))))
+                                         (if rooted?
+                                           (do
+                                             (.put pending root-id [task-id
+                                                                    message-id
+                                                                    {:stream out-stream-id :values values}
+                                                                    (if (sampler) (System/currentTimeMillis))])
+                                             (task/send-unanchored task-data
+                                                                   ACKER-INIT-STREAM-ID
+                                                                   [root-id (bit-xor-vals out-ids) task-id]))
+                                           (when message-id
+                                             (ack-spout-msg executor-data task-data message-id
+                                                            {:stream out-stream-id :values values}
+                                                            (if (sampler) 0))))
+                                         (or out-tasks [])
+                                         ))]]
+          (.open spout-obj
+                 storm-conf
+                 (:user-context task-data)
+                 (SpoutOutputCollector.
+                  (reify ISpoutOutputCollector
+                    (^List emit [this ^String stream-id ^List tuple ^Object message-id]
+                      (send-spout-msg stream-id tuple message-id nil)
+                      )
+                    (^void emitDirect [this ^int out-task-id ^String stream-id
+                                       ^List tuple ^Object message-id]
+                      (send-spout-msg stream-id tuple message-id out-task-id)
+                      )
+                    (reportError [this error]
+                      (report-error error)
+                      )))))
+        (reset! open-or-prepare-was-called? true) 
+        (log-message "Opened spout " component-id ":" (keys task-datas))
+        
+        (disruptor/consumer-started! (:receive-queue executor-data))
+        (fn []
+          ;; This design requires that spouts be non-blocking
+          (disruptor/consume-batch receive-queue event-handler)
+          (let [active? @(:storm-active-atom executor-data)
+                curr-count (.get emitted-count)]
+            (if (or (not max-spout-pending)
+                    (< (.size pending) max-spout-pending))
+              (if active?
+                (do
+                  (when-not @last-active
+                    (reset! last-active true)
+                    (log-message "Activating spout " component-id ":" (keys task-datas))
+                    (fast-list-iter [^ISpout spout spouts] (.activate spout)))
                
-                   (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
-                 (do
-                   (when @last-active
-                     (reset! last-active false)
-                     (log-message "Deactivating spout " component-id ":" (keys task-datas))
-                     (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
-                   ;; TODO: log that it's getting throttled
-                   (Time/sleep 100))))
-             (if (and (= curr-count (.get emitted-count)) active?)
-                (do (.increment empty-emit-streak)
-                    (.emptyEmit spout-wait-strategy (.get empty-emit-streak)))
-                (.set empty-emit-streak 0)
-                ))
-            0 ))
+                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
+                (do
+                  (when @last-active
+                    (reset! last-active false)
+                    (log-message "Deactivating spout " component-id ":" (keys task-datas))
+                    (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
+                  ;; TODO: log that it's getting throttled
+                  (Time/sleep 100))))
+            (if (and (= curr-count (.get emitted-count)) active?)
+              (do (.increment empty-emit-streak)
+                  (.emptyEmit spout-wait-strategy (.get empty-emit-streak)))
+              (.set empty-emit-streak 0)
+              ))           
+          0))
       :kill-fn (:report-error-and-die executor-data)
-      :factory? true
-      )]
-    ))
+      :factory? true)]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
   (let [ms (.getSampleStartTime tuple)]
@@ -488,13 +488,9 @@
     (.put pending key (bit-xor curr id))))
 
 (defmethod mk-threads :bolt [executor-data task-datas]
-  (let [component-id (:component-id executor-data)
-        transfer-fn (:transfer-fn executor-data)
-        worker-context (:worker-context executor-data)
-        storm-conf (:storm-conf executor-data)
-        executor-stats (:stats executor-data)
-        report-error-fn (:report-error executor-data)
-        sampler (:sampler executor-data)
+  (let [executor-stats (:stats executor-data)
+        {:keys [storm-conf component-id worker-context transfer-fn report-error sampler
+                open-or-prepare-was-called?]} executor-data
         rand (Random. (Utils/secureRandomLong))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           ;; synchronization needs to be done with a key provided by this bolt, otherwise:
@@ -517,82 +513,93 @@
                             (when (sampler)
                               (.setSampleStartTime tuple (System/currentTimeMillis)))
                             (.execute bolt-obj tuple)))]
-    (log-message "Preparing bolt " component-id ":" (keys task-datas))
-    (doseq [[task-id task-data] task-datas
-            :let [^IBolt bolt-obj (:object task-data)
-                  tasks-fn (:tasks-fn task-data)
-                  user-context (:user-context task-data)
-                  bolt-emit (fn [stream anchors values task]
-                              (let [out-tasks (if task
-                                                (tasks-fn task stream values)
-                                                (tasks-fn stream values))]
-                                (fast-list-iter [t out-tasks]
-                                  (let [anchors-to-ids (HashMap.)]
-                                    (fast-list-iter [^TupleImpl a anchors]
-                                      (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
-                                        (when (pos? (count root-ids))
-                                          (let [edge-id (MessageId/generateId rand)]
-                                            (.updateAckVal a edge-id)
-                                            (fast-list-iter [root-id root-ids]
-                                              (put-xor! anchors-to-ids root-id edge-id))
-                                              ))))
-                                    (transfer-fn t
-                                                 (TupleImpl. worker-context
-                                                             values
-                                                             task-id
-                                                             stream
-                                                             (MessageId/makeId anchors-to-ids)))))
-                                (or out-tasks [])))]]
-      (.prepare bolt-obj
-                storm-conf
-                user-context
-                (OutputCollector.
-                  (reify IOutputCollector
-                     (emit [this stream anchors values]
-                       (bolt-emit stream anchors values nil))
-                     (emitDirect [this task stream anchors values]
-                       (bolt-emit stream anchors values task))
-                     (^void ack [this ^Tuple tuple]
-                       (let [^TupleImpl tuple tuple
-                             ack-val (.getAckVal tuple)]
-                         (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
-                           (task/send-unanchored task-data
-                                                 ACKER-ACK-STREAM-ID
-                                                 [root (bit-xor id ack-val)])
-                           ))
-                       (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
-                         (when delta
-                           (stats/bolt-acked-tuple! executor-stats
-                                                    (.getSourceComponent tuple)
-                                                    (.getSourceStreamId tuple)
-                                                    delta)
-                           )))
-                     (^void fail [this ^Tuple tuple]
-                       (fast-list-iter [root (.. tuple getMessageId getAnchors)]
-                         (task/send-unanchored task-data
-                                               ACKER-FAIL-STREAM-ID
-                                               [root]))
-                       (let [delta (tuple-time-delta! tuple)]
-                         (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
-                         (when delta
-                           (stats/bolt-failed-tuple! executor-stats
-                                                     (.getSourceComponent tuple)
-                                                     (.getSourceStreamId tuple)
-                                                     delta)
-                           )))
-                     (reportError [this error]
-                       (report-error-fn error)
-                       )))))
-
-    (log-message "Prepared bolt " component-id ":" (keys task-datas))
+    
     ;; TODO: can get any SubscribedState objects out of the context now
-    [(disruptor/consume-loop*
-      (:receive-queue executor-data)
-      (mk-task-receiver executor-data tuple-action-fn)
-      :kill-fn (:report-error-and-die executor-data))]
-    ))
 
+    [(async-loop
+      (fn []
+        ;; If topology was started in inactive state, don't call prepare bolt until it's activated first.
+        (while (not @(:storm-active-atom executor-data))          
+          (Thread/sleep 100))
+        
+        (log-message "Preparing bolt " component-id ":" (keys task-datas))
+        (doseq [[task-id task-data] task-datas
+                :let [^IBolt bolt-obj (:object task-data)
+                      tasks-fn (:tasks-fn task-data)
+                      user-context (:user-context task-data)
+                      bolt-emit (fn [stream anchors values task]
+                                  (let [out-tasks (if task
+                                                    (tasks-fn task stream values)
+                                                    (tasks-fn stream values))]
+                                    (fast-list-iter [t out-tasks]
+                                                    (let [anchors-to-ids (HashMap.)]
+                                                      (fast-list-iter [^TupleImpl a anchors]
+                                                                      (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
+                                                                        (when (pos? (count root-ids))
+                                                                          (let [edge-id (MessageId/generateId rand)]
+                                                                            (.updateAckVal a edge-id)
+                                                                            (fast-list-iter [root-id root-ids]
+                                                                                            (put-xor! anchors-to-ids root-id edge-id))
+                                                                            ))))
+                                                      (transfer-fn t
+                                                                   (TupleImpl. worker-context
+                                                                               values
+                                                                               task-id
+                                                                               stream
+                                                                               (MessageId/makeId anchors-to-ids)))))
+                                    (or out-tasks [])))]]
+          (.prepare bolt-obj
+                    storm-conf
+                    user-context
+                    (OutputCollector.
+                     (reify IOutputCollector
+                       (emit [this stream anchors values]
+                         (bolt-emit stream anchors values nil))
+                       (emitDirect [this task stream anchors values]
+                         (bolt-emit stream anchors values task))
+                       (^void ack [this ^Tuple tuple]
+                         (let [^TupleImpl tuple tuple
+                               ack-val (.getAckVal tuple)]
+                           (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
+                                          (task/send-unanchored task-data
+                                                                ACKER-ACK-STREAM-ID
+                                                                [root (bit-xor id ack-val)])
+                                          ))
+                         (let [delta (tuple-time-delta! tuple)]
+                           (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
+                           (when delta
+                             (stats/bolt-acked-tuple! executor-stats
+                                                      (.getSourceComponent tuple)
+                                                      (.getSourceStreamId tuple)
+                                                      delta)
+                             )))
+                       (^void fail [this ^Tuple tuple]
+                         (fast-list-iter [root (.. tuple getMessageId getAnchors)]
+                                         (task/send-unanchored task-data
+                                                               ACKER-FAIL-STREAM-ID
+                                                               [root]))
+                         (let [delta (tuple-time-delta! tuple)]
+                           (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
+                           (when delta
+                             (stats/bolt-failed-tuple! executor-stats
+                                                       (.getSourceComponent tuple)
+                                                       (.getSourceStreamId tuple)
+                                                       delta)
+                             )))
+                       (reportError [this error]
+                         (report-error error)
+                         )))))
+        (reset! open-or-prepare-was-called? true)        
+        (log-message "Prepared bolt " component-id ":" (keys task-datas))          
+
+        (let [receive-queue (:receive-queue executor-data)
+              event-handler (mk-task-receiver executor-data tuple-action-fn)]
+          (disruptor/consumer-started! receive-queue)
+          (fn []            
+            (disruptor/consume-batch-when-available receive-queue event-handler)
+            0)))
+      :kill-fn (:report-error-and-die executor-data)
+      :factory? true)]))
 
 (defmethod close-component :spout [executor-data spout]
   (.close spout))

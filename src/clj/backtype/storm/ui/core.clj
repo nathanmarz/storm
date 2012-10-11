@@ -1,7 +1,7 @@
 (ns backtype.storm.ui.core
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util])
+  (:use [backtype.storm config util log])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
@@ -9,10 +9,12 @@
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
-            Nimbus$Client StormTopology GlobalStreamId])
+            Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
+            KillOptions])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
+            [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
   (:gen-class))
 
@@ -29,7 +31,8 @@
        (filter not-nil?)))
 
 (defn mk-system-toggle-button [include-sys?]
-  [:p [:input {:type "button"
+  [:p {:class "js-only"}
+    [:input {:type "button"
              :value (str (if include-sys? "Hide" "Show") " System Stats")
              :onclick "toggleSys()"}]])
 
@@ -38,49 +41,12 @@
    [:head
     [:title "Storm UI"]
     (include-css "/css/bootstrap-1.1.0.css")
+    (include-css "/css/style.css")
     (include-js "/js/jquery-1.6.2.min.js")
     (include-js "/js/jquery.tablesorter.min.js")
     (include-js "/js/jquery.cookies.2.2.0.min.js")
+    (include-js "/js/script.js")
     ]
-   [:script "$.tablesorter.addParser({ 
-        id: 'stormtimestr', 
-        is: function(s) { 
-            return false; 
-        }, 
-        format: function(s) {
-            if(s.search('All time')!=-1) {
-              return 1000000000;
-            }
-            var total = 0;
-            $.each(s.split(' '), function(i, v) {
-              var amt = parseInt(v);
-              if(v.search('ms')!=-1) {
-                total += amt;
-              } else if (v.search('s')!=-1) {
-                total += amt * 1000;
-              } else if (v.search('m')!=-1) {
-                total += amt * 1000 * 60;
-              } else if (v.search('h')!=-1) {
-                total += amt * 1000 * 60 * 60;
-              } else if (v.search('d')!=-1) {
-                total += amt * 1000 * 60 * 60 * 24;
-              }
-            });
-            return total;
-        }, 
-        type: 'numeric' 
-    }); "]
-   [:script "
-function toggleSys() {
-    var sys = $.cookies.get('sys') || false;
-    sys = !sys;
-
-    var exDate=new Date();
-    exDate.setDate(exDate.getDate() + 365);
-
-    $.cookies.set('sys', sys, {'path': '/', 'expiresAt': exDate.toUTCString()});
-    window.location = window.location;
-}"]
    [:body
     [:h1 (link-to "/" "Storm UI")]
     (seq body)
@@ -140,7 +106,7 @@ function toggleSys() {
    ))
 
 (defn supervisor-summary-table [summs]
-  (sorted-table 
+  (sorted-table
    ["Host" "Uptime" "Slots" "Used slots"]
    (for [^SupervisorSummary s summs]
      [(.get_host s)
@@ -148,6 +114,10 @@ function toggleSys() {
       (.get_num_workers s)
       (.get_num_used_workers s)])
    :time-cols [1]))
+
+(defn configuration-table [conf]
+  (sorted-table ["Key" "Value"]
+    (map #(vector (key %) (str (val %))) conf)))
 
 (defn main-page []
   (with-nimbus nimbus
@@ -158,7 +128,9 @@ function toggleSys() {
        [[:h2 "Topology summary"]]
        (main-topology-summary-table (.get_topologies summ))
        [[:h2 "Supervisor summary"]]
-       (supervisor-summary-table (.get_supervisors summ))       
+       (supervisor-summary-table (.get_supervisors summ))
+       [[:h2 "Nimbus Configuration"]]
+       (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
        ))))
 
 (defn component-type [^StormTopology topology id]
@@ -255,7 +227,7 @@ function toggleSys() {
         stream-summary (-> stream-summary (dissoc :emitted) (assoc :emitted emitted))
         stream-summary (-> stream-summary (dissoc :transferred) (assoc :transferred transferred))]
     stream-summary))
-    
+
 (defn aggregate-bolt-stats [stats-seq include-sys?]
   (let [stats-seq (collectify stats-seq)]
     (merge (pre-process (aggregate-common-stats stats-seq) include-sys?)
@@ -442,27 +414,46 @@ function toggleSys() {
     "All time"
     (pretty-uptime-sec window)))
 
+(defn topology-action-button [id name action command is-wait default-wait enabled]
+  [:input {:type "button"
+           :value action
+           (if enabled :enabled :disabled) ""
+           :onclick (str "confirmAction('" id "', '" name "', '" command "', " is-wait ", " default-wait ")")}])
+
 (defn topology-page [id window include-sys?]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
           topology (.getTopology ^Nimbus$Client nimbus id)
+          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))
           spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
           bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
           spout-comp-summs (group-by-comp spout-summs)
           bolt-comp-summs (group-by-comp bolt-summs)
           bolt-comp-summs (filter-key (mk-include-sys-fn include-sys?) bolt-comp-summs)
+          name (.get_name summ)
+          status (.get_status summ)
+          msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
           ]
       (concat
        [[:h2 "Topology summary"]]
        [(topology-summary-table summ)]
+       [[:h2 {:class "js-only"} "Topology actions"]]
+       [[:p {:class "js-only"} (concat
+         [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
+         [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
+         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (or (= "ACTIVE" status) (= "INACTIVE" status)))]
+         [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
+       )]]
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
        [[:h2 "Spouts (" window-hint ")"]]
        (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Bolts (" window-hint ")"]]
        (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+       [[:h2 "Topology Configuration"]]
+       (configuration-table topology-conf)
        ))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
@@ -637,7 +628,7 @@ function toggleSys() {
 
      [[:h2 "Input stats" window-hint]]
      (bolt-input-summary-table stream-summary window)
-     
+
      [[:h2 "Output stats" window-hint]]
      (bolt-output-summary-table stream-summary window)
 
@@ -698,6 +689,38 @@ function toggleSys() {
          (-> (component-page id component (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
+  (POST "/topology/:id/activate" [id]
+    (with-nimbus nimbus
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+            name (.get_name tplg)]
+        (.activate nimbus name)
+        (log-message "Activating topology '" name "'")))
+    (resp/redirect (str "/topology/" id)))
+  (POST "/topology/:id/deactivate" [id]
+    (with-nimbus nimbus
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+            name (.get_name tplg)]
+        (.deactivate nimbus name)
+        (log-message "Deactivating topology '" name "'")))
+    (resp/redirect (str "/topology/" id)))
+  (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
+    (with-nimbus nimbus
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+            name (.get_name tplg)
+            options (RebalanceOptions.)]
+        (.set_wait_secs options (Integer/parseInt wait-time))
+        (.rebalance nimbus name options)
+        (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
+    (resp/redirect (str "/topology/" id)))
+  (POST "/topology/:id/kill/:wait-time" [id wait-time]
+    (with-nimbus nimbus
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+            name (.get_name tplg)
+            options (KillOptions.)]
+        (.set_wait_secs options (Integer/parseInt wait-time))
+        (.killTopologyWithOpts nimbus name options)
+        (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
+    (resp/redirect (str "/topology/" id)))
   (route/resources "/")
   (route/not-found "Page not found"))
 

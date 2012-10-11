@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
@@ -144,7 +145,7 @@ public class TridentTopology {
     
     public TridentState newStaticState(StateSpec spec) {
         String stateId = getUniqueStateId();
-        Node n = new Node(getUniqueStreamId(), new Fields());
+        Node n = new Node(getUniqueStreamId(), null, new Fields());
         n.stateInfo = new NodeStateInfo(stateId, spec);
         registerNode(n);
         return new TridentState(this, n);
@@ -175,7 +176,13 @@ public class TridentTopology {
     }    
     
     public Stream multiReduce(List<Fields> inputFields, List<Stream> streams, MultiReducer function, Fields outputFields) {
-        Node n = new ProcessorNode(getUniqueStreamId(), outputFields, outputFields, new MultiReducerProcessor(inputFields, function));
+        List<String> names = new ArrayList<String>();
+        for(Stream s: streams) {
+            if(s._name!=null) {
+                names.add(s._name);
+            }
+        }
+        Node n = new ProcessorNode(getUniqueStreamId(), Utils.join(names, "-"), outputFields, outputFields, new MultiReducerProcessor(inputFields, function));
         return addSourcedNode(streams, n);
     }
     
@@ -303,7 +310,7 @@ public class TridentTopology {
         for(Group g: mergedGroups) {
             for(PartitionNode n: extraPartitionInputs(g)) {
                 Node idNode = makeIdentityNode(n.allOutputFields);
-                Node newPartitionNode = new PartitionNode(idNode.streamId, idNode.allOutputFields, n.thriftGrouping);
+                Node newPartitionNode = new PartitionNode(idNode.streamId, n.name, idNode.allOutputFields, n.thriftGrouping);
                 Node parentNode = TridentUtils.getParent(graph, n);
                 Set<IndexedEdge> outgoing = graph.outgoingEdgesOf(n);
                 graph.removeVertex(n);
@@ -412,8 +419,8 @@ public class TridentTopology {
         for(Set<Node> g: connectedComponents) {
             SpoutNode drpcNode = getDRPCSpoutNode(g);
             if(drpcNode!=null) {
-                Stream lastStream = new Stream(helper, getLastAddedNode(g));
-                Stream s = new Stream(helper, drpcNode);
+                Stream lastStream = new Stream(helper, null, getLastAddedNode(g));
+                Stream s = new Stream(helper, null, drpcNode);
                 helper.multiReduce(
                         s.project(new Fields("return-info"))
                          .batchGlobal(),
@@ -496,12 +503,37 @@ public class TridentTopology {
         int ctr = 0;
         for(Group g: groups) {
             if(!isSpoutGroup(g)) {
-                ret.put(g, "bolt" + ctr);
+                List<String> name = new ArrayList();
+                name.add("b");
+                name.add("" + ctr);
+                String groupName = getGroupName(g);
+                if(groupName!=null && !groupName.isEmpty()) {
+                    name.add(getGroupName(g));                
+                }
+                ret.put(g, Utils.join(name, "-"));
                 ctr++;
             }
         }
         return ret;
-    }    
+    }
+    
+    private static String getGroupName(Group g) {
+        TreeMap<Integer, String> sortedNames = new TreeMap();
+        for(Node n: g.nodes) {
+            if(n.name!=null) {
+                sortedNames.put(n.creationIndex, n.name);
+            }
+        }
+        List<String> names = new ArrayList<String>();
+        String prevName = null;
+        for(String n: sortedNames.values()) {
+            if(prevName==null || !n.equals(prevName)) {
+                prevName = n;
+                names.add(n);
+            }
+        }
+        return Utils.join(names, "-");
+    }
     
     private static Map<String, String> getOutputStreamBatchGroups(Group g, Map<Node, String> batchGroupMap) {
         Map<String, String> ret = new HashMap();
@@ -626,7 +658,7 @@ public class TridentTopology {
     }
     
     private Node makeIdentityNode(Fields allOutputFields) {
-        return new ProcessorNode(getUniqueStreamId(), allOutputFields, new Fields(),
+        return new ProcessorNode(getUniqueStreamId(), null, allOutputFields, new Fields(),
                 new EachProcessor(new Fields(), new FilterExecutor(new TrueFilter())));
     }
     
@@ -673,7 +705,7 @@ public class TridentTopology {
     }    
     
     private static PartitionNode makeIdentityPartition(Node basis) {
-        return new PartitionNode(basis.streamId, basis.allOutputFields,
+        return new PartitionNode(basis.streamId, basis.name, basis.allOutputFields,
             Grouping.custom_serialized(Utils.serialize(new IdentityGrouping())));
     }
     
@@ -699,7 +731,7 @@ public class TridentTopology {
     
     protected Stream addNode(Node n) {
         registerNode(n);
-        return new Stream(this, n);
+        return new Stream(this, n.name, n);
     }
 
     protected void registerSourcedNode(List<Stream> sources, Node newNode) {
@@ -713,7 +745,7 @@ public class TridentTopology {
     
     protected Stream addSourcedNode(List<Stream> sources, Node newNode) {
         registerSourcedNode(sources, newNode);
-        return new Stream(this, newNode);
+        return new Stream(this, newNode.name, newNode);
     }
     
     protected TridentState addSourcedStateNode(List<Stream> sources, Node newNode) {

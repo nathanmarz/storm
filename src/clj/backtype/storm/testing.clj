@@ -103,6 +103,7 @@
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
+                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
@@ -225,6 +226,11 @@
   (when-not (Utils/isValidConf conf)
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopology nimbus storm-name nil (to-json conf) topology))
+
+(defn submit-local-topology-with-opts [nimbus storm-name conf topology submit-opts]
+  (when-not (Utils/isValidConf conf)
+    (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
+  (.submitTopologyWithOpts nimbus storm-name nil (to-json conf) topology submit-opts))
 
 (defn mocked-compute-new-topology->executor->node+port [storm-name executor->node+port]
   (fn [nimbus existing-assignments topologies scratch-topology-id]

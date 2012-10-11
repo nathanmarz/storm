@@ -24,3 +24,6 @@ _release
 /target
 /.project/
 /.lein-plugins/
+*.ipr
+*.iws
+.idea

@@ -7,6 +7,32 @@
   
 (bootstrap-imports)
 
+(deftest test-memory-map-get-tuples
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind feeder (feeder-spout ["sentence"]))
+        (bind word-counts
+          (-> topo
+              (.newStream "tester" feeder)
+              (.each (fields "sentence") (Split.) (fields "word"))
+              (.groupBy (fields "word"))
+              (.persistentAggregate (memory-map-state) (Count.) (fields "count"))
+              (.parallelismHint 6)
+              ))       
+        (-> topo
+            (.newDRPCStream "all-tuples" drpc)
+            (.stateQuery word-counts (fields "args") (TupleCollectionGet.) (fields "word" "count"))
+            (.project (fields "word" "count")))
+        (with-topology [cluster topo]
+          (feed feeder [["hello the man said"] ["the"]])
+          (is (= #{["hello" 1] ["said" 1] ["the" 2] ["man" 1]}
+                 (into #{} (exec-drpc drpc "all-tuples" "man"))))
+          (feed feeder [["the foo"]])
+          (is (= #{["hello" 1] ["said" 1] ["the" 3] ["man" 1] ["foo" 1]}
+                 (into #{} (exec-drpc drpc "all-tuples" "man")))))))))
+
 (deftest test-word-count
   (t/with-local-cluster [cluster]
     (with-drpc [drpc]

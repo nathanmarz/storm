@@ -296,13 +296,7 @@
              " from "
              master-code-dir)
           ))
-      ;; remove any downloaded code that's no longer assigned or active
-      (doseq [storm-id downloaded-storm-ids]
-        (when-not (assigned-storm-ids storm-id)
-          (log-message "Removing code for storm id "
-                       storm-id)
-          (rmr (supervisor-stormdist-root conf storm-id))
-          ))
+
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
       (doseq [p (set/difference (set (keys existing-assignment))
@@ -312,6 +306,16 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
+      ;; remove any downloaded code that's no longer assigned or active
+      ;; important that this happens after setting the local assignment so that
+      ;; synchronize-supervisor doesn't try to launch workers for which the
+      ;; resources don't exist
+      (doseq [storm-id downloaded-storm-ids]
+        (when-not (assigned-storm-ids storm-id)
+          (log-message "Removing code for storm id "
+                       storm-id)
+          (rmr (supervisor-stormdist-root conf storm-id))
+          ))
       (.add processes-event-manager sync-processes)
       )))
 

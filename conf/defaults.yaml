@@ -29,6 +29,7 @@ nimbus.inbox.jar.expiration.secs: 3600
 nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
+nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 
 ### ui.* configs are for the master
 ui.port: 8080
@@ -99,5 +100,8 @@ topology.spout.wait.strategy: "backtype.storm.spout.SleepSpoutWaitStrategy"
 topology.sleep.spout.wait.strategy.time.ms: 1
 topology.error.throttle.interval.secs: 10
 topology.max.error.report.per.interval: 5
+topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
+topology.trident.batch.emit.interval.millis: 500
+
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

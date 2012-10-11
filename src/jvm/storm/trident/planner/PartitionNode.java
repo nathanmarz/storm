@@ -14,8 +14,8 @@ public class PartitionNode extends Node {
     public transient Grouping thriftGrouping;
     
     //has the streamid/outputFields of the node it's doing the partitioning on
-    public PartitionNode(String streamId, Fields allOutputFields, Grouping grouping) {
-        super(streamId, allOutputFields);
+    public PartitionNode(String streamId, String name, Fields allOutputFields, Grouping grouping) {
+        super(streamId, name, allOutputFields);
         this.thriftGrouping = grouping;
     }
     

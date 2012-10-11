@@ -15,7 +15,6 @@
 
 (bootstrap)
 
-
 (defn file-cache-map [conf]
   (TimeCacheMap.
    (int (conf NIMBUS-FILE-COPY-EXPIRATION-SECS))
@@ -36,6 +35,7 @@
      :downloaders (file-cache-map conf)
      :uploaders (file-cache-map conf)
      :uptime (uptime-computer)
+     :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
                                  (halt-process! 20 "Error when processing an event")
@@ -687,7 +687,8 @@
          (.assignSlots inimbus topologies)
          )))
 
-(defn- start-storm [nimbus storm-name storm-id]
+(defn- start-storm [nimbus storm-name storm-id topology-initial-status]
+  {:pre [(#{:active :inactive} topology-initial-status)]}                
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
         storm-conf (read-storm-conf conf storm-id)
@@ -698,7 +699,7 @@
                       storm-id
                       (StormBase. storm-name
                                   (current-time-secs)
-                                  {:type :active}
+                                  {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
                                   num-executors))))
 
@@ -842,7 +843,7 @@
 (defn validate-topology-name! [name]
   (if (some #(.contains name %) DISALLOWED-TOPOLOGY-NAME-STRS)
     (throw (InvalidTopologyException.
-      (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
+            (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -866,37 +867,53 @@
                         (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
-                          ))
+                          ))    
     (reify Nimbus$Iface
+      (^void submitTopologyWithOpts
+        [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
+         ^SubmitOptions submitOptions]
+        (try
+          (assert (not-nil? submitOptions))
+          (validate-topology-name! storm-name)
+          (check-storm-active! nimbus storm-name false)
+          (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                     storm-name
+                     (from-json serializedConf)
+                     topology)
+          (swap! (:submitted-count nimbus) inc)
+          (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
+                storm-conf (normalize-conf
+                            conf
+                            (-> serializedConf
+                                from-json
+                                (assoc STORM-ID storm-id)
+                              (assoc TOPOLOGY-NAME storm-name))
+                            topology)
+                total-storm-conf (merge conf storm-conf)
+                topology (normalize-topology total-storm-conf topology)
+                topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
+                           (optimize-topology topology)
+                           topology)
+                storm-cluster-state (:storm-cluster-state nimbus)]
+            (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
+            (log-message "Received topology submission for " storm-name " with conf " storm-conf)
+            ;; lock protects against multiple topologies being submitted at once and
+            ;; cleanup thread killing topology in b/w assignment and starting the topology
+            (locking (:submit-lock nimbus)
+              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+              (.setup-heartbeats! storm-cluster-state storm-id)
+              (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
+                                              TopologyInitialStatus/ACTIVE :active}]
+                (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))
+              (mk-assignments nimbus)))
+          (catch Throwable e
+            (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
+            (throw e))))
+      
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (validate-topology-name! storm-name)
-        (check-storm-active! nimbus storm-name false)
-        (swap! (:submitted-count nimbus) inc)
-        (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
-              storm-conf (normalize-conf
-                          conf
-                          (-> serializedConf
-                              from-json
-                              (assoc STORM-ID storm-id)
-                              (assoc TOPOLOGY-NAME storm-name))
-                          topology)
-              total-storm-conf (merge conf storm-conf)
-              topology (normalize-topology total-storm-conf topology)
-              topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
-                         (optimize-topology topology)
-                         topology)
-              storm-cluster-state (:storm-cluster-state nimbus)]
-          (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-          (log-message "Received topology submission for " storm-name " with conf " storm-conf)
-          ;; lock protects against multiple topologies being submitted at once and
-          ;; cleanup thread killing topology in b/w assignment and starting the topology
-          (locking (:submit-lock nimbus)
-            (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
-            (.setup-heartbeats! storm-cluster-state storm-id)
-            (start-storm nimbus storm-name storm-id)
-            (mk-assignments nimbus))
-          ))
+        (.submitTopologyWithOpts this storm-name uploadedJarLocation serializedConf topology
+                                 (SubmitOptions. TopologyInitialStatus/ACTIVE)))
       
       (^void killTopology [this ^String name]
         (.killTopologyWithOpts this name (KillOptions.)))
@@ -916,8 +933,8 @@
               num-workers (if (.is_set_num_workers options)
                             (.get_num_workers options))
               executor-overrides (if (.is_set_num_executors options)
-                                    (.get_num_executors options)
-                                    {})]
+                                   (.get_num_executors options)
+                                   {})]
           (doseq [[c num-executors] executor-overrides]
             (when (<= num-executors 0)
               (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
@@ -982,6 +999,9 @@
             (ByteBuffer/wrap ret)
             )))
 
+      (^String getNimbusConf [this]
+        (to-json (:conf nimbus)))
+
       (^String getTopologyConf [this ^String id]
         (to-json (read-storm-conf conf id)))
 
@@ -1016,8 +1036,8 @@
                                                                  (mapcat executor-id->tasks)
                                                                  count) 
                                                             (->> (:executor->node+port assignment)
-                                                                keys
-                                                                count)                                                            
+                                                                 keys
+                                                                 count)                                                            
                                                             (->> (:executor->node+port assignment)
                                                                  vals
                                                                  set
@@ -1041,19 +1061,19 @@
                           (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
                           (into {}))
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
-                                    (let [host (-> assignment :node->host (get node))
-                                          heartbeat (get beats executor)
-                                          stats (:stats heartbeat)
-                                          stats (if stats
-                                                  (stats/thriftify-executor-stats stats))]
-                                      (doto
-                                          (ExecutorSummary. (thriftify-executor-id executor)
-                                                            (-> executor first task->component)
-                                                            host
-                                                            port
-                                                            (nil-to-zero (:uptime heartbeat)))
-                                        (.set_stats stats))
-                                      ))
+                                        (let [host (-> assignment :node->host (get node))
+                                              heartbeat (get beats executor)
+                                              stats (:stats heartbeat)
+                                              stats (if stats
+                                                      (stats/thriftify-executor-stats stats))]
+                                          (doto
+                                              (ExecutorSummary. (thriftify-executor-id executor)
+                                                                (-> executor first task->component)
+                                                                host
+                                                                port
+                                                                (nil-to-zero (:uptime heartbeat)))
+                                            (.set_stats stats))
+                                          ))
               ]
           (TopologyInfo. storm-id
                          (:storm-name base)

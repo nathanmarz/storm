@@ -1,4 +1,3 @@
-
 (defproject storm/storm "0.9.0-SNAPSHOT"
   :url "http://storm-project.clj"
   :description "Distributed and fault-tolerant realtime computation"

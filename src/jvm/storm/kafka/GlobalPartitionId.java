@@ -1,9 +1,11 @@
 package storm.kafka;
 
+import storm.trident.spout.ISpoutPartition;
 
-public class GlobalPartitionId {
-    HostPort host;
-    int partition;
+
+public class GlobalPartitionId implements ISpoutPartition {
+    public HostPort host;
+    public int partition;
 
     public GlobalPartitionId(HostPort host, int partition) {
         this.host = host;
@@ -23,6 +25,11 @@ public class GlobalPartitionId {
 
     @Override
     public String toString() {
+        return getId();
+    }
+
+    @Override
+    public String getId() {
         return host.toString() + ":" + partition;
     }
 }

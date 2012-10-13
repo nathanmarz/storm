@@ -18,10 +18,14 @@ public class DynamicPartitionConnections {
     }
     
     Map<HostPort, ConnectionInfo> _connections = new HashMap();
-    SpoutConfig _config;
+    KafkaConfig _config;
     
-    public DynamicPartitionConnections(SpoutConfig config) {
+    public DynamicPartitionConnections(KafkaConfig config) {
         _config = config;
+    }
+    
+    public SimpleConsumer register(GlobalPartitionId id) {
+        return register(id.host, id.partition);
     }
     
     public SimpleConsumer register(HostPort host, int partition) {
@@ -36,13 +40,17 @@ public class DynamicPartitionConnections {
     public void unregister(HostPort port, int partition) {
         ConnectionInfo info = _connections.get(port);
         info.partitions.remove(partition);
-        if(info.partitions.size()==0) {
+        if(info.partitions.isEmpty()) {
             info.consumer.close();
         }
         _connections.remove(port);
     }
     
-    public void close() {
+    public void unregister(GlobalPartitionId id) {
+        return unregister(id.host, id.partition);
+    }
+    
+    public void clear() {
         for(ConnectionInfo info: _connections.values()) {
             info.consumer.close();
         }

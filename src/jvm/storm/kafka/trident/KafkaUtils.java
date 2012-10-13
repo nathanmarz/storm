@@ -2,6 +2,7 @@ package storm.kafka.trident;
 
 import backtype.storm.utils.Utils;
 import java.net.ConnectException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,30 +11,51 @@ import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
 import kafka.message.MessageAndOffset;
+import storm.kafka.GlobalPartitionId;
+import storm.kafka.HostPort;
 import storm.kafka.KafkaConfig.StaticHosts;
+import storm.kafka.KafkaConfig.ZkHosts;
 import storm.trident.operation.TridentCollector;
-import storm.trident.topology.TransactionAttempt;
 
 public class KafkaUtils {
+    public static IBrokerReader makeBrokerReader(Map stormConf, TridentKafkaConfig conf) {
+        if(conf.hosts instanceof StaticHosts) {
+            return new StaticBrokerReader((StaticHosts) conf.hosts);
+        } else {
+            return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
+        }
+    }
     
+    public static List<GlobalPartitionId> getOrderedPartitions(Map<String, List> partitions) {
+        List<GlobalPartitionId> ret = new ArrayList();
+        for(String host: partitions.keySet()) {
+            List info = partitions.get(host);
+            long port = (Long) info.get(0);
+            long numPartitions = (Long) info.get(1);
+            HostPort hp = new HostPort(host, (int) port);
+            for(int i=0; i<numPartitions; i++) {
+                ret.add(new GlobalPartitionId(hp, i));
+            }
+        }
+        return ret;
+    }
     
-     public static Map emitPartitionBatchNew(TridentKafkaConfig config, int partition, SimpleConsumer consumer, TransactionAttempt attempt, TridentCollector collector, Map lastMeta, String topologyInstanceId) {
-         StaticHosts hosts = (StaticHosts) config.hosts;
+     public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, int partition, TridentCollector collector, Map lastMeta, String topologyInstanceId) {
          long offset;
          if(lastMeta!=null) {
              if(config.forceFromStart && !topologyInstanceId.equals(lastMeta.get("instanceId"))) {
-                 offset = consumer.getOffsetsBefore(config.topic, partition % hosts.partitionsPerHost, config.startOffsetTime, 1)[0];
+                 offset = consumer.getOffsetsBefore(config.topic, partition, config.startOffsetTime, 1)[0];
              } else {
                  offset = (Long) lastMeta.get("nextOffset");                 
              }
          } else {
              long startTime = -1;
              if(config.forceFromStart) startTime = config.startOffsetTime;
-             offset = consumer.getOffsetsBefore(config.topic, partition % hosts.partitionsPerHost, startTime, 1)[0];
+             offset = consumer.getOffsetsBefore(config.topic, partition, startTime, 1)[0];
          }
          ByteBufferMessageSet msgs;
          try {
-            msgs = consumer.fetch(new FetchRequest(config.topic, partition % hosts.partitionsPerHost, offset, config.fetchSizeBytes));
+            msgs = consumer.fetch(new FetchRequest(config.topic, partition, offset, config.fetchSizeBytes));
          } catch(Exception e) {
              if(e instanceof ConnectException) {
                  throw new FailedFetchException(e);
@@ -43,7 +65,7 @@ public class KafkaUtils {
          }
          long endoffset = offset;
          for(MessageAndOffset msg: msgs) {
-             emit(config, attempt, collector, msg.message());
+             emit(config, collector, msg.message());
              endoffset = msg.offset();
          }
          Map newMeta = new HashMap();
@@ -53,7 +75,7 @@ public class KafkaUtils {
          return newMeta;
      }
      
-     public static void emit(TridentKafkaConfig config, TransactionAttempt attempt, TridentCollector collector, Message msg) {
+     public static void emit(TridentKafkaConfig config, TridentCollector collector, Message msg) {
          List<Object> values = config.scheme.deserialize(Utils.toByteArray(msg.payload()));
          if(values!=null) {
              collector.emit(values);

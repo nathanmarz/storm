@@ -45,7 +45,7 @@ public class KafkaConfig implements Serializable {
     }
 
     
-    BrokerHosts hosts;
+    public BrokerHosts hosts;
     public int fetchSizeBytes = 1024*1024;
     public int socketTimeoutMs = 10000;
     public int bufferSizeBytes = 1024*1024;

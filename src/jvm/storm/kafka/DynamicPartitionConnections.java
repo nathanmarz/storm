@@ -47,7 +47,7 @@ public class DynamicPartitionConnections {
     }
     
     public void unregister(GlobalPartitionId id) {
-        return unregister(id.host, id.partition);
+        unregister(id.host, id.partition);
     }
     
     public void clear() {

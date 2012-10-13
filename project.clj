@@ -1,4 +1,4 @@
-(defproject storm/storm-kafka "0.8.0-wip1"
+(defproject storm/storm-kafka "0.8.0-wip2"
   :source-path "src/clj"
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}

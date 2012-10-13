@@ -1,12 +1,10 @@
 package storm.kafka;
 
+import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.transactional.state.TransactionalState;
 import backtype.storm.utils.Utils;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import com.google.common.collect.ImmutableMap;
+import java.util.*;
 import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -14,7 +12,6 @@ import kafka.message.MessageAndOffset;
 import org.apache.log4j.Logger;
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
-import storm.kafka.KafkaSpout.ZooMeta;
 
 public class PartitionManager {  
     public static final Logger LOG = Logger.getLogger(PartitionManager.class);
@@ -33,28 +30,47 @@ public class PartitionManager {
     SortedSet<Long> _pending = new TreeSet<Long>();
     Long _committedTo;
     LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
-    TransactionalState _state;
     GlobalPartitionId _partition;
     SpoutConfig _spoutConfig;
     String _topologyInstanceId;
     SimpleConsumer _consumer;
     DynamicPartitionConnections _connections;
+    ZkState _state;
+    Map _stormConf;
     
-    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, SpoutConfig spoutConfig, TransactionalState state, GlobalPartitionId id) {
-        _state = state;
+    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, Map stormConf, SpoutConfig spoutConfig, GlobalPartitionId id) {
         _partition = id;
         _connections = connections;
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;
-        ZooMeta zooMeta = (ZooMeta) _state.getData(committedPath());
-        _consumer = connections.register(id.host, id.partition); 
+        _consumer = connections.register(id.host, id.partition);
+	_state = state;
+        _stormConf = stormConf;
 
-        //the id stuff makes sure the spout doesn't reset the offset if it restarts
-        if(zooMeta==null || (!topologyInstanceId.equals(zooMeta.id) && spoutConfig.forceFromStart)) {
-            _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
-        } else {
-            _committedTo = zooMeta.offset;
+        String jsonTopologyId = null;
+        Long jsonOffset = null;
+        try { 
+            Map<Object, Object> json = _state.readJSON(committedPath());
+            if(json != null) {
+                jsonTopologyId = (String)((Map<Object,Object>)json.get("topology")).get("id");
+                jsonOffset = (Long)json.get("offset");
+            }
         }
+        catch(Throwable e) { 
+            LOG.warn("Error reading and/or parsing at ZkNode: " + committedPath(), e); 
+        }
+
+        if(!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
+            _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, spoutConfig.startOffsetTime, 1)[0];
+	    LOG.info("Using startOffsetTime to choose last commit offset.");
+        } else if(jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
+            _committedTo = _consumer.getOffsetsBefore(spoutConfig.topic, id.partition, -1, 1)[0];
+	    LOG.info("Setting last commit offset to HEAD.");
+        } else {
+            _committedTo = jsonOffset;
+	    LOG.info("Read last commit offset from zookeeper: " + _committedTo);
+        }
+
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
         _emittedToOffset = _committedTo;
     }
@@ -127,7 +143,17 @@ public class PartitionManager {
         }
         if(committedTo!=_committedTo) {
             LOG.info("Writing committed offset to ZK: " + committedTo);
-            _state.setData(committedPath(), new ZooMeta(_topologyInstanceId, committedTo));
+
+            Map<Object, Object> data = (Map<Object,Object>)ImmutableMap.builder()
+                .put("topology", ImmutableMap.of("id", _topologyInstanceId, 
+                                                 "name", _stormConf.get(Config.TOPOLOGY_NAME)))
+                .put("offset", committedTo)
+                .put("partition", _partition.partition)
+                .put("broker", ImmutableMap.of("host", _partition.host.host,
+                                               "port", _partition.host.port))
+                .put("topic", _spoutConfig.topic).build();
+	    _state.writeJSON(committedPath(), data);
+
             LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;
         }
@@ -135,10 +161,11 @@ public class PartitionManager {
     }
 
     private String committedPath() {
-        return _spoutConfig.id + "/" + _partition;
+        return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition;
     }
     
     public void close() {
         _connections.unregister(_partition.host, _partition.partition);
     }
 }
+

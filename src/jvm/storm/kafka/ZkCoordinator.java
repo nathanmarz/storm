@@ -1,6 +1,5 @@
 package storm.kafka;
 
-import backtype.storm.transactional.state.TransactionalState;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,10 +12,9 @@ import storm.kafka.KafkaConfig.ZkHosts;
 public class ZkCoordinator implements PartitionCoordinator {
     public static Logger LOG = Logger.getLogger(ZkCoordinator.class);
     
-    SpoutConfig _config;
+    SpoutConfig _spoutConfig;
     int _taskIndex;
     int _totalTasks;
-    TransactionalState _state;
     String _topologyInstanceId;
     Map<GlobalPartitionId, PartitionManager> _managers = new HashMap();
     List<PartitionManager> _cachedList;
@@ -24,19 +22,22 @@ public class ZkCoordinator implements PartitionCoordinator {
     int _refreshFreqMs;
     DynamicPartitionConnections _connections;
     DynamicBrokersReader _reader;
+    ZkState _state;
+    Map _stormConf;
     
-    public ZkCoordinator(DynamicPartitionConnections connections, Map conf, SpoutConfig config, int taskIndex, int totalTasks, TransactionalState state, String topologyInstanceId) {
-        _config = config;
+    public ZkCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
+        _spoutConfig = spoutConfig;
         _connections = connections;
         _taskIndex = taskIndex;
         _totalTasks = totalTasks;
-        _state = state;
         _topologyInstanceId = topologyInstanceId;
+        _stormConf = stormConf;
+	_state = state;
                 
-                
-        ZkHosts brokerConf = (ZkHosts) config.hosts;
+       
+        ZkHosts brokerConf = (ZkHosts) spoutConfig.hosts;
         _refreshFreqMs = brokerConf.refreshFreqSecs * 1000;
-        _reader = new DynamicBrokersReader(conf, brokerConf.brokerZkStr, brokerConf.brokerZkPath, config.topic);
+        _reader = new DynamicBrokersReader(stormConf, brokerConf.brokerZkStr, brokerConf.brokerZkPath, spoutConfig.topic);
         
     }
     
@@ -84,7 +85,7 @@ public class ZkCoordinator implements PartitionCoordinator {
             LOG.info("New partition managers: " + newPartitions.toString());
             
             for(GlobalPartitionId id: newPartitions) {
-                PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _config, _state, id);
+                PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _stormConf, _spoutConfig, id);
                 _managers.put(id, man);
             }
             

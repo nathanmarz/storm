@@ -22,9 +22,11 @@ public interface ITridentSpout<T> extends Serializable {
          * 
          * @param txid The id of the transaction.
          * @param prevMetadata The metadata of the previous transaction
+         * @param currMetadata The metadata for this transaction the last time it was initialized.
+         *                     null if this is the first attempt
          * @return the metadata for this new transaction
          */
-        X initializeTransaction(long txid, X prevMetadata);
+        X initializeTransaction(long txid, X prevMetadata, X currMetadata);
         
         void success(long txid);
         

@@ -7,7 +7,7 @@
   :dependencies [[storm/kafka "0.7.0-incubating"
                    :exclusions [org.apache.zookeeper/zookeeper
                                 log4j/log4j]]]
-  :dev-dependencies [[storm "0.8.2-wip12-dev"]
+  :dev-dependencies [[storm "0.9.0-wip1"]
                      [org.clojure/clojure "1.4.0"]]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
 )

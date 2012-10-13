@@ -1,4 +1,4 @@
-package storm.kafka;
+package storm.kafka.trident;
 
 public class FailedFetchException extends RuntimeException {
     public FailedFetchException(Exception e) {

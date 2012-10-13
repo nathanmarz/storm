@@ -1,4 +1,12 @@
-## Unreleased
+## Unreleased (0.9.0)
+
+ * All logging now done with slf4j
+ * Replaced log4j logging system with logback
+ * Logs are now limited to 1GB per worker (configurable via logging configuration file)
+ * Build upgraded to leiningen 2.0
+ * Revamped Trident spout interfaces to support more dynamic spouts, such as a spout who reads from a changing set of brokers
+
+## Unreleased (0.8.2)
 
  * Added high water mark to ZeroMQ sockets (defaults to 10000) configurable with zmq.hwm
  * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)

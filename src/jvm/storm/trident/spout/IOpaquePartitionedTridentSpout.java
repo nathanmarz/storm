@@ -28,6 +28,12 @@ public interface IOpaquePartitionedTridentSpout<Partitions, Partition extends IS
          * for defining the parameters of the next batch.
          */
         M emitPartitionBatch(TransactionAttempt tx, TridentCollector collector, Partition partition, M lastPartitionMeta);
+        
+        /**
+         * This method is called when this task is responsible for a new set of partitions. Should be used
+         * to manage things like connections to brokers.
+         */        
+        void refreshPartitions(List<Partition> partitionResponsibilities);        
         List<Partition> getOrderedPartitions(Partitions allPartitionInfo);
         void close();
     }

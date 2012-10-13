@@ -39,6 +39,12 @@ public interface IPartitionedTridentSpout<Partitions, Partition extends ISpoutPa
         X emitPartitionBatchNew(TransactionAttempt tx, TridentCollector collector, Partition partition, X lastPartitionMeta);
 
         /**
+         * This method is called when this task is responsible for a new set of partitions. Should be used
+         * to manage things like connections to brokers.
+         */
+        void refreshPartitions(List<Partition> partitionResponsibilities);
+        
+        /**
          * Emit a batch of tuples for a partition/transaction that has been emitted before, using
          * the metadata created when it was first emitted.
          */

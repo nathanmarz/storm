@@ -2,11 +2,11 @@ package storm.trident.spout;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import storm.trident.operation.TridentCollector;
-import storm.trident.spout.OpaquePartitionedTridentSpoutExecutor.EmitterPartitionState;
 import storm.trident.topology.TransactionAttempt;
 import storm.trident.topology.state.RotatingTransactionalState;
 import storm.trident.topology.state.TransactionalState;
@@ -88,11 +88,14 @@ public class PartitionedTridentSpoutExecutor implements ITridentSpout<Integer> {
             if(_savedCoordinatorMeta == null || !_savedCoordinatorMeta.equals(coordinatorMeta)) {
                 List<ISpoutPartition> partitions = _emitter.getOrderedPartitions(coordinatorMeta);
                 _partitionStates.clear();
+                List<ISpoutPartition> myPartitions = new ArrayList();
                 for(int i=_index; i < partitions.size(); i+=_numTasks) {
                     ISpoutPartition p = partitions.get(i);
                     String id = p.getId();
+                    myPartitions.add(p);
                     _partitionStates.put(id, new EmitterPartitionState(new RotatingTransactionalState(_state, id), p));
                 }
+                _emitter.refreshPartitions(myPartitions);
                 _savedCoordinatorMeta = coordinatorMeta;
             }
             for(EmitterPartitionState s: _partitionStates.values()) {

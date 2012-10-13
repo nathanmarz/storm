@@ -129,7 +129,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
     
     class RichSpoutCoordinator implements ITridentSpout.BatchCoordinator {
         @Override
-        public Object initializeTransaction(long txid, Object prevMetadata) {
+        public Object initializeTransaction(long txid, Object prevMetadata, Object currMetadata) {
             return null;
         }
 

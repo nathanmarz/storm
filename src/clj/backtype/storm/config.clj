@@ -82,7 +82,7 @@
 
 (defn nimbus-storage-stormdist-root
   ([]
-    (str "/nimbus/stormdist"))
+    (str "/stormdist"))
   ([storm-id]
     (str (nimbus-storage-stormdist-root) "/" storm-id)))
 

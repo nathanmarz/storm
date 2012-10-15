@@ -84,7 +84,7 @@
   ([]
     (str "/nimbus/stormdist"))
   ([storm-id]
-    (str (master-stormdist-root) "/" storm-id)))
+    (str (nimbus-storage-stormdist-root) "/" storm-id)))
 
 (defn master-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))

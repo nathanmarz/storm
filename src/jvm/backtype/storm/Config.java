@@ -199,6 +199,8 @@ public class Config extends HashMap<String, Object> {
      * whether topologies are allowed to run or not.
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
+
+    public static String NIMBUS_STORAGE = "nimbus.storage";
     
     
     /**

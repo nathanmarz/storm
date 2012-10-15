@@ -5,6 +5,7 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
+  (:import [java.io InputStream])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -665,7 +666,7 @@
                                                                         [id now-secs]
                                                                         )))]]
                                    {topology-id (Assignment.
-                                                 (master-stormdist-root conf topology-id)
+                                                 (nimbus-storage-stormdist-root topology-id)
                                                  (select-keys all-node->host all-nodes)
                                                  executor->node+port
                                                  start-times)}))]
@@ -850,7 +851,8 @@
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf inimbus)]
+  (let [nimbus (nimbus-data conf inimbus)
+        storage (:storage nimbus)]
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))
@@ -982,7 +984,7 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (let [is (BufferFileInputStream. file)
+        (let [is (.open storage file)
               id (uuid)]
           (.put (:downloaders nimbus) id is)
           id
@@ -990,7 +992,7 @@
 
       (^ByteBuffer downloadChunk [this ^String id]
         (let [downloaders (:downloaders nimbus)
-              ^BufferFileInputStream is (.get downloaders id)]
+              ^InputStream is (.get downloaders id)]
           (when-not is
             (throw (RuntimeException.
                     "Could not find input stream for that id")))

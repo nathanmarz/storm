@@ -300,12 +300,11 @@
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
    ))
 
-(defn- read-storm-topology [conf storm-id]
-  (let [stormroot (master-stormdist-root conf storm-id)]
+(defn- read-storm-topology [storage storm-id]
+  (let [stormroot (nimbus-storage-stormdist-root storm-id)]
     (Utils/deserialize
-      (FileUtils/readFileToByteArray
-        (File. (master-stormcode-path stormroot))
-        ))))
+      (IOUtils/toByteArray
+        (.open storage (master-stormcode-path stormroot))))))
 
 (declare compute-executor->component)
 
@@ -314,7 +313,7 @@
         storage (:storage nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
         topology-conf (read-storm-conf storage conf storm-id)
-        topology (read-storm-topology conf storm-id)
+        topology (read-storm-topology storage storm-id)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
                                             (ExecutorDetails. (int start-task) (int end-task)))))]
@@ -408,7 +407,7 @@
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
         component->executors (:component->executors storm-base)
         storm-conf (read-storm-conf storage conf storm-id)
-        topology (read-storm-topology conf storm-id)
+        topology (read-storm-topology storage storm-id)
         task->component (storm-task-info topology storm-conf)]
     (->> (storm-task-info topology storm-conf)
          reverse-map
@@ -423,7 +422,7 @@
   (let [conf (:conf nimbus)
         storage (:storage nimbus)
         executors (compute-executors nimbus storm-id)
-        topology (read-storm-topology conf storm-id)
+        topology (read-storm-topology storage storm-id)
         storm-conf (read-storm-conf storage conf storm-id)
         task->component (storm-task-info topology storm-conf)
         executor->component (into {} (for [executor executors
@@ -698,7 +697,7 @@
         conf (:conf nimbus)
         storage (:storage nimbus)
         storm-conf (read-storm-conf storage conf storm-id)
-        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
+        topology (system-topology! storm-conf (read-storm-topology storage storm-id))
         num-executors (->> (all-components topology) (map-val num-start-executors))]
     (log-message "Activating " storm-name ": " storm-id)
     (.activate-storm! storm-cluster-state
@@ -1013,10 +1012,10 @@
         (to-json (read-storm-conf storage conf id)))
 
       (^StormTopology getTopology [this ^String id]
-        (system-topology! (read-storm-conf storage conf id) (read-storm-topology conf id)))
+        (system-topology! (read-storm-conf storage conf id) (read-storm-topology storage id)))
 
       (^StormTopology getUserTopology [this ^String id]
-        (read-storm-topology conf id))
+        (read-storm-topology storage id))
 
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1059,7 +1058,9 @@
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              task->component (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf storage conf storm-id))
+              storm-topology (read-storm-topology storage storm-id)
+              storm-conf (read-storm-conf storage conf storm-id)
+              task->component (storm-task-info storm-topology storm-conf)
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))

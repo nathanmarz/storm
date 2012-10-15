@@ -8,7 +8,7 @@
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback
                      RotatingMap RotatingMap$ExpiredCallback
-                     BufferFileInputStream
+                     BufferInputStream BufferFileInputStream
                      RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
                      MutableObject MutableLong]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))

@@ -1,9 +1,8 @@
 (ns backtype.storm.nimbus.storage
-  (:import [java.io InputStream OutputStream FileOutputStream File])
+  (:import [java.io InputStream OutputStream FileInputStream FileOutputStream File])
   (:import [java.util List Map])
   (:import [org.apache.commons.io FileUtils])
   (:use [backtype.storm log config util])
-  (:import [backtype.storm.utils BufferFileInputStream])
   (:import [backtype.storm.nimbus INimbusStorage]))
 
 (defn create-local-storage [conf]
@@ -11,7 +10,7 @@
     (log-message "Using default storage (" stormroot ")")
     (reify INimbusStorage
       (^InputStream open [this, ^String path]
-        (BufferFileInputStream. (str stormroot "/" path)))
+        (FileInputStream. (str stormroot "/" path)))
 
       (^OutputStream create [this, ^String path]
         (FileOutputStream. (str stormroot "/" path)))

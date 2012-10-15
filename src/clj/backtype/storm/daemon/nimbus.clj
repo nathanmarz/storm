@@ -10,6 +10,7 @@
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
+  (:use [backtype.storm.nimbus storage])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -36,6 +37,7 @@
      :uploaders (file-cache-map conf)
      :uptime (uptime-computer)
      :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
+     :storage (create-nimbus-storage conf)
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
                                  (halt-process! 20 "Error when processing an event")

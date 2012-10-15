@@ -986,7 +986,7 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (let [is (.open storage file)
+        (let [is (BufferInputStream. (.open storage file))
               id (uuid)]
           (.put (:downloaders nimbus) id is)
           id
@@ -994,7 +994,7 @@
 
       (^ByteBuffer downloadChunk [this ^String id]
         (let [downloaders (:downloaders nimbus)
-              ^InputStream is (.get downloaders id)]
+              ^BufferInputStream is (.get downloaders id)]
           (when-not is
             (throw (RuntimeException.
                     "Could not find input stream for that id")))

@@ -434,7 +434,7 @@
 (defmethod download-storm-code
     :local [conf storm-id master-code-dir]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
-        master-root (master-storage-local-dir conf)]
+        master-root (nimbus-storage-local-dir conf)]
       (FileUtils/copyDirectory (File. (str master-root master-code-dir)) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)

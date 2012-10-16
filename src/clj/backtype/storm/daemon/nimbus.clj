@@ -291,14 +291,12 @@
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
-  (let [stormroot (master-stormdist-root conf storm-id)]
-   (FileUtils/forceMkdir (File. stormroot))
-   (FileUtils/cleanDirectory (File. stormroot))
-   (setup-jar conf tmp-jar-location stormroot)
-   (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
-   (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
-   ))
+(defn- setup-storm-code [conf storage storm-id tmp-jar-location storm-conf topology]
+  (let [stormroot (nimbus-storage-stormdist-root storm-id)]
+   (ensure-clean-dir-in-storage storage stormroot)
+   (setup-jar conf storage tmp-jar-location stormroot)
+   (serialize-to-storage topology storage (master-stormcode-path stormroot))
+   (serialize-to-storage storm-conf storage (master-stormconf-path stormroot))))
 
 (defn- read-storm-topology [storage storm-id]
   (let [stormroot (nimbus-storage-stormdist-root storm-id)]
@@ -906,7 +904,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
-              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+              (setup-storm-code conf storage storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
@@ -1122,14 +1120,13 @@
 
 ;; distributed implementation
 
-(defmethod setup-jar :distributed [conf tmp-jar-location stormroot]
+(defmethod setup-jar :distributed [conf storage tmp-jar-location stormroot]
            (let [src-file (File. tmp-jar-location)]
              (if-not (.exists src-file)
                (throw
                 (IllegalArgumentException.
-                 (str tmp-jar-location " to copy to " stormroot " does not exist!"))))
-             (FileUtils/copyFile src-file (File. (master-stormjar-path stormroot)))
-             ))
+                 (str tmp-jar-location " to copy to Nimbus storage does not exist!"))))
+             (upload-file-to-storage src-file storage (master-stormjar-path stormroot))))
 
 ;; local implementation
 

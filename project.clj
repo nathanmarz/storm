@@ -1,3 +1,8 @@
+(def lein-version (System/getenv "LEIN_VERSION"))
+(if-not (re-find #"^1\..*$" lein-version)
+  (do (println (str "ERROR: requires Leiningen 1.x but you are using " lein-version))
+    (System/exit 1)))
+
 (defproject storm "0.8.2-wip11"
   :source-path "src/clj"
   :test-path "test/clj"
@@ -36,4 +41,3 @@
   :extra-classpath-dirs ["src/ui"]
   :aot :all
 )
-

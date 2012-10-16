@@ -6,7 +6,7 @@
   (:import [backtype.storm.nimbus INimbusStorage]))
 
 (defn create-local-storage [conf]
-  (let [stormroot (master-local-dir conf)]
+  (let [stormroot (master-storage-local-dir conf)]
     (log-message "Using default storage (" stormroot ")")
     (reify INimbusStorage
       (^InputStream open [this, ^String path]

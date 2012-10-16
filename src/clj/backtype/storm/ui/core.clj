@@ -728,5 +728,7 @@
   (handler/site main-routes)
  )
 
-(defn -main []
-  (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))}))
+(defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
+                                       :join? false}))
+
+(defn -main [] (start-server!))

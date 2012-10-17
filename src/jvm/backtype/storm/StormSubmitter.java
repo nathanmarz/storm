@@ -37,7 +37,7 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
-        submitTopology(name, stormConf, topology, new SubmitOptions(TopologyInitialStatus.ACTIVE));
+        submitTopology(name, stormConf, topology, null);
     }    
     
     /**
@@ -73,7 +73,12 @@ public class StormSubmitter {
                 submitJar(conf);
                 try {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
-                    client.getClient().submitTopologyWithOpts(name, submittedJar, serConf, topology, opts);
+                    if(opts!=null) {
+                        client.getClient().submitTopologyWithOpts(name, submittedJar, serConf, topology, opts);                    
+                    } else {
+                        // this is for backwards compatibility
+                        client.getClient().submitTopology(name, submittedJar, serConf, topology);                                            
+                    }
                 } catch(InvalidTopologyException e) {
                     LOG.warn("Topology submission exception", e);
                     throw e;

@@ -70,7 +70,7 @@ task.refresh.poll.secs: 10
 
 zmq.threads: 1
 zmq.linger.millis: 5000
-zmq.hwm: 10000
+zmq.hwm: 0
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true

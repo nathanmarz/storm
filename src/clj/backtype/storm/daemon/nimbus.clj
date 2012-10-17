@@ -822,7 +822,7 @@
         active-topologies (set (.active-storms storm-cluster-state))
         corrupt-topologies (set/difference active-topologies code-ids)]
     (doseq [corrupt corrupt-topologies]
-      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a dir in Nimbus storage. Cleaning up...")
       (.remove-storm! storm-cluster-state corrupt)
       )))
 

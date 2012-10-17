@@ -724,17 +724,13 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
-(defn code-ids [conf]
-  (-> conf
-      master-stormdist-root
-      read-dir-contents
-      set
-      ))
+(defn code-ids [storage]
+  (set (.list storage (nimbus-storage-stormdist-root))))
 
-(defn cleanup-storm-ids [conf storm-cluster-state]
+(defn cleanup-storm-ids [storage storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
         error-ids (set (.error-topologies storm-cluster-state))
-        code-ids (code-ids conf)
+        code-ids (code-ids storage)
         assigned-ids (set (.active-storms storm-cluster-state))]
     (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
     ))
@@ -797,15 +793,16 @@
 (defn do-cleanup [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
+        storage (:storage nimbus)
         submit-lock (:submit-lock nimbus)]
     (let [to-cleanup-ids (locking submit-lock
-                           (cleanup-storm-ids conf storm-cluster-state))]
+                           (cleanup-storm-ids storage storm-cluster-state))]
       (when-not (empty? to-cleanup-ids)
         (doseq [id to-cleanup-ids]
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
-          (rmr (master-stormdist-root conf id))
+          (.delete storage (nimbus-storage-stormdist-root id))
           (swap! (:heartbeats-cache nimbus) dissoc id))
         ))))
 
@@ -826,7 +823,7 @@
 
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        code-ids (set (code-ids (:conf nimbus)))
+        code-ids (code-ids (:storage nimbus))
         active-topologies (set (.active-storms storm-cluster-state))
         corrupt-topologies (set/difference active-topologies code-ids)]
     (doseq [corrupt corrupt-topologies]

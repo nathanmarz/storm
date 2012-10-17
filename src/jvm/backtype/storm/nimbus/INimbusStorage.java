@@ -18,6 +18,8 @@ public interface INimbusStorage {
 
     List<String> list(String path);
 
+    List<String> list(String path, boolean fullPath);
+
     void delete(String path);
 
     void delete(List<String> path);

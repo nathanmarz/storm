@@ -17,8 +17,13 @@
         (FileOutputStream. (str stormroot path)))
 
       (^List list [this, ^String path]
+        (.list this path true))
+
+      (^List list [this, ^String path, ^boolean full-path]
         (let [names (.list (File. (str stormroot path)))]
-          (map #(str path "/" ^String %) names)))
+          (if full-path
+            (map #(str path "/" ^String %) names)
+            (map #(str ^String %) names))))
 
       (^void delete [this, ^String path]
         (let [full-path (str stormroot path)]

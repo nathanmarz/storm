@@ -4,6 +4,8 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.hooks.ITaskHook;
+import backtype.storm.metric.IMetric;
+import backtype.storm.metric.MetricHolder;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -29,6 +31,7 @@ public class TopologyContext extends WorkerTopologyContext {
     private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map<String, Object> _executorData;
+    private List<MetricHolder> _registeredMetrics;
 
     
     public TopologyContext(StormTopology topology, Map stormConf,
@@ -36,12 +39,13 @@ public class TopologyContext extends WorkerTopologyContext {
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
-            Map<String, Object> userResources, Map<String, Object> executorData) {
+            Map<String, Object> userResources, Map<String, Object> executorData, List<MetricHolder> registeredMetrics) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
                 componentToStreamToFields, stormId, codeDir, pidDir,
                 workerPort, workerTasks, defaultResources, userResources);
         _taskId = taskId;
         _executorData = executorData;
+        _registeredMetrics = registeredMetrics;
     }
 
     /**
@@ -189,5 +193,9 @@ public class TopologyContext extends WorkerTopologyContext {
     
     public Collection<ITaskHook> getHooks() {
         return _hooks;
+    }
+
+    public void registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
+        _registeredMetrics.add(new MetricHolder(name, metric, timeBucketSizeInSecs));
     }
 }

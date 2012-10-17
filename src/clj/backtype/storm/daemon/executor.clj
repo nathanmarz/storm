@@ -5,7 +5,8 @@
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
-              EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
+            EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
+  (:import [backtype.storm.metric MetricHolder IMetric])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   )
@@ -212,6 +213,7 @@
      :type executor-type
      ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)
      :stats (mk-executor-stats <> (sampling-rate storm-conf))
+     :registered-metrics (ArrayList.)
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id)
      :report-error (throttled-report-error-fn <>)
@@ -238,7 +240,34 @@
             (worker-transfer-fn serializer alist)
             (.setObject cached-emit (ArrayList.))
             )))
-       :kill-fn (:report-error-and-die executor-data))))
+      :kill-fn (:report-error-and-die executor-data))))
+
+(defn setup-metrics! [executor-data]
+  (let [{:keys [storm-conf receive-queue worker-context registered-metrics]} executor-data
+        distinct-time-bucket-intervals (->> registered-metrics (map #(.getTimeBucketIntervalInSecs %)) distinct)]
+    (doseq [interval distinct-time-bucket-intervals]
+      (schedule-recurring 
+       (:user-timer (:worker executor-data)) 
+       interval
+       interval
+       (fn []
+         (disruptor/publish
+          receive-queue
+          [[nil (TupleImpl. worker-context [interval] -1 Constants/METRICS_TICK_STREAM_ID)]]))))))
+
+(defn metrics-tick [executor-data task-datas ^TupleImpl tuple]
+  (let [{:keys [registered-metrics ^WorkerTopologyContext worker-context]} executor-data
+        interval (.getInteger tuple 0)]
+    (doseq [^MetricHolder mh registered-metrics]
+      (when (= interval (.getTimeBucketIntervalInSecs mh))
+        (let [^IMetric metric (.getMetric mh)
+              name (.getName mh)
+              value (.getValueAndReset metric)
+              timestamp (System/currentTimeMillis)
+              worker-host (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+              worker-port (.getThisWorkerPort worker-context)]
+          (doseq [[task-id task-data] task-datas]
+            (task/send-unanchored task-data Constants/METRICS_STREAM_ID [worker-host worker-port interval timestamp name value])))))))
 
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
@@ -279,7 +308,7 @@
                    (mk-threads executor-data task-datas))
         threads (concat handlers system-threads)]    
     (setup-ticks! worker executor-data)
-    
+
     (log-message "Finished loading executor " component-id ":" (pr-str executor-id))
     ;; TODO: add method here to get rendered stats... have worker call that when heartbeating
     (reify
@@ -377,8 +406,9 @@
                        ))))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           (let [stream-id (.getSourceStreamId tuple)]
-                            (if (= stream-id Constants/SYSTEM_TICK_STREAM_ID)
-                              (.rotate pending)
+                            (condp = stream-id
+                              Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
                               (let [id (.getValue tuple 0)
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
@@ -389,7 +419,7 @@
                                       ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
                                                                          spout-id tuple-finished-info time-delta)
                                       ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
-                                                                           spout-id tuple-finished-info time-delta)                                    
+                                                                           spout-id tuple-finished-info time-delta)
                                       )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
@@ -472,6 +502,7 @@
                       )))))
         (reset! open-or-prepare-was-called? true) 
         (log-message "Opened spout " component-id ":" (keys task-datas))
+        (setup-metrics! executor-data)
         
         (disruptor/consumer-started! (:receive-queue executor-data))
         (fn []
@@ -550,28 +581,32 @@
                           ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
                           ;; TODO: how to handle incremental updates as well as synchronizations at same time
                           ;; TODO: need to version tuples somehow
+                          
  
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
-                          (let [task-data (get task-datas task-id)
-                                ^IBolt bolt-obj (:object task-data)
-                                user-context (:user-context task-data)
-                                sampler? (sampler)
-                                execute-sampler? (execute-sampler)
-                                now (if (or sampler? execute-sampler?) (System/currentTimeMillis))]
-                            (when sampler?
-                              (.setProcessSampleStartTime tuple now))
-                            (when execute-sampler?
-                              (.setExecuteSampleStartTime tuple now))
-                            (.execute bolt-obj tuple)
-                            (let [delta (tuple-execute-time-delta! tuple)]
-                              (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
-                              (when delta
-                                (stats/bolt-execute-tuple! executor-stats
-                                                           (.getSourceComponent tuple)
-                                                           (.getSourceStreamId tuple)
-                                                           delta)
-                                ))))]
+                          (let [stream-id (.getSourceStreamId tuple)]
+                            (condp = stream-id
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
+                              (let [task-data (get task-datas task-id)
+                                    ^IBolt bolt-obj (:object task-data)
+                                    user-context (:user-context task-data)
+                                    sampler? (sampler)
+                                    execute-sampler? (execute-sampler)
+                                    now (if (or sampler? execute-sampler?) (System/currentTimeMillis))]
+                                (when sampler?
+                                  (.setProcessSampleStartTime tuple now))
+                                (when execute-sampler?
+                                  (.setExecuteSampleStartTime tuple now))
+                                (.execute bolt-obj tuple)
+                                (let [delta (tuple-execute-time-delta! tuple)]
+                                  (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
+                                  (when delta
+                                    (stats/bolt-execute-tuple! executor-stats
+                                                               (.getSourceComponent tuple)
+                                                               (.getSourceStreamId tuple)
+                                                               delta)
+                                    ))))))]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -649,7 +684,8 @@
                          (report-error error)
                          )))))
         (reset! open-or-prepare-was-called? true)        
-        (log-message "Prepared bolt " component-id ":" (keys task-datas))          
+        (log-message "Prepared bolt " component-id ":" (keys task-datas))
+        (setup-metrics! executor-data)
 
         (let [receive-queue (:receive-queue executor-data)
               event-handler (mk-task-receiver executor-data tuple-action-fn)]

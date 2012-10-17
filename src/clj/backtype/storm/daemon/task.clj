@@ -28,7 +28,7 @@
       (:default-shared-resources worker)
       (:user-shared-resources worker)
       (:shared-executor-data executor-data)
-      )))
+      (:registered-metrics executor-data))))
 
 (defn system-topology-context [worker executor-data tid]
   ((mk-topology-context-builder

@@ -23,6 +23,8 @@
 
 (def SYSTEM-COMPONENT-ID Constants/SYSTEM_COMPONENT_ID)
 (def SYSTEM-TICK-STREAM-ID Constants/SYSTEM_TICK_STREAM_ID)
+(def METRICS-STREAM-ID Constants/METRICS_STREAM_ID)
+(def METRICS-TICK-STREAM-ID Constants/METRICS_TICK_STREAM_ID)
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
@@ -206,27 +208,78 @@
     (.put_to_bolts ret "__acker" acker-bolt)
     ))
 
+(defn add-metric-streams! [^StormTopology topology]
+  (doseq [[_ component] (all-components topology)
+          :let [common (.get_common component)]]
+    (.put_to_streams common METRICS-STREAM-ID
+                     (thrift/output-fields ["worker-host" "worker-port" "interval" "timestamp" "name" "value"]))))
+
 (defn add-system-streams! [^StormTopology topology]
   (doseq [[_ component] (all-components topology)
           :let [common (.get_common component)]]
-    (.put_to_streams common SYSTEM-STREAM-ID (thrift/output-fields ["event"]))
-    ;; TODO: consider adding a stats stream for stats aggregation
-    ))
+    (.put_to_streams common SYSTEM-STREAM-ID (thrift/output-fields ["event"]))))
+
+
+(defn map-occurrences [afn coll]
+  (->> coll
+       (reduce (fn [[counts new-coll] x]
+                 (let [occurs (inc (get counts x 0))]
+                   [(assoc counts x occurs) (cons (afn x occurs) new-coll)]))
+               [{} []])
+       (second)
+       (reverse)))
+
+(defn number-duplicates [coll]
+  "(number-duplicates [\"a\", \"b\", \"a\"]) => [\"a\", \"b\", \"a2\"]"
+  (map-occurrences (fn [x occurences] (if (>= occurences 2) (str x "#" occurences) x)) coll))
+
+(defn metrics-consumer-register-ids [storm-conf]
+  "Generates a list of component ids for each metrics consumer
+   e.g. [\"__metrics_org.mycompany.MyMetricsConsumer\", ..] "
+  (->> (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER)         
+       (map #(get % "class"))
+       (number-duplicates)
+       (map #(str Constants/METRICS_COMPONENT_ID_PREFIX %))))
+
+(defn metrics-consumer-bolt-specs [components-ids-that-emit-metrics storm-conf]
+  (let [inputs (->> (for [comp-id components-ids-that-emit-metrics]
+                      {[comp-id METRICS-STREAM-ID] :shuffle})
+                    (into {}))
+        
+        mk-bolt-spec (fn [class arg p]
+                       (thrift/mk-bolt-spec*
+                        inputs
+                        (backtype.storm.metric.MetricsConsumerBolt. class arg)
+                        {} :p p :conf {TOPOLOGY-TASKS p}))]
+    
+    (map
+     (fn [component-id register]           
+       [component-id (mk-bolt-spec (get register "class")
+                                   (get register "argument")
+                                   (or (get register "parallelism.hint") 1))])
+     
+     (metrics-consumer-register-ids storm-conf)
+     (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))
+
+(defn add-metric-components! [storm-conf ^StormTopology topology]
+  (doseq [[comp-id bolt-spec] (metrics-consumer-bolt-specs (keys (all-components topology)) storm-conf)]
+    (.put_to_bolts topology comp-id bolt-spec)))
 
 (defn add-system-components! [^StormTopology topology]
   (let [system-spout (thrift/mk-spout-spec*
-                       (NoOpSpout.)
-                       {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
-                        }
-                       :p 0
-                       :conf {TOPOLOGY-TASKS 0})]
-    (.put_to_spouts topology SYSTEM-COMPONENT-ID system-spout)
-    ))
+                      (NoOpSpout.)
+                      {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
+                       METRICS-TICK-STREAM-ID (thrift/output-fields ["interval"])}
+                      :p 0
+                      :conf {TOPOLOGY-TASKS 0})]
+    (.put_to_spouts topology SYSTEM-COMPONENT-ID system-spout)))
 
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! storm-conf ret)
+    (add-metric-streams! ret)
+    (add-metric-components! storm-conf ret)
     (add-system-streams! ret)
     (add-system-components! ret)
     (validate-structure! ret)

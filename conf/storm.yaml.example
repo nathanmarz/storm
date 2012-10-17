@@ -21,3 +21,10 @@
 # drpc.servers:
 #     - "server1"
 #     - "server2"
+
+## Metrics Consumers
+# topology.metrics.consumers.register:
+#    - class: "org.mycompany.MyMetricsConsumer"
+#      argument: 
+#         - endpoint: "metrics-collector.mycompany.org"
+#      parallelism.hint: 1

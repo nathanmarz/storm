@@ -62,10 +62,7 @@
 
 (defn- read-storm-conf [storage conf storm-id]
   (let [stormroot (nimbus-storage-stormdist-root storm-id)]
-    (merge conf
-           (Utils/deserialize
-            (IOUtils/toByteArray
-             (.open storage (master-stormconf-path stormroot)))))))
+    (merge conf (deserialize-from-storage storage (master-stormconf-path stormroot)))))
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
@@ -300,9 +297,7 @@
 
 (defn- read-storm-topology [storage storm-id]
   (let [stormroot (nimbus-storage-stormdist-root storm-id)]
-    (Utils/deserialize
-      (IOUtils/toByteArray
-        (.open storage (master-stormcode-path stormroot))))))
+    (deserialize-from-storage storage (master-stormcode-path stormroot))))
 
 (declare compute-executor->component)
 

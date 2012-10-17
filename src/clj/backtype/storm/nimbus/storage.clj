@@ -70,3 +70,9 @@
     (try
       (IOUtils/write (Utils/serialize obj) stream)
       (finally (.close stream)))))
+
+(defn deserialize-from-storage [storage path]
+  (let [stream (.open storage path)]
+    (try
+      (Utils/deserialize (IOUtils/toByteArray stream))
+      (finally (.close stream)))))

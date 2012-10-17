@@ -725,7 +725,7 @@
     ))
 
 (defn code-ids [storage]
-  (set (.list storage (nimbus-storage-stormdist-root))))
+  (set (.list storage (nimbus-storage-stormdist-root) false)))
 
 (defn cleanup-storm-ids [storage storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))

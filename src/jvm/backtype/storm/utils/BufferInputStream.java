@@ -4,9 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-/**
- * @author slukjanov
- */
 public class BufferInputStream {
 
     private static final int DEFAULT_BUFFER_SIZE = 15 * 1024;

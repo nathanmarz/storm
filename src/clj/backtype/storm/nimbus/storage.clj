@@ -24,15 +24,8 @@
           (when (exists-file? full-path)
             (FileUtils/forceDelete (File. full-path)))))
 
-      (^void delete [this, ^List paths]
-        (doseq [path paths]
-          (.delete this path)))
-
       (^void mkdirs [this, ^String path]
         (FileUtils/forceMkdir (File. (str stormroot path))))
-
-      (^void move [this, ^String from, ^String to]
-        (FileUtils/moveFile (File. (str stormroot from)) (File. (str stormroot to))))
 
       (^boolean isSupportDistributed [this]
         false))))

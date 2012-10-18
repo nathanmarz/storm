@@ -20,11 +20,7 @@ public interface INimbusStorage {
 
     void delete(String path);
 
-    void delete(List<String> path);
-
     void mkdirs(String path);
-
-    void move(String from, String to);
 
     boolean isSupportDistributed();
 

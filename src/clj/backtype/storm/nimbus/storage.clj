@@ -62,7 +62,7 @@
 
 (defn ensure-clean-dir-in-storage [storage path]
   (.mkdirs storage path)
-  (if-let [files (.list storage path)]
+  (if-let [files (seq (.list storage path))]
     (.delete storage files)))
 
 (defn serialize-to-storage [obj storage path]

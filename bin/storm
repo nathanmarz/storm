@@ -396,7 +396,11 @@ def main():
     parse_config(config_list)
     COMMAND = args[0]
     ARGS = args[1:]
-    (COMMANDS.get(COMMAND, "help"))(*ARGS)
+    command_func = COMMANDS.get(COMMAND)
+    if command_func is None:
+      print_usage()
+    else:
+      command_func(*ARGS)
     
 if __name__ == "__main__":
     main()

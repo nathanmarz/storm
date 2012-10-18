@@ -53,8 +53,9 @@ def get_classpath(extrajars):
     return normclasspath(":".join(ret))
 
 def confvalue(name, extrapaths):
+    global CONFFILE
     command = [
-        "java", "-client", get_config_opts(), "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
+        "java", "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE, "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()

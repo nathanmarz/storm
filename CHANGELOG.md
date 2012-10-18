@@ -16,6 +16,7 @@
  * Can now activate, deactive, rebalance, and kill topologies from the Storm UI (thanks Frostman)
  * Can now use --config option to override which yaml file from ~/.storm to use for the config (thanks tjun)
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
+ * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
   
 ## 0.8.1
 

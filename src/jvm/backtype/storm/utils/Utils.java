@@ -152,17 +152,13 @@ public class Utils {
     }
 
     public static Map readStormConfig() {
-        return readStormConfig("storm.yaml");
-    }
-
-    public static Map readStormConfig(String file) {
         Map ret = readDefaultConfig();
-        Map storm = findAndReadConfigFile(file, false);
+        Map storm = findAndReadConfigFile("storm.yaml", false);
         ret.putAll(storm);
         ret.putAll(readCommandLineOpts());
         return ret;
     }
-
+    
     private static Object normalizeConf(Object conf) {
         if(conf==null) return new HashMap();
         if(conf instanceof Map) {

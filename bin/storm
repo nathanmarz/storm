@@ -403,11 +403,7 @@ def main():
     parse_config(config_list)
     COMMAND = args[0]
     ARGS = args[1:]
-    command_func = COMMANDS.get(COMMAND)
-    if command_func is None:
-      print_usage()
-    else:
-      command_func(*ARGS)
+    (COMMANDS.get(COMMAND, unknown_command))(*ARGS)
     
 if __name__ == "__main__":
     main()

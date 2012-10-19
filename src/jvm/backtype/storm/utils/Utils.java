@@ -153,7 +153,13 @@ public class Utils {
 
     public static Map readStormConfig() {
         Map ret = readDefaultConfig();
-        Map storm = findAndReadConfigFile("storm.yaml", false);
+        String confFile = System.getProperty("storm.conf.file");
+        Map storm;
+        if (confFile==null || confFile.equals("")) {
+            storm = findAndReadConfigFile("storm.yaml", false);
+        } else {
+            storm = findAndReadConfigFile(confFile, true);
+        }
         ret.putAll(storm);
         ret.putAll(readCommandLineOpts());
         return ret;

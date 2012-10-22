@@ -52,12 +52,10 @@
 
 (defn schedule-topologies-evenly [^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
-    (log-message "Needs scheduling topologies:" needs-scheduling-topologies)
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
                   new-assignment (schedule-topology topology cluster)
                   node+port->executors (reverse-map new-assignment)]]
-      (log-message "for topology " topology-id ", node+port->executors:" node+port->executors)
       (doseq [[node+port executors] node+port->executors
               :let [^WorkerSlot slot (WorkerSlot. (first node+port) (last node+port))
                     executors (for [[start-task end-task] executors]

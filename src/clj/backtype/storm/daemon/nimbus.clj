@@ -256,27 +256,19 @@
               supervisor-ids))
        )))
 
-(defn- available-slots
-  [nimbus topologies-missing-assignments topologies]
+(defn- all-scheduling-slots
+  [nimbus topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         
-        supervisor-ids (.supervisors storm-cluster-state nil)
         supervisor-infos (all-supervisor-info storm-cluster-state nil)
-        existing-slots (assigned-slots storm-cluster-state)
 
         supervisor-details (for [[id info] supervisor-infos]
                              (SupervisorDetails. id (:meta info)))
 
-        worker-slots (mapcat (fn [[id ports]]
-                               (for [p ports]
-                                 (WorkerSlot. id p)))
-                             existing-slots)
-        ret (.availableSlots inimbus
+        ret (.allSlotsAvailableForScheduling inimbus
                      supervisor-details
-                     worker-slots
                      topologies
-                     topologies-missing-assignments
                      )
         ]
     (for [^WorkerSlot slot ret]
@@ -471,11 +463,11 @@
                                                    {})))]]
              {tid (SchedulerAssignmentImpl. tid executor->slot)})))
 
-(defn- read-all-supervisor-details [nimbus all-slots available-slots supervisor->dead-ports]
+(defn- read-all-supervisor-details [nimbus all-scheduling-slots supervisor->dead-ports]
   "return a map: {topology-id SupervisorDetails}"
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         supervisor-infos (all-supervisor-info storm-cluster-state)
-        nonexistent-supervisor-slots (apply dissoc available-slots (keys supervisor-infos))
+        nonexistent-supervisor-slots (apply dissoc all-scheduling-slots (keys supervisor-infos))
         all-supervisor-details (into {} (for [[sid supervisor-info] supervisor-infos
                                               :let [hostname (:hostname supervisor-info)
                                                     scheduler-meta (:scheduler-meta supervisor-info)
@@ -483,7 +475,7 @@
                                                     ;; hide the dead-ports from the all-ports
                                                     ;; these dead-ports can be reused in next round of assignments
                                                     all-ports (-> sid
-                                                                  all-slots
+                                                                  all-scheduling-slots
                                                                   (set/difference dead-ports)
                                                                   ((fn [ports] (map int ports))))
                                                     supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
@@ -545,23 +537,13 @@
         topology->scheduler-assignment (compute-topology->scheduler-assignment nimbus
                                                                                existing-assignments
                                                                                topology->alive-executors)
-
-        missing-assignment-topologies (->> topologies
-                                           .getTopologies
-                                           (map (memfn getId))
-                                           (filter (fn [t]
-                                                      (let [alle (get topology->executors t)
-                                                            alivee (get topology->alive-executors t)]
-                                                            (or (empty? alle) (not= alle alivee))
-                                                            ))))
-        available-slots (->> topologies
-                             (available-slots nimbus missing-assignment-topologies)
-                             (map (fn [[node-id port]] {node-id #{port}}))
-                             (apply merge-with set/union))
-        assigned-slots (assigned-slots storm-cluster-state)
-        all-slots (merge-with set/union available-slots assigned-slots)
-
-        supervisors (read-all-supervisor-details nimbus all-slots available-slots supervisor->dead-ports)
+                                                                               
+        all-scheduling-slots (->> topologies
+                               (all-scheduling-slots nimbus)
+                               (map (fn [[node-id port]] {node-id #{port}}))
+                               (apply merge-with set/union))
+        
+        supervisors (read-all-supervisor-details nimbus all-scheduling-slots supervisor->dead-ports)
         cluster (Cluster. supervisors topology->scheduler-assignment)
 
         ;; call scheduler.schedule to schedule all the topologies
@@ -679,13 +661,11 @@
           (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
           (.set-assignment! storm-cluster-state topology-id assignment)
           )))
-    (->> (dofor [[topology-id assignment] new-assignments
-            :let [existing-assignment (get existing-assignments topology-id)]]
-            (newly-added-slots existing-assignment assignment))
-         (apply concat)
-         (map (fn [[id port]] (WorkerSlot. id port)))
-         (.assignSlots inimbus topologies)
-         )))
+    (dofor [[topology-id assignment] new-assignments
+      :let [existing-assignment (get existing-assignments topology-id)
+            new-topology-slots (newly-added-slots existing-assignment assignment)]]
+      (.assignSlots inimbus (.getById topologies topology-id) new-topology-slots))
+      ))
 
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
   {:pre [(#{:active :inactive} topology-initial-status)]}                
@@ -1136,15 +1116,13 @@
   (reify INimbus
     (prepare [this conf local-dir]
       )
-    (availableSlots [this supervisors used-slots topologies topologies-missing-assignments]
-      (let [all-slots (->> supervisors
-                           (mapcat (fn [^SupervisorDetails s]
-                                     (for [p (.getMeta s)]
-                                       (WorkerSlot. (.getId s) p))))
-                           set)]
-        (set/difference all-slots (set used-slots))
-        ))
-    (assignSlots [this topologies slots]
+    (allSlotsAvailableForScheduling [this supervisors topologies]
+      (->> supervisors
+           (mapcat (fn [^SupervisorDetails s]
+                     (for [p (.getMeta s)]
+                       (WorkerSlot. (.getId s) p))))
+           set ))
+    (assignSlots [this topology slots]
       )
     (getForcedScheduler [this]
       nil )

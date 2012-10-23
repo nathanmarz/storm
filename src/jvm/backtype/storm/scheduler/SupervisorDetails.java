@@ -1,7 +1,8 @@
 package backtype.storm.scheduler;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SupervisorDetails {
 
@@ -18,11 +19,12 @@ public class SupervisorDetails {
     /**
      * all the ports of the supervisor
      */
-    Collection<Integer> allPorts;
+    Set<Integer> allPorts;
 
     public SupervisorDetails(String id, Object meta){
         this.id = id;
         this.meta = meta;
+        allPorts = new HashSet();
     }
     
     public SupervisorDetails(String id, Object meta, Collection<Number> allPorts){
@@ -40,7 +42,7 @@ public class SupervisorDetails {
     }
 
     private void setAllPorts(Collection<Number> allPorts) {
-        this.allPorts = new ArrayList<Integer>();
+        this.allPorts = new HashSet<Integer>();
         if(allPorts!=null) {
             for(Number n: allPorts) {
                 this.allPorts.add(n.intValue());
@@ -58,6 +60,10 @@ public class SupervisorDetails {
 
     public Object getMeta() {
         return meta;
+    }
+    
+    public Set<Integer> getAllPorts() {
+        return allPorts;
     }
 
     public Object getSchedulerMeta() {

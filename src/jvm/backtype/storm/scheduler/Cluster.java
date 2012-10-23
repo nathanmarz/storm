@@ -309,6 +309,14 @@ public class Cluster {
 
         return null;
     }
+    
+    public Collection<WorkerSlot> getUsedSlots() {
+        Set<WorkerSlot> ret = new HashSet();
+        for(SchedulerAssignmentImpl s: assignments.values()) {
+            ret.addAll(s.getExecutorToSlot().values());
+        }
+        return ret;
+    }
 
     /**
      * Get all the supervisors on the specified <code>host</code>.

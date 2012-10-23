@@ -257,7 +257,7 @@
        )))
 
 (defn- all-scheduling-slots
-  [nimbus topologies]
+  [nimbus topologies missing-assignment-topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         
@@ -269,6 +269,7 @@
         ret (.allSlotsAvailableForScheduling inimbus
                      supervisor-details
                      topologies
+                     (set missing-assignment-topologies)
                      )
         ]
     (for [^WorkerSlot slot ret]
@@ -538,10 +539,17 @@
                                                                                existing-assignments
                                                                                topology->alive-executors)
                                                                                
-        all-scheduling-slots (->> topologies
-                               (all-scheduling-slots nimbus)
-                               (map (fn [[node-id port]] {node-id #{port}}))
-                               (apply merge-with set/union))
+        missing-assignment-topologies (->> topologies
+                                           .getTopologies
+                                           (map (memfn getId))
+                                           (filter (fn [t]
+                                                      (let [alle (get topology->executors t)
+                                                            alivee (get topology->alive-executors t)]
+                                                            (or (empty? alle) (not= alle alivee))
+                                                            ))))
+        all-scheduling-slots (->> (all-scheduling-slots nimbus topologies missing-assignment-topologies)
+                                  (map (fn [[node-id port]] {node-id #{port}}))
+                                  (apply merge-with set/union))
         
         supervisors (read-all-supervisor-details nimbus all-scheduling-slots supervisor->dead-ports)
         cluster (Cluster. supervisors topology->scheduler-assignment)
@@ -661,11 +669,14 @@
           (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
           (.set-assignment! storm-cluster-state topology-id assignment)
           )))
-    (dofor [[topology-id assignment] new-assignments
-      :let [existing-assignment (get existing-assignments topology-id)
-            new-topology-slots (newly-added-slots existing-assignment assignment)]]
-      (.assignSlots inimbus (.getById topologies topology-id) new-topology-slots))
-      ))
+    (->> new-assignments
+          (map (fn [[topology-id assignment]]
+            (let [existing-assignment (get existing-assignments topology-id)]
+              [topology-id (newly-added-slots existing-assignment assignment)] 
+              )))
+          (into {})
+          (.assignSlots inimbus topologies))
+    ))
 
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
   {:pre [(#{:active :inactive} topology-initial-status)]}                
@@ -1116,7 +1127,7 @@
   (reify INimbus
     (prepare [this conf local-dir]
       )
-    (allSlotsAvailableForScheduling [this supervisors topologies]
+    (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
       (->> supervisors
            (mapcat (fn [^SupervisorDetails s]
                      (for [p (.getMeta s)]

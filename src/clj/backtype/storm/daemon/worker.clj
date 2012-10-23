@@ -9,11 +9,11 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn read-worker-executors [storm-cluster-state storm-id supervisor-id port]
+(defn read-worker-executors [storm-cluster-state storm-id assignment-id port]
   (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
       (mapcat (fn [[executor loc]]
-              (if (= loc [supervisor-id port])
+              (if (= loc [assignment-id port])
                 [executor]
                 ))
             assignment))
@@ -32,7 +32,7 @@
                :time-secs (current-time-secs)
                }]
     ;; do the zookeeper heartbeat
-    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:supervisor-id worker) (:port worker) zk-hb)    
+    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)    
     ))
 
 (defn do-heartbeat [worker]
@@ -140,11 +140,11 @@
                        (halt-process! 20 "Error when processing an event")
                        )))
 
-(defn worker-data [conf mq-context storm-id supervisor-id port worker-id]
+(defn worker-data [conf mq-context storm-id assignment-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
-        executors (set (read-worker-executors storm-cluster-state storm-id supervisor-id port))
+        executors (set (read-worker-executors storm-cluster-state storm-id assignment-id port))
         transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
@@ -163,7 +163,7 @@
                                                  (storm-conf ZMQ-HWM)
                                                  (= (conf STORM-CLUSTER-MODE) "local")))
       :storm-id storm-id
-      :supervisor-id supervisor-id
+      :assignment-id assignment-id
       :port port
       :worker-id worker-id
       :cluster-state cluster-state
@@ -300,7 +300,7 @@
           (.clear drainer))))))
 
 (defn launch-receive-thread [worker]
-  (log-message "Launching receive-thread for " (:supervisor-id worker) ":" (:port worker))
+  (log-message "Launching receive-thread for " (:assignment-id worker) ":" (:port worker))
   (msg-loader/launch-receive-thread!
     (:mq-context worker)
     (:storm-id worker)
@@ -320,8 +320,8 @@
 ;; what about if there's inconsistency in assignments? -> but nimbus
 ;; should guarantee this consistency
 ;; TODO: consider doing worker heartbeating rather than task heartbeating to reduce the load on zookeeper
-(defserverfn mk-worker [conf shared-mq-context storm-id supervisor-id port worker-id]
-  (log-message "Launching worker for " storm-id " on " supervisor-id ":" port " with id " worker-id
+(defserverfn mk-worker [conf shared-mq-context storm-id assignment-id port worker-id]
+  (log-message "Launching worker for " storm-id " on " assignment-id ":" port " with id " worker-id
                " and conf " conf)
   (if-not (local-mode? conf)
     (redirect-stdio-to-log4j!))
@@ -329,7 +329,7 @@
   ;; process. supervisor will register it in this case
   (when (= :distributed (cluster-mode conf))
     (touch (worker-pid-path conf worker-id (process-pid))))
-  (let [worker (worker-data conf shared-mq-context storm-id supervisor-id port worker-id)
+  (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id)
         heartbeat-fn #(do-heartbeat worker)
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
@@ -358,7 +358,7 @@
         
         transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)                                       
         shutdown* (fn []
-                    (log-message "Shutting down worker " storm-id " " supervisor-id " " port)
+                    (log-message "Shutting down worker " storm-id " " assignment-id " " port)
                     (doseq [[_ socket] @(:cached-node+port->socket worker)]
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
@@ -390,11 +390,11 @@
                     
                     ;; TODO: here need to invoke the "shutdown" method of WorkerHook
                     
-                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id supervisor-id port)
+                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id assignment-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:cluster-state worker))
-                    (log-message "Shut down worker " storm-id " " supervisor-id " " port))
+                    (log-message "Shut down worker " storm-id " " assignment-id " " port))
         ret (reify
              Shutdownable
              (shutdown
@@ -415,7 +415,7 @@
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
     (log-message "Worker has topology config " (:storm-conf worker))
-    (log-message "Worker " worker-id " for storm " storm-id " on " supervisor-id ":" port " has finished loading")
+    (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret
     ))
 
@@ -427,7 +427,7 @@
   :distributed [conf]
   (fn [] (halt-process! 1 "Worker died")))
 
-(defn -main [storm-id supervisor-id port-str worker-id]  
+(defn -main [storm-id assignment-id port-str worker-id]  
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-worker conf nil (java.net.URLDecoder/decode storm-id) supervisor-id (Integer/parseInt port-str) worker-id)))
+    (mk-worker conf nil (java.net.URLDecoder/decode storm-id) assignment-id (Integer/parseInt port-str) worker-id)))

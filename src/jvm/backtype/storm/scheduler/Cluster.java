@@ -33,7 +33,7 @@ public class Cluster {
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
             String host = supervisor.getHost();
-            if (!this.supervisors.containsKey(host)) {
+            if (!this.hostToId.containsKey(host)) {
                 this.hostToId.put(host, new ArrayList<String>());
             }
             this.hostToId.get(host).add(nodeId);

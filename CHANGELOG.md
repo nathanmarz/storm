@@ -15,6 +15,8 @@
  * Can now submit a topology in inactive state. Storm will wait to call open/prepare on the spouts/bolts until it is first activated.
  * Can now activate, deactive, rebalance, and kill topologies from the Storm UI (thanks Frostman)
  * Can now use --config option to override which yaml file from ~/.storm to use for the config (thanks tjun)
+ * Redesigned the pluggable resource scheduler (INimbus, ISupervisor) interfaces to allow for much simpler integrations
+ * Added "throws Exception" to TestJob interface
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
   

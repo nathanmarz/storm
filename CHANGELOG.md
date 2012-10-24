@@ -8,7 +8,6 @@
 
 ## Unreleased (0.8.2)
 
- * Added high water mark to ZeroMQ sockets (defaults to 10000) configurable with zmq.hwm
  * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)
  * Added report-error! to Clojure DSL
  * Automatically throttle errors sent to Zookeeper/Storm UI when too many are reported in a time interval (all errors are still logged) Configured with TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL and TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
@@ -23,8 +22,10 @@
  * Added ITupleCollection interface for TridentState's and TupleCollectionGet QueryFunction for getting the full contents of a state. MemoryMapState and LRUMemoryMapState implement this
  * Can now submit a topology in inactive state. Storm will wait to call open/prepare on the spouts/bolts until it is first activated.
  * Can now activate, deactive, rebalance, and kill topologies from the Storm UI (thanks Frostman)
+ * Can now use --config option to override which yaml file from ~/.storm to use for the config (thanks tjun)
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
- 
+ * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
+  
 ## 0.8.1
 
  * Exposed Storm's unit testing facilities via the backtype.storm.Testing class. Notable functions are Testing/withLocalCluster and Testing/completeTopology (thanks xumingming)

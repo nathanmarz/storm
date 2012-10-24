@@ -144,8 +144,8 @@ class Bolt(object):
         global MODE
         MODE = Bolt
         conf, context = initComponent()
-        self.initialize(conf, context)
         try:
+            self.initialize(conf, context)
             while True:
                 tup = readTuple()
                 self.process(tup)
@@ -164,8 +164,8 @@ class BasicBolt(object):
         MODE = Bolt
         global ANCHOR_TUPLE
         conf, context = initComponent()
-        self.initialize(conf, context)
         try:
+            self.initialize(conf, context)
             while True:
                 tup = readTuple()
                 ANCHOR_TUPLE = tup
@@ -191,8 +191,8 @@ class Spout(object):
         global MODE
         MODE = Spout
         conf, context = initComponent()
-        self.initialize(conf, context)
         try:
+            self.initialize(conf, context)
             while True:
                 msg = readCommand()
                 if msg["command"] == "next":

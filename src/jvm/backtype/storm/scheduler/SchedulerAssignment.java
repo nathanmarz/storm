@@ -36,4 +36,6 @@ public interface SchedulerAssignment {
      * @return
      */
     public Set<ExecutorDetails> getExecutors();
+    
+    public Set<WorkerSlot> getSlots();
 }

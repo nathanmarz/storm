@@ -107,13 +107,14 @@
 
 (defn supervisor-summary-table [summs]
   (sorted-table
-   ["Host" "Uptime" "Slots" "Used slots"]
+   ["Id" "Host" "Uptime" "Slots" "Used slots"]
    (for [^SupervisorSummary s summs]
-     [(.get_host s)
+     [(.get_supervisor_id s)
+      (.get_host s)
       (pretty-uptime-sec (.get_uptime_secs s))
       (.get_num_workers s)
       (.get_num_used_workers s)])
-   :time-cols [1]))
+   :time-cols [2]))
 
 (defn configuration-table [conf]
   (sorted-table ["Key" "Value"]
@@ -728,5 +729,7 @@
   (handler/site main-routes)
  )
 
-(defn -main []
-  (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))}))
+(defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
+                                       :join? false}))
+
+(defn -main [] (start-server!))

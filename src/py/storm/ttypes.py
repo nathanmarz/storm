@@ -1580,6 +1580,7 @@ class SupervisorSummary:
    - uptime_secs
    - num_workers
    - num_used_workers
+   - supervisor_id
   """
 
   thrift_spec = (
@@ -1588,13 +1589,15 @@ class SupervisorSummary:
     (2, TType.I32, 'uptime_secs', None, None, ), # 2
     (3, TType.I32, 'num_workers', None, None, ), # 3
     (4, TType.I32, 'num_used_workers', None, None, ), # 4
+    (5, TType.STRING, 'supervisor_id', None, None, ), # 5
   )
 
-  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None,):
+  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None,):
     self.host = host
     self.uptime_secs = uptime_secs
     self.num_workers = num_workers
     self.num_used_workers = num_used_workers
+    self.supervisor_id = supervisor_id
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1625,6 +1628,11 @@ class SupervisorSummary:
           self.num_used_workers = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.supervisor_id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1651,6 +1659,10 @@ class SupervisorSummary:
       oprot.writeFieldBegin('num_used_workers', TType.I32, 4)
       oprot.writeI32(self.num_used_workers)
       oprot.writeFieldEnd()
+    if self.supervisor_id is not None:
+      oprot.writeFieldBegin('supervisor_id', TType.STRING, 5)
+      oprot.writeString(self.supervisor_id.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -1663,6 +1675,8 @@ class SupervisorSummary:
       raise TProtocol.TProtocolException(message='Required field num_workers is unset!')
     if self.num_used_workers is None:
       raise TProtocol.TProtocolException(message='Required field num_used_workers is unset!')
+    if self.supervisor_id is None:
+      raise TProtocol.TProtocolException(message='Required field supervisor_id is unset!')
     return
 
 

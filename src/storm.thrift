@@ -122,7 +122,8 @@ struct SupervisorSummary {
   1: required string host;
   2: required i32 uptime_secs;
   3: required i32 num_workers;
-  4: required i32 num_used_workers;  
+  4: required i32 num_used_workers;
+  5: required string supervisor_id;
 }
 
 struct ClusterSummary {

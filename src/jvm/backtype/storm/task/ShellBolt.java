@@ -97,6 +97,8 @@ public class ShellBolt implements IBolt {
                             handleAck(action);
                         } else if (command.equals("fail")) {
                             handleFail(action);
+                        } else if (command.equals("error")) {
+                            handleError(action);
                         } else if (command.equals("log")) {
                             String msg = (String) action.get("msg");
                             LOG.info("Shell msg: " + msg);
@@ -175,6 +177,11 @@ public class ShellBolt implements IBolt {
             throw new RuntimeException("Failed a non-existent or already acked/failed id: " + id);
         }
         _collector.fail(failed);
+    }
+
+    private void handleError(Map action) {
+        String msg = (String) action.get("msg");
+        _collector.reportError(new Exception("Shell Process Exception: " + msg));
     }
 
     private void handleEmit(Map action) throws InterruptedException {

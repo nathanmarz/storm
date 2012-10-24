@@ -65,7 +65,7 @@ def sync():
 def sendpid(heartbeatdir):
     pid = os.getpid()
     sendMsgToParent({'pid':pid})
-    open(heartbeatdir + "/" + str(pid), "w").close()    
+    open(heartbeatdir + "/" + str(pid), "w").close()
 
 def emit(*args, **kwargs):
     __emit(*args, **kwargs)
@@ -94,7 +94,7 @@ def emitBolt(tup, stream=None, anchors = [], directTask=None):
         m["task"] = directTask
     m["tuple"] = tup
     sendMsgToParent(m)
-    
+
 def emitSpout(tup, stream=None, id=None, directTask=None):
     m = {"command": "emit"}
     if id is not None:
@@ -111,6 +111,9 @@ def ack(tup):
 
 def fail(tup):
     sendMsgToParent({"command": "fail", "id": tup.id})
+
+def reportError(msg):
+    sendMsgToParent({"command": "error", "msg": msg})
 
 def log(msg):
     sendMsgToParent({"command": "log", "msg": msg})
@@ -150,7 +153,7 @@ class Bolt(object):
                 tup = readTuple()
                 self.process(tup)
         except Exception, e:
-            log(traceback.format_exc(e))
+            reportError(traceback.format_exc(e))
 
 class BasicBolt(object):
     def initialize(self, stormconf, context):
@@ -172,7 +175,7 @@ class BasicBolt(object):
                 self.process(tup)
                 ack(tup)
         except Exception, e:
-            log(traceback.format_exc(e))
+            reportError(traceback.format_exc(e))
 
 class Spout(object):
     def initialize(self, conf, context):
@@ -203,4 +206,4 @@ class Spout(object):
                     self.fail(msg["id"])
                 sync()
         except Exception, e:
-            log(traceback.format_exc(e))
+            reportError(traceback.format_exc(e))

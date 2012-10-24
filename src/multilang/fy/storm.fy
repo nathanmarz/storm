@@ -86,6 +86,14 @@ class Storm {
       send: <['command => 'fail, 'id => tuple id]>
     }
 
+    def reportError: message {
+      """
+      @message Error mesasge to be reported to Storm
+      """
+
+      send: <['command => 'error, 'msg => message to_s]>
+    }
+
     def log: message {
       """
       @message Message to be logged by Storm.
@@ -153,7 +161,7 @@ class Storm {
           sync
         }
       } catch Exception => e {
-        log: e
+        reportError: e
       }
     }
   }

@@ -102,6 +102,10 @@ module Storm
       send_msg_to_parent :command => :fail, :id => tup.id
     end
 
+    def reportError(msg)
+      send_msg_to_parent :command => :error, :msg => msg.to_s
+    end
+
     def log(msg)
       send_msg_to_parent :command => :log, :msg => msg.to_s
     end
@@ -144,7 +148,7 @@ module Storm
           process Tuple.from_hash(read_command)
         end
       rescue Exception => e
-        log 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')
+        reportError 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')
       end
     end
   end
@@ -178,7 +182,7 @@ module Storm
           sync
         end
       rescue Exception => e
-        log 'Exception in spout: ' + e.message + ' - ' + e.backtrace.join('\n')
+        reportError 'Exception in spout: ' + e.message + ' - ' + e.backtrace.join('\n')
       end
     end
   end

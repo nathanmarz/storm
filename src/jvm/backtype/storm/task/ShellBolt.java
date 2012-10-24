@@ -181,9 +181,7 @@ public class ShellBolt implements IBolt {
 
     private void handleError(Map action) {
         String msg = (String) action.get("msg");
-        if (msg != null) {
-            _collector.reportError(new Exception("Shell Process Exception: " + msg));
-        }
+        _collector.reportError(new Exception("Shell Process Exception: " + msg));
     }
 
     private void handleEmit(Map action) throws InterruptedException {

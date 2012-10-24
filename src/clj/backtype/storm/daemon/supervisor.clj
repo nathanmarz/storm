@@ -179,6 +179,7 @@
    :my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
                   (conf STORM-LOCAL-HOSTNAME)
                   (local-hostname))
+   :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
    :timer (mk-timer :kill-fn (fn [t]
                                (log-error t "Error when processing event")
                                (halt-process! 20 "Error when processing an event")
@@ -307,6 +308,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
+      (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
       ;; synchronize-supervisor doesn't try to launch workers for which the
@@ -335,6 +337,9 @@
                                (:supervisor-id supervisor)
                                (SupervisorInfo. (current-time-secs)
                                                 (:my-hostname supervisor)
+                                                (:assignment-id supervisor)
+                                                (keys @(:curr-assignment supervisor))
+                                                ;; used ports
                                                 (.getMetadata isupervisor)
                                                 (conf SUPERVISOR-SCHEDULER-META)
                                                 ((:uptime supervisor)))))]

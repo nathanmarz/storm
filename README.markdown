@@ -10,7 +10,7 @@ More information about Storm can be found on the [project page](http://github.co
 
 ## Running an example with Leiningen
 
-Install Leiningen by following the installation instructions [here](https://github.com/technomancy/leiningen).
+Install Leiningen by following the installation instructions [here](https://github.com/technomancy/leiningen). The storm-starter build uses Leiningen 1.7.1.
 
 ### To run a Java example:
 

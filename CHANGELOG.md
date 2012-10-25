@@ -19,6 +19,7 @@
  * Added "throws Exception" to TestJob interface
  * Added reportError to multilang protocol and updated Python and Ruby adapters to use it (thanks Lazyshot)
  * Number tuples executed now tracked and shown in Storm UI
+ * Added ReportedFailedException which causes a batch to fail without killing worker and reports the error to the UI
  * Execute latency now tracked and shown in Storm UI
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified

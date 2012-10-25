@@ -1,5 +1,6 @@
 package storm.kafka.trident;
 
+import backtype.storm.Config;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 import java.util.List;
@@ -51,16 +52,18 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
     
     class Emitter implements IPartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> {
         DynamicPartitionConnections _connections;
+        String _topologyName;
         
-        public Emitter() {
+        public Emitter(Map conf) {
             _connections = new DynamicPartitionConnections(_config);
+            _topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         }
         
         @Override
         public Map emitPartitionBatchNew(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
             SimpleConsumer consumer = _connections.register(partition);
 
-            return KafkaUtils.emitPartitionBatchNew(_config, consumer, partition.partition, collector, lastMeta, _topologyInstanceId);
+            return KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
         }
 
         @Override
@@ -106,7 +109,7 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
 
     @Override
     public IPartitionedTridentSpout.Emitter getEmitter(Map conf, TopologyContext context) {
-        return new Emitter();
+        return new Emitter(conf);
     }
 
     @Override

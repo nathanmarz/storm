@@ -1,7 +1,9 @@
 package storm.kafka.trident;
 
+import backtype.storm.Config;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +29,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
     
     @Override
     public IOpaquePartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> getEmitter(Map conf, TopologyContext context) {
-        return new Emitter();
+        return new Emitter(conf);
     }
     
     @Override
@@ -70,17 +72,18 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
     
     class Emitter implements IOpaquePartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> {
         DynamicPartitionConnections _connections;
+        String _topologyName;
         
-        
-        public Emitter() {
+        public Emitter(Map conf) {
             _connections = new DynamicPartitionConnections(_config);
+            _topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         }
 
         @Override
         public Map emitPartitionBatch(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
             try {
                 SimpleConsumer consumer = _connections.register(partition);
-                return KafkaUtils.emitPartitionBatchNew(_config, consumer, partition.partition, collector, lastMeta, _topologyInstanceId);
+                return KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
             } catch(FailedFetchException e) {
                 LOG.warn("Failed to fetch from partition " + partition);
                 if(lastMeta==null) {
@@ -89,6 +92,11 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
                     Map ret = new HashMap();
                     ret.put("offset", lastMeta.get("nextOffset"));
                     ret.put("nextOffset", lastMeta.get("nextOffset"));
+                    ret.put("partition", partition.partition);
+                    ret.put("broker", ImmutableMap.of("host", partition.host.host, "port", partition.host.port));
+                    ret.put("topic", _config.topic);
+                    ret.put("topology", ImmutableMap.of("name", _topologyName, "id", _topologyInstanceId));                    
+                    
                     return ret;
                 }
             }

@@ -1,6 +1,7 @@
 package storm.kafka.trident;
 
 import backtype.storm.utils.Utils;
+import com.google.common.collect.ImmutableMap;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,22 +41,27 @@ public class KafkaUtils {
         return ret;
     }
     
-     public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, int partition, TridentCollector collector, Map lastMeta, String topologyInstanceId) {
+     public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta, String topologyInstanceId, String topologyName) {
          long offset;
          if(lastMeta!=null) {
-             if(config.forceFromStart && !topologyInstanceId.equals(lastMeta.get("instanceId"))) {
-                 offset = consumer.getOffsetsBefore(config.topic, partition, config.startOffsetTime, 1)[0];
+             String lastInstanceId = null;
+             Map lastTopoMeta = (Map) lastMeta.get("topology");
+             if(lastTopoMeta!=null) {
+                 lastInstanceId = (String) lastTopoMeta.get("id");
+             }
+             if(config.forceFromStart && !topologyInstanceId.equals(lastInstanceId)) {
+                 offset = consumer.getOffsetsBefore(config.topic, partition.partition, config.startOffsetTime, 1)[0];
              } else {
                  offset = (Long) lastMeta.get("nextOffset");                 
              }
          } else {
              long startTime = -1;
              if(config.forceFromStart) startTime = config.startOffsetTime;
-             offset = consumer.getOffsetsBefore(config.topic, partition, startTime, 1)[0];
+             offset = consumer.getOffsetsBefore(config.topic, partition.partition, startTime, 1)[0];
          }
          ByteBufferMessageSet msgs;
          try {
-            msgs = consumer.fetch(new FetchRequest(config.topic, partition, offset, config.fetchSizeBytes));
+            msgs = consumer.fetch(new FetchRequest(config.topic, partition.partition, offset, config.fetchSizeBytes));
          } catch(Exception e) {
              if(e instanceof ConnectException) {
                  throw new FailedFetchException(e);
@@ -72,6 +78,10 @@ public class KafkaUtils {
          newMeta.put("offset", offset);
          newMeta.put("nextOffset", endoffset);
          newMeta.put("instanceId", topologyInstanceId);
+         newMeta.put("partition", partition.partition);
+         newMeta.put("broker", ImmutableMap.of("host", partition.host.host, "port", partition.host.port));
+         newMeta.put("topic", config.topic);
+         newMeta.put("topology", ImmutableMap.of("name", topologyName, "id", topologyInstanceId));           
          return newMeta;
      }
      

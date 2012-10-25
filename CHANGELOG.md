@@ -18,6 +18,8 @@
  * Redesigned the pluggable resource scheduler (INimbus, ISupervisor) interfaces to allow for much simpler integrations
  * Added "throws Exception" to TestJob interface
  * Added reportError to multilang protocol and updated Python and Ruby adapters to use it (thanks Lazyshot)
+ * Number tuples executed now tracked and shown in Storm UI
+ * Execute latency now tracked and shown in Storm UI
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
   

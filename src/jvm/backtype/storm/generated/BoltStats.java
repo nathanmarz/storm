@@ -27,16 +27,22 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
   private static final org.apache.thrift7.protocol.TField ACKED_FIELD_DESC = new org.apache.thrift7.protocol.TField("acked", org.apache.thrift7.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift7.protocol.TField FAILED_FIELD_DESC = new org.apache.thrift7.protocol.TField("failed", org.apache.thrift7.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift7.protocol.TField PROCESS_MS_AVG_FIELD_DESC = new org.apache.thrift7.protocol.TField("process_ms_avg", org.apache.thrift7.protocol.TType.MAP, (short)3);
+  private static final org.apache.thrift7.protocol.TField EXECUTED_FIELD_DESC = new org.apache.thrift7.protocol.TField("executed", org.apache.thrift7.protocol.TType.MAP, (short)4);
+  private static final org.apache.thrift7.protocol.TField EXECUTE_MS_AVG_FIELD_DESC = new org.apache.thrift7.protocol.TField("execute_ms_avg", org.apache.thrift7.protocol.TType.MAP, (short)5);
 
   private Map<String,Map<GlobalStreamId,Long>> acked; // required
   private Map<String,Map<GlobalStreamId,Long>> failed; // required
   private Map<String,Map<GlobalStreamId,Double>> process_ms_avg; // required
+  private Map<String,Map<GlobalStreamId,Long>> executed; // required
+  private Map<String,Map<GlobalStreamId,Double>> execute_ms_avg; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
     ACKED((short)1, "acked"),
     FAILED((short)2, "failed"),
-    PROCESS_MS_AVG((short)3, "process_ms_avg");
+    PROCESS_MS_AVG((short)3, "process_ms_avg"),
+    EXECUTED((short)4, "executed"),
+    EXECUTE_MS_AVG((short)5, "execute_ms_avg");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -57,6 +63,10 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
           return FAILED;
         case 3: // PROCESS_MS_AVG
           return PROCESS_MS_AVG;
+        case 4: // EXECUTED
+          return EXECUTED;
+        case 5: // EXECUTE_MS_AVG
+          return EXECUTE_MS_AVG;
         default:
           return null;
       }
@@ -119,6 +129,18 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
             new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
                 new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, GlobalStreamId.class), 
                 new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.DOUBLE)))));
+    tmpMap.put(_Fields.EXECUTED, new org.apache.thrift7.meta_data.FieldMetaData("executed", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+                new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, GlobalStreamId.class), 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)))));
+    tmpMap.put(_Fields.EXECUTE_MS_AVG, new org.apache.thrift7.meta_data.FieldMetaData("execute_ms_avg", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+                new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, GlobalStreamId.class), 
+                new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.DOUBLE)))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(BoltStats.class, metaDataMap);
   }
@@ -129,12 +151,16 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
   public BoltStats(
     Map<String,Map<GlobalStreamId,Long>> acked,
     Map<String,Map<GlobalStreamId,Long>> failed,
-    Map<String,Map<GlobalStreamId,Double>> process_ms_avg)
+    Map<String,Map<GlobalStreamId,Double>> process_ms_avg,
+    Map<String,Map<GlobalStreamId,Long>> executed,
+    Map<String,Map<GlobalStreamId,Double>> execute_ms_avg)
   {
     this();
     this.acked = acked;
     this.failed = failed;
     this.process_ms_avg = process_ms_avg;
+    this.executed = executed;
+    this.execute_ms_avg = execute_ms_avg;
   }
 
   /**
@@ -219,6 +245,58 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       }
       this.process_ms_avg = __this__process_ms_avg;
     }
+    if (other.is_set_executed()) {
+      Map<String,Map<GlobalStreamId,Long>> __this__executed = new HashMap<String,Map<GlobalStreamId,Long>>();
+      for (Map.Entry<String, Map<GlobalStreamId,Long>> other_element : other.executed.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        Map<GlobalStreamId,Long> other_element_value = other_element.getValue();
+
+        String __this__executed_copy_key = other_element_key;
+
+        Map<GlobalStreamId,Long> __this__executed_copy_value = new HashMap<GlobalStreamId,Long>();
+        for (Map.Entry<GlobalStreamId, Long> other_element_value_element : other_element_value.entrySet()) {
+
+          GlobalStreamId other_element_value_element_key = other_element_value_element.getKey();
+          Long other_element_value_element_value = other_element_value_element.getValue();
+
+          GlobalStreamId __this__executed_copy_value_copy_key = new GlobalStreamId(other_element_value_element_key);
+
+          Long __this__executed_copy_value_copy_value = other_element_value_element_value;
+
+          __this__executed_copy_value.put(__this__executed_copy_value_copy_key, __this__executed_copy_value_copy_value);
+        }
+
+        __this__executed.put(__this__executed_copy_key, __this__executed_copy_value);
+      }
+      this.executed = __this__executed;
+    }
+    if (other.is_set_execute_ms_avg()) {
+      Map<String,Map<GlobalStreamId,Double>> __this__execute_ms_avg = new HashMap<String,Map<GlobalStreamId,Double>>();
+      for (Map.Entry<String, Map<GlobalStreamId,Double>> other_element : other.execute_ms_avg.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        Map<GlobalStreamId,Double> other_element_value = other_element.getValue();
+
+        String __this__execute_ms_avg_copy_key = other_element_key;
+
+        Map<GlobalStreamId,Double> __this__execute_ms_avg_copy_value = new HashMap<GlobalStreamId,Double>();
+        for (Map.Entry<GlobalStreamId, Double> other_element_value_element : other_element_value.entrySet()) {
+
+          GlobalStreamId other_element_value_element_key = other_element_value_element.getKey();
+          Double other_element_value_element_value = other_element_value_element.getValue();
+
+          GlobalStreamId __this__execute_ms_avg_copy_value_copy_key = new GlobalStreamId(other_element_value_element_key);
+
+          Double __this__execute_ms_avg_copy_value_copy_value = other_element_value_element_value;
+
+          __this__execute_ms_avg_copy_value.put(__this__execute_ms_avg_copy_value_copy_key, __this__execute_ms_avg_copy_value_copy_value);
+        }
+
+        __this__execute_ms_avg.put(__this__execute_ms_avg_copy_key, __this__execute_ms_avg_copy_value);
+      }
+      this.execute_ms_avg = __this__execute_ms_avg;
+    }
   }
 
   public BoltStats deepCopy() {
@@ -230,6 +308,8 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
     this.acked = null;
     this.failed = null;
     this.process_ms_avg = null;
+    this.executed = null;
+    this.execute_ms_avg = null;
   }
 
   public int get_acked_size() {
@@ -334,6 +414,74 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
     }
   }
 
+  public int get_executed_size() {
+    return (this.executed == null) ? 0 : this.executed.size();
+  }
+
+  public void put_to_executed(String key, Map<GlobalStreamId,Long> val) {
+    if (this.executed == null) {
+      this.executed = new HashMap<String,Map<GlobalStreamId,Long>>();
+    }
+    this.executed.put(key, val);
+  }
+
+  public Map<String,Map<GlobalStreamId,Long>> get_executed() {
+    return this.executed;
+  }
+
+  public void set_executed(Map<String,Map<GlobalStreamId,Long>> executed) {
+    this.executed = executed;
+  }
+
+  public void unset_executed() {
+    this.executed = null;
+  }
+
+  /** Returns true if field executed is set (has been assigned a value) and false otherwise */
+  public boolean is_set_executed() {
+    return this.executed != null;
+  }
+
+  public void set_executed_isSet(boolean value) {
+    if (!value) {
+      this.executed = null;
+    }
+  }
+
+  public int get_execute_ms_avg_size() {
+    return (this.execute_ms_avg == null) ? 0 : this.execute_ms_avg.size();
+  }
+
+  public void put_to_execute_ms_avg(String key, Map<GlobalStreamId,Double> val) {
+    if (this.execute_ms_avg == null) {
+      this.execute_ms_avg = new HashMap<String,Map<GlobalStreamId,Double>>();
+    }
+    this.execute_ms_avg.put(key, val);
+  }
+
+  public Map<String,Map<GlobalStreamId,Double>> get_execute_ms_avg() {
+    return this.execute_ms_avg;
+  }
+
+  public void set_execute_ms_avg(Map<String,Map<GlobalStreamId,Double>> execute_ms_avg) {
+    this.execute_ms_avg = execute_ms_avg;
+  }
+
+  public void unset_execute_ms_avg() {
+    this.execute_ms_avg = null;
+  }
+
+  /** Returns true if field execute_ms_avg is set (has been assigned a value) and false otherwise */
+  public boolean is_set_execute_ms_avg() {
+    return this.execute_ms_avg != null;
+  }
+
+  public void set_execute_ms_avg_isSet(boolean value) {
+    if (!value) {
+      this.execute_ms_avg = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ACKED:
@@ -360,6 +508,22 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       }
       break;
 
+    case EXECUTED:
+      if (value == null) {
+        unset_executed();
+      } else {
+        set_executed((Map<String,Map<GlobalStreamId,Long>>)value);
+      }
+      break;
+
+    case EXECUTE_MS_AVG:
+      if (value == null) {
+        unset_execute_ms_avg();
+      } else {
+        set_execute_ms_avg((Map<String,Map<GlobalStreamId,Double>>)value);
+      }
+      break;
+
     }
   }
 
@@ -373,6 +537,12 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
 
     case PROCESS_MS_AVG:
       return get_process_ms_avg();
+
+    case EXECUTED:
+      return get_executed();
+
+    case EXECUTE_MS_AVG:
+      return get_execute_ms_avg();
 
     }
     throw new IllegalStateException();
@@ -391,6 +561,10 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       return is_set_failed();
     case PROCESS_MS_AVG:
       return is_set_process_ms_avg();
+    case EXECUTED:
+      return is_set_executed();
+    case EXECUTE_MS_AVG:
+      return is_set_execute_ms_avg();
     }
     throw new IllegalStateException();
   }
@@ -435,6 +609,24 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
         return false;
     }
 
+    boolean this_present_executed = true && this.is_set_executed();
+    boolean that_present_executed = true && that.is_set_executed();
+    if (this_present_executed || that_present_executed) {
+      if (!(this_present_executed && that_present_executed))
+        return false;
+      if (!this.executed.equals(that.executed))
+        return false;
+    }
+
+    boolean this_present_execute_ms_avg = true && this.is_set_execute_ms_avg();
+    boolean that_present_execute_ms_avg = true && that.is_set_execute_ms_avg();
+    if (this_present_execute_ms_avg || that_present_execute_ms_avg) {
+      if (!(this_present_execute_ms_avg && that_present_execute_ms_avg))
+        return false;
+      if (!this.execute_ms_avg.equals(that.execute_ms_avg))
+        return false;
+    }
+
     return true;
   }
 
@@ -456,6 +648,16 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
     builder.append(present_process_ms_avg);
     if (present_process_ms_avg)
       builder.append(process_ms_avg);
+
+    boolean present_executed = true && (is_set_executed());
+    builder.append(present_executed);
+    if (present_executed)
+      builder.append(executed);
+
+    boolean present_execute_ms_avg = true && (is_set_execute_ms_avg());
+    builder.append(present_execute_ms_avg);
+    if (present_execute_ms_avg)
+      builder.append(execute_ms_avg);
 
     return builder.toHashCode();
   }
@@ -494,6 +696,26 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
     }
     if (is_set_process_ms_avg()) {
       lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.process_ms_avg, typedOther.process_ms_avg);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_executed()).compareTo(typedOther.is_set_executed());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_executed()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.executed, typedOther.executed);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_execute_ms_avg()).compareTo(typedOther.is_set_execute_ms_avg());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_execute_ms_avg()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.execute_ms_avg, typedOther.execute_ms_avg);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -611,6 +833,70 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 4: // EXECUTED
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map69 = iprot.readMapBegin();
+              this.executed = new HashMap<String,Map<GlobalStreamId,Long>>(2*_map69.size);
+              for (int _i70 = 0; _i70 < _map69.size; ++_i70)
+              {
+                String _key71; // required
+                Map<GlobalStreamId,Long> _val72; // required
+                _key71 = iprot.readString();
+                {
+                  org.apache.thrift7.protocol.TMap _map73 = iprot.readMapBegin();
+                  _val72 = new HashMap<GlobalStreamId,Long>(2*_map73.size);
+                  for (int _i74 = 0; _i74 < _map73.size; ++_i74)
+                  {
+                    GlobalStreamId _key75; // required
+                    long _val76; // required
+                    _key75 = new GlobalStreamId();
+                    _key75.read(iprot);
+                    _val76 = iprot.readI64();
+                    _val72.put(_key75, _val76);
+                  }
+                  iprot.readMapEnd();
+                }
+                this.executed.put(_key71, _val72);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 5: // EXECUTE_MS_AVG
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map77 = iprot.readMapBegin();
+              this.execute_ms_avg = new HashMap<String,Map<GlobalStreamId,Double>>(2*_map77.size);
+              for (int _i78 = 0; _i78 < _map77.size; ++_i78)
+              {
+                String _key79; // required
+                Map<GlobalStreamId,Double> _val80; // required
+                _key79 = iprot.readString();
+                {
+                  org.apache.thrift7.protocol.TMap _map81 = iprot.readMapBegin();
+                  _val80 = new HashMap<GlobalStreamId,Double>(2*_map81.size);
+                  for (int _i82 = 0; _i82 < _map81.size; ++_i82)
+                  {
+                    GlobalStreamId _key83; // required
+                    double _val84; // required
+                    _key83 = new GlobalStreamId();
+                    _key83.read(iprot);
+                    _val84 = iprot.readDouble();
+                    _val80.put(_key83, _val84);
+                  }
+                  iprot.readMapEnd();
+                }
+                this.execute_ms_avg.put(_key79, _val80);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -628,15 +914,15 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       oprot.writeFieldBegin(ACKED_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.acked.size()));
-        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter69 : this.acked.entrySet())
+        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter85 : this.acked.entrySet())
         {
-          oprot.writeString(_iter69.getKey());
+          oprot.writeString(_iter85.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter69.getValue().size()));
-            for (Map.Entry<GlobalStreamId, Long> _iter70 : _iter69.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter85.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Long> _iter86 : _iter85.getValue().entrySet())
             {
-              _iter70.getKey().write(oprot);
-              oprot.writeI64(_iter70.getValue());
+              _iter86.getKey().write(oprot);
+              oprot.writeI64(_iter86.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -649,15 +935,15 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       oprot.writeFieldBegin(FAILED_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.failed.size()));
-        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter71 : this.failed.entrySet())
+        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter87 : this.failed.entrySet())
         {
-          oprot.writeString(_iter71.getKey());
+          oprot.writeString(_iter87.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter71.getValue().size()));
-            for (Map.Entry<GlobalStreamId, Long> _iter72 : _iter71.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter87.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Long> _iter88 : _iter87.getValue().entrySet())
             {
-              _iter72.getKey().write(oprot);
-              oprot.writeI64(_iter72.getValue());
+              _iter88.getKey().write(oprot);
+              oprot.writeI64(_iter88.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -670,15 +956,57 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       oprot.writeFieldBegin(PROCESS_MS_AVG_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.process_ms_avg.size()));
-        for (Map.Entry<String, Map<GlobalStreamId,Double>> _iter73 : this.process_ms_avg.entrySet())
+        for (Map.Entry<String, Map<GlobalStreamId,Double>> _iter89 : this.process_ms_avg.entrySet())
         {
-          oprot.writeString(_iter73.getKey());
+          oprot.writeString(_iter89.getKey());
           {
-            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.DOUBLE, _iter73.getValue().size()));
-            for (Map.Entry<GlobalStreamId, Double> _iter74 : _iter73.getValue().entrySet())
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.DOUBLE, _iter89.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Double> _iter90 : _iter89.getValue().entrySet())
             {
-              _iter74.getKey().write(oprot);
-              oprot.writeDouble(_iter74.getValue());
+              _iter90.getKey().write(oprot);
+              oprot.writeDouble(_iter90.getValue());
+            }
+            oprot.writeMapEnd();
+          }
+        }
+        oprot.writeMapEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    if (this.executed != null) {
+      oprot.writeFieldBegin(EXECUTED_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.executed.size()));
+        for (Map.Entry<String, Map<GlobalStreamId,Long>> _iter91 : this.executed.entrySet())
+        {
+          oprot.writeString(_iter91.getKey());
+          {
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.I64, _iter91.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Long> _iter92 : _iter91.getValue().entrySet())
+            {
+              _iter92.getKey().write(oprot);
+              oprot.writeI64(_iter92.getValue());
+            }
+            oprot.writeMapEnd();
+          }
+        }
+        oprot.writeMapEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    if (this.execute_ms_avg != null) {
+      oprot.writeFieldBegin(EXECUTE_MS_AVG_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.MAP, this.execute_ms_avg.size()));
+        for (Map.Entry<String, Map<GlobalStreamId,Double>> _iter93 : this.execute_ms_avg.entrySet())
+        {
+          oprot.writeString(_iter93.getKey());
+          {
+            oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRUCT, org.apache.thrift7.protocol.TType.DOUBLE, _iter93.getValue().size()));
+            for (Map.Entry<GlobalStreamId, Double> _iter94 : _iter93.getValue().entrySet())
+            {
+              _iter94.getKey().write(oprot);
+              oprot.writeDouble(_iter94.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -719,6 +1047,22 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
       sb.append(this.process_ms_avg);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("executed:");
+    if (this.executed == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.executed);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("execute_ms_avg:");
+    if (this.execute_ms_avg == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.execute_ms_avg);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -735,6 +1079,14 @@ public class BoltStats implements org.apache.thrift7.TBase<BoltStats, BoltStats.
 
     if (!is_set_process_ms_avg()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'process_ms_avg' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_executed()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'executed' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_execute_ms_avg()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'execute_ms_avg' is unset! Struct:" + toString());
     }
 
   }

@@ -25,6 +25,3 @@ scp target/storm*jar pom.xml clojars@clojars.org:
 rm -Rf target *.xml
 
 git checkout conf/logback.xml
-
-
-

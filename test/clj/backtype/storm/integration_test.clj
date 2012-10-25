@@ -485,10 +485,11 @@
             ))
      )))
 
-(defbolt hooks-bolt ["emit" "ack" "fail"] {:prepare true}
+(defbolt hooks-bolt ["emit" "ack" "fail" "executed"] {:prepare true}
   [conf context collector]
   (let [acked (atom 0)
         failed (atom 0)
+        executed (atom 0)
         emitted (atom 0)]
     (.addTaskHook context
                   (reify backtype.storm.hooks.ITaskHook
@@ -501,10 +502,13 @@
                     (boltAck [this info]
                       (swap! acked inc))
                     (boltFail [this info]
-                      (swap! failed inc))))
+                      (swap! failed inc))
+                    (boltExecute [this info]
+                      (swap! executed inc))
+                      ))
     (bolt
      (execute [tuple]
-        (emit-bolt! collector [@emitted @acked @failed])
+        (emit-bolt! collector [@emitted @acked @failed @executed])
         (if (= 0 (- @acked @failed))
           (ack! collector tuple)
           (fail! collector tuple))
@@ -524,10 +528,10 @@
                                                          [1]
                                                          [1]
                                                          ]})]
-      (is (= [[0 0 0]
-              [2 1 0]
-              [4 1 1]
-              [6 2 1]]
+      (is (= [[0 0 0 0]
+              [2 1 0 1]
+              [4 1 1 2]
+              [6 2 1 3]]
              (read-tuples results "2")
              )))))
 

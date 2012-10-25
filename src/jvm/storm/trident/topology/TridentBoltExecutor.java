@@ -12,6 +12,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -213,12 +214,19 @@ public class TridentBoltExecutor implements IRichBolt {
         _bolt.prepare(conf, context, _coordOutputCollector);
     }
     
-    private void failBatch(TrackedBatch tracked) {
+    private void failBatch(TrackedBatch tracked, FailedException e) {
+        if(e!=null && e instanceof ReportedFailedException) {
+            _collector.reportError(e);
+        }
         tracked.failed = true;
         if(tracked.delayedAck!=null) {
             _collector.fail(tracked.delayedAck);
             tracked.delayedAck = null;
         }
+    }
+    
+    private void failBatch(TrackedBatch tracked) {
+        failBatch(tracked, null);
     }
 
     private boolean finishBatch(TrackedBatch tracked, Tuple finishTuple) {
@@ -234,7 +242,7 @@ public class TridentBoltExecutor implements IRichBolt {
                 tracked.delayedAck = null;
             }
         } catch(FailedException e) {
-            failBatch(tracked);
+            failBatch(tracked, e);
             success = false;
         }
         _batches.remove(tracked.info.batchId.getId());
@@ -346,7 +354,7 @@ public class TridentBoltExecutor implements IRichBolt {
                     success = finishBatch(tracked, tuple);
                 }
             } catch(FailedException e) {
-                failBatch(tracked);
+                failBatch(tracked, e);
             }
             if(success) {
                 _collector.ack(tuple);                   

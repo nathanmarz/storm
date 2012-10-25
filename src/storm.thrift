@@ -141,6 +141,8 @@ struct BoltStats {
   1: required map<string, map<GlobalStreamId, i64>> acked;  
   2: required map<string, map<GlobalStreamId, i64>> failed;  
   3: required map<string, map<GlobalStreamId, double>> process_ms_avg;
+  4: required map<string, map<GlobalStreamId, i64>> executed;  
+  5: required map<string, map<GlobalStreamId, double>> execute_ms_avg;
 }
 
 struct SpoutStats {

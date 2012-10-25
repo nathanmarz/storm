@@ -5,7 +5,7 @@
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
-              EmitInfo BoltFailInfo BoltAckInfo])
+              EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   )
@@ -479,7 +479,12 @@
       :factory? true)]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
-  (let [ms (.getSampleStartTime tuple)]
+  (let [ms (.getProcessSampleStartTime tuple)]
+    (if ms
+      (time-delta-ms ms))))
+      
+(defn- tuple-execute-time-delta! [^TupleImpl tuple]
+  (let [ms (.getExecuteSampleStartTime tuple)]
     (if ms
       (time-delta-ms ms))))
 
@@ -488,7 +493,8 @@
     (.put pending key (bit-xor curr id))))
 
 (defmethod mk-threads :bolt [executor-data task-datas]
-  (let [executor-stats (:stats executor-data)
+  (let [execute-sampler (mk-stats-sampler (:storm-conf executor-data))
+        executor-stats (:stats executor-data)
         {:keys [storm-conf component-id worker-context transfer-fn report-error sampler
                 open-or-prepare-was-called?]} executor-data
         rand (Random. (Utils/secureRandomLong))
@@ -509,10 +515,25 @@
  
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
-                          (let [^IBolt bolt-obj (->> task-id (get task-datas) :object)]
-                            (when (sampler)
-                              (.setSampleStartTime tuple (System/currentTimeMillis)))
-                            (.execute bolt-obj tuple)))]
+                          (let [task-data (get task-datas task-id)
+                                ^IBolt bolt-obj (:object task-data)
+                                user-context (:user-context task-data)
+                                sampler? (sampler)
+                                execute-sampler? (execute-sampler)
+                                now (if (or sampler? execute-sampler?) (System/currentTimeMillis))]
+                            (when sampler?
+                              (.setProcessSampleStartTime tuple now))
+                            (when execute-sampler?
+                              (.setExecuteSampleStartTime tuple now))
+                            (.execute bolt-obj tuple)
+                            (let [delta (tuple-execute-time-delta! tuple)]
+                              (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
+                              (when delta
+                                (stats/bolt-execute-tuple! executor-stats
+                                                           (.getSourceComponent tuple)
+                                                           (.getSourceStreamId tuple)
+                                                           delta)
+                                ))))]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 

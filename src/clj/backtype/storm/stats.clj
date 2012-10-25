@@ -142,9 +142,9 @@
 (def COMMON-FIELDS [:emitted :transferred])
 (defrecord CommonStats [emitted transferred rate])
 
-(def BOLT-FIELDS [:acked :failed :process-latencies])
+(def BOLT-FIELDS [:acked :failed :process-latencies :executed :execute-latencies])
 ;;acked and failed count individual tuples
-(defrecord BoltExecutorStats [common acked failed process-latencies])
+(defrecord BoltExecutorStats [common acked failed process-latencies executed execute-latencies])
 
 (def SPOUT-FIELDS [:acked :failed :complete-latencies])
 ;;acked and failed count tuple completion
@@ -163,6 +163,8 @@
 (defn mk-bolt-stats [rate]
   (BoltExecutorStats. (mk-common-stats rate)
                   (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
+                  (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
+                  (atom (apply keyed-avg-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   (atom (apply keyed-counter-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   (atom (apply keyed-avg-rolling-window-set NUM-STAT-BUCKETS STAT-BUCKETS))
                   ))
@@ -187,6 +189,12 @@
 
 (defn transferred-tuples! [stats stream amt]
   (update-executor-stat! stats [:common :transferred] stream (* (stats-rate stats) amt)))
+
+(defn bolt-execute-tuple! [^BoltExecutorStats stats component stream latency-ms]
+  (let [key [component stream]]
+    (update-executor-stat! stats :executed key (stats-rate stats))
+    (update-executor-stat! stats :execute-latencies key latency-ms)
+    ))
 
 (defn bolt-acked-tuple! [^BoltExecutorStats stats component stream latency-ms]
   (let [key [component stream]]
@@ -286,8 +294,10 @@
   (ExecutorSpecificStats/bolt
    (BoltStats. (window-set-converter (:acked stats) to-global-stream-id)
                (window-set-converter (:failed stats) to-global-stream-id)
-               (window-set-converter (:process-latencies stats) to-global-stream-id)))
-  )
+               (window-set-converter (:process-latencies stats) to-global-stream-id)
+               (window-set-converter (:executed stats) to-global-stream-id)
+               (window-set-converter (:execute-latencies stats) to-global-stream-id)
+               )))
 
 (defmethod thriftify-specific-stats :spout
   [stats]

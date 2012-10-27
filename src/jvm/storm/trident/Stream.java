@@ -62,14 +62,17 @@ public class Stream implements IAggregatableStream {
     }
         
     public Stream project(Fields keepFields) {
+        projectionValidation(keepFields);
         return _topology.addSourcedNode(this, new ProcessorNode(_topology.getUniqueStreamId(), _name, keepFields, new Fields(), new ProjectedProcessor(keepFields)));
     }
 
     public GroupedStream groupBy(Fields fields) {
+        projectionValidation(fields);
         return new GroupedStream(this, fields);        
     }
     
     public Stream partitionBy(Fields fields) {
+        projectionValidation(fields);
         return partition(Grouping.fields(fields.toList()));
     }
     
@@ -114,6 +117,7 @@ public class Stream implements IAggregatableStream {
     
     @Override
     public Stream each(Fields inputFields, Function function, Fields functionFields) {
+        projectionValidation(inputFields);
         return _topology.addSourcedNode(this,
                 new ProcessorNode(_topology.getUniqueStreamId(),
                     _name,
@@ -125,6 +129,7 @@ public class Stream implements IAggregatableStream {
     //creates brand new tuples with brand new fields
     @Override
     public Stream partitionAggregate(Fields inputFields, Aggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return _topology.addSourcedNode(this,
                 new ProcessorNode(_topology.getUniqueStreamId(),
                     _name,
@@ -134,6 +139,7 @@ public class Stream implements IAggregatableStream {
     }
     
     public Stream stateQuery(TridentState state, Fields inputFields, QueryFunction function, Fields functionFields) {
+        projectionValidation(inputFields);
         String stateId = state._node.stateInfo.id;
         Node n = new ProcessorNode(_topology.getUniqueStreamId(),
                         _name,
@@ -149,6 +155,7 @@ public class Stream implements IAggregatableStream {
     }
     
     public TridentState partitionPersist(StateSpec stateSpec, Fields inputFields, StateUpdater updater, Fields functionFields) {
+        projectionValidation(inputFields);
         String id = _topology.getUniqueStateId();
         ProcessorNode n = new ProcessorNode(_topology.getUniqueStreamId(),
                     _name,
@@ -189,6 +196,7 @@ public class Stream implements IAggregatableStream {
     }
 
     public Stream partitionAggregate(Fields inputFields, CombinerAggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return chainedAgg()
                .partitionAggregate(inputFields, agg, functionFields)
                .chainEnd();
@@ -199,6 +207,7 @@ public class Stream implements IAggregatableStream {
     }
 
     public Stream partitionAggregate(Fields inputFields, ReducerAggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return chainedAgg()
                .partitionAggregate(inputFields, agg, functionFields)
                .chainEnd();
@@ -209,6 +218,7 @@ public class Stream implements IAggregatableStream {
     }
     
     public Stream aggregate(Fields inputFields, Aggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return chainedAgg()
                .aggregate(inputFields, agg, functionFields)
                .chainEnd();
@@ -219,6 +229,7 @@ public class Stream implements IAggregatableStream {
     }
 
     public Stream aggregate(Fields inputFields, CombinerAggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return chainedAgg()
                .aggregate(inputFields, agg, functionFields)
                .chainEnd();
@@ -229,6 +240,7 @@ public class Stream implements IAggregatableStream {
     }
 
     public Stream aggregate(Fields inputFields, ReducerAggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return chainedAgg()
                 .aggregate(inputFields, agg, functionFields)
                 .chainEnd();
@@ -263,6 +275,7 @@ public class Stream implements IAggregatableStream {
     }
     
     public TridentState persistentAggregate(StateSpec spec, Fields inputFields, CombinerAggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         // replaces normal aggregation here with a global grouping because it needs to be consistent across batches 
         return new ChainedAggregatorDeclarer(this, new GlobalAggScheme())
                 .aggregate(inputFields, agg, functionFields)
@@ -283,6 +296,7 @@ public class Stream implements IAggregatableStream {
     }
 
     public TridentState persistentAggregate(StateSpec spec, Fields inputFields, ReducerAggregator agg, Fields functionFields) {
+        projectionValidation(inputFields);
         return global().partitionPersist(spec, inputFields, new ReducerAggStateUpdater(agg), functionFields);
     }
     
@@ -326,5 +340,18 @@ public class Stream implements IAggregatableStream {
             return new GlobalBatchToPartition();
         }
         
+    }
+
+    private void projectionValidation(Fields projFields) {
+        if (projFields == null) {
+            return;
+        }
+
+        Fields allFields = this.getOutputFields();
+        for (String field : projFields) {
+            if (!allFields.contains(field)) {
+                throw new IllegalArgumentException("Trying to select non-existent field: '" + field + "' from all fields: " + allFields + "!");
+            }
+        }
     }
 }

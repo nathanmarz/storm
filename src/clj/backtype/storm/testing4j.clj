@@ -4,7 +4,7 @@
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.daemon nimbus])
   (:import [backtype.storm.testing TestJob MockedSources TrackedTopology
-            MkClusterParam CompleteTopologyParam])
+            MkClusterParam CompleteTopologyParam MkTupleParam])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm testing util log])
   (:gen-class
@@ -31,7 +31,10 @@
              ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer Integer] void]
              ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer] void]
              ^:static [multiseteq [java.util.Collection java.util.Collection] boolean]
-             ^:static [multiseteq [java.util.Map java.util.Map] boolean]]))
+             ^:static [multiseteq [java.util.Map java.util.Map] boolean]
+             ^:static [testTuple [java.util.List] backtype.storm.tuple.Tuple]
+             ^:static [testTuple [java.util.List backtype.storm.testing.MkTupleParam] backtype.storm.tuple.Tuple]]))
+
 
 (defn -completeTopology
   ([^ILocalCluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
@@ -60,7 +63,7 @@
                      :daemon-conf daemon-conf#]
                     (let [cluster# (LocalCluster. cluster#)]
                       (.run ~code cluster#)))))
-  
+
 (defn -withLocalCluster
   ([^MkClusterParam mkClusterParam ^TestJob code]
      (with-cluster with-local-cluster mkClusterParam code))
@@ -122,3 +125,14 @@
 
 (defn -multiseteq [^Map coll1 ^Map coll2]
   (multiseteq coll1 coll2))
+
+(defn -testTuple
+  ([^List values]
+     (-testTuple values nil))
+  ([^List values ^MkTupleParam param]
+     (if (nil? param)
+       (test-tuple values)
+       (let [stream (or (.getStream param) Utils/DEFAULT_STREAM_ID)
+             component (or (.getComponent param) "component")
+             fields (.getFields param)]
+         (test-tuple values :stream stream :component component :fields fields)))))

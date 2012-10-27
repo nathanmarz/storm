@@ -4,7 +4,7 @@
   (:require [backtype.storm.integration-test :as it])
   (:require [backtype.storm.thrift :as thrift])
   (:import [backtype.storm Testing Config ILocalCluster])
-  (:import [backtype.storm.tuple Values TupleImpl])
+  (:import [backtype.storm.tuple Values Tuple])
   (:import [backtype.storm.utils Time Utils])
   (:import [backtype.storm.testing MkClusterParam TestJob MockedSources TestWordSpout
             TestWordCounter TestGlobalCount TestAggregatesCounter CompleteTopologyParam
@@ -145,8 +145,9 @@
 (deftest test-test-tuple
   (letlocals
    ;; test the one-param signature
-   (bind ^TupleImpl tuple (Testing/testTuple ["james" "bond"]))
+   (bind ^Tuple tuple (Testing/testTuple ["james" "bond"]))
    (is (= ["james" "bond"] (.getValues tuple)))
+   (is (= Utils/DEFAULT_STREAM_ID (.getSourceStreamId tuple)))
    (is (= ["field1" "field2"] (-> tuple .getFields .toList)))
    (is (= "component" (.getSourceComponent tuple)))
 
@@ -156,7 +157,8 @@
      (.setStream "test-stream")
      (.setComponent "test-component")
      (.setFields (into-array String ["fname" "lname"])))
-   (bind ^TupleImpl tuple (Testing/testTuple ["james" "bond"] mk-tuple-param))
+   (bind ^Tuple tuple (Testing/testTuple ["james" "bond"] mk-tuple-param))
    (is (= ["james" "bond"] (.getValues tuple)))
+   (is (= "test-stream" (.getSourceStreamId tuple)))
    (is (= ["fname" "lname"] (-> tuple .getFields .toList)))
    (is (= "test-component" (.getSourceComponent tuple)))))

@@ -59,5 +59,8 @@
                                 (ExecutorDetails. start-task end-task))]]
         (.assign cluster slot topology-id executors)))))
 
+(defn -prepare [this conf]
+  )
+
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (schedule-topologies-evenly topologies cluster))

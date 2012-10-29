@@ -1,7 +1,10 @@
 (ns storm.trident.integration-test
   (:use [clojure test])
   (:require [backtype.storm [testing :as t]])
-  (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter])
+  (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter
+            MemoryMapState$Factory])
+  (:import [storm.trident.state StateSpec])
+  (:import [storm.trident.operation.impl CombinerAggStateUpdater])
   (:use [storm.trident testing])
   (:use [backtype.storm util]))
   
@@ -181,6 +184,75 @@
           (is (t/ms= [[2]] (exec-drpc drpc "tester" "the man")))
           (is (t/ms= [[1]] (exec-drpc drpc "tester" "aaa")))
           )))))
+
+(deftest test-stream-projection-validation
+  (t/with-local-cluster [cluster]
+    (letlocals
+     (bind feeder (feeder-committer-spout ["sentence"]))
+     (bind topo (TridentTopology.))
+     ;; valid projection fields will not throw exceptions
+     (bind word-counts
+           (-> topo
+               (.newStream "tester" feeder)
+               (.each (fields "sentence") (Split.) (fields "word"))
+               (.groupBy (fields "word"))
+               (.persistentAggregate (memory-map-state) (Count.) (fields "count"))
+               (.parallelismHint 6)
+               ))
+     (bind stream (-> topo
+                      (.newStream "tester" feeder)))
+     ;; test .each
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.each (fields "sentence1") (Split.) (fields "word")))))
+     ;; test .groupBy
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.each (fields "sentence") (Split.) (fields "word"))
+                      (.groupBy (fields "word1")))))
+     ;; test .aggregate
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.each (fields "sentence") (Split.) (fields "word"))
+                      (.groupBy (fields "word"))
+                      (.aggregate (fields "word1") (Count.) (fields "count")))))
+     ;; test .project
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.project (fields "sentence1")))))
+     ;; test .partitionBy
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.partitionBy (fields "sentence1")))))
+     ;; test .partitionAggregate
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.each (fields "sentence") (Split.) (fields "word"))
+                      (.partitionAggregate (fields "word1") (Count.) (fields "count")))))
+     ;; test .persistentAggregate
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.each (fields "sentence") (Split.) (fields "word"))
+                      (.groupBy (fields "word"))
+                      (.persistentAggregate (StateSpec. (MemoryMapState$Factory.)) (fields "non-existent") (Count.) (fields "count")))))
+     ;; test .partitionPersist
+     (is (thrown? IllegalArgumentException
+                  (-> stream
+                      (.each (fields "sentence") (Split.) (fields "word"))
+                      (.groupBy (fields "word"))
+                      (.partitionPersist (StateSpec. (MemoryMapState$Factory.))
+                                         (fields "non-existent")
+                                         (CombinerAggStateUpdater. (Count.))
+                                         (fields "count")))))
+     ;; test .stateQuery
+     (with-drpc [drpc]
+       (is (thrown? IllegalArgumentException
+                    (-> topo
+                        (.newDRPCStream "words" drpc)
+                        (.each (fields "args") (Split.) (fields "word"))
+                        (.groupBy (fields "word"))
+                        (.stateQuery word-counts (fields "word1") (MapGet.) (fields "count"))))))
+     )))
 
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]

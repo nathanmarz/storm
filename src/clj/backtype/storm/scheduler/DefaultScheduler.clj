@@ -31,7 +31,10 @@
           (if-let [supervisor (.getSupervisorById cluster node)]
             (.contains (.getAllPorts supervisor) (int port))
             )))))
-   
+
+(defn -prepare [this conf]
+  )
+
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies

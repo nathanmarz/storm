@@ -24,6 +24,24 @@
                   ))
    ))
 
+(defn mk-scheduler [conf inimbus]
+  (let [forced-scheduler (.getForcedScheduler inimbus)
+        scheduler (cond
+                    forced-scheduler
+                    (do (log-message "Using forced scheduler from INimbus " (class forced-scheduler))
+                        forced-scheduler)
+    
+                    (conf STORM-SCHEDULER)
+                    (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
+                        (-> (conf STORM-SCHEDULER) new-instance))
+    
+                    :else
+                    (do (log-message "Using default scheduler")
+                        (DefaultScheduler.)))]
+    (.prepare scheduler conf)
+    scheduler
+    ))
+
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
@@ -40,18 +58,7 @@
                                  (log-error t "Error when processing event")
                                  (halt-process! 20 "Error when processing an event")
                                  ))
-     :scheduler (cond
-                  forced-scheduler
-                  (do (log-message "Using forced scheduler from INimbus " (class forced-scheduler))
-                      forced-scheduler)
-                  
-                  (conf STORM-SCHEDULER)
-                  (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
-                      (-> (conf STORM-SCHEDULER) new-instance))
-                  
-                  :else
-                  (do (log-message "Using default scheduler")
-                      (DefaultScheduler.)))
+     :scheduler (mk-scheduler conf inimbus)
      }))
 
 (defn inbox [nimbus]

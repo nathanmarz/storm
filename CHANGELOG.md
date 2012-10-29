@@ -21,6 +21,7 @@
  * Number tuples executed now tracked and shown in Storm UI
  * Added ReportedFailedException which causes a batch to fail without killing worker and reports the error to the UI
  * Execute latency now tracked and shown in Storm UI
+ * Adding testTuple methods for easily creating Tuple instances to Testing API (thanks xumingming)
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
   

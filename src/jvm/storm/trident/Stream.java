@@ -350,7 +350,7 @@ public class Stream implements IAggregatableStream {
         Fields allFields = this.getOutputFields();
         for (String field : projFields) {
             if (!allFields.contains(field)) {
-                throw new IllegalArgumentException("Trying to select non-existent field: '" + field + "' from all fields: " + allFields + "!");
+                throw new IllegalArgumentException("Trying to select non-existent field: '" + field + "' from stream containing fields fields: <" + allFields + ">");
             }
         }
     }

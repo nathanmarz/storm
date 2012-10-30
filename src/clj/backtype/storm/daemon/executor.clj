@@ -164,8 +164,22 @@
 
 ;; in its own function so that it can be mocked out by tracked topologies
 (defn mk-executor-transfer-fn [batch-transfer->worker]
-  (fn [task tuple]
-    (disruptor/publish batch-transfer->worker [task tuple])))
+  (fn this
+    ([task tuple block? ^List overflow-buffer]
+      (if (and overflow-buffer (not (.isEmpty overflow-buffer)))
+        (.add overflow-buffer [task tuple])
+        (try-cause
+          (disruptor/publish batch-transfer->worker [task tuple] block?)
+        (catch InsufficientCapacityException e
+          (if overflow-buffer
+            (.add overflow-buffer [task tuple])
+            (throw e))
+          ))))
+    ([task tuple overflow-buffer]
+      (this task tuple (nil? overflow-buffer) overflow-buffer))
+    ([task tuple]
+      (this task tuple nil)
+      )))
 
 (defn executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
@@ -383,7 +397,16 @@
         event-handler (mk-task-receiver executor-data tuple-action-fn)
         has-ackers? (has-ackers? storm-conf)
         emitted-count (MutableLong. 0)
-        empty-emit-streak (MutableLong. 0)]
+        empty-emit-streak (MutableLong. 0)
+        
+        ;; the overflow buffer is used to ensure that spouts never block when emitting
+        ;; this ensures that the spout can always clear the incoming buffer (acks and fails), which
+        ;; prevents deadlock from occuring across the topology (e.g. Spout -> Bolt -> Acker -> Spout, and all
+        ;; buffers filled up)
+        ;; when the overflow buffer is full, spouts stop calling nextTuple until it's able to clear the overflow buffer
+        ;; this limits the size of the overflow buffer to however many tuples a spout emits in one call of nextTuple, 
+        ;; preventing memory issues
+        overflow-buffer (LinkedList.)]
    
     [(async-loop
       (fn []
@@ -406,13 +429,16 @@
                                          (fast-list-iter [out-task out-tasks id out-ids]
                                                          (let [tuple-id (if rooted?
                                                                           (MessageId/makeRootId root-id id)
-                                                                          (MessageId/makeUnanchored))]                                                        
+                                                                          (MessageId/makeUnanchored))
+                                                               out-tuple (TupleImpl. worker-context
+                                                                                     values
+                                                                                     task-id
+                                                                                     out-stream-id
+                                                                                     tuple-id)]
                                                            (transfer-fn out-task
-                                                                        (TupleImpl. worker-context
-                                                                                    values
-                                                                                    task-id
-                                                                                    out-stream-id
-                                                                                    tuple-id))))
+                                                                        out-tuple
+                                                                        overflow-buffer)
+                                                           ))
                                          (if rooted?
                                            (do
                                              (.put pending root-id [task-id
@@ -421,7 +447,8 @@
                                                                     (if (sampler) (System/currentTimeMillis))])
                                              (task/send-unanchored task-data
                                                                    ACKER-INIT-STREAM-ID
-                                                                   [root-id (bit-xor-vals out-ids) task-id]))
+                                                                   [root-id (bit-xor-vals out-ids) task-id]
+                                                                   overflow-buffer))
                                            (when message-id
                                              (ack-spout-msg executor-data task-data message-id
                                                             {:stream out-stream-id :values values}
@@ -450,10 +477,21 @@
         (fn []
           ;; This design requires that spouts be non-blocking
           (disruptor/consume-batch receive-queue event-handler)
+          
+          ;; try to clear the overflow-buffer
+          (try-cause
+            (while (not (.isEmpty overflow-buffer))
+              (let [[out-task out-tuple] (.peek overflow-buffer)]
+                (transfer-fn out-task out-tuple false nil)
+                (.removeFirst overflow-buffer)))
+          (catch InsufficientCapacityException e
+            ))
+          
           (let [active? @(:storm-active-atom executor-data)
                 curr-count (.get emitted-count)]
-            (if (or (not max-spout-pending)
-                    (< (.size pending) max-spout-pending))
+            (if (and (.isEmpty overflow-buffer)
+                     (or (not max-spout-pending)
+                         (< (.size pending) max-spout-pending)))
               (if active?
                 (do
                   (when-not @last-active

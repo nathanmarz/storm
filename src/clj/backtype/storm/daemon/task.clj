@@ -82,16 +82,23 @@
 
 
 ;; TODO: this is all expensive... should be precomputed
-(defn send-unanchored [task-data stream values]
-  (let [^TopologyContext topology-context (:system-context task-data)
-        tasks-fn (:tasks-fn task-data)
-        transfer-fn (-> task-data :executor-data :transfer-fn)]
-    (fast-list-iter [t (tasks-fn stream values)]
-      (transfer-fn t
-                   (TupleImpl. topology-context
-                               values
-                               (.getThisTaskId topology-context)
-                               stream)))))
+(defn send-unanchored
+  ([task-data stream values overflow-buffer]
+    (let [^TopologyContext topology-context (:system-context task-data)
+          tasks-fn (:tasks-fn task-data)
+          transfer-fn (-> task-data :executor-data :transfer-fn)
+          out-tuple (TupleImpl. topology-context
+                                 values
+                                 (.getThisTaskId topology-context)
+                                 stream)]
+      (fast-list-iter [t (tasks-fn stream values)]
+        (transfer-fn t
+                     out-tuple
+                     overflow-buffer)
+        )))
+    ([task-data stream values]
+      (send-unanchored task-data stream values nil)
+      ))
 
 (defn mk-tasks-fn [task-data]
   (let [task-id (:task-id task-data)

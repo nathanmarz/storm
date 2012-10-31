@@ -1,4 +1,4 @@
-package backtype.storm.metric;
+package backtype.storm.metric.api;
 
 public interface IReducer<T> {
     T init();

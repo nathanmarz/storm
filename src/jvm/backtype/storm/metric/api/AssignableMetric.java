@@ -1,9 +1,9 @@
-package backtype.storm.metric;
+package backtype.storm.metric.api;
 
-public class FixedValueMetric implements IMetric {
+public class AssignableMetric implements IMetric {
     Object _value;
 
-    public FixedValueMetric(Object value) {
+    public AssignableMetric(Object value) {
         _value = value;
     }
 

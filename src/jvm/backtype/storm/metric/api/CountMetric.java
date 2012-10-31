@@ -1,9 +1,11 @@
-package backtype.storm.metric;
+package backtype.storm.metric.api;
 
-public class IncrementedMetric implements IMetric {
+import backtype.storm.metric.api.IMetric;
+
+public class CountMetric implements IMetric {
     long _value = 0;
 
-    public IncrementedMetric() {
+    public CountMetric() {
     }
     
     public void inc() {

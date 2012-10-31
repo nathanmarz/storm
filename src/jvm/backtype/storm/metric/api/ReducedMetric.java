@@ -1,4 +1,4 @@
-package backtype.storm.metric;
+package backtype.storm.metric.api;
 
 public class ReducedMetric implements IMetric {
     private IReducer _reducer;

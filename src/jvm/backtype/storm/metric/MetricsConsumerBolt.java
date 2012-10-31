@@ -1,5 +1,6 @@
 package backtype.storm.metric;
 
+import backtype.storm.metric.api.IMetricsConsumer;
 import backtype.storm.Config;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;

@@ -1,4 +1,6 @@
-package backtype.storm.metric;
+package backtype.storm.metric.api;
+
+import backtype.storm.metric.api.IReducer;
 
 class MeanReducerState {
     public int count = 0;

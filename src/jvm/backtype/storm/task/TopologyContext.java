@@ -4,8 +4,10 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.hooks.ITaskHook;
-import backtype.storm.metric.IMetric;
+import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.IReducer;
 import backtype.storm.metric.MetricHolder;
+import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -195,7 +197,22 @@ public class TopologyContext extends WorkerTopologyContext {
         return _hooks;
     }
 
-    public void registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
+    /*
+     * Register a IMetric instance. 
+     * Storm will then call getValueAndReset on the metric every timeBucketSizeInSecs
+     * and the returned value is sent to all metrics consumers.
+     * You must call this during IBolt::prepare or ISpout::open.
+     * @return The IMetric argument unchanged.
+     */
+    public IMetric registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
         _registeredMetrics.add(new MetricHolder(name, metric, timeBucketSizeInSecs));
+        return metric;
+    }
+
+    /*
+     * Convinience method for registering ReducedMetric.
+     */
+    public IMetric registerMetric(String name, IReducer reducer, int timeBucketSizeInSecs) {
+        return registerMetric(name, new ReducedMetric(reducer), timeBucketSizeInSecs);
     }
 }

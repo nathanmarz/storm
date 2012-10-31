@@ -1,4 +1,4 @@
-package backtype.storm.metric;
+package backtype.storm.metric.api;
 
 import backtype.storm.task.TopologyContext;
 import java.util.Map;

@@ -6,7 +6,8 @@
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
-  (:import [backtype.storm.metric MetricHolder IMetric])
+  (:import [backtype.storm.metric MetricHolder])
+  (:import [backtype.storm.metric.api IMetric])  
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   )

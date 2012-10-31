@@ -1,5 +1,7 @@
 package backtype.storm.metric;
 
+import backtype.storm.metric.api.IMetric;
+
 public class MetricHolder {
     private String _name;
     private int _timeBucketIntervalInSecs;

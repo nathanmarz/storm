@@ -2,7 +2,10 @@ package backtype.storm.utils;
 
 import backtype.storm.Config;
 import backtype.storm.generated.Nimbus;
+
 import java.util.Map;
+
+import backtype.storm.nimbus.NimbusLeaderElections;
 import org.apache.thrift7.TException;
 import org.apache.thrift7.protocol.TBinaryProtocol;
 import org.apache.thrift7.transport.TFramedTransport;
@@ -12,9 +15,16 @@ import org.apache.thrift7.transport.TTransport;
 
 public class NimbusClient {
     public static NimbusClient getConfiguredClient(Map conf) {
-        String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
+        String nimbusHost = getNimbusLeaderHost(conf);
         int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
         return new NimbusClient(nimbusHost, nimbusPort);
+    }
+
+    private static String getNimbusLeaderHost(Map conf) {
+        NimbusLeaderElections elections = new NimbusLeaderElections();
+        elections.init(conf, null);
+
+        return elections.getLeaderId();
     }
 
     private TTransport conn;
@@ -26,13 +36,13 @@ public class NimbusClient {
 
     public NimbusClient(String host, int port) {
         try {
-            if(host==null) {
+            if (host == null) {
                 throw new IllegalArgumentException("Nimbus host is not set");
             }
             conn = new TFramedTransport(new TSocket(host, port));
             client = new Nimbus.Client(new TBinaryProtocol(conn));
             conn.open();
-        } catch(TException e) {
+        } catch (TException e) {
             throw new RuntimeException(e);
         }
     }

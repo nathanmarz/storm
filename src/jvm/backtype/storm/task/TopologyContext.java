@@ -238,7 +238,7 @@ public class TopologyContext extends WorkerTopologyContext {
         return registerMetric(name, new ReducedMetric(reducer), timeBucketSizeInSecs);
     }
     /*
-     * Convinience method for registering ReducedMetric.
+     * Convinience method for registering CombinedMetric.
      */
     public IMetric registerMetric(String name, ICombiner combiner, int timeBucketSizeInSecs) {
         return registerMetric(name, new CombinedMetric(combiner), timeBucketSizeInSecs);

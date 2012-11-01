@@ -11,7 +11,7 @@
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm.nimbus storage])
+  (:use [backtype.storm.nimbus elections storage])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -854,7 +854,8 @@
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf inimbus)
+  (let [leader-elections (await-leadership conf)
+        nimbus (nimbus-data conf inimbus)
         storage (:storage nimbus)]
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]

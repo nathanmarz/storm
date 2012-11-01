@@ -103,5 +103,9 @@ topology.max.error.report.per.interval: 5
 topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
 topology.trident.batch.emit.interval.millis: 500
 
+### register classes used in implementation of metrics api.
+topology.kryo.register:
+    - backtype.storm.metric.api.IMetricsConsumer$TaskInfo
+    - backtype.storm.metric.api.IMetricsConsumer$DataPoint
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

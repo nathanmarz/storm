@@ -7,7 +7,7 @@
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.metric MetricHolder])
-  (:import [backtype.storm.metric.api IMetric])  
+  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])  
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   )
@@ -214,7 +214,7 @@
      :type executor-type
      ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)
      :stats (mk-executor-stats <> (sampling-rate storm-conf))
-     :registered-metrics (ArrayList.)
+     :interval->task->registered-metrics (HashMap.)
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id)
      :report-error (throttled-report-error-fn <>)
@@ -244,8 +244,8 @@
       :kill-fn (:report-error-and-die executor-data))))
 
 (defn setup-metrics! [executor-data]
-  (let [{:keys [storm-conf receive-queue worker-context registered-metrics]} executor-data
-        distinct-time-bucket-intervals (->> registered-metrics (map #(.getTimeBucketIntervalInSecs %)) distinct)]
+  (let [{:keys [storm-conf receive-queue worker-context interval->task->registered-metrics]} executor-data
+        distinct-time-bucket-intervals (keys interval->task->registered-metrics)]
     (doseq [interval distinct-time-bucket-intervals]
       (schedule-recurring 
        (:user-timer (:worker executor-data)) 
@@ -257,18 +257,23 @@
           [[nil (TupleImpl. worker-context [interval] -1 Constants/METRICS_TICK_STREAM_ID)]]))))))
 
 (defn metrics-tick [executor-data task-datas ^TupleImpl tuple]
-  (let [{:keys [registered-metrics ^WorkerTopologyContext worker-context]} executor-data
+  (let [{:keys [interval->task->registered-metrics ^WorkerTopologyContext worker-context]} executor-data
         interval (.getInteger tuple 0)]
-    (doseq [^MetricHolder mh registered-metrics]
-      (when (= interval (.getTimeBucketIntervalInSecs mh))
-        (let [^IMetric metric (.getMetric mh)
-              name (.getName mh)
-              value (.getValueAndReset metric)
-              timestamp (System/currentTimeMillis)
-              worker-host (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
-              worker-port (.getThisWorkerPort worker-context)]
-          (doseq [[task-id task-data] task-datas]
-            (task/send-unanchored task-data Constants/METRICS_STREAM_ID [worker-host worker-port interval timestamp name value])))))))
+    (doseq [[task-id task-data] task-datas
+            :let [metric-holders (-> interval->task->registered-metrics (get interval) (get task-id))
+                  task-info (IMetricsConsumer$TaskInfo.
+                             (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+                             (.getThisWorkerPort worker-context)
+                             (:component-id executor-data)
+                             task-id
+                             (System/currentTimeMillis)
+                             interval)
+                  data-points (->> metric-holders
+                                   (map (fn [^MetricHolder mh]
+                                          (IMetricsConsumer$DataPoint. (.name mh)
+                                                                       (.getValueAndReset ^IMetric (.metric mh)))))
+                                   (into []))]]
+      (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)

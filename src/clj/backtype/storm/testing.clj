@@ -588,6 +588,6 @@
                   {}
                   {}
                   (HashMap.)
-                  (ArrayList.))]
+                  (HashMap.))]
     (TupleImpl. context values 1 stream)
     ))

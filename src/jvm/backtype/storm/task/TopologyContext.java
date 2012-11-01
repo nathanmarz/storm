@@ -33,7 +33,7 @@ public class TopologyContext extends WorkerTopologyContext {
     private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map<String, Object> _executorData;
-    private List<MetricHolder> _registeredMetrics;
+    private Map<Integer,Map<Integer, Collection<MetricHolder>>> _registeredMetrics;
 
     
     public TopologyContext(StormTopology topology, Map stormConf,
@@ -41,7 +41,7 @@ public class TopologyContext extends WorkerTopologyContext {
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
-            Map<String, Object> userResources, Map<String, Object> executorData, List<MetricHolder> registeredMetrics) {
+            Map<String, Object> userResources, Map<String, Object> executorData, Map registeredMetrics) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
                 componentToStreamToFields, stormId, codeDir, pidDir,
                 workerPort, workerTasks, defaultResources, userResources);
@@ -205,7 +205,19 @@ public class TopologyContext extends WorkerTopologyContext {
      * @return The IMetric argument unchanged.
      */
     public IMetric registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
-        _registeredMetrics.add(new MetricHolder(name, metric, timeBucketSizeInSecs));
+        Map m1 = _registeredMetrics;
+        if(!m1.containsKey(timeBucketSizeInSecs)) {
+            m1.put(timeBucketSizeInSecs, new HashMap());
+        }
+
+        Map m2 = (Map)m1.get(timeBucketSizeInSecs);
+        if(!m2.containsKey(_taskId)) {
+            m2.put(_taskId, new ArrayList());
+        }
+
+        Collection c1 = (Collection)m2.get(_taskId);
+        c1.add(new MetricHolder(name, metric));
+
         return metric;
     }
 

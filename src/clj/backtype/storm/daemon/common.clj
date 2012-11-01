@@ -212,7 +212,7 @@
   (doseq [[_ component] (all-components topology)
           :let [common (.get_common component)]]
     (.put_to_streams common METRICS-STREAM-ID
-                     (thrift/output-fields ["worker-host" "worker-port" "interval" "timestamp" "name" "value"]))))
+                     (thrift/output-fields ["task-info" "data-points"]))))
 
 (defn add-system-streams! [^StormTopology topology]
   (doseq [[_ component] (all-components topology)
@@ -230,7 +230,7 @@
        (reverse)))
 
 (defn number-duplicates [coll]
-  "(number-duplicates [\"a\", \"b\", \"a\"]) => [\"a\", \"b\", \"a2\"]"
+  "(number-duplicates [\"a\", \"b\", \"a\"]) => [\"a\", \"b\", \"a#2\"]"
   (map-occurrences (fn [x occurences] (if (>= occurences 2) (str x "#" occurences) x)) coll))
 
 (defn metrics-consumer-register-ids [storm-conf]

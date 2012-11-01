@@ -6,6 +6,7 @@ import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import java.util.Collection;
 import java.util.Map;
 
 public class MetricsConsumerBolt implements IBolt {
@@ -33,17 +34,7 @@ public class MetricsConsumerBolt implements IBolt {
     
     @Override
     public void execute(Tuple input) {
-        IMetricsConsumer.DataPoint d = new IMetricsConsumer.DataPoint();
-        d.srcComponentId = input.getSourceComponent(); 
-        d.srcTaskId = input.getSourceTask(); 
-        d.srcWorkerHost = input.getString(0);
-        d.srcWorkerPort = input.getInteger(1);
-        d.updateIntervalSecs = input.getInteger(2);
-        d.timestamp = input.getLong(3);
-        d.name = input.getString(4);
-        d.value = input.getValue(5);
-
-        _metricsConsumer.handleDataPoint(d);
+        _metricsConsumer.handleDataPoints((IMetricsConsumer.TaskInfo)input.getValue(0), (Collection)input.getValue(1));
         _collector.ack(input);
     }
 

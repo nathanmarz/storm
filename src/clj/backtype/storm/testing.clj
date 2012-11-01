@@ -588,6 +588,7 @@
                   {}
                   {}
                   (HashMap.)
-                  (HashMap.))]
+                  (HashMap.)
+                  (atom false))]
     (TupleImpl. context values 1 stream)
     ))

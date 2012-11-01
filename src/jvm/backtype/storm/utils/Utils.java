@@ -1,9 +1,11 @@
 package backtype.storm.utils;
 
 import backtype.storm.Config;
+import backtype.storm.classloader.StormObjectInputStream;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
+
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import com.netflix.curator.framework.CuratorFramework;
@@ -14,7 +16,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
@@ -60,7 +62,7 @@ public class Utils {
     public static Object deserialize(byte[] serialized) {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
-            ObjectInputStream ois = new ObjectInputStream(bis);
+            StormObjectInputStream ois = new StormObjectInputStream(bis);
             Object ret = ois.readObject();
             ois.close();
             return ret;

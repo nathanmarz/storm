@@ -1,7 +1,7 @@
 package backtype.storm.metric.api;
 
 public class ReducedMetric implements IMetric {
-    private IReducer _reducer;
+    private final IReducer _reducer;
     private Object _accumulator;
 
     public ReducedMetric(IReducer reducer) {

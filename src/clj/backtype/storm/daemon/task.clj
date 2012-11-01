@@ -28,7 +28,8 @@
       (:default-shared-resources worker)
       (:user-shared-resources worker)
       (:shared-executor-data executor-data)
-      (:interval->task->registered-metrics executor-data))))
+      (:interval->task->registered-metrics executor-data)
+      (:open-or-prepare-was-called? executor-data))))
 
 (defn system-topology-context [worker executor-data tid]
   ((mk-topology-context-builder

@@ -73,8 +73,7 @@ public class NimbusLeaderElections {
     private CuratorFramework createZkClient(Map conf) throws IOException {
         List<String> servers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         Object port = conf.get(Config.STORM_ZOOKEEPER_PORT);
-        String root = (String) conf.get(Config.STORM_ZOOKEEPER_ROOT);
-        String connectString = Utils.makeZkConnectString(servers, port, root);
+        String connectString = Utils.makeZkConnectString(servers, port, "/");
 
         Integer retryTimes = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES));
         Integer retryInterval = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL));

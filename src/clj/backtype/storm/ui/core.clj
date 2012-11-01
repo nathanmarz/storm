@@ -3,6 +3,7 @@
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
   (:use [backtype.storm.ui helpers])
+  (:use [backtype.storm.nimbus elections])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [trim]])
@@ -21,7 +22,7 @@
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
 (defmacro with-nimbus [nimbus-sym & body]
-  `(thrift/with-nimbus-connection [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
+  `(thrift/with-nimbus-connection [~nimbus-sym (get-nimbus-leader-host *STORM-CONF*) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
      ~@body
      ))
 

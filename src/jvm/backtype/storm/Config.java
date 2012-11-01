@@ -210,6 +210,11 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_LOCAL_DIR = "nimbus.local.dir";
 
     /**
+     * The root directory in ZooKeeper for Nimbus leader elections.
+     */
+    public static String NIMBUS_ELECTIONS_ZOOKEEPER_ROOT = "nimbus.elections.zookeeper.root";
+
+    /**
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";

@@ -30,6 +30,7 @@ nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
+nimbus.elections.zookeeper.root: "/storm/nimbus-leader"
 
 ### ui.* configs are for the master
 ui.port: 8080

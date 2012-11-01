@@ -1,6 +1,7 @@
 package backtype.storm.hooks;
 
 import backtype.storm.hooks.info.BoltAckInfo;
+import backtype.storm.hooks.info.BoltExecuteInfo;
 import backtype.storm.hooks.info.SpoutFailInfo;
 import backtype.storm.hooks.info.SpoutAckInfo;
 import backtype.storm.hooks.info.EmitInfo;
@@ -14,6 +15,7 @@ public interface ITaskHook {
     void emit(EmitInfo info);
     void spoutAck(SpoutAckInfo info);
     void spoutFail(SpoutFailInfo info);
+    void boltExecute(BoltExecuteInfo info);
     void boltAck(BoltAckInfo info);
     void boltFail(BoltFailInfo info);
 }

@@ -5,7 +5,7 @@
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
-              EmitInfo BoltFailInfo BoltAckInfo])
+              EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   )
@@ -164,8 +164,22 @@
 
 ;; in its own function so that it can be mocked out by tracked topologies
 (defn mk-executor-transfer-fn [batch-transfer->worker]
-  (fn [task tuple]
-    (disruptor/publish batch-transfer->worker [task tuple])))
+  (fn this
+    ([task tuple block? ^List overflow-buffer]
+      (if (and overflow-buffer (not (.isEmpty overflow-buffer)))
+        (.add overflow-buffer [task tuple])
+        (try-cause
+          (disruptor/publish batch-transfer->worker [task tuple] block?)
+        (catch InsufficientCapacityException e
+          (if overflow-buffer
+            (.add overflow-buffer [task tuple])
+            (throw e))
+          ))))
+    ([task tuple overflow-buffer]
+      (this task tuple (nil? overflow-buffer) overflow-buffer))
+    ([task tuple]
+      (this task tuple nil)
+      )))
 
 (defn executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
@@ -383,7 +397,16 @@
         event-handler (mk-task-receiver executor-data tuple-action-fn)
         has-ackers? (has-ackers? storm-conf)
         emitted-count (MutableLong. 0)
-        empty-emit-streak (MutableLong. 0)]
+        empty-emit-streak (MutableLong. 0)
+        
+        ;; the overflow buffer is used to ensure that spouts never block when emitting
+        ;; this ensures that the spout can always clear the incoming buffer (acks and fails), which
+        ;; prevents deadlock from occuring across the topology (e.g. Spout -> Bolt -> Acker -> Spout, and all
+        ;; buffers filled up)
+        ;; when the overflow buffer is full, spouts stop calling nextTuple until it's able to clear the overflow buffer
+        ;; this limits the size of the overflow buffer to however many tuples a spout emits in one call of nextTuple, 
+        ;; preventing memory issues
+        overflow-buffer (LinkedList.)]
    
     [(async-loop
       (fn []
@@ -406,13 +429,16 @@
                                          (fast-list-iter [out-task out-tasks id out-ids]
                                                          (let [tuple-id (if rooted?
                                                                           (MessageId/makeRootId root-id id)
-                                                                          (MessageId/makeUnanchored))]                                                        
+                                                                          (MessageId/makeUnanchored))
+                                                               out-tuple (TupleImpl. worker-context
+                                                                                     values
+                                                                                     task-id
+                                                                                     out-stream-id
+                                                                                     tuple-id)]
                                                            (transfer-fn out-task
-                                                                        (TupleImpl. worker-context
-                                                                                    values
-                                                                                    task-id
-                                                                                    out-stream-id
-                                                                                    tuple-id))))
+                                                                        out-tuple
+                                                                        overflow-buffer)
+                                                           ))
                                          (if rooted?
                                            (do
                                              (.put pending root-id [task-id
@@ -421,7 +447,8 @@
                                                                     (if (sampler) (System/currentTimeMillis))])
                                              (task/send-unanchored task-data
                                                                    ACKER-INIT-STREAM-ID
-                                                                   [root-id (bit-xor-vals out-ids) task-id]))
+                                                                   [root-id (bit-xor-vals out-ids) task-id]
+                                                                   overflow-buffer))
                                            (when message-id
                                              (ack-spout-msg executor-data task-data message-id
                                                             {:stream out-stream-id :values values}
@@ -450,10 +477,21 @@
         (fn []
           ;; This design requires that spouts be non-blocking
           (disruptor/consume-batch receive-queue event-handler)
+          
+          ;; try to clear the overflow-buffer
+          (try-cause
+            (while (not (.isEmpty overflow-buffer))
+              (let [[out-task out-tuple] (.peek overflow-buffer)]
+                (transfer-fn out-task out-tuple false nil)
+                (.removeFirst overflow-buffer)))
+          (catch InsufficientCapacityException e
+            ))
+          
           (let [active? @(:storm-active-atom executor-data)
                 curr-count (.get emitted-count)]
-            (if (or (not max-spout-pending)
-                    (< (.size pending) max-spout-pending))
+            (if (and (.isEmpty overflow-buffer)
+                     (or (not max-spout-pending)
+                         (< (.size pending) max-spout-pending)))
               (if active?
                 (do
                   (when-not @last-active
@@ -479,7 +517,12 @@
       :factory? true)]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
-  (let [ms (.getSampleStartTime tuple)]
+  (let [ms (.getProcessSampleStartTime tuple)]
+    (if ms
+      (time-delta-ms ms))))
+      
+(defn- tuple-execute-time-delta! [^TupleImpl tuple]
+  (let [ms (.getExecuteSampleStartTime tuple)]
     (if ms
       (time-delta-ms ms))))
 
@@ -488,7 +531,8 @@
     (.put pending key (bit-xor curr id))))
 
 (defmethod mk-threads :bolt [executor-data task-datas]
-  (let [executor-stats (:stats executor-data)
+  (let [execute-sampler (mk-stats-sampler (:storm-conf executor-data))
+        executor-stats (:stats executor-data)
         {:keys [storm-conf component-id worker-context transfer-fn report-error sampler
                 open-or-prepare-was-called?]} executor-data
         rand (Random. (Utils/secureRandomLong))
@@ -509,10 +553,25 @@
  
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
-                          (let [^IBolt bolt-obj (->> task-id (get task-datas) :object)]
-                            (when (sampler)
-                              (.setSampleStartTime tuple (System/currentTimeMillis)))
-                            (.execute bolt-obj tuple)))]
+                          (let [task-data (get task-datas task-id)
+                                ^IBolt bolt-obj (:object task-data)
+                                user-context (:user-context task-data)
+                                sampler? (sampler)
+                                execute-sampler? (execute-sampler)
+                                now (if (or sampler? execute-sampler?) (System/currentTimeMillis))]
+                            (when sampler?
+                              (.setProcessSampleStartTime tuple now))
+                            (when execute-sampler?
+                              (.setExecuteSampleStartTime tuple now))
+                            (.execute bolt-obj tuple)
+                            (let [delta (tuple-execute-time-delta! tuple)]
+                              (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
+                              (when delta
+                                (stats/bolt-execute-tuple! executor-stats
+                                                           (.getSourceComponent tuple)
+                                                           (.getSourceStreamId tuple)
+                                                           delta)
+                                ))))]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 

@@ -1,14 +1,14 @@
 (ns backtype.storm.testing4j-test
   (:use [clojure.test])
-  (:use [backtype.storm config clojure testing])
+  (:use [backtype.storm config clojure testing util])
   (:require [backtype.storm.integration-test :as it])
   (:require [backtype.storm.thrift :as thrift])
   (:import [backtype.storm Testing Config ILocalCluster])
-  (:import [backtype.storm.tuple Values])
+  (:import [backtype.storm.tuple Values Tuple])
   (:import [backtype.storm.utils Time Utils])
   (:import [backtype.storm.testing MkClusterParam TestJob MockedSources TestWordSpout
             TestWordCounter TestGlobalCount TestAggregatesCounter CompleteTopologyParam
-            AckFailMapTracker]))
+            AckFailMapTracker MkTupleParam]))
 
 (deftest test-with-simulated-time
   (is (= false (Time/isSimulating)))
@@ -64,7 +64,7 @@
                                 (.addMockData "1" (into-array Values [(Values. (into-array ["nathan"]))
                                                                       (Values. (into-array ["bob"]))
                                                                       (Values. (into-array ["joey"]))
-                                                                      (Values. (into-array ["nathan"]))]) 
+                                                                      (Values. (into-array ["nathan"]))])
                                               ))
                storm-conf (doto (Config.)
                             (.setNumWorkers 2))
@@ -127,7 +127,7 @@
                          {"1" (thrift/mk-spout-spec feeder)}
                          {"2" (thrift/mk-bolt-spec {"1" :global} it/ack-every-other)})
                storm-conf (doto (Config.)
-                            (.put TOPOLOGY-MESSAGE-TIMEOUT-SECS 10))]      
+                            (.put TOPOLOGY-MESSAGE-TIMEOUT-SECS 10))]
            (.submitTopology cluster
                             "timeout-tester"
                             storm-conf
@@ -141,3 +141,24 @@
            (Testing/advanceClusterTime cluster (int 12))
            (it/assert-failed tracker 2)
            ))))))
+
+(deftest test-test-tuple
+  (letlocals
+   ;; test the one-param signature
+   (bind ^Tuple tuple (Testing/testTuple ["james" "bond"]))
+   (is (= ["james" "bond"] (.getValues tuple)))
+   (is (= Utils/DEFAULT_STREAM_ID (.getSourceStreamId tuple)))
+   (is (= ["field1" "field2"] (-> tuple .getFields .toList)))
+   (is (= "component" (.getSourceComponent tuple)))
+
+   ;; test the two-params signature
+   (bind mk-tuple-param (MkTupleParam.))
+   (doto mk-tuple-param
+     (.setStream "test-stream")
+     (.setComponent "test-component")
+     (.setFields (into-array String ["fname" "lname"])))
+   (bind ^Tuple tuple (Testing/testTuple ["james" "bond"] mk-tuple-param))
+   (is (= ["james" "bond"] (.getValues tuple)))
+   (is (= "test-stream" (.getSourceStreamId tuple)))
+   (is (= ["fname" "lname"] (-> tuple .getFields .toList)))
+   (is (= "test-component" (.getSourceComponent tuple)))))

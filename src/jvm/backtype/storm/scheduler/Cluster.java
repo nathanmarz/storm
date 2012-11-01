@@ -33,7 +33,7 @@ public class Cluster {
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
             String host = supervisor.getHost();
-            if (!this.supervisors.containsKey(host)) {
+            if (!this.hostToId.containsKey(host)) {
                 this.hostToId.put(host, new ArrayList<String>());
             }
             this.hostToId.get(host).add(nodeId);
@@ -308,6 +308,14 @@ public class Cluster {
         }
 
         return null;
+    }
+    
+    public Collection<WorkerSlot> getUsedSlots() {
+        Set<WorkerSlot> ret = new HashSet();
+        for(SchedulerAssignmentImpl s: assignments.values()) {
+            ret.addAll(s.getExecutorToSlot().values());
+        }
+        return ret;
     }
 
     /**

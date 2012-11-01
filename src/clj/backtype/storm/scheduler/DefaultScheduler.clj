@@ -24,7 +24,17 @@
            (map (fn [[node port]]
                   (WorkerSlot. node port)))))))
 
-   
+(defn slots-can-reassign [^Cluster cluster slots]
+  (->> slots
+      (filter
+        (fn [[node port]]
+          (if-let [supervisor (.getSupervisorById cluster node)]
+            (.contains (.getAllPorts supervisor) (int port))
+            )))))
+
+(defn -prepare [this conf]
+  )
+
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies
@@ -36,8 +46,11 @@
                                      (map #(vector (.getStartTask %) (.getEndTask %)))
                                      set)
                   alive-assigned (EvenScheduler/get-alive-assigned-node+port->executors cluster topology-id)
+                  can-reassign-slots (slots-can-reassign cluster (keys alive-assigned))
                   total-slots-to-use (min (.getNumWorkers topology)
-                                          (+ (count available-slots) (count alive-assigned)))
-                  bad-slots (bad-slots alive-assigned (count all-executors) total-slots-to-use)]]
+                                          (+ (count can-reassign-slots) (count alive-assigned)))
+                  bad-slots (if (> total-slots-to-use (count alive-assigned))
+                                (bad-slots alive-assigned (count all-executors) total-slots-to-use)
+                                [])]]
       (.freeSlots cluster bad-slots)
-      (EvenScheduler/schedule-topologies-evenly topologies cluster))))
+      (EvenScheduler/schedule-topologies-evenly (Topologies. {topology-id topology}) cluster))))

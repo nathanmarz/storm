@@ -107,13 +107,14 @@
 
 (defn supervisor-summary-table [summs]
   (sorted-table
-   ["Host" "Uptime" "Slots" "Used slots"]
+   ["Id" "Host" "Uptime" "Slots" "Used slots"]
    (for [^SupervisorSummary s summs]
-     [(.get_host s)
+     [(.get_supervisor_id s)
+      (.get_host s)
       (pretty-uptime-sec (.get_uptime_secs s))
       (.get_num_workers s)
       (.get_num_used_workers s)])
-   :time-cols [1]))
+   :time-cols [2]))
 
 (defn configuration-table [conf]
   (sorted-table ["Key" "Value"]
@@ -237,10 +238,18 @@
             :failed
             (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_failed)
                                    stats-seq))
+            :executed
+            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_executed)
+                                   stats-seq))
             :process-latencies
             (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_bolt get_process_ms_avg)
                                      stats-seq)
                                 (map #(.. ^ExecutorStats % get_specific get_bolt get_acked)
+                                     stats-seq))
+            :execute-latencies
+            (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_bolt get_execute_ms_avg)
+                                     stats-seq)
+                                (map #(.. ^ExecutorStats % get_specific get_bolt get_executed)
                                      stats-seq))}
            )))
 
@@ -268,6 +277,9 @@
    :transferred (aggregate-count-streams (:transferred stats))
    :process-latencies (aggregate-avg-streams (:process-latencies stats)
                                              (:acked stats))
+   :executed (aggregate-count-streams (:executed stats))
+   :execute-latencies (aggregate-avg-streams (:execute-latencies stats)
+                                             (:executed stats))
    })
 
 (defn aggregate-spout-streams [stats]
@@ -389,7 +401,7 @@
 
 (defn bolt-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
-   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Process latency (ms)"
+   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Execute latency (ms)" "Executed" "Process latency (ms)"
     "Acked" "Failed" "Last error"]
    (for [[id summs] summ-map
          :let [stats-seq (get-filled-stats summs)
@@ -402,6 +414,8 @@
       (sum-tasks summs)
       (get-in stats [:emitted window])
       (get-in stats [:transferred window])
+      (float-str (get-in stats [:execute-latencies window]))
+      (get-in stats [:executed window])
       (float-str (get-in stats [:process-latencies window]))
       (get-in stats [:acked window])
       (get-in stats [:failed window])
@@ -559,13 +573,15 @@
   (let [stream-summary (-> stream-summary
                            swap-map-order
                            (get window)
-                           (select-keys [:acked :failed :process-latencies])
+                           (select-keys [:acked :failed :process-latencies :executed :execute-latencies])
                            swap-map-order)]
     (sorted-table
-     ["Component" "Stream" "Process latency (ms)" "Acked" "Failed"]
+     ["Component" "Stream" "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
      (for [[^GlobalStreamId s stats] stream-summary]
        [(.get_componentId s)
         (.get_streamId s)
+        (float-str (:execute-latencies stats))
+        (nil-to-zero (:executed stats))
         (float-str (:process-latencies stats))
         (nil-to-zero (:acked stats))
         (nil-to-zero (:failed stats))
@@ -575,7 +591,7 @@
 (defn bolt-executor-table [topology-id executors window include-sys?]
   (sorted-table
    ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
-    "Process latency (ms)" "Acked" "Failed"]
+    "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
    (for [^ExecutorSummary e executors
          :let [stats (.get_stats e)
                stats (if stats
@@ -590,6 +606,8 @@
       (.get_port e)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
+      (float-str (:execute-latencies stats))
+      (nil-to-zero (:executed stats))
       (float-str (:process-latencies stats))
       (nil-to-zero (:acked stats))
       (nil-to-zero (:failed stats))
@@ -603,7 +621,7 @@
         display-map (into {} (for [t times] [t pretty-uptime-sec]))
         display-map (assoc display-map ":all-time" (fn [_] "All time"))]
     (sorted-table
-     ["Window" "Emitted" "Transferred" "Process latency (ms)" "Acked" "Failed"]
+     ["Window" "Emitted" "Transferred" "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
@@ -611,6 +629,8 @@
                  disp)
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
+        (float-str (get-in stats [:execute-latencies k]))
+        (get-in stats [:executed k])
         (float-str (get-in stats [:process-latencies k]))
         (get-in stats [:acked k])
         (get-in stats [:failed k])

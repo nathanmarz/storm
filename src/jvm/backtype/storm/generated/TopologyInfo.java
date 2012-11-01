@@ -697,14 +697,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         case 4: // EXECUTORS
           if (field.type == org.apache.thrift7.protocol.TType.LIST) {
             {
-              org.apache.thrift7.protocol.TList _list125 = iprot.readListBegin();
-              this.executors = new ArrayList<ExecutorSummary>(_list125.size);
-              for (int _i126 = 0; _i126 < _list125.size; ++_i126)
+              org.apache.thrift7.protocol.TList _list145 = iprot.readListBegin();
+              this.executors = new ArrayList<ExecutorSummary>(_list145.size);
+              for (int _i146 = 0; _i146 < _list145.size; ++_i146)
               {
-                ExecutorSummary _elem127; // required
-                _elem127 = new ExecutorSummary();
-                _elem127.read(iprot);
-                this.executors.add(_elem127);
+                ExecutorSummary _elem147; // required
+                _elem147 = new ExecutorSummary();
+                _elem147.read(iprot);
+                this.executors.add(_elem147);
               }
               iprot.readListEnd();
             }
@@ -722,26 +722,26 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         case 6: // ERRORS
           if (field.type == org.apache.thrift7.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map128 = iprot.readMapBegin();
-              this.errors = new HashMap<String,List<ErrorInfo>>(2*_map128.size);
-              for (int _i129 = 0; _i129 < _map128.size; ++_i129)
+              org.apache.thrift7.protocol.TMap _map148 = iprot.readMapBegin();
+              this.errors = new HashMap<String,List<ErrorInfo>>(2*_map148.size);
+              for (int _i149 = 0; _i149 < _map148.size; ++_i149)
               {
-                String _key130; // required
-                List<ErrorInfo> _val131; // required
-                _key130 = iprot.readString();
+                String _key150; // required
+                List<ErrorInfo> _val151; // required
+                _key150 = iprot.readString();
                 {
-                  org.apache.thrift7.protocol.TList _list132 = iprot.readListBegin();
-                  _val131 = new ArrayList<ErrorInfo>(_list132.size);
-                  for (int _i133 = 0; _i133 < _list132.size; ++_i133)
+                  org.apache.thrift7.protocol.TList _list152 = iprot.readListBegin();
+                  _val151 = new ArrayList<ErrorInfo>(_list152.size);
+                  for (int _i153 = 0; _i153 < _list152.size; ++_i153)
                   {
-                    ErrorInfo _elem134; // required
-                    _elem134 = new ErrorInfo();
-                    _elem134.read(iprot);
-                    _val131.add(_elem134);
+                    ErrorInfo _elem154; // required
+                    _elem154 = new ErrorInfo();
+                    _elem154.read(iprot);
+                    _val151.add(_elem154);
                   }
                   iprot.readListEnd();
                 }
-                this.errors.put(_key130, _val131);
+                this.errors.put(_key150, _val151);
               }
               iprot.readMapEnd();
             }
@@ -779,9 +779,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       oprot.writeFieldBegin(EXECUTORS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.executors.size()));
-        for (ExecutorSummary _iter135 : this.executors)
+        for (ExecutorSummary _iter155 : this.executors)
         {
-          _iter135.write(oprot);
+          _iter155.write(oprot);
         }
         oprot.writeListEnd();
       }
@@ -796,14 +796,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       oprot.writeFieldBegin(ERRORS_FIELD_DESC);
       {
         oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.LIST, this.errors.size()));
-        for (Map.Entry<String, List<ErrorInfo>> _iter136 : this.errors.entrySet())
+        for (Map.Entry<String, List<ErrorInfo>> _iter156 : this.errors.entrySet())
         {
-          oprot.writeString(_iter136.getKey());
+          oprot.writeString(_iter156.getKey());
           {
-            oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, _iter136.getValue().size()));
-            for (ErrorInfo _iter137 : _iter136.getValue())
+            oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, _iter156.getValue().size()));
+            for (ErrorInfo _iter157 : _iter156.getValue())
             {
-              _iter137.write(oprot);
+              _iter157.write(oprot);
             }
             oprot.writeListEnd();
           }

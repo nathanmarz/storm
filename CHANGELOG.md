@@ -15,6 +15,16 @@
  * Can now submit a topology in inactive state. Storm will wait to call open/prepare on the spouts/bolts until it is first activated.
  * Can now activate, deactive, rebalance, and kill topologies from the Storm UI (thanks Frostman)
  * Can now use --config option to override which yaml file from ~/.storm to use for the config (thanks tjun)
+ * Redesigned the pluggable resource scheduler (INimbus, ISupervisor) interfaces to allow for much simpler integrations
+ * Added prepare method to IScheduler
+ * Added "throws Exception" to TestJob interface
+ * Added reportError to multilang protocol and updated Python and Ruby adapters to use it (thanks Lazyshot)
+ * Number tuples executed now tracked and shown in Storm UI
+ * Added ReportedFailedException which causes a batch to fail without killing worker and reports the error to the UI
+ * Execute latency now tracked and shown in Storm UI
+ * Adding testTuple methods for easily creating Tuple instances to Testing API (thanks xumingming)
+ * Trident now throws an error during construction of a topology when try to select fields that don't exist in a stream (thanks xumingming)
+ * Bug fix: Fix deadlock bug due to variant of dining philosophers problem. Spouts now use an overflow buffer to prevent blocking and guarantee that it can consume the incoming queue of acks/fails.
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
   

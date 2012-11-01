@@ -4,9 +4,9 @@ public class WorkerSlot {
     String nodeId;
     int port;
     
-    public WorkerSlot(String nodeId, int port) {
+    public WorkerSlot(String nodeId, Number port) {
         this.nodeId = nodeId;
-        this.port = port;
+        this.port = port.intValue();
     }
     
     public String getNodeId() {

@@ -30,6 +30,7 @@
      (require (quote [backtype.storm [stats :as stats] [disruptor :as disruptor]]))
      (import (quote [org.apache.log4j PropertyConfigurator Logger]))
 
+     (import (quote [com.lmax.disruptor InsufficientCapacityException]))
      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor
                      Nimbus$Iface StormTopology ShellComponent
                      NotAliveException AlreadyAliveException GlobalStreamId
@@ -42,6 +43,6 @@
                      SupervisorInfo WorkerHeartbeat]))
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
      (import (quote [java.io File FileOutputStream FileInputStream]))
-     (import (quote [java.util Collection List Random Map HashMap Collections ArrayList]))
+     (import (quote [java.util Collection List Random Map HashMap Collections ArrayList LinkedList]))
      (import (quote [org.apache.commons.io FileUtils IOUtils]))
      ))

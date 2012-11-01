@@ -122,7 +122,8 @@ struct SupervisorSummary {
   1: required string host;
   2: required i32 uptime_secs;
   3: required i32 num_workers;
-  4: required i32 num_used_workers;  
+  4: required i32 num_used_workers;
+  5: required string supervisor_id;
 }
 
 struct ClusterSummary {
@@ -140,6 +141,8 @@ struct BoltStats {
   1: required map<string, map<GlobalStreamId, i64>> acked;  
   2: required map<string, map<GlobalStreamId, i64>> failed;  
   3: required map<string, map<GlobalStreamId, double>> process_ms_avg;
+  4: required map<string, map<GlobalStreamId, i64>> executed;  
+  5: required map<string, map<GlobalStreamId, double>> execute_ms_avg;
 }
 
 struct SpoutStats {

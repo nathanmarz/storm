@@ -1,1 +1,0 @@
-../../multilang/fy/storm.fy

@@ -1,7 +1,12 @@
 package backtype.storm.scheduler;
 
+import java.util.Map;
+
 
 public interface IScheduler {
+    
+    void prepare(Map conf);
+    
     /**
      * Set assignments for the topologies which needs scheduling. The new assignments is available 
      * through <code>cluster.getAssignments()</code>
@@ -14,5 +19,5 @@ public interface IScheduler {
      *       assignments for all the topologies etc. User can set the new assignment for topologies using
      *       <code>cluster.setAssignmentById</code>
      */
-    public void schedule(Topologies topologies, Cluster cluster);
+    void schedule(Topologies topologies, Cluster cluster);
 }

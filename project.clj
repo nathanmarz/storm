@@ -1,4 +1,4 @@
-(defproject storm/storm "0.9.0-wip2"
+(defproject storm/storm "0.9.0-wip3"
   :url "http://storm-project.clj"
   :description "Distributed and fault-tolerant realtime computation"
   :license {:name "Eclipse Public License - Version 1.0" :url "https://github.com/nathanmarz/storm/blob/master/LICENSE.html"}

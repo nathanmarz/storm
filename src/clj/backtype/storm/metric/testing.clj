@@ -11,7 +11,7 @@
 
 (defn impl-init [] [[] (atom [])])
 
-(defn impl-prepare [this conf {:keys [ns var-name]} ctx]
+(defn impl-prepare [this conf {:keys [ns var-name]} ctx error-reporter]
   (reset! (.state this) @(intern ns var-name))
   (reset! @(.state this) []))
 

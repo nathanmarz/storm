@@ -1,8 +1,9 @@
 package backtype.storm.metric;
 
-import backtype.storm.metric.api.IMetricsConsumer;
 import backtype.storm.Config;
+import backtype.storm.metric.api.IMetricsConsumer;
 import backtype.storm.task.IBolt;
+import backtype.storm.task.IErrorReporter;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
@@ -28,7 +29,7 @@ public class MetricsConsumerBolt implements IBolt {
             throw new RuntimeException("Could not instantiate a class listed in config under section " +
                 Config.TOPOLOGY_METRICS_CONSUMER_REGISTER + " with fully qualified name " + _consumerClassName, e);
         }
-        _metricsConsumer.prepare(stormConf, _registrationArgument, context, collector);
+        _metricsConsumer.prepare(stormConf, _registrationArgument, context, (IErrorReporter)collector);
         _collector = collector;
     }
     

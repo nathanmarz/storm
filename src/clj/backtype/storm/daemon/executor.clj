@@ -273,7 +273,7 @@
                                           (IMetricsConsumer$DataPoint. (.name mh)
                                                                        (.getValueAndReset ^IMetric (.metric mh)))))
                                    (into []))]]
-      (if data-points
+      (if (seq data-points)
         (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))
 
 (defn setup-ticks! [worker executor-data]

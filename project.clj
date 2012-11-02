@@ -23,19 +23,20 @@
                  [storm/tools.cli "0.2.2"]
                  [com.googlecode.disruptor/disruptor "2.10.1"]
                  [storm/jgrapht "0.8.3"]
-                 [com.google.guava/guava "13.0"]]
+                 [com.google.guava/guava "13.0"]
+                 [ch.qos.logback/logback-classic "1.0.6"]
+                 [org.slf4j/log4j-over-slf4j "1.6.6"]
+                 ]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
-  :profiles {:dev {:resource-paths ["src/dev"]
-                   :dependencies [[ch.qos.logback/logback-classic "1.0.6"]
-                                  [org.slf4j/log4j-over-slf4j "1.6.6"]]}
-             :release {:dependencies [[ch.qos.logback/logback-classic "1.0.6"]
-                                      [org.slf4j/log4j-over-slf4j "1.6.6"]]}
-             :lib {:dependencies [[log4j/log4j "1.2.16"]]}}
+  :profiles {:dev {:resource-paths ["src/dev"]}
+             :release {}
+             :lib {}
+             }
 
   :plugins [[lein-swank "1.4.4"]]
 

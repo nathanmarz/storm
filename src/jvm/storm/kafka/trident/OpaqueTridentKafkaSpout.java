@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kafka.javaapi.consumer.SimpleConsumer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.kafka.DynamicPartitionConnections;
 import storm.kafka.GlobalPartitionId;
 import storm.trident.operation.TridentCollector;
@@ -18,7 +19,7 @@ import storm.trident.topology.TransactionAttempt;
 
 
 public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<Map<String, List>, GlobalPartitionId, Map> {
-    public static final Logger LOG = Logger.getLogger(OpaqueTridentKafkaSpout.class);
+    public static final Logger LOG = LoggerFactory.getLogger(OpaqueTridentKafkaSpout.class);
     
     TridentKafkaConfig _config;
     String _topologyInstanceId = UUID.randomUUID().toString();

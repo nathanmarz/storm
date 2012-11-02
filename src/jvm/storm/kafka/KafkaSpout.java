@@ -5,13 +5,13 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.log4j.Logger;
 import kafka.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.kafka.PartitionManager.KafkaMessageId;
 
 // TODO: need to add blacklisting
@@ -33,7 +33,7 @@ public class KafkaSpout extends BaseRichSpout {
         NO_EMITTED
     }
 
-    public static final Logger LOG = Logger.getLogger(KafkaSpout.class);
+    public static final Logger LOG = LoggerFactory.getLogger(KafkaSpout.class);
 
     String _uuid = UUID.randomUUID().toString();
     SpoutConfig _spoutConfig;

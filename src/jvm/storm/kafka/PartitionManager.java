@@ -9,12 +9,13 @@ import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
 
 public class PartitionManager {  
-    public static final Logger LOG = Logger.getLogger(PartitionManager.class);
+    public static final Logger LOG = LoggerFactory.getLogger(PartitionManager.class);
 
     static class KafkaMessageId {
         public GlobalPartitionId partition;

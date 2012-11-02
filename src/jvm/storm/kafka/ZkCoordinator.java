@@ -6,11 +6,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.kafka.KafkaConfig.ZkHosts;
 
 public class ZkCoordinator implements PartitionCoordinator {
-    public static Logger LOG = Logger.getLogger(ZkCoordinator.class);
+    public static Logger LOG = LoggerFactory.getLogger(ZkCoordinator.class);
     
     SpoutConfig _spoutConfig;
     int _taskIndex;

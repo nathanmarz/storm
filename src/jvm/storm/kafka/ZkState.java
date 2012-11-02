@@ -9,12 +9,13 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkState {
-    public static final Logger LOG = Logger.getLogger(ZkState.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ZkState.class);
     CuratorFramework _curator;
 
     private CuratorFramework newCurator(Map stateConf) throws Exception {

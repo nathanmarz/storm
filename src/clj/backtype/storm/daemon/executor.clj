@@ -266,14 +266,15 @@
                              (.getThisWorkerPort worker-context)
                              (:component-id executor-data)
                              task-id
-                             (System/currentTimeMillis)
+                             (long (/ (System/currentTimeMillis) 1000))
                              interval)
                   data-points (->> metric-holders
                                    (map (fn [^MetricHolder mh]
                                           (IMetricsConsumer$DataPoint. (.name mh)
                                                                        (.getValueAndReset ^IMetric (.metric mh)))))
                                    (into []))]]
-      (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
+      (if data-points
+        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))
 
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)

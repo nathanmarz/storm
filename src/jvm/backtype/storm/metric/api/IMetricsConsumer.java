@@ -1,5 +1,6 @@
 package backtype.storm.metric.api;
 
+import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import java.util.Collection;
 import java.util.Map;
@@ -34,7 +35,7 @@ public interface IMetricsConsumer {
         public Object value;
     }
 
-    void prepare(Map stormConf, Object registrationArgument, TopologyContext context);
+    void prepare(Map stormConf, Object registrationArgument, TopologyContext context, OutputCollector outputCollector);
     void handleDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints);
     void cleanup();
 }

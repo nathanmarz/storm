@@ -48,7 +48,7 @@
                   alive-assigned (EvenScheduler/get-alive-assigned-node+port->executors cluster topology-id)
                   can-reassign-slots (slots-can-reassign cluster (keys alive-assigned))
                   total-slots-to-use (min (.getNumWorkers topology)
-                                          (+ (count can-reassign-slots) (count alive-assigned)))
+                                          (+ (count can-reassign-slots) (count available-slots)))
                   bad-slots (if (> total-slots-to-use (count alive-assigned))
                                 (bad-slots alive-assigned (count all-executors) total-slots-to-use)
                                 [])]]

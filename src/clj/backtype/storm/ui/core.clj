@@ -250,8 +250,8 @@
             (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_bolt get_execute_ms_avg)
                                      stats-seq)
                                 (map #(.. ^ExecutorStats % get_specific get_bolt get_executed)
-                                     stats-seq))}
-           )))
+                                     stats-seq))
+            })))
 
 (defn aggregate-spout-stats [stats-seq include-sys?]
   (let [stats-seq (collectify stats-seq)]
@@ -378,6 +378,34 @@
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
 
+(defn render-capacity [capacity]
+  [:span (if (> capacity 0.9)
+               {:class "red"}
+               {})
+         (float-str capacity)])
+
+(defn compute-executor-capacity [^ExecutorSummary e]
+  (let [stats (.get_stats e)
+        stats (if stats
+                (-> stats
+                    (aggregate-bolt-stats true)
+                    (aggregate-bolt-streams)
+                    swap-map-order
+                    (get "600")))
+        uptime (nil-to-zero (.get_uptime_secs e))
+        window (if (< uptime 600) uptime 600)
+        executed (-> stats :executed nil-to-zero)
+        latency (-> stats :execute-latencies nil-to-zero)
+        ]
+   (if (> window 0)
+     (div (* executed latency) (* 1000 window))
+     )))
+
+(defn compute-bolt-capacity [executors]
+  (->> executors
+       (map compute-executor-capacity)
+       (apply max)))
+
 (defn spout-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
    ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Complete latency (ms)"
@@ -401,7 +429,7 @@
 
 (defn bolt-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
-   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Execute latency (ms)" "Executed" "Process latency (ms)"
+   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Capacity (last 10m)" "Execute latency (ms)" "Executed" "Process latency (ms)"
     "Acked" "Failed" "Last error"]
    (for [[id summs] summ-map
          :let [stats-seq (get-filled-stats summs)
@@ -414,6 +442,7 @@
       (sum-tasks summs)
       (get-in stats [:emitted window])
       (get-in stats [:transferred window])
+      (render-capacity (compute-bolt-capacity summs))
       (float-str (get-in stats [:execute-latencies window]))
       (get-in stats [:executed window])
       (float-str (get-in stats [:process-latencies window]))
@@ -590,7 +619,7 @@
 
 (defn bolt-executor-table [topology-id executors window include-sys?]
   (sorted-table
-   ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
+   ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred" "Capacity (last 10m)"
     "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
    (for [^ExecutorSummary e executors
          :let [stats (.get_stats e)
@@ -606,6 +635,7 @@
       (.get_port e)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
+      (render-capacity (compute-executor-capacity e))
       (float-str (:execute-latencies stats))
       (nil-to-zero (:executed stats))
       (float-str (:process-latencies stats))

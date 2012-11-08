@@ -379,10 +379,11 @@
   (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
 
 (defn render-capacity [capacity]
-  [:span (if (> capacity 0.9)
-               {:class "red"}
-               {})
-         (float-str capacity)])
+  (let [capacity (nil-to-zero capacity)]
+    [:span (if (> capacity 0.9)
+                 {:class "red"}
+                 {})
+           (float-str capacity)]))
 
 (defn compute-executor-capacity [^ExecutorSummary e]
   (let [stats (.get_stats e)
@@ -404,6 +405,7 @@
 (defn compute-bolt-capacity [executors]
   (->> executors
        (map compute-executor-capacity)
+       (map nil-to-zero)
        (apply max)))
 
 (defn spout-comp-table [top-id summ-map errors window include-sys?]
@@ -774,9 +776,25 @@
   (route/resources "/")
   (route/not-found "Page not found"))
 
+(defn exception->html [ex]
+  (concat
+    [[:h2 "Internal Server Error"]]
+    [[:pre (let [sw (java.io.StringWriter.)]
+      (.printStackTrace ex (java.io.PrintWriter. sw))
+      (.toString sw))]]))
+
+(defn catch-errors [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception ex
+        (-> (resp/response (ui-template (exception->html ex)))
+          (resp/status 500)
+          (resp/content-type "text/html"))
+        ))))
+
 (def app
-  (handler/site main-routes)
- )
+  (handler/site (-> main-routes catch-errors )))
 
 (defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
                                        :join? false}))

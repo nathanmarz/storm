@@ -47,7 +47,7 @@ public class NimbusLeaderElections {
         }
     }
 
-    public void awaitLeadership() throws Exception {
+    public synchronized void awaitLeadership() throws Exception {
         mutex.acquire();
         hasLeadership = true;
     }
@@ -67,6 +67,17 @@ public class NimbusLeaderElections {
 
     public boolean hasLeadership() {
         return hasLeadership;
+    }
+
+    public synchronized void close() {
+        if(hasLeadership()) {
+            try {
+                mutex.release();
+            } catch (Exception e) {
+                throw new RuntimeException("Exception while releasing mutex", e);
+            }
+        }
+        client.close();
     }
 
     @SuppressWarnings("unchecked")

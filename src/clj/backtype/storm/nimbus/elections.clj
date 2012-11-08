@@ -10,7 +10,9 @@
 (defn get-nimbus-leader-host [conf]
   (let [leader-elections (NimbusLeaderElections.)]
     (.init leader-elections conf nil)
-    (.getLeaderId leader-elections)))
+    (let [leader-id (.getLeaderId leader-elections)]
+      (.close leader-elections)
+      leader-id)))
 
 (defn await-leadership [conf]
   (let [leader-elections (NimbusLeaderElections.)]

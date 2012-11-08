@@ -32,9 +32,7 @@ public class BasicBoltExecutor implements IRichBolt {
             _bolt.execute(input, _collector);
             _collector.getOutputter().ack(input);
         } catch(FailedException e) {
-            if(e instanceof ReportedFailedException) {
-                _collector.reportError(e);
-            }
+            LOG.warn("Failed to process tuple", e);
             _collector.getOutputter().fail(input);
         }
     }

@@ -379,7 +379,7 @@
   (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
 
 (defn render-capacity [capacity]
-  [:span (if (> capacity 0.9)
+  [:span (if (and capacity (> capacity 0.9))
                {:class "red"}
                {})
          (float-str capacity)])

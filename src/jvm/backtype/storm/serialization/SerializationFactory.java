@@ -38,6 +38,8 @@ public class SerializationFactory {
         k.register(BigInteger.class, new BigIntegerSerializer());
         k.register(TransactionAttempt.class);
         k.register(Values.class);
+        k.register(backtype.storm.metric.api.IMetricsConsumer.DataPoint.class);
+        k.register(backtype.storm.metric.api.IMetricsConsumer.TaskInfo.class);
         try {
             JavaBridge.registerPrimitives(k);
             JavaBridge.registerCollections(k);

@@ -379,10 +379,11 @@
   (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
 
 (defn render-capacity [capacity]
-  [:span (if (and capacity (> capacity 0.9))
-               {:class "red"}
-               {})
-         (float-str capacity)])
+  (let [capacity (nil-to-zero capacity)]
+    [:span (if (> capacity 0.9)
+                 {:class "red"}
+                 {})
+           (float-str capacity)]))
 
 (defn compute-executor-capacity [^ExecutorSummary e]
   (let [stats (.get_stats e)
@@ -404,6 +405,7 @@
 (defn compute-bolt-capacity [executors]
   (->> executors
        (map compute-executor-capacity)
+       (map nil-to-zero)
        (apply max)))
 
 (defn spout-comp-table [top-id summ-map errors window include-sys?]

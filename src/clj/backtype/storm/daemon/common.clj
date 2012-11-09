@@ -239,7 +239,7 @@
   (->> (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER)         
        (map #(get % "class"))
        (number-duplicates)
-       (map #(str Constants/METRICS_COMPONENT_ID_PREFIX "_" %))))
+       (map #(str Constants/METRICS_COMPONENT_ID_PREFIX %))))
 
 (defn metrics-consumer-bolt-specs [components-ids-that-emit-metrics storm-conf]
   (let [inputs (->> (for [comp-id components-ids-that-emit-metrics]

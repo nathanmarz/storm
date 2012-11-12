@@ -2,10 +2,9 @@ package storm.trident.testing;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.Maps;
 
 import storm.trident.tuple.TridentTuple;
 
@@ -26,7 +25,7 @@ public class MockTridentTuple extends ArrayList<Object> implements TridentTuple{
   }
 
   private Map<String, Integer> setupFieldMap(List<String> fieldNames) {
-    Map<String, Integer> newFieldMap = Maps.newHashMapWithExpectedSize(fieldNames.size());
+    Map<String, Integer> newFieldMap = new HashMap<String, Integer>(fieldNames.size());
 
     int idx = 0;
     for (String fieldName : fieldNames) {

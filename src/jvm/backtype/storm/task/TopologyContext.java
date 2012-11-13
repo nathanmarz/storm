@@ -9,7 +9,6 @@ import backtype.storm.metric.api.IReducer;
 import backtype.storm.metric.api.ICombiner;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.metric.api.CombinedMetric;
-import backtype.storm.metric.MetricHolder;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -35,7 +34,7 @@ public class TopologyContext extends WorkerTopologyContext {
     private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map<String, Object> _executorData;
-    private Map<Integer,Map<Integer, Collection<MetricHolder>>> _registeredMetrics;
+    private Map<Integer,Map<Integer, Map<String, IMetric>>> _registeredMetrics;
     private clojure.lang.Atom _openOrPrepareWasCalled;
 
     
@@ -222,11 +221,15 @@ public class TopologyContext extends WorkerTopologyContext {
 
         Map m2 = (Map)m1.get(timeBucketSizeInSecs);
         if(!m2.containsKey(_taskId)) {
-            m2.put(_taskId, new ArrayList());
+            m2.put(_taskId, new HashMap());
         }
 
-        Collection c1 = (Collection)m2.get(_taskId);
-        c1.add(new MetricHolder(name, metric));
+        Map m3 = (Map)m2.get(_taskId);
+        if(m3.containsKey(name)) {
+            throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
+        } else {
+            m3.put(name, metric);
+        }
 
         return metric;
     }

@@ -6,11 +6,10 @@
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
-  (:import [backtype.storm.metric MetricHolder])
-  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])  
+  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
-  )
+  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
 
 (bootstrap)
 
@@ -214,7 +213,7 @@
      :type executor-type
      ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)
      :stats (mk-executor-stats <> (sampling-rate storm-conf))
-     :interval->task->registered-metrics (HashMap.)
+     :interval->task->metric-registry (HashMap.)
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id)
      :report-error (throttled-report-error-fn <>)
@@ -244,8 +243,8 @@
       :kill-fn (:report-error-and-die executor-data))))
 
 (defn setup-metrics! [executor-data]
-  (let [{:keys [storm-conf receive-queue worker-context interval->task->registered-metrics]} executor-data
-        distinct-time-bucket-intervals (keys interval->task->registered-metrics)]
+  (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
+        distinct-time-bucket-intervals (keys interval->task->metric-registry)]
     (doseq [interval distinct-time-bucket-intervals]
       (schedule-recurring 
        (:user-timer (:worker executor-data)) 
@@ -257,10 +256,10 @@
           [[nil (TupleImpl. worker-context [interval] -1 Constants/METRICS_TICK_STREAM_ID)]]))))))
 
 (defn metrics-tick [executor-data task-datas ^TupleImpl tuple]
-  (let [{:keys [interval->task->registered-metrics ^WorkerTopologyContext worker-context]} executor-data
+  (let [{:keys [interval->task->metric-registry ^WorkerTopologyContext worker-context]} executor-data
         interval (.getInteger tuple 0)]
     (doseq [[task-id task-data] task-datas
-            :let [metric-holders (-> interval->task->registered-metrics (get interval) (get task-id))
+            :let [name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
                   task-info (IMetricsConsumer$TaskInfo.
                              (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
                              (.getThisWorkerPort worker-context)
@@ -268,10 +267,9 @@
                              task-id
                              (long (/ (System/currentTimeMillis) 1000))
                              interval)
-                  data-points (->> metric-holders
-                                   (map (fn [^MetricHolder mh]
-                                          (IMetricsConsumer$DataPoint. (.name mh)
-                                                                       (.getValueAndReset ^IMetric (.metric mh)))))
+                  data-points (->> name->imetric
+                                   (map (fn [[name imetric]]
+                                          (IMetricsConsumer$DataPoint. name (.getValueAndReset ^IMetric imetric))))
                                    (into []))]]
       (if (seq data-points)
         (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))
@@ -352,8 +350,8 @@
     (.fail spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta
-      (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
-      )))
+      (builtin-metrics/spout-failed-tuple! (:builtin-metrics task-data) (:stats executor-data) (:stream tuple-info))      
+      (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta]
   (let [storm-conf (:storm-conf executor-data)
@@ -364,8 +362,8 @@
     (.ack spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id task-id time-delta))
     (when time-delta
-      (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta)
-      )))
+      (builtin-metrics/spout-acked-tuple! (:builtin-metrics task-data) (:stats executor-data) (:stream tuple-info) time-delta)
+      (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn mk-task-receiver [executor-data tuple-action-fn]
   (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)
@@ -492,6 +490,7 @@
                                                             (if (sampler) 0))))
                                          (or out-tasks [])
                                          ))]]
+          (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf (:user-context task-data))
           (.open spout-obj
                  storm-conf
                  (:user-context task-data)
@@ -609,11 +608,15 @@
                                 (let [delta (tuple-execute-time-delta! tuple)]
                                   (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
                                   (when delta
+                                    (builtin-metrics/bolt-execute-tuple! (:builtin-metrics task-data)
+                                                                         executor-stats
+                                                                         (.getSourceComponent tuple)                                                      
+                                                                         (.getSourceStreamId tuple)
+                                                                         delta)
                                     (stats/bolt-execute-tuple! executor-stats
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
-                                                               delta)
-                                    ))))))]
+                                                               delta)))))))]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -649,6 +652,7 @@
                                                                                stream
                                                                                (MessageId/makeId anchors-to-ids)))))
                                     (or out-tasks [])))]]
+          (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (.prepare bolt-obj
                     storm-conf
                     user-context
@@ -669,11 +673,15 @@
                          (let [delta (tuple-time-delta! tuple)]
                            (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
                            (when delta
+                             (builtin-metrics/bolt-acked-tuple! (:builtin-metrics task-data)
+                                                                executor-stats
+                                                                (.getSourceComponent tuple)                                                      
+                                                                (.getSourceStreamId tuple)
+                                                                delta)
                              (stats/bolt-acked-tuple! executor-stats
                                                       (.getSourceComponent tuple)
                                                       (.getSourceStreamId tuple)
-                                                      delta)
-                             )))
+                                                      delta))))
                        (^void fail [this ^Tuple tuple]
                          (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                          (task/send-unanchored task-data
@@ -682,11 +690,14 @@
                          (let [delta (tuple-time-delta! tuple)]
                            (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
                            (when delta
+                             (builtin-metrics/bolt-failed-tuple! (:builtin-metrics task-data)
+                                                                 executor-stats
+                                                                 (.getSourceComponent tuple)                                                      
+                                                                 (.getSourceStreamId tuple))
                              (stats/bolt-failed-tuple! executor-stats
                                                        (.getSourceComponent tuple)
                                                        (.getSourceStreamId tuple)
-                                                       delta)
-                             )))
+                                                       delta))))
                        (reportError [this error]
                          (report-error error)
                          )))))

@@ -8,11 +8,11 @@ public class CountMetric implements IMetric {
     public CountMetric() {
     }
     
-    public void inc() {
+    public void incr() {
         _value++;
     }
 
-    public void inc(long incrementBy) {
+    public void incrBy(long incrementBy) {
         _value += incrementBy;
     }
 

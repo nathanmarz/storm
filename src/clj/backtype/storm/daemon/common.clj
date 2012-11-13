@@ -278,8 +278,8 @@
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! storm-conf ret)
-    (add-metric-streams! ret)
     (add-metric-components! storm-conf ret)
+    (add-metric-streams! ret)    
     (add-system-streams! ret)
     (add-system-components! ret)
     (validate-structure! ret)

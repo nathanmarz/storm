@@ -461,6 +461,11 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_STATS_SAMPLE_RATE="topology.stats.sample.rate";
 
     /**
+     * The time period that builtin metrics data in bucketed into. 
+     */
+    public static String TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS="topology.builtin.metrics.bucket.size.secs";
+
+    /**
      * Whether or not to use Java serialization in a topology.
      */
     public static String TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION="topology.fall.back.on.java.serialization";
@@ -653,6 +658,26 @@ public class Config extends HashMap<String, Object> {
         registerSerialization(this, klass, serializerClass);
     }
     
+    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
+        HashMap m = new HashMap();
+        m.put("class", klass.getCanonicalName());
+        m.put("parallelism.hint", parallelismHint);
+        m.put("argument", argument);
+
+        List l = (List)this.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
+        if(l == null) { l = new ArrayList(); }
+        l.add(m);
+        this.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+    }
+
+    public void registerMetricsConsumer(Class klass, long parallelismHint) {
+        registerMetricsConsumer(klass, null, parallelismHint);
+    }
+
+    public void registerMetricsConsumer(Class klass) {
+        registerMetricsConsumer(klass, null, 1L);
+    }
+
     public static void registerDecorator(Map conf, Class<? extends IKryoDecorator> klass) {
         getRegisteredDecorators(conf).add(klass.getName());
     }

@@ -87,6 +87,7 @@ topology.max.task.parallelism: null
 topology.max.spout.pending: null
 topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
+topology.builtin.metrics.bucket.size.secs: 60
 topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
 topology.executor.receive.buffer.size: 1024 #batched

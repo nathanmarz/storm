@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -29,7 +30,7 @@ public class KafkaUtils {
     
     public static List<GlobalPartitionId> getOrderedPartitions(Map<String, List> partitions) {
         List<GlobalPartitionId> ret = new ArrayList();
-        for(String host: partitions.keySet()) {
+        for(String host: new TreeMap<String, List>(partitions).keySet()) {
             List info = partitions.get(host);
             long port = (Long) info.get(0);
             long numPartitions = (Long) info.get(1);

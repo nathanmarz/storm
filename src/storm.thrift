@@ -17,7 +17,7 @@ struct JavaObject {
 }
 
 struct NullStruct {
-  
+
 }
 
 struct GlobalStreamId {
@@ -64,7 +64,7 @@ struct ComponentCommon {
   // topology.max.task.parallelism: null // can replace isDistributed with this
   // topology.max.spout.pending: null
   // topology.kryo.register // this is the only additive one
-  
+
   // component specific configuration
   4: optional string json_conf;
 }
@@ -123,7 +123,7 @@ struct SupervisorSummary {
   2: required i32 uptime_secs;
   3: required i32 num_workers;
   4: required i32 num_used_workers;
-  5: required string supervisor_id;
+  5: optional string supervisor_id;
 }
 
 struct ClusterSummary {
@@ -138,10 +138,10 @@ struct ErrorInfo {
 }
 
 struct BoltStats {
-  1: required map<string, map<GlobalStreamId, i64>> acked;  
-  2: required map<string, map<GlobalStreamId, i64>> failed;  
+  1: required map<string, map<GlobalStreamId, i64>> acked;
+  2: required map<string, map<GlobalStreamId, i64>> failed;
   3: required map<string, map<GlobalStreamId, double>> process_ms_avg;
-  4: required map<string, map<GlobalStreamId, i64>> executed;  
+  4: required map<string, map<GlobalStreamId, i64>> executed;
   5: required map<string, map<GlobalStreamId, double>> execute_ms_avg;
 }
 
@@ -219,7 +219,7 @@ service Nimbus {
   string beginFileUpload();
   void uploadChunk(1: string location, 2: binary chunk);
   void finishFileUpload(1: string location);
-  
+
   string beginFileDownload(1: string file);
   //can stop downloading chunks when receive 0-length byte array back
   binary downloadChunk(1: string id);
@@ -251,5 +251,5 @@ service DistributedRPC {
 service DistributedRPCInvocations {
   void result(1: string id, 2: string result);
   DRPCRequest fetchRequest(1: string functionName);
-  void failRequest(1: string id);  
+  void failRequest(1: string id);
 }

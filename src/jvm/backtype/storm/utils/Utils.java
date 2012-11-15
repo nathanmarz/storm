@@ -3,6 +3,7 @@ package backtype.storm.utils;
 import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.NotALeaderException;
 import backtype.storm.generated.StormTopology;
 import clojure.lang.IFn;
 import clojure.lang.RT;
@@ -220,7 +221,7 @@ public class Utils {
         return ret;
     }
 
-    public static void downloadFromMaster(Map conf, String file, String localFile) throws IOException, TException {
+    public static void downloadFromMaster(Map conf, String file, String localFile) throws IOException, TException, NotALeaderException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
         String id = client.getClient().beginFileDownload(file);
         WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));

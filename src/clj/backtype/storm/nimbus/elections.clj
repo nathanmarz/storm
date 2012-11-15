@@ -22,6 +22,5 @@
     (log-message "Nimbus gained leadership")
     leader-elections))
 
-(defn ensureLeadership [leader-elections]
-  ;; todo replace RE with some specific exception, supported by Nimbus thrift service
-  (when-not (.hasLeadership leader-elections) (throw (RuntimeException. "Not a leader"))))
+(defn ensure-leadership [leader-elections]
+  (when-not (.hasLeadership leader-elections) (throw (backtype.storm.generated.NotALeaderException.))))

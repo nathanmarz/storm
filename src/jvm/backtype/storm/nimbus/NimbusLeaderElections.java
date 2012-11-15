@@ -31,7 +31,7 @@ public class NimbusLeaderElections {
             Preconditions.checkNotNull(conf);
             client = createZkClient(conf);
 
-            String mutexPath = (String) conf.get(Config.NIMBUS_ELECTIONS_ZOOKEEPER_ROOT);
+            String mutexPath = (String) conf.get(Config.NIMBUS_ELECTIONS_ZOOKEEPER_PATH);
 
             ZKPaths.mkdirs(client.getZookeeperClient().getZooKeeper(), mutexPath);
             mutex = new InterProcessMutex(client, mutexPath) {
@@ -72,7 +72,7 @@ public class NimbusLeaderElections {
     }
 
     public synchronized void close() {
-        if(hasLeadership()) {
+        if (hasLeadership()) {
             try {
                 mutex.release();
             } catch (Exception e) {
@@ -91,10 +91,13 @@ public class NimbusLeaderElections {
         Integer retryTimes = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES));
         Integer retryInterval = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL));
 
+        Integer connTimeout = Utils.getInt(conf.get(Config.NIMBUS_ELECTIONS_ZOOKEEPER_CONNECTION_TIMEOUT));
+        Integer sessionTimeout = Utils.getInt(conf.get(Config.NIMBUS_ELECTIONS_ZOOKEEPER_SESSION_TIMEOUT));
+
         CuratorFramework client = CuratorFrameworkFactory.builder()
                 .connectString(connectString)
-                .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+                .connectionTimeoutMs(connTimeout)
+                .sessionTimeoutMs(sessionTimeout)
                 .retryPolicy(new RetryNTimes(retryTimes, retryInterval)).build();
         client.start();
 

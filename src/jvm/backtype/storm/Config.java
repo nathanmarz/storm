@@ -210,9 +210,19 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_LOCAL_DIR = "nimbus.local.dir";
 
     /**
-     * The root directory in ZooKeeper for Nimbus leader elections.
+     * The path in ZooKeeper for Nimbus leader elections.
      */
-    public static String NIMBUS_ELECTIONS_ZOOKEEPER_ROOT = "nimbus.elections.zookeeper.root";
+    public static String NIMBUS_ELECTIONS_ZOOKEEPER_PATH = "nimbus.elections.zk.path";
+
+    /**
+     * The zk session timeout for elections.
+     */
+    public static String NIMBUS_ELECTIONS_ZOOKEEPER_SESSION_TIMEOUT = "nimbus.elections.zk.session.timeout";
+
+    /**
+     * The zk connection timeout for elections.
+     */
+    public static String NIMBUS_ELECTIONS_ZOOKEEPER_CONNECTION_TIMEOUT = "nimbus.elections.zk.connection.timeout";
 
     /**
      * Storm UI binds to this port.

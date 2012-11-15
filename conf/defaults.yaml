@@ -30,7 +30,9 @@ nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
-nimbus.elections.zookeeper.root: "/storm/nimbus-leader"
+nimbus.elections.zk.path: "/storm/nimbus-leader"
+nimbus.elections.zk.session.timeout: 2000
+nimbus.elections.zk.connection.timeout: 15000
 
 ### ui.* configs are for the master
 ui.port: 8080

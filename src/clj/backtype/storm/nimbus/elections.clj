@@ -1,6 +1,6 @@
 (ns backtype.storm.nimbus.elections
   (:import [backtype.storm.nimbus NimbusLeaderElections])
-  (:use [backtype.storm config util]))
+  (:use [backtype.storm config util log]))
 
 (defn local-hostname-conf [conf]
   (if (contains? conf STORM-LOCAL-HOSTNAME)
@@ -17,7 +17,9 @@
 (defn await-leadership [conf]
   (let [leader-elections (NimbusLeaderElections.)]
     (.init leader-elections conf (local-hostname-conf conf))
+    (log-message "Nimbus awaiting for leadership")
     (.awaitLeadership leader-elections)
+    (log-message "Nimbus gained leadership")
     leader-elections))
 
 (defn ensureLeadership [leader-elections]

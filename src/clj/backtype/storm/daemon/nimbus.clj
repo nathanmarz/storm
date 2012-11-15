@@ -1101,6 +1101,7 @@
         (.disconnect (:storm-cluster-state nimbus))
         (.cleanup (:downloaders nimbus))
         (.cleanup (:uploaders nimbus))
+        (.close leader-elections)
         (log-message "Shut down master")
         )
       DaemonCommon

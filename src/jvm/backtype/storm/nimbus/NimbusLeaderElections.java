@@ -7,6 +7,7 @@ import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.locks.InterProcessMutex;
 import com.netflix.curator.retry.RetryNTimes;
+import com.netflix.curator.utils.ZKPaths;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -32,6 +33,7 @@ public class NimbusLeaderElections {
 
             String mutexPath = (String) conf.get(Config.NIMBUS_ELECTIONS_ZOOKEEPER_ROOT);
 
+            ZKPaths.mkdirs(client.getZookeeperClient().getZooKeeper(), mutexPath);
             mutex = new InterProcessMutex(client, mutexPath) {
                 @Override
                 protected byte[] getLockNodeBytes() {

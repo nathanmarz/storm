@@ -1,5 +1,6 @@
 package storm.trident.operation;
 
+import backtype.storm.metric.api.*;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 import storm.trident.tuple.TridentTuple;
@@ -28,5 +29,15 @@ public class TridentOperationContext {
     
     public int getPartitionIndex() {
         return _topoContext.getThisTaskIndex();
+    }
+
+    public IMetric registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
+        return _topoContext.registerMetric(name, metric, timeBucketSizeInSecs);
+    }
+    public IMetric registerMetric(String name, IReducer reducer, int timeBucketSizeInSecs) {
+        return _topoContext.registerMetric(name, new ReducedMetric(reducer), timeBucketSizeInSecs);
+    }
+    public IMetric registerMetric(String name, ICombiner combiner, int timeBucketSizeInSecs) {
+        return _topoContext.registerMetric(name, new CombinedMetric(combiner), timeBucketSizeInSecs);
     }
 }

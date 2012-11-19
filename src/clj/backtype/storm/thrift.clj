@@ -11,6 +11,7 @@
   (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
   (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config log])
+  (:use [backtype.storm.nimbus elections])
   )
 
 (defn instantiate-java-object [^JavaObject obj]
@@ -65,7 +66,7 @@
 
 (defmacro with-configured-nimbus-connection [client-sym & body]
   `(let [conf# (read-storm-config)
-         host# (conf# NIMBUS-HOST)
+         host# (get-nimbus-leader-host conf#)
          port# (conf# NIMBUS-THRIFT-PORT)]
      (with-nimbus-connection [~client-sym host# port#]
        ~@body )))

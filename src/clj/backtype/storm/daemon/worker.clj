@@ -246,13 +246,13 @@
                          )))
               (write-locked (:endpoint-socket-lock worker)
                 (reset! (:cached-task->node+port worker)
-                        (HashMap. my-assignment)))
-              (doseq [endpoint remove-connections]
-                (.close (get @(:cached-node+port->socket worker) endpoint)))
-              (apply swap!
-                     (:cached-node+port->socket worker)
-                     #(HashMap. (dissoc (into {} %1) %&))
-                     remove-connections)
+                        (HashMap. my-assignment))
+                (doseq [endpoint remove-connections]
+                  (.close (get @(:cached-node+port->socket worker) endpoint)))
+                (apply swap!
+                       (:cached-node+port->socket worker)
+                       #(HashMap. (apply dissoc (into {} %1) %&))
+                       remove-connections))
               
               (let [missing-tasks (->> needed-tasks
                                        (filter (complement my-assignment)))]

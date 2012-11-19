@@ -231,28 +231,26 @@
               current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
-              (swap! (:cached-node+port->socket worker)
-                     #(HashMap. (merge (into {} %1) %2))
-                     (into {}
-                       (dofor [endpoint-str new-connections
-                               :let [[node port] (string->endpoint endpoint-str)]]
-                         [endpoint-str
-                          (msg/connect
-                           (:mq-context worker)
-                           storm-id
-                           ((:node->host assignment) node)
-                           port)
-                          ]
-                         )))
               (write-locked (:endpoint-socket-lock worker)
-                (reset! (:cached-task->node+port worker)
-                        (HashMap. my-assignment))
                 (doseq [endpoint remove-connections]
                   (.close (get @(:cached-node+port->socket worker) endpoint)))
                 (apply swap!
                        (:cached-node+port->socket worker)
                        #(HashMap. (apply dissoc (into {} %1) %&))
-                       remove-connections))
+                       remove-connections)
+                (swap! (:cached-node+port->socket worker)
+                       #(HashMap. (merge (into {} %1) %2))
+                       (into {}
+                             (dofor [endpoint-str new-connections
+                                     :let [[node port] (string->endpoint endpoint-str)]]
+                               [endpoint-str
+                                (msg/connect
+                                 (:mq-context worker)
+                                 storm-id
+                                 ((:node->host assignment) node)
+                                 port)])))
+                (reset! (:cached-task->node+port worker)
+                        (HashMap. my-assignment)))
               
               (let [missing-tasks (->> needed-tasks
                                        (filter (complement my-assignment)))]

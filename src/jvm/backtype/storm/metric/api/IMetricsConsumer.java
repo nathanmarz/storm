@@ -7,6 +7,7 @@ import java.util.Map;
 
 public interface IMetricsConsumer {
     public static class TaskInfo {
+        public TaskInfo() {}
         public TaskInfo(String srcWorkerHost, int srcWorkerPort, String srcComponentId, int srcTaskId, long timestamp, int updateIntervalSecs) {
             this.srcWorkerHost = srcWorkerHost;
             this.srcWorkerPort = srcWorkerPort;
@@ -23,6 +24,7 @@ public interface IMetricsConsumer {
         public int updateIntervalSecs; 
     }
     public static class DataPoint {
+        public DataPoint() {}
         public DataPoint(String name, Object value) {
             this.name = name;
             this.value = value;

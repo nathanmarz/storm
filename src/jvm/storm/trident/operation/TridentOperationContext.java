@@ -31,13 +31,13 @@ public class TridentOperationContext {
         return _topoContext.getThisTaskIndex();
     }
 
-    public IMetric registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
+    public <T extends IMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs) {
         return _topoContext.registerMetric(name, metric, timeBucketSizeInSecs);
     }
-    public IMetric registerMetric(String name, IReducer reducer, int timeBucketSizeInSecs) {
+    public ReducedMetric registerMetric(String name, IReducer reducer, int timeBucketSizeInSecs) {
         return _topoContext.registerMetric(name, new ReducedMetric(reducer), timeBucketSizeInSecs);
     }
-    public IMetric registerMetric(String name, ICombiner combiner, int timeBucketSizeInSecs) {
+    public CombinedMetric registerMetric(String name, ICombiner combiner, int timeBucketSizeInSecs) {
         return _topoContext.registerMetric(name, new CombinedMetric(combiner), timeBucketSizeInSecs);
     }
 }

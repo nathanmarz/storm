@@ -57,8 +57,8 @@
         (or
          (and (not= N 0) (nil? taskid->buckets))
          (not-every? #(<= N %) (map (comp count second) taskid->buckets))))
-    (println "Waiting for at least" N "timebuckets to appear in FakeMetricsConsumer for component id" comp-id
-             "and metric name" metric-name)
+;;    (println "Waiting for at least" N "timebuckets to appear in FakeMetricsConsumer for component id" comp-id
+;;             "and metric name" metric-name)
     (Thread/sleep 10)))
 
 (defn lookup-bucket-by-comp-id-&-metric-name! [comp-id metric-name]
@@ -80,8 +80,6 @@
     [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
                            [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]}]
     (let [feeder (feeder-spout ["field1"])
-          tracker (AckFailMapTracker.)
-          _ (.setAckFailDelegate feeder tracker)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec feeder)}
                     {"2" (thrift/mk-bolt-spec {"1" :global} count-acks)})]      
@@ -110,8 +108,6 @@
                            TOPOLOGY-STATS-SAMPLE-RATE 1.0
                            TOPOLOGY-BUILTIN-METRICS-BUCKET-SIZE-SECS 60}]
     (let [feeder (feeder-spout ["field1"])
-          tracker (AckFailMapTracker.)
-          _ (.setAckFailDelegate feeder tracker)
           topology (thrift/mk-topology
                     {"myspout" (thrift/mk-spout-spec feeder)}
                     {"mybolt" (thrift/mk-bolt-spec {"myspout" :shuffle} acking-bolt)})]      

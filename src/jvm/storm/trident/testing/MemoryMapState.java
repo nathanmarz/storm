@@ -1,28 +1,37 @@
 package storm.trident.testing;
 
-import storm.trident.state.ITupleCollection;
-import backtype.storm.tuple.Values;
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import storm.trident.state.ITupleCollection;
 import storm.trident.state.OpaqueValue;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 import storm.trident.state.ValueUpdater;
-import storm.trident.state.map.*;
+import storm.trident.state.map.IBackingMap;
+import storm.trident.state.map.MapState;
+import storm.trident.state.map.OpaqueMap;
+import storm.trident.state.map.SnapshottableMap;
 import storm.trident.state.snapshot.Snapshottable;
+import backtype.storm.tuple.Values;
 
 public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, MapState<T> {
 
-    MemoryMapStateBacking<OpaqueValue> _backing;
+    MemoryMapStateBacking<OpaqueValue<T>> _backing;
     SnapshottableMap<T> _delegate;
 
     public MemoryMapState(String id) {
-        _backing = new MemoryMapStateBacking(id);
-        _delegate = new SnapshottableMap(OpaqueMap.build(_backing), new Values("$MEMORY-MAP-STATE-GLOBAL$"));
+        _backing = new MemoryMapStateBacking<OpaqueValue<T>>(id);
+        _delegate = new SnapshottableMap<T>(OpaqueMap.build(_backing), new Values("$MEMORY-MAP-STATE-GLOBAL$"));
     }
 
-    public T update(ValueUpdater updater) {
+    @Override
+    public T update(ValueUpdater<T> updater) {
         return _delegate.update(updater);
     }
 
@@ -46,7 +55,8 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
         return _backing.getTuples();
     }
 
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+    @Override
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
         return _delegate.multiUpdate(keys, updaters);
     }
 
@@ -54,11 +64,11 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
         _delegate.multiPut(keys, vals);
     }
 
-    public List<T> multiGet(List<List<Object>> keys) {
+    public List<T> multiGet(List<? extends List<Object>> keys) {
         return _delegate.multiGet(keys);
     }
 
-    public static class Factory implements StateFactory {
+    public static class Factory<T> implements StateFactory {
 
         String _id;
 
@@ -68,7 +78,7 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
 
         @Override
         public State makeState(Map conf, int partitionIndex, int numPartitions) {
-            return new MemoryMapState(_id);
+            return new MemoryMapState<T>(_id);
         }
     }
 
@@ -83,14 +93,14 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
 
         public MemoryMapStateBacking(String id) {
             if (!_dbs.containsKey(id)) {
-                _dbs.put(id, new HashMap());
+                _dbs.put(id, new HashMap<List<Object>, Object>());
             }
             this.db = (Map<List<Object>, T>) _dbs.get(id);
         }
 
         @Override
-        public List<T> multiGet(List<List<Object>> keys) {
-            List<T> ret = new ArrayList();
+        public List<T> multiGet(List<? extends List<Object>> keys) {
+            List<T> ret = new ArrayList<T>();
             for (List<Object> key : keys) {
                 ret.add(db.get(key));
             }
@@ -98,7 +108,7 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
         }
 
         @Override
-        public void multiPut(List<List<Object>> keys, List<T> vals) {
+        public void multiPut(List<? extends List<Object>> keys, List<T> vals) {
             for (int i = 0; i < keys.size(); i++) {
                 List<Object> key = keys.get(i);
                 T val = vals.get(i);
@@ -120,7 +130,7 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
                     Map.Entry<List<Object>, T> e = it.next();
                     List<Object> ret = new ArrayList<Object>();
                     ret.addAll(e.getKey());
-                    ret.add(((OpaqueValue)e.getValue()).getCurr());
+                    ret.add(OpaqueValue.class.cast(e.getValue()).getCurr());
                     return ret;
                 }
 

@@ -2,17 +2,17 @@ package storm.trident.state;
 
 import storm.trident.operation.CombinerAggregator;
 
-public class CombinerValueUpdater implements ValueUpdater<Object> {
-    Object arg;
-    CombinerAggregator agg;
-    
-    public CombinerValueUpdater(CombinerAggregator agg, Object arg) {
+public class CombinerValueUpdater<T> implements ValueUpdater<T> {
+    T arg;
+    CombinerAggregator<T> agg;
+
+    public CombinerValueUpdater(CombinerAggregator<T> agg, T arg) {
         this.agg = agg;
         this.arg = arg;
     }
 
     @Override
-    public Object update(Object stored) {
+    public T update(T stored) {
         if(stored==null) return arg;
         else return agg.combine(stored, arg);
     }

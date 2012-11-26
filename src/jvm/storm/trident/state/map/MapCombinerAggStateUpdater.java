@@ -15,16 +15,16 @@ import storm.trident.tuple.ComboList;
 import storm.trident.tuple.TridentTuple;
 import storm.trident.tuple.TridentTupleView.ProjectionFactory;
 
-public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
-    CombinerAggregator _agg;
+public class MapCombinerAggStateUpdater<T> implements StateUpdater<MapState<T>> {
+    CombinerAggregator<T> _agg;
     Fields _groupFields;
     Fields _inputFields;
     ProjectionFactory _groupFactory;
     ProjectionFactory _inputFactory;
     ComboList.Factory _factory;
-    
-    
-    public MapCombinerAggStateUpdater(CombinerAggregator agg, Fields groupFields, Fields inputFields) {
+
+
+    public MapCombinerAggStateUpdater(CombinerAggregator<T> agg, Fields groupFields, Fields inputFields) {
         _agg = agg;
         _groupFields = groupFields;
         _inputFields = inputFields;
@@ -33,22 +33,22 @@ public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
         }
         _factory = new ComboList.Factory(groupFields.size(), inputFields.size());
     }
-    
+
 
     @Override
-    public void updateState(MapState map, List<TridentTuple> tuples, TridentCollector collector) {
+    public void updateState(MapState<T> map, List<TridentTuple> tuples, TridentCollector collector) {
         List<List<Object>> groups = new ArrayList<List<Object>>(tuples.size());
-        List<ValueUpdater> updaters = new ArrayList<ValueUpdater>(tuples.size());
-                
+        List<ValueUpdater<T>> updaters = new ArrayList<ValueUpdater<T>>(tuples.size());
+
         for(TridentTuple t: tuples) {
             groups.add(_groupFactory.create(t));
-            updaters.add(new CombinerValueUpdater(_agg,_inputFactory.create(t).getValue(0)));
+            updaters.add(new CombinerValueUpdater<T>(_agg,(T) _inputFactory.create(t).getValue(0)));
         }
-        List<Object> newVals = map.multiUpdate(groups, updaters);
-       
+        List<T> newVals = map.multiUpdate(groups, updaters);
+
         for(int i=0; i<tuples.size(); i++) {
             List<Object> key = groups.get(i);
-            Object result = newVals.get(i);            
+            Object result = newVals.get(i);
             collector.emit(_factory.create(new List[] {key, new Values(result) }));
         }
     }
@@ -62,5 +62,5 @@ public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
     @Override
     public void cleanup() {
     }
-    
+
 }

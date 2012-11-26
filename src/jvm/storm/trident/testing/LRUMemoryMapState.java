@@ -1,29 +1,37 @@
 package storm.trident.testing;
 
-import storm.trident.state.ITupleCollection;
-import backtype.storm.tuple.Values;
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import storm.trident.state.ITupleCollection;
 import storm.trident.state.OpaqueValue;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 import storm.trident.state.ValueUpdater;
-import storm.trident.state.map.*;
+import storm.trident.state.map.IBackingMap;
+import storm.trident.state.map.MapState;
+import storm.trident.state.map.OpaqueMap;
+import storm.trident.state.map.SnapshottableMap;
 import storm.trident.state.snapshot.Snapshottable;
 import storm.trident.util.LRUMap;
+import backtype.storm.tuple.Values;
 
 public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection, MapState<T> {
 
-    LRUMemoryMapStateBacking<OpaqueValue> _backing;
+    LRUMemoryMapStateBacking<OpaqueValue<T>> _backing;
     SnapshottableMap<T> _delegate;
 
     public LRUMemoryMapState(int cacheSize, String id) {
-        _backing = new LRUMemoryMapStateBacking(cacheSize, id);
-        _delegate = new SnapshottableMap(OpaqueMap.build(_backing), new Values("$MEMORY-MAP-STATE-GLOBAL$"));
+        _backing = new LRUMemoryMapStateBacking<OpaqueValue<T>>(cacheSize, id);
+        _delegate = new SnapshottableMap<T>(OpaqueMap.build(_backing), new Values("$MEMORY-MAP-STATE-GLOBAL$"));
     }
 
-    public T update(ValueUpdater updater) {
+    @Override
+    public T update(ValueUpdater<T> updater) {
         return _delegate.update(updater);
     }
 
@@ -47,7 +55,8 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
         return _backing.getTuples();
     }
 
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+    @Override
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
         return _delegate.multiUpdate(keys, updaters);
     }
 
@@ -55,11 +64,11 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
         _delegate.multiPut(keys, vals);
     }
 
-    public List<T> multiGet(List<List<Object>> keys) {
+    public List<T> multiGet(List<? extends List<Object>> keys) {
         return _delegate.multiGet(keys);
     }
 
-    public static class Factory implements StateFactory {
+    public static class Factory<T> implements StateFactory {
 
         String _id;
         int _maxSize;
@@ -71,11 +80,11 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
 
         @Override
         public State makeState(Map conf, int partitionIndex, int numPartitions) {
-            return new LRUMemoryMapState(_maxSize, _id);
+            return new LRUMemoryMapState<T>(_maxSize, _id);
         }
     }
 
-    static ConcurrentHashMap<String, Map<List<Object>, Object>> _dbs = new ConcurrentHashMap<String, Map<List<Object>, Object>>();
+    static ConcurrentHashMap<String, Map<? extends List<Object>, Object>> _dbs = new ConcurrentHashMap<String, Map<? extends List<Object>, Object>>();
     static class LRUMemoryMapStateBacking<T> implements IBackingMap<T>, ITupleCollection {
 
         public static void clearAll() {
@@ -92,8 +101,8 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
         }
 
         @Override
-        public List<T> multiGet(List<List<Object>> keys) {
-            List<T> ret = new ArrayList();
+        public List<T> multiGet(List<? extends List<Object>> keys) {
+            List<T> ret = new ArrayList<T>();
             for (List<Object> key : keys) {
                 ret.add(db.get(key));
             }
@@ -101,7 +110,7 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
         }
 
         @Override
-        public void multiPut(List<List<Object>> keys, List<T> vals) {
+        public void multiPut(List<? extends List<Object>> keys, List<T> vals) {
             for (int i = 0; i < keys.size(); i++) {
                 List<Object> key = keys.get(i);
                 T val = vals.get(i);
@@ -123,7 +132,7 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
                     Map.Entry<List<Object>, T> e = it.next();
                     List<Object> ret = new ArrayList<Object>();
                     ret.addAll(e.getKey());
-                    ret.add(((OpaqueValue)e.getValue()).getCurr());
+                    ret.add(OpaqueValue.class.cast(e.getValue()).getCurr());
                     return ret;
                 }
 

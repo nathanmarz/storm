@@ -8,24 +8,24 @@ import java.util.List;
 
 
 public class OpaqueMap<T> implements MapState<T> {
-    public static <T> MapState<T> build(IBackingMap<OpaqueValue> backing) {
+    public static <T> MapState<T> build(IBackingMap<OpaqueValue<T>> backing) {
         return new CachedBatchReadsMap<T>(new OpaqueMap<T>(backing));
     }
-    
-    IBackingMap<OpaqueValue> _backing;
+
+    IBackingMap<OpaqueValue<T>> _backing;
     Long _currTx;
-    
-    protected OpaqueMap(IBackingMap<OpaqueValue> backing) {
+
+    protected OpaqueMap(IBackingMap<OpaqueValue<T>> backing) {
         _backing = backing;
     }
-    
+
     @Override
-    public List<T> multiGet(List<List<Object>> keys) {
-        List<OpaqueValue> curr = _backing.multiGet(keys);
+    public List<T> multiGet(List<? extends List<Object>> keys) {
+        List<OpaqueValue<T>> curr = _backing.multiGet(keys);
         List<T> ret = new ArrayList<T>(curr.size());
-        for(OpaqueValue val: curr) {
+        for(OpaqueValue<T> val: curr) {
             if(val!=null) {
-                ret.add((T) val.get(_currTx));
+                ret.add(val.get(_currTx));
             } else {
                 ret.add(null);
             }
@@ -34,9 +34,9 @@ public class OpaqueMap<T> implements MapState<T> {
     }
 
     @Override
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
-        List<OpaqueValue> curr = _backing.multiGet(keys);
-        List<OpaqueValue> newVals = new ArrayList<OpaqueValue>(curr.size());
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
+        List<OpaqueValue<T>> curr = _backing.multiGet(keys);
+        List<OpaqueValue<T>> newVals = new ArrayList<OpaqueValue<T>>(curr.size());
         List<T> ret = new ArrayList<T>();
         for(int i=0; i<curr.size(); i++) {
             OpaqueValue<T> val = curr.get(i);
@@ -63,7 +63,7 @@ public class OpaqueMap<T> implements MapState<T> {
 
     @Override
     public void multiPut(List<List<Object>> keys, List<T> vals) {
-        List<ValueUpdater> updaters = new ArrayList<ValueUpdater>(vals.size());
+        List<ValueUpdater<T>> updaters = new ArrayList<ValueUpdater<T>>(vals.size());
         for(T val: vals) {
             updaters.add(new ReplaceUpdater<T>(val));
         }
@@ -79,17 +79,17 @@ public class OpaqueMap<T> implements MapState<T> {
     public void commit(Long txid) {
         _currTx = null;
     }
-    
+
     static class ReplaceUpdater<T> implements ValueUpdater<T> {
         T _t;
-        
+
         public ReplaceUpdater(T t) {
             _t = t;
         }
-        
+
         @Override
         public T update(Object stored) {
             return _t;
-        }        
-    }    
+        }
+    }
 }

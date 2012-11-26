@@ -8,15 +8,15 @@ import storm.trident.state.ValueUpdater;
 
 public class CachedBatchReadsMap<T> implements MapState<T> {
     Map<List<Object>, T> _cached = new HashMap<List<Object>, T>();
-    
+
     public MapState<T> _delegate;
-    
+
     public CachedBatchReadsMap(MapState<T> delegate) {
         _delegate = delegate;
     }
-    
+
     @Override
-    public List<T> multiGet(List<List<Object>> keys) {
+    public List<T> multiGet(List<? extends List<Object>> keys) {
         List<T> ret = _delegate.multiGet(keys);
         if(!_cached.isEmpty()) {
             ret = new ArrayList<T>(ret);
@@ -31,7 +31,7 @@ public class CachedBatchReadsMap<T> implements MapState<T> {
     }
 
     @Override
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
         List<T> vals = _delegate.multiUpdate(keys, updaters);
         cache(keys, vals);
         return vals;
@@ -42,7 +42,7 @@ public class CachedBatchReadsMap<T> implements MapState<T> {
         _delegate.multiPut(keys, vals);
         cache(keys, vals);
     }
-    
+
     private void cache(List<List<Object>> keys, List<T> vals) {
         for(int i=0; i<keys.size(); i++) {
             List<Object> key = keys.get(i);
@@ -62,5 +62,5 @@ public class CachedBatchReadsMap<T> implements MapState<T> {
         _cached.clear();
         _delegate.commit(txid);
     }
-    
+
 }

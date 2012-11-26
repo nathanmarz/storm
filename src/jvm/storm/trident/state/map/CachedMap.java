@@ -21,7 +21,7 @@ public class CachedMap<T> implements IBackingMap<T> {
     }
 
     @Override
-    public List<T> multiGet(List<List<Object>> keys) {
+    public List<T> multiGet(List<? extends List<Object>> keys) {
         Map<List<Object>, T> results = new HashMap<List<Object>, T>();
         List<List<Object>> toGet = new ArrayList<List<Object>>();
         for(List<Object> key: keys) {
@@ -48,12 +48,12 @@ public class CachedMap<T> implements IBackingMap<T> {
     }
 
     @Override
-    public void multiPut(List<List<Object>> keys, List<T> values) {
+    public void multiPut(List<? extends List<Object>> keys, List<T> values) {
         cache(keys, values);
         _delegate.multiPut(keys, values);
     }
 
-    private void cache(List<List<Object>> keys, List<T> values) {
+    private void cache(List<? extends List<Object>> keys, List<T> values) {
         for(int i=0; i<keys.size(); i++) {
             _cache.put(keys.get(i), values.get(i));
         }

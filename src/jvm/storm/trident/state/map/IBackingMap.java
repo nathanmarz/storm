@@ -4,6 +4,6 @@ import java.util.List;
 
 
 public interface IBackingMap<T> {
-    List<T> multiGet(List<List<Object>> keys); 
-    void multiPut(List<List<Object>> keys, List<T> vals); 
+    List<T> multiGet(List<? extends List<Object>> keys);
+    void multiPut(List<? extends List<Object>> keys, List<T> vals);
 }

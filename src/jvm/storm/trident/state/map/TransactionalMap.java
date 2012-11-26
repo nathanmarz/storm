@@ -8,24 +8,24 @@ import java.util.List;
 
 
 public class TransactionalMap<T> implements MapState<T> {
-    public static <T> MapState<T> build(IBackingMap<TransactionalValue> backing) {
+    public static <T> MapState<T> build(IBackingMap<TransactionalValue<T>> backing) {
         return new CachedBatchReadsMap<T>(new TransactionalMap<T>(backing));
     }
-    
-    IBackingMap<TransactionalValue> _backing;
+
+    IBackingMap<TransactionalValue<T>> _backing;
     Long _currTx;
-    
-    protected TransactionalMap(IBackingMap<TransactionalValue> backing) {
+
+    protected TransactionalMap(IBackingMap<TransactionalValue<T>> backing) {
         _backing = backing;
     }
-    
+
     @Override
-    public List<T> multiGet(List<List<Object>> keys) {
-        List<TransactionalValue> vals = _backing.multiGet(keys);
+    public List<T> multiGet(List<? extends List<Object>> keys) {
+        List<TransactionalValue<T>> vals = _backing.multiGet(keys);
         List<T> ret = new ArrayList<T>(vals.size());
-        for(TransactionalValue v: vals) {
+        for(TransactionalValue<T> v: vals) {
             if(v!=null) {
-                ret.add((T) v.getVal());
+                ret.add(v.getVal());
             } else {
                 ret.add(null);
             }
@@ -34,9 +34,9 @@ public class TransactionalMap<T> implements MapState<T> {
     }
 
     @Override
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
-        List<TransactionalValue> curr = _backing.multiGet(keys);
-        List<TransactionalValue> newVals = new ArrayList<TransactionalValue>(curr.size());
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
+        List<TransactionalValue<T>> curr = _backing.multiGet(keys);
+        List<TransactionalValue<T>> newVals = new ArrayList<TransactionalValue<T>>(curr.size());
         List<T> ret = new ArrayList<T>();
         for(int i=0; i<curr.size(); i++) {
             TransactionalValue<T> val = curr.get(i);
@@ -49,7 +49,7 @@ public class TransactionalMap<T> implements MapState<T> {
                     newVal = val;
                 } else {
                     newVal = new TransactionalValue<T>(_currTx, updater.update(val.getVal()));
-                }    
+                }
             }
             ret.add(newVal.getVal());
             newVals.add(newVal);
@@ -60,7 +60,7 @@ public class TransactionalMap<T> implements MapState<T> {
 
     @Override
     public void multiPut(List<List<Object>> keys, List<T> vals) {
-        List<TransactionalValue> newVals = new ArrayList<TransactionalValue>(vals.size());
+        List<TransactionalValue<T>> newVals = new ArrayList<TransactionalValue<T>>(vals.size());
         for(T val: vals) {
             newVals.add(new TransactionalValue<T>(_currTx, val));
         }
@@ -75,5 +75,5 @@ public class TransactionalMap<T> implements MapState<T> {
     @Override
     public void commit(Long txid) {
         _currTx = null;
-    }  
+    }
 }

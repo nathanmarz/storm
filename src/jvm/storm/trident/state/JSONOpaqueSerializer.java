@@ -6,10 +6,11 @@ import java.util.List;
 import org.json.simple.JSONValue;
 
 
-public class JSONOpaqueSerializer implements Serializer<OpaqueValue> {
+public class JSONOpaqueSerializer<T> implements Serializer<OpaqueValue<T>> {
 
     @Override
-    public byte[] serialize(OpaqueValue obj) {
+    public byte[] serialize(OpaqueValue<T> obj) {
+        // not generic param T as currTxid is a long
         List toSer = new ArrayList(3);
         toSer.add(obj.currTxid);
         toSer.add(obj.curr);
@@ -22,14 +23,15 @@ public class JSONOpaqueSerializer implements Serializer<OpaqueValue> {
     }
 
     @Override
-    public OpaqueValue deserialize(byte[] b) {
+    public OpaqueValue<T> deserialize(byte[] b) {
         try {
             String s = new String(b, "UTF-8");
-            List deser = (List) JSONValue.parse(s);
+            List deser = List.class.cast(JSONValue.parse(s));
+            // not generic param T as currTxid is a long
             return new OpaqueValue((Long) deser.get(0), deser.get(1), deser.get(2));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
 }

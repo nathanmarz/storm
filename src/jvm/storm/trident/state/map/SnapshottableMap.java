@@ -16,12 +16,12 @@ public class SnapshottableMap<T> implements MapState<T>, Snapshottable<T> {
     }
 
     @Override
-    public List<T> multiGet(List<List<Object>> keys) {
+    public List<T> multiGet(List<? extends List<Object>> keys) {
         return _delegate.multiGet(keys);
     }
 
     @Override
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
         return _delegate.multiUpdate(keys, updaters);
     }
 
@@ -46,8 +46,8 @@ public class SnapshottableMap<T> implements MapState<T>, Snapshottable<T> {
     }
 
     @Override
-    public T update(ValueUpdater updater) {
-        List<ValueUpdater> updaters = Arrays.asList(updater);
+    public T update(ValueUpdater<T> updater) {
+        List<ValueUpdater<T>> updaters = Arrays.asList(updater);
         return multiUpdate(_keys, updaters).get(0);
     }
 
@@ -55,5 +55,5 @@ public class SnapshottableMap<T> implements MapState<T>, Snapshottable<T> {
     public void set(T o) {
         multiPut(_keys, Arrays.asList(o));
     }
-    
+
 }

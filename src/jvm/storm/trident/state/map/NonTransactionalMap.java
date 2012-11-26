@@ -10,20 +10,20 @@ public class NonTransactionalMap<T> implements MapState<T> {
     public static <T> MapState<T> build(IBackingMap<T> backing) {
         return new NonTransactionalMap<T>(backing);
     }
-    
+
     IBackingMap<T> _backing;
-    
+
     protected NonTransactionalMap(IBackingMap<T> backing) {
         _backing = backing;
     }
-    
+
     @Override
-    public List<T> multiGet(List<List<Object>> keys) {
+    public List<T> multiGet(List<? extends List<Object>> keys) {
         return _backing.multiGet(keys);
     }
 
     @Override
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
+    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater<T>> updaters) {
         List<T> curr = _backing.multiGet(keys);
         List<T> ret = new ArrayList<T>(curr.size());
         for(int i=0; i<curr.size(); i++) {
@@ -46,5 +46,5 @@ public class NonTransactionalMap<T> implements MapState<T> {
 
     @Override
     public void commit(Long txid) {
-    }  
+    }
 }

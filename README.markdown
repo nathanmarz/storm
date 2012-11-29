@@ -64,6 +64,7 @@ You must not remove this notice, or any other, from this software.
 * Junichiro Takagi ([@tjun](https://github.com/tjun))
 * Bryan Peterson ([@Lazyshot](https://github.com/Lazyshot))
 * Sam Ritchie ([@sritchie](https://github.com/sritchie))
+* Stuart Anderson ([@emblem](https://github.com/emblem))
 
 ## Acknowledgements
 

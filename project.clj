@@ -3,7 +3,7 @@
   (do (println (str "ERROR: requires Leiningen 1.x but you are using " lein-version))
     (System/exit 1)))
 
-(defproject storm "0.8.2-wip18"
+(defproject storm "0.8.2-wip19"
   :source-path "src/clj"
   :test-path "test/clj"
   :java-source-path "src/jvm"

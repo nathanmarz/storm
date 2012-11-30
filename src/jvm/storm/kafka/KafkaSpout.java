@@ -1,6 +1,7 @@
 package storm.kafka;
 
 import backtype.storm.Config;
+import backtype.storm.spout.SchemeToMultiScheme;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -143,7 +144,7 @@ public class KafkaSpout extends BaseRichSpout {
 //        List<String> hosts = new ArrayList<String>();
 //        hosts.add("localhost");
 //        SpoutConfig spoutConf = SpoutConfig.fromHostStrings(hosts, 8, "clicks", "/kafkastorm", "id");
-//        spoutConf.scheme = new StringScheme();
+//        spoutConf.scheme = new SchemeToMultiScheme(new StringScheme());
 //        spoutConf.forceStartOffsetTime(-2);
 //
 // //       spoutConf.zkServers = new ArrayList<String>() {{

@@ -2,6 +2,7 @@ package storm.kafka;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
+import backtype.storm.spout.SchemeToMultiScheme;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
@@ -28,7 +29,7 @@ public class TestTopology {
 //        List<String> hosts = new ArrayList<String>();
 //        hosts.add("localhost");
 //        KafkaConfig kafkaConf = new KafkaConfig(StaticHosts.fromHostString(hosts, 3), "test");
-//        kafkaConf.scheme = new StringScheme();
+//        kafkaConf.scheme = new SchemeToMultiScheme(new StringScheme());
 //        LocalCluster cluster = new LocalCluster();
 //        TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("id", "spout",
 //                new OpaqueTransactionalKafkaSpout(kafkaConf), 1);

@@ -203,13 +203,6 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_STORAGE = "nimbus.storage";
 
     /**
-     * A directory on the local filesystem used by Nimbus default storage to
-     * store files. If this property is undefined then STORM_LOCAL_DIR will
-     * be used.
-     */
-    public static String NIMBUS_LOCAL_DIR = "nimbus.local.dir";
-
-    /**
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";

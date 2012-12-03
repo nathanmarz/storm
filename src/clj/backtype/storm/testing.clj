@@ -110,7 +110,7 @@
                            {STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-ZOOKEEPER-SERVERS ["localhost"]
-                            NIMBUS-LOCAL-DIR nimbus-tmp})
+                            "nimbus.local.dir" nimbus-tmp})
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)

@@ -17,7 +17,7 @@
                  [storm/libthrift7 "0.7.0"]
                  [clj-time "0.4.1"]
                  [log4j/log4j "1.2.16"]
-                 [com.netflix.curator/curator-framework "1.0.1"]
+                 [com.netflix.curator/curator-framework "1.2.3"]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
                  [compojure "0.6.4"]

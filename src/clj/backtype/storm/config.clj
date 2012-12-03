@@ -76,7 +76,7 @@
 
 (defn nimbus-storage-local-dir [conf]
   (let [storm-local-dir (conf STORM-LOCAL-DIR)
-        nimbus-local-dir (conf NIMBUS-LOCAL-DIR)
+        nimbus-local-dir (get conf "nimbus.local.dir")
         local-dir (if-not (clojure.string/blank? nimbus-local-dir) nimbus-local-dir storm-local-dir)
         ret (str local-dir "/nimbus")]
     (FileUtils/forceMkdir (File. ret))

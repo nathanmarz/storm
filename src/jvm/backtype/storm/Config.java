@@ -200,6 +200,9 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
 
+    /**
+     * Class that specifies Nimbus storage implementation (should impl INimbusStorage).
+     */
     public static String NIMBUS_STORAGE = "nimbus.storage";
 
     /**

@@ -200,8 +200,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
 
-    public static String NIMBUS_STORAGE = "nimbus.storage";
-
     /**
      * The path in ZooKeeper for Nimbus leader elections.
      */
@@ -216,6 +214,11 @@ public class Config extends HashMap<String, Object> {
      * The zk connection timeout for elections.
      */
     public static String NIMBUS_ELECTIONS_ZOOKEEPER_CONNECTION_TIMEOUT = "nimbus.elections.zk.connection.timeout";
+
+    /**
+     * Class that specifies Nimbus storage implementation (should impl INimbusStorage).
+     */
+    public static String NIMBUS_STORAGE = "nimbus.storage";
 
     /**
      * Storm UI binds to this port.

@@ -11,21 +11,21 @@
     (log-message "Using default storage (" stormroot ")")
     (reify INimbusStorage
       (^InputStream open [this, ^String path]
-        (FileInputStream. (str stormroot path)))
+        (FileInputStream. (join-paths stormroot path)))
 
       (^OutputStream create [this, ^String path]
-        (FileOutputStream. (str stormroot path)))
+        (FileOutputStream. (join-paths stormroot path)))
 
       (^List list [this, ^String path]
-        (seq (.list (File. (str stormroot path)))))
+        (seq (.list (File. (join-paths stormroot path)))))
 
       (^void delete [this, ^String path]
-        (let [full-path (str stormroot path)]
+        (let [full-path (join-paths stormroot path)]
           (when (exists-file? full-path)
             (FileUtils/forceDelete (File. full-path)))))
 
       (^void mkdirs [this, ^String path]
-        (FileUtils/forceMkdir (File. (str stormroot path))))
+        (FileUtils/forceMkdir (File. (join-paths stormroot path))))
 
       (^boolean isSupportDistributed [this]
         false))))

@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import backtype.storm.spout.RawScheme;
-import backtype.storm.spout.Scheme;
+import backtype.storm.spout.MultiScheme;
+import backtype.storm.spout.RawMultiScheme;
 
 public class KafkaConfig implements Serializable {
     public static interface BrokerHosts extends Serializable {

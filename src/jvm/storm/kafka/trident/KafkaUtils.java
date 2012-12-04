@@ -90,7 +90,8 @@ public class KafkaUtils {
      }
 
      public static void emit(TridentKafkaConfig config, TridentCollector collector, Message msg) {
-         Iterator<List<Object>> values = config.scheme.deserialize(Utils.toByteArray(msg.payload()));
+         Iterable<List<Object>> values =
+             config.scheme.deserialize(Utils.toByteArray(msg.payload()));
          if(values!=null) {
              for(List<Object> value: values)
                  collector.emit(value);

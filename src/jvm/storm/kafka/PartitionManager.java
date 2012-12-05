@@ -84,7 +84,7 @@ public class PartitionManager {
             if(toEmit==null) {
                 return EmitState.NO_EMITTED;
             }
-            Iterator<List<Object>> tups = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
+            Iterable<List<Object>> tups = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
             if(tups!=null) {
                 for(List<Object> tup: tups)
                     collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));

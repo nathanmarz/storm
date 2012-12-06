@@ -4,7 +4,7 @@ import backtype.storm.tuple.Tuple;
 import java.util.Collection;
 import java.util.List;
 
-public interface IOutputCollector {
+public interface IOutputCollector extends IErrorReporter {
     /**
      *  Returns the task ids that received the tuples.
      */
@@ -12,5 +12,4 @@ public interface IOutputCollector {
     void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple);
     void ack(Tuple input);
     void fail(Tuple input);
-    void reportError(Throwable error);
 }

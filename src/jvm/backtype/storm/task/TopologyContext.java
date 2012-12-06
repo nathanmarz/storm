@@ -4,6 +4,11 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.hooks.ITaskHook;
+import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.IReducer;
+import backtype.storm.metric.api.ICombiner;
+import backtype.storm.metric.api.ReducedMetric;
+import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -29,6 +34,8 @@ public class TopologyContext extends WorkerTopologyContext {
     private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
     private Map<String, Object> _executorData;
+    private Map<Integer,Map<Integer, Map<String, IMetric>>> _registeredMetrics;
+    private clojure.lang.Atom _openOrPrepareWasCalled;
 
     
     public TopologyContext(StormTopology topology, Map stormConf,
@@ -36,12 +43,15 @@ public class TopologyContext extends WorkerTopologyContext {
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
-            Map<String, Object> userResources, Map<String, Object> executorData) {
+            Map<String, Object> userResources, Map<String, Object> executorData, Map registeredMetrics,
+            clojure.lang.Atom openOrPrepareWasCalled) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
                 componentToStreamToFields, stormId, codeDir, pidDir,
                 workerPort, workerTasks, defaultResources, userResources);
         _taskId = taskId;
         _executorData = executorData;
+        _registeredMetrics = registeredMetrics;
+        _openOrPrepareWasCalled = openOrPrepareWasCalled;
     }
 
     /**
@@ -189,5 +199,51 @@ public class TopologyContext extends WorkerTopologyContext {
     
     public Collection<ITaskHook> getHooks() {
         return _hooks;
+    }
+
+    /*
+     * Register a IMetric instance. 
+     * Storm will then call getValueAndReset on the metric every timeBucketSizeInSecs
+     * and the returned value is sent to all metrics consumers.
+     * You must call this during IBolt::prepare or ISpout::open.
+     * @return The IMetric argument unchanged.
+     */
+    public IMetric registerMetric(String name, IMetric metric, int timeBucketSizeInSecs) {
+        if((Boolean)_openOrPrepareWasCalled.deref() == true) {
+            throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " + 
+                                       "IBolt::prepare() or ISpout::open() method.");
+        }
+        
+        Map m1 = _registeredMetrics;
+        if(!m1.containsKey(timeBucketSizeInSecs)) {
+            m1.put(timeBucketSizeInSecs, new HashMap());
+        }
+
+        Map m2 = (Map)m1.get(timeBucketSizeInSecs);
+        if(!m2.containsKey(_taskId)) {
+            m2.put(_taskId, new HashMap());
+        }
+
+        Map m3 = (Map)m2.get(_taskId);
+        if(m3.containsKey(name)) {
+            throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
+        } else {
+            m3.put(name, metric);
+        }
+
+        return metric;
+    }
+
+    /*
+     * Convinience method for registering ReducedMetric.
+     */
+    public IMetric registerMetric(String name, IReducer reducer, int timeBucketSizeInSecs) {
+        return registerMetric(name, new ReducedMetric(reducer), timeBucketSizeInSecs);
+    }
+    /*
+     * Convinience method for registering CombinedMetric.
+     */
+    public IMetric registerMetric(String name, ICombiner combiner, int timeBucketSizeInSecs) {
+        return registerMetric(name, new CombinedMetric(combiner), timeBucketSizeInSecs);
     }
 }

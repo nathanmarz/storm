@@ -269,7 +269,10 @@
                              interval)
                   data-points (->> name->imetric
                                    (map (fn [[name imetric]]
-                                          (IMetricsConsumer$DataPoint. name (.getValueAndReset ^IMetric imetric))))
+                                          (let [value (.getValueAndReset ^IMetric imetric)]
+                                            (if value
+                                              (IMetricsConsumer$DataPoint. name value)))))
+                                   (filter identity)
                                    (into []))]]
       (if (seq data-points)
         (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))

@@ -29,6 +29,10 @@ public class MeanReducer implements IReducer<MeanReducerState> {
     }
 
     public Object extractResult(MeanReducerState acc) {
-        return new Double(acc.sum / (double)acc.count);
+        if(acc.count > 0) {
+            return new Double(acc.sum / (double)acc.count);
+        } else {
+            return null;
+        }
     }
 }

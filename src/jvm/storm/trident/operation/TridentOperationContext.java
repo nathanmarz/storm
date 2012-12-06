@@ -29,4 +29,8 @@ public class TridentOperationContext {
     public int getPartitionIndex() {
         return _topoContext.getThisTaskIndex();
     }
+
+    public String getCodeDir() {
+        return _topoContext.getCodeDir();
+    }
 }

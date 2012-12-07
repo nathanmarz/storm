@@ -23,7 +23,10 @@ public class MultiReducedMetric implements IMetric {
     public Object getValueAndReset() {
         Map ret = new HashMap();
         for(Map.Entry<String, ReducedMetric> e : _value.entrySet()) {
-            ret.put(e.getKey(), e.getValue().getValueAndReset());
+            Object val = e.getValue().getValueAndReset();
+            if(val != null) {
+                ret.put(e.getKey(), val);
+            }
         }
         return ret;
     }

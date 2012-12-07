@@ -49,7 +49,7 @@ public class SubtopologyBolt implements ITridentBatchBolt {
         int thisComponentNumTasks = context.getComponentTasks(context.getThisComponentId()).size();
         for(Node n: _nodes) {
             if(n.stateInfo!=null) {
-                State s = n.stateInfo.spec.stateFactory.makeState(conf, context.getThisTaskIndex(), thisComponentNumTasks);
+                State s = n.stateInfo.spec.stateFactory.makeState(conf, context, context.getThisTaskIndex(), thisComponentNumTasks);
                 context.setTaskData(n.stateInfo.id, s);
             }
         }

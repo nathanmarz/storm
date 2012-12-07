@@ -1,12 +1,17 @@
 package storm.trident.operation;
 
-import backtype.storm.metric.api.*;
+import backtype.storm.metric.api.CombinedMetric;
+import backtype.storm.metric.api.ICombiner;
+import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.IReducer;
+import backtype.storm.metric.api.ReducedMetric;
+import backtype.storm.task.IMetricsContext;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 import storm.trident.tuple.TridentTuple;
 import storm.trident.tuple.TridentTupleView.ProjectionFactory;
 
-public class TridentOperationContext {
+public class TridentOperationContext implements IMetricsContext{
     TridentTuple.Factory _factory;
     TopologyContext _topoContext;
     

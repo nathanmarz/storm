@@ -20,8 +20,12 @@ rm -f *.jar
 rm -f *.xml
 time lein jar
 time lein pom
-if [ ! "$IS_DEV" ]; then
-  scp storm*jar pom.xml clojars@clojars.org:
+if [ "$IS_DEV" ]; then
+  mvn install:install-file -Dfile=storm-$RELEASE.jar -DpomFile=pom.xml \
+    -DartifactId=storm -DgroupId=storm -Dversion=$RELEASE -Dpackaging=jar \
+    -DgeneratePom=false
+else
+  scp storm*.jar pom.xml clojars@clojars.org:
 fi
 
 rm -f *.jar
@@ -29,10 +33,14 @@ rm -rf classes
 rm conf/log4j.properties
 time lein jar
 mv pom.xml old-pom.xml
-sed 's/artifactId\>storm/artifactId\>storm-lib/g' old-pom.xml > pom.xml
-  mv storm-$RELEASE.jar storm-lib-$RELEASE.jar
+sed 's/artifactId>storm/artifactId>storm-lib/g' old-pom.xml > pom.xml
+if diff old-pom.xml pom.xml; then
+  echo "Failed to replace storm with storm-lib in pom.xml" >&2
+  exit 1
+fi
+mv storm-$RELEASE.jar storm-lib-$RELEASE.jar
 if [ ! "$IS_DEV" ]; then
-  scp storm*jar pom.xml clojars@clojars.org:
+  scp storm*.jar pom.xml clojars@clojars.org:
   rm *xml
   rm *jar
 fi

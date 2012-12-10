@@ -8,8 +8,10 @@ import java.util.List;
 public class ComboList extends AbstractList<Object> {    
     public static class Factory implements Serializable {
         Pointer[] index;
+        int numLists;
         
         public Factory(int... sizes) {
+            numLists = sizes.length;
             int total = 0;
             for(int size: sizes) {
                 total+=size;
@@ -27,6 +29,9 @@ public class ComboList extends AbstractList<Object> {
         }
         
         public ComboList create(List[] delegates) {
+            if(delegates.length!=numLists) {
+                throw new RuntimeException("Expected " + numLists + " lists, but instead got " + delegates.length + " lists");
+            }
             return new ComboList(delegates, index);
         }
     }

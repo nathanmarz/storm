@@ -24,7 +24,7 @@ import org.apache.commons.lang.NotImplementedException;
  * <p>The TopologyContext is also used to declare ISubscribedState objects to
  * synchronize state with StateSpouts this object is subscribed to.</p>
  */
-public class TopologyContext extends WorkerTopologyContext {
+public class TopologyContext extends WorkerTopologyContext implements IMetricsContext {
     private Integer _taskId;
     private Map<String, Object> _taskData = new HashMap<String, Object>();
     private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();

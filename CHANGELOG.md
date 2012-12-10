@@ -37,6 +37,7 @@
  * Added MultiScheme interface (thanks sritchie)
  * Added MockTridentTuple for testing (thanks emblem)
  * Updated Trident Debug filter to take in an identifier to use when logging (thanks emblem)
+ * Bug fix: Fix for bug that could cause topology to hang when ZMQ blocks sending to a worker that got reassigned
  * Bug fix: Fix deadlock bug due to variant of dining philosophers problem. Spouts now use an overflow buffer to prevent blocking and guarantee that it can consume the incoming queue of acks/fails.
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified

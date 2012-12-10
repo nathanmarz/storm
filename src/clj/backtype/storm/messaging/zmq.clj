@@ -26,6 +26,8 @@
 (defprotocol ZMQContextQuery
   (zmq-context [this]))
 
+(def NOBLOCK-SNDMORE (bit-or ZMQ/SNDMORE ZMQ/NOBLOCK))
+
 (deftype ZMQConnection [socket ^ByteBuffer bb]
   Connection
   (recv-with-flags [this flags]
@@ -37,8 +39,8 @@
   (send [this task message]
     (.clear bb)
     (.putShort bb (short task))
-    (mq/send socket (.array bb) ZMQ/SNDMORE)
-    (mq/send socket message)) ;; TODO: temporarily remove the noblock flag
+    (mq/send socket (.array bb) NOBLOCK-SNDMORE)
+    (mq/send socket message ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
   (close [this]
     (.close socket)
     ))

@@ -88,8 +88,8 @@
 	</dependencies>
 
 	<build>
-		<sourceDirectory>src/jvm/main</sourceDirectory>
-		<testSourceDirectory>src/jvm/test</testSourceDirectory>
+		<sourceDirectory>src/jvm</sourceDirectory>
+		<testSourceDirectory>test/jvm</testSourceDirectory>
 		<resources>
 			<resource>
 				<directory>${basedir}/multilang</directory>

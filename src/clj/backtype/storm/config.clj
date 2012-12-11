@@ -74,11 +74,25 @@
     ret
     ))
 
+(defn nimbus-storage-local-dir [conf]
+  (let [storm-local-dir (conf STORM-LOCAL-DIR)
+        nimbus-local-dir (get conf "nimbus.local.dir")
+        local-dir (if-not (clojure.string/blank? nimbus-local-dir) nimbus-local-dir storm-local-dir)
+        ret (str local-dir "/nimbus")]
+    (FileUtils/forceMkdir (File. ret))
+    ret))
+
 (defn master-stormdist-root
   ([conf]
      (str (master-local-dir conf) "/stormdist"))
   ([conf storm-id]
      (str (master-stormdist-root conf) "/" storm-id)))
+
+(defn nimbus-storage-stormdist-root
+  ([]
+    "/stormdist")
+  ([storm-id]
+    (str (nimbus-storage-stormdist-root) "/" storm-id)))
 
 (defn master-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))

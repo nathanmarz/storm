@@ -8,7 +8,7 @@
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback
                      RotatingMap RotatingMap$ExpiredCallback
-                     BufferFileInputStream
+                     BufferInputStream BufferFileInputStream
                      RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
                      MutableObject MutableLong]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
@@ -44,5 +44,5 @@
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
      (import (quote [java.io File FileOutputStream FileInputStream]))
      (import (quote [java.util Collection List Random Map HashMap Collections ArrayList LinkedList]))
-     (import (quote [org.apache.commons.io FileUtils]))
+     (import (quote [org.apache.commons.io FileUtils IOUtils]))
      ))

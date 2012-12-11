@@ -813,3 +813,14 @@
   (let [klass (if (string? klass) (Class/forName klass) klass)]
     (.newInstance klass)
     ))
+
+(defn join-paths [^String left ^String right]
+  (let [l-slash (= \/ (last left))
+        r-slash (= \/ (first right))]
+    (if (and l-slash r-slash)
+      (let [right (.substring right 1)]
+        (str left right))
+      (if-not (or l-slash r-slash)
+        (str left "/" right)
+        (str left right)))))
+

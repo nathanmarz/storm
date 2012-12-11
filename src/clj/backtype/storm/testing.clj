@@ -99,6 +99,7 @@
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {}]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (zk/mk-inprocess-zookeeper zk-tmp)
+        nimbus-tmp (local-temp-path)
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
@@ -108,8 +109,8 @@
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
-                            STORM-ZOOKEEPER-SERVERS ["localhost"]})
-        nimbus-tmp (local-temp-path)
+                            STORM-ZOOKEEPER-SERVERS ["localhost"]
+                            "nimbus.local.dir" nimbus-tmp})
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)

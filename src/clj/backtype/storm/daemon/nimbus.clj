@@ -5,11 +5,13 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
+  (:import [java.io InputStream])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
+  (:use [backtype.storm.nimbus storage])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -54,6 +56,7 @@
      :uploaders (file-cache-map conf)
      :uptime (uptime-computer)
      :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
+     :storage (create-nimbus-storage conf)
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
                                  (halt-process! 20 "Error when processing an event")
@@ -64,13 +67,9 @@
 (defn inbox [nimbus]
   (master-inbox (:conf nimbus)))
 
-(defn- read-storm-conf [conf storm-id]
-  (let [stormroot (master-stormdist-root conf storm-id)]
-    (merge conf
-           (Utils/deserialize
-            (FileUtils/readFileToByteArray
-             (File. (master-stormconf-path stormroot))
-             )))))
+(defn- read-storm-conf [storage conf storm-id]
+  (let [stormroot (nimbus-storage-stormdist-root storm-id)]
+    (merge conf (deserialize-from-storage storage (master-stormconf-path stormroot)))))
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
@@ -87,7 +86,7 @@
   (fn [kill-time]
     (let [delay (if kill-time
                   kill-time
-                  (get (read-storm-conf (:conf nimbus) storm-id)
+                  (get (read-storm-conf (:storage nimbus) (:conf nimbus) storm-id)
                        TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
       (delay-event nimbus
                    storm-id
@@ -101,7 +100,7 @@
   (fn [time num-workers executor-overrides]
     (let [delay (if time
                   time
-                  (get (read-storm-conf (:conf nimbus) storm-id)
+                  (get (read-storm-conf (:storage nimbus) (:conf nimbus) storm-id)
                        TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
       (delay-event nimbus
                    storm-id
@@ -289,29 +288,25 @@
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
-  (let [stormroot (master-stormdist-root conf storm-id)]
-   (FileUtils/forceMkdir (File. stormroot))
-   (FileUtils/cleanDirectory (File. stormroot))
-   (setup-jar conf tmp-jar-location stormroot)
-   (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
-   (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
-   ))
+(defn- setup-storm-code [conf storage storm-id tmp-jar-location storm-conf topology]
+  (let [stormroot (nimbus-storage-stormdist-root storm-id)]
+   (ensure-clean-dir-in-storage storage stormroot)
+   (setup-jar conf storage tmp-jar-location stormroot)
+   (serialize-to-storage topology storage (master-stormcode-path stormroot))
+   (serialize-to-storage storm-conf storage (master-stormconf-path stormroot))))
 
-(defn- read-storm-topology [conf storm-id]
-  (let [stormroot (master-stormdist-root conf storm-id)]
-    (Utils/deserialize
-      (FileUtils/readFileToByteArray
-        (File. (master-stormcode-path stormroot))
-        ))))
+(defn- read-storm-topology [storage storm-id]
+  (let [stormroot (nimbus-storage-stormdist-root storm-id)]
+    (deserialize-from-storage storage (master-stormcode-path stormroot))))
 
 (declare compute-executor->component)
 
 (defn read-topology-details [nimbus storm-id]
   (let [conf (:conf nimbus)
+        storage (:storage nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
-        topology-conf (read-storm-conf conf storm-id)
-        topology (read-storm-topology conf storm-id)
+        topology-conf (read-storm-conf storage conf storm-id)
+        topology (read-storm-topology storage storm-id)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
                                             (ExecutorDetails. (int start-task) (int end-task)))))]
@@ -401,10 +396,11 @@
 
 (defn- compute-executors [nimbus storm-id]
   (let [conf (:conf nimbus)
+        storage (:storage nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
         component->executors (:component->executors storm-base)
-        storm-conf (read-storm-conf conf storm-id)
-        topology (read-storm-topology conf storm-id)
+        storm-conf (read-storm-conf storage conf storm-id)
+        topology (read-storm-topology storage storm-id)
         task->component (storm-task-info topology storm-conf)]
     (->> (storm-task-info topology storm-conf)
          reverse-map
@@ -417,9 +413,10 @@
 
 (defn- compute-executor->component [nimbus storm-id]
   (let [conf (:conf nimbus)
+        storage (:storage nimbus)
         executors (compute-executors nimbus storm-id)
-        topology (read-storm-topology conf storm-id)
-        storm-conf (read-storm-conf conf storm-id)
+        topology (read-storm-topology storage storm-id)
+        storm-conf (read-storm-conf storage conf storm-id)
         task->component (storm-task-info topology storm-conf)
         executor->component (into {} (for [executor executors
                                            :let [start-task (first executor)
@@ -673,7 +670,7 @@
                                                                         [id now-secs]
                                                                         )))]]
                                    {topology-id (Assignment.
-                                                 (master-stormdist-root conf topology-id)
+                                                 (nimbus-storage-stormdist-root topology-id)
                                                  (select-keys all-node->host all-nodes)
                                                  executor->node+port
                                                  start-times)}))]
@@ -702,8 +699,9 @@
   {:pre [(#{:active :inactive} topology-initial-status)]}                
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
-        storm-conf (read-storm-conf conf storm-id)
-        topology (system-topology! storm-conf (read-storm-topology conf storm-id))
+        storage (:storage nimbus)
+        storm-conf (read-storm-conf storage conf storm-id)
+        topology (system-topology! storm-conf (read-storm-topology storage storm-id))
         num-executors (->> (all-components topology) (map-val num-start-executors))]
     (log-message "Activating " storm-name ": " storm-id)
     (.activate-storm! storm-cluster-state
@@ -732,17 +730,13 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
-(defn code-ids [conf]
-  (-> conf
-      master-stormdist-root
-      read-dir-contents
-      set
-      ))
+(defn code-ids [storage]
+  (set (.list storage (nimbus-storage-stormdist-root))))
 
-(defn cleanup-storm-ids [conf storm-cluster-state]
+(defn cleanup-storm-ids [storage storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
         error-ids (set (.error-topologies storm-cluster-state))
-        code-ids (code-ids conf)
+        code-ids (code-ids storage)
         assigned-ids (set (.active-storms storm-cluster-state))]
     (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
     ))
@@ -805,15 +799,16 @@
 (defn do-cleanup [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
+        storage (:storage nimbus)
         submit-lock (:submit-lock nimbus)]
     (let [to-cleanup-ids (locking submit-lock
-                           (cleanup-storm-ids conf storm-cluster-state))]
+                           (cleanup-storm-ids storage storm-cluster-state))]
       (when-not (empty? to-cleanup-ids)
         (doseq [id to-cleanup-ids]
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
-          (rmr (master-stormdist-root conf id))
+          (.delete storage (nimbus-storage-stormdist-root id))
           (swap! (:heartbeats-cache nimbus) dissoc id))
         ))))
 
@@ -834,11 +829,11 @@
 
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        code-ids (set (code-ids (:conf nimbus)))
+        code-ids (code-ids (:storage nimbus))
         active-topologies (set (.active-storms storm-cluster-state))
         corrupt-topologies (set/difference active-topologies code-ids)]
     (doseq [corrupt corrupt-topologies]
-      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a dir in Nimbus storage. Cleaning up...")
       (.remove-storm! storm-cluster-state corrupt)
       )))
 
@@ -859,7 +854,8 @@
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf inimbus)]
+  (let [nimbus (nimbus-data conf inimbus)
+        storage (:storage nimbus)]
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))
@@ -911,7 +907,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
-              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+              (setup-storm-code conf storage storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
@@ -991,7 +987,7 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (let [is (BufferFileInputStream. file)
+        (let [is (BufferInputStream. (.open storage file))
               id (uuid)]
           (.put (:downloaders nimbus) id is)
           id
@@ -999,7 +995,7 @@
 
       (^ByteBuffer downloadChunk [this ^String id]
         (let [downloaders (:downloaders nimbus)
-              ^BufferFileInputStream is (.get downloaders id)]
+              ^BufferInputStream is (.get downloaders id)]
           (when-not is
             (throw (RuntimeException.
                     "Could not find input stream for that id")))
@@ -1014,13 +1010,13 @@
         (to-json (:conf nimbus)))
 
       (^String getTopologyConf [this ^String id]
-        (to-json (read-storm-conf conf id)))
+        (to-json (read-storm-conf storage conf id)))
 
       (^StormTopology getTopology [this ^String id]
-        (system-topology! (read-storm-conf conf id) (read-storm-topology conf id)))
+        (system-topology! (read-storm-conf storage conf id) (read-storm-topology storage id)))
 
       (^StormTopology getUserTopology [this ^String id]
-        (read-storm-topology conf id))
+        (read-storm-topology storage id))
 
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1063,7 +1059,9 @@
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              task->component (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
+              storm-topology (read-storm-topology storage storm-id)
+              storm-conf (read-storm-conf storage conf storm-id)
+              task->component (storm-task-info storm-topology storm-conf)
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
@@ -1125,14 +1123,13 @@
 
 ;; distributed implementation
 
-(defmethod setup-jar :distributed [conf tmp-jar-location stormroot]
+(defmethod setup-jar :distributed [conf storage tmp-jar-location stormroot]
            (let [src-file (File. tmp-jar-location)]
              (if-not (.exists src-file)
                (throw
                 (IllegalArgumentException.
-                 (str tmp-jar-location " to copy to " stormroot " does not exist!"))))
-             (FileUtils/copyFile src-file (File. (master-stormjar-path stormroot)))
-             ))
+                 (str tmp-jar-location " to copy to Nimbus storage does not exist!"))))
+             (upload-file-to-storage src-file storage (master-stormjar-path stormroot))))
 
 ;; local implementation
 

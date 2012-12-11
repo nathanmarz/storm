@@ -199,8 +199,12 @@ public class Config extends HashMap<String, Object> {
      * whether topologies are allowed to run or not.
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
-    
-    
+
+    /**
+     * Class that specifies Nimbus storage implementation (should impl INimbusStorage).
+     */
+    public static String NIMBUS_STORAGE = "nimbus.storage";
+
     /**
      * Storm UI binds to this port.
      */

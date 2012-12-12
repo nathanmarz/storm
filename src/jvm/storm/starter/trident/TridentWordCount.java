@@ -16,6 +16,7 @@ import storm.trident.operation.builtin.Count;
 import storm.trident.operation.builtin.FilterNull;
 import storm.trident.operation.builtin.MapGet;
 import storm.trident.operation.builtin.Sum;
+import storm.trident.planner.processor.StateQueryProcessor;
 import storm.trident.testing.MemoryMapState;
 import storm.trident.tuple.TridentTuple;
 
@@ -57,7 +58,6 @@ public class TridentWordCount {
                 .each(new Fields("count"), new FilterNull())
                 .aggregate(new Fields("count"), new Sum(), new Fields("sum"))
                 ;
-        
         return topology.build();
     }
     

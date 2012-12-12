@@ -32,6 +32,7 @@ public class SlidingWindowCounterTest {
         new SlidingWindowCounter<Object>(windowLengthInSlots);
     }
 
+    @Test
     public void newInstanceShouldHaveEmptyCounts() {
         // given
         SlidingWindowCounter<Object> counter = new SlidingWindowCounter<Object>(ANY_WINDOW_LENGTH_IN_SLOTS);

@@ -56,6 +56,7 @@ public class GroupedAggregator implements Aggregator<Object[]> {
         } else {
             curr = val.get(group);
         }
+        groupColl.currGroup = group;
         _agg.aggregate(curr, input, groupColl);
         
     }

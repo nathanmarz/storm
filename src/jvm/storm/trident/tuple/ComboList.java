@@ -3,15 +3,16 @@ package storm.trident.tuple;
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.List;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 
 public class ComboList extends AbstractList<Object> {    
     public static class Factory implements Serializable {
         Pointer[] index;
-        int numLists;
+        int[] sizes;
         
         public Factory(int... sizes) {
-            numLists = sizes.length;
+            this.sizes = sizes;
             int total = 0;
             for(int size: sizes) {
                 total+=size;
@@ -29,8 +30,14 @@ public class ComboList extends AbstractList<Object> {
         }
         
         public ComboList create(List[] delegates) {
-            if(delegates.length!=numLists) {
-                throw new RuntimeException("Expected " + numLists + " lists, but instead got " + delegates.length + " lists");
+            if(delegates.length!=sizes.length) {
+                throw new RuntimeException("Expected " + sizes.length + " lists, but instead got " + delegates.length + " lists");
+            }
+            for(int i=0; i<delegates.length; i++) {
+                List l = delegates[i];
+                if(l==null || l.size() != sizes[i]) {
+                    throw new RuntimeException("Got unexpected delegates to ComboList: " + ToStringBuilder.reflectionToString(delegates));
+                }
             }
             return new ComboList(delegates, index);
         }

@@ -28,6 +28,7 @@
  * Storm UI displays exception instead of blank page when there's an error rendering the page (thanks Frostman)
  * Added MultiScheme interface (thanks sritchie)
  * Added MockTridentTuple for testing (thanks emblem)
+ * Add whitelist methods to Cluster to allow only a subset of hosts to be revealed as available slots
  * Updated Trident Debug filter to take in an identifier to use when logging (thanks emblem)
  * Bug fix: Fix for bug that could cause topology to hang when ZMQ blocks sending to a worker that got reassigned
  * Bug fix: Fix deadlock bug due to variant of dining philosophers problem. Spouts now use an overflow buffer to prevent blocking and guarantee that it can consume the incoming queue of acks/fails.

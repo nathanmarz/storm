@@ -23,6 +23,8 @@ public class Cluster {
      * a map from hostname to supervisor id.
      */
     private Map<String, List<String>>        hostToId;
+    
+    private Set<String> whiteListedHosts = new HashSet<String>();
 
     public Cluster(Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments){
         this.supervisors = new HashMap<String, SupervisorDetails>(supervisors.size());
@@ -39,7 +41,11 @@ public class Cluster {
             this.hostToId.get(host).add(nodeId);
         }
     }
-
+    
+    public void setWhitelistedHosts(Set<String> hosts) {
+        whiteListedHosts = hosts;
+    }
+    
     /**
      * Gets all the topologies which needs scheduling.
      * 
@@ -161,6 +167,7 @@ public class Cluster {
      * @return
      */
     public List<WorkerSlot> getAvailableSlots(SupervisorDetails supervisor) {
+        if(whiteListedHosts!=null && !whiteListedHosts.isEmpty() && !whiteListedHosts.contains(supervisor.host)) return new ArrayList();
         List<Integer> ports = this.getAvailablePorts(supervisor);
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
 

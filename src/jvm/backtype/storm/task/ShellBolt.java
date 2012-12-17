@@ -123,6 +123,8 @@ public class ShellBolt implements IBolt {
                         if (write != null) {
                             _process.writeMessage(write);
                         }
+                        // drain the error stream to avoid dead lock because of full error stream buffer
+                        _process.drainErrorStream();
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
                         die(t);

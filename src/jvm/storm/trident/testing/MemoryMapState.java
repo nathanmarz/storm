@@ -1,5 +1,6 @@
 package storm.trident.testing;
 
+import backtype.storm.task.IMetricsContext;
 import storm.trident.state.ITupleCollection;
 import backtype.storm.tuple.Values;
 import java.util.*;
@@ -67,7 +68,7 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
         }
 
         @Override
-        public State makeState(Map conf, int partitionIndex, int numPartitions) {
+        public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
             return new MemoryMapState(_id);
         }
     }

@@ -48,6 +48,10 @@ public class Cluster {
         blackListedHosts = hosts;
     }
     
+    public Set<String> getBlacklistedHosts() {
+        return blackListedHosts;
+    }
+    
     public void blacklistHost(String host) {
         // this is so it plays well with setting blackListedHosts to an immutable list
         if(blackListedHosts==null) blackListedHosts = new HashSet<String>();
@@ -147,9 +151,9 @@ public class Cluster {
      * @param cluster
      * @return
      */
-    public List<Integer> getUsedPorts(SupervisorDetails supervisor) {
+    public Set<Integer> getUsedPorts(SupervisorDetails supervisor) {
         Map<String, SchedulerAssignment> assignments = this.getAssignments();
-        List<Integer> usedPorts = new ArrayList<Integer>();
+        Set<Integer> usedPorts = new HashSet<Integer>();
 
         for (SchedulerAssignment assignment : assignments.values()) {
             for (WorkerSlot slot : assignment.getExecutorToSlot().values()) {
@@ -168,14 +172,19 @@ public class Cluster {
      * @param cluster
      * @return
      */
-    public List<Integer> getAvailablePorts(SupervisorDetails supervisor) {
-        List<Integer> usedPorts = this.getUsedPorts(supervisor);
+    public Set<Integer> getAvailablePorts(SupervisorDetails supervisor) {
+        Set<Integer> usedPorts = this.getUsedPorts(supervisor);
 
-        List<Integer> ret = new ArrayList<Integer>();
-        ret.addAll(supervisor.allPorts);
+        Set<Integer> ret = new HashSet();
+        ret.addAll(getAssignablePorts(supervisor));
         ret.removeAll(usedPorts);
 
         return ret;
+    }
+    
+    public Set<Integer> getAssignablePorts(SupervisorDetails supervisor) {
+        if(isBlackListed(supervisor.id)) return new HashSet();
+        return supervisor.allPorts;
     }
 
     /**
@@ -185,8 +194,7 @@ public class Cluster {
      * @return
      */
     public List<WorkerSlot> getAvailableSlots(SupervisorDetails supervisor) {
-        if(isBlackListed(supervisor.id)) return new ArrayList();
-        List<Integer> ports = this.getAvailablePorts(supervisor);
+        Set<Integer> ports = this.getAvailablePorts(supervisor);
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
 
         for (Integer port : ports) {
@@ -194,6 +202,17 @@ public class Cluster {
         }
 
         return slots;
+    }
+    
+    public List<WorkerSlot> getAssignableSlots(SupervisorDetails supervisor) {
+        Set<Integer> ports = this.getAssignablePorts(supervisor);
+        List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
+
+        for (Integer port : ports) {
+            slots.add(new WorkerSlot(supervisor.getId(), port));
+        }
+
+        return slots;        
     }
     
     /**
@@ -267,6 +286,15 @@ public class Cluster {
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>();
         for (SupervisorDetails supervisor : this.supervisors.values()) {
             slots.addAll(this.getAvailableSlots(supervisor));
+        }
+
+        return slots;
+    }
+    
+    public List<WorkerSlot> getAssignableSlots() {
+        List<WorkerSlot> slots = new ArrayList<WorkerSlot>();
+        for (SupervisorDetails supervisor : this.supervisors.values()) {
+            slots.addAll(this.getAssignableSlots(supervisor));
         }
 
         return slots;

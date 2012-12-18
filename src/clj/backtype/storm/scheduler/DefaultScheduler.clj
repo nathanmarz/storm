@@ -28,9 +28,10 @@
   (->> slots
       (filter
         (fn [[node port]]
-          (if-let [supervisor (.getSupervisorById cluster node)]
-            (.contains (.getAllPorts supervisor) (int port))
-            )))))
+          (if-not (.isBlackListed cluster node)
+            (if-let [supervisor (.getSupervisorById cluster node)]
+              (.contains (.getAllPorts supervisor) (int port))
+              ))))))
 
 (defn -prepare [this conf]
   )

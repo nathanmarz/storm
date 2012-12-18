@@ -1,6 +1,7 @@
 (ns backtype.storm.scheduler-test
   (:use [clojure test])
   (:use [backtype.storm bootstrap config testing])
+  (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))
@@ -112,7 +113,8 @@
         assignment1 (SchedulerAssignmentImpl. "topology1" executor->slot1)
         assignment2 (SchedulerAssignmentImpl. "topology2" executor->slot2)
         assignment3 (SchedulerAssignmentImpl. "topology3" executor->slot3)
-        cluster (Cluster. {"supervisor1" supervisor1 "supervisor2" supervisor2}
+        cluster (Cluster. (nimbus/standalone-nimbus)
+                          {"supervisor1" supervisor1 "supervisor2" supervisor2}
                           {"topology1" assignment1 "topology2" assignment2 "topology3" assignment3})]
     ;; test Cluster constructor
     (is (= #{"supervisor1" "supervisor2"}

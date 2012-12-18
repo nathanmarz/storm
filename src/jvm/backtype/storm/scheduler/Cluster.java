@@ -24,9 +24,11 @@ public class Cluster {
      */
     private Map<String, List<String>>        hostToId;
     
-    private Set<String> whiteListedHosts = new HashSet<String>();
+    private Set<String> blackListedHosts = new HashSet<String>();
+    private INimbus inimbus;
 
-    public Cluster(Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments){
+    public Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments){
+        this.inimbus = nimbus;
         this.supervisors = new HashMap<String, SupervisorDetails>(supervisors.size());
         this.supervisors.putAll(supervisors);
         this.assignments = new HashMap<String, SchedulerAssignmentImpl>(assignments.size());
@@ -42,8 +44,24 @@ public class Cluster {
         }
     }
     
-    public void setWhitelistedHosts(Set<String> hosts) {
-        whiteListedHosts = hosts;
+    public void setBlacklistedHosts(Set<String> hosts) {
+        blackListedHosts = hosts;
+    }
+    
+    public void blacklistHost(String host) {
+        // this is so it plays well with setting blackListedHosts to an immutable list
+        if(blackListedHosts==null) blackListedHosts = new HashSet<String>();
+        if(!(blackListedHosts instanceof HashSet))
+            blackListedHosts = new HashSet<String>(blackListedHosts);
+        blackListedHosts.add(host);
+    }
+    
+    public boolean isBlackListed(String supervisorId) {
+        return blackListedHosts != null && blackListedHosts.contains(getHost(supervisorId));        
+    }
+    
+    public String getHost(String supervisorId) {
+        return inimbus.getHostName(supervisors, supervisorId);
     }
     
     /**
@@ -167,7 +185,7 @@ public class Cluster {
      * @return
      */
     public List<WorkerSlot> getAvailableSlots(SupervisorDetails supervisor) {
-        if(whiteListedHosts!=null && !whiteListedHosts.isEmpty() && !whiteListedHosts.contains(supervisor.host)) return new ArrayList();
+        if(isBlackListed(supervisor.id)) return new ArrayList();
         List<Integer> ports = this.getAvailablePorts(supervisor);
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
 

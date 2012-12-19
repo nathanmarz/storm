@@ -1,7 +1,7 @@
 (ns backtype.storm.scheduler.IsolationScheduler
-  (:use [backtype.storm util config])
+  (:use [backtype.storm util config log])
   (:require [backtype.storm.scheduler.DefaultScheduler :as DefaultScheduler])
-  (:import [java.util HashSet Set List LinkedList ArrayList])
+  (:import [java.util HashSet Set List LinkedList ArrayList Map HashMap])
   (:import [backtype.storm.scheduler IScheduler Topologies
             Cluster TopologyDetails WorkerSlot SchedulerAssignment
             EvenScheduler ExecutorDetails])
@@ -90,7 +90,7 @@
        .getAssignableSlots
        (group-by #(.getHost cluster (.getNodeId ^WorkerSlot %)) <>)
        (dissoc <> nil)
-       (sort-by #(-> % count -) <>)
+       (sort-by #(-> % second count -) <>)
        ))
 
 (defn- distribution->sorted-amts [distribution]
@@ -99,6 +99,39 @@
        (sort-by -)
        ))
 
+(defn- allocated-topologies [topology-worker-specs]
+  (->> topology-worker-specs
+    (filter (fn [[_ worker-specs]] (empty? worker-specs)))
+    (map first)
+    set
+    ))
+
+(defn- leftover-topologies [^Topologies topologies filter-ids-set]
+  (->> topologies
+       .getTopologies
+       (filter (fn [^TopologyDetails t] (not (contains? filter-ids-set (.getId t)))))
+       (map (fn [^TopologyDetails t] {(.getId t) t}))
+       (Topologies.)
+       ))
+
+;; for each isolated topology:
+;;   compute even distribution of executors -> workers on the number of workers specified for the topology
+;;   compute distribution of workers to machines
+;; determine host -> list of [slot, topology id, executors]
+;; iterate through hosts and: a machine is good if:
+;;   1. only running workers from one isolated topology
+;;   2. all workers running on it match one of the distributions of executors for that topology
+;;   3. matches one of the # of workers
+;; blacklist the good hosts and remove those workers from the list of need to be assigned workers
+;; otherwise unassign all other workers for isolated topologies if assigned
+
+;; get host -> all assignable worker slots for non-blacklisted machines (assigned or not assigned)
+;; will then have a list of machines that need to be assigned (machine -> [topology, list of list of executors])
+;; match each spec to a machine (who has the right number of workers), free everything else on that machine and assign those slots (do one topology at a time)
+;; blacklist all machines who had production slots defined
+;; log isolated topologies who weren't able to get enough slots / machines
+;; run default scheduler on isolated topologies that didn't have enough slots + non-isolated topologies on remaining machines
+;; set blacklist to what it was initially
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (let [conf (container-get (.state this))        
         orig-blacklist (HashSet. (.getBlacklistedHosts cluster))
@@ -131,37 +164,26 @@
               :let [worker-specs (LinkedList. worker-specs)
                     amts (distribution->sorted-amts (get topology-machine-distribution top-id))]]
         (doseq [amt amts
-                :let [host-slots (.peek sorted-assignable-hosts)]]
+                :let [[host host-slots] (.peek sorted-assignable-hosts)]]
           (when (and host-slots (>= (count host-slots) amt))
-            (.poll sorted-assignable-slots)
+            (.poll sorted-assignable-hosts)
             (.freeSlots cluster host-slots)
             (doseq [slot (take amt host-slots)
                     :let [executors-set (.poll worker-specs)]]
               (.assign cluster slot top-id executors-set))
-            ;; TODO: blacklist this host
-            )
+            (.blacklistHost cluster host))
           )))
     
-    ;; log which iso topologies weren't fully assigned (anyone who still has pending workers)
-    ;; run default scheduler on iso topologies that didn't have enough slot + non-isolated topologies
+    (doseq [[top-id worker-specs] topology-worker-specs]
+      (if-not (empty? worker-specs)
+        (log-warn "Unable to isolate topology " top-id)
+        ))
     
+    
+    ;; run default scheduler on iso topologies that didn't have enough slot + non-isolated topologies
+    (->> topology-worker-specs
+         allocated-topologies
+         (leftover-topologies topologies)
+         (DefaultScheduler/default-schedule cluster))
     (.setBlacklistedHosts cluster orig-blacklist)
     ))
-  ;; for each isolated topology:
-  ;;   compute even distribution of executors -> workers on the number of workers specified for the topology
-  ;;   compute distribution of workers to machines
-  ;; determine host -> list of [slot, topology id, executors]
-  ;; iterate through hosts and: a machine is good if:
-  ;;   1. only running workers from one isolated topology
-  ;;   2. all workers running on it match one of the distributions of executors for that topology
-  ;;   3. matches one of the # of workers
-  ;; blacklist the good hosts and remove those workers from the list of need to be assigned workers
-  ;; otherwise unassign all other workers for isolated topologies if assigned
-  
-  ;; get host -> all assignable worker slots for non-blacklisted machines (assigned or not assigned)
-  ;; will then have a list of machines that need to be assigned (machine -> [topology, list of list of executors])
-  ;; match each spec to a machine (who has the right number of workers), free everything else on that machine and assign those slots (do one topology at a time)
-  ;; blacklist all machines who had production slots defined
-  ;; log isolated topologies who weren't able to get enough slots / machines
-  ;; run default scheduler on isolated topologies that didn't have enough slots + non-isolated topologies on remaining machines
-  ;; set blacklist to what it was initially

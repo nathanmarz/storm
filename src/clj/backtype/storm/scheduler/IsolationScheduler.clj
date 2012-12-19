@@ -38,12 +38,13 @@
        (map-val #(map second %))
        vals
        (map set)
-       (HashSet.)))
+       (HashSet.)
+       ))
 
 (defn isolated-topologies [conf topologies]
   (let [tset (-> conf (get ISOLATION-SCHEDULER-MACHINES) keys set)]
-    (filter (fn [^TopologyDetails t] (contains? tset (.getName t)) topologies)
-    )))
+    (filter (fn [^TopologyDetails t] (contains? tset (.getName t))) topologies)
+    ))
 
 ;; map from topology id -> set of sets of executors
 (defn topology-worker-specs [iso-topologies]
@@ -73,7 +74,8 @@
                  (map (fn [[slot executors]]
                         [slot (.getTopologyId ass) (set executors)]))))]
   (->> cluster
-       (.getAssignments cluster)
+       .getAssignments
+       vals
        (mapcat to-slot-specs)
        (group-by (fn [[^WorkerSlot slot & _]] (.getHost cluster (.getNodeId slot))))
        )))
@@ -91,6 +93,7 @@
        (group-by #(.getHost cluster (.getNodeId ^WorkerSlot %)) <>)
        (dissoc <> nil)
        (sort-by #(-> % second count -) <>)
+       (LinkedList. <>)
        ))
 
 (defn- distribution->sorted-amts [distribution]
@@ -111,6 +114,7 @@
        .getTopologies
        (filter (fn [^TopologyDetails t] (not (contains? filter-ids-set (.getId t)))))
        (map (fn [^TopologyDetails t] {(.getId t) t}))
+       (apply merge)
        (Topologies.)
        ))
 
@@ -125,6 +129,12 @@
 ;; blacklist the good hosts and remove those workers from the list of need to be assigned workers
 ;; otherwise unassign all other workers for isolated topologies if assigned
 
+(defn remove-elem-from-set! [^Set aset]
+  (let [elem (-> aset .iterator .next)]
+    (.remove aset elem)
+    elem
+    ))
+
 ;; get host -> all assignable worker slots for non-blacklisted machines (assigned or not assigned)
 ;; will then have a list of machines that need to be assigned (machine -> [topology, list of list of executors])
 ;; match each spec to a machine (who has the right number of workers), free everything else on that machine and assign those slots (do one topology at a time)
@@ -135,7 +145,7 @@
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (let [conf (container-get (.state this))        
         orig-blacklist (HashSet. (.getBlacklistedHosts cluster))
-        iso-topologies (isolated-topologies (.getTopologies topologies))
+        iso-topologies (isolated-topologies conf (.getTopologies topologies))
         iso-ids-set (->> iso-topologies (map #(.getId ^TopologyDetails %)) set)
         topology-worker-specs (topology-worker-specs iso-topologies)
         topology-machine-distribution (topology-machine-distribution conf iso-topologies)
@@ -161,15 +171,14 @@
     (let [^LinkedList sorted-assignable-hosts (host-assignable-slots cluster)]
       ;; TODO: can improve things further by ordering topologies in terms of who needs the least workers
       (doseq [[top-id worker-specs] topology-worker-specs
-              :let [worker-specs (LinkedList. worker-specs)
-                    amts (distribution->sorted-amts (get topology-machine-distribution top-id))]]
+              :let [amts (distribution->sorted-amts (get topology-machine-distribution top-id))]]
         (doseq [amt amts
                 :let [[host host-slots] (.peek sorted-assignable-hosts)]]
           (when (and host-slots (>= (count host-slots) amt))
             (.poll sorted-assignable-hosts)
             (.freeSlots cluster host-slots)
             (doseq [slot (take amt host-slots)
-                    :let [executors-set (.poll worker-specs)]]
+                    :let [executors-set (remove-elem-from-set! worker-specs)]]
               (.assign cluster slot top-id executors-set))
             (.blacklistHost cluster host))
           )))
@@ -181,9 +190,9 @@
     
     
     ;; run default scheduler on iso topologies that didn't have enough slot + non-isolated topologies
-    (->> topology-worker-specs
+    (-<> topology-worker-specs
          allocated-topologies
-         (leftover-topologies topologies)
-         (DefaultScheduler/default-schedule cluster))
+         (leftover-topologies topologies <>)
+         (DefaultScheduler/default-schedule <> cluster))
     (.setBlacklistedHosts cluster orig-blacklist)
     ))

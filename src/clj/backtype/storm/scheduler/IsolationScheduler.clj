@@ -1,7 +1,7 @@
 (ns backtype.storm.scheduler.IsolationScheduler
   (:use [backtype.storm util config])
   (:require [backtype.storm.scheduler.DefaultScheduler :as DefaultScheduler])
-  (:import [java.util HashSet])
+  (:import [java.util HashSet Set List LinkedList ArrayList])
   (:import [backtype.storm.scheduler IScheduler Topologies
             Cluster TopologyDetails WorkerSlot SchedulerAssignment
             EvenScheduler ExecutorDetails])
@@ -45,6 +45,7 @@
     (filter (fn [^TopologyDetails t] (contains? tset (.getName t)) topologies)
     )))
 
+;; map from topology id -> set of sets of executors
 (defn topology-worker-specs [iso-topologies]
   (->> iso-topologies
        (map (fn [t] {(.getId t) (compute-worker-specs t)}))
@@ -64,13 +65,87 @@
        (map (fn [t] {(.getId t) (machine-distribution conf t)}))
        (apply merge)))
 
+(defn host-assignments [^Cluster cluster]
+  (letfn [(to-slot-specs [^SchedulerAssignment ass]
+            (->> ass
+                 .getExecutorToSlot
+                 reverse-map
+                 (map (fn [[slot executors]]
+                        [slot (.getTopologyId ass) (set executors)]))))]
+  (->> cluster
+       (.getAssignments cluster)
+       (mapcat to-slot-specs)
+       (group-by (fn [[^WorkerSlot slot & _]] (.getHost cluster (.getNodeId slot))))
+       )))
+
+(defn- decrement-distribution! [^Map distribution value]
+  (let [v (-> distribution (get value) dec)]
+    (if (zero? v)
+      (.remove distribution value)
+      (.put distribution value v))))
+
+;; returns list of list of slots, reverse sorted by number of slots
+(defn- host-assignable-slots [^Cluster cluster]
+  (-<> cluster
+       .getAssignableSlots
+       (group-by #(.getHost cluster (.getNodeId ^WorkerSlot %)) <>)
+       (dissoc <> nil)
+       (sort-by #(-> % count -) <>)
+       ))
+
+(defn- distribution->sorted-amts [distribution]
+  (->> distribution
+       (mapcat (fn [[val amt]] (repeat amt val)))
+       (sort-by -)
+       ))
+
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (let [conf (container-get (.state this))        
         orig-blacklist (HashSet. (.getBlacklistedHosts cluster))
         iso-topologies (isolated-topologies (.getTopologies topologies))
+        iso-ids-set (->> iso-topologies (map #(.getId ^TopologyDetails %)) set)
         topology-worker-specs (topology-worker-specs iso-topologies)
-        topology-machine-distribution (topology-machine-distribution conf iso-topologies)]
-        
+        topology-machine-distribution (topology-machine-distribution conf iso-topologies)
+        host-assignments (host-assignments cluster)]
+    (doseq [[host assignments] host-assignments]
+      (let [top-id (-> assignments first second)
+            distribution (get topology-machine-distribution top-id)
+            ^Set worker-specs (get topology-worker-specs top-id)
+            num-workers (count host-assignments)
+            ]
+        (if (and (every? #(= (second %) top-id) assignments)
+                 (contains? distribution num-workers)
+                 (every? #(contains? worker-specs (nth % 2)) assignments))
+          (do (decrement-distribution! distribution num-workers)
+              (doseq [[_ _ executors] assignments] (.remove worker-specs executors))
+              (.blacklistHost cluster host))
+          (doseq [[slot top-id _] assignments]
+            (when (contains? iso-ids-set top-id)
+              (.freeSlot cluster slot)
+              ))
+          )))
+    
+    (let [^LinkedList sorted-assignable-hosts (host-assignable-slots cluster)]
+      ;; TODO: can improve things further by ordering topologies in terms of who needs the least workers
+      (doseq [[top-id worker-specs] topology-worker-specs
+              :let [worker-specs (LinkedList. worker-specs)
+                    amts (distribution->sorted-amts (get topology-machine-distribution top-id))]]
+        (doseq [amt amts
+                :let [host-slots (.peek sorted-assignable-hosts)]]
+          (when (and host-slots (>= (count host-slots) amt))
+            (.poll sorted-assignable-slots)
+            (.freeSlots cluster host-slots)
+            (doseq [slot (take amt host-slots)
+                    :let [executors-set (.poll worker-specs)]]
+              (.assign cluster slot top-id executors-set))
+            ;; TODO: blacklist this host
+            )
+          )))
+    
+    ;; log which iso topologies weren't fully assigned (anyone who still has pending workers)
+    ;; run default scheduler on iso topologies that didn't have enough slot + non-isolated topologies
+    
+    (.setBlacklistedHosts cluster orig-blacklist)
     ))
   ;; for each isolated topology:
   ;;   compute even distribution of executors -> workers on the number of workers specified for the topology
@@ -82,6 +157,7 @@
   ;;   3. matches one of the # of workers
   ;; blacklist the good hosts and remove those workers from the list of need to be assigned workers
   ;; otherwise unassign all other workers for isolated topologies if assigned
+  
   ;; get host -> all assignable worker slots for non-blacklisted machines (assigned or not assigned)
   ;; will then have a list of machines that need to be assigned (machine -> [topology, list of list of executors])
   ;; match each spec to a machine (who has the right number of workers), free everything else on that machine and assign those slots (do one topology at a time)

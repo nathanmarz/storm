@@ -9,6 +9,7 @@ public class Topologies {
     Map<String, String> nameToId;
     
     public Topologies(Map<String, TopologyDetails> topologies) {
+        if(topologies==null) topologies = new HashMap();
         this.topologies = new HashMap<String, TopologyDetails>(topologies.size());
         this.topologies.putAll(topologies);
         this.nameToId = new HashMap<String, String>(topologies.size());

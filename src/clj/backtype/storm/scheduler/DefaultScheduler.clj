@@ -28,14 +28,15 @@
   (->> slots
       (filter
         (fn [[node port]]
-          (if-let [supervisor (.getSupervisorById cluster node)]
-            (.contains (.getAllPorts supervisor) (int port))
-            )))))
+          (if-not (.isBlackListed cluster node)
+            (if-let [supervisor (.getSupervisorById cluster node)]
+              (.contains (.getAllPorts supervisor) (int port))
+              ))))))
 
 (defn -prepare [this conf]
   )
 
-(defn -schedule [this ^Topologies topologies ^Cluster cluster]
+(defn default-schedule [^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
@@ -54,3 +55,6 @@
                                 [])]]
       (.freeSlots cluster bad-slots)
       (EvenScheduler/schedule-topologies-evenly (Topologies. {topology-id topology}) cluster))))
+
+(defn -schedule [this ^Topologies topologies ^Cluster cluster]
+  (default-schedule topologies cluster))

@@ -108,6 +108,11 @@
     (is (= dist (multi-set distribution)))
     ))
 
+(defn disjoint? [& sets]
+  (let [combined (apply concat sets)]
+    (= (count combined) (count (set combined)))
+    ))
+
 (defnk check-consistency [cluster storm-name :assigned? true]
   (let [state (:storm-cluster-state cluster)
         storm-id (get-storm-id state storm-name)
@@ -216,6 +221,8 @@
 
       (is (= {2 3} (topology-node-distribution state "tester1")))
       (is (= {3 2} (topology-node-distribution state "tester2")))
+      
+      (is (apply disjoint? (map (partial topology-nodes state) ["noniso" "tester1" "tester2"])))
       
       (check-consistency cluster "tester1")
       (check-consistency cluster "tester2")

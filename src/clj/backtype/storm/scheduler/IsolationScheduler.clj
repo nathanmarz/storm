@@ -93,6 +93,7 @@
        (group-by #(.getHost cluster (.getNodeId ^WorkerSlot %)) <>)
        (dissoc <> nil)
        (sort-by #(-> % second count -) <>)
+       shuffle
        (LinkedList. <>)
        ))
 
@@ -160,7 +161,7 @@
       (let [top-id (-> assignments first second)
             distribution (get topology-machine-distribution top-id)
             ^Set worker-specs (get topology-worker-specs top-id)
-            num-workers (count host-assignments)
+            num-workers (count assignments)
             ]
         (if (and (contains? iso-ids-set top-id)
                  (every? #(= (second %) top-id) assignments)

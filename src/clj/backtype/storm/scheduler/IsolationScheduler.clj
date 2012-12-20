@@ -96,6 +96,12 @@
        (LinkedList. <>)
        ))
 
+(defn- host->used-slots [^Cluster cluster]
+  (->> cluster
+       .getUsedSlots
+       (group-by #(.getHost cluster (.getNodeId ^WorkerSlot %)))
+       ))
+
 (defn- distribution->sorted-amts [distribution]
   (->> distribution
        (mapcat (fn [[val amt]] (repeat amt val)))
@@ -156,7 +162,8 @@
             ^Set worker-specs (get topology-worker-specs top-id)
             num-workers (count host-assignments)
             ]
-        (if (and (every? #(= (second %) top-id) assignments)
+        (if (and (contains? iso-ids-set top-id)
+                 (every? #(= (second %) top-id) assignments)
                  (contains? distribution num-workers)
                  (every? #(contains? worker-specs (nth % 2)) assignments))
           (do (decrement-distribution! distribution num-workers)
@@ -168,7 +175,8 @@
               ))
           )))
     
-    (let [^LinkedList sorted-assignable-hosts (host-assignable-slots cluster)]
+    (let [host->used-slots (host->used-slots cluster)
+          ^LinkedList sorted-assignable-hosts (host-assignable-slots cluster)]
       ;; TODO: can improve things further by ordering topologies in terms of who needs the least workers
       (doseq [[top-id worker-specs] topology-worker-specs
               :let [amts (distribution->sorted-amts (get topology-machine-distribution top-id))]]
@@ -176,7 +184,7 @@
                 :let [[host host-slots] (.peek sorted-assignable-hosts)]]
           (when (and host-slots (>= (count host-slots) amt))
             (.poll sorted-assignable-hosts)
-            (.freeSlots cluster host-slots)
+            (.freeSlots cluster (get host->used-slots host))
             (doseq [slot (take amt host-slots)
                     :let [executors-set (remove-elem-from-set! worker-specs)]]
               (.assign cluster slot top-id executors-set))

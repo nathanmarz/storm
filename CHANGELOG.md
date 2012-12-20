@@ -1,5 +1,6 @@
 ## Unreleased
 
+ * Added backtype.storm.scheduler.IsolationScheduler. This lets you run topologies that are completely isolated at the machine level. Configure Nimbus to isolate certain topologies, and how many machines to give to each of those topologies, with the isolation.scheduler.machines config in Nimbus's storm.yaml. Topologies run on the cluster that are not listed there will share whatever remaining machines there are on the cluster after machines are allocated to the listed topologies.
  * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)
  * Added report-error! to Clojure DSL
  * Automatically throttle errors sent to Zookeeper/Storm UI when too many are reported in a time interval (all errors are still logged) Configured with TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL and TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
@@ -28,12 +29,14 @@
  * Storm UI displays exception instead of blank page when there's an error rendering the page (thanks Frostman)
  * Added MultiScheme interface (thanks sritchie)
  * Added MockTridentTuple for testing (thanks emblem)
+ * Add whitelist methods to Cluster to allow only a subset of hosts to be revealed as available slots
  * Updated Trident Debug filter to take in an identifier to use when logging (thanks emblem)
  * Bug fix: Fix for bug that could cause topology to hang when ZMQ blocks sending to a worker that got reassigned
  * Bug fix: Fix deadlock bug due to variant of dining philosophers problem. Spouts now use an overflow buffer to prevent blocking and guarantee that it can consume the incoming queue of acks/fails.
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
  * Bug fix: fixed NPE when emitting during emit method of Aggregator
+ * Bug fix: URLs with periods in them in Storm UI now route correctly
   
 ## 0.8.1
 

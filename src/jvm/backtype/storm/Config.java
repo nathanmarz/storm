@@ -590,6 +590,12 @@ public class Config extends HashMap<String, Object> {
      * it is not a production grade zookeeper setup.
      */
     public static String DEV_ZOOKEEPER_PATH = "dev.zookeeper.path";
+    
+    /**
+     * A map from topology name to the number of machines that should be dedicated for that topology. Set storm.scheduler
+     * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
+     */
+    public static String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
         
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

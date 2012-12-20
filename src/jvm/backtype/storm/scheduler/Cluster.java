@@ -320,8 +320,10 @@ public class Cluster {
      * @param slots
      */
     public void freeSlots(Collection<WorkerSlot> slots) {
-        for (WorkerSlot slot : slots) {
-            this.freeSlot(slot);
+        if(slots!=null) {
+            for (WorkerSlot slot : slots) {
+                this.freeSlot(slot);
+            }
         }
     }
 

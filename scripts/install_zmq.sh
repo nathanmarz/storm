@@ -57,6 +57,14 @@ cd $WORKDIR/src && \
     git clone -q https://github.com/nathanmarz/jzmq.git && \
     cd jzmq && ./autogen.sh || exit 1
 
+# XXX: Fix what appears to be a dependency on a hardcoded
+# make target. This does not build with autogen 5.12
+#
+grep classnoinst.stamp: src/Makefile.in > /dev/null
+if [ $? -eq 0 ]; then
+	sed -i -e 's/classdist_noinst.stamp/classnoinst.stamp/' src/Makefile.in
+fi
+
 if [ "$ROOT_INSTALL" == "1" ]; then
 	./configure && make && sudo make install
 else

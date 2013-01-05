@@ -1,0 +1,12 @@
+language: clojure
+
+env:
+  global:
+    - ROOT_INSTALL="0"
+    - JVM_OPTS="-Djava.library.path=./tmp/jzmq/lib"
+
+before_script:
+  - ./scripts/install_zmq.sh
+  - sed -i -e 's/^.*:jvm-opts.*$//' project.clj
+
+#after_success: ./scripts/build_release.sh

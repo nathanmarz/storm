@@ -23,20 +23,48 @@ fi
 
 export JAVA_HOME
 
-#install zeromq
-wget http://download.zeromq.org/zeromq-2.1.7.tar.gz
-tar -xzf zeromq-2.1.7.tar.gz
-cd zeromq-2.1.7
-./configure
-make
-sudo make install
+#
+# If ROOT_INSTALL != 1, then dependencies are installed to
+# <topdir>/tmp
+#
+ROOT_INSTALL=${ROOT_INSTALL:-1}
 
-cd ../
+TOPDIR="$PWD"
+WORKDIR="$TOPDIR/tmp"
+
+mkdir -p $WORKDIR/src
+
+#install zeromq
+cd $WORKDIR/src && \
+    wget -q http://download.zeromq.org/zeromq-2.1.7.tar.gz && \
+    tar -xzf zeromq-2.1.7.tar.gz && \
+    cd zeromq-2.1.7 || exit 1
+
+if [ "$ROOT_INSTALL" == "1" ]; then
+	./configure && make && sudo make install
+else
+	./configure --prefix $WORKDIR/zeromq-2.1.7 && \
+	    make && make install
+fi
+
+if [ $? -ne 0 ]; then
+	echo "Failed to build zeromq"
+	exit 1
+fi
 
 #install jzmq (both native and into local maven cache)
-git clone https://github.com/nathanmarz/jzmq.git
-cd jzmq
-./autogen.sh
-./configure
-make
-sudo make install
+cd $WORKDIR/src && \
+    git clone -q https://github.com/nathanmarz/jzmq.git && \
+    cd jzmq && ./autogen.sh || exit 1
+
+if [ "$ROOT_INSTALL" == "1" ]; then
+	./configure && make && sudo make install
+else
+	./configure --prefix $WORKDIR/jzmq --with-zeromq=$WORKDIR/zeromq-2.1.7 && \
+	    make && make install
+fi
+
+if [ $? -ne 0 ]; then
+	echo "Failed to build jzmq"
+	exit 1
+fi

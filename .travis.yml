@@ -1,5 +1,8 @@
 language: clojure
 
+jdk:
+  - openjdk6
+
 env:
   global:
     - ROOT_INSTALL="0"
@@ -9,4 +12,8 @@ before_script:
   - ./scripts/install_zmq.sh
   - sed -i -e 's/^.*:jvm-opts.*$//' project.clj
 
-#after_success: ./scripts/build_release.sh
+# Run the build script just to verify it works.
+# TODO: Upload build artifacts to S3?
+#   See: http://about.travis-ci.org/blog/2012-12-18-travis-artifacts/
+#
+after_success: ./scripts/build_release.sh

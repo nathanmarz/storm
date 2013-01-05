@@ -223,6 +223,16 @@ public class Config extends HashMap<String, Object> {
     public static String DRPC_PORT = "drpc.port";
     
     /**
+     * DRPC thrift server worker threads 
+     */
+    public static String DRPC_WORKER_THREADS = "drpc.worker.threads";
+
+    /**
+     * DRPC thrift server queue size 
+     */
+    public static String DRPC_QUEUE_SIZE = "drpc.queue.size";
+    
+    /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
     public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  

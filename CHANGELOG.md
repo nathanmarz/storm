@@ -47,6 +47,7 @@
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
  * Bug fix: fixed NPE when emitting during emit method of Aggregator
  * Bug fix: URLs with periods in them in Storm UI now route correctly
+ * Bug fix: Fix occasional cascading worker crashes due when a worker dies due to not removing connections from connection cache appropriately
   
 ## 0.8.1
 

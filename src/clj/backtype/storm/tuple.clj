@@ -5,4 +5,4 @@
 (bootstrap)
 
 (defn list-hash-code [^List alist]
-  (.hashCode alist))
+  (java.util.Arrays/deepHashCode (.toArray alist)))

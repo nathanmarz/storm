@@ -252,7 +252,7 @@
                 (.close (get @(:cached-node+port->socket worker) endpoint)))
               (apply swap!
                      (:cached-node+port->socket worker)
-                     #(HashMap. (dissoc (into {} %1) %&))
+                     #(HashMap. (apply dissoc (into {} %1) %&))
                      remove-connections)
               
               (let [missing-tasks (->> needed-tasks

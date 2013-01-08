@@ -41,6 +41,7 @@
  * Updated Trident Debug filter to take in an identifier to use when logging (thanks emblem)
  * Number of DRPC server worker threads now customizable (thanks xiaokang)
  * DRPC server now uses a bounded queue for requests to prevent being overloaded with requests (thanks xiaokang)
+ * Add __hash__ method to all generated Python Thrift objects so that Python code can read Nimbus stats which use Thrift objects as dict keys
  * Bug fix: Fix for bug that could cause topology to hang when ZMQ blocks sending to a worker that got reassigned
  * Bug fix: Fix deadlock bug due to variant of dining philosophers problem. Spouts now use an overflow buffer to prevent blocking and guarantee that it can consume the incoming queue of acks/fails.
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology

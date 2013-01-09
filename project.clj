@@ -2,9 +2,7 @@
   :source-path "src/clj"
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}
-  :repositories {;;"releases" "http://artifactory.local.twitter.com/libs-releases-local"
-                 ;;"snapshots" "http://artifactory.local.twitter.com/libs-snapshots-local"
-                 "conjars" "http://conjars.org/repo/"}
+  :repositories {"conjars" "http://conjars.org/repo/"}
   :dependencies [[com.twitter/kafka_2.9.2 "0.7.0"
                   :exclusions [org.apache.zookeeper/zookeeper
                                log4j/log4j]]]

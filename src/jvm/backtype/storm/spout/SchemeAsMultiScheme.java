@@ -13,7 +13,9 @@ public class SchemeAsMultiScheme implements MultiScheme {
   }
 
   @Override public Iterable<List<Object>> deserialize(final byte[] ser) {
-    return Arrays.asList(scheme.deserialize(ser));
+    List<Object> o = scheme.deserialize(ser);
+    if(o == null) return null;
+    else return Arrays.asList(o);
   }
 
   @Override public Fields getOutputFields() {

@@ -158,7 +158,7 @@ public class PartitionManager {
             LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;
         }
-        LOG.info("Comitted offset for " + _partition);
+        LOG.info("Committed offset " + committedTo + " for " + _partition);
     }
 
     private String committedPath() {

@@ -1,10 +1,8 @@
 package storm.kafka;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
+import backtype.storm.metric.api.IMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +13,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import kafka.message.Message;
 import storm.kafka.PartitionManager.KafkaMessageId;
+import storm.kafka.trident.KafkaUtils;
 
 // TODO: need to add blacklisting
 // TODO: need to make a best effort to not re-emit messages if don't have to
@@ -43,7 +42,7 @@ public class KafkaSpout extends BaseRichSpout {
     PartitionCoordinator _coordinator;
     DynamicPartitionConnections _connections;
     ZkState _state;
-    
+
     long _lastUpdateMs = 0;
 
     int _currPartitionIndex = 0;
@@ -53,7 +52,7 @@ public class KafkaSpout extends BaseRichSpout {
     }
 
     @Override
-    public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+    public void open(Map conf, TopologyContext context, final SpoutOutputCollector collector) {
         _collector = collector;
 
 	Map stateConf = new HashMap(conf);
@@ -76,6 +75,20 @@ public class KafkaSpout extends BaseRichSpout {
             _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         }
 
+        context.registerMetric("kafkaOffset", new IMetric() {
+            KafkaUtils.KafkaOffsetMetric _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_spoutConfig.topic, _connections);
+            @Override
+            public Object getValueAndReset() {
+                List<PartitionManager> pms = _coordinator.getMyManagedPartitions();
+                Set<GlobalPartitionId> latestPartitions = new HashSet();
+                for(PartitionManager pm : pms) { latestPartitions.add(pm.getPartition()); }
+                _kafkaOffsetMetric.refreshPartitions(latestPartitions);
+                for(PartitionManager pm : pms) {
+                    _kafkaOffsetMetric.setLatestEmittedOffset(pm.getPartition(), pm.lastCompletedOffset());
+                }
+                return _kafkaOffsetMetric.getValueAndReset();
+            }
+        }, 60);
     }
 
     @Override

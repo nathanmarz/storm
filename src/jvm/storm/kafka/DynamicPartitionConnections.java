@@ -36,16 +36,22 @@ public class DynamicPartitionConnections {
         info.partitions.add(partition);
         return info.consumer;
     }
+
+    public SimpleConsumer getConnection(GlobalPartitionId id) {
+        ConnectionInfo info = _connections.get(id.host);
+        if(info != null) return info.consumer;
+        return null;
+    }
     
     public void unregister(HostPort port, int partition) {
         ConnectionInfo info = _connections.get(port);
         info.partitions.remove(partition);
         if(info.partitions.isEmpty()) {
             info.consumer.close();
+            _connections.remove(port);
         }
-        _connections.remove(port);
     }
-    
+
     public void unregister(GlobalPartitionId id) {
         unregister(id.host, id.partition);
     }

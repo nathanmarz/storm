@@ -6,6 +6,7 @@ import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
 import java.util.*;
 import kafka.api.FetchRequest;
+import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
@@ -38,6 +39,7 @@ public class PartitionManager {
     DynamicPartitionConnections _connections;
     ZkState _state;
     Map _stormConf;
+
 
     public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, Map stormConf, SpoutConfig spoutConfig, GlobalPartitionId id) {
         _partition = id;
@@ -164,6 +166,27 @@ public class PartitionManager {
 
     private String committedPath() {
         return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition;
+    }
+
+    public long queryPartitionOffsetLatestTime() {
+        return _consumer.getOffsetsBefore(_spoutConfig.topic, _partition.partition,
+                                          OffsetRequest.LatestTime(), 1)[0];
+    }
+
+    public long lastCommittedOffset() {
+        return _committedTo;
+    }
+
+    public long lastCompletedOffset() {
+        if(_pending.isEmpty()) {
+            return _emittedToOffset;
+        } else {
+            return _pending.first();
+        }
+    }
+
+    public GlobalPartitionId getPartition() {
+        return _partition;
     }
 
     public void close() {

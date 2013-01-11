@@ -1,10 +1,11 @@
 package storm.kafka;
 
-import backtype.storm.spout.RawScheme;
-import backtype.storm.spout.Scheme;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+
+import backtype.storm.spout.MultiScheme;
+import backtype.storm.spout.RawMultiScheme;
 
 public class KafkaConfig implements Serializable {
     public static interface BrokerHosts extends Serializable {
@@ -49,7 +50,7 @@ public class KafkaConfig implements Serializable {
     public int fetchSizeBytes = 1024*1024;
     public int socketTimeoutMs = 10000;
     public int bufferSizeBytes = 1024*1024;
-    public Scheme scheme = new RawScheme();
+    public MultiScheme scheme = new RawMultiScheme();
     public String topic;
     public long startOffsetTime = -2;
     public boolean forceFromStart = false;

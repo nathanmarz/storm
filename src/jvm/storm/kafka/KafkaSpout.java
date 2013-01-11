@@ -1,17 +1,19 @@
 package storm.kafka;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import kafka.message.Message;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import storm.kafka.PartitionManager.KafkaMessageId;
 
 // TODO: need to add blacklisting
@@ -143,7 +145,7 @@ public class KafkaSpout extends BaseRichSpout {
 //        List<String> hosts = new ArrayList<String>();
 //        hosts.add("localhost");
 //        SpoutConfig spoutConf = SpoutConfig.fromHostStrings(hosts, 8, "clicks", "/kafkastorm", "id");
-//        spoutConf.scheme = new StringScheme();
+//        spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 //        spoutConf.forceStartOffsetTime(-2);
 //
 // //       spoutConf.zkServers = new ArrayList<String>() {{

@@ -1,13 +1,16 @@
 package storm.kafka.trident;
 
-import backtype.storm.utils.Utils;
-import com.google.common.collect.ImmutableMap;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import com.google.common.collect.ImmutableMap;
+
+import backtype.storm.utils.Utils;
 import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -27,7 +30,7 @@ public class KafkaUtils {
             return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
         }
     }
-    
+
     public static List<GlobalPartitionId> getOrderedPartitions(Map<String, List> partitions) {
         List<GlobalPartitionId> ret = new ArrayList();
         for(String host: new TreeMap<String, List>(partitions).keySet()) {
@@ -41,7 +44,7 @@ public class KafkaUtils {
         }
         return ret;
     }
-    
+
      public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta, String topologyInstanceId, String topologyName) {
          long offset;
          if(lastMeta!=null) {
@@ -53,7 +56,7 @@ public class KafkaUtils {
              if(config.forceFromStart && !topologyInstanceId.equals(lastInstanceId)) {
                  offset = consumer.getOffsetsBefore(config.topic, partition.partition, config.startOffsetTime, 1)[0];
              } else {
-                 offset = (Long) lastMeta.get("nextOffset");                 
+                 offset = (Long) lastMeta.get("nextOffset");
              }
          } else {
              long startTime = -1;
@@ -82,14 +85,16 @@ public class KafkaUtils {
          newMeta.put("partition", partition.partition);
          newMeta.put("broker", ImmutableMap.of("host", partition.host.host, "port", partition.host.port));
          newMeta.put("topic", config.topic);
-         newMeta.put("topology", ImmutableMap.of("name", topologyName, "id", topologyInstanceId));           
+         newMeta.put("topology", ImmutableMap.of("name", topologyName, "id", topologyInstanceId));
          return newMeta;
      }
-     
+
      public static void emit(TridentKafkaConfig config, TridentCollector collector, Message msg) {
-         List<Object> values = config.scheme.deserialize(Utils.toByteArray(msg.payload()));
+         Iterable<List<Object>> values =
+             config.scheme.deserialize(Utils.toByteArray(msg.payload()));
          if(values!=null) {
-             collector.emit(values);
+             for(List<Object> value: values)
+                 collector.emit(value);
          }
      }
 }

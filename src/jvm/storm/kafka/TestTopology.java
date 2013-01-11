@@ -1,15 +1,9 @@
 package storm.kafka;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
-import backtype.storm.transactional.TransactionalTopologyBuilder;
 import backtype.storm.tuple.Tuple;
-import java.util.ArrayList;
-import java.util.List;
-import storm.kafka.KafkaConfig.StaticHosts;
 
 public class TestTopology {
     public static class PrinterBolt extends BaseBasicBolt {
@@ -28,7 +22,7 @@ public class TestTopology {
 //        List<String> hosts = new ArrayList<String>();
 //        hosts.add("localhost");
 //        KafkaConfig kafkaConf = new KafkaConfig(StaticHosts.fromHostString(hosts, 3), "test");
-//        kafkaConf.scheme = new StringScheme();
+//        kafkaConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 //        LocalCluster cluster = new LocalCluster();
 //        TransactionalTopologyBuilder builder = new TransactionalTopologyBuilder("id", "spout",
 //                new OpaqueTransactionalKafkaSpout(kafkaConf), 1);

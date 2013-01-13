@@ -202,7 +202,7 @@
              allocated-topologies
              (leftover-topologies topologies <>)
              (DefaultScheduler/default-schedule <> cluster))
-        (log-warn "Unstable to isolate topologies " (pr-str failed-iso-topologies) ". Will wait for enough resources for isolated topologies before allocating any other resources.")
+        (log-warn "Unable to isolate topologies " (pr-str failed-iso-topologies) ". Will wait for enough resources for isolated topologies before allocating any other resources.")
         ))
     (.setBlacklistedHosts cluster orig-blacklist)
     ))

@@ -3,6 +3,7 @@ package backtype.storm.utils;
 import backtype.storm.Config;
 import backtype.storm.generated.Nimbus;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 
 import backtype.storm.nimbus.NimbusLeaderElections;
@@ -15,24 +16,17 @@ import org.apache.thrift7.transport.TTransport;
 
 public class NimbusClient {
     public static NimbusClient getConfiguredClient(Map conf) {
-        String nimbusHost = getNimbusLeaderHost(conf);
-        int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
+        NimbusLeaderElections elections = new NimbusLeaderElections();
+        elections.init(conf, null);
+        InetSocketAddress address = elections.getLeaderAddr();
+        String nimbusHost = address.getHostName();
+        int nimbusPort = address.getPort();
         return new NimbusClient(nimbusHost, nimbusPort);
     }
 
-    private static String getNimbusLeaderHost(Map conf) {
-        NimbusLeaderElections elections = new NimbusLeaderElections();
-        elections.init(conf, null);
-
-        return elections.getLeaderId();
-    }
 
     private TTransport conn;
     private Nimbus.Client client;
-
-    public NimbusClient(String host) {
-        this(host, 6627);
-    }
 
     public NimbusClient(String host, int port) {
         try {

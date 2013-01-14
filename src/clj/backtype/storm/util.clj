@@ -824,3 +824,14 @@
         (str left "/" right)
         (str left right)))))
 
+
+(defn get-args-index [x]
+  (first (filter identity (map-indexed #(when (vector? %2) %1) x))))
+
+(defn insert-at [x y i]
+  (concat (take (inc i) x) (list y) (drop (inc i) x)))
+
+(defmacro reify-with-validation [f interface iface2 iface3 & body]
+  (let [i    (map get-args-index body)
+        body (map #(insert-at %1 (list f) %2) body i)]
+    `(reify ~interface ~iface2 ~iface3 ~@body)))

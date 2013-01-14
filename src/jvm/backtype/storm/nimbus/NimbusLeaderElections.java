@@ -3,6 +3,7 @@ package backtype.storm.nimbus;
 import backtype.storm.Config;
 import backtype.storm.utils.Utils;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.locks.InterProcessMutex;
@@ -11,7 +12,9 @@ import com.netflix.curator.utils.ZKPaths;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -54,17 +57,38 @@ public class NimbusLeaderElections {
         hasLeadership = true;
     }
 
-    public String getLeaderId() {
+    public InetSocketAddress getLeaderAddr() {
         try {
             Collection<String> participantNodes = mutex.getParticipantNodes();
             if (participantNodes.size() > 0) {
                 String leaderNode = participantNodes.iterator().next();
-                return participantForPath(leaderNode);
+                return parseAdderss(participantForPath(leaderNode));
             }
         } catch (Exception e) {
             throw new RuntimeException("Can't get leader's id", e);
         }
         return null;
+    }
+
+    public List<InetSocketAddress> getNimbusList() {
+        try {
+            Collection<String> participantNodes = mutex.getParticipantNodes();
+            List<InetSocketAddress> result = Lists.newArrayList();
+            if (participantNodes.size() > 0) {
+                Iterator<String> iterator = participantNodes.iterator();
+                while(iterator.hasNext()) {
+                    result.add(parseAdderss(participantForPath(iterator.next())));
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Can't get leader's id", e);
+        }
+    }
+
+    private InetSocketAddress parseAdderss(String s) {
+        String[] split = s.split(":");
+        return new InetSocketAddress(split[0], Integer.parseInt(split[1]));
     }
 
     public boolean hasLeadership() {

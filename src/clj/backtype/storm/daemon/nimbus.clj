@@ -876,11 +876,10 @@
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))    
-    (reify Nimbus$Iface
+    (reify-with-validation #(ensure-leadership leader-elections) backtype.storm.generated.Nimbus$Iface Shutdownable DaemonCommon
       (^void submitTopologyWithOpts
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
          ^SubmitOptions submitOptions]
-        (ensure-leadership leader-elections)
         (try
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
@@ -921,16 +920,13 @@
       
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (ensure-leadership leader-elections)
         (.submitTopologyWithOpts this storm-name uploadedJarLocation serializedConf topology
                                  (SubmitOptions. TopologyInitialStatus/ACTIVE)))
       
       (^void killTopology [this ^String name]
-        (ensure-leadership leader-elections)
         (.killTopologyWithOpts this name (KillOptions.)))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (ensure-leadership leader-elections)
         (check-storm-active! nimbus storm-name true)
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
@@ -939,7 +935,6 @@
           ))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (ensure-leadership leader-elections)
         (check-storm-active! nimbus storm-name true)
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
@@ -956,16 +951,13 @@
           ))
 
       (activate [this storm-name]
-        (ensure-leadership leader-elections)
         (transition-name! nimbus storm-name :activate true)
         )
 
       (deactivate [this storm-name]
-        (ensure-leadership leader-elections)
         (transition-name! nimbus storm-name :inactivate true))
 
       (beginFileUpload [this]
-        (ensure-leadership leader-elections)
         (let [fileloc (str (inbox nimbus) "/stormjar-" (uuid) ".jar")]
           (.put (:uploaders nimbus)
                 fileloc
@@ -975,7 +967,6 @@
           ))
 
       (^void uploadChunk [this ^String location ^ByteBuffer chunk]
-        (ensure-leadership leader-elections)
         (let [uploaders (:uploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]
           (when-not channel
@@ -986,7 +977,6 @@
           ))
 
       (^void finishFileUpload [this ^String location]
-        (ensure-leadership leader-elections)
         (let [uploaders (:uploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]
           (when-not channel
@@ -998,7 +988,6 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (ensure-leadership leader-elections)
         (let [is (BufferInputStream. (.open storage file))
               id (uuid)]
           (.put (:downloaders nimbus) id is)
@@ -1006,7 +995,6 @@
           ))
 
       (^ByteBuffer downloadChunk [this ^String id]
-        (ensure-leadership leader-elections)
         (let [downloaders (:downloaders nimbus)
               ^BufferInputStream is (.get downloaders id)]
           (when-not is
@@ -1020,23 +1008,18 @@
             )))
 
       (^String getNimbusConf [this]
-        (ensure-leadership leader-elections)
         (to-json (:conf nimbus)))
 
       (^String getTopologyConf [this ^String id]
-        (ensure-leadership leader-elections)
         (to-json (read-storm-conf storage conf id)))
 
       (^StormTopology getTopology [this ^String id]
-        (ensure-leadership leader-elections)
         (system-topology! (read-storm-conf storage conf id) (read-storm-topology storage id)))
 
       (^StormTopology getUserTopology [this ^String id]
-        (ensure-leadership leader-elections)
         (read-storm-topology storage id))
 
       (^ClusterSummary getClusterInfo [this]
-        (ensure-leadership leader-elections)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               supervisor-infos (all-supervisor-info storm-cluster-state)
               ;; TODO: need to get the port info about supervisors...
@@ -1076,7 +1059,6 @@
           ))
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
-        (ensure-leadership leader-elections)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-topology (read-storm-topology storage storm-id)
               storm-conf (read-storm-conf storage conf storm-id)
@@ -1112,7 +1094,7 @@
                          )
           ))
       
-      Shutdownable
+
       (shutdown [this]
         (log-message "Shutting down master")
         (cancel-timer (:timer nimbus))
@@ -1122,7 +1104,7 @@
         (.close leader-elections)
         (log-message "Shut down master")
         )
-      DaemonCommon
+
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
 

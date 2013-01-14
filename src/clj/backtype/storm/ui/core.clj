@@ -22,9 +22,10 @@
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
 (defmacro with-nimbus [nimbus-sym & body]
-  `(thrift/with-nimbus-connection [~nimbus-sym (get-nimbus-leader-host *STORM-CONF*) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
+  `(let [addr# (get-nimbus-leader-addr *STORM-CONF*)]
+  (thrift/with-nimbus-connection [~nimbus-sym (.getHostName addr#) (.getPort addr#) ]
      ~@body
-     ))
+     )))
 
 (defn get-filled-stats [summs]
   (->> summs
@@ -72,7 +73,7 @@
         total-executors (->> (.get_topologies summ)
                              (map #(.get_num_executors ^TopologySummary %))
                              (reduce +))]
-    (table ["Version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Executors" "Tasks"]
+    (table ["Version" "Nimbus leadership time" "Supervisors" "Used slots" "Free slots" "Total slots" "Executors" "Tasks"]
            [[(read-storm-version)
              (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
              (count sups)
@@ -121,11 +122,23 @@
   (sorted-table ["Key" "Value"]
     (map #(vector (key %) (str (val %))) conf)))
 
+(defn nimbus-summary-table []
+  (let [nimbus-list (get-nimbus-addr-list *STORM-CONF*)]
+    (table
+    ["Nimbus address" "leader?"]
+    (for [nimbus nimbus-list]
+      [(str (.getHostName nimbus) ":" (.getPort nimbus)) (if (= nimbus (get-nimbus-leader-addr *STORM-CONF*)) "true" "false")]
+      )))
+  )
+
 (defn main-page []
   (with-nimbus nimbus
-    (let [summ (.getClusterInfo ^Nimbus$Client nimbus)]
+    (let [summ (.getClusterInfo ^Nimbus$Client nimbus)
+          leader-addr (get-nimbus-leader-addr *STORM-CONF* )]
       (concat
        [[:h2 "Cluster Summary"]]
+       [[:h4 (str "Leader is " (.getHostName leader-addr) ":" (.getPort leader-addr))]]
+       [(nimbus-summary-table)]
        [(cluster-summary-table summ)]
        [[:h2 "Topology summary"]]
        (main-topology-summary-table (.get_topologies summ))

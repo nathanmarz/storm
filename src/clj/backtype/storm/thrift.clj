@@ -66,8 +66,9 @@
 
 (defmacro with-configured-nimbus-connection [client-sym & body]
   `(let [conf# (read-storm-config)
-         host# (get-nimbus-leader-host conf#)
-         port# (conf# NIMBUS-THRIFT-PORT)]
+         addr# (get-nimbus-leader-addr conf#)
+         host# (.getHostName addr#)
+         port# (.getPort addr#)]
      (with-nimbus-connection [~client-sym host# port#]
        ~@body )))
 

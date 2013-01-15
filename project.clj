@@ -14,7 +14,7 @@
                    [commons-collections/commons-collections "3.2.1"]
                  ]
 
-  :dev-dependencies [[storm "0.8.2-wip18"]
+  :dev-dependencies [[storm "0.8.2"]
                      [org.clojure/clojure "1.4.0"]
                      ])
 

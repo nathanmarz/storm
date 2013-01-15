@@ -6,6 +6,7 @@ import backtype.storm.LocalDRPC;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.task.IMetricsContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,11 +27,11 @@ import storm.trident.tuple.TridentTuple;
 
 public class TridentReach {
     public static Map<String, List<String>> TWEETERS_DB = new HashMap<String, List<String>>() {{
-       put("foo.com/blog/1", Arrays.asList("sally", "bob", "tim", "george", "nathan")); 
-       put("engineering.twitter.com/blog/5", Arrays.asList("adam", "david", "sally", "nathan")); 
-       put("tech.backtype.com/blog/123", Arrays.asList("tim", "mike", "john")); 
+       put("foo.com/blog/1", Arrays.asList("sally", "bob", "tim", "george", "nathan"));
+       put("engineering.twitter.com/blog/5", Arrays.asList("adam", "david", "sally", "nathan"));
+       put("tech.backtype.com/blog/123", Arrays.asList("tim", "mike", "john"));
     }};
-    
+
     public static Map<String, List<String>> FOLLOWERS_DB = new HashMap<String, List<String>>() {{
         put("sally", Arrays.asList("bob", "tim", "alice", "adam", "jim", "chris", "jai"));
         put("bob", Arrays.asList("sally", "nathan", "jim", "mary", "david", "vivian"));
@@ -40,29 +41,29 @@ public class TridentReach {
         put("mike", Arrays.asList("john", "bob"));
         put("john", Arrays.asList("alice", "nathan", "jim", "mike", "bob"));
     }};
-    
+
     public static class StaticSingleKeyMapState extends ReadOnlyState implements ReadOnlyMapState<Object> {
         public static class Factory implements StateFactory {
             Map _map;
-            
+
             public Factory(Map map) {
                 _map = map;
             }
-            
+
             @Override
-            public State makeState(Map conf, int partitionIndex, int numPartitions) {
+            public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
                 return new StaticSingleKeyMapState(_map);
             }
-            
+
         }
-        
+
         Map _map;
-        
+
         public StaticSingleKeyMapState(Map map) {
             _map = map;
         }
-        
-        
+
+
         @Override
         public List<Object> multiGet(List<List<Object>> keys) {
             List<Object> ret = new ArrayList();
@@ -72,9 +73,9 @@ public class TridentReach {
             }
             return ret;
         }
-        
+
     }
-    
+
     public static class One implements CombinerAggregator<Integer> {
         @Override
         public Integer init(TridentTuple tuple) {
@@ -89,9 +90,9 @@ public class TridentReach {
         @Override
         public Integer zero() {
             return 1;
-        }        
+        }
     }
-    
+
     public static class ExpandList extends BaseFunction {
 
         @Override
@@ -103,19 +104,19 @@ public class TridentReach {
                 }
             }
         }
-        
+
     }
-    
+
     public static StormTopology buildTopology(LocalDRPC drpc) {
         TridentTopology topology = new TridentTopology();
-        TridentState urlToTweeters = 
+        TridentState urlToTweeters =
                 topology.newStaticState(
                     new StaticSingleKeyMapState.Factory(TWEETERS_DB));
-        TridentState tweetersToFollowers = 
+        TridentState tweetersToFollowers =
                 topology.newStaticState(
                     new StaticSingleKeyMapState.Factory(FOLLOWERS_DB));
-        
-        
+
+
         topology.newDRPCStream("reach", drpc)
                 .stateQuery(urlToTweeters, new Fields("args"), new MapGet(), new Fields("tweeters"))
                 .each(new Fields("tweeters"), new ExpandList(), new Fields("tweeter"))
@@ -127,22 +128,22 @@ public class TridentReach {
                 .aggregate(new Fields("one"), new Sum(), new Fields("reach"));
         return topology.build();
     }
-    
+
     public static void main(String[] args) throws Exception {
         LocalDRPC drpc = new LocalDRPC();
 
         Config conf = new Config();
         LocalCluster cluster = new LocalCluster();
-        
+
         cluster.submitTopology("reach", conf, buildTopology(drpc));
-        
+
         Thread.sleep(2000);
-        
+
         System.out.println("REACH: " + drpc.execute("reach", "aaa"));
         System.out.println("REACH: " + drpc.execute("reach", "foo.com/blog/1"));
-        System.out.println("REACH: " + drpc.execute("reach", "engineering.twitter.com/blog/5")); 
-        
-        
+        System.out.println("REACH: " + drpc.execute("reach", "engineering.twitter.com/blog/5"));
+
+
         cluster.shutdown();
         drpc.shutdown();
     }

@@ -82,7 +82,7 @@ public class NimbusLeaderElections {
             }
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Can't get leader's id", e);
+            throw new RuntimeException("Can't get participants list", e);
         }
     }
 

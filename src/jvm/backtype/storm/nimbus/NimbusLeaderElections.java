@@ -70,7 +70,7 @@ public class NimbusLeaderElections {
         return null;
     }
 
-    public List<InetSocketAddress> getNimbusList() {
+    public List<InetSocketAddress> getNimbusHosts() {
         try {
             Collection<String> participantNodes = mutex.getParticipantNodes();
             List<InetSocketAddress> result = Lists.newArrayList();

@@ -17,7 +17,7 @@
 (defn get-nimbus-addr-list [conf]
   (let [leader-elections (NimbusLeaderElections.)]
     (.init leader-elections conf nil)
-    (let [addr-list (.getNimbusList leader-elections)]
+    (let [addr-list (.getNimbusHosts leader-elections)]
       (.close leader-elections)
       addr-list)))
 

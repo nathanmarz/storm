@@ -73,7 +73,7 @@
         total-executors (->> (.get_topologies summ)
                              (map #(.get_num_executors ^TopologySummary %))
                              (reduce +))]
-    (table ["Version" "Nimbus leadership time" "Supervisors" "Used slots" "Free slots" "Total slots" "Executors" "Tasks"]
+    (table ["Version" "Nimbus leader uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Executors" "Tasks"]
            [[(read-storm-version)
              (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
              (count sups)

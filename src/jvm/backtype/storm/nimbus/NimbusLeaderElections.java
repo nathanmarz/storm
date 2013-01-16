@@ -62,7 +62,7 @@ public class NimbusLeaderElections {
             Collection<String> participantNodes = mutex.getParticipantNodes();
             if (participantNodes.size() > 0) {
                 String leaderNode = participantNodes.iterator().next();
-                return parseAdderss(participantForPath(leaderNode));
+                return parseAddress(participantForPath(leaderNode));
             }
         } catch (Exception e) {
             throw new RuntimeException("Can't get leader's id", e);
@@ -77,7 +77,7 @@ public class NimbusLeaderElections {
             if (participantNodes.size() > 0) {
                 Iterator<String> iterator = participantNodes.iterator();
                 while(iterator.hasNext()) {
-                    result.add(parseAdderss(participantForPath(iterator.next())));
+                    result.add(parseAddress(participantForPath(iterator.next())));
                 }
             }
             return result;
@@ -86,7 +86,7 @@ public class NimbusLeaderElections {
         }
     }
 
-    private InetSocketAddress parseAdderss(String s) {
+    private InetSocketAddress parseAddress(String s) {
         String[] split = s.split(":");
         return new InetSocketAddress(split[0], Integer.parseInt(split[1]));
     }

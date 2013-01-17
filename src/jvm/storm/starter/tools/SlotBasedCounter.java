@@ -68,21 +68,11 @@ public final class SlotBasedCounter<T> implements Serializable {
     /**
      * Reset the slot count of any tracked objects to zero for the given slot.
      * 
-     * <em>Implementation detail:</em> As an optimization this method will also remove any object from the counter whose
-     * total count is zero after the wipe of the slot (to free up memory).
-     * 
      * @param slot
      */
     public void wipeSlot(int slot) {
-        Set<T> objToBeRemoved = new HashSet<T>();
         for (T obj : objToCounts.keySet()) {
             resetSlotCountToZero(obj, slot);
-            if (shouldBeRemovedFromCounter(obj)) {
-                objToBeRemoved.add(obj);
-            }
-        }
-        for (T obj : objToBeRemoved) {
-            objToCounts.remove(obj);
         }
     }
 
@@ -93,6 +83,21 @@ public final class SlotBasedCounter<T> implements Serializable {
 
     private boolean shouldBeRemovedFromCounter(T obj) {
         return computeTotalCount(obj) == 0;
+    }
+
+    /**
+     * Remove any object from the counter whose total count is zero (to free up memory).
+     */
+    public void wipeZeros() {
+        Set<T> objToBeRemoved = new HashSet<T>();
+        for (T obj : objToCounts.keySet()) {
+            if (shouldBeRemovedFromCounter(obj)) {
+                objToBeRemoved.add(obj);
+            }
+        }
+        for (T obj : objToBeRemoved) {
+            objToCounts.remove(obj);
+        }
     }
 
 }

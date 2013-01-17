@@ -4,7 +4,7 @@ import backtype.storm.metric.api.IMetric;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MultiCountMetric implements IMetric {
+public class MultiCountMetric implements IMetric, java.io.Serializable {
     Map<String, CountMetric> _value = new HashMap();
 
     public MultiCountMetric() {

@@ -2,7 +2,7 @@ package backtype.storm.metric.api;
 
 import backtype.storm.metric.api.IMetric;
 
-public class CountMetric implements IMetric {
+public class CountMetric implements IMetric, java.io.Serializable {
     long _value = 0;
 
     public CountMetric() {

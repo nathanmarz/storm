@@ -9,6 +9,14 @@
 
 (def RESOURCES-SUBDIR "resources")
 
+(def ^:const def-ser-enc "UTF-8")
+
+(defn serialize-conf [form]
+  (.getBytes (pr-str form) def-ser-enc))
+
+(defn deserialize-conf [form]
+  (read-string (String. form def-ser-enc)))
+
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
 
@@ -174,7 +182,7 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)
         topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
+    (merge conf (deserialize-conf (FileUtils/readFileToByteArray (File. conf-path))))
     ))
 
 (defn read-supervisor-topology [conf storm-id]
@@ -205,3 +213,4 @@
 ;; in local mode, keep a global map of ids to threads for simulating process management
 (defn ^LocalState worker-state  [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
+

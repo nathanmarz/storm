@@ -30,11 +30,18 @@ import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
+import org.apache.thrift7.TSerializer;
+import org.apache.thrift7.TDeserializer;
+import org.apache.thrift7.protocol.TBinaryProtocol;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
+    private static final TSerializer topoSerializer =
+	new TSerializer(new TBinaryProtocol.Factory());
+    private static final TDeserializer topoDeserializer =
+	new TDeserializer(new TBinaryProtocol.Factory());
 
     public static Object newInstance(String klass) {
         try {
@@ -69,6 +76,24 @@ public class Utils {
         } catch(ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static byte[] serializeTopology(StormTopology topo) {
+	try {
+	    return topoSerializer.serialize(topo);
+	} catch(TException te) {
+	    throw new RuntimeException(te);
+	}
+    }
+
+    public static StormTopology deserializeTopology(byte[] bytes) {
+	StormTopology topo = new StormTopology();
+	try {
+	    topoDeserializer.deserialize(topo, bytes);
+	    return topo;
+	} catch(TException te) {
+	    throw new RuntimeException(te);
+	}
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {

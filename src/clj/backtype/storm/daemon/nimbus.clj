@@ -294,13 +294,13 @@
    (FileUtils/forceMkdir (File. stormroot))
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
-   (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
+   (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serializeTopology topology))
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
    ))
 
 (defn- read-storm-topology [conf storm-id]
   (let [stormroot (master-stormdist-root conf storm-id)]
-    (Utils/deserialize
+    (Utils/deserializeTopology
       (FileUtils/readFileToByteArray
         (File. (master-stormcode-path stormroot))
         ))))

@@ -141,7 +141,7 @@
 (defn read-supervisor-topology [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         topology-path (supervisor-stormcode-path stormroot)]
-    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
+    (Utils/deserializeTopology (FileUtils/readFileToByteArray (File. topology-path)))
     ))
 
 (defn worker-root

@@ -824,3 +824,13 @@
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
 
+(def ^:const def-ser-enc "UTF-8")
+
+(defn serialize-clj-bytes [form]
+  "serializes Clojure form to UTF-8 byte array"
+  (.getBytes (pr-str form) def-ser-enc))
+
+(defn deserialize-clj-bytes [form]
+  "deserializes Clojure form fom UTF-8 byte array"
+  (read-string (String. form def-ser-enc)))
+

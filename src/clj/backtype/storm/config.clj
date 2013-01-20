@@ -9,14 +9,6 @@
 
 (def RESOURCES-SUBDIR "resources")
 
-(def ^:const def-ser-enc "UTF-8")
-
-(defn serialize-conf [form]
-  (.getBytes (pr-str form) def-ser-enc))
-
-(defn deserialize-conf [form]
-  (read-string (String. form def-ser-enc)))
-
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
 
@@ -143,7 +135,7 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)
         topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (deserialize-conf (FileUtils/readFileToByteArray (File. conf-path))))
+    (merge conf (deserialize-clj-bytes (FileUtils/readFileToByteArray (File. conf-path))))
     ))
 
 (defn read-supervisor-topology [conf storm-id]

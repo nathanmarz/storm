@@ -38,10 +38,6 @@ import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
-    private static final TSerializer topoSerializer =
-	new TSerializer(new TBinaryProtocol.Factory());
-    private static final TDeserializer topoDeserializer =
-	new TDeserializer(new TBinaryProtocol.Factory());
 
     public static Object newInstance(String klass) {
         try {
@@ -79,17 +75,23 @@ public class Utils {
     }
 
     public static byte[] serializeTopology(StormTopology topo) {
+	// TSerializer not threadsafe; lock or new instance every time
+	TSerializer serializer =
+	    new TSerializer(new TBinaryProtocol.Factory());
 	try {
-	    return topoSerializer.serialize(topo);
+	    return serializer.serialize(topo);
 	} catch(TException te) {
 	    throw new RuntimeException(te);
 	}
     }
 
     public static StormTopology deserializeTopology(byte[] bytes) {
+	// TDeserializer not threadsafe; lock or new instance every time
+	TDeserializer deserializer =
+	    new TDeserializer(new TBinaryProtocol.Factory());
 	StormTopology topo = new StormTopology();
 	try {
-	    topoDeserializer.deserialize(topo, bytes);
+	    deserializer.deserialize(topo, bytes);
 	    return topo;
 	} catch(TException te) {
 	    throw new RuntimeException(te);

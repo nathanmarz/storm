@@ -71,8 +71,9 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
         @Override
         public Map emitPartitionBatchNew(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
             SimpleConsumer consumer = _connections.register(partition);
-            _kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long)lastMeta.get("offset"));
-            return KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
+            Map ret = KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
+            _kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long)ret.get("offset"));
+            return ret;
         }
 
         @Override

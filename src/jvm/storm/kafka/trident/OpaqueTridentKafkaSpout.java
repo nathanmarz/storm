@@ -86,8 +86,9 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
         public Map emitPartitionBatch(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
             try {
                 SimpleConsumer consumer = _connections.register(partition);
-                _kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long)lastMeta.get("offset"));
-                return KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
+                Map ret = KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
+                _kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long)ret.get("offset"));
+                return ret;
             } catch(FailedFetchException e) {
                 LOG.warn("Failed to fetch from partition " + partition);
                 if(lastMeta==null) {

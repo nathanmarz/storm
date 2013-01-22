@@ -3,6 +3,7 @@
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.scheduler INimbus])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   )
@@ -36,6 +37,41 @@
         assignment (.assignment-info state storm-id nil)]
     (count (reverse-map (:executor->node+port assignment)))
     ))
+
+(defn topology-nodes [state storm-name]
+  (let [storm-id (get-storm-id state storm-name)
+        assignment (.assignment-info state storm-id nil)]
+    (->> assignment
+         :executor->node+port
+         vals
+         (map first)
+         set         
+         )))
+
+(defn topology-slots [state storm-name]
+  (let [storm-id (get-storm-id state storm-name)
+        assignment (.assignment-info state storm-id nil)]
+    (->> assignment
+         :executor->node+port
+         vals
+         set         
+         )))
+
+(defn topology-node-distribution [state storm-name]
+  (let [storm-id (get-storm-id state storm-name)
+        assignment (.assignment-info state storm-id nil)]
+    (->> assignment
+         :executor->node+port
+         vals
+         set
+         (group-by first)
+         (map-val count)
+         (map (fn [[_ amt]] {amt 1}))
+         (apply merge-with +)       
+         )))
+
+(defn topology-num-nodes [state storm-name]
+  (count (topology-nodes state storm-name)))
 
 (defn executor-assignment [cluster storm-id executor-id]
   (let [state (:storm-cluster-state cluster)
@@ -79,6 +115,11 @@
 (defn check-distribution [items distribution]
   (let [dist (->> items (map count) multi-set)]
     (is (= dist (multi-set distribution)))
+    ))
+
+(defn disjoint? [& sets]
+  (let [combined (apply concat sets)]
+    (= (count combined) (count (set combined)))
     ))
 
 (defnk check-consistency [cluster storm-name :assigned? true]
@@ -137,6 +178,77 @@
         (is (= 4 (count (task-info "4"))))
         (is (= 8 (storm-num-workers state "storm2")))
         )
+      )))
+
+(defn isolation-nimbus []
+  (let [standalone (nimbus/standalone-nimbus)]
+    (reify INimbus
+      (prepare [this conf local-dir]
+        (.prepare standalone conf local-dir)
+        )
+      (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
+        (.allSlotsAvailableForScheduling standalone supervisors topologies topologies-missing-assignments))
+      (assignSlots [this topology slots]
+        (.assignSlots standalone topology slots)
+        )
+      (getForcedScheduler [this]
+        (.getForcedScheduler standalone))
+      (getHostName [this supervisors node-id]
+        node-id
+      ))))
+
+(deftest test-isolated-assignment
+  (with-simulated-time-local-cluster [cluster :supervisors 6
+                               :ports-per-supervisor 3
+                               :inimbus (isolation-nimbus)
+                               :daemon-conf {SUPERVISOR-ENABLE false
+                                             TOPOLOGY-ACKER-EXECUTORS 0
+                                             STORM-SCHEDULER "backtype.storm.scheduler.IsolationScheduler"
+                                             ISOLATION-SCHEDULER-MACHINES {"tester1" 3 "tester2" 2}
+                                             NIMBUS-MONITOR-FREQ-SECS 10
+                                             }]
+    (letlocals
+      (bind state (:storm-cluster-state cluster))
+      (bind nimbus (:nimbus cluster))
+      (bind topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
+                      {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 5)
+                       "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))}))
+          
+      (submit-local-topology nimbus "noniso" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+      (advance-cluster-time cluster 1)
+      (is (= 4 (topology-num-nodes state "noniso")))
+      (is (= 4 (storm-num-workers state "noniso")))
+
+      (submit-local-topology nimbus "tester1" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 6} topology)
+      (submit-local-topology nimbus "tester2" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 6} topology)
+      (advance-cluster-time cluster 1)
+    
+      (bind task-info-tester1 (storm-component->task-info cluster "tester1"))
+      (bind task-info-tester2 (storm-component->task-info cluster "tester2"))
+          
+
+      (is (= 1 (topology-num-nodes state "noniso")))
+      (is (= 3 (storm-num-workers state "noniso")))
+
+      (is (= {2 3} (topology-node-distribution state "tester1")))
+      (is (= {3 2} (topology-node-distribution state "tester2")))
+      
+      (is (apply disjoint? (map (partial topology-nodes state) ["noniso" "tester1" "tester2"])))
+      
+      (check-consistency cluster "tester1")
+      (check-consistency cluster "tester2")
+      (check-consistency cluster "noniso")
+
+      ;;check that nothing gets reassigned
+      (bind tester1-slots (topology-slots state "tester1"))
+      (bind tester2-slots (topology-slots state "tester2"))
+      (bind noniso-slots (topology-slots state "noniso"))    
+      (advance-cluster-time cluster 20)
+      (is (= tester1-slots (topology-slots state "tester1")))
+      (is (= tester2-slots (topology-slots state "tester2")))
+      (is (= noniso-slots (topology-slots state "noniso")))
+      
       )))
 
 (deftest test-zero-executor-or-tasks

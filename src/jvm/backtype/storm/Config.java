@@ -242,6 +242,16 @@ public class Config extends HashMap<String, Object> {
     public static String DRPC_PORT = "drpc.port";
     
     /**
+     * DRPC thrift server worker threads 
+     */
+    public static String DRPC_WORKER_THREADS = "drpc.worker.threads";
+
+    /**
+     * DRPC thrift server queue size 
+     */
+    public static String DRPC_QUEUE_SIZE = "drpc.queue.size";
+    
+    /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
     public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
@@ -609,6 +619,12 @@ public class Config extends HashMap<String, Object> {
      * it is not a production grade zookeeper setup.
      */
     public static String DEV_ZOOKEEPER_PATH = "dev.zookeeper.path";
+    
+    /**
+     * A map from topology name to the number of machines that should be dedicated for that topology. Set storm.scheduler
+     * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
+     */
+    public static String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
         
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

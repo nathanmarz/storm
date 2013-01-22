@@ -118,6 +118,9 @@ class execute_args:
     (2, TType.STRING, 'funcArgs', None, None, ), # 2
   )
 
+  def __hash__(self):
+    return 0 + hash(self.functionName) + hash(self.funcArgs)
+
   def __init__(self, functionName=None, funcArgs=None,):
     self.functionName = functionName
     self.funcArgs = funcArgs
@@ -188,6 +191,9 @@ class execute_result:
     (0, TType.STRING, 'success', None, None, ), # 0
     (1, TType.STRUCT, 'e', (DRPCExecutionException, DRPCExecutionException.thrift_spec), None, ), # 1
   )
+
+  def __hash__(self):
+    return 0 + hash(self.success) + hash(self.e)
 
   def __init__(self, success=None, e=None,):
     self.success = success

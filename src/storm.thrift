@@ -210,7 +210,7 @@ struct SubmitOptions {
 
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: NotALeaderException nale);
-  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: NotALeaderException nale);
+  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5:  SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: NotALeaderException nale);
   void killTopology(1: string name) throws (1: NotAliveException e, 2: NotALeaderException nale);
   void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e, 2: NotALeaderException nale);
   void activate(1: string name) throws (1: NotAliveException e, 2: NotALeaderException nale);

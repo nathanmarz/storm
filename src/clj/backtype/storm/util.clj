@@ -835,3 +835,13 @@
   (let [i    (map get-args-index body)
         body (map #(insert-at %1 (list f) %2) body i)]
     `(reify ~interface ~iface2 ~iface3 ~@body)))
+
+(defmacro -<>
+  ([x] x)
+  ([x form] (if (seq? form)
+              (with-meta
+                (let [[begin [_ & end]] (split-with #(not= % '<>) form)]
+                  (concat begin [x] end))
+                (meta form))
+              (list form x)))
+  ([x form & more] `(-<> (-<> ~x ~form) ~@more)))

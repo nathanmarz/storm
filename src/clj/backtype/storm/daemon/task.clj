@@ -110,8 +110,8 @@
         stream->component->grouper (:stream->component->grouper executor-data)
         user-context (:user-context task-data)
         executor-stats (:stats executor-data)
-        debug? (= true (storm-conf TOPOLOGY-DEBUG))
-        task-id (:task-id task-data)]
+        debug? (= true (storm-conf TOPOLOGY-DEBUG))]
+        
     (fn ([^Integer out-task-id ^String stream ^List values]
           (when debug?
             (log-message "Emitting direct: " out-task-id "; " component-id " " stream " " values))

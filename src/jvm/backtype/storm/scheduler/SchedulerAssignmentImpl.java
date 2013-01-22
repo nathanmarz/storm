@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+//TODO: improve this by maintaining slot -> executors as well for more efficient operations
 public class SchedulerAssignmentImpl implements SchedulerAssignment {
     /**
      * topology-id this assignment is for.

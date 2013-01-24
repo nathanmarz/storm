@@ -56,7 +56,8 @@ public class FeederBatchSpout implements ITridentSpout, IFeeder {
         }
         
         @Override
-        public Map<Integer, List<List<Object>>> initializeTransaction(long txid, Map<Integer, List<List<Object>>> prevMetadata) {
+        public Map<Integer, List<List<Object>>> initializeTransaction(long txid, Map<Integer, List<List<Object>>> prevMetadata, Map<Integer, List<List<Object>>> currMetadata) {
+            if(currMetadata!=null) return currMetadata;
             List allBatches = (List) RegisteredGlobalState.getState(_id);
             if(allBatches.size()>_emittedIndex) {
                 Object batchInfo = allBatches.get(_emittedIndex);                

@@ -22,10 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializationFactory {
-    public static final Logger LOG = Logger.getLogger(SerializationFactory.class);
+    public static final Logger LOG = LoggerFactory.getLogger(SerializationFactory.class);
     
     public static Kryo getKryo(Map conf) {
         IKryoFactory kryoFactory = (IKryoFactory) Utils.newInstance((String) conf.get(Config.TOPOLOGY_KRYO_FACTORY));
@@ -38,6 +39,8 @@ public class SerializationFactory {
         k.register(BigInteger.class, new BigIntegerSerializer());
         k.register(TransactionAttempt.class);
         k.register(Values.class);
+        k.register(backtype.storm.metric.api.IMetricsConsumer.DataPoint.class);
+        k.register(backtype.storm.metric.api.IMetricsConsumer.TaskInfo.class);
         try {
             JavaBridge.registerPrimitives(k);
             JavaBridge.registerCollections(k);

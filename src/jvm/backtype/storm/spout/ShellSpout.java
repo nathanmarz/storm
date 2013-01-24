@@ -7,12 +7,13 @@ import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.json.simple.JSONObject;
 
 
 public class ShellSpout implements ISpout {
-    public static Logger LOG = Logger.getLogger(ShellSpout.class);
+    public static Logger LOG = LoggerFactory.getLogger(ShellSpout.class);
 
     private SpoutOutputCollector _collector;
     private String[] _command;

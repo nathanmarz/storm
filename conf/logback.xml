@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true" scanPeriod="30 seconds">
+  <appender name="A1" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
+    </encoder>
+  </appender>
+  <logger name="org.apache.zookeeper" level="WARN"/>
+  <root level="INFO">
+    <appender-ref ref="A1"/>
+  </root>
+</configuration>

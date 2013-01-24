@@ -11,11 +11,12 @@ import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import java.util.HashMap;
 import java.util.Random;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class TestWordSpout extends BaseRichSpout {
-    public static Logger LOG = Logger.getLogger(TestWordSpout.class);
+    public static Logger LOG = LoggerFactory.getLogger(TestWordSpout.class);
     boolean _isDistributed;
     SpoutOutputCollector _collector;
 

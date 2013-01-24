@@ -56,7 +56,7 @@
 		<dependency>
 			<groupId>storm</groupId>
 			<artifactId>storm</artifactId>
-			<version>0.8.1</version>
+			<version>0.8.2</version>
 			<!-- keep storm out of the jar-with-dependencies -->
 			<scope>provided</scope>
 		</dependency>
@@ -96,7 +96,7 @@
 			</resource>
 		</resources>
 		<plugins>
-		    <!-- 
+		    <!--
 		    bind the maven-assembly-plugin to the package phase
 		    this will create a jar file without the storm dependencies
 		    suitable for deployment to a cluster.

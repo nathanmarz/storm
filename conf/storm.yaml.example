@@ -23,7 +23,7 @@
 #     - "server2"
 
 ## Metrics Consumers
-# topology.metrics.consumers.register:
+# topology.metrics.consumer.register:
 #    - class: "org.mycompany.MyMetricsConsumer"
 #      argument: 
 #         - endpoint: "metrics-collector.mycompany.org"

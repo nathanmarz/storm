@@ -162,6 +162,7 @@
       (ensure-process-killed! pid)
       (rmpath (worker-pid-path conf id pid))
       )
+    (swap! (:worker-thread-pids-atom supervisor) dissoc worker-id)
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
@@ -424,9 +425,10 @@
                        " -Dlogback.configurationFile=logback/cluster.xml"
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
-                       " " port " " worker-id)]
-      (log-message "Launching worker with command: " command)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
+                       " " port " " worker-id)
+	  pr (do (log-message "Launching worker with command: " command)
+		 (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))]
+      (swap! (:worker-thread-pids-atom supervisor) assoc worker-id (get-process-pid pr))
       ))
 
 ;; local implementation

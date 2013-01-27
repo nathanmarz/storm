@@ -316,6 +316,14 @@
     (first split)
     ))
 
+(defn get-process-pid
+  "Gets the pid of the Process. This is platform dependent, should work on OS X and Linux but not Windows."
+  [process]
+  (let [pidField (doto (.getDeclaredField ; pid is a private field
+			(Class/forName "java.lang.UNIXProcess") "pid")
+		   (.setAccessible true))]
+    (.get pidField process)))
+
 (defn exec-command! [command]
   (let [[comm-str & args] (seq (.split command " "))
         command (CommandLine. comm-str)]

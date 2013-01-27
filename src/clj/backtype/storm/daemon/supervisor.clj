@@ -162,7 +162,7 @@
       (ensure-process-killed! pid)
       (rmpath (worker-pid-path conf id pid))
       )
-    (swap! (:worker-thread-pids-atom supervisor) dissoc worker-id)
+    (swap! (:worker-thread-pids-atom supervisor) dissoc id)
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 

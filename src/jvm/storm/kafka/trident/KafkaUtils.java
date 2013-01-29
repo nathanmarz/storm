@@ -161,8 +161,9 @@ public class KafkaUtils {
 
        public void refreshPartitions(Set<GlobalPartitionId> partitions) {
            _partitions = partitions;
-           for(GlobalPartitionId p : _partitionToOffset.keySet()) {
-              if(!partitions.contains(p)) _partitionToOffset.remove(p);
+           Iterator<GlobalPartitionId> it = _partitionToOffset.keySet().iterator();
+           while(it.hasNext()) {
+               if(!partitions.contains(it.next())) it.remove();
            }
        }
     };

@@ -6,7 +6,7 @@
  * Build upgraded to leiningen 2.0
  * Revamped Trident spout interfaces to support more dynamic spouts, such as a spout who reads from a changing set of brokers
 
-## Unreleased (0.8.2)
+## 0.8.2
 
  * Added backtype.storm.scheduler.IsolationScheduler. This lets you run topologies that are completely isolated at the machine level. Configure Nimbus to isolate certain topologies, and how many machines to give to each of those topologies, with the isolation.scheduler.machines config in Nimbus's storm.yaml. Topologies run on the cluster that are not listed there will share whatever remaining machines there are on the cluster after machines are allocated to the listed topologies.
  * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)

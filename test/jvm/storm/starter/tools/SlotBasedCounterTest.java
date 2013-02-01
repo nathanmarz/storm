@@ -142,7 +142,7 @@ public class SlotBasedCounterTest {
     }
 
     @Test
-    public void wipeSlotShouldRemoveAnyObjectsWithZeroTotalCount() {
+    public void wipeZerosShouldRemoveAnyObjectsWithZeroTotalCount() {
         // given
         SlotBasedCounter<Object> counter = new SlotBasedCounter<Object>(2);
         int wipeSlot = 0;
@@ -155,6 +155,7 @@ public class SlotBasedCounterTest {
 
         // when
         counter.wipeSlot(wipeSlot);
+        counter.wipeZeros();
 
         // then
         assertThat(counter.getCounts()).doesNotContainKey(willBeRemoved);

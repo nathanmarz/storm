@@ -368,7 +368,8 @@
                    :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
                    :factory? false
-                   :start true]
+                   :start true
+                   :thread-name nil]
   (let [thread (Thread.
                 (fn []
                   (try-cause
@@ -389,6 +390,8 @@
                   ))]
     (.setDaemon thread daemon)
     (.setPriority thread priority)
+    (when-not (nil? thread-name)
+      (.setName thread (str (.getName thread) "-" thread-name)))
     (when start
       (.start thread))
     ;; should return object that supports stop, interrupt, join, and waiting?

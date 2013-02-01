@@ -554,7 +554,8 @@
               ))           
           0))
       :kill-fn (:report-error-and-die executor-data)
-      :factory? true)]))
+      :factory? true
+      :thread-name component-id)]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
   (let [ms (.getProcessSampleStartTime tuple)]
@@ -715,7 +716,8 @@
             (disruptor/consume-batch-when-available receive-queue event-handler)
             0)))
       :kill-fn (:report-error-and-die executor-data)
-      :factory? true)]))
+      :factory? true
+      :thread-name component-id)]))
 
 (defmethod close-component :spout [executor-data spout]
   (.close spout))

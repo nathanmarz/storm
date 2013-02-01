@@ -343,7 +343,7 @@
           (doseq [obj (map :object (vals task-datas))]
             (close-component executor-data obj)))
         (log-message "Shut down executor " component-id ":" (pr-str executor-id)))
-        )))
+      )))
 
 (defn- fail-spout-msg [executor-data task-data msg-id tuple-info time-delta]
   (let [^ISpout spout (:object task-data)

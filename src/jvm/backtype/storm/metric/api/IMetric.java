@@ -1,5 +1,7 @@
 package backtype.storm.metric.api;
 
-public interface IMetric {
+import java.io.Serializable;
+
+public interface IMetric extends Serializable {
     public Object getValueAndReset();
 }

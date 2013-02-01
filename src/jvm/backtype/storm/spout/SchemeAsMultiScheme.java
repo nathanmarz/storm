@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import backtype.storm.task.IErrorReporter;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 
@@ -16,8 +15,8 @@ public class SchemeAsMultiScheme implements MultiScheme {
   }
 
   @Override
-  public void prepare(Map stormConf, TopologyContext context, IErrorReporter errorReporter) {
-    this.scheme.prepare(stormConf, context, errorReporter);
+  public void prepare(Map stormConf, TopologyContext context) {
+    this.scheme.prepare(stormConf, context);
   }
 
   @Override

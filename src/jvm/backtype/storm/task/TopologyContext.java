@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import clojure.lang.IFn;
 import org.apache.commons.lang.NotImplementedException;
 
 /**
@@ -36,6 +38,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     private Map<String, Object> _executorData;
     private Map<Integer,Map<Integer, Map<String, IMetric>>> _registeredMetrics;
     private clojure.lang.Atom _openOrPrepareWasCalled;
+    private IFn _errorReporter;
 
     
     public TopologyContext(StormTopology topology, Map stormConf,
@@ -44,7 +47,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
             Map<String, Object> userResources, Map<String, Object> executorData, Map registeredMetrics,
-            clojure.lang.Atom openOrPrepareWasCalled) {
+            clojure.lang.Atom openOrPrepareWasCalled, IFn errorReporter) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
                 componentToStreamToFields, stormId, codeDir, pidDir,
                 workerPort, workerTasks, defaultResources, userResources);
@@ -52,6 +55,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         _executorData = executorData;
         _registeredMetrics = registeredMetrics;
         _openOrPrepareWasCalled = openOrPrepareWasCalled;
+        _errorReporter = errorReporter;
     }
 
     /**
@@ -199,6 +203,10 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     
     public Collection<ITaskHook> getHooks() {
         return _hooks;
+    }
+
+    public void reportError(Throwable t) {
+        _errorReporter.invoke(t);
     }
 
     /*

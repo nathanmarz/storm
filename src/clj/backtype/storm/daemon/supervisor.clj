@@ -1,7 +1,3 @@
-;; Copyright (c) 2013 Yahoo! Inc. All Rights Reserved.
-;; Copyrights licensed under the Eclipse Public License.
-;; See the accompanying LICENSE.html file for terms.
-
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])

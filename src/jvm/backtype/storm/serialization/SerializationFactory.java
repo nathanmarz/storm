@@ -34,23 +34,19 @@ public class SerializationFactory {
         Kryo k = kryoFactory.getKryo(conf);        
         k.register(byte[].class);
 
-        /* tuple payload serializer could be specified via configuration */
+        /* tuple payload serializer is specified via configuration */
         String payloadSerializerName = (String)conf.get(Config.TOPOLOGY_TUPLE_SERIALIZER);
-        if (payloadSerializerName==null) 
-            k.register(ListDelegate.class, new ListDelegateSerializer()); //use default payload serializer
-        else {
-            try {
-                Class serializerClass  = Class.forName(payloadSerializerName);
-                Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
-                if (serializer == null)
-                    k.register(ListDelegate.class, new ListDelegateSerializer());
-                else 
-                    k.register(ListDelegate.class, serializer);
-            } catch (ClassNotFoundException ex ){
-                LOG.error(ex + " Could not load class in class path: " + payloadSerializerName);
+        try {
+            Class serializerClass  = Class.forName(payloadSerializerName);
+            Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
+            if (serializer == null)
                 k.register(ListDelegate.class, new ListDelegateSerializer());
-            } 
-        }
+            else 
+                k.register(ListDelegate.class, serializer);
+        } catch (ClassNotFoundException ex) {
+            LOG.error("Could not load class in class path: " + payloadSerializerName.length(), ex);
+            throw new RuntimeException(ex);
+        } 
 
         k.register(ArrayList.class, new ArrayListSerializer());
         k.register(HashMap.class, new HashMapSerializer());

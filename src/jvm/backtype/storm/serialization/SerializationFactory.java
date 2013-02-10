@@ -39,10 +39,7 @@ public class SerializationFactory {
         try {
             Class serializerClass  = Class.forName(payloadSerializerName);
             Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
-            if (serializer == null)
-                k.register(ListDelegate.class, new ListDelegateSerializer());
-            else 
-                k.register(ListDelegate.class, serializer);
+            k.register(ListDelegate.class, serializer);
         } catch (ClassNotFoundException ex) {
             LOG.error("Could not load class in class path: " + payloadSerializerName.length(), ex);
             throw new RuntimeException(ex);

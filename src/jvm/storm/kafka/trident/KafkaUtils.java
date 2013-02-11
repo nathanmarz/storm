@@ -102,13 +102,12 @@ public class KafkaUtils {
 
 
     public static class KafkaOffsetMetric implements IMetric {
-        Map<GlobalPartitionId, Long> _partitionToOffset;
+        Map<GlobalPartitionId, Long> _partitionToOffset = new HashMap<GlobalPartitionId, Long>();
         Set<GlobalPartitionId> _partitions;
         String _topic;
         DynamicPartitionConnections _connections;
 
         public KafkaOffsetMetric(String topic, DynamicPartitionConnections connections) {
-            _partitionToOffset = new HashMap<GlobalPartitionId, Long>();
             _topic = topic;
             _connections = connections;
         }
@@ -124,7 +123,7 @@ public class KafkaUtils {
                 long totalLatestTimeOffset = 0;
                 long totalLatestEmittedOffset = 0;
                 HashMap ret = new HashMap();
-                if(_partitions.size() == _partitionToOffset.size()) {
+                if(_partitions != null && _partitions.size() == _partitionToOffset.size()) {
                     for(Map.Entry<GlobalPartitionId, Long> e : _partitionToOffset.entrySet()) {
                         GlobalPartitionId partition = e.getKey();
                         SimpleConsumer consumer = _connections.getConnection(partition);

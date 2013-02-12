@@ -8,6 +8,7 @@
  * How tuples are serialized is now pluggable (thanks anfeng)
  * Added blowfish encryption based tuple serialization (thanks anfeng)
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
+ * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
 
 ## 0.8.2
 

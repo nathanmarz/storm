@@ -67,6 +67,7 @@ You must not remove this notice, or any other, from this software.
 * Stuart Anderson ([@emblem](https://github.com/emblem))
 * Robert Evans ([@revans2](https://github.com/revans2)) 
 * Andy Feng ([@anfeng](https://github.com/anfeng))
+* Lorcan Coyle ([@lorcan](https://github.com/lorcan))
 
 ## Acknowledgements
 

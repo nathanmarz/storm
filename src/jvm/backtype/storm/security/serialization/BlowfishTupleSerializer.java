@@ -1,9 +1,3 @@
-/**
- * Copyright (c) 2013 Yahoo! Inc. All Rights Reserved.
- *
- * Copyrights licensed under the Eclipse Public License. 
- * See the accompanying LICENSE file for terms.
- */
 package backtype.storm.security.serialization;
 
 import java.util.Map;

@@ -2,14 +2,23 @@ package backtype.storm.utils;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
 public class ListDelegate implements List<Object> {
     private List<Object> _delegate;
     
+    public ListDelegate() {
+    	_delegate = new ArrayList<Object>();
+    }
+    
     public void setDelegate(List<Object> delegate) {
         _delegate = delegate;
+    }
+
+    public List<Object> getDelegate() {
+        return _delegate;
     }
     
     @Override

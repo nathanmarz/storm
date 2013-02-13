@@ -5,6 +5,8 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
+                 [org.apache.zookeeper/zookeeper "3.4.5"
+                  :exclusions [com.sun.jmx/jmxri com.sun.jdmk/jmxtools javax.jms/jms org.slf4j/slf4j-log4j12]]
                  [storm/libthrift7 "0.7.0"
                   :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]

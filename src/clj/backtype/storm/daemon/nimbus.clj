@@ -849,7 +849,7 @@
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
-(def DISALLOWED-TOPOLOGY-NAME-STRS #{"/" "." ":" "\\"})
+(def DISALLOWED-TOPOLOGY-NAME-STRS #{"/" "." ":" "\\" "<" ">" "\"" "'" "&"})
 
 (defn validate-topology-name! [name]
   (if (some #(.contains name %) DISALLOWED-TOPOLOGY-NAME-STRS)

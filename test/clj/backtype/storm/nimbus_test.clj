@@ -739,3 +739,28 @@
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
        ))))
+
+(deftest test-rejects-topologies-with-invalid-chars
+  (with-simulated-time-local-cluster [cluster]
+    (let [
+          invalid-topo-chars #{"/" "." ":" "\\" "<" ">" "\"" "'" "&"}
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology 
+                     {"1" (thrift/mk-spout-spec (TestWordSpout. false))} {}
+                   )
+         ]
+      (doseq [bad-char invalid-topo-chars]
+        (let [topo-name (str "topo" bad-char)]
+          (is
+            (thrown? backtype.storm.generated.InvalidTopologyException
+              (submit-local-topology nimbus topo-name {} topology)
+              (.killTopology (:nimbus cluster) topo-name)
+              (str "Throws InvalidTopologyException name contains \""
+                  bad-char "\"")
+            )
+          )
+        )
+      )
+    )
+  )
+)

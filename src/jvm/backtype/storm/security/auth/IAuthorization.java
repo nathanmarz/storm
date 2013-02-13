@@ -9,9 +9,6 @@ package backtype.storm.security.auth;
  *  
  * You could also specify it via storm.yaml:
  *   nimbus.authorization.classname: backtype.storm.security.auth.DefaultAuthorizer
- *   
- * @author afeng
- *
  */
 public interface IAuthorization {
 	/**

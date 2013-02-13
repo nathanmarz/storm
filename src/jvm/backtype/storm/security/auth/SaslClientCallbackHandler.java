@@ -18,8 +18,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * SASL client side callback handler.
- * @author afeng
- *
  */
 public class SaslClientCallbackHandler implements CallbackHandler {
 	private static final String USERNAME = "username";

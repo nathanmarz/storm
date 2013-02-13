@@ -20,9 +20,6 @@ import org.apache.zookeeper.server.auth.KerberosName;
 
 /**
  * SASL server side collback handler
- * 
- * @author afeng
- *
  */
 public class SaslServerCallbackHandler implements CallbackHandler {
 	private static final String USER_PREFIX = "user_";

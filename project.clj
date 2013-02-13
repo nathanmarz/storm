@@ -8,7 +8,7 @@
                  [storm/libthrift7 "0.7.0"
                   :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]
-                 [com.netflix.curator/curator-framework "1.0.1"
+                 [com.netflix.curator/curator-framework "1.2.6"
                   :exclusions [log4j/log4j]]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]

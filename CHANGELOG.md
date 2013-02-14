@@ -5,6 +5,11 @@
  * Logs are now limited to 1GB per worker (configurable via logging configuration file)
  * Build upgraded to leiningen 2.0
  * Revamped Trident spout interfaces to support more dynamic spouts, such as a spout who reads from a changing set of brokers
+ * How tuples are serialized is now pluggable (thanks anfeng)
+ * Added blowfish encryption based tuple serialization (thanks anfeng)
+ * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
+ * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
+ * Bug fix: Set component-specific configs correctly for Trident spouts
 
 ## 0.8.2
 

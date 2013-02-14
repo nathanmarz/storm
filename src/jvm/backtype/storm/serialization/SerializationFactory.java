@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.serialization.types.ArrayListSerializer;
+import backtype.storm.serialization.types.ListDelegateSerializer;
 import backtype.storm.serialization.types.HashMapSerializer;
 import backtype.storm.serialization.types.HashSetSerializer;
 import backtype.storm.transactional.TransactionAttempt;
@@ -32,7 +33,18 @@ public class SerializationFactory {
         IKryoFactory kryoFactory = (IKryoFactory) Utils.newInstance((String) conf.get(Config.TOPOLOGY_KRYO_FACTORY));
         Kryo k = kryoFactory.getKryo(conf);        
         k.register(byte[].class);
-        k.register(ListDelegate.class);
+
+        /* tuple payload serializer is specified via configuration */
+        String payloadSerializerName = (String)conf.get(Config.TOPOLOGY_TUPLE_SERIALIZER);
+        try {
+            Class serializerClass  = Class.forName(payloadSerializerName);
+            Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
+            k.register(ListDelegate.class, serializer);
+        } catch (ClassNotFoundException ex) {
+            LOG.error("Could not load class in class path: " + payloadSerializerName.length(), ex);
+            throw new RuntimeException(ex);
+        } 
+
         k.register(ArrayList.class, new ArrayListSerializer());
         k.register(HashMap.class, new HashMapSerializer());
         k.register(HashSet.class, new HashSetSerializer());
@@ -63,9 +75,8 @@ public class SerializationFactory {
                 if(serializerClass == null) {
                     k.register(klass);
                 } else {
-                    k.register(klass, resolveSerializerInstance(k, klass, serializerClass));
+                    k.register(klass, resolveSerializerInstance(k, klass, serializerClass, conf));
                 }
-                
             } catch (ClassNotFoundException e) {
                 if(skipMissing) {
                     LOG.info("Could not find serialization or class for " + serializerClassName + ". Skipping registration...");
@@ -139,18 +150,30 @@ public class SerializationFactory {
         }
     }
     
-    private static Serializer resolveSerializerInstance(Kryo k, Class superClass, Class<? extends Serializer> serializerClass) {
+    private static Serializer resolveSerializerInstance(Kryo k, Class superClass, Class<? extends Serializer> serializerClass, Map conf) {
         try {
             try {
-                return serializerClass.getConstructor(Kryo.class, Class.class).newInstance(k, superClass);
+                return serializerClass.getConstructor(Kryo.class, Class.class, Map.class).newInstance(k, superClass, conf);
             } catch (Exception ex1) {
                 try {
-                    return serializerClass.getConstructor(Kryo.class).newInstance(k);
+                    return serializerClass.getConstructor(Kryo.class, Class.class).newInstance(k, superClass);
                 } catch (Exception ex2) {
                     try {
-                        return serializerClass.getConstructor(Class.class).newInstance(superClass);
+                        return serializerClass.getConstructor(Kryo.class, Map.class).newInstance(k, conf);
                     } catch (Exception ex3) {
-                        return serializerClass.newInstance();
+                        try {
+                            return serializerClass.getConstructor(Kryo.class).newInstance(k);
+                        } catch (Exception ex4) {
+                            try {
+                                return serializerClass.getConstructor(Class.class, Map.class).newInstance(superClass, conf);
+                            } catch (Exception ex5) {
+                                try {
+                                    return serializerClass.getConstructor(Class.class).newInstance(superClass);
+                                } catch (Exception ex6) {
+                                    return serializerClass.newInstance();
+                                }
+                            }
+                        }
                     }
                 }
             }

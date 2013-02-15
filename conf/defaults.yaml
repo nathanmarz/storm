@@ -33,6 +33,7 @@ nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 
 ### ui.* configs are for the master
 ui.port: 8080
+ui.host: 0.0.0.0
 ui.childopts: "-Xmx768m"
 
 drpc.port: 3772

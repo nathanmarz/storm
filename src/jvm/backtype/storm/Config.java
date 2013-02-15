@@ -207,6 +207,11 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
 
     /**
+     * Class name for authorization plugin for Nimbus
+     */
+    public static String NIMBUS_AUTHORIZATION_CLASSNAME = "nimbus.authorization.classname";
+    
+    /**
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";

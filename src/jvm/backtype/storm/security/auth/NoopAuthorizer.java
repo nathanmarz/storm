@@ -21,12 +21,12 @@ public class NoopAuthorizer implements IAuthorization {
    */
   public boolean permit(ReqContext context) {
     LOG.info("Access "
-      + " from: " + context.remoteAddress() == null
-        ? "null" : context.remoteAddress().toString()
-      + " principal:"+context.principal() == null
-        ? "null" : context.principal()
-      +" op:"+context.operation()
-      + " topoology:"+context.topologyConf().get(Config.TOPOLOGY_NAME));
+	     + " from: " + context.remoteAddress() == null
+	     ? "null" : context.remoteAddress().toString()
+	     + " principal:"+context.principal() == null
+	     ? "null" : context.principal()
+	     +" op:"+context.operation()
+	     + " topoology:"+ context.topologyConf().get(Config.TOPOLOGY_NAME));
     return true;
   }
 }

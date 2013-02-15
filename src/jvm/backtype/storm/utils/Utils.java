@@ -112,7 +112,8 @@ public class Utils {
                 else return new HashMap();
             }
             if(resources.size() > 1) {
-                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar.");
+                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "
+                  + resources);
             }
             URL resource = resources.get(0);
             Yaml yaml = new Yaml();

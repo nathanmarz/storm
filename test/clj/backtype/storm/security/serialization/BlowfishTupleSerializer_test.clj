@@ -1,6 +1,7 @@
 (ns backtype.storm.security.serialization.BlowfishTupleSerializer-test
-  (:use [
-         clojure test])
+  (:use [clojure test]
+        [backtype.storm.util :only (exception-cause?)]
+  )
   (:import [backtype.storm.security.serialization BlowfishTupleSerializer]
            [backtype.storm.utils ListDelegate]
            [com.esotericsoftware.kryo Kryo]
@@ -8,22 +9,14 @@
   )
 )
 
-; Exceptions are getting wrapped in RuntimeException.  This might be due to
-; CLJ-855.
-(defn- unpack-runtime-exception [expression]
-  (try (eval expression)
-    nil
-    (catch java.lang.RuntimeException gripe
-      (throw (.getCause gripe)))
-  )
-)
-
 (deftest test-constructor-throws-on-null-key
   (let [conf {}]
-    (is (thrown? java.lang.RuntimeException
-      (unpack-runtime-exception 
-        '(new BlowfishTupleSerializer nil conf)))
-      "Throws RuntimeException when no encryption key is given."
+    (try
+      (new BlowfishTupleSerializer nil conf)
+      (catch Throwable t
+        (is (exception-cause? java.lang.RuntimeException t)
+        "Throws RuntimeException when no encryption key is given.")
+      )
     )
   )
 )

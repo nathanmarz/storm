@@ -1,7 +1,10 @@
 package storm.kafka.trident;
 
 import backtype.storm.Config;
+import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.MeanReducer;
+import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 
@@ -59,6 +62,8 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
         String _topologyName;
         TopologyContext _context;
         KafkaUtils.KafkaOffsetMetric _kafkaOffsetMetric;
+        ReducedMetric _kafkaMeanFetchLatencyMetric;
+        CombinedMetric _kafkaMaxFetchLatencyMetric;
 
         public Emitter(Map conf, TopologyContext context) {
             _connections = new DynamicPartitionConnections(_config);
@@ -66,12 +71,14 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
             _context = context;
             _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_config.topic, _connections);
             context.registerMetric("kafkaOffset", _kafkaOffsetMetric, 60);
+            _kafkaMeanFetchLatencyMetric = context.registerMetric("kafkaFetchAvg", new MeanReducer(), 60);
+            _kafkaMaxFetchLatencyMetric = context.registerMetric("kafkaFetchMax", new MaxMetric(), 60);
         }
         
         @Override
         public Map emitPartitionBatchNew(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
             SimpleConsumer consumer = _connections.register(partition);
-            Map ret = KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
+            Map ret = KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName, _kafkaMeanFetchLatencyMetric, _kafkaMaxFetchLatencyMetric);
             _kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long)ret.get("offset"));
             return ret;
         }
@@ -83,7 +90,13 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
                 SimpleConsumer consumer = _connections.register(partition);
                 long offset = (Long) meta.get("offset");
                 long nextOffset = (Long) meta.get("nextOffset");
+                long start = System.nanoTime();
                 ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition.partition, offset, _config.fetchSizeBytes));
+                long end = System.nanoTime();
+                long millis = (end - start) / 1000000;
+                _kafkaMeanFetchLatencyMetric.update(millis);
+                _kafkaMaxFetchLatencyMetric.update(millis);
+
                 for(MessageAndOffset msg: msgs) {
                     if(offset == nextOffset) break;
                     if(offset > nextOffset) {

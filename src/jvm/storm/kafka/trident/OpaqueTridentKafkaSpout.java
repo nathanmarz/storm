@@ -1,6 +1,9 @@
 package storm.kafka.trident;
 
 import backtype.storm.Config;
+import backtype.storm.metric.api.CombinedMetric;
+import backtype.storm.metric.api.MeanReducer;
+import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 import com.google.common.collect.ImmutableMap;
@@ -74,19 +77,23 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
         DynamicPartitionConnections _connections;
         String _topologyName;
         KafkaUtils.KafkaOffsetMetric _kafkaOffsetMetric;
+        ReducedMetric _kafkaMeanFetchLatencyMetric;
+        CombinedMetric _kafkaMaxFetchLatencyMetric;
 
         public Emitter(Map conf, TopologyContext context) {
             _connections = new DynamicPartitionConnections(_config);
             _topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
             _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_config.topic, _connections);
             context.registerMetric("kafkaOffset", _kafkaOffsetMetric, 60);
+            _kafkaMeanFetchLatencyMetric = context.registerMetric("kafkaFetchAvg", new MeanReducer(), 60);
+            _kafkaMaxFetchLatencyMetric = context.registerMetric("kafkaFetchMax", new MaxMetric(), 60);
         }
 
         @Override
         public Map emitPartitionBatch(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
             try {
                 SimpleConsumer consumer = _connections.register(partition);
-                Map ret = KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName);
+                Map ret = KafkaUtils.emitPartitionBatchNew(_config, consumer, partition, collector, lastMeta, _topologyInstanceId, _topologyName, _kafkaMeanFetchLatencyMetric, _kafkaMaxFetchLatencyMetric);
                 _kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long)ret.get("offset"));
                 return ret;
             } catch(FailedFetchException e) {

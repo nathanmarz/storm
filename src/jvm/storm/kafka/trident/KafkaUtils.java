@@ -3,7 +3,9 @@ package storm.kafka.trident;
 import java.net.ConnectException;
 import java.util.*;
 
+import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.ReducedMetric;
 import com.google.common.collect.ImmutableMap;
 
 import backtype.storm.utils.Utils;
@@ -47,7 +49,8 @@ public class KafkaUtils {
         return ret;
     }
 
-     public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta, String topologyInstanceId, String topologyName) {
+     public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta, String topologyInstanceId, String topologyName,
+                                               ReducedMetric meanMetric, CombinedMetric maxMetric) {
          long offset;
          if(lastMeta!=null) {
              String lastInstanceId = null;
@@ -67,7 +70,12 @@ public class KafkaUtils {
          }
          ByteBufferMessageSet msgs;
          try {
+            long start = System.nanoTime();
             msgs = consumer.fetch(new FetchRequest(config.topic, partition.partition, offset, config.fetchSizeBytes));
+            long end = System.nanoTime();
+            long millis = (end - start) / 1000000;
+            meanMetric.update(millis);
+            maxMetric.update(millis);
          } catch(Exception e) {
              if(e instanceof ConnectException) {
                  throw new FailedFetchException(e);

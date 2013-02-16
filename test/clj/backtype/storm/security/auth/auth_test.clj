@@ -116,12 +116,13 @@
     	   (.serve server)))
 
 (defn launch-server-w-wait [server-port ms login-cfg aznClass]
-   (future (launch-test-server server-port login-cfg aznClass))
+   (.start (Thread. #(launch-test-server server-port login-cfg aznClass)))
    (log-message "Waiting for Nimbus Server...")
-   (Thread/sleep ms))
+   (Thread/sleep ms)
+   (log-message "Continue..."))
 
 (deftest authorization-test 
-  (launch-server-w-wait 6627 1000 "" "backtype.storm.security.auth.DenyAuthorizer")
+  (launch-server-w-wait 6627 2000 "" "backtype.storm.security.auth.DenyAuthorizer")
   (log-message "Starting Nimbus client w/ anonymous authentication")
   (let [client (NimbusClient. "localhost" 6627)
         nimbus_client (.getClient client)]
@@ -130,7 +131,7 @@
      (.close client)))
 
 (deftest authentication-test
-  (launch-server-w-wait 6628 1000 "./conf/jaas_digest.conf" "backtype.storm.security.auth.NoopAuthorizer")
+  (launch-server-w-wait 6628 2000 "./conf/jaas_digest.conf" "backtype.storm.security.auth.NoopAuthorizer")
   (System/setProperty "java.security.auth.login.config" "")
   (log-message "Starting Nimbus client w/ anonymous authentication (expect authentication failure")
   (is (= "Peer indicated failure: Unsupported mechanism type ANONYMOUS" 

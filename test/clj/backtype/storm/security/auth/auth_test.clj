@@ -19,10 +19,10 @@
         aznClass (if klassname (Class/forName klassname))
         aznHandler (if aznClass (.newInstance aznClass))] 
     (log-debug "authorization class name:" klassname
-                 " class:" aznClass
-                 " handler:" aznHandler)
+               " class:" aznClass
+               " handler:" aznHandler)
     aznHandler
-  ))
+    ))
 
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
@@ -50,35 +50,35 @@
     req))
 
 (defn check-authorization! [nimbus storm-name storm-conf operation]
- (let [aclHandler (:authorization-handler nimbus)]
-   (log-debug "check-authorization with handler: " aclHandler)
-   (if aclHandler
-       (let [req (update-req-context! nimbus storm-name storm-conf operation)]
+  (let [aclHandler (:authorization-handler nimbus)]
+    (log-debug "check-authorization with handler: " aclHandler)
+    (if aclHandler
+      (let [req (update-req-context! nimbus storm-name storm-conf operation)]
         (if-not (.permit aclHandler req)
           (throw (RuntimeException. (str operation " on topology " storm-name " is not authorized")))
           )))))
 
 (defn dummy-service-handler [conf inimbus]
   (let [nimbus (nimbus-data conf inimbus)]
-     (reify Nimbus$Iface
+    (reify Nimbus$Iface
       (^void submitTopologyWithOpts [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
-      	     			     ^SubmitOptions submitOptions]
-	(check-authorization! nimbus storm-name nil (ReqContext$OperationType/SUBMIT_TOPOLOGY)))
+                                     ^SubmitOptions submitOptions]
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/SUBMIT_TOPOLOGY)))
       
       (^void killTopology [this ^String storm-name]
-	(check-authorization! nimbus storm-name nil (ReqContext$OperationType/KILL_TOPOLOGY)))
-
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/KILL_TOPOLOGY)))
+      
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-	(check-authorization! nimbus storm-name nil (ReqContext$OperationType/KILL_TOPOLOGY)))
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/KILL_TOPOLOGY)))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-	(check-authorization! nimbus storm-name nil (ReqContext$OperationType/REBALANCE_TOPOLOGY)))
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/REBALANCE_TOPOLOGY)))
 
       (activate [this storm-name]
-	(check-authorization! nimbus storm-name nil (ReqContext$OperationType/ACTIVATE_TOPOLOGY)))
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/ACTIVATE_TOPOLOGY)))
 
       (deactivate [this storm-name]
-	(check-authorization! nimbus storm-name nil (ReqContext$OperationType/DEACTIVATE_TOPOLOGY)))
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/DEACTIVATE_TOPOLOGY)))
 
       (beginFileUpload [this])
 
@@ -103,46 +103,84 @@
       (^TopologyInfo getTopologyInfo [this ^String storm-id]))))
 
 (defn launch-test-server [server-port login-cfg aznClass] 
-    (System/setProperty "java.security.auth.login.config" login-cfg)
-    (let [conf (merge (read-storm-config)
-                     {NIMBUS-AUTHORIZATION-CLASSNAME aznClass 
-		      NIMBUS-HOST "localhost"
-		      NIMBUS-THRIFT-PORT server-port})
-           nimbus (nimbus/standalone-nimbus)
-           service-handler (dummy-service-handler conf nimbus)
-           server (ThriftServer. (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
-    	   (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
-    	   (log-message "Starting Nimbus server...")
-    	   (.serve server)))
+  (System/setProperty "java.security.auth.login.config" login-cfg)
+  (let [conf (merge (read-storm-config)
+                    {NIMBUS-AUTHORIZATION-CLASSNAME aznClass 
+                     NIMBUS-HOST "localhost"
+                     NIMBUS-THRIFT-PORT server-port})
+        nimbus (nimbus/standalone-nimbus)
+        service-handler (dummy-service-handler conf nimbus)
+        server (ThriftServer. (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
+    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
+    (.serve server)))
 
 (defn launch-server-w-wait [server-port ms login-cfg aznClass]
-   (.start (Thread. #(launch-test-server server-port login-cfg aznClass)))
-   (log-message "Waiting for Nimbus Server...")
-   (Thread/sleep ms)
-   (log-message "Continue..."))
+  (.start (Thread. #(launch-test-server server-port login-cfg aznClass)))
+  (Thread/sleep ms))
 
-(deftest authorization-test 
-  (launch-server-w-wait 6627 2000 "" "backtype.storm.security.auth.DenyAuthorizer")
-  (log-message "Starting Nimbus client w/ anonymous authentication")
+(deftest anonymous-authentication-test 
+  (launch-server-w-wait 6627 1000 "" nil)
+
+  (log-message "(Positive authentication) Server and Client with anonymous authentication")
   (let [client (NimbusClient. "localhost" 6627)
         nimbus_client (.getClient client)]
-     (is (thrown? TTransportException
-            (.activate nimbus_client "security_auth_test_topology")))
-     (.close client)))
+    (.activate nimbus_client "security_auth_test_topology")
+    (.close client))
 
-(deftest authentication-test
-  (launch-server-w-wait 6628 2000 "./conf/jaas_digest.conf" "backtype.storm.security.auth.NoopAuthorizer")
-  (System/setProperty "java.security.auth.login.config" "")
-  (log-message "Starting Nimbus client w/ anonymous authentication (expect authentication failure")
-  (is (= "Peer indicated failure: Unsupported mechanism type ANONYMOUS" 
-         (try (NimbusClient. "localhost" 6628)
-	      nil
-              (catch java.lang.RuntimeException ex 
-	      	 (.getMessage (.getCause ex))))))
-  (log-message "Starting Nimbus client w/ digest authentication (expect authentication success)")
-  (System/setProperty "java.security.auth.login.config" "./conf/jaas_digest.conf")
+  (log-message "(Negative authentication) Server: anonymous vs. Client: Digest")
+  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf")
+  (log-message "java.security.auth.login.config: " (System/getProperty "java.security.auth.login.config"))
+  (is (= "Peer indicated failure: Unsupported mechanism type DIGEST-MD5" 
+         (try (NimbusClient. "localhost" 6627)
+           nil
+           (catch java.lang.RuntimeException ex (.getMessage (.getCause ex)))))))
+
+(deftest positive-authorization-test 
+  (launch-server-w-wait 6628 1000 "" "backtype.storm.security.auth.NoopAuthorizer")
   (let [client (NimbusClient. "localhost" 6628)
         nimbus_client (.getClient client)]
-     (.activate nimbus_client "security_auth_test_topology")
-     (.close client)))
+    (log-message "(Positive authorization) Authorization plugin should accept client request")
+    (.activate nimbus_client "security_auth_test_topology")
+    (.close client)))
+
+(deftest deny-authorization-test 
+  (launch-server-w-wait 6629 1000 "" "backtype.storm.security.auth.DenyAuthorizer")
+  (let [client (NimbusClient. "localhost" 6629)
+        nimbus_client (.getClient client)]
+    (log-message "(Negative authorization) Authorization plugin should reject client request")
+    (is (thrown? TTransportException
+                 (.activate nimbus_client "security_auth_test_topology")))
+    (.close client)))
+
+(deftest digest-authentication-test
+  (launch-server-w-wait 6630 2000 "test/clj/backtype/storm/security/auth/jaas_digest.conf" nil)
+
+  (log-message "(Positive authentication) valid digest authentication")
+  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf")
+  (let [client (NimbusClient. "localhost" 6630)
+        nimbus_client (.getClient client)]
+    (.activate nimbus_client "security_auth_test_topology")
+    (.close client))
+  
+  (log-message "(Negative authentication) Server: Digest vs. Client: anonymous")
+  (System/setProperty "java.security.auth.login.config" "")
+  (is (= "Peer indicated failure: Unsupported mechanism type ANONYMOUS" 
+         (try (NimbusClient. "localhost" 6630)
+           nil
+           (catch java.lang.RuntimeException ex (.getMessage (.getCause ex))))))
+
+  (log-message "(Negative authentication) Invalid  password")
+  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf")
+  (is (= "Peer indicated failure: DIGEST-MD5: digest response format violation. Mismatched response." 
+         (try (NimbusClient. "localhost" 6630)
+           nil
+           (catch java.lang.RuntimeException ex (.getMessage (.getCause ex))))))
+
+  (log-message "(Negative authentication) Unknown user")
+  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_unknown_user.conf")
+  (is (= "Peer indicated failure: DIGEST-MD5: cannot acquire password for unknown_user in realm : localhost" 
+         (try (NimbusClient. "localhost" 6630)
+           nil
+           (catch java.lang.RuntimeException ex (.getMessage (.getCause ex)))))))
+
 

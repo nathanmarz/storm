@@ -3,14 +3,12 @@ package backtype.storm.security.auth;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
 import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslServer;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.Subject;
-
 import java.io.IOException;
 import java.net.Socket;
 import java.security.Principal;
@@ -18,7 +16,6 @@ import java.security.PrivilegedExceptionAction;
 import java.security.PrivilegedActionException;
 import org.apache.zookeeper.Login;
 import org.apache.zookeeper.server.auth.KerberosName;
-
 import org.apache.thrift7.TException;
 import org.apache.thrift7.TProcessor;
 import org.apache.thrift7.server.TServer;
@@ -33,8 +30,6 @@ import org.apache.thrift7.transport.TTransport;
 import org.apache.thrift7.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-
 import backtype.storm.security.auth.*;
 import backtype.storm.utils.Utils;
 
@@ -128,7 +123,6 @@ public class ThriftServer {
 						    transportFactory(factory).
 						    protocolFactory(new TBinaryProtocol.Factory()));
 		} 
-
 	    }
 
 	    _server.serve();
@@ -196,7 +190,7 @@ public class ThriftServer {
 	}
 
 	@Override
-	    public boolean equals(Object o) {
+	public boolean equals(Object o) {
 	    if (this == o) {
 		return true;
 	    } else if (o == null || getClass() != o.getClass()) {
@@ -207,7 +201,7 @@ public class ThriftServer {
 	}
 
 	@Override
-	    public int hashCode() {
+	public int hashCode() {
 	    return name.hashCode();
 	}
 
@@ -237,7 +231,7 @@ public class ThriftServer {
 	}
 
 	@Override
-	    public TTransport getTransport(final TTransport trans) {
+	public TTransport getTransport(final TTransport trans) {
 	    try {
 		return Subject.doAs(subject,
 				    new PrivilegedExceptionAction<TTransport>() {

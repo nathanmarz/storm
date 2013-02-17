@@ -127,7 +127,7 @@
   (let [client (NimbusClient. "localhost" 6627)
         nimbus_client (.getClient client)]
      (is (thrown? TTransportException
-            (.activate nimbus_client "bogus_topology")))
+            (.activate nimbus_client "security_auth_test_topology")))
      (.close client)))
 
 (deftest authentication-test
@@ -143,6 +143,6 @@
   (System/setProperty "java.security.auth.login.config" "./conf/jaas_digest.conf")
   (let [client (NimbusClient. "localhost" 6628)
         nimbus_client (.getClient client)]
-     (.activate nimbus_client "bogus_topology")
+     (.activate nimbus_client "security_auth_test_topology")
      (.close client)))
 

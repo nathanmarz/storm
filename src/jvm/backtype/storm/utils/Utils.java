@@ -295,11 +295,24 @@ public class Utils {
         String zkStr = StringUtils.join(serverPorts, ",") + root; 
         try {
             
+            final int maxRetryInterval = Utils.getInt( 
+                    conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING));
+
             CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
                     .connectString(zkStr)
                     .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
                     .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                    .retryPolicy(new ExponentialBackoffRetry(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)), Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+                    .retryPolicy(new ExponentialBackoffRetry(
+                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)))
+                                {
+                                    @Override
+                                    protected int getSleepTimeMs(int count, long elapsedMs)
+                                    {
+                                        return Math.min(maxRetryInterval,
+                                                super.getSleepTimeMs(count, elapsedMs));
+                                    }
+                                });
             if(auth!=null && auth.scheme!=null) {
                 builder = builder.authorization(auth.scheme, auth.payload);
             }            

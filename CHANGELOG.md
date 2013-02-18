@@ -13,6 +13,7 @@
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts
+ * Bug fix: Fix TransactionalMap and OpaqueMap to correctly do multiple updates to the same key in the same batch
 
 ## 0.8.2
 

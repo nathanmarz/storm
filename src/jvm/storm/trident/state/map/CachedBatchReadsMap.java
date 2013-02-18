@@ -6,38 +6,45 @@ import java.util.List;
 import java.util.Map;
 import storm.trident.state.ValueUpdater;
 
-public class CachedBatchReadsMap<T> implements MapState<T> {
+
+public class CachedBatchReadsMap<T> {
+    public static class RetVal<T> {
+        public boolean cached;
+        public T val;
+
+        public RetVal(T v, boolean c) {
+            val = v;
+            cached = c;
+        }
+    }
+
     Map<List<Object>, T> _cached = new HashMap<List<Object>, T>();
     
-    public MapState<T> _delegate;
+    public IBackingMap<T> _delegate;
     
-    public CachedBatchReadsMap(MapState<T> delegate) {
+    public CachedBatchReadsMap(IBackingMap<T> delegate) {
         _delegate = delegate;
     }
+
+    public void reset() {
+        _cached.clear();
+    }
     
-    @Override
-    public List<T> multiGet(List<List<Object>> keys) {
-        List<T> ret = _delegate.multiGet(keys);
-        if(!_cached.isEmpty()) {
-            ret = new ArrayList<T>(ret);
-            for(int i=0; i<keys.size(); i++) {
-                List<Object> key = keys.get(i);
-                if(_cached.containsKey(key)) {
-                    ret.set(i, _cached.get(key));
-                }
+    public List<RetVal<T>> multiGet(List<List<Object>> keys) {
+        // TODO: can optimize further by only querying backing map for keys not in the cache
+        List<T> vals = _delegate.multiGet(keys);
+        List<RetVal<T>> ret = new ArrayList(vals.size());
+        for(int i=0; i<keys.size(); i++) {
+            List<Object> key = keys.get(i);
+            if(_cached.containsKey(key)) {
+                ret.add(new RetVal(_cached.get(key), true));
+            } else {
+                ret.add(new RetVal(vals.get(i), false));
             }
         }
         return ret;
     }
 
-    @Override
-    public List<T> multiUpdate(List<List<Object>> keys, List<ValueUpdater> updaters) {
-        List<T> vals = _delegate.multiUpdate(keys, updaters);
-        cache(keys, vals);
-        return vals;
-    }
-
-    @Override
     public void multiPut(List<List<Object>> keys, List<T> vals) {
         _delegate.multiPut(keys, vals);
         cache(keys, vals);
@@ -51,16 +58,6 @@ public class CachedBatchReadsMap<T> implements MapState<T> {
         }
     }
 
-    @Override
-    public void beginCommit(Long txid) {
-        _cached.clear(); //if a commit was pending and failed, we need to make sure to clear the cache
-        _delegate.beginCommit(txid);
-    }
 
-    @Override
-    public void commit(Long txid) {
-        _cached.clear();
-        _delegate.commit(txid);
-    }
     
 }

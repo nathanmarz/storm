@@ -67,6 +67,10 @@ public class SlidingWindowCounterTest {
         for (int i = 0; i < numIterations; i++) {
             int numIncrements = incrementsPerIteration[i];
             long expCounts = expCountsPerIteration[i];
+            // Objects are absent if they were zero both this iteration
+            // and the last -- if only this one, we need to report zero.
+            boolean expAbsent = ((expCounts == 0) &&
+                ((i == 0) || (expCountsPerIteration[i-1] == 0)));
 
             // given (for this iteration)
             for (int j = 0; j < numIncrements; j++) {
@@ -77,7 +81,7 @@ public class SlidingWindowCounterTest {
             Map<Object, Long> counts = counter.getCountsThenAdvanceWindow();
 
             // then (for this iteration)
-            if (expCounts == 0) {
+            if (expAbsent) {
                 assertThat(counts).doesNotContainKey(ANY_OBJECT);
             }
             else {

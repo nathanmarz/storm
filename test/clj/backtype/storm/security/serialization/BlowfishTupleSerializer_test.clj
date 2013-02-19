@@ -1,6 +1,7 @@
 (ns backtype.storm.security.serialization.BlowfishTupleSerializer-test
   (:use [clojure test]
         [backtype.storm.util :only (exception-cause?)]
+        [clojure.string :only (join split)]
   )
   (:import [backtype.storm.security.serialization BlowfishTupleSerializer]
            [backtype.storm.utils ListDelegate]
@@ -10,18 +11,10 @@
 )
 
 (deftest test-constructor-throws-on-null-key
-  (let [conf {}]
-    (try
-      (new BlowfishTupleSerializer nil conf)
-      (catch Throwable t
-        (is (exception-cause? java.lang.RuntimeException t)
-        "Throws RuntimeException when no encryption key is given.")
-      )
-    )
-  )
+  (is (thrown? RuntimeException (new BlowfishTupleSerializer nil {}))
+      "Throws RuntimeException when no encryption key is given.")
 )
 
-(use '[clojure.string :only (join split)])
 (deftest test-encrypts-and-decrypts-message
 
   (let [
@@ -50,7 +43,7 @@
        ]
     (-> delegate (.addAll strlist))
     (-> writer-bts (.write kryo output delegate))
-    (-> input (.setBuffer (-> output (.getBuffer))))
+    (.setBuffer input (.getBuffer output))
     (is 
       (=
         test-text

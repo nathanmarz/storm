@@ -65,6 +65,11 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
 
     /**
+     * The transport class for Thrift 
+     */
+    public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
+    
+    /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
      */

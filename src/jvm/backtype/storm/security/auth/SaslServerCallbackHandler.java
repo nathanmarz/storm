@@ -32,9 +32,9 @@ public class SaslServerCallbackHandler implements CallbackHandler {
 	public SaslServerCallbackHandler(Configuration configuration) throws IOException {
 		if (configuration==null) return;
 
-		AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LoginContextServer);
+		AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_SERVER);
 		if (configurationEntries == null) {
-			String errorMessage = "Could not find a '"+AuthUtils.LoginContextServer+"' entry in this configuration: Server cannot start.";
+			String errorMessage = "Could not find a '"+AuthUtils.LOGIN_CONTEXT_SERVER+"' entry in this configuration: Server cannot start.";
 			LOG.error(errorMessage);
 			throw new IOException(errorMessage);
 		}
@@ -68,11 +68,13 @@ public class SaslServerCallbackHandler implements CallbackHandler {
 	}
 
 	private void handleNameCallback(NameCallback nc) {
+        LOG.debug("handleNameCallback");
 		userName = nc.getDefaultName();
 		nc.setName(nc.getDefaultName());
 	}
 
 	private void handlePasswordCallback(PasswordCallback pc) {
+        LOG.debug("handlePasswordCallback");
 		if ("super".equals(this.userName) && System.getProperty(SYSPROP_SUPER_PASSWORD) != null) {
 			// superuser: use Java system property for password, if available.
 			pc.setPassword(System.getProperty(SYSPROP_SUPER_PASSWORD).toCharArray());

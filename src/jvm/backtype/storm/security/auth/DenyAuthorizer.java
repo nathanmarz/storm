@@ -19,14 +19,11 @@ public class DenyAuthorizer implements IAuthorization {
      * @return true if the request is authorized, false if reject
      */
     public boolean permit(ReqContext context) {
-	LOG.info("Access "
-		 + " from: " + 
-		 (context.remoteAddress() == null 
-		  ? "null" : context.remoteAddress().toString())
-		 + " principal:"+ (context.principal() == null 
-				   ? "null" : context.principal())
-		 +" op:"+context.operation()
-		 + " topoology:"+context.topologyConf().get(Config.TOPOLOGY_NAME));
-	return false;
+        LOG.info("Access "
+                + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
+                + " principal:"+ (context.principal() == null? "null" : context.principal())
+                +" op:"+context.operation()
+                + " topoology:"+context.topologyConf().get(Config.TOPOLOGY_NAME));
+        return false;
     }
 }

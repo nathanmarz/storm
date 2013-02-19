@@ -1,7 +1,6 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
-
 import org.apache.thrift7.TProcessor;
 import org.apache.thrift7.server.TServer;
 import org.apache.thrift7.transport.TTransport;
@@ -15,13 +14,13 @@ import org.apache.thrift7.transport.TTransportException;
  */
 public interface ITransportPlugin {
     /**
-     * Create a server for server to use
+     * Create a server associated with a given port and service handler
      * @param port listening port
      * @param processor service handler
      * @return server to be binded
      */
     public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException;
-    
+
     /**
      * Connect to the specified server via framed transport 
      * @param transport The underlying Thrift transport.

@@ -29,22 +29,16 @@
                  ]
 
   :source-paths ["src/clj"]
-  :java-source-paths ["src/jvm" "test/jvm"]
+  :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
-  :profiles {:dev {:resource-paths ["src/dev"]
-                   :dependencies [[junit/junit "4.11"]]
-                  }
+  :profiles {:dev {:resource-paths ["src/dev"]}
              :release {}
              :lib {}
              }
 
-  :plugins [[lein-swank "1.4.4"]
-            [lein-junit "1.1.2"]
-           ]
-
-  :junit ["test/jvm"]
+  :plugins [[lein-swank "1.4.4"]]
 
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}

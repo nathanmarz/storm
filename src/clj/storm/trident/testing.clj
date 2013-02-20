@@ -1,6 +1,7 @@
 (ns storm.trident.testing
   (:import [storm.trident.testing FeederBatchSpout FeederCommitterBatchSpout MemoryMapState MemoryMapState$Factory TuplifyArgs])
   (:import [backtype.storm LocalDRPC])
+  (:require [backtype.storm [LocalDRPC]])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated KillOptions])
   (:require [backtype.storm [testing :as t]])

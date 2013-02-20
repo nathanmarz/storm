@@ -15,8 +15,15 @@
       "Throws RuntimeException when no encryption key is given.")
 )
 
-(deftest test-encrypts-and-decrypts-message
+(deftest test-constructor-throws-on-invalid-key
+  ; The encryption key must be hexadecimal.
+  (let [conf {BlowfishTupleSerializer/SECRET_KEY "0123456789abcdefg"}]
+    (is (thrown? RuntimeException (new BlowfishTupleSerializer nil conf))
+        "Throws RuntimeException when an invalid encryption key is given.")
+  )
+)
 
+(deftest test-encrypts-and-decrypts-message
   (let [
         test-text (str
 "Tetraodontidae is a family of primarily marine and estuarine fish of the order"
@@ -32,7 +39,7 @@
 )
         kryo (new Kryo)
         arbitrary-key "7dd6fb3203878381b08f9c89d25ed105"
-        storm_conf {"topology.tuple.serializer.blowfish.key" arbitrary-key}
+        storm_conf {BlowfishTupleSerializer/SECRET_KEY arbitrary-key}
         writer-bts (new BlowfishTupleSerializer kryo storm_conf)
         reader-bts (new BlowfishTupleSerializer kryo storm_conf)
         buf-size 1024

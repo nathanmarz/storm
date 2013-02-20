@@ -26,7 +26,7 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
      * You should use in via "storm -c topology.tuple.serializer.blowfish.key=YOURKEY -c topology.tuple.serializer=backtype.storm.security.serialization.BlowfishTupleSerializer jar ...".
      */
     public static String SECRET_KEY = "topology.tuple.serializer.blowfish.key";
-    private static final Logger LOG = Logger.getLogger(BlowfishSerializer.class);
+    private static final Logger LOG = Logger.getLogger(BlowfishTupleSerializer.class);
     private BlowfishSerializer _serializer;
 
     public BlowfishTupleSerializer(Kryo kryo, Map storm_conf) {
@@ -35,13 +35,11 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
             encryption_key = (String)storm_conf.get(SECRET_KEY);
             LOG.debug("Blowfish serializer being constructed ...");
             if (encryption_key == null) {
-                LOG.error("Encryption key not specified");
                 throw new RuntimeException("Blowfish encryption key not specified");
             }
             byte[] bytes =  Hex.decodeHex(encryption_key.toCharArray());
             _serializer = new BlowfishSerializer(new ListDelegateSerializer(), bytes);
         } catch (org.apache.commons.codec.DecoderException ex) {
-            LOG.error("Invalid encryption key", ex);
             throw new RuntimeException("Blowfish encryption key invalid", ex);
         }
     }

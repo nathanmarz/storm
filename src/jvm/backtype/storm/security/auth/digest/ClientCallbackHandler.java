@@ -1,7 +1,6 @@
-package backtype.storm.security.auth;
+package backtype.storm.security.auth.digest;
 
 import java.io.IOException;
-import java.util.Map;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -14,13 +13,15 @@ import javax.security.auth.login.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.security.auth.AuthUtils;
+
 /**
- * SASL client side callback handler.
+ *  client side callback handler.
  */
-public class SaslClientCallbackHandler implements CallbackHandler {
+public class ClientCallbackHandler implements CallbackHandler {
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
-    private static final Logger LOG = LoggerFactory.getLogger(SaslClientCallbackHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClientCallbackHandler.class);
     private String _username = null;
     private String _password = null;
 
@@ -32,7 +33,7 @@ public class SaslClientCallbackHandler implements CallbackHandler {
      * @param configuration
      * @throws IOException
      */
-    public SaslClientCallbackHandler(Configuration configuration) throws IOException {
+    public ClientCallbackHandler(Configuration configuration) throws IOException {
         if (configuration == null) return;
         AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_CLIENT);
         if (configurationEntries == null) {

@@ -21,6 +21,9 @@ import org.apache.thrift7.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Base class for SASL authentication plugin.
+ */
 public abstract class SaslTransportPlugin implements ITransportPlugin {
     protected Configuration login_conf;
     private static final Logger LOG = LoggerFactory.getLogger(SaslTransportPlugin.class);

@@ -5,12 +5,12 @@ package backtype.storm.security.auth;
  * If not specified, all requests are authorized.
  * 
  * You could specify the authorization plugin via storm parameter. For example:
- *  storm -c nimbus.authorization.classname=backtype.storm.security.auth.DefaultAuthorizer ...
+ *  storm -c nimbus.authorization.class=backtype.storm.security.auth.NoopAuthorizer ...
  *  
  * You could also specify it via storm.yaml:
- *   nimbus.authorization.classname: backtype.storm.security.auth.DefaultAuthorizer
+ *   nimbus.authorization.class: backtype.storm.security.auth.NoopAuthorizer
  */
-public interface IAuthorization {
+public interface IAuthorizer {
     /**
      * permit() method is invoked for each incoming Thrift request.
      * @param contrext request context includes info about 

@@ -67,8 +67,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * The transport plug-in for Thrift client/server communication
      */
-    public static String STORM_THRIFT_TRANSPORT_PLUGIN_CLASS = "storm.thrift.transport.class";
-    public static String STORM_THRIFT_TRANSPORT_PLUGIN_JAR = "storm.thrift.transport.jar";
+    public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
     
     /**
      * The serializer class for ListDelegate (tuple payload). 
@@ -215,7 +214,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * Class name for authorization plugin for Nimbus
      */
-    public static String NIMBUS_AUTHORIZATION_CLASSNAME = "nimbus.authorization.classname";
+    public static String NIMBUS_AUTHORIZER = "nimbus.authorizer";
     
     /**
      * Storm UI binds to this port.

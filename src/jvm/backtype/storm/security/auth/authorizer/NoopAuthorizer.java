@@ -1,13 +1,16 @@
-package backtype.storm.security.auth;
+package backtype.storm.security.auth.authorizer;
 
 import backtype.storm.Config;
+import backtype.storm.security.auth.IAuthorizer;
+import backtype.storm.security.auth.ReqContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A no-op authorization implementation that illustrate info available for authorization decisions.
  */
-public class NoopAuthorizer implements IAuthorization {
+public class NoopAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(NoopAuthorizer.class);
 
     /**

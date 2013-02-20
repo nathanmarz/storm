@@ -39,7 +39,7 @@
     <appender-ref ref="A1"/>
   </root>
 
-  <logger name="backtype.storm.security.auth.NoopAuthorizer" additivity="false">
+  <logger name="backtype.storm.security.auth.authorizer" additivity="false">
     <level value="INFO" />
     <appender-ref ref="ACCESS" />
   </logger>

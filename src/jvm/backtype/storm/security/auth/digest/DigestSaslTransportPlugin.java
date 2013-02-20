@@ -1,4 +1,4 @@
-package backtype.storm.security.auth;
+package backtype.storm.security.auth.digest;
 
 import java.io.IOException;
 import javax.security.auth.callback.CallbackHandler;
@@ -11,6 +11,9 @@ import org.apache.thrift7.transport.TTransportException;
 import org.apache.thrift7.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import backtype.storm.security.auth.AuthUtils;
+import backtype.storm.security.auth.SaslTransportPlugin;
 
 public class DigestSaslTransportPlugin extends SaslTransportPlugin {
     public static final String DIGEST = "DIGEST-MD5";
@@ -25,7 +28,7 @@ public class DigestSaslTransportPlugin extends SaslTransportPlugin {
 
     protected TTransportFactory getServerTransportFactory() throws IOException {        
         //create an authentication callback handler
-        CallbackHandler serer_callback_handler = new SaslServerCallbackHandler(login_conf);
+        CallbackHandler serer_callback_handler = new ServerCallbackHandler(login_conf);
 
         //create a transport factory that will invoke our auth callback for digest
         TSaslServerTransport.Factory factory = new TSaslServerTransport.Factory();
@@ -36,7 +39,7 @@ public class DigestSaslTransportPlugin extends SaslTransportPlugin {
     }
 
     public TTransport connect(TTransport transport, String serverHost) throws TTransportException, IOException {
-        SaslClientCallbackHandler client_callback_handler = new SaslClientCallbackHandler(login_conf);
+        ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
         TSaslClientTransport wrapper_transport = new TSaslClientTransport(DIGEST, 
                 null, 
                 AuthUtils.SERVICE, 

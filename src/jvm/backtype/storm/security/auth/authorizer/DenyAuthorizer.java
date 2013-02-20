@@ -1,13 +1,16 @@
-package backtype.storm.security.auth;
+package backtype.storm.security.auth.authorizer;
 
 import backtype.storm.Config;
+import backtype.storm.security.auth.IAuthorizer;
+import backtype.storm.security.auth.ReqContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * An authorization implementation that denies everything, for testing purposes
  */
-public class DenyAuthorizer implements IAuthorization {
+public class DenyAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(DenyAuthorizer.class);
 
     /**

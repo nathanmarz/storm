@@ -27,9 +27,6 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public static final String KERBEROS = "GSSAPI"; 
     private static final Logger LOG = LoggerFactory.getLogger(KerberosSaslTransportPlugin.class);
 
-    /**
-     * constructor
-     */
     public KerberosSaslTransportPlugin(Configuration login_conf) {
         super(login_conf);
     }
@@ -147,7 +144,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         }
         return ((Principal)(principals.toArray()[0])).getName();
     }
-    
+
     /** A TransportFactory that wraps another one, but assumes a specified UGI
      * before calling through.                                                                                                                                                      
      *                                                                                                                                                                              

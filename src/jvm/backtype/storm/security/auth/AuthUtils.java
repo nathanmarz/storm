@@ -9,6 +9,8 @@ import backtype.storm.Config;
 import backtype.storm.utils.Utils;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Map;
 
 public class AuthUtils {
@@ -47,8 +49,17 @@ public class AuthUtils {
     public static ITransportPlugin GetTransportPlugin(Map storm_conf, Configuration login_conf) {
         ITransportPlugin  transportPlugin = null;
         try {
-            String transport_klassName = (String) storm_conf.get(Config.STORM_THRIFT_TRANSPORT_PLUGIN);
-            Class klass = Class.forName(transport_klassName);
+            String transport_plugin_klassName = (String) storm_conf.get(Config.STORM_THRIFT_TRANSPORT_PLUGIN_CLASS);
+            String transport_plugin_jar = (String) storm_conf.get(Config.STORM_THRIFT_TRANSPORT_PLUGIN_JAR);
+            Class klass = null;
+            if (transport_plugin_jar==null) klass = Class.forName(transport_plugin_klassName);
+            else {
+                URL url = new URL("jar:file:" + transport_plugin_jar + "!/");
+                LOG.debug("Plugin URL:"+url);
+                URL[] urls = new URL[] { url };
+                ClassLoader loader = new URLClassLoader(urls);
+                klass = loader.loadClass(transport_plugin_klassName);
+            }
             transportPlugin = (ITransportPlugin)klass.getConstructor(Configuration.class).newInstance(login_conf);
         } catch(Exception e) {
             throw new RuntimeException(e);

@@ -31,7 +31,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
     public SaslTransportPlugin(Configuration login_conf) {
         this.login_conf = login_conf;
     }
-    
+
     public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException {
         TTransportFactory serverTransportFactory = getServerTransportFactory();
 
@@ -46,7 +46,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
                 protocolFactory(new TBinaryProtocol.Factory());            
         if (serverTransportFactory != null) 
             server_args.transportFactory(serverTransportFactory);
-        
+
         //construct THsHaServer
         return new TThreadPoolServer(server_args);
     }

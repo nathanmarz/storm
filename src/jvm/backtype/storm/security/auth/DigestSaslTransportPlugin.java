@@ -1,27 +1,16 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
-import java.util.Map;
-
-import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
 
-import org.apache.thrift7.transport.TFramedTransport;
 import org.apache.thrift7.transport.TSaslClientTransport;
 import org.apache.thrift7.transport.TSaslServerTransport;
-import org.apache.thrift7.transport.TServerSocket;
 import org.apache.thrift7.transport.TTransport;
 import org.apache.thrift7.transport.TTransportException;
 import org.apache.thrift7.transport.TTransportFactory;
-import org.apache.zookeeper.Login;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.esotericsoftware.minlog.Log;
-
-import backtype.storm.utils.Utils;
 
 public class DigestSaslTransportPlugin extends SaslTransportPlugin {
     public static final String DIGEST = "DIGEST-MD5";
@@ -33,7 +22,7 @@ public class DigestSaslTransportPlugin extends SaslTransportPlugin {
     public DigestSaslTransportPlugin(Configuration login_conf) {
         super(login_conf);
     }
-    
+
     protected TTransportFactory getServerTransportFactory() throws IOException {        
         //create an authentication callback handler
         CallbackHandler serer_callback_handler = new SaslServerCallbackHandler(login_conf);

@@ -1,38 +1,11 @@
 package backtype.storm.security.auth;
 
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import javax.security.sasl.Sasl;
-import javax.security.sasl.SaslServer;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.Subject;
-import java.io.IOException;
-import java.net.Socket;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.security.PrivilegedActionException;
-import org.apache.zookeeper.Login;
-import org.apache.zookeeper.server.auth.KerberosName;
-import org.apache.thrift7.TException;
 import org.apache.thrift7.TProcessor;
-import org.apache.thrift7.server.THsHaServer;
 import org.apache.thrift7.server.TServer;
-import org.apache.thrift7.server.TThreadPoolServer;
-import org.apache.thrift7.protocol.TBinaryProtocol;
-import org.apache.thrift7.protocol.TProtocol;
-import org.apache.thrift7.transport.TNonblockingServerSocket;
-import org.apache.thrift7.transport.TSaslServerTransport;
-import org.apache.thrift7.transport.TServerSocket;
-import org.apache.thrift7.transport.TServerTransport;
-import org.apache.thrift7.transport.TSocket;
-import org.apache.thrift7.transport.TTransport;
-import org.apache.thrift7.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import backtype.storm.security.auth.*;
 import backtype.storm.utils.Utils;
 
 public class ThriftServer {

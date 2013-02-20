@@ -24,7 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Basic transport  for Thrift plugin
+ * Simple transport for Thrift plugin.
+ * 
+ * This plugin is designed to be backward compatible with existing Storm code.
  */
 public class SimpleTransportPlugin implements ITransportPlugin {
     protected Configuration login_conf;
@@ -46,7 +48,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
                 processor(new SimpleWrapProcessor(processor)).
                 workerThreads(64).
                 protocolFactory(new TBinaryProtocol.Factory());            
-        
+
         //construct THsHaServer
         return new THsHaServer(server_args);
     }
@@ -96,7 +98,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
 
             //anonymous user
             req_context.setSubject(null);
-            
+
             //invoke service handler
             try {
                 return wrapped.process(inProt, outProt);

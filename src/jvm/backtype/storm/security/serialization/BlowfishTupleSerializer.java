@@ -46,12 +46,12 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
 
     @Override
     public void write(Kryo kryo, Output output, ListDelegate object) {
-    	_serializer.write(kryo, output, object);
+        _serializer.write(kryo, output, object);
     }
 
     @Override
     public ListDelegate read(Kryo kryo, Input input, Class<ListDelegate> type) {
-    	return (ListDelegate)_serializer.read(kryo, input, type);
+        return (ListDelegate)_serializer.read(kryo, input, type);
     }
 
     /**

@@ -105,12 +105,12 @@
       (^TopologyInfo getTopologyInfo [this ^String storm-id]))))
 
 (defn launch-test-server [server-port login-cfg aznClass transportPluginClass] 
-  (System/setProperty "java.security.auth.login.config" login-cfg)
-  (let [conf (merge (read-storm-config)
+  (let [conf1 (merge (read-storm-config)
                     {NIMBUS-AUTHORIZER aznClass 
                      NIMBUS-HOST "localhost"
                      NIMBUS-THRIFT-PORT server-port
                      STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
+        conf (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)
         nimbus (nimbus/standalone-nimbus)
         service-handler (dummy-service-handler conf nimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
@@ -122,7 +122,7 @@
   (Thread/sleep ms))
 
 (deftest Simple-authentication-test 
-  (launch-server-w-wait 6627 1000 "" nil "backtype.storm.security.auth.SimpleTransportPlugin")
+  (launch-server-w-wait 6627 1000 nil nil "backtype.storm.security.auth.SimpleTransportPlugin")
 
   (log-message "(Positive authentication) Server and Client with simple transport, no authentication")
   (let [storm-conf (merge (read-storm-config)
@@ -133,17 +133,16 @@
     (.close client))
 
   (log-message "(Negative authentication) Server: Simple vs. Client: Digest")
-  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf")
-  (log-message "java.security.auth.login.config: " (System/getProperty "java.security.auth.login.config"))
   (let [storm-conf (merge (read-storm-config)
-                          {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"})]
+                          {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                           "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})]
     (is (= "java.net.SocketTimeoutException: Read timed out" 
            (try (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout)
              nil
              (catch TTransportException ex (.getMessage ex)))))))
 
 (deftest positive-authorization-test 
-  (launch-server-w-wait 6628 1000 "" 
+  (launch-server-w-wait 6628 1000 nil 
                         "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
                         "backtype.storm.security.auth.SimpleTransportPlugin")
   (let [storm-conf (merge (read-storm-config)
@@ -155,7 +154,7 @@
     (.close client)))
 
 (deftest deny-authorization-test 
-  (launch-server-w-wait 6629 1000 "" 
+  (launch-server-w-wait 6629 1000 nil
                         "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
                         "backtype.storm.security.auth.SimpleTransportPlugin")
   (let [storm-conf (merge (read-storm-config)
@@ -173,16 +172,15 @@
                         nil
                         "backtype.storm.security.auth.digest.DigestSaslTransportPlugin")
   (log-message "(Positive authentication) valid digest authentication")
-  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf")
   (let [storm-conf (merge (read-storm-config)
-                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"})
+                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})
         client (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
         nimbus_client (.getClient client)]
     (.activate nimbus_client "security_auth_test_topology")
     (.close client))
   
   (log-message "(Negative authentication) Server: Digest vs. Client: Simple")
-  (System/setProperty "java.security.auth.login.config" "")
   (let [storm-conf (merge (read-storm-config)
                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
         client (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
@@ -192,18 +190,18 @@
     (.close client))
     
   (log-message "(Negative authentication) Invalid  password")
-  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf")
   (let [storm-conf (merge (read-storm-config)
-                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"})]
+                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf"})]
     (is (= "Peer indicated failure: DIGEST-MD5: digest response format violation. Mismatched response." 
            (try (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
              nil
              (catch TTransportException ex (.getMessage ex))))))
     
   (log-message "(Negative authentication) Unknown user")
-  (System/setProperty "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_unknown_user.conf")
   (let [storm-conf (merge (read-storm-config)
-                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"})]
+                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_unknown_user.conf"})]
     (is (= "Peer indicated failure: DIGEST-MD5: cannot acquire password for unknown_user in realm : localhost" 
            (try (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
            nil

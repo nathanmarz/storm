@@ -9,25 +9,21 @@ import org.slf4j.LoggerFactory;
 import backtype.storm.utils.Utils;
 
 public class ThriftServer {
+    private static final Logger LOG = LoggerFactory.getLogger(ThriftServer.class);
     private Map _storm_conf; //storm configuration
     private TProcessor _processor = null;
     private int _port = 0;
     private TServer _server;
-    private static final Logger LOG = LoggerFactory.getLogger(ThriftServer.class);
-    private String _loginConfigurationFile;
-
+    private Configuration _login_conf;
+    
     public ThriftServer(Map storm_conf, TProcessor processor, int port) {
         try {
             _storm_conf = storm_conf;
             _processor = processor;
             _port = port;
-
-            _loginConfigurationFile = System.getProperty("java.security.auth.login.config");
-            if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) {
-                //apply Storm configuration for JAAS login 
-                Map conf = Utils.readStormConfig();
-                _loginConfigurationFile = (String)conf.get("java.security.auth.login.config");
-            }
+            
+            //retrieve authentication configuration 
+            _login_conf = AuthUtils.GetConfiguration(_storm_conf);
         } catch (Exception x) {
             x.printStackTrace();
         }
@@ -40,11 +36,8 @@ public class ThriftServer {
 
     public void serve()  {
         try {
-            //retrieve authentication configuration 
-            Configuration login_conf = AuthUtils.GetConfiguration(_storm_conf);
-
             //locate our thrift transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_storm_conf, login_conf);
+            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_storm_conf, _login_conf);
 
             //server
             _server = transportPlugin.getServer(_port, _processor);

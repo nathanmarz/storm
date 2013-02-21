@@ -20,7 +20,7 @@ public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
 
     /**
-     * Construct a JAAS configuration object per the given file
+     * Construct a JAAS configuration object per storm configuration file
      * @param storm_conf Storm configuration 
      * @return
      */
@@ -28,17 +28,21 @@ public class AuthUtils {
         Configuration.setConfiguration(null);
 
         //exam system property first
-        String loginConfigurationFile = System.getProperty("java.security.auth.login.config");
+        String orig_loginConfigurationFile = System.getProperty("java.security.auth.login.config");
 
-        //if not defined, examine Storm configuration  
+        //try to find login file from Storm configuration  
+        String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
         if (loginConfigurationFile==null)
-            loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
-        else if  (loginConfigurationFile.length()==0)
-            loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
+            loginConfigurationFile = orig_loginConfigurationFile;
 
-        if (loginConfigurationFile == null) return null;
-        System.setProperty("java.security.auth.login.config", loginConfigurationFile);
-        return  Configuration.getConfiguration();
+        Configuration login_conf = null;
+        if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) { 
+            System.setProperty("java.security.auth.login.config", loginConfigurationFile);
+            login_conf =  Configuration.getConfiguration();
+            if (orig_loginConfigurationFile!=null)
+                System.setProperty("java.security.auth.login.config", orig_loginConfigurationFile);
+        }
+        return login_conf;
     }
 
     /**

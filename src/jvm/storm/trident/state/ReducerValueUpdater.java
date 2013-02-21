@@ -15,7 +15,7 @@ public class ReducerValueUpdater implements ValueUpdater<Object> {
 
     @Override
     public Object update(Object stored) {
-        Object ret = stored;
+        Object ret = (stored == null) ? this.agg.init() : stored;
         for(TridentTuple t: tuples) {
            ret =  this.agg.reduce(ret, t);
         }

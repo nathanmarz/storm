@@ -164,7 +164,7 @@ public class TridentTopologyBuilder {
                     bd.allGrouping(masterCoordinator(batchGroup), MasterBatchCoordinator.COMMIT_STREAM_ID);
                 }
                 for(Map m: c.componentConfs) {
-                    scd.addConfigurations(m);
+                    bd.addConfigurations(m);
                 }
             }
         }

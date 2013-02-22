@@ -13,15 +13,22 @@ import java.io.IOException;
  */
 public class LocalState {
     private VersionedStore _vs;
+    private StateSerializer _stSer;
     
     public LocalState(String backingDir) throws IOException {
         _vs = new VersionedStore(backingDir);
+        _stSer = new LocalStateSerializer();
+    }
+
+    public LocalState (String backingDir, StateSerializer stSer) throws IOException {
+        _vs = new VersionedStore(backingDir);
+        _stSer = stSer;
     }
     
     public synchronized Map<Object, Object> snapshot() throws IOException {
         String latestPath = _vs.mostRecentVersionPath();
         if(latestPath==null) return new HashMap<Object, Object>();
-        return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
+        return _stSer.deserializeState(FileUtils.readFileToByteArray(new File(latestPath)));
     }
     
     public Object get(Object key) throws IOException {
@@ -41,7 +48,7 @@ public class LocalState {
     }
     
     private void persist(Map<Object, Object> val) throws IOException {
-        byte[] toWrite = Utils.serialize(val);
+        byte[] toWrite = _stSer.serializeState(val);
         String newPath = _vs.createVersion();
         FileUtils.writeByteArrayToFile(new File(newPath), toWrite);
         _vs.succeedVersion(newPath);

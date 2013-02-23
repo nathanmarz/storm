@@ -1,5 +1,6 @@
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor])
+  (:import [backtype.storm Constants])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -64,7 +65,7 @@
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (worker-state conf id)]
-    (.get local-state LS-WORKER-HEARTBEAT)
+    (.get local-state Constants/LS_WORKER_HEARTBEAT)
     ))
 
 
@@ -94,7 +95,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
+        approved-ids (set (keys (.get local-state Constants/LS_APPROVED_WORKERS)))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -117,7 +118,7 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (worker-state conf id)]    
     (loop []
-      (let [hb (.get state LS-WORKER-HEARTBEAT)]
+      (let [hb (.get state Constants/LS_WORKER_HEARTBEAT)]
         (when (and
                (not hb)
                (<
@@ -128,7 +129,7 @@
           (Time/sleep 500)
           (recur)
           )))
-    (when-not (.get state LS-WORKER-HEARTBEAT)
+    (when-not (.get state Constants/LS_WORKER_HEARTBEAT)
       (log-message "Worker " id " failed to start")
       )))
 
@@ -189,7 +190,7 @@
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        assigned-executors (defaulted (.get local-state Constants/LS_LOCAL_ASSIGNMENTS) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
@@ -226,11 +227,12 @@
         ))
     (doseq [id (vals new-worker-ids)]
       (local-mkdirs (worker-pids-root conf id)))
-    (.put local-state LS-APPROVED-WORKERS
+    (.put local-state Constants/LS_APPROVED_WORKERS
           (merge
-           (select-keys (.get local-state LS-APPROVED-WORKERS)
+           (select-keys (.get local-state Constants/LS_APPROVED_WORKERS)
                         (keys keepers))
            (zipmap (vals new-worker-ids) (keys new-worker-ids))
+           ;)))
            ))
     (wait-for-workers-launch
      conf
@@ -274,7 +276,7 @@
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
+          existing-assignment (.get local-state Constants/LS_LOCAL_ASSIGNMENTS)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)
@@ -306,7 +308,7 @@
         (.killedWorker isupervisor (int p)))
       (.assigned isupervisor (keys new-assignment))
       (.put local-state
-            LS-LOCAL-ASSIGNMENTS
+            Constants/LS_LOCAL_ASSIGNMENTS
             new-assignment)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
@@ -483,10 +485,10 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (.get state LS-ID)]
+              curr-id (if-let [id (.get state Constants/LS_ID)]
                         id
                         (generate-supervisor-id))]
-          (.put state LS-ID curr-id)
+          (.put state Constants/LS_ID curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

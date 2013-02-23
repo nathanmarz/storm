@@ -40,12 +40,6 @@
 (defprotocol DaemonCommon
   (waiting? [this]))
 
-(def LS-WORKER-HEARTBEAT "worker-heartbeat")
-
-;; LocalState constants
-(def LS-ID "supervisor-id")
-(def LS-LOCAL-ASSIGNMENTS "local-assignments")
-(def LS-APPROVED-WORKERS "approved-workers")
 
 
 

@@ -5,6 +5,7 @@
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging IContext IConnection])
+  (:import [backtype.storm Constants])
   (:gen-class))
 
 (bootstrap)
@@ -49,13 +50,12 @@
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
     (.put state
-        LS-WORKER-HEARTBEAT
+        Constants/LS-WORKER-HEARTBEAT
         hb
         false
         )
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
-
     ))
 
 (defn worker-outbound-tasks

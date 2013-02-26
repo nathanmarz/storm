@@ -48,5 +48,5 @@ XX"
 ; Load the bolt or spout component page and visually confirm the 'id' column does not blink the component name.
 
 ; bolt-input-summary-table
-; recompile a topology (such as the ExclamationTopology from storm-starter) and hardcode bolt/spout names with '<blink>' 
-;
+; recompile a topology (such as the ExclamationTopology from storm-starter) and hardcode bolt names with '<blink>' 
+; A bolt component page and visually confirm the 'component' column of the Input stats does not blink the component name.

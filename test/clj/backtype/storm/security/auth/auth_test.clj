@@ -16,21 +16,22 @@
 
 (def nimbus-timeout (Integer. 30))
 
-(defn mk-authorization-handler [conf]
-  (let [klassname (conf NIMBUS-AUTHORIZER) 
+(defn mk-authorization-handler [storm-conf]
+  (let [klassname (storm-conf NIMBUS-AUTHORIZER) 
         aznClass (if klassname (Class/forName klassname))
         aznHandler (if aznClass (.newInstance aznClass))] 
+    (if aznHandler (.prepare aznHandler storm-conf))
     (log-debug "authorization class name:" klassname
                " class:" aznClass
                " handler:" aznHandler)
     aznHandler
     ))
 
-(defn nimbus-data [conf inimbus]
+(defn nimbus-data [storm-conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
-    {:conf conf
+    {:conf storm-conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler conf)
+     :authorization-handler (mk-authorization-handler storm-conf)
      :submitted-count (atom 0)
      :storm-cluster-state nil
      :submit-lock (Object.)

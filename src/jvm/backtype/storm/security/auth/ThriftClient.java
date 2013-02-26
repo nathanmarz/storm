@@ -45,7 +45,6 @@ public class ThriftClient {
             //establish client-server transport via plugin
             _transport =  transportPlugin.connect(underlyingTransport, host); 
         } catch (IOException ex) {
-            LOG.info(ex.getMessage(), ex);
             throw new RuntimeException(ex);
         }
         _protocol = null;

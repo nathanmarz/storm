@@ -34,7 +34,6 @@ public class ServerCallbackHandler implements CallbackHandler {
         AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_SERVER);
         if (configurationEntries == null) {
             String errorMessage = "Could not find a '"+AuthUtils.LOGIN_CONTEXT_SERVER+"' entry in this configuration: Server cannot start.";
-            LOG.error(errorMessage);
             throw new IOException(errorMessage);
         }
         credentials.clear();

@@ -1,5 +1,7 @@
 package backtype.storm.security.auth.authorizer;
 
+import java.util.Map;
+
 import backtype.storm.Config;
 import backtype.storm.security.auth.IAuthorizer;
 import backtype.storm.security.auth.ReqContext;
@@ -12,6 +14,13 @@ import org.slf4j.LoggerFactory;
  */
 public class DenyAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(DenyAuthorizer.class);
+    
+    /**
+     * Invoked once immediately after construction
+     * @param conf Stom configuration 
+     */
+    public void prepare(Map conf) {        
+    }
 
     /**
      * permit() method is invoked for each incoming Thrift request

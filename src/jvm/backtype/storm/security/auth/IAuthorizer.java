@@ -1,5 +1,7 @@
 package backtype.storm.security.auth;
 
+import java.util.Map;
+
 /**
  * Nimbus could be configured with an authorization plugin.
  * If not specified, all requests are authorized.
@@ -11,6 +13,12 @@ package backtype.storm.security.auth;
  *   nimbus.authorization.class: backtype.storm.security.auth.NoopAuthorizer
  */
 public interface IAuthorizer {
+    /**
+     * Invoked once immediately after construction
+     * @param conf Storm configuration 
+     */
+    void prepare(Map storm_conf);
+    
     /**
      * permit() method is invoked for each incoming Thrift request.
      * @param contrext request context includes info about 

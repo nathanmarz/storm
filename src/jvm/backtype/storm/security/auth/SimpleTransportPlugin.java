@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Map;
+
 import javax.security.auth.login.Configuration;
 import org.apache.thrift7.TException;
 import org.apache.thrift7.TProcessor;
@@ -11,15 +13,12 @@ import org.apache.thrift7.protocol.TBinaryProtocol;
 import org.apache.thrift7.protocol.TProtocol;
 import org.apache.thrift7.server.THsHaServer;
 import org.apache.thrift7.server.TServer;
-import org.apache.thrift7.server.TThreadPoolServer;
 import org.apache.thrift7.transport.TFramedTransport;
 import org.apache.thrift7.transport.TMemoryInputTransport;
 import org.apache.thrift7.transport.TNonblockingServerSocket;
-import org.apache.thrift7.transport.TServerSocket;
 import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
 import org.apache.thrift7.transport.TTransportException;
-import org.apache.thrift7.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,9 +32,11 @@ public class SimpleTransportPlugin implements ITransportPlugin {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTransportPlugin.class);
 
     /**
-     * constructor
+     * Invoked once immediately after construction
+     * @param conf Storm configuration 
+     * @param login_conf login configuration
      */
-    public SimpleTransportPlugin(Configuration login_conf) {
+    public void prepare(Map storm_conf, Configuration login_conf) {        
         this.login_conf = login_conf;
     }
 
@@ -100,14 +101,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
             req_context.setSubject(null);
 
             //invoke service handler
-            try {
-                return wrapped.process(inProt, outProt);
-            } catch (RuntimeException ex) {
-                LOG.info(ex.getMessage());
-                return false;
-            }
+            return wrapped.process(inProt, outProt);
         }
     } 
-
-
 }

@@ -1,6 +1,8 @@
 package backtype.storm.security.auth.digest;
 
 import java.io.IOException;
+import java.util.Map;
+
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
 
@@ -18,13 +20,6 @@ import backtype.storm.security.auth.SaslTransportPlugin;
 public class DigestSaslTransportPlugin extends SaslTransportPlugin {
     public static final String DIGEST = "DIGEST-MD5";
     private static final Logger LOG = LoggerFactory.getLogger(DigestSaslTransportPlugin.class);
-
-    /**
-     * constructor
-     */
-    public DigestSaslTransportPlugin(Configuration login_conf) {
-        super(login_conf);
-    }
 
     protected TTransportFactory getServerTransportFactory() throws IOException {        
         //create an authentication callback handler

@@ -3,6 +3,8 @@ package backtype.storm.security.auth;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.Principal;
+import java.util.Map;
+
 import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 import javax.security.sasl.SaslServer;
@@ -29,9 +31,11 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
     private static final Logger LOG = LoggerFactory.getLogger(SaslTransportPlugin.class);
 
     /**
-     * constructor
+     * Invoked once immediately after construction
+     * @param conf Storm configuration 
+     * @param login_conf login configuration
      */
-    public SaslTransportPlugin(Configuration login_conf) {
+    public void prepare(Map storm_conf, Configuration login_conf) {        
         this.login_conf = login_conf;
     }
 
@@ -92,7 +96,6 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
             //remote subject 
             SaslServer saslServer = saslTrans.getSaslServer();
             String authId = saslServer.getAuthorizationID();
-            LOG.debug("AUTH ID ======>" + authId);
             Subject remoteUser = new Subject();
             remoteUser.getPrincipals().add(new User(authId));
             req_context.setSubject(remoteUser);

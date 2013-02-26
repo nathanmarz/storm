@@ -39,7 +39,6 @@ public class ClientCallbackHandler implements CallbackHandler {
         if (configurationEntries == null) {
             String errorMessage = "Could not find a '"+AuthUtils.LOGIN_CONTEXT_CLIENT
                     + "' entry in this configuration: Client cannot start.";
-            LOG.error(errorMessage);
             throw new IOException(errorMessage);
         }
 

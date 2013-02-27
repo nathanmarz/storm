@@ -20,9 +20,9 @@
         retry (-> curator .getZookeeperClient .getRetryPolicy)
        ]
     (is (.isAssignableFrom ExponentialBackoffRetry (.getClass retry)))
-    (is (= (.getBaseSleepTimeMs retry) expected_interval)) 
-    (is (= (.getN retry) expected_retries)) 
-    (is (= (.getMaxRetryInterval retry) expected_ceiling)) 
+    (is (= (.getBaseSleepTimeMs retry) expected_interval))
+    (is (= (.getN retry) expected_retries))
+    (is (= (.getMaxRetryInterval retry) expected_ceiling))
     (is (= (.getSleepTimeMs retry 10 0) expected_ceiling))
   )
 )

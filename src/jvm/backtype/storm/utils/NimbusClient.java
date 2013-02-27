@@ -16,13 +16,16 @@ public class NimbusClient extends ThriftClient {
         try {
             String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
             int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
-            String timeoutStr = (String) conf.get(Config.NIMBUS_TASK_TIMEOUT_SECS);
-            Integer timeout = new Integer(timeoutStr);
+            Integer timeout = new Integer(Utils.getInt(conf.get(Config.NIMBUS_TASK_TIMEOUT_SECS)));
             return new NimbusClient(conf, nimbusHost, nimbusPort, timeout);
         } catch (TTransportException ex) {
             LOG.info(ex.getMessage(), ex);
             throw new RuntimeException(ex);
         }
+    }
+
+    public NimbusClient(Map conf, String host, int port) throws TTransportException {
+        this(conf, host, port, null);
     }
 
     public NimbusClient(Map conf, String host, int port, Integer timeout) throws TTransportException {

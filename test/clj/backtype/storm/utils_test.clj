@@ -1,4 +1,4 @@
-(ns backtype.storm.util-test
+(ns backtype.storm.utils-test
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils])
   (:import [com.netflix.curator.retry ExponentialBackoffRetry])

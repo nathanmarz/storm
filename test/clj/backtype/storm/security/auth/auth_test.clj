@@ -154,7 +154,7 @@
         nimbus_client (.getClient client)]
     (log-message "(Positive authorization) Authorization plugin should accept client request")
     (.activate nimbus_client "security_auth_test_topology")
-    (.close (.transport client))))
+    (.close client)))
 
 (deftest deny-authorization-test 
   (launch-server-w-wait 6629 1000 nil

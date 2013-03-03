@@ -16,6 +16,7 @@
             [compojure.handler :as handler]
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
+  (:import [org.apache.commons.lang StringEscapeUtils])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
@@ -85,7 +86,7 @@
 (defn topology-link
   ([id] (topology-link id id))
   ([id content]
-     (link-to (url-format "/topology/%s" id) content)))
+     (link-to (url-format "/topology/%s" id) (escape-html content))))
 
 (defn main-topology-summary-table [summs]
   ;; make the id clickable
@@ -94,7 +95,7 @@
    ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
-      (.get_id t)
+      (escape-html (.get_id t))
       (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
@@ -301,8 +302,8 @@
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors] [(.get_host e) (.get_port e)]))]
     (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
-           [[(.get_name summ)
-             (.get_id summ)
+           [[(escape-html (.get_name summ))
+             (escape-html (.get_id summ))
              (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)
@@ -376,7 +377,7 @@
       )))
 
 (defn component-link [storm-id id]
-  (link-to (url-format "/topology/%s/component/%s" storm-id id) id))
+  (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]
@@ -463,7 +464,10 @@
   [:input {:type "button"
            :value action
            (if enabled :enabled :disabled) ""
-           :onclick (str "confirmAction('" id "', '" name "', '" command "', " is-wait ", " default-wait ")")}])
+           :onclick (str "confirmAction('" 
+                         (StringEscapeUtils/escapeJavaScript id) "', '" 
+                         (StringEscapeUtils/escapeJavaScript name) "', '"
+                         command "', " is-wait ", " default-wait ")")}])
 
 (defn topology-page [id window include-sys?]
   (with-nimbus nimbus
@@ -609,7 +613,7 @@
     (sorted-table
      ["Component" "Stream" "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
      (for [[^GlobalStreamId s stats] stream-summary]
-       [(.get_componentId s)
+       [(escape-html (.get_componentId s))
         (.get_streamId s)
         (float-str (:execute-latencies stats))
         (nil-to-zero (:executed stats))
@@ -712,7 +716,7 @@
       (concat
        [[:h2 "Component summary"]
         (table ["Id" "Topology" "Executors" "Tasks"]
-               [[component
+               [[(escape-html component)
                  (topology-link (.get_id summ) (.get_name summ))
                  (count summs)
                  (sum-tasks summs)

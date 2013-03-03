@@ -13,7 +13,7 @@ public class ThriftServer {
     private Map _storm_conf; //storm configuration
     private TProcessor _processor = null;
     private int _port = 0;
-    private TServer _server;
+    private TServer _server = null;
     private Configuration _login_conf;
     
     public ThriftServer(Map storm_conf, TProcessor processor, int port) {
@@ -25,7 +25,7 @@ public class ThriftServer {
             //retrieve authentication configuration 
             _login_conf = AuthUtils.GetConfiguration(_storm_conf);
         } catch (Exception x) {
-            x.printStackTrace();
+            LOG.error(x.getMessage(), x);
         }
     }
 

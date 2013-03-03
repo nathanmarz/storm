@@ -68,6 +68,7 @@ You must not remove this notice, or any other, from this software.
 * Robert Evans ([@revans2](https://github.com/revans2)) 
 * Andy Feng ([@anfeng](https://github.com/anfeng))
 * Lorcan Coyle ([@lorcan](https://github.com/lorcan))
+* Derek Dagit ([@d2r](https://github.com/d2r))
 
 ## Acknowledgements
 

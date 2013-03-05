@@ -390,7 +390,7 @@
                   ))]
     (.setDaemon thread daemon)
     (.setPriority thread priority)
-    (when-not (nil? thread-name)
+    (when thread-name
       (.setName thread (str (.getName thread) "-" thread-name)))
     (when start
       (.start thread))

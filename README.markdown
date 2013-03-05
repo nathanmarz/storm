@@ -69,6 +69,7 @@ You must not remove this notice, or any other, from this software.
 * Andy Feng ([@anfeng](https://github.com/anfeng))
 * Lorcan Coyle ([@lorcan](https://github.com/lorcan))
 * Derek Dagit ([@d2r](https://github.com/d2r))
+* Andrew Olson ([@noslowerdna](https://github.com/noslowerdna))
 
 ## Acknowledgements
 

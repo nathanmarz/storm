@@ -12,6 +12,7 @@
  * Nimbus throws NotAliveException instead of FileNotFoundException from various query methods when topology is no longer alive (thanks revans2)
  * Escape HTML and Javascript appropriately in Storm UI (thanks d2r)
  * Storm's Zookeeper client now uses bounded exponential backoff strategy on failures
+ * Append component name to thread name of running executors so that logs are easier to read
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts

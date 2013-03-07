@@ -1,6 +1,7 @@
 package backtype.storm.utils;
 
 import org.apache.commons.io.FileUtils;
+
 import java.io.File;
 import java.util.Map;
 import java.util.HashMap;
@@ -19,9 +20,19 @@ public class LocalState {
     }
     
     public synchronized Map<Object, Object> snapshot() throws IOException {
-        String latestPath = _vs.mostRecentVersionPath();
-        if(latestPath==null) return new HashMap<Object, Object>();
-        return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
+        int attempts = 0;
+        while(true) {
+            String latestPath = _vs.mostRecentVersionPath();
+            if(latestPath==null) return new HashMap<Object, Object>();
+            try {
+                return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
+            } catch(IOException e) {
+                attempts++;
+                if(attempts >= 10) {
+                    throw e;
+                }
+            }
+        }
     }
     
     public Object get(Object key) throws IOException {

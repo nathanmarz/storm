@@ -29,22 +29,34 @@ public class LocalState {
     }
     
     public synchronized void put(Object key, Object val) throws IOException {
+        put(key, val, true);
+    }
+
+    public synchronized void put(Object key, Object val, boolean cleanup) throws IOException {
         Map<Object, Object> curr = snapshot();
         curr.put(key, val);
-        persist(curr);
+        persist(curr, cleanup);
     }
 
     public synchronized void remove(Object key) throws IOException {
+        remove(key, true);
+    }
+
+    public synchronized void remove(Object key, boolean cleanup) throws IOException {
         Map<Object, Object> curr = snapshot();
         curr.remove(key);
-        persist(curr);
+        persist(curr, cleanup);
+    }
+
+    public synchronized void cleanup(int keepVersions) throws IOException {
+        _vs.cleanup(keepVersions);
     }
     
-    private void persist(Map<Object, Object> val) throws IOException {
+    private void persist(Map<Object, Object> val, boolean cleanup) throws IOException {
         byte[] toWrite = Utils.serialize(val);
         String newPath = _vs.createVersion();
         FileUtils.writeByteArrayToFile(new File(newPath), toWrite);
         _vs.succeedVersion(newPath);
-        _vs.cleanup(4);
+        if(cleanup) _vs.cleanup(4);
     }
 }

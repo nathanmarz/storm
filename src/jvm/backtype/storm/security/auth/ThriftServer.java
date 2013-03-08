@@ -11,7 +11,7 @@ import backtype.storm.utils.Utils;
 public class ThriftServer {
     private static final Logger LOG = LoggerFactory.getLogger(ThriftServer.class);
     private Map _storm_conf; //storm configuration
-    private TProcessor _processor = null;
+    protected TProcessor _processor = null;
     private int _port = 0;
     private TServer _server = null;
     private Configuration _login_conf;
@@ -34,6 +34,15 @@ public class ThriftServer {
             _server.stop();
     }
 
+    /**
+     * Is ThriftServer listening to requests?
+     * @return
+     */
+    public boolean isServing() {
+        if (_server == null) return false;
+        return _server.isServing();
+    }
+    
     public void serve()  {
         try {
             //locate our thrift transport plugin

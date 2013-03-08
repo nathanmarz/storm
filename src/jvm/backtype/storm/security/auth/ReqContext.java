@@ -12,18 +12,16 @@ import javax.security.auth.Subject;
 
 /**
  * context request context includes info about 
- *      	   (1) remote address/subject, 
- *             (2) operation
- *             (3) configuration of targeted topology 
+ *      	   (1) remote address, 
+ *             (2) remote subject and primary principal
+ *             (3) request ID 
  */
 public class ReqContext {
     private static final AtomicInteger uniqueId = new AtomicInteger(0);
-    public enum OperationType { SUBMIT_TOPOLOGY, KILL_TOPOLOGY, REBALANCE_TOPOLOGY, ACTIVATE_TOPOLOGY, DEACTIVATE_TOPOLOGY }; 
     private Subject _subject;
     private InetAddress _remoteAddr;
     private Integer _reqID;
     private Map _storm_conf;
-    private OperationType _operation;
 
     /**
      * Get a request context associated with current thread
@@ -83,26 +81,11 @@ public class ReqContext {
         if (princs.size()==0) return null;
         return (Principal) (princs.toArray()[0]);
     }
-
+    
     /**
-     * Topology that this request is against
+     * request ID of this request
      */
-    public Map topologyConf() {
-        return _storm_conf;
-    }
-
-    public void setTopologyConf(Map conf) {
-        _storm_conf = conf;
-    }
-
-    /**
-     * Operation that this request is performing
-     */
-    public OperationType operation() {
-        return _operation;
-    }
-
-    public void setOperation(OperationType operation) {
-        _operation = operation;
+    public Integer requestID() {
+        return _reqID;
     }
 }

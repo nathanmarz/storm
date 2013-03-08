@@ -21,11 +21,10 @@ public interface IAuthorizer {
     
     /**
      * permit() method is invoked for each incoming Thrift request.
-     * @param contrext request context includes info about 
-     *      		   (1) remote address/subject, 
-     *                 (2) operation
-     *                 (3) configuration of targeted topology 
+     * @param context request context includes info about 
+     * @param operation operation name
+     * @param topology_storm configuration of targeted topology 
      * @return true if the request is authorized, false if reject
      */
-    public boolean permit(ReqContext context);
+    public boolean permit(ReqContext context, String operation, Map topology_conf);
 }

@@ -17,25 +17,24 @@ public class DenyAuthorizer implements IAuthorizer {
     
     /**
      * Invoked once immediately after construction
-     * @param conf Stom configuration 
+     * @param conf Storm configuration 
      */
     public void prepare(Map conf) {        
     }
 
     /**
      * permit() method is invoked for each incoming Thrift request
-     * @param contrext request context includes info about 
-     *             (1) remote address/subject, 
-     *             (2) operation
-     *             (3) configuration of targeted topology 
+     * @param contrext request context 
+     * @param operation operation name
+     * @param topology_storm configuration of targeted topology 
      * @return true if the request is authorized, false if reject
      */
-    public boolean permit(ReqContext context) {
-        LOG.info("Access "
+    public boolean permit(ReqContext context, String operation, Map topology_conf) {
+        LOG.info("[req "+ context.requestID()+ "] Access "
                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
                 + " principal:"+ (context.principal() == null? "null" : context.principal())
-                +" op:"+context.operation()
-                + " topoology:"+context.topologyConf().get(Config.TOPOLOGY_NAME));
+                +" op:"+operation
+                + " topoology:"+topology_conf.get(Config.TOPOLOGY_NAME));
         return false;
     }
 }

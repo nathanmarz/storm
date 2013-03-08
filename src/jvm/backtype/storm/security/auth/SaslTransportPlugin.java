@@ -99,13 +99,13 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
             Subject remoteUser = new Subject();
             remoteUser.getPrincipals().add(new User(authId));
             req_context.setSubject(remoteUser);
-
+            
             //invoke service handler
             return wrapped.process(inProt, outProt);
         }
     }
 
-    static class User implements Principal {
+    public static class User implements Principal {
         private final String name;
 
         public User(String name) {

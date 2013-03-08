@@ -4,20 +4,14 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import backtype.storm.Config;
-import backtype.storm.utils.Utils;
-
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Map;
 
 public class AuthUtils {
     public static final String LOGIN_CONTEXT_SERVER = "StormServer"; 
     public static final String LOGIN_CONTEXT_CLIENT = "StormClient"; 
     public static final String SERVICE = "storm_thrift_server";
-    private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
 
     /**
      * Construct a JAAS configuration object per storm configuration file
@@ -25,22 +19,39 @@ public class AuthUtils {
      * @return
      */
     public static synchronized Configuration GetConfiguration(Map storm_conf) {
-        Configuration.setConfiguration(null);
-
-        //exam system property first
+        //retrieve system property 
         String orig_loginConfigurationFile = System.getProperty("java.security.auth.login.config");
 
         //try to find login file from Storm configuration  
         String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
-        if (loginConfigurationFile==null)
+        if ((loginConfigurationFile==null) || (loginConfigurationFile.length()==0))
             loginConfigurationFile = orig_loginConfigurationFile;
 
         Configuration login_conf = null;
         if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) { 
+            //We don't allow system property and storm conf have conflicts
+            if (orig_loginConfigurationFile!=null && 
+                    orig_loginConfigurationFile.length()>0 &&
+                    !loginConfigurationFile.equals(orig_loginConfigurationFile)) {
+                throw new RuntimeException("System property java.security.auth.login.config ("
+                        + orig_loginConfigurationFile
+                        +") != storm configuration java.security.auth.login.config ("
+                        + loginConfigurationFile + ")");
+            }
+
+            //reset login configuration so that javax.security.auth.login will not use cache
+            Configuration.setConfiguration(null);
+
+            //use javax.security.auth.login.Configuration to obtain login configuration object
+            //login.Configuration depends on system property "java.security.auth.login.config"
+            //(see http://docs.oracle.com/javase/6/docs/jre/api/security/jaas/spec/com/sun/security/auth/login/ConfigFile.html)
             System.setProperty("java.security.auth.login.config", loginConfigurationFile);
             login_conf =  Configuration.getConfiguration();
+            //we reset system property to previous value if any
             if (orig_loginConfigurationFile!=null)
                 System.setProperty("java.security.auth.login.config", orig_loginConfigurationFile);
+            else 
+                System.setProperty("java.security.auth.login.config", "");
         }
         return login_conf;
     }

@@ -14,11 +14,6 @@ import java.io.IOException;
 public class LocalState {
     private VersionedStore _vs;
     private StateSerializer _stSer;
-    
-    public LocalState(String backingDir) throws IOException {
-        _vs = new VersionedStore(backingDir);
-        _stSer = new LocalStateSerializer();
-    }
 
     public LocalState (String backingDir, StateSerializer stSer) throws IOException {
         _vs = new VersionedStore(backingDir);

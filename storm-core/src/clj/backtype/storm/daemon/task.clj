@@ -24,7 +24,7 @@
         (supervisor-stormdist-root conf (:storm-id worker)))
       (worker-pids-root conf (:worker-id worker))
       (int %)
-      (:port worker)
+      (int (:port worker))
       (:task-ids worker)
       (:default-shared-resources worker)
       (:user-shared-resources worker)

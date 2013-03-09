@@ -21,6 +21,9 @@ _release
 *.zip
 .lein-deps-sum
 *.iml
+/target
+/.project/
+/.lein-plugins/
 *.ipr
 *.iws
 .idea

@@ -368,7 +368,8 @@
                    :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
                    :factory? false
-                   :start true]
+                   :start true
+                   :thread-name nil]
   (let [thread (Thread.
                 (fn []
                   (try-cause
@@ -389,6 +390,8 @@
                   ))]
     (.setDaemon thread daemon)
     (.setPriority thread priority)
+    (when thread-name
+      (.setName thread (str (.getName thread) "-" thread-name)))
     (when start
       (.start thread))
     ;; should return object that supports stop, interrupt, join, and waiting?
@@ -675,7 +678,7 @@
 (defn throw-runtime [& strs]
   (throw (RuntimeException. (apply str strs))))
 
-(defn redirect-stdio-to-log4j! []
+(defn redirect-stdio-to-slf4j! []
   ;; set-var-root doesn't work with *out* and *err*, so digging much deeper here
   ;; Unfortunately, this code seems to work at the REPL but not when spawned as worker processes
   ;; it might have something to do with being a child process

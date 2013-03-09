@@ -9,7 +9,7 @@ import storm.trident.operation.TridentCollector;
 public class BatchSpoutExecutor implements ITridentSpout {
     public static class EmptyCoordinator implements BatchCoordinator {
         @Override
-        public Object initializeTransaction(long txid, Object prevMetadata) {
+        public Object initializeTransaction(long txid, Object prevMetadata, Object currMetadata) {
             return null;
         }
 

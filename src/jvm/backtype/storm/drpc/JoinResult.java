@@ -11,11 +11,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class JoinResult extends BaseRichBolt {
-    public static Logger LOG = Logger.getLogger(JoinResult.class);
+    public static Logger LOG = LoggerFactory.getLogger(JoinResult.class);
 
     String returnComponent;
     Map<Object, Tuple> returns = new HashMap<Object, Tuple>();

@@ -23,7 +23,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import static backtype.storm.utils.Utils.get;
 
 /**
@@ -31,7 +32,7 @@ import static backtype.storm.utils.Utils.get;
  * in the case of retries.
  */
 public class CoordinatedBolt implements IRichBolt {
-    public static Logger LOG = Logger.getLogger(CoordinatedBolt.class);
+    public static Logger LOG = LoggerFactory.getLogger(CoordinatedBolt.class);
 
     public static interface FinishedCallback {
         void finishedId(Object id);

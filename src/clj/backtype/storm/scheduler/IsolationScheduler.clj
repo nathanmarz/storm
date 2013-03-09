@@ -202,7 +202,13 @@
              allocated-topologies
              (leftover-topologies topologies <>)
              (DefaultScheduler/default-schedule <> cluster))
-        (log-warn "Unstable to isolate topologies " (pr-str failed-iso-topologies) ". Will wait for enough resources for isolated topologies before allocating any other resources.")
+        (do
+          (log-warn "Unable to isolate topologies " (pr-str failed-iso-topologies) ". No machine had enough worker slots to run the remaining workers for these topologies. Clearing all other resources and will wait for enough resources for isolated topologies before allocating any other resources.")
+          ;; clear workers off all hosts that are not blacklisted
+          (doseq [[host slots] (host->used-slots cluster)]
+            (if-not (.isBlacklistedHost cluster host)
+              (.freeSlots cluster slots)
+              )))
         ))
     (.setBlacklistedHosts cluster orig-blacklist)
     ))

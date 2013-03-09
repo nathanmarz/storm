@@ -63,6 +63,10 @@ public class Cluster {
     public boolean isBlackListed(String supervisorId) {
         return blackListedHosts != null && blackListedHosts.contains(getHost(supervisorId));        
     }
+
+    public boolean isBlacklistedHost(String host) {
+        return blackListedHosts != null && blackListedHosts.contains(host);  
+    }
     
     public String getHost(String supervisorId) {
         return inimbus.getHostName(supervisors, supervisorId);

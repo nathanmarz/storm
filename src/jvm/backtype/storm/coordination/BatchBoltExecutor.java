@@ -11,10 +11,11 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCallback {
-    public static Logger LOG = Logger.getLogger(BatchBoltExecutor.class);    
+    public static Logger LOG = LoggerFactory.getLogger(BatchBoltExecutor.class);    
 
     byte[] _boltSer;
     Map<Object, IBatchBolt> _openTransactions;

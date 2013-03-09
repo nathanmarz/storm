@@ -8,7 +8,7 @@ import clojure.lang.IFn;
 import clojure.lang.RT;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.retry.RetryNTimes;
+import com.netflix.curator.retry.ExponentialBackoffRetry;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -139,7 +139,8 @@ public class Utils {
                 else return new HashMap();
             }
             if(resources.size() > 1) {
-                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar.");
+                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "
+                  + resources);
             }
             URL resource = resources.get(0);
             Yaml yaml = new Yaml();
@@ -313,23 +314,48 @@ public class Utils {
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
         return newCurator(conf, servers, port, root, null);
     }
-    
+
+    public static class BoundedExponentialBackoffRetry extends ExponentialBackoffRetry {
+
+        protected final int maxRetryInterval;
+
+        public BoundedExponentialBackoffRetry(int baseSleepTimeMs, 
+                int maxRetries, int maxSleepTimeMs) {
+            super(baseSleepTimeMs, maxRetries);
+            this.maxRetryInterval = maxSleepTimeMs;
+        }
+
+        public int getMaxRetryInterval() {
+            return this.maxRetryInterval;
+        }
+
+        @Override
+        public int getSleepTimeMs(int count, long elapsedMs)
+        {
+            return Math.min(maxRetryInterval,
+                    super.getSleepTimeMs(count, elapsedMs));
+        }
+
+    }
+
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
         List<String> serverPorts = new ArrayList<String>();
         for(String zkServer: (List<String>) servers) {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
-        String zkStr = StringUtils.join(serverPorts, ",") + root; 
+        String zkStr = StringUtils.join(serverPorts, ",") + root;
         try {
-            
             CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
                     .connectString(zkStr)
                     .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
                     .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                    .retryPolicy(new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)), Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+                    .retryPolicy(new BoundedExponentialBackoffRetry(
+                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
             if(auth!=null && auth.scheme!=null) {
                 builder = builder.authorization(auth.scheme, auth.payload);
-            }            
+            }
             return builder.build();
         } catch (IOException e) {
            throw new RuntimeException(e);

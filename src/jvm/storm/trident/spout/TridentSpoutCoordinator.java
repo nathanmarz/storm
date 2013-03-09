@@ -10,14 +10,15 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import java.util.Map;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.trident.topology.MasterBatchCoordinator;
 import storm.trident.topology.state.RotatingTransactionalState;
 import storm.trident.topology.state.TransactionalState;
 
 
 public class TridentSpoutCoordinator implements IBasicBolt {
-    public static final Logger LOG = Logger.getLogger(TridentSpoutCoordinator.class);
+    public static final Logger LOG = LoggerFactory.getLogger(TridentSpoutCoordinator.class);
     private static final String META_DIR = "meta";
 
     ITridentSpout _spout;
@@ -25,7 +26,6 @@ public class TridentSpoutCoordinator implements IBasicBolt {
     RotatingTransactionalState _state;
     TransactionalState _underlyingState;
     String _id;
-    StateInitializer _initializer;
 
     
     public TridentSpoutCoordinator(String id, ITridentSpout spout) {
@@ -38,7 +38,6 @@ public class TridentSpoutCoordinator implements IBasicBolt {
         _coord = _spout.getCoordinator(_id, conf, context);
         _underlyingState = TransactionalState.newCoordinatorState(conf, _id);
         _state = new RotatingTransactionalState(_underlyingState, META_DIR);
-        _initializer = new StateInitializer();
     }
 
     @Override
@@ -49,7 +48,10 @@ public class TridentSpoutCoordinator implements IBasicBolt {
             _state.cleanupBefore(attempt.getTransactionId());
             _coord.success(attempt.getTransactionId());
         } else {
-            Object meta = _state.getState(attempt.getTransactionId(), _initializer);
+            long txid = attempt.getTransactionId();
+            Object prevMeta = _state.getPreviousState(txid);
+            Object meta = _coord.initializeTransaction(txid, prevMeta, _state.getState(txid));
+            _state.overrideState(txid, meta);
             collector.emit(MasterBatchCoordinator.BATCH_STREAM_ID, new Values(attempt, meta));
         }
                 
@@ -71,13 +73,5 @@ public class TridentSpoutCoordinator implements IBasicBolt {
         Config ret = new Config();
         ret.setMaxTaskParallelism(1);
         return ret;
-    }
-
-    
-    private class StateInitializer implements RotatingTransactionalState.StateInitializer {
-        @Override
-        public Object init(long txid, Object lastState) {
-            return _coord.initializeTransaction(txid, lastState);
-        }
-    }    
+    }   
 }

@@ -2,7 +2,9 @@ package storm.trident.spout;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import storm.trident.operation.TridentCollector;
 import storm.trident.topology.TransactionAttempt;
@@ -21,7 +23,7 @@ public class PartitionedTridentSpoutExecutor implements ITridentSpout<Integer> {
         return _spout;
     }
     
-    class Coordinator implements ITridentSpout.BatchCoordinator<Long> {
+    class Coordinator implements ITridentSpout.BatchCoordinator<Object> {
         private IPartitionedTridentSpout.Coordinator _coordinator;
         
         public Coordinator(Map conf, TopologyContext context) {
@@ -29,8 +31,12 @@ public class PartitionedTridentSpoutExecutor implements ITridentSpout<Integer> {
         }
         
         @Override
-        public Long initializeTransaction(long txid, Long prevMetadata) {
-            return _coordinator.numPartitions();
+        public Object initializeTransaction(long txid, Object prevMetadata, Object currMetadata) {
+            if(currMetadata!=null) {
+                return currMetadata;
+            } else {
+                return _coordinator.getPartitionsForBatch();            
+            }
         }
         
 
@@ -49,10 +55,20 @@ public class PartitionedTridentSpoutExecutor implements ITridentSpout<Integer> {
         }
     }
     
-    class Emitter implements ITridentSpout.Emitter<Long> {
+    static class EmitterPartitionState {
+        public RotatingTransactionalState rotatingState;
+        public ISpoutPartition partition;
+        
+        public EmitterPartitionState(RotatingTransactionalState s, ISpoutPartition p) {
+            rotatingState = s;
+            partition = p;
+        }
+    }
+    
+    class Emitter implements ITridentSpout.Emitter<Object> {
         private IPartitionedTridentSpout.Emitter _emitter;
         private TransactionalState _state;
-        private Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<Integer, RotatingTransactionalState>();
+        private Map<String, EmitterPartitionState> _partitionStates = new HashMap<String, EmitterPartitionState>();
         private int _index;
         private int _numTasks;
         
@@ -63,15 +79,28 @@ public class PartitionedTridentSpoutExecutor implements ITridentSpout<Integer> {
             _numTasks = context.getComponentTasks(context.getThisComponentId()).size();
         }
 
+        Object _savedCoordinatorMeta = null;
+
+        
         @Override
-        public void emitBatch(final TransactionAttempt tx, final Long partitions,
+        public void emitBatch(final TransactionAttempt tx, final Object coordinatorMeta,
                 final TridentCollector collector) {
-            for(int i=_index; i < partitions; i+=_numTasks) {
-                if(!_partitionStates.containsKey(i)) {
-                    _partitionStates.put(i, new RotatingTransactionalState(_state, "" + i));
+            if(_savedCoordinatorMeta == null || !_savedCoordinatorMeta.equals(coordinatorMeta)) {
+                List<ISpoutPartition> partitions = _emitter.getOrderedPartitions(coordinatorMeta);
+                _partitionStates.clear();
+                List<ISpoutPartition> myPartitions = new ArrayList();
+                for(int i=_index; i < partitions.size(); i+=_numTasks) {
+                    ISpoutPartition p = partitions.get(i);
+                    String id = p.getId();
+                    myPartitions.add(p);
+                    _partitionStates.put(id, new EmitterPartitionState(new RotatingTransactionalState(_state, id), p));
                 }
-                RotatingTransactionalState state = _partitionStates.get(i);
-                final int partition = i;
+                _emitter.refreshPartitions(myPartitions);
+                _savedCoordinatorMeta = coordinatorMeta;
+            }
+            for(EmitterPartitionState s: _partitionStates.values()) {
+                RotatingTransactionalState state = s.rotatingState;
+                final ISpoutPartition partition = s.partition;
                 Object meta = state.getStateOrCreate(tx.getTransactionId(),
                         new RotatingTransactionalState.StateInitializer() {
                     @Override
@@ -86,14 +115,13 @@ public class PartitionedTridentSpoutExecutor implements ITridentSpout<Integer> {
                 if(meta!=null) {
                     _emitter.emitPartitionBatch(tx, collector, partition, meta);
                 }
-            }
-            
+            }            
         }
 
         @Override
         public void success(TransactionAttempt tx) {
-            for(RotatingTransactionalState state: _partitionStates.values()) {
-                state.cleanupBefore(tx.getTransactionId());
+            for(EmitterPartitionState state: _partitionStates.values()) {
+                state.rotatingState.cleanupBefore(tx.getTransactionId());
             }
         }
 

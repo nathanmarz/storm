@@ -1,5 +1,6 @@
 package backtype.storm.serialization;
 
+import backtype.storm.utils.ListDelegate;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import java.io.IOException;
@@ -17,7 +18,8 @@ public class KryoValuesDeserializer {
     }
     
     public List<Object> deserializeFrom(Input input) {
-        return (List<Object>) _kryo.readObject(input, ArrayList.class);
+    	ListDelegate delegate = (ListDelegate) _kryo.readObject(input, ListDelegate.class);
+   	return delegate.getDelegate();
     }
     
     public List<Object> deserialize(byte[] ser) throws IOException {

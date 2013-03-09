@@ -1,3 +1,24 @@
+## Unreleased (0.9.0)
+
+ * All logging now done with slf4j
+ * Replaced log4j logging system with logback
+ * Logs are now limited to 1GB per worker (configurable via logging configuration file)
+ * Build upgraded to leiningen 2.0
+ * Revamped Trident spout interfaces to support more dynamic spouts, such as a spout who reads from a changing set of brokers
+ * How tuples are serialized is now pluggable (thanks anfeng)
+ * Added blowfish encryption based tuple serialization (thanks anfeng)
+ * Have storm fall back to installed storm.yaml (thanks revans2)
+ * Improve error message when Storm detects bundled storm.yaml to show the URL's for offending resources (thanks revans2)
+ * Nimbus throws NotAliveException instead of FileNotFoundException from various query methods when topology is no longer alive (thanks revans2)
+ * Escape HTML and Javascript appropriately in Storm UI (thanks d2r)
+ * Storm's Zookeeper client now uses bounded exponential backoff strategy on failures
+ * Append component name to thread name of running executors so that logs are easier to read
+ * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
+ * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
+ * Bug fix: Set component-specific configs correctly for Trident spouts
+ * Bug fix: Fix TransactionalMap and OpaqueMap to correctly do multiple updates to the same key in the same batch
+ * Bug fix: Fix race condition between supervisor and Nimbus that could lead to stormconf.ser errors and infinite crashing of supervisor
+
 ## 0.8.2
 
  * Added backtype.storm.scheduler.IsolationScheduler. This lets you run topologies that are completely isolated at the machine level. Configure Nimbus to isolate certain topologies, and how many machines to give to each of those topologies, with the isolation.scheduler.machines config in Nimbus's storm.yaml. Topologies run on the cluster that are not listed there will share whatever remaining machines there are on the cluster after machines are allocated to the listed topologies.

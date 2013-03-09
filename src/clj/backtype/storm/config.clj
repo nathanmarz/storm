@@ -4,6 +4,7 @@
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
+  (:use [backtype.storm.utils localstate-serializer])
   (:use [backtype.storm util])
   )
 
@@ -129,7 +130,8 @@
   (str stormroot "/" RESOURCES-SUBDIR))
 
 (defn ^LocalState supervisor-state [conf]
-  (LocalState. (str (supervisor-local-dir conf) "/localstate")))
+  (LocalState. (str (supervisor-local-dir conf) "/localstate")
+               (localstate-serializer)))
 
 (defn read-supervisor-storm-conf [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
@@ -165,5 +167,5 @@
 ;; if supervisor stops receiving heartbeat, it kills and restarts the process
 ;; in local mode, keep a global map of ids to threads for simulating process management
 (defn ^LocalState worker-state  [conf id]
-  (LocalState. (worker-heartbeats-root conf id)))
+  (LocalState. (worker-heartbeats-root conf id) (localstate-serializer)))
 

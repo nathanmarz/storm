@@ -3,6 +3,7 @@
   (:import [backtype.storm Constants])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
+  (:use [backtype.storm.utils localstate-serializer])
   (:require [backtype.storm.daemon [worker :as worker]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
@@ -116,7 +117,7 @@
      )))
 
 (defn- wait-for-worker-launch [conf id start-time]
-  (let [state (worker-state conf id)]    
+  (let [state (worker-state conf id)]
     (loop []
       (let [hb (.get state Constants/LS_WORKER_HEARTBEAT)]
         (when (and
@@ -484,7 +485,7 @@
     (reify ISupervisor
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
-        (let [state (LocalState. local-dir)
+        (let [state (LocalState. local-dir (localstate-serializer))
               curr-id (if-let [id (.get state Constants/LS_ID)]
                         id
                         (generate-supervisor-id))]

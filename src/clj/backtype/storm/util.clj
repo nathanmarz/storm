@@ -127,6 +127,13 @@
        (some (partial instance? klass))
        boolean))
 
+(defmacro thrown-cause? [klass & body]
+  `(try
+    ~@body
+    false
+    (catch Throwable t#
+      (exception-cause? ~klass t#))))
+
 (defmacro forcat [[args aseq] & body]
   `(mapcat (fn [~args]
              ~@body)

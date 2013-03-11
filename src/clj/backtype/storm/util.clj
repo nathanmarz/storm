@@ -127,6 +127,13 @@
        (some (partial instance? klass))
        boolean))
 
+(defmacro thrown-cause? [klass & body]
+  `(try
+    ~@body
+    false
+    (catch Throwable t#
+      (exception-cause? ~klass t#))))
+
 (defmacro forcat [[args aseq] & body]
   `(mapcat (fn [~args]
              ~@body)
@@ -368,7 +375,8 @@
                    :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
                    :factory? false
-                   :start true]
+                   :start true
+                   :thread-name nil]
   (let [thread (Thread.
                 (fn []
                   (try-cause
@@ -389,6 +397,8 @@
                   ))]
     (.setDaemon thread daemon)
     (.setPriority thread priority)
+    (when thread-name
+      (.setName thread (str (.getName thread) "-" thread-name)))
     (when start
       (.start thread))
     ;; should return object that supports stop, interrupt, join, and waiting?

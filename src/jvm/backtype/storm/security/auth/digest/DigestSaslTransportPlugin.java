@@ -29,7 +29,7 @@ public class DigestSaslTransportPlugin extends SaslTransportPlugin {
         TSaslServerTransport.Factory factory = new TSaslServerTransport.Factory();
         factory.addServerDefinition(DIGEST, AuthUtils.SERVICE, "localhost", null, serer_callback_handler);
 
-        LOG.info("SASL DIGEST-MD5 transport factory will be used:"+login_conf);
+        LOG.info("SASL DIGEST-MD5 transport factory will be used");
         return factory;
     }
 

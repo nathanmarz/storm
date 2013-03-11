@@ -129,10 +129,8 @@
                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})]
     (testing "(Negative authentication) Server: Simple vs. Client: Digest"
-             (is (= "java.net.SocketTimeoutException: Read timed out" 
-                    (try (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout)
-                      nil
-                      (catch TTransportException ex (.getMessage ex))))))))
+             (is (thrown-cause?  java.net.SocketTimeoutException
+                           (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout))))))
   
 (deftest positive-authorization-test 
   (launch-server 6628  nil 
@@ -167,13 +165,13 @@
                         "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
                         nil
                         "backtype.storm.security.auth.digest.DigestSaslTransportPlugin")
-  ;(log-message "(Positive authentication) valid digest authentication")
   (let [storm-conf (merge (read-storm-config)
                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                             "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})
         client (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
         nimbus_client (.getClient client)]
-    (.activate nimbus_client "security_auth_test_topology")
+    (testing "(Positive authentication) valid digest authentication"
+             (.activate nimbus_client "security_auth_test_topology"))
     (.close client))
   
   (let [storm-conf (merge (read-storm-config)
@@ -181,41 +179,37 @@
         client (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
         nimbus_client (.getClient client)]
     (testing "(Negative authentication) Server: Digest vs. Client: Simple"
-             (is (thrown? TTransportException
-                          (.activate nimbus_client "security_auth_test_topology"))))
+             (is (thrown-cause? java.net.SocketTimeoutException
+                                (.activate nimbus_client "security_auth_test_topology"))))
     (.close client))
     
   (let [storm-conf (merge (read-storm-config)
-                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
-                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf"})]
+                          {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                           "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf"})]
     (testing "(Negative authentication) Invalid  password"
-             (is (= "Peer indicated failure: DIGEST-MD5: digest response format violation. Mismatched response." 
-                    (try (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
-                      nil
-                      (catch TTransportException ex (.getMessage ex)))))))
+             (is (thrown? TTransportException
+                          (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)))))
     
   (let [storm-conf (merge (read-storm-config)
                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                             "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_unknown_user.conf"})]
     (testing "(Negative authentication) Unknown user"
-             (is (= "Peer indicated failure: DIGEST-MD5: cannot acquire password for unknown_user in realm : localhost" 
-                    (try (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
-                      nil
-                      (catch TTransportException ex (.getMessage ex)))))))
+             (is (thrown? TTransportException 
+                          (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)))))
 
   (let [storm-conf (merge (read-storm-config)
                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                             "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/nonexistent.conf"})]
-        (testing "(Negative authentication) nonexistent configuration file"
-                 (is (thrown? RuntimeException 
-                              (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)))))
+    (testing "(Negative authentication) nonexistent configuration file"
+             (is (thrown? RuntimeException 
+                          (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)))))
   
   (let [storm-conf (merge (read-storm-config)
                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_missing_client.conf"})]
     (testing "(Negative authentication) Missing client"
-             (is (thrown? RuntimeException
-                          (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout))))))
+             (is (thrown-cause? java.io.IOException
+                                (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout))))))
 
         
 (deftest test-GetTransportPlugin-throws-RuntimeException

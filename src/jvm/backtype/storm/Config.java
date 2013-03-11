@@ -65,6 +65,11 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
 
     /**
+     * The transport plug-in for Thrift client/server communication
+     */
+    public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
+    
+    /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
      */
@@ -211,6 +216,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
 
+    /**
+     * Class name for authorization plugin for Nimbus
+     */
+    public static String NIMBUS_AUTHORIZER = "nimbus.authorizer";
+    
     /**
      * Storm UI binds to this port.
      */

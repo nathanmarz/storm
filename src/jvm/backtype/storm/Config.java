@@ -65,6 +65,11 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
 
     /**
+     * The transport plug-in for Thrift client/server communication
+     */
+    public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
+    
+    /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
      */
@@ -105,6 +110,11 @@ public class Config extends HashMap<String, Object> {
      * The interval between retries of a Zookeeper operation.
      */
     public static String STORM_ZOOKEEPER_RETRY_INTERVAL="storm.zookeeper.retry.interval";
+
+    /**
+     * The ceiling of the interval between retries of a Zookeeper operation.
+     */
+    public static String STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING="storm.zookeeper.retry.intervalceiling.millis";
 
     /**
      * The Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
@@ -206,6 +216,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
 
+    /**
+     * Class name for authorization plugin for Nimbus
+     */
+    public static String NIMBUS_AUTHORIZER = "nimbus.authorizer";
+    
     /**
      * Storm UI binds to this port.
      */

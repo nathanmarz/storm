@@ -41,12 +41,18 @@
              (current-time-secs)
              (:storm-id worker)
              (:executors worker)
-             (:port worker))]
+             (:port worker))
+        state (worker-state conf (:worker-id worker))]
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
-    (.put (worker-state conf (:worker-id worker))
+    (.put state
         LS-WORKER-HEARTBEAT
-        hb)
+        hb
+        false
+        )
+    (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
+                         ; it shouldn't take supervisor 120 seconds between listing dir and reading it
+
     ))
 
 (defn worker-outbound-tasks

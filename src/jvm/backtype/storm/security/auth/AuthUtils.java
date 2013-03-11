@@ -1,58 +1,47 @@
 package backtype.storm.security.auth;
 
+import backtype.storm.Config;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
+import java.security.NoSuchAlgorithmException;
+import java.security.URIParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import backtype.storm.Config;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 
 public class AuthUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
     public static final String LOGIN_CONTEXT_SERVER = "StormServer"; 
     public static final String LOGIN_CONTEXT_CLIENT = "StormClient"; 
     public static final String SERVICE = "storm_thrift_server";
 
     /**
-     * Construct a JAAS configuration object per storm configuration file
+     * Construct a JAAS configuration object per storm configuration file 
      * @param storm_conf Storm configuration 
-     * @return
+     * @return JAAS configuration object
      */
-    public static synchronized Configuration GetConfiguration(Map storm_conf) {
-        //retrieve system property 
-        String orig_loginConfigurationFile = System.getProperty("java.security.auth.login.config");
-
-        //try to find login file from Storm configuration  
-        String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
-        if ((loginConfigurationFile==null) || (loginConfigurationFile.length()==0))
-            loginConfigurationFile = orig_loginConfigurationFile;
-
+    public static Configuration GetConfiguration(Map storm_conf) {
         Configuration login_conf = null;
+
+        //find login file configuration from Storm configuration  
+        String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
         if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) { 
-            //We don't allow system property and storm conf have conflicts
-            if (orig_loginConfigurationFile!=null && 
-                    orig_loginConfigurationFile.length()>0 &&
-                    !loginConfigurationFile.equals(orig_loginConfigurationFile)) {
-                throw new RuntimeException("System property java.security.auth.login.config ("
-                        + orig_loginConfigurationFile
-                        +") != storm configuration java.security.auth.login.config ("
-                        + loginConfigurationFile + ")");
+            try {
+                URI config_uri = new File(loginConfigurationFile).toURI();
+                login_conf = Configuration.getInstance("JavaLoginConfig", new URIParameter(config_uri));
+            } catch (NoSuchAlgorithmException ex1) {
+                if (ex1.getCause() instanceof FileNotFoundException)
+                    throw new RuntimeException("configuration file "+loginConfigurationFile+" could not be found");
+                else throw new RuntimeException(ex1);
+            } catch (Exception ex2) {
+                throw new RuntimeException(ex2);
             }
-
-            //reset login configuration so that javax.security.auth.login will not use cache
-            Configuration.setConfiguration(null);
-
-            //use javax.security.auth.login.Configuration to obtain login configuration object
-            //login.Configuration depends on system property "java.security.auth.login.config"
-            //(see http://docs.oracle.com/javase/6/docs/jre/api/security/jaas/spec/com/sun/security/auth/login/ConfigFile.html)
-            System.setProperty("java.security.auth.login.config", loginConfigurationFile);
-            login_conf =  Configuration.getConfiguration();
-            //we reset system property to previous value if any
-            if (orig_loginConfigurationFile!=null)
-                System.setProperty("java.security.auth.login.config", orig_loginConfigurationFile);
-            else 
-                System.setProperty("java.security.auth.login.config", "");
         }
+        
         return login_conf;
     }
 

@@ -201,15 +201,23 @@
              (is (= "Peer indicated failure: DIGEST-MD5: cannot acquire password for unknown_user in realm : localhost" 
                     (try (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
                       nil
-                      (catch TTransportException ex (.getMessage ex))))))))
+                      (catch TTransportException ex (.getMessage ex)))))))
 
+  (let [storm-conf (merge (read-storm-config)
+                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/nonexistent.conf"})]
+        (testing "(Negative authentication) nonexistent configuration file"
+                 (is (thrown? RuntimeException 
+                              (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)))))
+  
   (let [storm-conf (merge (read-storm-config)
                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_missing_client.conf"})]
-    (testing "(Negative authentication) IOException"
+    (testing "(Negative authentication) Missing client"
              (is (thrown? RuntimeException
-                          (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)))))
-  
+                          (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout))))))
+
+        
 (deftest test-GetTransportPlugin-throws-RuntimeException
   (let [conf (merge (read-storm-config)
                     {Config/STORM_THRIFT_TRANSPORT_PLUGIN "null.invalid"})]

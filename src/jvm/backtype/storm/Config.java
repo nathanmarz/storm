@@ -112,6 +112,11 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_ZOOKEEPER_RETRY_INTERVAL="storm.zookeeper.retry.interval";
 
     /**
+     * The ceiling of the interval between retries of a Zookeeper operation.
+     */
+    public static String STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING="storm.zookeeper.retry.intervalceiling.millis";
+
+    /**
      * The Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
      */
     public static String STORM_ZOOKEEPER_AUTH_SCHEME="storm.zookeeper.auth.scheme";

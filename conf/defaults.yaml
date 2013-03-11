@@ -14,6 +14,7 @@ storm.zookeeper.session.timeout: 20000
 storm.zookeeper.connection.timeout: 15000
 storm.zookeeper.retry.times: 5
 storm.zookeeper.retry.interval: 1000
+storm.zookeeper.retry.intervalceiling.millis: 30000
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"

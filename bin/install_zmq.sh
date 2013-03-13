@@ -1,5 +1,7 @@
 #!/bin/bash
-export JAVA_HOME=${JAVA_HOME:/usr/libexec/java_home}
+export JAVA_HOME=${JAVA_HOME:/usr/libexec/java_home} 
+
+zeromq="zeromq-2.1.7"
 
 if [ ! -d "$JAVA_HOME/include" ]; then
     echo "
@@ -11,10 +13,29 @@ Looks like you're missing your 'include' directory. If you're using Mac OS X, Yo
 "
     exit -1;
 fi
-
-#install zeromq
-wget http://download.zeromq.org/zeromq-2.1.7.tar.gz
-tar -xzf zeromq-2.1.7.tar.gz
+if [ ! -f ${zeromq}.tar.gz ]; then
+  downloader="wget"
+  if [ "`which wget`" == "" ]; then
+    if [ "`which curl`" == "" ]; then
+      echo "
+Neither wget nor curl found; please install one of these programs.
+"
+      exit -1;
+    else
+      downloader="curl -O"
+    fi
+  fi
+  ${downloader} http://download.zeromq.org/${zeromq}.tar.gz
+  if [ ! -f ${zeromq}.tar.gz ]; then
+    echo "
+A problem occurred while downloading ${zeromq}.
+"
+    exit -1;
+  fi
+fi
+if [ ! -d $zeromq ]; then
+  tar -xzf ${zeromq}.tar.gz
+fi
 cd zeromq-2.1.7
 ./configure
 make

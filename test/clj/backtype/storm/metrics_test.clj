@@ -103,7 +103,7 @@
 
 (deftest test-builtin-metrics-1
   (with-simulated-time-local-cluster
-    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER                    
                            [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
                            TOPOLOGY-STATS-SAMPLE-RATE 1.0
                            TOPOLOGY-BUILTIN-METRICS-BUCKET-SIZE-SECS 60}]
@@ -142,7 +142,6 @@
   (with-simulated-time-local-cluster
     [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
                            [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
-                           TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true
                            TOPOLOGY-STATS-SAMPLE-RATE 1.0
                            TOPOLOGY-BUILTIN-METRICS-BUCKET-SIZE-SECS 5}]
     (let [feeder (feeder-spout ["field1"])
@@ -153,7 +152,7 @@
                     {"mybolt" (thrift/mk-bolt-spec {"myspout" :shuffle} ack-every-other)})]      
       (submit-local-topology (:nimbus cluster)
                              "metrics-tester"
-                             {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20}
+                             {}
                              topology)
       
       (.feed feeder ["a"] 1)
@@ -175,11 +174,57 @@
       (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0])
       (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1])
 
-      (advance-cluster-time cluster 30)
-      (assert-failed tracker 2)   
-      (assert-buckets! "myspout" "__fail-count/default" [1])
+      (advance-cluster-time cluster 15)      
       (assert-buckets! "myspout" "__ack-count/default" [1 0 0 0 0])
       (assert-buckets! "myspout" "__emit-count/default" [1 1 0 0 0])
-      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0])                  
+      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0])
       (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 0 0])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0]))))
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0])
+      
+      (.feed feeder ["c"] 3)            
+      (advance-cluster-time cluster 15)      
+      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 0 0 1 0 0])
+      (assert-buckets! "myspout" "__emit-count/default" [1 1 0 0 0 1 0 0])
+      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0 1 0 0])
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 0 0 1 0 0])
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0 1 0 0]))))
+
+(deftest test-builtin-metrics-3
+  (with-simulated-time-local-cluster
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                           TOPOLOGY-STATS-SAMPLE-RATE 1.0
+                           TOPOLOGY-BUILTIN-METRICS-BUCKET-SIZE-SECS 5
+                           TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (thrift/mk-topology
+                    {"myspout" (thrift/mk-spout-spec feeder)}
+                    {"mybolt" (thrift/mk-bolt-spec {"myspout" :global} ack-every-other)})]      
+      (submit-local-topology (:nimbus cluster)
+                             "timeout-tester"
+                             {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                             topology)
+      (.feed feeder ["a"] 1)
+      (.feed feeder ["b"] 2)
+      (.feed feeder ["c"] 3)
+      (advance-cluster-time cluster 9)
+      (assert-acked tracker 1 3)
+      (assert-buckets! "myspout" "__ack-count/default" [2])
+      (assert-buckets! "myspout" "__emit-count/default" [3])
+      (assert-buckets! "myspout" "__transfer-count/default" [3])
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [2])
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [3])
+      
+      (is (not (.isFailed tracker 2)))
+      (advance-cluster-time cluster 30)
+      (assert-failed tracker 2)
+      (assert-buckets! "myspout" "__fail-count/default" [1])
+      (assert-buckets! "myspout" "__ack-count/default" [2 0 0 0])
+      (assert-buckets! "myspout" "__emit-count/default" [3 0 0 0])
+      (assert-buckets! "myspout" "__transfer-count/default" [3 0 0 0])
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [2 0 0 0])
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [3 0 0 0]))))
+
+

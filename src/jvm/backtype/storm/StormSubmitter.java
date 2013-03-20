@@ -36,6 +36,7 @@ public class StormSubmitter {
      * @param topology the processing to execute.
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
+     * @throws AuthorizationException if authorization is failed
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology) 
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
@@ -53,6 +54,7 @@ public class StormSubmitter {
      * @param options to manipulate the starting of the topology
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
+     * @throws AuthorizationException if authorization is failed
      */
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {

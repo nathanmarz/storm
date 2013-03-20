@@ -34,8 +34,8 @@
 
 ;; TODO: change this to use TimeCacheMap
 (defn service-handler [conf]
-  (let [drpc-acl-handler (mk-authorization-handler conf (conf DRPC-AUTHORIZER))
-        invocations-acl-handler (mk-authorization-handler conf (conf DRPC-INVOCATIONS-AUTHORIZER))
+  (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER))
+        invocations-acl-handler (mk-authorization-handler (conf DRPC-INVOCATIONS-AUTHORIZER))
         ctr (atom 0)
         id->sem (atom {})
         id->result (atom {})

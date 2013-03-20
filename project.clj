@@ -1,5 +1,5 @@
 (defproject storm/storm "0.9.0-wip16"
-  :url "http://storm-project.clj"
+  :url "http://storm-project.net"
   :description "Distributed and fault-tolerant realtime computation"
   :license {:name "Eclipse Public License - Version 1.0" :url "https://github.com/nathanmarz/storm/blob/master/LICENSE.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]

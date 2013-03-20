@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import javax.security.auth.login.Configuration;
 import org.apache.thrift7.TException;
@@ -29,15 +30,18 @@ import org.slf4j.LoggerFactory;
  */
 public class SimpleTransportPlugin implements ITransportPlugin {
     protected Configuration login_conf;
+    protected ExecutorService executor_service;
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTransportPlugin.class);
 
     /**
      * Invoked once immediately after construction
      * @param conf Storm configuration 
      * @param login_conf login configuration
+     * @param executor_service executor service for server
      */
-    public void prepare(Map storm_conf, Configuration login_conf) {        
+    public void prepare(Map storm_conf, Configuration login_conf, ExecutorService executor_service) {        
         this.login_conf = login_conf;
+        this.executor_service = executor_service;
     }
 
     /**
@@ -49,6 +53,8 @@ public class SimpleTransportPlugin implements ITransportPlugin {
                 processor(new SimpleWrapProcessor(processor)).
                 workerThreads(64).
                 protocolFactory(new TBinaryProtocol.Factory());            
+        if (executor_service!=null)
+            server_args = server_args.executorService(executor_service);
 
         //construct THsHaServer
         return new THsHaServer(server_args);

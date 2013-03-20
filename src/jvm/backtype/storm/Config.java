@@ -243,6 +243,11 @@ public class Config extends HashMap<String, Object> {
     public static String DRPC_PORT = "drpc.port";
     
     /**
+     * Class name for authorization plugin for DRPC client
+     */
+    public static String DRPC_AUTHORIZER = "drpc.authorizer";
+
+    /**
      * DRPC thrift server worker threads 
      */
     public static String DRPC_WORKER_THREADS = "drpc.worker.threads";
@@ -257,6 +262,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
     
+    /**
+     * Class name for authorization plugin for DRPC Invocations client
+     */
+    public static String DRPC_INVOCATIONS_AUTHORIZER = "drpc.invocations.authorizer";
+
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
      * timeout based on the socket timeout on the DRPC client, and separately based on the topology message

@@ -1,6 +1,8 @@
 package backtype.storm.security.auth;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
 import javax.security.auth.login.Configuration;
 import org.apache.thrift7.TProcessor;
 import org.apache.thrift7.server.TServer;
@@ -15,12 +17,18 @@ public class ThriftServer {
     private int _port = 0;
     private TServer _server = null;
     private Configuration _login_conf;
+    private ExecutorService _executor_service;
     
     public ThriftServer(Map storm_conf, TProcessor processor, int port) {
+        this(storm_conf, processor, port, null);
+    }
+    
+    public ThriftServer(Map storm_conf, TProcessor processor, int port, ExecutorService executor_service) {
         try {
             _storm_conf = storm_conf;
             _processor = processor;
             _port = port;
+            _executor_service = executor_service;
             
             //retrieve authentication configuration 
             _login_conf = AuthUtils.GetConfiguration(_storm_conf);
@@ -46,7 +54,7 @@ public class ThriftServer {
     public void serve()  {
         try {
             //locate our thrift transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_storm_conf, _login_conf);
+            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_storm_conf, _login_conf, _executor_service);
 
             //server
             _server = transportPlugin.getServer(_port, _processor);

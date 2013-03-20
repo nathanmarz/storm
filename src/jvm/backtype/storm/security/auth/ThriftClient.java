@@ -27,7 +27,7 @@ public class ThriftClient {
             Configuration login_conf = AuthUtils.GetConfiguration(storm_conf);
 
             //construct a transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(storm_conf, login_conf);
+            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(storm_conf, login_conf, null);
 
             //create a socket with server
             if(host==null) {

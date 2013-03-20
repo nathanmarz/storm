@@ -50,9 +50,6 @@ class JavaObjectArg:
     (6, TType.DOUBLE, 'double_arg', None, None, ), # 6
   )
 
-  def __hash__(self):
-    return 0 + hash(self.int_arg) + hash(self.long_arg) + hash(self.string_arg) + hash(self.bool_arg) + hash(self.binary_arg) + hash(self.double_arg)
-
   def __init__(self, int_arg=None, long_arg=None, string_arg=None, bool_arg=None, binary_arg=None, double_arg=None,):
     self.int_arg = int_arg
     self.long_arg = long_arg
@@ -165,9 +162,6 @@ class JavaObject:
     (2, TType.LIST, 'args_list', (TType.STRUCT,(JavaObjectArg, JavaObjectArg.thrift_spec)), None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.full_class_name) + hash(self.args_list)
-
   def __init__(self, full_class_name=None, args_list=None,):
     self.full_class_name = full_class_name
     self.args_list = args_list
@@ -245,9 +239,6 @@ class NullStruct:
   thrift_spec = (
   )
 
-  def __hash__(self):
-    return 0
-
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
       fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
@@ -297,9 +288,6 @@ class GlobalStreamId:
     (1, TType.STRING, 'componentId', None, None, ), # 1
     (2, TType.STRING, 'streamId', None, None, ), # 2
   )
-
-  def __hash__(self):
-    return 0 + hash(self.componentId) + hash(self.streamId)
 
   def __init__(self, componentId=None, streamId=None,):
     self.componentId = componentId
@@ -388,9 +376,6 @@ class Grouping:
     (7, TType.STRING, 'custom_serialized', None, None, ), # 7
     (8, TType.STRUCT, 'local_or_shuffle', (NullStruct, NullStruct.thrift_spec), None, ), # 8
   )
-
-  def __hash__(self):
-    return 0 + hash(self.fields) + hash(self.shuffle) + hash(self.all) + hash(self.none) + hash(self.direct) + hash(self.custom_object) + hash(self.custom_serialized) + hash(self.local_or_shuffle)
 
   def __init__(self, fields=None, shuffle=None, all=None, none=None, direct=None, custom_object=None, custom_serialized=None, local_or_shuffle=None,):
     self.fields = fields
@@ -538,9 +523,6 @@ class StreamInfo:
     (2, TType.BOOL, 'direct', None, None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.output_fields) + hash(self.direct)
-
   def __init__(self, output_fields=None, direct=None,):
     self.output_fields = output_fields
     self.direct = direct
@@ -625,9 +607,6 @@ class ShellComponent:
     (2, TType.STRING, 'script', None, None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.execution_command) + hash(self.script)
-
   def __init__(self, execution_command=None, script=None,):
     self.execution_command = execution_command
     self.script = script
@@ -701,9 +680,6 @@ class ComponentObject:
     (2, TType.STRUCT, 'shell', (ShellComponent, ShellComponent.thrift_spec), None, ), # 2
     (3, TType.STRUCT, 'java_object', (JavaObject, JavaObject.thrift_spec), None, ), # 3
   )
-
-  def __hash__(self):
-    return 0 + hash(self.serialized_java) + hash(self.shell) + hash(self.java_object)
 
   def __init__(self, serialized_java=None, shell=None, java_object=None,):
     self.serialized_java = serialized_java
@@ -792,9 +768,6 @@ class ComponentCommon:
     (3, TType.I32, 'parallelism_hint', None, None, ), # 3
     (4, TType.STRING, 'json_conf', None, None, ), # 4
   )
-
-  def __hash__(self):
-    return 0 + hash(self.inputs) + hash(self.streams) + hash(self.parallelism_hint) + hash(self.json_conf)
 
   def __init__(self, inputs=None, streams=None, parallelism_hint=None, json_conf=None,):
     self.inputs = inputs
@@ -915,9 +888,6 @@ class SpoutSpec:
     (2, TType.STRUCT, 'common', (ComponentCommon, ComponentCommon.thrift_spec), None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.spout_object) + hash(self.common)
-
   def __init__(self, spout_object=None, common=None,):
     self.spout_object = spout_object
     self.common = common
@@ -996,9 +966,6 @@ class Bolt:
     (2, TType.STRUCT, 'common', (ComponentCommon, ComponentCommon.thrift_spec), None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.bolt_object) + hash(self.common)
-
   def __init__(self, bolt_object=None, common=None,):
     self.bolt_object = bolt_object
     self.common = common
@@ -1076,9 +1043,6 @@ class StateSpoutSpec:
     (1, TType.STRUCT, 'state_spout_object', (ComponentObject, ComponentObject.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'common', (ComponentCommon, ComponentCommon.thrift_spec), None, ), # 2
   )
-
-  def __hash__(self):
-    return 0 + hash(self.state_spout_object) + hash(self.common)
 
   def __init__(self, state_spout_object=None, common=None,):
     self.state_spout_object = state_spout_object
@@ -1159,9 +1123,6 @@ class StormTopology:
     (2, TType.MAP, 'bolts', (TType.STRING,None,TType.STRUCT,(Bolt, Bolt.thrift_spec)), None, ), # 2
     (3, TType.MAP, 'state_spouts', (TType.STRING,None,TType.STRUCT,(StateSpoutSpec, StateSpoutSpec.thrift_spec)), None, ), # 3
   )
-
-  def __hash__(self):
-    return 0 + hash(self.spouts) + hash(self.bolts) + hash(self.state_spouts)
 
   def __init__(self, spouts=None, bolts=None, state_spouts=None,):
     self.spouts = spouts
@@ -1282,9 +1243,6 @@ class AlreadyAliveException(Exception):
     (1, TType.STRING, 'msg', None, None, ), # 1
   )
 
-  def __hash__(self):
-    return 0 + hash(self.msg)
-
   def __init__(self, msg=None,):
     self.msg = msg
 
@@ -1350,9 +1308,6 @@ class NotAliveException(Exception):
     (1, TType.STRING, 'msg', None, None, ), # 1
   )
 
-  def __hash__(self):
-    return 0 + hash(self.msg)
-
   def __init__(self, msg=None,):
     self.msg = msg
 
@@ -1407,7 +1362,7 @@ class NotAliveException(Exception):
   def __ne__(self, other):
     return not (self == other)
 
-class InvalidTopologyException(Exception):
+class AuthorizationException(Exception):
   """
   Attributes:
    - msg
@@ -1418,8 +1373,70 @@ class InvalidTopologyException(Exception):
     (1, TType.STRING, 'msg', None, None, ), # 1
   )
 
-  def __hash__(self):
-    return 0 + hash(self.msg)
+  def __init__(self, msg=None,):
+    self.msg = msg
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.msg = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('AuthorizationException')
+    if self.msg is not None:
+      oprot.writeFieldBegin('msg', TType.STRING, 1)
+      oprot.writeString(self.msg.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.msg is None:
+      raise TProtocol.TProtocolException(message='Required field msg is unset!')
+    return
+
+
+  def __str__(self):
+    return repr(self)
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class InvalidTopologyException(Exception):
+  """
+  Attributes:
+   - msg
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'msg', None, None, ), # 1
+  )
 
   def __init__(self, msg=None,):
     self.msg = msg
@@ -1497,9 +1514,6 @@ class TopologySummary:
     (6, TType.I32, 'uptime_secs', None, None, ), # 6
     (7, TType.STRING, 'status', None, None, ), # 7
   )
-
-  def __hash__(self):
-    return 0 + hash(self.id) + hash(self.name) + hash(self.num_tasks) + hash(self.num_executors) + hash(self.num_workers) + hash(self.uptime_secs) + hash(self.status)
 
   def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None,):
     self.id = id
@@ -1643,9 +1657,6 @@ class SupervisorSummary:
     (5, TType.STRING, 'supervisor_id', None, None, ), # 5
   )
 
-  def __hash__(self):
-    return 0 + hash(self.host) + hash(self.uptime_secs) + hash(self.num_workers) + hash(self.num_used_workers) + hash(self.supervisor_id)
-
   def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None,):
     self.host = host
     self.uptime_secs = uptime_secs
@@ -1760,9 +1771,6 @@ class ClusterSummary:
     (3, TType.LIST, 'topologies', (TType.STRUCT,(TopologySummary, TopologySummary.thrift_spec)), None, ), # 3
   )
 
-  def __hash__(self):
-    return 0 + hash(self.supervisors) + hash(self.nimbus_uptime_secs) + hash(self.topologies)
-
   def __init__(self, supervisors=None, nimbus_uptime_secs=None, topologies=None,):
     self.supervisors = supervisors
     self.nimbus_uptime_secs = nimbus_uptime_secs
@@ -1869,9 +1877,6 @@ class ErrorInfo:
     (2, TType.I32, 'error_time_secs', None, None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.error) + hash(self.error_time_secs)
-
   def __init__(self, error=None, error_time_secs=None,):
     self.error = error
     self.error_time_secs = error_time_secs
@@ -1953,9 +1958,6 @@ class BoltStats:
     (4, TType.MAP, 'executed', (TType.STRING,None,TType.MAP,(TType.STRUCT,(GlobalStreamId, GlobalStreamId.thrift_spec),TType.I64,None)), None, ), # 4
     (5, TType.MAP, 'execute_ms_avg', (TType.STRING,None,TType.MAP,(TType.STRUCT,(GlobalStreamId, GlobalStreamId.thrift_spec),TType.DOUBLE,None)), None, ), # 5
   )
-
-  def __hash__(self):
-    return 0 + hash(self.acked) + hash(self.failed) + hash(self.process_ms_avg) + hash(self.executed) + hash(self.execute_ms_avg)
 
   def __init__(self, acked=None, failed=None, process_ms_avg=None, executed=None, execute_ms_avg=None,):
     self.acked = acked
@@ -2176,9 +2178,6 @@ class SpoutStats:
     (3, TType.MAP, 'complete_ms_avg', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.DOUBLE,None)), None, ), # 3
   )
 
-  def __hash__(self):
-    return 0 + hash(self.acked) + hash(self.failed) + hash(self.complete_ms_avg)
-
   def __init__(self, acked=None, failed=None, complete_ms_avg=None,):
     self.acked = acked
     self.failed = failed
@@ -2327,9 +2326,6 @@ class ExecutorSpecificStats:
     (2, TType.STRUCT, 'spout', (SpoutStats, SpoutStats.thrift_spec), None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.bolt) + hash(self.spout)
-
   def __init__(self, bolt=None, spout=None,):
     self.bolt = bolt
     self.spout = spout
@@ -2405,9 +2401,6 @@ class ExecutorStats:
     (2, TType.MAP, 'transferred', (TType.STRING,None,TType.MAP,(TType.STRING,None,TType.I64,None)), None, ), # 2
     (3, TType.STRUCT, 'specific', (ExecutorSpecificStats, ExecutorSpecificStats.thrift_spec), None, ), # 3
   )
-
-  def __hash__(self):
-    return 0 + hash(self.emitted) + hash(self.transferred) + hash(self.specific)
 
   def __init__(self, emitted=None, transferred=None, specific=None,):
     self.emitted = emitted
@@ -2538,9 +2531,6 @@ class ExecutorInfo:
     (2, TType.I32, 'task_end', None, None, ), # 2
   )
 
-  def __hash__(self):
-    return 0 + hash(self.task_start) + hash(self.task_end)
-
   def __init__(self, task_start=None, task_end=None,):
     self.task_start = task_start
     self.task_end = task_end
@@ -2625,9 +2615,6 @@ class ExecutorSummary:
     None, # 6
     (7, TType.STRUCT, 'stats', (ExecutorStats, ExecutorStats.thrift_spec), None, ), # 7
   )
-
-  def __hash__(self):
-    return 0 + hash(self.executor_info) + hash(self.component_id) + hash(self.host) + hash(self.port) + hash(self.uptime_secs) + hash(self.stats)
 
   def __init__(self, executor_info=None, component_id=None, host=None, port=None, uptime_secs=None, stats=None,):
     self.executor_info = executor_info
@@ -2760,9 +2747,6 @@ class TopologyInfo:
     (5, TType.STRING, 'status', None, None, ), # 5
     (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
   )
-
-  def __hash__(self):
-    return 0 + hash(self.id) + hash(self.name) + hash(self.uptime_secs) + hash(self.executors) + hash(self.status) + hash(self.errors)
 
   def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None,):
     self.id = id
@@ -2914,9 +2898,6 @@ class KillOptions:
     (1, TType.I32, 'wait_secs', None, None, ), # 1
   )
 
-  def __hash__(self):
-    return 0 + hash(self.wait_secs)
-
   def __init__(self, wait_secs=None,):
     self.wait_secs = wait_secs
 
@@ -2980,9 +2961,6 @@ class RebalanceOptions:
     (2, TType.I32, 'num_workers', None, None, ), # 2
     (3, TType.MAP, 'num_executors', (TType.STRING,None,TType.I32,None), None, ), # 3
   )
-
-  def __hash__(self):
-    return 0 + hash(self.wait_secs) + hash(self.num_workers) + hash(self.num_executors)
 
   def __init__(self, wait_secs=None, num_workers=None, num_executors=None,):
     self.wait_secs = wait_secs
@@ -3074,9 +3052,6 @@ class SubmitOptions:
     (1, TType.I32, 'initial_status', None, None, ), # 1
   )
 
-  def __hash__(self):
-    return 0 + hash(self.initial_status)
-
   def __init__(self, initial_status=None,):
     self.initial_status = initial_status
 
@@ -3140,9 +3115,6 @@ class DRPCRequest:
     (1, TType.STRING, 'func_args', None, None, ), # 1
     (2, TType.STRING, 'request_id', None, None, ), # 2
   )
-
-  def __hash__(self):
-    return 0 + hash(self.func_args) + hash(self.request_id)
 
   def __init__(self, func_args=None, request_id=None,):
     self.func_args = func_args
@@ -3217,9 +3189,6 @@ class DRPCExecutionException(Exception):
     None, # 0
     (1, TType.STRING, 'msg', None, None, ), # 1
   )
-
-  def __hash__(self):
-    return 0 + hash(self.msg)
 
   def __init__(self, msg=None,):
     self.msg = msg

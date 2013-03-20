@@ -25,11 +25,11 @@ public class DistributedRPCInvocations {
 
   public interface Iface {
 
-    public void result(String id, String result) throws org.apache.thrift7.TException;
+    public void result(String id, String result) throws AuthorizationException, org.apache.thrift7.TException;
 
-    public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift7.TException;
+    public DRPCRequest fetchRequest(String functionName) throws AuthorizationException, org.apache.thrift7.TException;
 
-    public void failRequest(String id) throws org.apache.thrift7.TException;
+    public void failRequest(String id) throws AuthorizationException, org.apache.thrift7.TException;
 
   }
 
@@ -63,7 +63,7 @@ public class DistributedRPCInvocations {
       super(iprot, oprot);
     }
 
-    public void result(String id, String result) throws org.apache.thrift7.TException
+    public void result(String id, String result) throws AuthorizationException, org.apache.thrift7.TException
     {
       send_result(id, result);
       recv_result();
@@ -77,14 +77,17 @@ public class DistributedRPCInvocations {
       sendBase("result", args);
     }
 
-    public void recv_result() throws org.apache.thrift7.TException
+    public void recv_result() throws AuthorizationException, org.apache.thrift7.TException
     {
       result_result result = new result_result();
       receiveBase(result, "result");
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift7.TException
+    public DRPCRequest fetchRequest(String functionName) throws AuthorizationException, org.apache.thrift7.TException
     {
       send_fetchRequest(functionName);
       return recv_fetchRequest();
@@ -97,17 +100,20 @@ public class DistributedRPCInvocations {
       sendBase("fetchRequest", args);
     }
 
-    public DRPCRequest recv_fetchRequest() throws org.apache.thrift7.TException
+    public DRPCRequest recv_fetchRequest() throws AuthorizationException, org.apache.thrift7.TException
     {
       fetchRequest_result result = new fetchRequest_result();
       receiveBase(result, "fetchRequest");
       if (result.is_set_success()) {
         return result.success;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       throw new org.apache.thrift7.TApplicationException(org.apache.thrift7.TApplicationException.MISSING_RESULT, "fetchRequest failed: unknown result");
     }
 
-    public void failRequest(String id) throws org.apache.thrift7.TException
+    public void failRequest(String id) throws AuthorizationException, org.apache.thrift7.TException
     {
       send_failRequest(id);
       recv_failRequest();
@@ -120,10 +126,13 @@ public class DistributedRPCInvocations {
       sendBase("failRequest", args);
     }
 
-    public void recv_failRequest() throws org.apache.thrift7.TException
+    public void recv_failRequest() throws AuthorizationException, org.apache.thrift7.TException
     {
       failRequest_result result = new failRequest_result();
       receiveBase(result, "failRequest");
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
@@ -170,7 +179,7 @@ public class DistributedRPCInvocations {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.thrift7.TException {
+      public void getResult() throws AuthorizationException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -202,7 +211,7 @@ public class DistributedRPCInvocations {
         prot.writeMessageEnd();
       }
 
-      public DRPCRequest getResult() throws org.apache.thrift7.TException {
+      public DRPCRequest getResult() throws AuthorizationException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -234,7 +243,7 @@ public class DistributedRPCInvocations {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.thrift7.TException {
+      public void getResult() throws AuthorizationException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -274,7 +283,11 @@ public class DistributedRPCInvocations {
 
       protected result_result getResult(I iface, result_args args) throws org.apache.thrift7.TException {
         result_result result = new result_result();
-        iface.result(args.id, args.result);
+        try {
+          iface.result(args.id, args.result);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
         return result;
       }
     }
@@ -290,7 +303,11 @@ public class DistributedRPCInvocations {
 
       protected fetchRequest_result getResult(I iface, fetchRequest_args args) throws org.apache.thrift7.TException {
         fetchRequest_result result = new fetchRequest_result();
-        result.success = iface.fetchRequest(args.functionName);
+        try {
+          result.success = iface.fetchRequest(args.functionName);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
         return result;
       }
     }
@@ -306,7 +323,11 @@ public class DistributedRPCInvocations {
 
       protected failRequest_result getResult(I iface, failRequest_args args) throws org.apache.thrift7.TException {
         failRequest_result result = new failRequest_result();
-        iface.failRequest(args.id);
+        try {
+          iface.failRequest(args.id);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
         return result;
       }
     }
@@ -710,11 +731,13 @@ public class DistributedRPCInvocations {
   public static class result_result implements org.apache.thrift7.TBase<result_result, result_result._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("result_result");
 
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
 
+    private AuthorizationException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-;
+      AZE((short)1, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -729,6 +752,8 @@ public class DistributedRPCInvocations {
        */
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
+          case 1: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -767,9 +792,14 @@ public class DistributedRPCInvocations {
         return _fieldName;
       }
     }
+
+    // isset id assignments
+
     public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(result_result.class, metaDataMap);
     }
@@ -777,10 +807,20 @@ public class DistributedRPCInvocations {
     public result_result() {
     }
 
+    public result_result(
+      AuthorizationException aze)
+    {
+      this();
+      this.aze = aze;
+    }
+
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public result_result(result_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
     }
 
     public result_result deepCopy() {
@@ -789,15 +829,50 @@ public class DistributedRPCInvocations {
 
     @Override
     public void clear() {
+      this.aze = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
     }
 
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
       }
     }
 
     public Object getFieldValue(_Fields field) {
       switch (field) {
+      case AZE:
+        return get_aze();
+
       }
       throw new IllegalStateException();
     }
@@ -809,6 +884,8 @@ public class DistributedRPCInvocations {
       }
 
       switch (field) {
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -826,12 +903,26 @@ public class DistributedRPCInvocations {
       if (that == null)
         return false;
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
     @Override
     public int hashCode() {
       HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -844,6 +935,16 @@ public class DistributedRPCInvocations {
       int lastComparison = 0;
       result_result typedOther = (result_result)other;
 
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -861,6 +962,14 @@ public class DistributedRPCInvocations {
           break;
         }
         switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -873,6 +982,11 @@ public class DistributedRPCInvocations {
     public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -882,6 +996,13 @@ public class DistributedRPCInvocations {
       StringBuilder sb = new StringBuilder("result_result(");
       boolean first = true;
 
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -1213,12 +1334,15 @@ public class DistributedRPCInvocations {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("fetchRequest_result");
 
     private static final org.apache.thrift7.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift7.protocol.TField("success", org.apache.thrift7.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
 
     private DRPCRequest success; // required
+    private AuthorizationException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-      SUCCESS((short)0, "success");
+      SUCCESS((short)0, "success"),
+      AZE((short)1, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -1235,6 +1359,8 @@ public class DistributedRPCInvocations {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
+          case 1: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -1281,6 +1407,8 @@ public class DistributedRPCInvocations {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift7.meta_data.FieldMetaData("success", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, DRPCRequest.class)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(fetchRequest_result.class, metaDataMap);
     }
@@ -1289,10 +1417,12 @@ public class DistributedRPCInvocations {
     }
 
     public fetchRequest_result(
-      DRPCRequest success)
+      DRPCRequest success,
+      AuthorizationException aze)
     {
       this();
       this.success = success;
+      this.aze = aze;
     }
 
     /**
@@ -1301,6 +1431,9 @@ public class DistributedRPCInvocations {
     public fetchRequest_result(fetchRequest_result other) {
       if (other.is_set_success()) {
         this.success = new DRPCRequest(other.success);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
       }
     }
 
@@ -1311,6 +1444,7 @@ public class DistributedRPCInvocations {
     @Override
     public void clear() {
       this.success = null;
+      this.aze = null;
     }
 
     public DRPCRequest get_success() {
@@ -1336,6 +1470,29 @@ public class DistributedRPCInvocations {
       }
     }
 
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -1346,6 +1503,14 @@ public class DistributedRPCInvocations {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
       }
     }
 
@@ -1353,6 +1518,9 @@ public class DistributedRPCInvocations {
       switch (field) {
       case SUCCESS:
         return get_success();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -1367,6 +1535,8 @@ public class DistributedRPCInvocations {
       switch (field) {
       case SUCCESS:
         return is_set_success();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -1393,6 +1563,15 @@ public class DistributedRPCInvocations {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -1404,6 +1583,11 @@ public class DistributedRPCInvocations {
       builder.append(present_success);
       if (present_success)
         builder.append(success);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -1422,6 +1606,16 @@ public class DistributedRPCInvocations {
       }
       if (is_set_success()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1451,6 +1645,14 @@ public class DistributedRPCInvocations {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 1: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -1467,6 +1669,10 @@ public class DistributedRPCInvocations {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
         oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -1482,6 +1688,14 @@ public class DistributedRPCInvocations {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -1814,11 +2028,13 @@ public class DistributedRPCInvocations {
   public static class failRequest_result implements org.apache.thrift7.TBase<failRequest_result, failRequest_result._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("failRequest_result");
 
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
 
+    private AuthorizationException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-;
+      AZE((short)1, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -1833,6 +2049,8 @@ public class DistributedRPCInvocations {
        */
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
+          case 1: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -1871,9 +2089,14 @@ public class DistributedRPCInvocations {
         return _fieldName;
       }
     }
+
+    // isset id assignments
+
     public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(failRequest_result.class, metaDataMap);
     }
@@ -1881,10 +2104,20 @@ public class DistributedRPCInvocations {
     public failRequest_result() {
     }
 
+    public failRequest_result(
+      AuthorizationException aze)
+    {
+      this();
+      this.aze = aze;
+    }
+
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public failRequest_result(failRequest_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
     }
 
     public failRequest_result deepCopy() {
@@ -1893,15 +2126,50 @@ public class DistributedRPCInvocations {
 
     @Override
     public void clear() {
+      this.aze = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
     }
 
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
       }
     }
 
     public Object getFieldValue(_Fields field) {
       switch (field) {
+      case AZE:
+        return get_aze();
+
       }
       throw new IllegalStateException();
     }
@@ -1913,6 +2181,8 @@ public class DistributedRPCInvocations {
       }
 
       switch (field) {
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -1930,12 +2200,26 @@ public class DistributedRPCInvocations {
       if (that == null)
         return false;
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
     @Override
     public int hashCode() {
       HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -1948,6 +2232,16 @@ public class DistributedRPCInvocations {
       int lastComparison = 0;
       failRequest_result typedOther = (failRequest_result)other;
 
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -1965,6 +2259,14 @@ public class DistributedRPCInvocations {
           break;
         }
         switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -1977,6 +2279,11 @@ public class DistributedRPCInvocations {
     public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1986,6 +2293,13 @@ public class DistributedRPCInvocations {
       StringBuilder sb = new StringBuilder("failRequest_result(");
       boolean first = true;
 
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }

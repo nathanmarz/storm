@@ -135,6 +135,13 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
+     * This parameter is used to add additional classpath options for
+     * the nimbus daemon. This is useful for custom schedulers
+     */
+    public static String NIMBUS_CLASSPATH = "nimbus.classpath";
+
+
+    /**
      * How long without heartbeating a task can go before nimbus will consider the
      * task dead and reassign it to another location.
      */
@@ -305,6 +312,12 @@ public class Config extends HashMap<String, Object> {
      * with an identifier for this worker.
      */
     public static String WORKER_CHILDOPTS = "worker.childopts";
+
+
+    /**
+     * The additional classpath provided to workers launched by this supervisor.
+     */
+    public static String WORKER_CLASSPATH = "worker.classpath";
 
 
     /**

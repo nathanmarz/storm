@@ -21,6 +21,7 @@ storm.local.mode.zmq: false
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
 nimbus.childopts: "-Xmx1024m"
+nimbus.classpath: ""
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60
 nimbus.monitor.freq.secs: 10
@@ -65,6 +66,7 @@ supervisor.enable: true
 
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"
+worker.classpath: ""
 worker.heartbeat.frequency.secs: 1
 
 task.heartbeat.frequency.secs: 3

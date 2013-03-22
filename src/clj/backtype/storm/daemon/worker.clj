@@ -9,15 +9,16 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn read-worker-executors [storm-cluster-state storm-id assignment-id port]
+(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port]
   (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
+     (concat     
+      [Constants/SYSTEM_EXECUTOR_ID]
       (mapcat (fn [[executor loc]]
-              (if (= loc [assignment-id port])
-                [executor]
-                ))
-            assignment))
-    ))
+                (if (= loc [assignment-id port])
+                  [executor]
+                  ))
+              assignment)))))
 
 (defnk do-executor-heartbeats [worker :executors nil]
   ;; stats is how we know what executors are assigned to this worker 
@@ -144,7 +145,7 @@
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
-        executors (set (read-worker-executors storm-cluster-state storm-id assignment-id port))
+        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
         transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)

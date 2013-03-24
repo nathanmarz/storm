@@ -3,6 +3,7 @@
   (:use [backtype.storm bootstrap])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
+  (:import [backtype.storm.messaging TransportFactory])
   (:gen-class))
 
 (bootstrap)
@@ -164,10 +165,7 @@
       :conf conf
       :mq-context (if mq-context
                       mq-context
-                      (msg-loader/mk-zmq-context (storm-conf ZMQ-THREADS)
-                                                 (storm-conf ZMQ-LINGER-MILLIS)
-                                                 (storm-conf ZMQ-HWM)
-                                                 (= (conf STORM-CLUSTER-MODE) "local")))
+                      (TransportFactory/makeContext storm-conf))
       :storm-id storm-id
       :assignment-id assignment-id
       :port port
@@ -244,7 +242,7 @@
                        (dofor [endpoint-str new-connections
                                :let [[node port] (string->endpoint endpoint-str)]]
                          [endpoint-str
-                          (msg/connect
+                          (.connect
                            (:mq-context worker)
                            storm-id
                            ((:node->host assignment) node)
@@ -301,7 +299,7 @@
                 ;; group by node+port, do multipart send              
                 (let [node-port (get task->node+port task)]
                   (when node-port
-                    (msg/send (get node+port->socket node-port) task ser-tuple))
+                    (.send (get node+port->socket node-port) task ser-tuple))
                     ))))
           (.clear drainer))))))
 
@@ -379,7 +377,7 @@
                                         
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
-                    (msg/term (:mq-context worker))
+                    (.term (:mq-context worker))
                     (log-message "Shutting down transfer thread")
                     (disruptor/halt-with-interrupt! (:transfer-queue worker))
 

@@ -1,15 +1,17 @@
 (ns backtype.storm.messaging.zmq
   (:refer-clojure :exclude [send])
-  (:use [backtype.storm.messaging protocol])
+  (:use [backtype.storm config log])
+  (:import [backtype.storm.messaging ITransport IContext IConnection TaskMessage])
   (:import [java.nio ByteBuffer])
   (:import [org.zeromq ZMQ])
-  (:require [zilch.mq :as mq]))
-
+  (:import [java.util Map])
+  (:require [zilch.mq :as mq])
+  (:gen-class))
 
 (defn parse-packet [^bytes part1 ^bytes part2]
   (let [bb (ByteBuffer/wrap part1)
         port (.getShort bb)]
-    [(int port) part2]
+    (TaskMessage. (int port) part2)
     ))
 
 (defn get-bind-zmq-url [local? port]
@@ -29,47 +31,60 @@
 (def NOBLOCK-SNDMORE (bit-or ZMQ/SNDMORE ZMQ/NOBLOCK))
 
 (deftype ZMQConnection [socket ^ByteBuffer bb]
-  Connection
-  (recv-with-flags [this flags]
+  IConnection
+  (^TaskMessage recv [this]
+    (.recv-with-flags this 0))
+  (^TaskMessage recv-with-flags [this ^int flags]
     (let [part1 (mq/recv socket flags)]
       (when part1
         (when-not (mq/recv-more? socket)
           (throw (RuntimeException. "Should always receive two-part ZMQ messages")))
         (parse-packet part1 (mq/recv socket)))))
-  (send [this task message]
+  (^void send [this ^int task ^"[B" message]
+    (log-message "ZMQConnection task:" task " socket:" socket)
     (.clear bb)
     (.putShort bb (short task))
     (mq/send socket (.array bb) NOBLOCK-SNDMORE)
     (mq/send socket message ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
-  (close [this]
-    (.close socket)
-    ))
+  (^void close [this]
+    (.close socket)))
 
 (defn mk-connection [socket]
   (ZMQConnection. socket (ByteBuffer/allocate 2)))
 
-(deftype ZMQContext [context linger-ms hwm local?]
-  Context
-  (bind [this storm-id port]
+(deftype ZMQContext [^{:volatile-mutable true} context 
+                     ^{:volatile-mutable true} linger-ms 
+                     ^{:volatile-mutable true} hwm 
+                     ^{:volatile-mutable true} local?]
+  IContext
+  (^void prepare [this ^Map storm-conf]
+    (let [num-threads (storm-conf ZMQ-THREADS)]
+      (set! context (mq/context num-threads)) 
+      (set! linger-ms (storm-conf ZMQ-LINGER-MILLIS))
+      (set! hwm (storm-conf ZMQ-HWM))
+      (set! local? (= (storm-conf STORM-CLUSTER-MODE) "local"))))
+  (^IConnection bind [this ^String storm-id ^int port]
     (-> context
-        (mq/socket mq/pull)
-        (mq/set-hwm hwm)
-        (mq/bind (get-bind-zmq-url local? port))
-        mk-connection
-        ))
-  (connect [this storm-id host port]
+      (mq/socket mq/pull)
+      (mq/set-hwm hwm)
+      (mq/bind (get-bind-zmq-url local? port))
+      mk-connection
+      ))
+  (^IConnection connect [this ^String storm-id ^String host ^int port]
     (-> context
-        (mq/socket mq/push)
-        (mq/set-hwm hwm)
-        (mq/set-linger linger-ms)
-        (mq/connect (get-connect-zmq-url local? host port))
-        mk-connection))
-  (term [this]
+      (mq/socket mq/push)
+      (mq/set-hwm hwm)
+      (mq/set-linger linger-ms)
+      (mq/connect (get-connect-zmq-url local? host port))
+      mk-connection))
+  (^void term [this]
     (.term context))
+  
   ZMQContextQuery
   (zmq-context [this]
     context))
 
-(defn mk-zmq-context [num-threads linger hwm local?]
-  (ZMQContext. (mq/context num-threads) linger hwm local?))
-
+(deftype TransportPlugin [] 
+  ITransport
+  (^IContext newContext [this] 
+    (ZMQContext. 0 0 0 true)))

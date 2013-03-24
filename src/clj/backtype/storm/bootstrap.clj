@@ -22,7 +22,6 @@
      (import (quote [backtype.storm.drpc KeyedFairBolt]))
      (import (quote [backtype.storm.daemon Shutdownable]))
      (require (quote [backtype.storm.messaging.loader :as msg-loader]))
-     (require (quote [backtype.storm.messaging.protocol :as msg]))
      (use (quote [backtype.storm config util log clojure timer]))
      (require (quote [backtype.storm [thrift :as thrift] [cluster :as cluster]
                       [event :as event] [process-simulator :as psim]]))

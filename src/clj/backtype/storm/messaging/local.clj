@@ -1,7 +1,9 @@
 (ns backtype.storm.messaging.local
   (:refer-clojure :exclude [send])
-  (:use [backtype.storm.messaging protocol])
+  (:use [backtype.storm log])
+  (:import [backtype.storm.messaging IContext IConnection TaskMessage])
   (:import [java.util.concurrent LinkedBlockingQueue])
+  (:import [java.util Map])
   )
 
 (defn add-queue! [queues-map lock storm-id port]
@@ -12,30 +14,40 @@
     (@queues-map id)))
 
 (deftype LocalConnection [storm-id port queues-map lock queue]
-  Connection
-  (recv-with-flags [this flags]
+  IConnection
+  (^TaskMessage recv [this]
+    (.recv-with-flags this 0))
+  (^TaskMessage recv-with-flags [this ^int flags]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
     (if (= flags 1)
       (.poll queue)
       (.take queue)))
-  (send [this task message]
+  (^void send [this ^int task ^"[B" message]
+    (log-message "LocalConnection: task:" task " storm-id:" storm-id)
     (let [send-queue (add-queue! queues-map lock storm-id port)]
-      (.put send-queue [task message])
+      (log-message ".put task:" task " message:" message)
+      (.put send-queue (TaskMessage. task message))
       ))
-  (close [this]
+  (^void close [this]
     ))
 
 
-(deftype LocalContext [queues-map lock]
-  Context
-  (bind [this storm-id port]
+(deftype LocalContext [^{:volatile-mutable true} queues-map ^{:volatile-mutable true} lock]
+  IContext
+  (^void prepare [this ^Map storm-conf]
+    (set! queues-map (atom {}))
+    (set! lock (Object.))
+    )
+  (^IConnection bind [this ^String storm-id ^int port]
     (LocalConnection. storm-id port queues-map lock (add-queue! queues-map lock storm-id port)))
-  (connect [this storm-id host port]
+  (^IConnection connect [this ^String storm-id ^String host ^int port]
     (LocalConnection. storm-id port queues-map lock nil)
     )
-  (term [this]
+  (^void term [this]
     ))
 
 (defn mk-local-context []
-  (LocalContext. (atom {}) (Object.)))
+  (let [context (LocalContext. nil nil)]
+    (.prepare context nil)
+    context))

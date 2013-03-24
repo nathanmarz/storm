@@ -1,10 +1,10 @@
 (ns backtype.storm.messaging.local
   (:refer-clojure :exclude [send])
   (:use [backtype.storm log])
-  (:import [backtype.storm.messaging IContext IConnection TaskMessage])
+  (:import [backtype.storm.messaging ITransport IContext IConnection TaskMessage])
   (:import [java.util.concurrent LinkedBlockingQueue])
   (:import [java.util Map])
-  )
+  (:gen-class))
 
 (defn add-queue! [queues-map lock storm-id port]
   (let [id (str storm-id "-" port)]
@@ -24,9 +24,7 @@
       (.poll queue)
       (.take queue)))
   (^void send [this ^int task ^"[B" message]
-    (log-message "LocalConnection: task:" task " storm-id:" storm-id)
     (let [send-queue (add-queue! queues-map lock storm-id port)]
-      (log-message ".put task:" task " message:" message)
       (.put send-queue (TaskMessage. task message))
       ))
   (^void close [this]
@@ -47,7 +45,13 @@
   (^void term [this]
     ))
 
-(defn mk-local-context []
-  (let [context (LocalContext. nil nil)]
+(deftype TransportPlugin [] 
+  ITransport
+  (^IContext newContext [this]
+    (LocalContext. nil nil)))
+
+(defn mk-context [] 
+  (let [plugin (TransportPlugin.)
+        context (.newContext plugin)]
     (.prepare context nil)
     context))

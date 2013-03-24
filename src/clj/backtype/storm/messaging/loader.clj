@@ -6,7 +6,7 @@
   (:require [backtype.storm [disruptor :as disruptor]]))
 
 (defn mk-local-context []
-  (local/mk-local-context))
+  (local/mk-context))
 
 (defnk launch-receive-thread!
   [context storm-id port transfer-local-fn max-buffer-size
@@ -21,18 +21,19 @@
                        (let [batched (ArrayList.)
                              init (.recv socket)]
                          (loop [task-msg init]
-                           (let [task (.task task-msg)
-                                 packet (.message task-msg)]
-                             (if (= task -1)
-                               (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
-                                 (.close socket)
-                                 nil )
-                               (do
-                                 (when packet (.add batched packet))
-                                 (if (and packet (< (.size batched) max-buffer-size))
-                                   (recur (.recv-with-flags socket 1))
-                                   (do (transfer-local-fn batched)
-                                     0 ))))))))))
+                           (if task-msg 
+                             (let [task (.task task-msg)
+                                   packet (.message task-msg)]
+                               (if (= task -1)
+                                 (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
+                                   (.close socket)
+                                   nil )
+                                 (do
+                                   (when packet (.add batched packet))
+                                   (if (and packet (< (.size batched) max-buffer-size))
+                                     (recur (.recv-with-flags socket 1))
+                                     (do (transfer-local-fn batched)
+                                       0 )))))))))))
                  :factory? true
                  :daemon daemon
                  :kill-fn kill-fn

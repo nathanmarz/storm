@@ -12,8 +12,8 @@ rm *.zip
 rm *jar
 rm -rf lib
 rm -rf classes
-lein deps
-lein jar
+lein1 deps
+lein1 jar
 mkdir -p $DIR
 mkdir $DIR/lib
 cp storm*jar $DIR/

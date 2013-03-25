@@ -134,12 +134,6 @@
   ;; actually just do it via interfaces. just need to make sure to hide setResource from tasks
   {})
 
-(defn mk-halting-timer []
-  (mk-timer :kill-fn (fn [t]
-                       (log-error t "Error when processing event")
-                       (halt-process! 20 "Error when processing an event")
-                       )))
-
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)

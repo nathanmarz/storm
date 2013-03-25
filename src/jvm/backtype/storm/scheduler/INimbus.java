@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 public interface INimbus {
-    void prepare(Map stormConf, String schedulerLocalDir);
+    void prepare(Map stormConf, String schedulerLocalDir, Object clusterState);
     /**
      * Returns all slots that are available for the next round of scheduling. A slot is available for scheduling
      * if it is free and can be assigned to, or if it is used and can be reassigned.

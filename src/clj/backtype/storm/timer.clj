@@ -79,3 +79,10 @@
 
 (defn timer-waiting? [timer]
   (Time/isThreadWaiting (:timer-thread timer)))
+
+(defn mk-halting-timer []
+  (mk-timer :kill-fn (fn [t]
+                       (log-error t "Error when processing event")
+                       (halt-process! 20 "Error when processing an event")
+                       )))
+

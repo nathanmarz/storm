@@ -183,8 +183,8 @@
 (defn isolation-nimbus []
   (let [standalone (nimbus/standalone-nimbus)]
     (reify INimbus
-      (prepare [this conf local-dir]
-        (.prepare standalone conf local-dir)
+      (prepare [this conf local-dir cluster-state]
+        (.prepare standalone conf local-dir cluster-state)
         )
       (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
         (.allSlotsAvailableForScheduling standalone supervisors topologies topologies-missing-assignments))

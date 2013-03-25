@@ -42,12 +42,13 @@
     scheduler
     ))
 
-(defn nimbus-data [conf inimbus]
+(defn nimbus-data [conf inimbus cluster-state]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
      :inimbus inimbus
      :submitted-count (atom 0)
-     :storm-cluster-state (cluster/mk-storm-cluster-state conf)
+     :cluster-state cluster-state
+     :storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
      :submit-lock (Object.)
      :heartbeats-cache (atom {})
      :downloaders (file-cache-map conf)
@@ -857,9 +858,10 @@
             (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
 
 (defserverfn service-handler [conf inimbus]
-  (.prepare inimbus conf (master-inimbus-dir conf))
-  (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf inimbus)]
+  (let [cluster-state (cluster/mk-distributed-cluster-state conf)
+        _ (.prepare inimbus conf (master-inimbus-dir conf) cluster-state)
+        _ (log-message "Starting Nimbus with conf " conf)
+        nimbus (nimbus-data conf inimbus cluster-state)]
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))
@@ -898,7 +900,7 @@
                             (-> serializedConf
                                 from-json
                                 (assoc STORM-ID storm-id)
-                              (assoc TOPOLOGY-NAME storm-name))
+                                (assoc TOPOLOGY-NAME storm-name))
                             topology)
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
@@ -1145,7 +1147,7 @@
 
 (defn standalone-nimbus []
   (reify INimbus
-    (prepare [this conf local-dir]
+    (prepare [this conf local-dir cluster-state]
       )
     (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
       (->> supervisors

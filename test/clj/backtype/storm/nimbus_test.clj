@@ -503,6 +503,57 @@
       (check-consistency cluster "test")
       )))
 
+
+(deftest test-reassignment-to-constrained-cluster
+  (with-simulated-time-local-cluster [cluster :supervisors 0
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-TASK-LAUNCH-SECS 60
+                  NIMBUS-TASK-TIMEOUT-SECS 20
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  NIMBUS-SUPERVISOR-TIMEOUT-SECS 100
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (add-supervisor cluster :ports 1 :id "a")
+      (add-supervisor cluster :ports 1 :id "b")
+      (bind conf (:daemon-conf cluster))
+      (bind topology (thrift/mk-topology
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
+                       {}
+                       ))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
+      (check-consistency cluster "test")
+      (bind storm-id (get-storm-id state "test"))
+      (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
+      (bind ass1 (executor-assignment cluster storm-id executor-id1))
+      (bind ass2 (executor-assignment cluster storm-id executor-id2))
+      
+      (advance-cluster-time cluster 59)
+      (do-executor-heartbeat cluster storm-id executor-id1)
+      (do-executor-heartbeat cluster storm-id executor-id2)
+
+      (advance-cluster-time cluster 13)
+      (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
+      (is (= ass2 (executor-assignment cluster storm-id executor-id2)))
+      (kill-supervisor cluster "b")
+      (do-executor-heartbeat cluster storm-id executor-id1)
+
+      (advance-cluster-time cluster 11)
+      (do-executor-heartbeat cluster storm-id executor-id1)
+
+      (advance-cluster-time cluster 11)
+      (do-executor-heartbeat cluster storm-id executor-id1)
+
+      (advance-cluster-time cluster 11)
+      (do-executor-heartbeat cluster storm-id executor-id1)
+
+      (advance-cluster-time cluster 11)
+      (do-executor-heartbeat cluster storm-id executor-id1)
+
+      (check-consistency cluster "test")
+      (is (= 1 (storm-num-workers state "test")))
+      )))
+
 (defn check-executor-distribution [slot-executors distribution]
   (check-distribution (vals slot-executors) distribution))
 

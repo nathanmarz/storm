@@ -5,7 +5,7 @@
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
-  (:import [backtype.storm.spout NoOpSpout])
+  (:import [backtype.storm.metric SystemBolt])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
@@ -241,8 +241,9 @@
        (number-duplicates)
        (map #(str Constants/METRICS_COMPONENT_ID_PREFIX %))))
 
-(defn metrics-consumer-bolt-specs [components-ids-that-emit-metrics storm-conf]
-  (let [inputs (->> (for [comp-id components-ids-that-emit-metrics]
+(defn metrics-consumer-bolt-specs [storm-conf topology]
+  (let [component-ids-that-emit-metrics (cons SYSTEM-COMPONENT-ID (keys (all-components topology)))
+        inputs (->> (for [comp-id component-ids-that-emit-metrics]
                       {[comp-id METRICS-STREAM-ID] :shuffle})
                     (into {}))
         
@@ -261,27 +262,28 @@
      (metrics-consumer-register-ids storm-conf)
      (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))
 
-(defn add-metric-components! [storm-conf ^StormTopology topology]
-  (doseq [[comp-id bolt-spec] (metrics-consumer-bolt-specs (keys (all-components topology)) storm-conf)]
+(defn add-metric-components! [storm-conf ^StormTopology topology]  
+  (doseq [[comp-id bolt-spec] (metrics-consumer-bolt-specs storm-conf topology)]
     (.put_to_bolts topology comp-id bolt-spec)))
 
-(defn add-system-components! [^StormTopology topology]
-  (let [system-spout (thrift/mk-spout-spec*
-                      (NoOpSpout.)
-                      {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
-                       METRICS-TICK-STREAM-ID (thrift/output-fields ["interval"])}
-                      :p 0
-                      :conf {TOPOLOGY-TASKS 0})]
-    (.put_to_spouts topology SYSTEM-COMPONENT-ID system-spout)))
+(defn add-system-components! [conf ^StormTopology topology]
+  (let [system-bolt-spec (thrift/mk-bolt-spec*
+                          {}
+                          (SystemBolt.)
+                          {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
+                           METRICS-TICK-STREAM-ID (thrift/output-fields ["interval"])}                          
+                          :p 0
+                          :conf {TOPOLOGY-TASKS 0})]
+    (.put_to_bolts topology SYSTEM-COMPONENT-ID system-bolt-spec)))
 
 (defn system-topology! [storm-conf ^StormTopology topology]
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! storm-conf ret)
-    (add-metric-components! storm-conf ret)
-    (add-metric-streams! ret)    
+    (add-metric-components! storm-conf ret)    
+    (add-system-components! storm-conf ret)
+    (add-metric-streams! ret)
     (add-system-streams! ret)
-    (add-system-components! ret)
     (validate-structure! ret)
     ret
     ))

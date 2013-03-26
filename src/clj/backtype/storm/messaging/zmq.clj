@@ -8,10 +8,19 @@
   (:require [zilch.mq :as mq])
   (:gen-class))
 
-(defn parse-packet [^bytes part1 ^bytes part2]
-  (let [bb (ByteBuffer/wrap part1)
-        port (.getShort bb)]
-    (TaskMessage. (int port) part2)
+(defn mk-packet [task ^bytes message]
+  (let [bb (ByteBuffer/allocate (+ 2 (count message)))]
+    (.putShort bb (short task))
+    (.put bb message)
+    (.array bb)
+    ))
+
+(defn parse-packet [^bytes packet]
+  (let [bb (ByteBuffer/wrap packet)
+        port (.getShort bb)
+        msg (byte-array (- (count packet) 2))]
+    (.get bb msg)
+    (TaskMessage. (int port) msg)
     ))
 
 (defn get-bind-zmq-url [local? port]
@@ -32,21 +41,17 @@
 
 (deftype ZMQConnection [socket ^ByteBuffer bb]
   IConnection
-  (^TaskMessage recv [this]
-    (.recv-with-flags this 0))
-  (^TaskMessage recv-with-flags [this ^int flags]
-    (let [part1 (mq/recv socket flags)]
-      (when part1
-        (when-not (mq/recv-more? socket)
-          (throw (RuntimeException. "Should always receive two-part ZMQ messages")))
-        (parse-packet part1 (mq/recv socket)))))
-  (^void send [this ^int task ^"[B" message]
-    (log-message "ZMQConnection task:" task " socket:" socket)
-    (.clear bb)
-    (.putShort bb (short task))
-    (mq/send socket (.array bb) NOBLOCK-SNDMORE)
-    (mq/send socket message ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
+  (^TaskMessage recv [this ^int flags]
+    (log-debug "ZMQConnection recv()")
+    (require 'backtype.storm.messaging.zmq)
+    (if-let [packet (mq/recv socket flags)]
+      (parse-packet packet)))
+  (^void send [this ^int taskId ^"[B" payload]
+    (log-debug "ZMQConnection send()")
+    (require 'backtype.storm.messaging.zmq)
+    (mq/send socket (mk-packet taskId payload) ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
   (^void close [this]
+    (log-debug "ZMQConnection close()")
     (.close socket)))
 
 (defn mk-connection [socket]
@@ -64,6 +69,7 @@
       (set! hwm (storm-conf ZMQ-HWM))
       (set! local? (= (storm-conf STORM-CLUSTER-MODE) "local"))))
   (^IConnection bind [this ^String storm-id ^int port]
+    (require 'backtype.storm.messaging.zmq)
     (-> context
       (mq/socket mq/pull)
       (mq/set-hwm hwm)
@@ -71,6 +77,7 @@
       mk-connection
       ))
   (^IConnection connect [this ^String storm-id ^String host ^int port]
+    (require 'backtype.storm.messaging.zmq)
     (-> context
       (mq/socket mq/push)
       (mq/set-hwm hwm)

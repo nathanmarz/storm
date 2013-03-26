@@ -4,6 +4,7 @@
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
+  (:import [backtype.storm.messaging IContext IConnection])
   (:gen-class))
 
 (bootstrap)
@@ -299,7 +300,7 @@
                 ;; group by node+port, do multipart send              
                 (let [node-port (get task->node+port task)]
                   (when node-port
-                    (.send (get node+port->socket node-port) task ser-tuple))
+                    (.send ^IConnection (get node+port->socket node-port) task ser-tuple))
                     ))))
           (.clear drainer))))))
 
@@ -377,7 +378,7 @@
                                         
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
-                    (.term (:mq-context worker))
+                    (.term ^IContext (:mq-context worker))
                     (log-message "Shutting down transfer thread")
                     (disruptor/halt-with-interrupt! (:transfer-queue worker))
 

@@ -15,43 +15,37 @@
 
 (deftype LocalConnection [storm-id port queues-map lock queue]
   IConnection
-  (^TaskMessage recv [this]
-    (.recv-with-flags this 0))
-  (^TaskMessage recv-with-flags [this ^int flags]
+  (^TaskMessage recv [this ^int flags]
+    (log-debug "LocalConnection recv()")
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
     (if (= flags 1)
       (.poll queue)
       (.take queue)))
-  (^void send [this ^int task ^"[B" message]
+  (^void send [this ^int taskId ^"[B" payload]
+    (log-debug "LocalConnection send()")
     (let [send-queue (add-queue! queues-map lock storm-id port)]
-      (.put send-queue (TaskMessage. task message))
+      (.put send-queue (TaskMessage. taskId payload))
       ))
   (^void close [this]
+    (log-debug "LocalConnection close()")
     ))
 
 
-(deftype LocalContext [^{:volatile-mutable true} queues-map ^{:volatile-mutable true} lock]
+(deftype LocalContext [^{:volatile-mutable true} queues-map
+                       ^{:volatile-mutable true} lock]
   IContext
   (^void prepare [this ^Map storm-conf]
     (set! queues-map (atom {}))
-    (set! lock (Object.))
-    )
+    (set! lock (Object.)))
   (^IConnection bind [this ^String storm-id ^int port]
     (LocalConnection. storm-id port queues-map lock (add-queue! queues-map lock storm-id port)))
   (^IConnection connect [this ^String storm-id ^String host ^int port]
-    (LocalConnection. storm-id port queues-map lock nil)
-    )
+    (LocalConnection. storm-id port queues-map lock nil))
   (^void term [this]
     ))
 
-(deftype TransportPlugin [] 
-  ITransport
-  (^IContext newContext [this]
-    (LocalContext. nil nil)))
-
 (defn mk-context [] 
-  (let [plugin (TransportPlugin.)
-        context (.newContext plugin)]
-    (.prepare context nil)
+  (let [context  (LocalContext. nil nil)]
+    (.prepare ^IContext context nil)
     context))

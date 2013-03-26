@@ -2,9 +2,22 @@ package backtype.storm.messaging;
 
 import clojure.lang.PersistentVector;
 
-public interface IConnection {    
-    public TaskMessage recv();
-    public TaskMessage recv_with_flags(int flags);
-    public void send(int task,  byte[] message);
+public interface IConnection {   
+    /**
+     * receive a message (consists taskId and payload)
+     * @param flags 0: block, 1: non-block
+     * @return
+     */
+    public TaskMessage recv(int flags);
+    /**
+     * send a message with taskId and payload
+     * @param taskId task ID
+     * @param payload
+     */
+    public void send(int taskId,  byte[] payload);
+    
+    /**
+     * close this connection
+     */
     public void close();
 }

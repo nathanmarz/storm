@@ -244,13 +244,11 @@
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 70)
       (assert-buckets! "__system" "newWorkerEvent" [1])
-      (assert-buckets! "__system" "configTopologyWorkers" [1])
       (assert-metric-data-exists! "__system" "uptimeSecs")
       (assert-metric-data-exists! "__system" "startTimeSecs")
-      (assert-metric-data-exists! "__system" "topologyPartialUptimeSecs")
 
       (advance-cluster-time cluster 180)
       (assert-buckets! "__system" "newWorkerEvent" [1 0 0 0])
-      (assert-buckets! "__system" "configTopologyWorkers" [1 1 1 1]))))
+      )))
 
 

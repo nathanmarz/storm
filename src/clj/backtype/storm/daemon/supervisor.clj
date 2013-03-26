@@ -85,8 +85,8 @@
   (let [local-assignment (assigned-executors (:port worker-heartbeat))]
     (and local-assignment
          (= (:storm-id worker-heartbeat) (:storm-id local-assignment))
-         (= (set (:executors worker-heartbeat)) (set (:executors local-assignment))))
-    ))
+         (= (disj (set (:executors worker-heartbeat)) Constants/SYSTEM_EXECUTOR_ID)
+            (set (:executors local-assignment))))))
 
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"

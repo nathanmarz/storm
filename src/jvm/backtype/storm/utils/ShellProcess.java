@@ -113,6 +113,8 @@ public class ShellProcess {
                     else {
                         errorMessage.append(" Currently read output: " + line.toString() + "\n");
                     }
+                    errorMessage.append("Shell Process Exception:\n");
+                    errorMessage.append(getErrorsString() + "\n");
                     throw new RuntimeException(errorMessage.toString());
                 }
                 if(subline.equals("end")) {

@@ -1,5 +1,6 @@
 (ns backtype.storm.ui.core
   (:use compojure.core)
+  (:use ring.middleware.reload)
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
   (:use [backtype.storm.ui helpers])
@@ -798,7 +799,9 @@
         ))))
 
 (def app
-  (handler/site (-> main-routes catch-errors )))
+  (-> #'main-routes
+      (wrap-reload '[backtype.storm.ui.core])
+      catch-errors))
 
 (defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
                                        :join? false}))

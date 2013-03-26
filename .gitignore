@@ -27,3 +27,5 @@ _release
 *.ipr
 *.iws
 .idea
+*.swp
+zeromq*

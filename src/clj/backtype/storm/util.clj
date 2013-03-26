@@ -420,7 +420,13 @@
 (defn rmr [path]
   (log-debug "Rmr path " path)
   (when (exists-file? path)
-    (FileUtils/forceDelete (File. path))))
+    ;; Somehow sometimes the file still isn't found.
+    ;; Not sure why.
+    (try
+      (FileUtils/forceDelete (File. path))
+      (catch java.io.FileNotFoundException ex
+        (log-error ex "System said " path " existed, but can't find it to "
+                   "delete. Ignoring.")))))
 
 (defn rmpath
   "Removes file or directory at the path. Not recursive. Throws exception on failure"

@@ -18,15 +18,6 @@
   (container-set! (.state this) conf))
 
 
-(defn- compute-worker-specs "Returns list of sets of executors"
-  [^TopologyDetails details]
-  (->> (.getExecutorToComponent details)
-       reverse-map
-       (map second)
-       (apply interleave-all)
-       (partition-fixed (.getNumWorkers details))
-       (map set)))
-
 (defn- compute-worker-specs "Returns mutable set of sets of executors"
   [^TopologyDetails details]
   (->> (.getExecutorToComponent details)

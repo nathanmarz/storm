@@ -63,7 +63,7 @@ public class GeneralTopologyContext implements JSONAware {
      * @return the component id for the input task id
      */
     public String getComponentId(int taskId) {
-        if(taskId==-1) {
+        if(taskId==Constants.SYSTEM_TASK_ID) {
             return Constants.SYSTEM_COMPONENT_ID;
         } else {
             return _taskToComponent.get(taskId);

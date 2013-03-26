@@ -111,8 +111,7 @@
 (defn executor-type [^WorkerTopologyContext context component-id]
   (let [topology (.getRawTopology context)
         spouts (.get_spouts topology)
-        bolts (.get_bolts topology)
-        ]
+        bolts (.get_bolts topology)]
     (cond (contains? spouts component-id) :spout
           (contains? bolts component-id) :bolt
           :else (throw-runtime "Could not find " component-id " in topology " topology))))
@@ -182,7 +181,7 @@
       (this task tuple nil)
       )))
 
-(defn executor-data [worker executor-id]
+(defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
         task-ids (executor-id->tasks executor-id)
         component-id (.getComponentId worker-context (first task-ids))
@@ -253,7 +252,7 @@
        (fn []
          (disruptor/publish
           receive-queue
-          [[nil (TupleImpl. worker-context [interval] -1 Constants/METRICS_TICK_STREAM_ID)]]))))))
+          [[nil (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID)]]))))))
 
 (defn metrics-tick [executor-data task-datas ^TupleImpl tuple]
   (let [{:keys [interval->task->metric-registry ^WorkerTopologyContext worker-context]} executor-data
@@ -293,11 +292,11 @@
           (fn []
             (disruptor/publish
               receive-queue
-              [[nil (TupleImpl. context [tick-time-secs] -1 Constants/SYSTEM_TICK_STREAM_ID)]]
+              [[nil (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID)]]
               )))))))
 
 (defn mk-executor [worker executor-id]
-  (let [executor-data (executor-data worker executor-id)
+  (let [executor-data (mk-executor-data worker executor-id)
         _ (log-message "Loading executor " (:component-id executor-data) ":" (pr-str executor-id))
         task-datas (->> executor-data
                         :task-ids

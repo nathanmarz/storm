@@ -126,15 +126,6 @@ public class SystemBolt implements IBolt {
             }
         }, bucketSize);
 
-        // This is metric data global to topology, but we don't support this concept, so put it here.
-        // It's very useful to have time series of TOPOLOGY_WORKERS to compare actual worker count.
-        context.registerMetric("configTopologyWorkers", new IMetric() {
-            @Override
-            public Object getValueAndReset() {
-                return stormConf.get(Config.TOPOLOGY_WORKERS);
-            }
-        }, bucketSize);
-
         final MemoryMXBean jvmMemRT = ManagementFactory.getMemoryMXBean();
 
         context.registerMetric("memory/heap", new MemoryUsageMetric(new AFn() {

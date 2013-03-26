@@ -157,6 +157,7 @@
       (ensure-process-killed! pid)
       (rmpath (worker-pid-path conf id pid))
       )
+    (swap! (:worker-thread-pids-atom supervisor) dissoc id)
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
@@ -330,14 +331,16 @@
         heartbeat-fn (fn [] (.supervisor-heartbeat!
                                (:storm-cluster-state supervisor)
                                (:supervisor-id supervisor)
-                               (SupervisorInfo. (current-time-secs)
-                                                (:my-hostname supervisor)
-                                                (:assignment-id supervisor)
-                                                (keys @(:curr-assignment supervisor))
-                                                ;; used ports
-                                                (.getMetadata isupervisor)
-                                                (conf SUPERVISOR-SCHEDULER-META)
-                                                ((:uptime supervisor)))))]
+                               (SupervisorInfo.
+				(current-time-secs)
+				(:my-hostname supervisor)
+				(:assignment-id supervisor)
+				(keys @(:curr-assignment supervisor))
+				;; used ports
+				@(:worker-thread-pids-atom supervisor)
+				(.getMetadata isupervisor)
+				(conf SUPERVISOR-SCHEDULER-META)
+				((:uptime supervisor)))))]
     (heartbeat-fn)
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
     (schedule-recurring (:timer supervisor)
@@ -420,9 +423,10 @@
                        " -Dlogback.configurationFile=" storm-home "/logback/cluster.xml"
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
-                       " " port " " worker-id)]
-      (log-message "Launching worker with command: " command)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
+                       " " port " " worker-id)
+	  pr (do (log-message "Launching worker with command: " command)
+		 (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))]
+      (swap! (:worker-thread-pids-atom supervisor) assoc worker-id (get-process-pid pr))
       ))
 
 ;; local implementation

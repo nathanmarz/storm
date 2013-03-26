@@ -1051,6 +1051,7 @@
                                                                 (:uptime-secs info)
                                                                 (count ports)
                                                                 (count (:used-ports info))
+								(:worker-pids info)
                                                                 id )
                                             ))
               nimbus-uptime ((:uptime nimbus))

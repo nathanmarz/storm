@@ -1,7 +1,9 @@
 ## 0.8.3
 
+ * Revert zmq layer to not rely on multipart messages to fix issue reported by some users
  * Bug fix: Fix TransactionalMap and OpaqueMap to correctly do multiple updates to the same key in the same batch
  * Bug fix: Fix race condition between supervisor and Nimbus that could lead to stormconf.ser errors and infinite crashing of supervisor
+ * Bug fix: Fix default scheduler to always reassign workers in a constrained topology when there are dead executors
 
 ## 0.8.2
 

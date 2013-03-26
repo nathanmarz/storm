@@ -3,6 +3,7 @@
   (:use [backtype.storm bootstrap config testing])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology])
+  (:require [backtype.storm.scheduler.EvenScheduler :as EvenScheduler])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))
 
@@ -166,7 +167,7 @@
     (is (= #{1 3 5} (set (.getUsedPorts cluster supervisor1))))
     (is (= #{2 4} (set (.getUsedPorts cluster supervisor2))))
     (is (= #{1 3 5} (set (.getUsedPorts cluster supervisor1))))
-    
+
     ;; test Cluster.getAvailablePorts
     (is (= #{7 9} (set (.getAvailablePorts cluster supervisor1))))
     (is (= #{6 8 10} (set (.getAvailablePorts cluster supervisor2))))
@@ -243,4 +244,37 @@
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 1)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 3)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 5)))))
+    ))
+
+(deftest test-use-resources-evenly
+  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 1 3 5 7 9)))
+        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 2 4 6 8 10)))
+        executor1 (ExecutorDetails. (int 1001) (int 1001))
+        executor2 (ExecutorDetails. (int 1002) (int 1002))
+        executor3 (ExecutorDetails. (int 1003) (int 1003))
+        executor11 (ExecutorDetails. (int 1011) (int 1011))
+        executor12 (ExecutorDetails. (int 1012) (int 1012))
+        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"}
+                                    (StormTopology.)
+                                    3
+                                    {executor1 "spout1"
+                                     executor2 "bolt1"
+                                     executor3 "bolt2"})
+        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"}
+                                    (StormTopology.)
+                                    2
+                                    {executor11 "spout11"
+                                     executor12 "bolt11"})
+        topologies (Topologies. {"topology1" topology1 "topology2" topology2})
+        executor->slot1 {executor1 (WorkerSlot. "supervisor1" (int 1))
+                         executor2 (WorkerSlot. "supervisor1" (int 3))
+                         executor3 (WorkerSlot. "supervisor1" (int 5))}
+        assignment1 (SchedulerAssignmentImpl. "topology1" executor->slot1)
+        cluster (Cluster. {"supervisor1" supervisor1 "supervisor2" supervisor2}
+                          {"topology1" assignment1})]
+
+    (EvenScheduler/schedule-topologies-evenly topologies cluster)
+
+    (is (= #{1 3 5} (set (.getUsedPorts cluster supervisor1))))
+    (is (= #{2 4} (set (.getUsedPorts cluster supervisor2))))
     ))

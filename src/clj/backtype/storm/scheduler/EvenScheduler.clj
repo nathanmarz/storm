@@ -7,8 +7,11 @@
     :implements [backtype.storm.scheduler.IScheduler]))
 
 (defn sort-slots [all-slots]
-  (let [split-up (vals (group-by first all-slots))]
-    (apply interleave-all split-up)
+  (->> (map (fn [[node-id slots]] [(count slots) slots]) (group-by first all-slots))
+    (mapcat (fn [[count slots]] (interleave (reverse (range count)) slots)))
+    (partition 2)
+    (sort-by (comp - (fn [[index bag]] index)))
+    (map last)
     ))
 
 (defn get-alive-assigned-node+port->executors [cluster topology-id]

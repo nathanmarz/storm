@@ -14,11 +14,11 @@ DIR=_release/storm-$RELEASE
 
 rm -rf _release
 rm -f *.zip 
-$LEIN with-profile release clean
-$LEIN with-profile release deps
-$LEIN with-profile release jar
-$LEIN with-profile release pom
-mvn dependency:copy-dependencies
+$LEIN with-profile release clean || exit 1
+$LEIN with-profile release deps || exit 1
+$LEIN with-profile release jar || exit 1
+$LEIN with-profile release pom || exit 1
+mvn dependency:copy-dependencies || exit 1
 
 mkdir -p $DIR/lib
 cp target/storm-*.jar $DIR/storm-${RELEASE}.jar

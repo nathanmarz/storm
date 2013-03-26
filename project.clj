@@ -14,6 +14,7 @@
                  [com.googlecode.json-simple/json-simple "1.1"]
                  [compojure "1.1.3"]
                  [hiccup "0.3.6"]
+                 [ring/ring-devel "0.3.11"]
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]

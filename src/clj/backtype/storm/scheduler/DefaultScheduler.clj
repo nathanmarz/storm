@@ -47,10 +47,12 @@
                                      (map #(vector (.getStartTask %) (.getEndTask %)))
                                      set)
                   alive-assigned (EvenScheduler/get-alive-assigned-node+port->executors cluster topology-id)
+                  alive-executors (->> alive-assigned vals (apply concat) set)
                   can-reassign-slots (slots-can-reassign cluster (keys alive-assigned))
                   total-slots-to-use (min (.getNumWorkers topology)
                                           (+ (count can-reassign-slots) (count available-slots)))
-                  bad-slots (if (> total-slots-to-use (count alive-assigned))
+                  bad-slots (if (or (> total-slots-to-use (count alive-assigned)) 
+                                    (not= alive-executors all-executors))
                                 (bad-slots alive-assigned (count all-executors) total-slots-to-use)
                                 [])]]
       (.freeSlots cluster bad-slots)

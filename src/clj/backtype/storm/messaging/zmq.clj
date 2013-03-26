@@ -15,6 +15,13 @@
     (.array bb)
     ))
 
+(defn mk-packet [task ^bytes message]
+  (let [bb (ByteBuffer/allocate (+ 2 (count message)))]
+    (.putShort bb (short task))
+    (.put bb message)
+    (.array bb)
+    ))
+
 (defn parse-packet [^bytes packet]
   (let [bb (ByteBuffer/wrap packet)
         port (.getShort bb)
@@ -37,9 +44,7 @@
 (defprotocol ZMQContextQuery
   (zmq-context [this]))
 
-(def NOBLOCK-SNDMORE (bit-or ZMQ/SNDMORE ZMQ/NOBLOCK))
-
-(deftype ZMQConnection [socket ^ByteBuffer bb]
+(deftype ZMQConnection [socket]
   IConnection
   (^TaskMessage recv [this ^int flags]
     (log-debug "ZMQConnection recv()")
@@ -55,7 +60,7 @@
     (.close socket)))
 
 (defn mk-connection [socket]
-  (ZMQConnection. socket (ByteBuffer/allocate 2)))
+  (ZMQConnection. socket))
 
 (deftype ZMQContext [^{:volatile-mutable true} context 
                      ^{:volatile-mutable true} linger-ms 

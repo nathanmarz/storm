@@ -12,7 +12,7 @@
     (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 2
                                         :daemon-conf {TOPOLOGY-WORKERS 2
                                                       STORM-LOCAL-MODE-ZMQ 
-                                                      (if (and transport-on? use-zmq?) true false) 
+                                                      (if transport-on? true false) 
                                                       STORM-MESSAGING-TRANSPORT 
                                                       "backtype.storm.messaging.zmq.TransportPlugin"}]
       (let [topology (thrift/mk-topology

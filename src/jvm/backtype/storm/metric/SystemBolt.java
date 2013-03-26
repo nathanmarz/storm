@@ -91,22 +91,6 @@ public class SystemBolt implements IBolt {
             }
         }, bucketSize);
 
-        // You can calculate topology percent uptime between T_0 to T_1 using this metric data:
-        //       let s = sum topologyPartialUptimeSecs for each worker for each time buckets between T_0 and T_1
-        //       topology percent uptime = s/(T_1-T_0)
-        // Even if the number of workers change over time the value is still correct because I divide by TOPOLOGY_WORKERS.
-        context.registerMetric("topologyPartialUptimeSecs", new IMetric() {
-            private long _prevUptime = jvmRT.getUptime();
-            private final double NUM_WORKERS = RT.doubleCast(stormConf.get(Config.TOPOLOGY_WORKERS));
-            @Override
-            public Object getValueAndReset() {
-                long _nowUptime = jvmRT.getUptime();
-                double ret = (_nowUptime - _prevUptime)/1000.0/NUM_WORKERS;
-                _prevUptime = _nowUptime;
-                return ret;
-            }
-        }, bucketSize);
-
         context.registerMetric("startTimeSecs", new IMetric() {
             @Override
             public Object getValueAndReset() {

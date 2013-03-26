@@ -146,8 +146,8 @@
     (let [state (mk-storm-state zk-port)
           assignment1 (Assignment. "/aaa" {} {1 [2 2002 1]} {})
           assignment2 (Assignment. "/aaa" {} {1 [2 2002]} {})
-          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {})
-          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {})]
+          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} {})
+          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} {})]
       (is (= [] (.assignments state nil)))
       (.set-assignment! state "storm1" assignment1)
       (is (= assignment1 (.assignment-info state "storm1" nil)))

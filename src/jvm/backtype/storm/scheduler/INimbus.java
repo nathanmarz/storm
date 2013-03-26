@@ -1,5 +1,7 @@
 package backtype.storm.scheduler;
 
+import backtype.storm.generated.StormTopology;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -11,6 +13,8 @@ public interface INimbus {
      * if it is free and can be assigned to, or if it is used and can be reassigned.
      */
     Collection<WorkerSlot> allSlotsAvailableForScheduling(Collection<SupervisorDetails> existingSupervisors, Topologies topologies, Set<String> topologiesMissingAssignments);
+
+    Map metaOfNewTopology(String topologyId, Map topologyConf, StormTopology topology);
 
     // this is called after the assignment is changed in ZK
     void assignSlots(Topologies topologies, Map<String, Collection<WorkerSlot>> newSlotsByTopologyId);

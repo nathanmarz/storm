@@ -28,10 +28,10 @@ import org.slf4j.LoggerFactory;
 
 public class SerializationFactory {
     public static final Logger LOG = LoggerFactory.getLogger(SerializationFactory.class);
-    
+
     public static Kryo getKryo(Map conf) {
         IKryoFactory kryoFactory = (IKryoFactory) Utils.newInstance((String) conf.get(Config.TOPOLOGY_KRYO_FACTORY));
-        Kryo k = kryoFactory.getKryo(conf);        
+        Kryo k = kryoFactory.getKryo(conf);
         k.register(byte[].class);
 
         /* tuple payload serializer is specified via configuration */
@@ -41,9 +41,8 @@ public class SerializationFactory {
             Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
             k.register(ListDelegate.class, serializer);
         } catch (ClassNotFoundException ex) {
-            LOG.error("Could not load class in class path: " + payloadSerializerName.length(), ex);
             throw new RuntimeException(ex);
-        } 
+        }
 
         k.register(ArrayList.class, new ArrayListSerializer());
         k.register(HashMap.class, new HashMapSerializer());
@@ -59,11 +58,11 @@ public class SerializationFactory {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        
+
         Map<String, String> registrations = normalizeKryoRegister(conf);
 
-        kryoFactory.preRegister(k, conf);        
-        
+        kryoFactory.preRegister(k, conf);
+
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
         for(String klassName: registrations.keySet()) {
             String serializerClassName = registrations.get(klassName);
@@ -86,7 +85,7 @@ public class SerializationFactory {
             }
         }
 
-        kryoFactory.postRegister(k, conf);        
+        kryoFactory.postRegister(k, conf);
 
         if (conf.get(Config.TOPOLOGY_KRYO_DECORATORS) != null) {
             for(String klassName : (List<String>)conf.get(Config.TOPOLOGY_KRYO_DECORATORS)) {
@@ -104,16 +103,16 @@ public class SerializationFactory {
                     throw new RuntimeException(e);
                 } catch(IllegalAccessException e) {
                     throw new RuntimeException(e);
-                } 
+                }
             }
         }
 
-        kryoFactory.postDecorate(k, conf);        
-        
-        return k;   
+        kryoFactory.postDecorate(k, conf);
+
+        return k;
     }
-    
-    public static class IdDictionary {        
+
+    public static class IdDictionary {
         Map<String, Map<String, Integer>> streamNametoId = new HashMap<String, Map<String, Integer>>();
         Map<String, Map<Integer, String>> streamIdToName = new HashMap<String, Map<Integer, String>>();
 
@@ -121,7 +120,7 @@ public class SerializationFactory {
             List<String> componentNames = new ArrayList<String>(topology.get_spouts().keySet());
             componentNames.addAll(topology.get_bolts().keySet());
             componentNames.addAll(topology.get_state_spouts().keySet());
-                        
+
             for(String name: componentNames) {
                 ComponentCommon common = Utils.getComponentCommon(topology, name);
                 List<String> streams = new ArrayList<String>(common.get_streams().keySet());
@@ -129,11 +128,11 @@ public class SerializationFactory {
                 streamIdToName.put(name, Utils.reverseMap(streamNametoId.get(name)));
             }
         }
-                
+
         public int getStreamId(String component, String stream) {
             return streamNametoId.get(component).get(stream);
         }
-        
+
         public String getStreamName(String component, int stream) {
             return streamIdToName.get(component).get(stream);
         }
@@ -149,7 +148,7 @@ public class SerializationFactory {
             return ret;
         }
     }
-    
+
     private static Serializer resolveSerializerInstance(Kryo k, Class superClass, Class<? extends Serializer> serializerClass, Map conf) {
         try {
             try {
@@ -184,7 +183,7 @@ public class SerializationFactory {
                                                + superClass.getName(), ex);
         }
     }
-    
+
     private static Map<String, String> normalizeKryoRegister(Map conf) {
         // TODO: de-duplicate this logic with the code in nimbus
         Object res = conf.get(Config.TOPOLOGY_KRYO_REGISTER);

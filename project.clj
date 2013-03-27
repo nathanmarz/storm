@@ -44,7 +44,7 @@
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}
 
-  :javac-options {:debug true}
+  :javac-options ["-g"]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
 
   :aot :all

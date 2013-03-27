@@ -34,7 +34,8 @@
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
-  :profiles {:dev {:resource-paths ["src/dev"]}
+  :profiles {:dev {:resource-paths ["src/dev"]
+                   :dependencies [[org.mockito/mockito-all "1.9.5"]]}
              :release {}
              :lib {}
              }

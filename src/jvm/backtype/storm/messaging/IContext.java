@@ -2,6 +2,15 @@ package backtype.storm.messaging;
 
 import java.util.Map;
 
+/**
+ * This interface needs to be implemented for messaging plugin. 
+ * 
+ * Messaging plugin is specified via Storm config parameter, storm.messaging.transport.
+ * 
+ * A messaging plugin should have a default constructor and implements IContext interface.
+ * Upon construction, we will invoke IContext::prepare(storm_conf) to enable context to be configured
+ * according to storm configuration. 
+ */
 public interface IContext {
     /**
      * This method is invoked at the startup of messaging plugin

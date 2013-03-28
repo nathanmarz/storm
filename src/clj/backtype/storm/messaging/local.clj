@@ -1,7 +1,7 @@
 (ns backtype.storm.messaging.local
   (:refer-clojure :exclude [send])
   (:use [backtype.storm log])
-  (:import [backtype.storm.messaging ITransport IContext IConnection TaskMessage])
+  (:import [backtype.storm.messaging IContext IConnection TaskMessage])
   (:import [java.util.concurrent LinkedBlockingQueue])
   (:import [java.util Map])
   (:gen-class))

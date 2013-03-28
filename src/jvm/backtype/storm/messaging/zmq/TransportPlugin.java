@@ -12,8 +12,8 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 
-public class TranportPlugin implements IContext {
-    public static final Logger LOG = LoggerFactory.getLogger(TranportPlugin.class);
+public class TransportPlugin implements IContext {
+    public static final Logger LOG = LoggerFactory.getLogger(TransportPlugin.class);
 
     private Context context; 
     private long linger_ms, hwm;

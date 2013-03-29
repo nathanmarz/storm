@@ -252,10 +252,11 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         "-Dlogfile.name=nimbus.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
     ]
+    nimbus_classpath = confvalue("nimbus.classpath", cppaths)
     exec_storm_class(
-        klass, 
-        jvmtype="-server", 
-        extrajars=cppaths, 
+        klass,
+        jvmtype="-server",
+        extrajars=(cppaths+[nimbus_classpath]),
         jvmopts=jvmopts)
 
 def supervisor(klass="backtype.storm.daemon.supervisor"):

@@ -31,29 +31,14 @@ public class Connection implements IConnection {
     public TaskMessage recv(int flags) {
         LOG.debug("zmq.Connection:recv()");
         byte[] packet = socket.recv(flags);
-        return parsePacket(packet);
+        TaskMessage message = new TaskMessage(0, null);
+        message.deserialize(packet);
+        return message;
     }
 
     public void send(int taskId, byte[] payload) {
         LOG.debug("zmq.Connection:send()");
-        byte[] packet = mkPacket(new TaskMessage(taskId, payload));
+        byte[] packet = new TaskMessage(taskId, payload).serialize();
         socket.send(packet,  ZMQ.NOBLOCK);
-    }
-    
-    private byte[] mkPacket(TaskMessage message) {
-        byte[] payload = message.message();
-        ByteBuffer bb = ByteBuffer.allocate(payload.length+2);
-        bb.putShort((short)message.task());
-        bb.put(payload);
-        return bb.array();
-    }
-    
-    private TaskMessage parsePacket(byte[] packet) {
-        if (packet==null) return null;
-        ByteBuffer bb = ByteBuffer.wrap(packet);
-        int task = bb.getShort();
-        byte[] payload = new byte[packet.length-2];
-        bb.get(payload);
-        return new TaskMessage(task,payload);
-    }
+    }    
 }

@@ -1,7 +1,5 @@
 package backtype.storm.messaging;
 
-import clojure.lang.PersistentVector;
-
 public interface IConnection {   
     /**
      * receive a message (consists taskId and payload)

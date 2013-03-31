@@ -1,11 +1,7 @@
 package backtype.storm.messaging.zmq;
 
-import java.nio.ByteBuffer;
-
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
-import backtype.storm.messaging.TransportFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
@@ -30,9 +26,8 @@ public class Connection implements IConnection {
 
     public TaskMessage recv(int flags) {
         LOG.debug("zmq.Connection:recv()");
-        byte[] packet = socket.recv(flags);
         TaskMessage message = new TaskMessage(0, null);
-        message.deserialize(packet);
+        message.deserialize(socket.recv(flags));
         return message;
     }
 

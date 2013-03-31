@@ -19,19 +19,18 @@ public class TaskMessage {
         return _message;
     }
     
-    public byte[] serialize() {
+    public ByteBuffer serialize() {
         ByteBuffer bb = ByteBuffer.allocate(_message.length+2);
         bb.putShort((short)_task);
         bb.put(_message);
-        return bb.array();
+        return bb;
     }
     
-    public void deserialize(byte[] packet) {
+    public void deserialize(ByteBuffer packet) {
         if (packet==null) return;
-        ByteBuffer bb = ByteBuffer.wrap(packet);
-        _task = bb.getShort();
-        _message = new byte[packet.length-2];
-        bb.get(_message);
+        _task = packet.getShort();
+        _message = new byte[packet.limit()-2];
+        packet.get(_message);
     }
 
 }

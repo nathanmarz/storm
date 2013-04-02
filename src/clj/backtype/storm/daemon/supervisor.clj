@@ -112,7 +112,12 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (worker-state conf id)]    
     (loop []
-      (let [hb (.get state LS-WORKER-HEARTBEAT)]
+      (let [hb (try (.get state LS-WORKER-HEARTBEAT)
+                    (catch java.io.FileNotFoundException e
+                      ;; This solves race condition in unit tests if you try to shutdown
+                      ;; a worker which cleans up worker state while you also try to wait
+                      ;; for worker to launch by reading the same state.
+                      nil))]
         (when (and
                (not hb)
                (<

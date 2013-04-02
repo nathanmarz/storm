@@ -222,6 +222,9 @@ class result_args:
     (2, TType.STRING, 'result', None, None, ), # 2
   )
 
+  def __hash__(self):
+    return 0 + hash(self.id) + hash(self.result)
+
   def __init__(self, id=None, result=None,):
     self.id = id
     self.result = result
@@ -292,6 +295,9 @@ class result_result:
     (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
   )
 
+  def __hash__(self):
+    return 0 + hash(self.aze)
+
   def __init__(self, aze=None,):
     self.aze = aze
 
@@ -353,6 +359,9 @@ class fetchRequest_args:
     (1, TType.STRING, 'functionName', None, None, ), # 1
   )
 
+  def __hash__(self):
+    return 0 + hash(self.functionName)
+
   def __init__(self, functionName=None,):
     self.functionName = functionName
 
@@ -413,6 +422,9 @@ class fetchRequest_result:
     (0, TType.STRUCT, 'success', (DRPCRequest, DRPCRequest.thrift_spec), None, ), # 0
     (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
   )
+
+  def __hash__(self):
+    return 0 + hash(self.success) + hash(self.aze)
 
   def __init__(self, success=None, aze=None,):
     self.success = success
@@ -486,6 +498,9 @@ class failRequest_args:
     (1, TType.STRING, 'id', None, None, ), # 1
   )
 
+  def __hash__(self):
+    return 0 + hash(self.id)
+
   def __init__(self, id=None,):
     self.id = id
 
@@ -545,6 +560,9 @@ class failRequest_result:
     None, # 0
     (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
   )
+
+  def __hash__(self):
+    return 0 + hash(self.aze)
 
   def __init__(self, aze=None,):
     self.aze = aze

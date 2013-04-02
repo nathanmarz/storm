@@ -245,7 +245,7 @@
                                :let [[node port] (string->endpoint endpoint-str)]]
                          [endpoint-str
                           (.connect
-                           (:mq-context worker)
+                           ^IContext (:mq-context worker)
                            storm-id
                            ((:node->host assignment) node)
                            port)

@@ -11,6 +11,7 @@
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
+  (:import [backtype.storm Constants])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
@@ -258,13 +259,13 @@
 
 (defn find-worker-id [supervisor-conf port]
   (let [supervisor-state (supervisor-state supervisor-conf)
-        worker->port (.get supervisor-state common/LS-APPROVED-WORKERS)]
+        worker->port (.get supervisor-state Constants/LS_APPROVED_WORKERS)]
     (first ((reverse-map worker->port) port))
     ))
 
 (defn find-worker-port [supervisor-conf worker-id]
   (let [supervisor-state (supervisor-state supervisor-conf)
-        worker->port (.get supervisor-state common/LS-APPROVED-WORKERS)
+        worker->port (.get supervisor-state Constants/LS_APPROVED_WORKERS)
         ]
     (worker->port worker-id)
     ))

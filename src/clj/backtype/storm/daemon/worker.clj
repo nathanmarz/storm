@@ -3,6 +3,7 @@
   (:use [backtype.storm bootstrap])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
+  (:import [backtype.storm Constants])
   (:gen-class))
 
 (bootstrap)
@@ -47,7 +48,7 @@
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
     (.put state
-        LS-WORKER-HEARTBEAT
+        Constants/LS_WORKER_HEARTBEAT
         hb
         false
         )

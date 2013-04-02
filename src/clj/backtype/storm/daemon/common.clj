@@ -40,12 +40,6 @@
 (defprotocol DaemonCommon
   (waiting? [this]))
 
-(def LS-WORKER-HEARTBEAT "worker-heartbeat")
-
-;; LocalState constants
-(def LS-ID "supervisor-id")
-(def LS-LOCAL-ASSIGNMENTS "local-assignments")
-(def LS-APPROVED-WORKERS "approved-workers")
 
 
 
@@ -320,7 +314,7 @@
                           (supervisor-storm-resources-path
                             (supervisor-stormdist-root (:conf worker) (:storm-id worker)))
                           (worker-pids-root (:conf worker) (:worker-id worker))
-                          (:port worker)
+                          (int (:port worker))
                           (:task-ids worker)
                           (:default-shared-resources worker)
                           (:user-shared-resources worker)

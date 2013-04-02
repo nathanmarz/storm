@@ -14,5 +14,10 @@ public class Constants {
     public static final String METRICS_COMPONENT_ID_PREFIX = "__metrics";
     public static final String METRICS_STREAM_ID = "__metrics";
     public static final String METRICS_TICK_STREAM_ID = "__metrics_tick";
+
+    // LocalState constants
+    public static final String LS_WORKER_HEARTBEAT = "worker-heartbeat";
+    public static final String LS_ID = "supervisor-id";
+    public static final String LS_LOCAL_ASSIGNMENTS = "local-assignments";
+    public static final String LS_APPROVED_WORKERS = "approved-workers";
 }
-    

@@ -11,24 +11,20 @@ import org.apache.thrift7.transport.TTransportException;
 
 public class DRPCInvocationsClient extends ThriftClient implements DistributedRPCInvocations.Iface {
     private DistributedRPCInvocations.Client client;
-    private String host;
-    private int port;    
 
     public DRPCInvocationsClient(Map conf, String host, int port) throws TTransportException {
         super(conf, host, port, null);
-        this.host = host;
-        this.port = port;
         client = null;
         if (_protocol != null)
             client = new DistributedRPCInvocations.Client(_protocol);
     }
         
     public String getHost() {
-        return host;
+        return _host;
     }
     
     public int getPort() {
-        return port;
+        return _port;
     }       
 
     public void result(String id, String result) throws TException, AuthorizationException {

@@ -973,7 +973,7 @@
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (check-storm-active! nimbus storm-name true)
         (check-authorization! nimbus storm-name 
-                              (try-read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
+                              (read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
                               "rebalance")
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
@@ -997,7 +997,7 @@
 
       (deactivate [this storm-name]
         (check-authorization! nimbus storm-name 
-                              (read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
+                              (try-read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
                               "deactivate")
         (transition-name! nimbus storm-name :inactivate true))
 

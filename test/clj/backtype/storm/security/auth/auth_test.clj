@@ -22,7 +22,7 @@
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf storm-conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler (storm-conf NIMBUS-AUTHORIZER))
+     :authorization-handler (mk-authorization-handler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
      :submitted-count (atom 0)
      :storm-cluster-state nil
      :submit-lock (Object.)
@@ -100,16 +100,18 @@
         nimbus (nimbus/standalone-nimbus)
         service-handler (dummy-service-handler conf nimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
-    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
     (.start (Thread. #(.serve server)))
     (wait-for-condition #(.isServing server))
     server ))
 
 (defmacro with-server [args & body]
   `(let [server# (launch-server ~@args)]
-      ~@body
-      (.stop server#)
-      ))
+     (try
+       ~@body
+       (catch Throwable t#
+         (log-error t# "Error in cluster")
+         (throw t#))
+       (finally (.stop server#)))))
 
 (deftest Simple-authentication-test 
   (with-server [6627 nil nil "backtype.storm.security.auth.SimpleTransportPlugin"]

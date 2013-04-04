@@ -42,11 +42,14 @@
 
 (defmacro with-server [args & body]
   `(let [[handler-server# invoke-server#] (launch-server ~@args)]
-      ~@body
-      (log-message "Stopping DRPC servers ...")
-      (.stop handler-server#)
-      (.stop invoke-server#)
-      ))
+     (try
+       ~@body
+       (catch Throwable t#
+         (log-error t# "Error in cluster")
+         (throw t#))
+       (finally 
+         (.stop handler-server#)
+         (.stop invoke-server#)))))
   
 (deftest deny-drpc-test 
   (let [storm-conf (read-storm-config)]

@@ -6,6 +6,7 @@
             DistributedRPCInvocations$Processor])
   (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
   (:import [backtype.storm.daemon Shutdownable])
+  (:import [backtype.storm.security.auth IAuthorizer])
   (:import [java.net InetAddress])
   (:import [backtype.storm.generated AuthorizationException])
   (:use [backtype.storm bootstrap config log])
@@ -28,14 +29,14 @@
 (defn check-authorization! [aclHandler storm-conf operation]
   (log-debug "DRPC check-authorization with handler: " aclHandler)
   (if aclHandler
-    (if-not (.permit aclHandler (ReqContext/context) operation storm-conf)
+    (if-not (.permit ^IAuthorizer aclHandler (ReqContext/context) operation storm-conf)
           (throw (AuthorizationException. (str "DRPC request " operation " is not authorized")))
           )))
 
 ;; TODO: change this to use TimeCacheMap
 (defn service-handler [conf]
-  (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER))
-        invocations-acl-handler (mk-authorization-handler (conf DRPC-INVOCATIONS-AUTHORIZER))
+  (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER) conf)
+        invocations-acl-handler (mk-authorization-handler (conf DRPC-INVOCATIONS-AUTHORIZER) conf)
         ctr (atom 0)
         id->sem (atom {})
         id->result (atom {})

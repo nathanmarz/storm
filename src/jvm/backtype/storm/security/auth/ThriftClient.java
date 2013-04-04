@@ -16,47 +16,63 @@ public class ThriftClient {
     private static final Logger LOG = LoggerFactory.getLogger(ThriftClient.class);
     private TTransport _transport;
     protected TProtocol _protocol;
+    protected String _host;
+    protected int _port;
+    protected Integer _timeout;
+    protected ITransportPlugin  _transportPlugin;
 
     public ThriftClient(Map storm_conf, String host, int port) throws TTransportException {
         this(storm_conf, host, port, null);
     }
 
     public ThriftClient(Map storm_conf, String host, int port, Integer timeout) throws TTransportException {
-        try {
-            //locate login configuration 
-            Configuration login_conf = AuthUtils.GetConfiguration(storm_conf);
+        //locate login configuration 
+        Configuration login_conf = AuthUtils.GetConfiguration(storm_conf);
 
-            //construct a transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(storm_conf, login_conf, null);
+        //construct a transport plugin
+        _transportPlugin = AuthUtils.GetTransportPlugin(storm_conf, login_conf, null);
 
-            //create a socket with server
-            if(host==null) {
-                throw new IllegalArgumentException("host is not set");
-            }
-            if(port<=0) {
-                throw new IllegalArgumentException("invalid port: "+port);
-            }            
-            TSocket socket = new TSocket(host, port);
-            if(timeout!=null) {
-                socket.setTimeout(timeout);
-            }
-            final TTransport underlyingTransport = socket;
-
-            //establish client-server transport via plugin
-            _transport =  transportPlugin.connect(underlyingTransport, host); 
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        _host = host;
+        if (host==null) 
+            throw new IllegalArgumentException("host is not set");
+        
+        _port = port;
+        if (port<=0) 
+            throw new IllegalArgumentException("invalid port: "+port);
+        
+        _timeout = timeout; 
+             
+        //connect to server
+        _transport = null;
         _protocol = null;
-        if (_transport != null)
-            _protocol = new  TBinaryProtocol(_transport);
+        connect(); 
     }
 
+    protected void connect()  throws TTransportException {
+        try {
+            TSocket socket = new TSocket(_host, _port);
+            if (_timeout!=null) 
+                socket.setTimeout(_timeout);
+
+            //establish client-server transport via plugin
+            TTransport underlyingTransport = socket;
+            _transport =  _transportPlugin.connect(underlyingTransport, _host); 
+
+            _protocol = null;
+            if (_transport != null)
+                _protocol = new  TBinaryProtocol(_transport);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }   
+    }
+    
     public TTransport transport() {
         return _transport;
     }
 
     public void close() {
-        _transport.close();
+        if (_transport != null) 
+            _transport.close();
+        _transport = null;
     }
 }

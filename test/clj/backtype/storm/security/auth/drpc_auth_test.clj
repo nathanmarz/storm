@@ -31,11 +31,8 @@
                                      (DistributedRPCInvocations$Processor. service-handler) 
                                      (int (conf DRPC-INVOCATIONS-PORT)))]      
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
-    (log-message "storm conf:" conf)
-    (log-message "Starting DRPC invocation server ...")
     (.start (Thread. #(.serve invoke-server)))
     (wait-for-condition #(.isServing invoke-server))
-    (log-message "Starting DRPC handler server ...")
     (.start (Thread. #(.serve handler-server)))
     (wait-for-condition #(.isServing handler-server))
     [handler-server invoke-server]))

@@ -922,34 +922,34 @@
                                 from-json
                                 (assoc STORM-ID storm-id)
                                 (assoc TOPOLOGY-NAME storm-name))
-                            topology)]
-            (check-authorization! nimbus storm-name storm-conf "submitTopology")
-            (check-storm-active! nimbus storm-name false)
-            (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
-              storm-name
-              (from-json serializedConf)
-              topology)
-            (swap! (:submitted-count nimbus) inc)
-            (let [total-storm-conf (merge conf storm-conf)
-                  topology (normalize-topology total-storm-conf topology)
-                  topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
-                             (optimize-topology topology)
-                             topology)
-                  storm-cluster-state (:storm-cluster-state nimbus)]
-              (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-              (log-message "Received topology submission for " storm-name " with conf " storm-conf)
-              ;; lock protects against multiple topologies being submitted at once and
-              ;; cleanup thread killing topology in b/w assignment and starting the topology
-              (locking (:submit-lock nimbus)
-                (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
-                (.setup-heartbeats! storm-cluster-state storm-id)
-                (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
-                                                TopologyInitialStatus/ACTIVE :active}]
-                  (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))
-                (mk-assignments nimbus))))
-            (catch Throwable e
-              (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
-              (throw e))))
+                            topology)
+                _ (check-authorization! nimbus storm-name storm-conf "submitTopology")
+                _ (check-storm-active! nimbus storm-name false)
+                _ (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                    storm-name
+                    (from-json serializedConf)
+                    topology)
+                _ (swap! (:submitted-count nimbus) inc)
+                total-storm-conf (merge conf storm-conf)
+                topology (normalize-topology total-storm-conf topology)
+                topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
+                           (optimize-topology topology)
+                           topology)
+                storm-cluster-state (:storm-cluster-state nimbus)]
+            (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
+            (log-message "Received topology submission for " storm-name " with conf " storm-conf)
+            ;; lock protects against multiple topologies being submitted at once and
+            ;; cleanup thread killing topology in b/w assignment and starting the topology
+            (locking (:submit-lock nimbus)
+              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+              (.setup-heartbeats! storm-cluster-state storm-id)
+              (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
+                                              TopologyInitialStatus/ACTIVE :active}]
+                (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))
+              (mk-assignments nimbus)))
+        (catch Throwable e
+          (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
+          (throw e))))
         
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
@@ -962,7 +962,7 @@
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (check-storm-active! nimbus storm-name true)
         (check-authorization! nimbus storm-name 
-                              (try-read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
+                              (read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
                               "killTopology")
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
@@ -992,15 +992,14 @@
       (activate [this storm-name]
         (transition-name! nimbus storm-name :activate true)
         (check-authorization! nimbus storm-name 
-                              (try-read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
-                              "activate")
-        )
+                              (read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
+                              "activate"))
 
       (deactivate [this storm-name]
-        (transition-name! nimbus storm-name :inactivate true)
         (check-authorization! nimbus storm-name 
-                              (try-read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
-                              "deactivate"))
+                              (read-storm-conf conf (get-storm-id (:storm-cluster-state nimbus) storm-name)) 
+                              "deactivate")
+        (transition-name! nimbus storm-name :inactivate true))
 
       (beginFileUpload [this]
         (check-authorization! nimbus nil conf "fileUpload")

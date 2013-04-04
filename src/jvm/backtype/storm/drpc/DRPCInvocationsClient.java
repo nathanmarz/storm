@@ -18,7 +18,9 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
         super(conf, host, port, null);
         this.host = host;
         this.port = port;
-        client = new DistributedRPCInvocations.Client(_protocol);
+        client = null;
+        if (_protocol != null)
+            client = new DistributedRPCInvocations.Client(_protocol);
     }
         
     public String getHost() {
@@ -31,6 +33,11 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
 
     public void result(String id, String result) throws TException, AuthorizationException {
         try {
+            if (client == null) {
+                connect();
+                if (_protocol != null)
+                    client = new DistributedRPCInvocations.Client(_protocol);
+            }
             client.result(id, result);
         } catch(TException e) {
             client = null;
@@ -40,6 +47,11 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
 
     public DRPCRequest fetchRequest(String func) throws TException, AuthorizationException {
         try {
+            if (client == null) {
+                connect();
+                if (_protocol != null)
+                    client = new DistributedRPCInvocations.Client(_protocol);
+            }
             return client.fetchRequest(func);
         } catch(TException e) {
             client = null;
@@ -49,6 +61,11 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
 
     public void failRequest(String id) throws TException, AuthorizationException {
         try {
+            if (client == null) {
+                connect();
+                if (_protocol != null)
+                    client = new DistributedRPCInvocations.Client(_protocol);
+            }
             client.failRequest(id);
         } catch(TException e) {
             client = null;

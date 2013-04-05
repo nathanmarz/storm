@@ -14,7 +14,7 @@
                                                       STORM-LOCAL-MODE-ZMQ 
                                                       (if transport-on? true false) 
                                                       STORM-MESSAGING-TRANSPORT 
-                                                      "backtype.storm.messaging.zmq.TransportPlugin"}]
+                                                      "backtype.storm.messaging.zmq"}]
       (let [topology (thrift/mk-topology
                        {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 2)}
                        {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)

@@ -372,7 +372,7 @@
                     (log-message "Shutting down receive thread")
                     (receive-thread-shutdown)
                     (log-message "Shut down receive thread")
-                    (log-message "Terminating zmq context")
+                    (log-message "Terminating messaging context")
                     (log-message "Shutting down executors")
                     (doseq [executor @executors] (.shutdown executor))
                     (log-message "Shut down executors")

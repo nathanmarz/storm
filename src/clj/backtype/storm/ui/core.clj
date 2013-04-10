@@ -804,6 +804,7 @@
       catch-errors))
 
 (defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
+                                       :host (*STORM-CONF* UI-HOST)
                                        :join? false}))
 
 (defn -main [] (start-server!))

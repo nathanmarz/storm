@@ -225,6 +225,11 @@ public class Config extends HashMap<String, Object> {
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";
+	
+	/**
+     * Storm UI binds to this interface.
+     */
+    public static String UI_HOST = "ui.host";
 
     /**
      * Childopts for Storm UI Java process.

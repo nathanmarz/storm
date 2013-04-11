@@ -41,25 +41,22 @@
 (deftype ZMQConnection [socket]
   IConnection
   (^TaskMessage recv [this ^int flags]
-    (log-debug "ZMQConnection recv()")
     (require 'backtype.storm.messaging.zmq)
     (if-let [packet (mq/recv socket flags)]
       (parse-packet packet)))
-  (^void send [this ^int taskId ^"[B" payload]
-    (log-debug "ZMQConnection send()")
+  (^void send [this ^int taskId ^bytes payload]
     (require 'backtype.storm.messaging.zmq)
     (mq/send socket (mk-packet taskId payload) ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
   (^void close [this]
-    (log-debug "ZMQConnection close()")
     (.close socket)))
 
 (defn mk-connection [socket]
   (ZMQConnection. socket))
 
-(deftype ZMQContext [^{:volatile-mutable true} context 
-                     ^{:volatile-mutable true} linger-ms 
-                     ^{:volatile-mutable true} hwm 
-                     ^{:volatile-mutable true} local?]
+(deftype ZMQContext [^{:unsynchronized-mutable true} context 
+                     ^{:unsynchronized-mutable true} linger-ms 
+                     ^{:unsynchronized-mutable true} hwm 
+                     ^{:unsynchronized-mutable true} local?]
   IContext
   (^void prepare [this ^Map storm-conf]
     (let [num-threads (storm-conf ZMQ-THREADS)]
@@ -92,5 +89,5 @@
 
 (defn -makeContext [^Map storm-conf] 
   (let [context (ZMQContext. nil 0 0 true)]
-    (.prepare ^IContext context storm-conf)
+    (.prepare context storm-conf)
     context))

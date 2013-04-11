@@ -16,19 +16,16 @@
 (deftype LocalConnection [storm-id port queues-map lock queue]
   IConnection
   (^TaskMessage recv [this ^int flags]
-    (log-debug "LocalConnection recv()")
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
     (if (= flags 1)
       (.poll queue)
       (.take queue)))
   (^void send [this ^int taskId ^"[B" payload]
-    (log-debug "LocalConnection send()")
     (let [send-queue (add-queue! queues-map lock storm-id port)]
       (.put send-queue (TaskMessage. taskId payload))
       ))
   (^void close [this]
-    (log-debug "LocalConnection close()")
     ))
 
 

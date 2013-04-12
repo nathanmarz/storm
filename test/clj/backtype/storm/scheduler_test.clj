@@ -2,6 +2,7 @@
   (:use [clojure test])
   (:use [backtype.storm bootstrap config testing])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
+  (:require [backtype.storm.scheduler.EvenScheduler :as EvenScheduler])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))
@@ -243,4 +244,155 @@
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 1)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 3)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 5)))))
+    ))
+
+(deftest test-watershed-distribute
+  (is (= (take 20 (EvenScheduler/watershed-distribute [0 0 0 1 1 2 3 4] [0 1 2 3 4 5 6])) [5 6 5 6 2 3 4 5 6 2 3 4 1 5 6 2 3 4 1 0]))
+  (is (= (take 20 (EvenScheduler/watershed-distribute [] [0 1 2 3 4 5 6])) [0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5]))
+  (is (= (take 20 (EvenScheduler/watershed-distribute [[1 2]] [[0 0] [1 2] [3 4]] )) [[0 0] [3 4] [0 0] [3 4] [1 2] [0 0] [3 4] [1 2] [0 0] [3 4] [1 2] [0 0] [3 4] [1 2] [0 0] [3 4] [1 2] [0 0] [3 4] [1 2]])))
+
+(deftest test-assign-slots
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [[0 4] [0 6] [0 9]] 10) [[1 2] [1 5] [0 1] [0 2] [0 3]]))
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [[0 4] [1 6] [0 9]] 10) [[1 2] [1 5] [0 1] [0 2] [0 3]]))
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [[0 4] [0 6] [0 9]] 2) [[1 2] [1 5]]))
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [[0 4] [1 6] [0 9]] 2) [[1 2] [1 5]]))
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [[1 4] [1 6] [0 9]] 2) [[0 1] [0 2]]))
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [[0 4] [0 6] [0 9]] 1) [[1 2]]))
+  (is (= (EvenScheduler/assign-slots [[0 1] [1 2] [0 2] [0 3] [1 5]] [] 5) [[0 1] [1 2] [0 2] [1 5] [0 3]]))
+  (is (= (EvenScheduler/assign-slots [] [] 5) [])))
+
+(defn check-node-distribution [items distribution]
+  (is (= (frequencies items) (frequencies (map count distribution)))))
+
+
+(deftest test-use-resources-evenly
+  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 1 3 5 7 9)))
+        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 2 4 6 8 10)))
+        executor1 (ExecutorDetails. (int 1001) (int 1001))
+        executor2 (ExecutorDetails. (int 1002) (int 1002))
+        executor3 (ExecutorDetails. (int 1003) (int 1003))
+        executor11 (ExecutorDetails. (int 1011) (int 1011))
+        executor12 (ExecutorDetails. (int 1012) (int 1012))
+        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"}
+                                    (StormTopology.)
+                                    3
+                                    {executor1 "spout1"
+                                     executor2 "bolt1"
+                                     executor3 "bolt2"})
+        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"}
+                                    (StormTopology.)
+                                    2
+                                    {executor11 "spout11"
+                                     executor12 "bolt11"})
+        topologies (Topologies. {"topology1" topology1 "topology2" topology2})
+        executor->slot1 {executor1 (WorkerSlot. "supervisor1" (int 1))
+                         executor2 (WorkerSlot. "supervisor1" (int 3))
+                         executor3 (WorkerSlot. "supervisor1" (int 5))}
+        assignment1 (SchedulerAssignmentImpl. "topology1" executor->slot1)
+        cluster (Cluster. (nimbus/standalone-nimbus)
+                          {"supervisor1" supervisor1 "supervisor2" supervisor2}
+                          {"topology1" assignment1})]
+
+    (EvenScheduler/schedule-topologies-evenly topologies cluster)
+
+    (check-node-distribution [2 3] [(.getUsedPorts cluster supervisor1) (.getUsedPorts cluster supervisor2)]))
+
+  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 1 3 5 7 9)))
+        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 2 4 6 8 10)))
+        supervisor3 (SupervisorDetails. "supervisor3" "192.168.0.3" (list ) (map int (list 2 4 6 8 10)))
+        supervisor4 (SupervisorDetails. "supervisor4" "192.168.0.4" (list ) (map int (list 2 4 6 8 10)))
+        executor1 (ExecutorDetails. (int 1001) (int 1001))
+        executor2 (ExecutorDetails. (int 1002) (int 1002))
+        executor3 (ExecutorDetails. (int 1003) (int 1003))
+        executor4 (ExecutorDetails. (int 1004) (int 1004))
+        executor5 (ExecutorDetails. (int 1005) (int 1005))
+        executor6 (ExecutorDetails. (int 1006) (int 1006))
+        executor7 (ExecutorDetails. (int 1007) (int 1007))
+        executor8 (ExecutorDetails. (int 1008) (int 1008))
+        executor9 (ExecutorDetails. (int 1009) (int 1009))
+        executor11 (ExecutorDetails. (int 1011) (int 1011))
+        executor12 (ExecutorDetails. (int 1012) (int 1012))
+        executor13 (ExecutorDetails. (int 1013) (int 1013))
+        executor14 (ExecutorDetails. (int 1014) (int 1014))
+        executor15 (ExecutorDetails. (int 1015) (int 1015))
+        executor16 (ExecutorDetails. (int 1016) (int 1016))
+        executor17 (ExecutorDetails. (int 1017) (int 1017))
+        executor18 (ExecutorDetails. (int 1018) (int 1018))
+        executor19 (ExecutorDetails. (int 1019) (int 1019))
+        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"}
+                                    (StormTopology.)
+                                    9 
+                                    {executor1 "spout1"
+                                     executor2 "bolt1"
+                                     executor3 "bolt2"
+                                     executor4 "bolt3"
+                                     executor5 "bolt5"
+                                     executor6 "bolt6"
+                                     executor7 "bolt7"
+                                     executor8 "bolt8"
+                                     executor9 "bolt9"})
+        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"}
+                                    (StormTopology.)
+                                    3
+                                    {executor11 "spout11"
+                                     executor13 "spout13"
+                                     executor12 "bolt11"})
+        topology3 (TopologyDetails. "topology3" {TOPOLOGY-NAME "topology-name-3"}
+                                    (StormTopology.)
+                                    2 
+                                    {executor11 "spout11"
+                                     executor13 "spout13"
+                                     executor12 "bolt11"})
+        topology4 (TopologyDetails. "topology4" {TOPOLOGY-NAME "topology-name-4"}
+                                    (StormTopology.)
+                                    10 
+                                    {executor11 "spout11"
+                                     executor13 "spout13"
+                                     executor14 "spout14"
+                                     executor15 "spout15"
+                                     executor16 "spout16"
+                                     executor17 "spout17"
+                                     executor18 "spout18"
+                                     executor19 "spout19"
+                                     executor12 "bolt11"})
+        topologies (Topologies. {"topology1" topology1 "topology2" topology2})
+        executor->slot1 {executor1 (WorkerSlot. "supervisor1" (int 1))
+                         executor2 (WorkerSlot. "supervisor1" (int 3))
+                         executor3 (WorkerSlot. "supervisor1" (int 5))
+                         executor4 (WorkerSlot. "supervisor1" (int 7))
+                         executor5 (WorkerSlot. "supervisor2" (int 2))
+                         executor6 (WorkerSlot. "supervisor2" (int 6))
+                         executor7 (WorkerSlot. "supervisor3" (int 4))
+                         executor8 (WorkerSlot. "supervisor3" (int 10))
+                         executor9 (WorkerSlot. "supervisor4" (int 8))}
+        assignment1 (SchedulerAssignmentImpl. "topology1" executor->slot1)
+        cluster (Cluster. (nimbus/standalone-nimbus)
+                          {"supervisor1" supervisor1 "supervisor2" supervisor2 "supervisor3" supervisor3 "supervisor4" supervisor4}
+                          {"topology1" assignment1})]
+    (EvenScheduler/schedule-topologies-evenly topologies cluster)
+
+    (check-node-distribution [4 2 3 3] [(.getUsedPorts cluster supervisor1)
+                                        (.getUsedPorts cluster supervisor2)
+                                        (.getUsedPorts cluster supervisor3)
+                                        (.getUsedPorts cluster supervisor4)])
+
+    (let [topologies (Topologies. {"topology1" topology1 "topology3" topology3})
+          cluster (Cluster. (nimbus/standalone-nimbus)
+                            {"supervisor1" supervisor1 "supervisor2" supervisor2 "supervisor3" supervisor3 "supervisor4" supervisor4}
+                            {"topology1" assignment1})]
+      (EvenScheduler/schedule-topologies-evenly topologies cluster)
+      (check-node-distribution [4 2 2 3] [(.getUsedPorts cluster supervisor1)
+                                          (.getUsedPorts cluster supervisor2)
+                                          (.getUsedPorts cluster supervisor3)
+                                        (.getUsedPorts cluster supervisor4)]))
+
+    (let [topologies (Topologies. {"topology1" topology1 "topology4" topology4})
+          cluster (Cluster. (nimbus/standalone-nimbus)
+                            {"supervisor1" supervisor1 "supervisor2" supervisor2 "supervisor3" supervisor3 "supervisor4" supervisor4}
+                            {"topology1" assignment1})]
+      (EvenScheduler/schedule-topologies-evenly topologies cluster)
+      (check-node-distribution [4 4 5 5] [(.getUsedPorts cluster supervisor1)
+                                          (.getUsedPorts cluster supervisor2)
+                                          (.getUsedPorts cluster supervisor3)
+                                          (.getUsedPorts cluster supervisor4)]))
     ))

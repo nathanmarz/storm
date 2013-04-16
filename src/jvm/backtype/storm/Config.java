@@ -544,9 +544,17 @@ public class Config extends HashMap<String, Object> {
     /**
      * How often a tick tuple from the "__system" component and "__tick" stream should be sent
      * to tasks. Meant to be used as a component-specific configuration.
+     *
+     * @deprecated use TOPOLOGY_TICK_TUPLE_FREQ_MILLIS instead
      */
-     public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
+    @Deprecated
+    public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
+    /**
+     * How often a tick tuple from the "__system" component and "__tick" stream should be sent
+     * to tasks. Meant to be used as a component-specific configuration.
+     */
+    public static String TOPOLOGY_TICK_TUPLE_FREQ_MILLIS="topology.tick.tuple.freq.millis";
 
     /**
      * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency

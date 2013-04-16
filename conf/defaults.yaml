@@ -98,7 +98,8 @@ topology.executor.receive.buffer.size: 1024 #batched
 topology.executor.send.buffer.size: 1024 #individual messages
 topology.receiver.buffer.size: 8 # setting it too high causes a lot of problems (heartbeat thread gets starved, throughput plummets)
 topology.transfer.buffer.size: 1024 # batched
-topology.tick.tuple.freq.secs: null
+topology.tick.tuple.freq.secs: null # deprecated; use topology.tick.tuple.freq.millis
+topology.tick.tuple.freq.millis: null
 topology.worker.shared.thread.pool.size: 4
 topology.disruptor.wait.strategy: "com.lmax.disruptor.BlockingWaitStrategy"
 topology.spout.wait.strategy: "backtype.storm.spout.SleepSpoutWaitStrategy"

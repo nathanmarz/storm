@@ -1,6 +1,6 @@
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap log])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.spout ISpoutWaitStrategy])
@@ -129,6 +129,7 @@
                         TOPOLOGY-MAX-TASK-PARALLELISM
                         TOPOLOGY-TRANSACTIONAL-ID
                         TOPOLOGY-TICK-TUPLE-FREQ-SECS
+                        TOPOLOGY-TICK-TUPLE-FREQ-MILLIS
                         TOPOLOGY-SLEEP-SPOUT-WAIT-STRATEGY-TIME-MS
                         TOPOLOGY-SPOUT-WAIT-STRATEGY
                         )
@@ -276,24 +277,36 @@
       (if (seq data-points)
         (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))
 
+(defn get-tick-time-millis [storm-conf]
+  (let [tick-time-secs (storm-conf TOPOLOGY-TICK-TUPLE-FREQ-SECS)
+        tick-time-millis (storm-conf TOPOLOGY-TICK-TUPLE-FREQ-MILLIS)]
+    (if tick-time-millis
+      tick-time-millis
+      (when tick-time-secs
+        (log-warn "The 'TOPOLOGY-TICK-TUPLE-FREQ-SECS' configuration is deprecated. "
+                  "Use 'TOPOLOGY-TICK-TUPLE-FREQ-MILLIS' instead.")
+        (* 1000 tick-time-secs)))))
+
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
-        tick-time-secs (storm-conf TOPOLOGY-TICK-TUPLE-FREQ-SECS)
+        tick-time-millis (get-tick-time-millis storm-conf)
         receive-queue (:receive-queue executor-data)
         context (:worker-context executor-data)]
-    (when tick-time-secs
+    (when tick-time-millis
       (if (and (not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                (= :spout (:type executor-data)))
         (log-message "Timeouts disabled for executor " (:executor-id executor-data))
-        (schedule-recurring
-          (:user-timer worker)
-          tick-time-secs
-          tick-time-secs
-          (fn []
-            (disruptor/publish
-              receive-queue
-              [[nil (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID)]]
-              )))))))
+        (do
+          (log-message "Setting the tick time: " tick-time-millis " ms")
+          (schedule-recurring-millis
+            (:user-timer worker)
+            tick-time-millis
+            tick-time-millis
+            (fn []
+              (disruptor/publish
+                receive-queue
+                [[nil (TupleImpl. context [tick-time-millis] -1 Constants/SYSTEM_TICK_STREAM_ID)]]
+                ))))))))
 
 (defn mk-executor [worker executor-id]
   (let [executor-data (mk-executor-data worker executor-id)

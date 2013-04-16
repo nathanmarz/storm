@@ -382,7 +382,7 @@ public class TridentBoltExecutor implements IRichBolt {
     public Map<String, Object> getComponentConfiguration() {
         Map<String, Object> ret = _bolt.getComponentConfiguration();
         if(ret==null) ret = new HashMap();
-        ret.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 5);
+        ret.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_MILLIS, 5000);
         // TODO: Need to be able to set the tick tuple time to the message timeout, ideally without parameterization
         return ret;
     }

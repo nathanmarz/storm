@@ -26,6 +26,11 @@ import java.util.Map;
 public class Config extends HashMap<String, Object> {
     
     /**
+     * The transporter for communication among Storm tasks
+     */
+    public static String STORM_MESSAGING_TRANSPORT = "storm.messaging.transport";
+    
+    /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
     public static String STORM_ZOOKEEPER_SERVERS = "storm.zookeeper.servers";

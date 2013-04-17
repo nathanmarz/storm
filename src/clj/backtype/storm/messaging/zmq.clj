@@ -1,15 +1,27 @@
 (ns backtype.storm.messaging.zmq
   (:refer-clojure :exclude [send])
-  (:use [backtype.storm.messaging protocol])
+  (:use [backtype.storm config log])
+  (:import [backtype.storm.messaging IContext IConnection TaskMessage])
   (:import [java.nio ByteBuffer])
   (:import [org.zeromq ZMQ])
-  (:require [zilch.mq :as mq]))
+  (:import [java.util Map])
+  (:require [zilch.mq :as mq])
+  (:gen-class
+    :methods [^{:static true} [makeContext [java.util.Map] backtype.storm.messaging.IContext]]))
 
+(defn mk-packet [task ^bytes message]
+  (let [bb (ByteBuffer/allocate (+ 2 (count message)))]
+    (.putShort bb (short task))
+    (.put bb message)
+    (.array bb)
+    ))
 
-(defn parse-packet [^bytes part1 ^bytes part2]
-  (let [bb (ByteBuffer/wrap part1)
-        port (.getShort bb)]
-    [(int port) part2]
+(defn parse-packet [^bytes packet]
+  (let [bb (ByteBuffer/wrap packet)
+        port (.getShort bb)
+        msg (byte-array (- (count packet) 2))]
+    (.get bb msg)
+    (TaskMessage. (int port) msg)
     ))
 
 (defn get-bind-zmq-url [local? port]
@@ -26,50 +38,56 @@
 (defprotocol ZMQContextQuery
   (zmq-context [this]))
 
-(def NOBLOCK-SNDMORE (bit-or ZMQ/SNDMORE ZMQ/NOBLOCK))
-
-(deftype ZMQConnection [socket ^ByteBuffer bb]
-  Connection
-  (recv-with-flags [this flags]
-    (let [part1 (mq/recv socket flags)]
-      (when part1
-        (when-not (mq/recv-more? socket)
-          (throw (RuntimeException. "Should always receive two-part ZMQ messages")))
-        (parse-packet part1 (mq/recv socket)))))
-  (send [this task message]
-    (.clear bb)
-    (.putShort bb (short task))
-    (mq/send socket (.array bb) NOBLOCK-SNDMORE)
-    (mq/send socket message ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
-  (close [this]
-    (.close socket)
-    ))
+(deftype ZMQConnection [socket]
+  IConnection
+  (^TaskMessage recv [this ^int flags]
+    (require 'backtype.storm.messaging.zmq)
+    (if-let [packet (mq/recv socket flags)]
+      (parse-packet packet)))
+  (^void send [this ^int taskId ^bytes payload]
+    (require 'backtype.storm.messaging.zmq)
+    (mq/send socket (mk-packet taskId payload) ZMQ/NOBLOCK)) ;; TODO: how to do backpressure if doing noblock?... need to only unblock if the target disappears
+  (^void close [this]
+    (.close socket)))
 
 (defn mk-connection [socket]
-  (ZMQConnection. socket (ByteBuffer/allocate 2)))
+  (ZMQConnection. socket))
 
-(deftype ZMQContext [context linger-ms hwm local?]
-  Context
-  (bind [this storm-id port]
+(deftype ZMQContext [^{:unsynchronized-mutable true} context 
+                     ^{:unsynchronized-mutable true} linger-ms 
+                     ^{:unsynchronized-mutable true} hwm 
+                     ^{:unsynchronized-mutable true} local?]
+  IContext
+  (^void prepare [this ^Map storm-conf]
+    (let [num-threads (storm-conf ZMQ-THREADS)]
+      (set! context (mq/context num-threads)) 
+      (set! linger-ms (storm-conf ZMQ-LINGER-MILLIS))
+      (set! hwm (storm-conf ZMQ-HWM))
+      (set! local? (= (storm-conf STORM-CLUSTER-MODE) "local"))))
+  (^IConnection bind [this ^String storm-id ^int port]
+    (require 'backtype.storm.messaging.zmq)
     (-> context
-        (mq/socket mq/pull)
-        (mq/set-hwm hwm)
-        (mq/bind (get-bind-zmq-url local? port))
-        mk-connection
-        ))
-  (connect [this storm-id host port]
+      (mq/socket mq/pull)
+      (mq/set-hwm hwm)
+      (mq/bind (get-bind-zmq-url local? port))
+      mk-connection
+      ))
+  (^IConnection connect [this ^String storm-id ^String host ^int port]
+    (require 'backtype.storm.messaging.zmq)
     (-> context
-        (mq/socket mq/push)
-        (mq/set-hwm hwm)
-        (mq/set-linger linger-ms)
-        (mq/connect (get-connect-zmq-url local? host port))
-        mk-connection))
-  (term [this]
+      (mq/socket mq/push)
+      (mq/set-hwm hwm)
+      (mq/set-linger linger-ms)
+      (mq/connect (get-connect-zmq-url local? host port))
+      mk-connection))
+  (^void term [this]
     (.term context))
+  
   ZMQContextQuery
   (zmq-context [this]
     context))
 
-(defn mk-zmq-context [num-threads linger hwm local?]
-  (ZMQContext. (mq/context num-threads) linger hwm local?))
-
+(defn -makeContext [^Map storm-conf] 
+  (let [context (ZMQContext. nil 0 0 true)]
+    (.prepare context storm-conf)
+    context))

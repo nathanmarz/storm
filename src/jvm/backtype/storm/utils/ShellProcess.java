@@ -13,8 +13,10 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.apache.log4j.Logger;
 
 public class ShellProcess {
+    public static Logger LOG = Logger.getLogger(ShellProcess.class);
     private DataOutputStream processIn;
     private BufferedReader processOut;
     private InputStream processErrorStream;
@@ -77,6 +79,22 @@ public class ShellProcess {
             }
         } else {
             return "";
+        }
+    }
+
+    public void drainErrorStream()
+    {
+        try {
+            while (processErrorStream.available() > 0)
+            {
+                int bufferSize = processErrorStream.available();
+                byte[] errorReadingBuffer =  new byte[bufferSize];
+
+                processErrorStream.read(errorReadingBuffer, 0, bufferSize);
+
+                LOG.info("Got error from shell process: " + new String(errorReadingBuffer));
+            }
+        } catch(Exception e) {
         }
     }
 

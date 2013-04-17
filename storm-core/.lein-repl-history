@@ -1,0 +1,11 @@
+(slurp
+)
+(doc slurp)
+(def f (slurp "../project.clj"))
+f
+(def form (read-string f))
+form
+(doc read-string)
+(last form)
+(def VERSION (-> "../project.clj" slurp read-string last))
+VERSION

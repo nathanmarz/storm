@@ -34,7 +34,8 @@
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
-  :profiles {:dev {:resource-paths ["src/dev"]}
+  :profiles {:dev {:resource-paths ["src/dev"]
+                   :dependencies [[org.mockito/mockito-all "1.9.5"]]}
              :release {}
              :lib {}
              }
@@ -44,7 +45,7 @@
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}
 
-  :javac-options {:debug true}
+  :javac-options ["-g"]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
 
   :aot :all

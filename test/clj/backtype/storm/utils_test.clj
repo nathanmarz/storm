@@ -1,8 +1,9 @@
 (ns backtype.storm.utils-test
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.utils NimbusClient Utils])
   (:import [com.netflix.curator.retry ExponentialBackoffRetry])
-  (:use [backtype.storm util])
+  (:import [org.apache.thrift7.transport TTransportException])
+  (:use [backtype.storm config util])
   (:use [clojure test])
 )
 
@@ -24,5 +25,25 @@
     (is (= (.getN retry) expected_retries))
     (is (= (.getMaxRetryInterval retry) expected_ceiling))
     (is (= (.getSleepTimeMs retry 10 0) expected_ceiling))
+  )
+)
+
+(deftest test-getConfiguredClient-throws-RunTimeException-on-bad-config
+  (let [storm-conf (merge (read-storm-config)
+                     {STORM-THRIFT-TRANSPORT-PLUGIN
+                       "backtype.storm.security.auth.SimpleTransportPlugin"
+                      Config/NIMBUS_HOST ""
+                      Config/NIMBUS_THRIFT_PORT 65535
+                     })]
+    (is (thrown? RuntimeException
+      (NimbusClient/getConfiguredClient storm-conf)))
+  )
+)
+
+(deftest test-getConfiguredClient-throws-RunTimeException-on-bad-args
+  (let [storm-conf (read-storm-config)]
+    (is (thrown? TTransportException
+      (NimbusClient. storm-conf "" 65535)
+    ))
   )
 )

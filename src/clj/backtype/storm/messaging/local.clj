@@ -21,7 +21,7 @@
     (if (= flags 1)
       (.poll queue)
       (.take queue)))
-  (^void send [this ^int taskId ^"[B" payload]
+  (^void send [this ^int taskId ^bytes payload]
     (let [send-queue (add-queue! queues-map lock storm-id port)]
       (.put send-queue (TaskMessage. taskId payload))
       ))
@@ -29,8 +29,8 @@
     ))
 
 
-(deftype LocalContext [^{:volatile-mutable true} queues-map
-                       ^{:volatile-mutable true} lock]
+(deftype LocalContext [^{:unsynchronized-mutable true} queues-map
+                       ^{:unsynchronized-mutable true} lock]
   IContext
   (^void prepare [this ^Map storm-conf]
     (set! queues-map (atom {}))

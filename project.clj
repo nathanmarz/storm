@@ -2,8 +2,6 @@
 (def MODULES (-> "MODULES" slurp (.split "\n")))
 (def DEPENDENCIES (for [m MODULES] [(symbol (str "storm/" m)) VERSION]))
 
-;; for lib pom.xml, change the symbol to storm/storm-liba and filter out storm-console-logging from modules
-
 (eval `(defproject storm/storm ~VERSION
   :url "http://storm-project.net"
   :description "Distributed and fault-tolerant realtime computation"

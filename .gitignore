@@ -1,3 +1,4 @@
+.lein-repl-history
 /classes
 /lib
 deploy/lib
@@ -22,6 +23,7 @@ _release
 .lein-deps-sum
 *.iml
 /target
+/storm-core/target
 /.project/
 /.lein-plugins/
 *.ipr

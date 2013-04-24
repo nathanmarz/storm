@@ -82,7 +82,7 @@ topology.enable.message.timeouts: true
 topology.debug: false
 topology.optimize: true
 topology.workers: 1
-topology.acker.executors: 1
+topology.acker.executors: null
 topology.acker.tasks: null
 topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed

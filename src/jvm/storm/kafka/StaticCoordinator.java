@@ -4,13 +4,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import backtype.storm.task.IMetricsContext;
 import storm.kafka.KafkaConfig.StaticHosts;
 
 
 public class StaticCoordinator implements PartitionCoordinator {
     Map<GlobalPartitionId, PartitionManager> _managers = new HashMap<GlobalPartitionId, PartitionManager>();
     List<PartitionManager> _allManagers = new ArrayList();
-    
+
     public StaticCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig config, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         StaticHosts hosts = (StaticHosts) config.hosts;
         List<GlobalPartitionId> allPartitionIds = new ArrayList();

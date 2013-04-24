@@ -2,7 +2,8 @@ package storm.kafka;
 
 import java.util.*;
 
-import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.*;
+import backtype.storm.task.IMetricsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,7 @@ public class KafkaSpout extends BaseRichSpout {
     }
 
     @Override
-    public void open(Map conf, TopologyContext context, final SpoutOutputCollector collector) {
+    public void open(Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
         _collector = collector;
 
 	Map stateConf = new HashMap(conf);
@@ -87,6 +88,18 @@ public class KafkaSpout extends BaseRichSpout {
                     _kafkaOffsetMetric.setLatestEmittedOffset(pm.getPartition(), pm.lastCompletedOffset());
                 }
                 return _kafkaOffsetMetric.getValueAndReset();
+            }
+        }, 60);
+
+        context.registerMetric("kafkaPartition", new IMetric() {
+            @Override
+            public Object getValueAndReset() {
+                List<PartitionManager> pms = _coordinator.getMyManagedPartitions();
+                Map concatMetricsDataMaps = new HashMap();
+                for(PartitionManager pm : pms) {
+                    concatMetricsDataMaps.putAll(pm.getMetricsDataMap());
+                }
+                return concatMetricsDataMaps;
             }
         }, 60);
     }

@@ -1,6 +1,7 @@
 package storm.kafka;
 
 import backtype.storm.Config;
+import backtype.storm.metric.api.*;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
@@ -14,9 +15,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
+import storm.kafka.trident.MaxMetric;
 
 public class PartitionManager {
     public static final Logger LOG = LoggerFactory.getLogger(PartitionManager.class);
+    private final CombinedMetric _fetchAPILatencyMax;
+    private final ReducedMetric _fetchAPILatencyMean;
+    private final CountMetric _fetchAPICallCount;
+    private final CountMetric _fetchAPIMessageCount;
 
     static class KafkaMessageId {
         public GlobalPartitionId partition;
@@ -76,6 +82,20 @@ public class PartitionManager {
 
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
         _emittedToOffset = _committedTo;
+
+        _fetchAPILatencyMax = new CombinedMetric(new MaxMetric());
+        _fetchAPILatencyMean = new ReducedMetric(new MeanReducer());
+        _fetchAPICallCount = new CountMetric();
+        _fetchAPIMessageCount = new CountMetric();
+    }
+
+    public Map getMetricsDataMap() {
+        Map ret = new HashMap();
+        ret.put(_partition + "/fetchAPILatencyMax", _fetchAPILatencyMax.getValueAndReset());
+        ret.put(_partition + "/fetchAPILatencyMean", _fetchAPILatencyMean.getValueAndReset());
+        ret.put(_partition + "/fetchAPICallCount", _fetchAPICallCount.getValueAndReset());
+        ret.put(_partition + "/fetchAPIMessageCount", _fetchAPIMessageCount.getValueAndReset());
+        return ret;
     }
 
     //returns false if it's reached the end of current batch
@@ -104,12 +124,20 @@ public class PartitionManager {
 
     private void fill() {
         //LOG.info("Fetching from Kafka: " + _consumer.host() + ":" + _partition.partition + " from offset " + _emittedToOffset);
+        long start = System.nanoTime();
         ByteBufferMessageSet msgs = _consumer.fetch(
                 new FetchRequest(
                     _spoutConfig.topic,
                     _partition.partition,
                     _emittedToOffset,
                     _spoutConfig.fetchSizeBytes));
+        long end = System.nanoTime();
+        long millis = (end - start) / 1000000;
+        _fetchAPILatencyMax.update(millis);
+        _fetchAPILatencyMean.update(millis);
+        _fetchAPICallCount.incr();
+        _fetchAPIMessageCount.incrBy(msgs.underlying().size());
+
         int numMessages = msgs.underlying().size();
         if(numMessages>0) {
           LOG.info("Fetched " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition);

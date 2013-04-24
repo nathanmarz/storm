@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import backtype.storm.task.IMetricsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.KafkaConfig.ZkHosts;
@@ -25,6 +27,7 @@ public class ZkCoordinator implements PartitionCoordinator {
     DynamicBrokersReader _reader;
     ZkState _state;
     Map _stormConf;
+    IMetricsContext _metricsContext;
     
     public ZkCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         _spoutConfig = spoutConfig;
@@ -34,8 +37,7 @@ public class ZkCoordinator implements PartitionCoordinator {
         _topologyInstanceId = topologyInstanceId;
         _stormConf = stormConf;
 	_state = state;
-                
-       
+
         ZkHosts brokerConf = (ZkHosts) spoutConfig.hosts;
         _refreshFreqMs = brokerConf.refreshFreqSecs * 1000;
         _reader = new DynamicBrokersReader(stormConf, brokerConf.brokerZkStr, brokerConf.brokerZkPath, spoutConfig.topic);

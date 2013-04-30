@@ -21,7 +21,7 @@
  <appender name="ACCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${storm.home}/logs/access.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>${storm.home}/logs/${logfile.name}.%i</fileNamePattern>
+      <fileNamePattern>${storm.home}/logs/access.log.%i</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>9</maxIndex>
     </rollingPolicy>

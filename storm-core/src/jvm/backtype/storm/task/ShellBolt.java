@@ -66,7 +66,12 @@ public class ShellBolt implements IBolt {
     }
 
     public ShellBolt(String... command) {
+        this(100, command);
+    }
+    
+    public ShellBolt(int maxQueueSize, String... command) {
         _command = command;
+        _pendingWrites = new LinkedBlockingQueue(maxQueueSize);
     }
 
     public void prepare(Map stormConf, TopologyContext context,

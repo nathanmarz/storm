@@ -55,7 +55,7 @@ public class ShellBolt implements IBolt {
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
-    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue(100);
     private Random _rand;
     
     private Thread _readerThread;

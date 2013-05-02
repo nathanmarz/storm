@@ -3,12 +3,10 @@
 
 (defproject storm/storm-netty VERSION
   :dependencies [[storm/storm-core "0.9.0-wip17"]
-  		 [io.netty/netty "3.6.3.Final"]
-                 ]
-
+                 [io.netty/netty "3.6.3.Final"]]
+  
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
-
+  
   :profiles {:release {}}
-
   :aot :all)

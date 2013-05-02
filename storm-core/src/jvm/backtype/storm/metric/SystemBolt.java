@@ -57,7 +57,7 @@ public class SystemBolt implements IBolt {
         @Override
         public Object getValueAndReset() {
             Long collectionCountP = _gcBean.getCollectionCount();
-            Long collectionTimeP = _gcBean.getCollectionCount();
+            Long collectionTimeP = _gcBean.getCollectionTime();
 
             Map ret = null;
             if(_collectionCount!=null && _collectionTime!=null) {

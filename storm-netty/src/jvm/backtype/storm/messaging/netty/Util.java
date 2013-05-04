@@ -2,7 +2,7 @@ package backtype.storm.messaging.netty;
 
 import backtype.storm.messaging.TaskMessage;
 
-public class Util {
+class Util {
     static final int OK = -200; //HTTP status: 200
     static final int FAILURE = -400; //HTTP status: 400 BAD REQUEST
     static final int CLOSE = -410; //HTTP status: 410 GONE

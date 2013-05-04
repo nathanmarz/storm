@@ -13,7 +13,7 @@ import backtype.storm.Config;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.utils.Utils;
 
-class TaskMessageEncoder extends OneToOneEncoder {
+public class TaskMessageEncoder extends OneToOneEncoder {
     int estimated_buffer_size;
     
     @SuppressWarnings("rawtypes")

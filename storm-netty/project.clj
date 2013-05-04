@@ -5,6 +5,7 @@
   :dependencies [[storm/storm-core "0.9.0-wip17"]
                  [io.netty/netty "3.6.3.Final"]]
   
+  :source-paths ["src/jvm"]
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   

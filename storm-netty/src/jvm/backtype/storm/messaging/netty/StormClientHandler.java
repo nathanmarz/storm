@@ -1,5 +1,6 @@
 package backtype.storm.messaging.netty;
 
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -20,84 +21,93 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
     private Client client;
     private AtomicBoolean being_closed;
-    
+
     StormClientHandler(Client client) {
         this.client = client;
         being_closed = new AtomicBoolean(false);
     }
-    
+
     @Override
-    public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) {
+    public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent event) {
         //register the newly established channel
-        Channel channel = e.getChannel();
+        Channel channel = event.getChannel();
         client.setChannel(channel);
+        LOG.debug("connection established to a remote host");
         
         //send next request
-        sendRequest(ctx.getChannel());
+        try {
+            sendRequests(channel, client.takeMessages());
+        } catch (InterruptedException e) {
+            channel.close();
+        }
     }
-    
+
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-        
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) {
+
         //examine the response message from server
-        TaskMessage msg = (TaskMessage)e.getMessage();
+        TaskMessage msg = (TaskMessage)event.getMessage();
         if (msg.task()!=Util.OK)
             LOG.info("failure response:"+msg);
-        
+
         //send next request
-        if (!being_closed.get()) 
-            sendRequest(ctx.getChannel());
+        Channel channel = event.getChannel();
+        try {
+            sendRequests(channel, client.takeMessages());
+        } catch (InterruptedException e) {
+            channel.close();
+        }
     }
 
     /**
      * Retrieve a request from message queue, and send to server
      * @param channel
      */
-    private void sendRequest(Channel channel) {
-        try {
-            //retrieve request from queue
-            final ArrayList<TaskMessage> requests = client.takeMessages();
-            //if task==SHUTDOWN for any request, the channel is to be closed
-            for (TaskMessage message: requests) {
-                if (message.task()==Util.CLOSE) {
-                    being_closed.set(true);
-                    requests.remove(message);
-                    break;
-                }
+    private void sendRequests(Channel channel, final ArrayList<TaskMessage> requests) {
+        if (being_closed.get()) return;
+
+        //if task==SHUTDOWN for any request, the channel is to be closed
+        for (TaskMessage message: requests) {
+            if (message.task()==Util.CLOSE) {
+                being_closed.set(true);
+                requests.remove(message);
+                break;
             }
-                        
-            //we may don't need do anything if no requests found
-            if (requests.isEmpty()) {
+        }
+
+        //we may don't need do anything if no requests found
+        if (requests.isEmpty()) {
+            if (being_closed.get())
+                client.close_n_release();
+            return;
+        }
+
+        //write request into socket channel
+        ChannelFuture future = channel.write(requests);
+        future.addListener(new ChannelFutureListener() {
+            public void operationComplete(ChannelFuture future)
+                    throws Exception {
+                if (!future.isSuccess()) {
+                    LOG.info("failed to send requests:", future.getCause());
+                    future.getChannel().close();
+                } else {
+                    LOG.debug(requests.size() + " request(s) sent");
+                }
                 if (being_closed.get())
                     client.close_n_release();
-                return;
             }
-            
-            //write request into socket channel
-            ChannelFuture future = channel.write(requests);
-            future.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future)
-                        throws Exception {
-                    if (!future.isSuccess()) {
-                        LOG.info("failed to send requests:", future.getCause());
-                        future.getChannel().close();
-                    } else {
-                        LOG.debug(requests.size() + " request(s) sent");
-                    }
-                    if (being_closed.get())
-                        client.close_n_release();
-                }
-            });
-            
-        } catch (InterruptedException e1) {
-            channel.close();
-        }
+        });
     }
-    
+
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-        if (!being_closed.get())
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
+        Throwable cause = event.getCause();
+        if (!(cause instanceof ConnectException)) {
+            LOG.info("Connection failed:"+cause.getMessage(), cause);
+        }
+        if (!being_closed.get()) {
+            client.setChannel(null);
             client.reconnect();
+        }
     }
 }

@@ -4,8 +4,14 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
@@ -20,24 +26,25 @@ import backtype.storm.messaging.TaskMessage;
 import backtype.storm.utils.Utils;
 
 class Client implements IConnection {
-    final int max_retries; 
-    final int base_sleep_ms; 
-    final int max_sleep_ms; 
-
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
+    private final int max_retries; 
+    private final int base_sleep_ms; 
+    private final int max_sleep_ms; 
     private LinkedBlockingQueue<TaskMessage> message_queue;
-    Channel channel;
-    final ClientBootstrap bootstrap;
-    InetSocketAddress remote_addr;
-    volatile int retries; 
+    private AtomicReference<Channel> channelRef;
+    private final ClientBootstrap bootstrap;
+    private InetSocketAddress remote_addr;
+    private AtomicInteger retries; 
     private final Random random = new Random();
-    final ChannelFactory factory;
-    final Object monitor = new Object();
-
+    private final ChannelFactory factory;
+    private AtomicBoolean ready_to_release_resource;
+    
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, String host, int port) {
         message_queue = new LinkedBlockingQueue<TaskMessage>();
-        retries = 0;
+        retries = new AtomicInteger(0);
+        channelRef = new AtomicReference<Channel>(null);
+        ready_to_release_resource = new AtomicBoolean(false);
 
         // Configure 
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
@@ -56,8 +63,7 @@ class Client implements IConnection {
 
         // Start the connection attempt.
         remote_addr = new InetSocketAddress(host, port);
-        ChannelFuture future = bootstrap.connect(remote_addr);
-        channel = future.getChannel();
+        bootstrap.connect(remote_addr);
     }
 
     /**
@@ -65,14 +71,14 @@ class Client implements IConnection {
      */
     void reconnect() {
         try {
-            retries ++;
-            if (retries < max_retries) {
+            int tried_count = retries.incrementAndGet();
+            if (tried_count < max_retries) {
                 Thread.sleep(getSleepTimeMs());
-                LOG.info("Reconnect ... " + " ["+retries+"]");   
-                ChannelFuture future = bootstrap.connect(remote_addr);
-                channel = future.getChannel();
+                LOG.info("Reconnect ... " + " ["+tried_count+"]");   
+                bootstrap.connect(remote_addr);
+                LOG.debug("connection started...");
             } else {
-                LOG.warn("Remote address is not reachable anymore");
+                LOG.warn("Remote address is not reachable. We will close this client.");
                 close();
             }
         } catch (InterruptedException e) {
@@ -85,7 +91,7 @@ class Client implements IConnection {
      */
     private int getSleepTimeMs()
     {
-        int sleepMs = base_sleep_ms * Math.max(1, random.nextInt(1 << retries));
+        int sleepMs = base_sleep_ms * Math.max(1, random.nextInt(1 << retries.get()));
         if ( sleepMs > max_sleep_ms )
             sleepMs = max_sleep_ms;
         return sleepMs;
@@ -127,16 +133,29 @@ class Client implements IConnection {
         } catch (InterruptedException e) {
             close_n_release();
         }
+        
+        //schedule a timer to release resources once channel is closed
+        final Timer timer = new Timer(true);
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (ready_to_release_resource.get()) {
+                    LOG.info("client resource released");
+                    factory.releaseExternalResources();
+                    timer.cancel();
+                }
+            }
+        }, 0, 10);
     }
 
     /**
      * close_n_release() is invoked after all messages have been sent.
      */
     void  close_n_release() {
-        //close channel
-        ChannelFuture future = channel.close();
-        future.awaitUninterruptibly();
-        factory.releaseExternalResources();
+        if (channelRef.get() != null) 
+            channelRef.get().close().awaitUninterruptibly();
+        //we are now ready to release resources
+        ready_to_release_resource.set(true);
     }
 
     public TaskMessage recv(int flags) {
@@ -144,7 +163,7 @@ class Client implements IConnection {
     }
 
     void setChannel(Channel channel) {
-        this.channel = channel; 
+        channelRef.set(channel); 
     }
 
 }

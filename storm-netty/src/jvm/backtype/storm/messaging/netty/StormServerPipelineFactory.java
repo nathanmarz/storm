@@ -18,7 +18,6 @@ class StormServerPipelineFactory implements  ChannelPipelineFactory {
         this.conf = conf;
     }
     
-    @Override
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = Channels.pipeline();

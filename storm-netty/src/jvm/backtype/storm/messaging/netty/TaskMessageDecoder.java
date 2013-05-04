@@ -7,7 +7,7 @@ import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
 import backtype.storm.messaging.TaskMessage;
 
-class TaskMessageDecoder extends FrameDecoder {    
+public class TaskMessageDecoder extends FrameDecoder {    
     /*
      * Each TaskMessage is encoded as:
      *  task ... short(2)

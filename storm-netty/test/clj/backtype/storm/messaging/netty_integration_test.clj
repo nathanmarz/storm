@@ -7,16 +7,15 @@
 (bootstrap)
 
 (deftest test-integration
-  (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 2 :supervisor-slot-port-min 6710
-                                      :daemon-conf {TOPOLOGY-WORKERS 2
-                                                    STORM-LOCAL-MODE-ZMQ true 
+  (with-simulated-time-local-cluster [cluster :supervisors 4 :supervisor-slot-port-min 6710
+                                      :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
                                                     STORM-MESSAGING-TRANSPORT  "backtype.storm.messaging.netty.Context"
                                                     STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
                                                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                                                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                                                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000}]
     (let [topology (thrift/mk-topology
-                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 2)}
+                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
                      {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
                                                :parallelism-hint 6)})
           results (complete-topology cluster

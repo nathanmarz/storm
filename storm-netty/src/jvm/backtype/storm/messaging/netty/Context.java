@@ -2,10 +2,17 @@ package backtype.storm.messaging.netty;
 
 import java.util.Map;
 import java.util.Vector;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.esotericsoftware.minlog.Log;
+
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.IContext;
 
 public class Context implements IContext {
+    private static final Logger LOG = LoggerFactory.getLogger(Context.class);
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
     private Vector<IConnection> server_connections;

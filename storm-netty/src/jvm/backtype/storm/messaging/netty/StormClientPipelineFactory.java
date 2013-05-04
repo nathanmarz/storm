@@ -5,7 +5,7 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
-public class StormClientPipelineFactory implements ChannelPipelineFactory {
+class StormClientPipelineFactory implements ChannelPipelineFactory {
     private Client client;
     @SuppressWarnings("rawtypes")
     private Map conf;
@@ -16,7 +16,6 @@ public class StormClientPipelineFactory implements ChannelPipelineFactory {
         this.conf = conf;
     }
 
-    @Override
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = Channels.pipeline();

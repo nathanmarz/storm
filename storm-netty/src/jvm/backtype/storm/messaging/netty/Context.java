@@ -10,7 +10,6 @@ import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.IContext;
 
 public class Context implements IContext {
-    private static final Logger LOG = LoggerFactory.getLogger(Context.class);
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
     private Vector<IConnection> server_connections;

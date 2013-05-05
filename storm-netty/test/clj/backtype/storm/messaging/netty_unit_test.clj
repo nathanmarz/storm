@@ -62,7 +62,7 @@
 
 (deftest test-batch
   (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
-                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 10240000
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000}
@@ -71,10 +71,10 @@
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
         task 0]
-    (doseq [num  (range 1 100)]
+    (doseq [num  (range 1 100000)]
       (let [req_msg (str num)]
         (.send client task (.getBytes req_msg))))
-    (doseq [num  (range 1 100)]
+    (doseq [num  (range 1 100000)]
       (let [req_msg (str num)
             resp (.recv server 0)
             resp_msg (String. (.message resp))]

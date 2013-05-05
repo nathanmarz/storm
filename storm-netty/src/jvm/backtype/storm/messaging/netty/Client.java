@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +37,7 @@ class Client implements IConnection {
     private final Random random = new Random();
     private final ChannelFactory factory;
     private AtomicBoolean ready_to_release_resource;
+    private final int buffer_size;
     
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, String host, int port) {
@@ -47,7 +47,7 @@ class Client implements IConnection {
         ready_to_release_resource = new AtomicBoolean(false);
 
         // Configure 
-        int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
+        buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
         max_retries = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         base_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
@@ -114,10 +114,15 @@ class Client implements IConnection {
      * @throws InterruptedException
      */
     ArrayList<TaskMessage> takeMessages()  throws InterruptedException {
+        int size = 0;
         ArrayList<TaskMessage> requests = new ArrayList<TaskMessage>();
         requests.add(message_queue.take());
-        for (TaskMessage msg = message_queue.poll(); msg!=null;  msg = message_queue.poll())
+        for (TaskMessage msg = message_queue.poll(); msg!=null;  msg = message_queue.poll()) {
             requests.add(msg); 
+            size += (msg.message()!=null? msg.message().length : 0) + 6; //INT + SHORT + payload
+            if (size > buffer_size)
+                break;
+        }
         return requests;
     }
 

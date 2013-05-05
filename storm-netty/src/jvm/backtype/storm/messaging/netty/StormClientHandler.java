@@ -82,6 +82,8 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
             return;
         }
 
+        //add an EOB_MESSAGE to the end of our batch
+        requests.add(Util.EOB_MESSAGE);
         //write request into socket channel
         ChannelFuture future = channel.write(requests);
         future.addListener(new ChannelFutureListener() {
@@ -91,7 +93,7 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
                     LOG.info("failed to send requests:", future.getCause());
                     future.getChannel().close();
                 } else {
-                    LOG.debug(requests.size() + " request(s) sent");
+                    LOG.debug((requests.size()-1) + " request(s) sent");
                 }
                 if (being_closed.get())
                     client.close_n_release();
@@ -104,7 +106,7 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
         Throwable cause = event.getCause();
         if (!(cause instanceof ConnectException)) {
             LOG.info("Connection failed:"+cause.getMessage(), cause);
-        }
+        } 
         if (!being_closed.get()) {
             client.setChannel(null);
             client.reconnect();

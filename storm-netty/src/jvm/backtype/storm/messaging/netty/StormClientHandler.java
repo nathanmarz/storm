@@ -21,10 +21,12 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
     private Client client;
     private AtomicBoolean being_closed;
-
+    long start_time; 
+    
     StormClientHandler(Client client) {
         this.client = client;
         being_closed = new AtomicBoolean(false);
+        start_time = System.currentTimeMillis();
     }
 
     @Override
@@ -44,7 +46,8 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) {
-
+        LOG.debug("send/recv time (ms):"+(System.currentTimeMillis() - start_time));
+        
         //examine the response message from server
         TaskMessage msg = (TaskMessage)event.getMessage();
         if (msg.task()!=Util.OK)
@@ -66,13 +69,11 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private void sendRequests(Channel channel, final ArrayList<TaskMessage> requests) {
         if (being_closed.get()) return;
 
-        //if task==SHUTDOWN for any request, the channel is to be closed
-        for (TaskMessage message: requests) {
-            if (message.task()==Util.CLOSE) {
-                being_closed.set(true);
-                requests.remove(message);
-                break;
-            }
+        //if task==CLOSE_MESSAGE for our last request, the channel is to be closed
+        TaskMessage last_msg = requests.get(requests.size()-1);
+        if (last_msg==Util.CLOSE_MESSAGE) {
+            being_closed.set(true);
+            requests.remove(last_msg);
         }
 
         //we may don't need do anything if no requests found

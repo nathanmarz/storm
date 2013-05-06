@@ -38,12 +38,14 @@ class Client implements IConnection {
     private final ChannelFactory factory;
     private AtomicBoolean ready_to_release_resource;
     private final int buffer_size;
+    private final AtomicBoolean being_closed;
     
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, String host, int port) {
         message_queue = new LinkedBlockingQueue<TaskMessage>();
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
+        being_closed = new AtomicBoolean(false);
         ready_to_release_resource = new AtomicBoolean(false);
 
         // Configure 
@@ -100,7 +102,12 @@ class Client implements IConnection {
     /**
      * Enqueue a task message to be sent to server 
      */
-    public void send(int task, byte[] message) {
+    public void send(int task, byte[] message) {        
+        //throw exception if the client is being closed
+        if (being_closed.get()) {
+            throw new RuntimeException("Client is being closed, and does not take requests any more");
+        }
+        
         try {
             message_queue.put(new TaskMessage(task, message));
         } catch (InterruptedException e) {
@@ -119,6 +126,9 @@ class Client implements IConnection {
         requests.add(message_queue.take());
         for (TaskMessage msg = message_queue.poll(); msg!=null;  msg = message_queue.poll()) {
             requests.add(msg); 
+            //we will discard any message after CLOSE
+            if (msg==Util.CLOSE_MESSAGE) break;
+            //we limit the batch per buffer size
             size += (msg.message()!=null? msg.message().length : 0) + 6; //INT + SHORT + payload
             if (size > buffer_size)
                 break;
@@ -135,6 +145,7 @@ class Client implements IConnection {
         //enqueue a SHUTDOWN message so that shutdown() will be invoked 
         try {
             message_queue.put(Util.CLOSE_MESSAGE);
+            being_closed.set(true);
         } catch (InterruptedException e) {
             close_n_release();
         }

@@ -10,11 +10,11 @@ import backtype.storm.tuple.Tuple;
 import clojure.lang.AFn;
 import clojure.lang.IFn;
 import clojure.lang.RT;
-import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.management.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,14 +34,14 @@ public class SystemBolt implements IBolt {
         @Override
         public Object getValueAndReset() {
             MemoryUsage memUsage = (MemoryUsage)_getUsage.invoke();
-            return ImmutableMap.builder()
-                    .put("maxBytes", memUsage.getMax())
-                    .put("committedBytes", memUsage.getCommitted())
-                    .put("initBytes", memUsage.getInit())
-                    .put("usedBytes", memUsage.getUsed())
-                    .put("virtualFreeBytes", memUsage.getMax() - memUsage.getUsed())
-                    .put("unusedBytes", memUsage.getCommitted() - memUsage.getUsed())
-                    .build();
+            HashMap m = new HashMap();
+            m.put("maxBytes", memUsage.getMax());
+            m.put("committedBytes", memUsage.getCommitted());
+            m.put("initBytes", memUsage.getInit());
+            m.put("usedBytes", memUsage.getUsed());
+            m.put("virtualFreeBytes", memUsage.getMax() - memUsage.getUsed());
+            m.put("unusedBytes", memUsage.getCommitted() - memUsage.getUsed());
+            return m;
         }
     }
 
@@ -61,10 +61,9 @@ public class SystemBolt implements IBolt {
 
             Map ret = null;
             if(_collectionCount!=null && _collectionTime!=null) {
-                ret = ImmutableMap.builder()
-                        .put("count", collectionCountP - _collectionCount)
-                        .put("timeMs", collectionTimeP - _collectionTime)
-                        .build();
+                ret = new HashMap();
+                ret.put("count", collectionCountP - _collectionCount);
+                ret.put("timeMs", collectionTimeP - _collectionTime);
             }
 
             _collectionCount = collectionCountP;

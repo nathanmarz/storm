@@ -1,5 +1,7 @@
 package storm.trident.topology.state;
 
+import org.apache.zookeeper.KeeperException;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.SortedMap;
@@ -96,7 +98,16 @@ public class RotatingTransactionalState {
         SortedMap<Long, Object> toDelete = _curr.headMap(txid);
         for(long tx: new HashSet<Long>(toDelete.keySet())) {
             _curr.remove(tx);
-            _state.delete(txPath(tx));
+            try {
+                _state.delete(txPath(tx));
+            } catch(RuntimeException e) {
+                // Ignore NoNodeExists exceptions because when sync() it may populate _curr with stale data since
+                // zookeeper reads are eventually consistent.
+                if(!(e.getCause() instanceof KeeperException.NoNodeException)) {
+                    throw e;
+                }
+            }
+
         }
     }
     

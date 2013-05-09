@@ -1,9 +1,9 @@
-(defproject storm/storm-kafka "0.9.0-wip16b-scala292"
+(defproject storm/storm-kafka-0.8-plus "0.1.0-SNAPSHOT"
   :java-source-paths ["src/jvm"]
   :repositories {"scala-tools" "http://scala-tools.org/repo-releases"
                   "conjars" "http://conjars.org/repo/"}
   :dependencies [[org.scala-lang/scala-library "2.9.2"]
-                  [com.twitter/kafka_2.9.2 "0.7.0"
+                  [org.apache/kafka_2.9.2 "0.8.0-SNAPSHOT"
                   :exclusions [org.apache.zookeeper/zookeeper
                                log4j/log4j]]]
   :profiles

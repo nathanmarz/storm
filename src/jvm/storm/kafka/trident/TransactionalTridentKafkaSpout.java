@@ -11,6 +11,7 @@ import backtype.storm.tuple.Fields;
 import java.util.*;
 
 import kafka.api.FetchRequest;
+import kafka.api.FetchRequestBuilder;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -91,7 +92,7 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
                 long offset = (Long) meta.get("offset");
                 long nextOffset = (Long) meta.get("nextOffset");
                 long start = System.nanoTime();
-                ByteBufferMessageSet msgs = consumer.fetch(new FetchRequest(_config.topic, partition.partition, offset, _config.fetchSizeBytes));
+                ByteBufferMessageSet msgs = consumer.fetch(new FetchRequestBuilder().addFetch(_config.topic, partition.partition, offset, _config.fetchSizeBytes).build()).messageSet(_config.topic, partition.partition);
                 long end = System.nanoTime();
                 long millis = (end - start) / 1000000;
                 _kafkaMeanFetchLatencyMetric.update(millis);
@@ -103,7 +104,7 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
                         throw new RuntimeException("Error when re-emitting batch. overshot the end offset");
                     }
                     KafkaUtils.emit(_config, collector, msg.message());
-                    offset = msg.offset();
+                    offset = msg.nextOffset();
                 }        
             }
         }

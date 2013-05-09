@@ -30,22 +30,22 @@ class StormServerHandler extends SimpleChannelUpstreamHandler  {
     
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-        TaskMessage message = (TaskMessage)e.getMessage();  
-        if (message == null) return;
+        Object msg = e.getMessage();  
+        if (msg == null) return;
 
         //end of batch?
-        if (message.task() == Util.EOB) {
+        if (ControlMessage.EOB_MESSAGE.equals(msg)) {
             Channel channel = ctx.getChannel();
-            LOG.debug("Sendback response ...");
+            LOG.debug("Send back response ...");
             if (failure_count.get()==0)
-                channel.write(Util.OK_RESPONSE);
-            else channel.write(Util.FAILURE_RESPONSE);
+                channel.write(ControlMessage.OK_RESPONSE);
+            else channel.write(ControlMessage.FAILURE_RESPONSE);
             return;
         }
         
         //enqueue the received message for processing
         try {
-            server.enqueue(message);
+            server.enqueue((TaskMessage)msg);
         } catch (InterruptedException e1) {
             LOG.info("failed to enqueue a request message", e);
             failure_count.incrementAndGet();

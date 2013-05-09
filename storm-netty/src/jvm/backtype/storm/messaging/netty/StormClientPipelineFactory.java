@@ -21,9 +21,9 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
         ChannelPipeline pipeline = Channels.pipeline();
 
         // Decoder
-        pipeline.addLast("decoder", new TaskMessageDecoder());
+        pipeline.addLast("decoder", new MessageDecoder());
         // Encoder
-        pipeline.addLast("encoder", new TaskMessageEncoder(conf));
+        pipeline.addLast("encoder", new MessageEncoder(conf));
         // business logic.
         pipeline.addLast("handler", new StormClientHandler(client));
 

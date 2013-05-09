@@ -13,11 +13,11 @@ import backtype.storm.Config;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.utils.Utils;
 
-public class TaskMessageEncoder extends OneToOneEncoder {
+public class MessageEncoder extends OneToOneEncoder {
     int estimated_buffer_size;
     
     @SuppressWarnings("rawtypes")
-    TaskMessageEncoder(Map conf) {
+    MessageEncoder(Map conf) {
         estimated_buffer_size = Utils.getInt(conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
     }
     
@@ -25,6 +25,17 @@ public class TaskMessageEncoder extends OneToOneEncoder {
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object obj) throws Exception {
         
+        if (obj instanceof ControlMessage) {
+            ControlMessage message = (ControlMessage)obj;
+            ChannelBufferOutputStream bout =
+                    new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(
+                            estimated_buffer_size, ctx.getChannel().getConfig().getBufferFactory()));
+            writeControlMessage(bout, message);
+            bout.close();
+
+            return bout.buffer();
+        }
+
         if (obj instanceof TaskMessage) {
             TaskMessage message = (TaskMessage)obj;
             ChannelBufferOutputStream bout =
@@ -43,6 +54,7 @@ public class TaskMessageEncoder extends OneToOneEncoder {
             ArrayList<TaskMessage> messages = (ArrayList<TaskMessage>) obj;
             for (TaskMessage message : messages) 
                 writeTaskMessage(bout, message);
+            writeControlMessage(bout, ControlMessage.EOB_MESSAGE);
             bout.close();
 
             return bout.buffer();
@@ -68,5 +80,15 @@ public class TaskMessageEncoder extends OneToOneEncoder {
         bout.writeInt(payload_len);
         if (payload_len >0)
             bout.write(message.message());
+    }
+
+    /**
+     * write a ControlMessage into a stream
+     *
+     * Each TaskMessage is encoded as:
+     *  code ... short(2)
+     */
+    private void writeControlMessage(ChannelBufferOutputStream bout, ControlMessage message) throws Exception {
+        bout.writeShort(message.code());
     }
 }

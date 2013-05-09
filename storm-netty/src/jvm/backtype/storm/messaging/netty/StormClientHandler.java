@@ -15,8 +15,6 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.messaging.TaskMessage;
-
 class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
     private Client client;
@@ -49,8 +47,8 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
         LOG.debug("send/recv time (ms):"+(System.currentTimeMillis() - start_time));
         
         //examine the response message from server
-        TaskMessage msg = (TaskMessage)event.getMessage();
-        if (msg.task()!=Util.OK)
+        ControlMessage msg = (ControlMessage)event.getMessage();
+        if (msg.equals(ControlMessage.FAILURE_RESPONSE))
             LOG.info("failure response:"+msg);
 
         //send next request
@@ -66,12 +64,12 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
      * Retrieve a request from message queue, and send to server
      * @param channel
      */
-    private void sendRequests(Channel channel, final ArrayList<TaskMessage> requests) {
+    private void sendRequests(Channel channel, final ArrayList<Object> requests) {
         if (being_closed.get()) return;
 
         //if task==CLOSE_MESSAGE for our last request, the channel is to be closed
-        TaskMessage last_msg = requests.get(requests.size()-1);
-        if (last_msg==Util.CLOSE_MESSAGE) {
+        Object last_msg = requests.get(requests.size()-1);
+        if (last_msg==ControlMessage.CLOSE_MESSAGE) {
             being_closed.set(true);
             requests.remove(last_msg);
         }
@@ -83,8 +81,6 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
             return;
         }
 
-        //add an EOB_MESSAGE to the end of our batch
-        requests.add(Util.EOB_MESSAGE);
         //write request into socket channel
         ChannelFuture future = channel.write(requests);
         future.addListener(new ChannelFutureListener() {
@@ -94,7 +90,7 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
                     LOG.info("failed to send requests:", future.getCause());
                     future.getChannel().close();
                 } else {
-                    LOG.debug((requests.size()-1) + " request(s) sent");
+                    LOG.debug(requests.size() + " request(s) sent");
                 }
                 if (being_closed.get())
                     client.close_n_release();

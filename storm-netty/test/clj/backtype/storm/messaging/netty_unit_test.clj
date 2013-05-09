@@ -62,7 +62,7 @@
 
 (deftest test-batch
   (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
-                    STORM-MESSAGING-NETTY-BUFFER-SIZE 10240000
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000}
@@ -78,7 +78,5 @@
       (let [req_msg (str num)
             resp (.recv server 0)
             resp_msg (String. (.message resp))]
-        (is (= task (.task resp)))
         (is (= req_msg resp_msg))))
     (.term context)))
-

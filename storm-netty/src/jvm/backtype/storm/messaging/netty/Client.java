@@ -29,7 +29,7 @@ class Client implements IConnection {
     private final int max_retries; 
     private final int base_sleep_ms; 
     private final int max_sleep_ms; 
-    private LinkedBlockingQueue<TaskMessage> message_queue;
+    private LinkedBlockingQueue<Object> message_queue; //entry should either be TaskMessage or ControlMessage
     private AtomicReference<Channel> channelRef;
     private final ClientBootstrap bootstrap;
     private InetSocketAddress remote_addr;
@@ -42,7 +42,7 @@ class Client implements IConnection {
     
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, String host, int port) {
-        message_queue = new LinkedBlockingQueue<TaskMessage>();
+        message_queue = new LinkedBlockingQueue<Object>();
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
@@ -120,16 +120,17 @@ class Client implements IConnection {
      * @return
      * @throws InterruptedException
      */
-    ArrayList<TaskMessage> takeMessages()  throws InterruptedException {
+    ArrayList<Object> takeMessages()  throws InterruptedException {
         int size = 0;
-        ArrayList<TaskMessage> requests = new ArrayList<TaskMessage>();
+        ArrayList<Object> requests = new ArrayList<Object>();
         requests.add(message_queue.take());
-        for (TaskMessage msg = message_queue.poll(); msg!=null;  msg = message_queue.poll()) {
+        for (Object msg = message_queue.poll(); msg!=null;  msg = message_queue.poll()) {
             requests.add(msg); 
             //we will discard any message after CLOSE
-            if (msg==Util.CLOSE_MESSAGE) break;
+            if (msg==ControlMessage.CLOSE_MESSAGE) break;
             //we limit the batch per buffer size
-            size += (msg.message()!=null? msg.message().length : 0) + 6; //INT + SHORT + payload
+            TaskMessage taskMsg = (TaskMessage) msg; 
+            size += (taskMsg.message()!=null? taskMsg.message().length : 0) + 6; //INT + SHORT + payload
             if (size > buffer_size)
                 break;
         }
@@ -144,7 +145,7 @@ class Client implements IConnection {
     public void close() {
         //enqueue a SHUTDOWN message so that shutdown() will be invoked 
         try {
-            message_queue.put(Util.CLOSE_MESSAGE);
+            message_queue.put(ControlMessage.CLOSE_MESSAGE);
             being_closed.set(true);
         } catch (InterruptedException e) {
             close_n_release();

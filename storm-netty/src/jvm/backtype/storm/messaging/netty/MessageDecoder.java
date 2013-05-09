@@ -4,19 +4,24 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import backtype.storm.messaging.TaskMessage;
 
-public class TaskMessageDecoder extends FrameDecoder {    
+public class MessageDecoder extends FrameDecoder {    
+    private static final Logger LOG = LoggerFactory.getLogger(MessageDecoder.class);
+
     /*
+     * Each ControlMessage is encoded as:
+     *  code (<0) ... short(2)
      * Each TaskMessage is encoded as:
-     *  task ... short(2)
+     *  task (>=0) ... short(2)
      *  len ... int(4)
      *  payload ... byte[]     *  
      */
     protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
-        // Make sure if both task and len were received.
-        if (buf.readableBytes() < 6) {
+        // Make sure that we have received at least a short 
+        if (buf.readableBytes() < 2) {
             //need more data
             return null;
         }
@@ -27,9 +32,26 @@ public class TaskMessageDecoder extends FrameDecoder {
         // there's not enough bytes in the buffer.
         buf.markReaderIndex();
 
-        //read task field
-        short task = buf.readShort();
+        //read the short field
+        short code = buf.readShort();
         
+        //case 1: Control message if val<0
+        if (code<=ControlMessage.BASE_CODE) {
+            ControlMessage ctrl_msg = new ControlMessage(code);
+            LOG.debug("Control message:"+ctrl_msg);
+            return ctrl_msg;
+        }
+        
+        //case 2: task Message
+        short task = code;
+        
+        // Make sure that we have received at least an integer (length) 
+        if (buf.readableBytes() < 4) {
+            //need more data
+            buf.resetReaderIndex();
+            return null;
+        }
+
         // Read the length field.
         int length = buf.readInt();
         if (length==0) {
@@ -39,13 +61,7 @@ public class TaskMessageDecoder extends FrameDecoder {
         // Make sure if there's enough bytes in the buffer.
         if (buf.readableBytes() < length) {
             // The whole bytes were not received yet - return null.
-            // This method will be invoked again when more packets are
-            // received and appended to the buffer.
-
-            // Reset to the marked position to read the length field again
-            // next time.
             buf.resetReaderIndex();
-
             return null;
         }
 

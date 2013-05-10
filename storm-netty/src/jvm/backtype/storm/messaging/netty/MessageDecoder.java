@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 import backtype.storm.messaging.TaskMessage;
 
 public class MessageDecoder extends FrameDecoder {    
-    private static final Logger LOG = LoggerFactory.getLogger(MessageDecoder.class);
-
     /*
      * Each ControlMessage is encoded as:
      *  code (<0) ... short(2)

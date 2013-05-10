@@ -84,7 +84,7 @@ class Client implements IConnection {
                 close();
             }
         } catch (InterruptedException e) {
-            LOG.info("connection failed", e);
+            LOG.warn("connection failed", e);
         } 
     }
 
@@ -157,7 +157,7 @@ class Client implements IConnection {
             @Override
             public void run() {
                 if (ready_to_release_resource.get()) {
-                    LOG.info("client resource released");
+                    LOG.debug("client resource released");
                     factory.releaseExternalResources();
                     timer.cancel();
                 }

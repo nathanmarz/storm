@@ -357,4 +357,15 @@ public class Utils {
         buffer.get(ret, 0, ret.length);
         return ret;
     }
+
+    public static boolean exceptionCauseIsInstanceOf(Class klass, Throwable throwable) {
+        Throwable t = throwable;
+        while(t != null) {
+            if(klass.isInstance(t)) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
+    }
 }

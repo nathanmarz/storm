@@ -35,12 +35,9 @@ public class MessageDecoder extends FrameDecoder {
         //read the short field
         short code = buf.readShort();
         
-        //case 1: Control message if val<0
-        if (code<=ControlMessage.BASE_CODE) {
-            ControlMessage ctrl_msg = new ControlMessage(code);
-            LOG.debug("Control message:"+ctrl_msg);
-            return ctrl_msg;
-        }
+        //case 1: Control message
+        ControlMessage ctrl_msg = ControlMessage.mkMessage(code);
+        if (ctrl_msg != null) return ctrl_msg;
         
         //case 2: task Message
         short task = code;

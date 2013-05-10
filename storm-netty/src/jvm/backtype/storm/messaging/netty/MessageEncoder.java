@@ -30,7 +30,7 @@ public class MessageEncoder extends OneToOneEncoder {
             ChannelBufferOutputStream bout =
                     new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(
                             estimated_buffer_size, ctx.getChannel().getConfig().getBufferFactory()));
-            writeControlMessage(bout, message);
+            message.write(bout);
             bout.close();
 
             return bout.buffer();
@@ -54,7 +54,7 @@ public class MessageEncoder extends OneToOneEncoder {
             ArrayList<TaskMessage> messages = (ArrayList<TaskMessage>) obj;
             for (TaskMessage message : messages) 
                 writeTaskMessage(bout, message);
-            writeControlMessage(bout, ControlMessage.EOB_MESSAGE);
+            ControlMessage.eobMessage().write(bout);
             bout.close();
 
             return bout.buffer();
@@ -82,13 +82,4 @@ public class MessageEncoder extends OneToOneEncoder {
             bout.write(message.message());
     }
 
-    /**
-     * write a ControlMessage into a stream
-     *
-     * Each TaskMessage is encoded as:
-     *  code ... short(2)
-     */
-    private void writeControlMessage(ChannelBufferOutputStream bout, ControlMessage message) throws Exception {
-        bout.writeShort(message.code());
-    }
 }

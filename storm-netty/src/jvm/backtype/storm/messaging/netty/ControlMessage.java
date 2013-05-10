@@ -1,46 +1,89 @@
 package backtype.storm.messaging.netty;
 
+import org.jboss.netty.buffer.ChannelBufferOutputStream;
+
 class ControlMessage {
-    static final short BASE_CODE = -100; 
-    static final short OK = -200; //HTTP status: 200
-    static final short EOB = -201; //end of a batch
-    static final short FAILURE = -400; //HTTP status: 400 BAD REQUEST
-    static final short CLOSE = -410; //HTTP status: 410 GONE
-    
-    static final ControlMessage CLOSE_MESSAGE = new ControlMessage(CLOSE);
-    static final ControlMessage EOB_MESSAGE = new ControlMessage(EOB);
-    static final ControlMessage OK_RESPONSE = new ControlMessage(OK);
-    static final ControlMessage FAILURE_RESPONSE = new ControlMessage(FAILURE);
-    
+    private static final short CODE_CLOSE = -100;
+    private static final short CODE_OK = -200;
+    private static final short CODE_EOB = -201;
+    private static final short CODE_FAILURE = -400;
     private short code;
-    
-    ControlMessage() {
-        code = OK;
+
+    //request client/server to be closed
+    private static final ControlMessage CLOSE_MESSAGE = new ControlMessage(CODE_CLOSE);
+    //indicate the end of a batch request
+    private static final ControlMessage EOB_MESSAGE = new ControlMessage(CODE_EOB);
+    //success response
+    private static final ControlMessage OK_RESPONSE = new ControlMessage(CODE_OK);
+    //failre response
+    private static final ControlMessage FAILURE_RESPONSE = new ControlMessage(CODE_FAILURE);
+
+    static ControlMessage okResponse() {
+        return OK_RESPONSE;
+    }
+
+    static ControlMessage failureResponse() {
+        return FAILURE_RESPONSE;
+    }
+
+    static ControlMessage eobMessage() {
+        return EOB_MESSAGE;
     }
     
-    ControlMessage(short code) {
-        assert(code<BASE_CODE);
+    static ControlMessage closeMessage() {
+        return CLOSE_MESSAGE;
+    }
+
+    //private constructor
+    private ControlMessage(short code) {
         this.code = code;
     }
-    
-    short code() {
-        return code;
-    }
-    
-    public String toString() {
-        switch (code) {
-        case OK: return "OK";
-        case EOB: return "END_OF_BATCH";
-        case FAILURE: return "FAILURE";
-        case CLOSE: return "CLOSE";
-        default: return "control message w/ code " + code;
+
+    /**
+     * Return a control message per an encoded status code
+     * @param encoded
+     * @return
+     */
+    static ControlMessage mkMessage(short encoded) {
+        switch (encoded) {
+        case CODE_OK: return OK_RESPONSE;
+        case CODE_EOB: return EOB_MESSAGE;
+        case CODE_FAILURE: return FAILURE_RESPONSE;
+        case CODE_CLOSE: return CLOSE_MESSAGE;
         }
+
+        return null;
     }
-    
+
+    /**
+     * write the current Control Message into a stream
+     * @param bout
+     * @throws Exception
+     */
+    void write(ChannelBufferOutputStream bout) throws Exception {
+        bout.writeShort(code);
+    }
+
+    /**
+     * comparison 
+     */
     public boolean equals(Object obj) {
         if (obj == null) return false;
         if (obj instanceof ControlMessage)
             return ((ControlMessage)obj).code == code;
         return false;
     }
+
+    /**
+     * human readable string
+     */
+    public String toString() {
+        switch (code) {
+        case CODE_OK: return "ControlMessage OK";
+        case CODE_EOB: return "ControlMessage END_OF_BATCH";
+        case CODE_FAILURE: return "ControlMessage FAILURE";
+        case CODE_CLOSE: return "ControlMessage CLOSE";
+        }
+        return null;
+    }   
 }

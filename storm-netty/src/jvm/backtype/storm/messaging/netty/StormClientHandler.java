@@ -15,7 +15,7 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class StormClientHandler extends SimpleChannelUpstreamHandler  {
+public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
     private Client client;
     private AtomicBoolean being_closed;
@@ -48,7 +48,7 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
         
         //examine the response message from server
         ControlMessage msg = (ControlMessage)event.getMessage();
-        if (msg.equals(ControlMessage.FAILURE_RESPONSE))
+        if (msg.equals(ControlMessage.failureResponse()))
             LOG.info("failure response:"+msg);
 
         //send next request
@@ -65,11 +65,11 @@ class StormClientHandler extends SimpleChannelUpstreamHandler  {
      * @param channel
      */
     private void sendRequests(Channel channel, final ArrayList<Object> requests) {
-        if (being_closed.get()) return;
+        if (requests==null || requests.size()==0 || being_closed.get()) return;
 
         //if task==CLOSE_MESSAGE for our last request, the channel is to be closed
         Object last_msg = requests.get(requests.size()-1);
-        if (last_msg==ControlMessage.CLOSE_MESSAGE) {
+        if (last_msg.equals(ControlMessage.closeMessage())) {
             being_closed.set(true);
             requests.remove(last_msg);
         }

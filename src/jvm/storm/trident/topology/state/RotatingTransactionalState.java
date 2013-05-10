@@ -1,5 +1,6 @@
 package storm.trident.topology.state;
 
+import backtype.storm.utils.Utils;
 import org.apache.zookeeper.KeeperException;
 
 import java.util.HashSet;
@@ -103,11 +104,10 @@ public class RotatingTransactionalState {
             } catch(RuntimeException e) {
                 // Ignore NoNodeExists exceptions because when sync() it may populate _curr with stale data since
                 // zookeeper reads are eventually consistent.
-                if(!(e.getCause() instanceof KeeperException.NoNodeException)) {
+                if(!Utils.exceptionCauseIsInstanceOf(KeeperException.NoNodeException.class, e)) {
                     throw e;
                 }
             }
-
         }
     }
     

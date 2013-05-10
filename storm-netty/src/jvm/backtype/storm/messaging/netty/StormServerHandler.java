@@ -34,7 +34,7 @@ class StormServerHandler extends SimpleChannelUpstreamHandler  {
         if (msg == null) return;
 
         //end of batch?
-        if (msg.equals(ControlMessage.eobMessage())) {
+        if (msg==ControlMessage.eobMessage()) {
             Channel channel = ctx.getChannel();
             LOG.debug("Send back response ...");
             if (failure_count.get()==0)

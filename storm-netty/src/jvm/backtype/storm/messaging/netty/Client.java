@@ -127,7 +127,7 @@ class Client implements IConnection {
         for (Object msg = message_queue.poll(); msg!=null;  msg = message_queue.poll()) {
             requests.add(msg); 
             //we will discard any message after CLOSE
-            if (msg.equals(ControlMessage.closeMessage())) break;
+            if (msg==ControlMessage.closeMessage()) break;
             //we limit the batch per buffer size
             TaskMessage taskMsg = (TaskMessage) msg; 
             size += (taskMsg.message()!=null? taskMsg.message().length : 0) + 6; //INT + SHORT + payload

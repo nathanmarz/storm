@@ -24,43 +24,27 @@ public class MessageEncoder extends OneToOneEncoder {
     @SuppressWarnings("unchecked")
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object obj) throws Exception {
-        
         if (obj instanceof ControlMessage) {
-            ControlMessage message = (ControlMessage)obj;
-            ChannelBufferOutputStream bout =
-                    new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(
-                            estimated_buffer_size, ctx.getChannel().getConfig().getBufferFactory()));
-            message.write(bout);
-            bout.close();
-
-            return bout.buffer();
+            return ((ControlMessage)obj).buffer();
         }
 
-        if (obj instanceof TaskMessage) {
-            TaskMessage message = (TaskMessage)obj;
-            ChannelBufferOutputStream bout =
-                    new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(
-                            estimated_buffer_size, ctx.getChannel().getConfig().getBufferFactory()));
-            writeTaskMessage(bout, message);
-            bout.close();
-
-            return bout.buffer();
-        }
-
+        ChannelBufferOutputStream bout;
         if (obj instanceof ArrayList<?>) {
-            ChannelBufferOutputStream bout =
-                    new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(
-                            estimated_buffer_size, ctx.getChannel().getConfig().getBufferFactory()));
+            bout = new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(
+                    estimated_buffer_size, ctx.getChannel().getConfig().getBufferFactory()));
+                
+            //request: a list of TaskMessage objects
             ArrayList<TaskMessage> messages = (ArrayList<TaskMessage>) obj;
             for (TaskMessage message : messages) 
                 writeTaskMessage(bout, message);
+            //add a END_OF_BATCH indicator
             ControlMessage.eobMessage().write(bout);
             bout.close();
 
             return bout.buffer();
-        }
-
-        return null;
+        } 
+        
+        throw new RuntimeException("Unsupported encoding of object of class "+obj.getClass().getName());
     }
 
     /**

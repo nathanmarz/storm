@@ -1,6 +1,8 @@
 package backtype.storm.messaging.netty;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 class ControlMessage {
     private static final short CODE_CLOSE = -100;
@@ -56,14 +58,21 @@ class ControlMessage {
     }
 
     /**
-     * write the current Control Message into a stream
+     * encode the current Control Message into a channel buffer
      * @param bout
      * @throws Exception
      */
-    void write(ChannelBufferOutputStream bout) throws Exception {
-        bout.writeShort(code);
+    ChannelBuffer buffer() throws Exception {
+        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer());      
+        write(bout);
+        bout.close();
+        return bout.buffer();
     }
 
+    void write(ChannelBufferOutputStream bout) throws Exception {
+        bout.writeShort(code);        
+    }
+    
     /**
      * comparison 
      */

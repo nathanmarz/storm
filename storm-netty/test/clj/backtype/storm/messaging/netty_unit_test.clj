@@ -5,6 +5,9 @@
 
 (bootstrap)
 
+(def port 6700) 
+(def task 1) 
+
 (deftest test-basic
   (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
         storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
@@ -13,10 +16,8 @@
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000 }
         context (TransportFactory/makeContext storm-conf)
-        port 6700
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
-        task 0
         _ (.send client task (.getBytes req_msg))
         resp (.recv server 0)]
     (is (= task (.task resp)))
@@ -31,10 +32,8 @@
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000 }
         context (TransportFactory/makeContext storm-conf)
-        port 6701
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
-        task 0
         _ (.send client task (.getBytes req_msg))
         resp (.recv server 0)]
     (is (= task (.task resp)))
@@ -49,11 +48,9 @@
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000 }
         context (TransportFactory/makeContext storm-conf)
-        port 6702
         client (.connect context nil "localhost" port)
-        task 0
         _ (.send client task (.getBytes req_msg))
-        _ (Thread/sleep 2000)
+        _ (Thread/sleep 1000)
         server (.bind context nil port)
         resp (.recv server 0)]
     (is (= task (.task resp)))
@@ -67,10 +64,8 @@
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000}
         context (TransportFactory/makeContext storm-conf)
-        port 6703
         server (.bind context nil port)
-        client (.connect context nil "localhost" port)
-        task 0]
+        client (.connect context nil "localhost" port)]
     (doseq [num  (range 1 100000)]
       (let [req_msg (str num)]
         (.send client task (.getBytes req_msg))))

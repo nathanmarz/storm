@@ -44,12 +44,12 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) {
-        LOG.debug("send/recv time (ms):"+(System.currentTimeMillis() - start_time));
+        LOG.debug("send/recv time (ms): {}", (System.currentTimeMillis() - start_time));
         
         //examine the response message from server
         ControlMessage msg = (ControlMessage)event.getMessage();
-        if (msg==ControlMessage.failureResponse())
-            LOG.info("failure response:"+msg);
+        if (msg==ControlMessage.FAILURE_RESPONSE)
+            LOG.info("failure response:{}", msg);
 
         //send next request
         Channel channel = event.getChannel();
@@ -69,7 +69,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
 
         //if task==CLOSE_MESSAGE for our last request, the channel is to be closed
         Object last_msg = requests.get(requests.size()-1);
-        if (last_msg==ControlMessage.closeMessage()) {
+        if (last_msg==ControlMessage.CLOSE_MESSAGE) {
             being_closed.set(true);
             requests.remove(last_msg);
         }
@@ -90,7 +90,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
                     LOG.info("failed to send requests:", future.getCause());
                     future.getChannel().close();
                 } else {
-                    LOG.debug(requests.size() + " request(s) sent");
+                    LOG.debug("{} request(s) sent", requests.size());
                 }
                 if (being_closed.get())
                     client.close_n_release();
@@ -102,7 +102,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
         Throwable cause = event.getCause();
         if (!(cause instanceof ConnectException)) {
-            LOG.info("Connection failed:"+cause.getMessage(), cause);
+            LOG.info("Connection failed:", cause);
         } 
         if (!being_closed.get()) {
             client.setChannel(null);

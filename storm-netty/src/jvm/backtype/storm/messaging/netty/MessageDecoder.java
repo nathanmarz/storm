@@ -49,7 +49,7 @@ public class MessageDecoder extends FrameDecoder {
 
         // Read the length field.
         int length = buf.readInt();
-        if (length==0) {
+        if (length<=0) {
             return new TaskMessage(task, null);
         }
         

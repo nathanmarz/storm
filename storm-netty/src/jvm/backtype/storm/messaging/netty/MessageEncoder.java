@@ -38,7 +38,7 @@ public class MessageEncoder extends OneToOneEncoder {
             for (TaskMessage message : messages) 
                 writeTaskMessage(bout, message);
             //add a END_OF_BATCH indicator
-            ControlMessage.eobMessage().write(bout);
+            ControlMessage.EOB_MESSAGE.write(bout);
             bout.close();
 
             return bout.buffer();
@@ -60,7 +60,11 @@ public class MessageEncoder extends OneToOneEncoder {
         if (message.message() != null)
             payload_len =  message.message().length;
 
-        bout.writeShort((short)message.task());
+        int task_id = message.task();
+        if (task_id > Short.MAX_VALUE)
+            throw new RuntimeException("Task ID should not exceed "+Short.MAX_VALUE);
+        
+        bout.writeShort((short)task_id);
         bout.writeInt(payload_len);
         if (payload_len >0)
             bout.write(message.message());

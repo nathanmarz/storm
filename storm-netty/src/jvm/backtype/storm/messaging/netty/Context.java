@@ -9,8 +9,7 @@ import backtype.storm.messaging.IContext;
 public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
-    private Vector<IConnection> server_connections;
-    private Vector<IConnection> client_connections;
+    private Vector<IConnection> connections;
     
     /**
      * initialization per Storm configuration 
@@ -18,8 +17,7 @@ public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     public void prepare(Map storm_conf) {
        this.storm_conf = storm_conf;
-       server_connections = new Vector<IConnection>(); 
-       client_connections = new Vector<IConnection>(); 
+       connections = new Vector<IConnection>(); 
     }
 
     /**
@@ -27,7 +25,7 @@ public class Context implements IContext {
      */
     public IConnection bind(String storm_id, int port) {
         IConnection server = new Server(storm_conf, port);
-        server_connections.add(server);
+        connections.add(server);
         return server;
     }
 
@@ -36,7 +34,7 @@ public class Context implements IContext {
      */
     public IConnection connect(String storm_id, String host, int port) {        
         IConnection client =  new Client(storm_conf, host, port);
-        client_connections.add(client);
+        connections.add(client);
         return client;
     }
 
@@ -44,11 +42,8 @@ public class Context implements IContext {
      * terminate this context
      */
     public void term() {
-        for (IConnection client : client_connections) {
-            client.close();
-        }
-        for (IConnection server : server_connections) {
-            server.close();
+        for (IConnection conn : connections) {
+            conn.close();
         }
     }
 }

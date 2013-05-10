@@ -36,24 +36,22 @@ class Client implements IConnection {
     private AtomicInteger retries; 
     private final Random random = new Random();
     private final ChannelFactory factory;
-    private AtomicBoolean ready_to_release_resource;
     private final int buffer_size;
     private final AtomicBoolean being_closed;
-    
+
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, String host, int port) {
         message_queue = new LinkedBlockingQueue<Object>();
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
-        ready_to_release_resource = new AtomicBoolean(false);
 
         // Configure 
         buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
         max_retries = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         base_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
-        
+
         factory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());                   
         bootstrap = new ClientBootstrap(factory);
         bootstrap.setOption("tcpNoDelay", true);
@@ -76,7 +74,7 @@ class Client implements IConnection {
             int tried_count = retries.incrementAndGet();
             if (tried_count < max_retries) {
                 Thread.sleep(getSleepTimeMs());
-                LOG.info("Reconnect ... " + " ["+tried_count+"]");   
+                LOG.info("Reconnect ... [{}]", tried_count);   
                 bootstrap.connect(remote_addr);
                 LOG.debug("connection started...");
             } else {
@@ -107,7 +105,7 @@ class Client implements IConnection {
         if (being_closed.get()) {
             throw new RuntimeException("Client is being closed, and does not take requests any more");
         }
-        
+
         try {
             message_queue.put(new TaskMessage(task, message));
         } catch (InterruptedException e) {
@@ -121,48 +119,62 @@ class Client implements IConnection {
      * @throws InterruptedException
      */
     ArrayList<Object> takeMessages()  throws InterruptedException {
-        int size = 0;
+        //1st message
         ArrayList<Object> requests = new ArrayList<Object>();
-        requests.add(message_queue.take());
-        for (Object msg = message_queue.poll(); msg!=null;  msg = message_queue.poll()) {
-            requests.add(msg); 
+        Object msg = message_queue.take();
+        requests.add(msg);
+        
+        //we will discard any message after CLOSE
+        if (msg==ControlMessage.CLOSE_MESSAGE) 
+            return requests;
+        
+        int size = msgSize((TaskMessage) msg); 
+        while (size < buffer_size) {
+            //peek the next message
+            msg = message_queue.peek();
+            //no more messages
+            if (msg == null) break;
+            
             //we will discard any message after CLOSE
-            if (msg==ControlMessage.closeMessage()) break;
-            //we limit the batch per buffer size
-            TaskMessage taskMsg = (TaskMessage) msg; 
-            size += (taskMsg.message()!=null? taskMsg.message().length : 0) + 6; //INT + SHORT + payload
+            if (msg==ControlMessage.CLOSE_MESSAGE) {
+                message_queue.take();
+                requests.add(msg);
+                break;
+            }
+            
+            //will this msg fit into our buffer?
+            size += msgSize((TaskMessage) msg);
             if (size > buffer_size)
                 break;
+            
+            //remove this message
+            message_queue.take();
+            requests.add(msg);
         }
+
         return requests;
     }
 
+    private int msgSize(TaskMessage taskMsg) {
+        int size = 6; //INT + SHORT
+        if (taskMsg.message() != null) 
+            size += taskMsg.message().length;
+        return size;
+    }
+    
     /**
      * gracefully close this client.
      * 
      * We will send all existing requests, and then invoke close_n_release() method
      */
     public void close() {
-        //enqueue a SHUTDOWN message so that shutdown() will be invoked 
+        //enqueue a CLOSE message so that shutdown() will be invoked 
         try {
-            message_queue.put(ControlMessage.closeMessage());
+            message_queue.put(ControlMessage.CLOSE_MESSAGE);
             being_closed.set(true);
         } catch (InterruptedException e) {
             close_n_release();
         }
-        
-        //schedule a timer to release resources once channel is closed
-        final Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (ready_to_release_resource.get()) {
-                    LOG.debug("client resource released");
-                    factory.releaseExternalResources();
-                    timer.cancel();
-                }
-            }
-        }, 0, 10);
     }
 
     /**
@@ -171,8 +183,17 @@ class Client implements IConnection {
     void  close_n_release() {
         if (channelRef.get() != null) 
             channelRef.get().close().awaitUninterruptibly();
-        //we are now ready to release resources
-        ready_to_release_resource.set(true);
+
+        //we need to release resources 
+        final Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                LOG.debug("client resource released");
+                factory.releaseExternalResources();
+                timer.cancel();
+            }
+        }, 0);
     }
 
     public TaskMessage recv(int flags) {
@@ -181,6 +202,9 @@ class Client implements IConnection {
 
     void setChannel(Channel channel) {
         channelRef.set(channel); 
+        //reset retries   
+        if (channel != null)
+            retries.set(0); 
     }
 
 }

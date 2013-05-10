@@ -58,19 +58,20 @@ class Server implements IConnection {
      */
     protected void enqueue(TaskMessage message) throws InterruptedException {
         message_queue.put(message);
-        LOG.debug("message received with task:"+message.task()+" payload size:"+message.message().length);
+        LOG.debug("message received with task: {}, payload size: {}", message.task(), message.message().length);
     }
     
     /**
      * fetch a message from message queue synchronously (flags != 1) or asynchronously (flags==1)
      */
     public TaskMessage recv(int flags)  {
-        if (flags==1) { //non-blocking
+        if ((flags & 0x01) == 0x01) { 
+            //non-blocking
             return message_queue.poll();
         } else {
             try {
                 TaskMessage request = message_queue.take();
-                LOG.debug("request to be processed:"+request);
+                LOG.debug("request to be processed: {}", request);
                 return request;
             } catch (InterruptedException e) {
                 LOG.info("exception within msg receiving", e);

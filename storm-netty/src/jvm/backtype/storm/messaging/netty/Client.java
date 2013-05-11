@@ -1,7 +1,6 @@
 package backtype.storm.messaging.netty;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Executors;

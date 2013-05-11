@@ -4,8 +4,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,7 +39,7 @@ class Client implements IConnection {
 
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, String host, int port) {
-        message_queue = new LinkedBlockingQueue<Object>();
+        message_queue = new LinkedBlockingQueue<Object>(); 
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
@@ -185,15 +183,11 @@ class Client implements IConnection {
             channelRef.get().close().awaitUninterruptibly();
 
         //we need to release resources 
-        final Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
-                LOG.debug("client resource released");
                 factory.releaseExternalResources();
-                timer.cancel();
-            }
-        }, 0);
+            }}).start();
     }
 
     public TaskMessage recv(int flags) {

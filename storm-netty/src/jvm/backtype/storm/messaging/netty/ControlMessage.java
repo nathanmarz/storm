@@ -31,11 +31,10 @@ enum ControlMessage {
 
     /**
      * encode the current Control Message into a channel buffer
-     * @param bout
      * @throws Exception
      */
     ChannelBuffer buffer() throws Exception {
-        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer());      
+        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.buffer(2));      
         write(bout);
         bout.close();
         return bout.buffer();

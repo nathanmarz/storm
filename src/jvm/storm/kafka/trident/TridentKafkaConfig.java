@@ -1,5 +1,6 @@
 package storm.kafka.trident;
 
+import storm.kafka.BrokerHosts;
 import storm.kafka.KafkaConfig;
 
 

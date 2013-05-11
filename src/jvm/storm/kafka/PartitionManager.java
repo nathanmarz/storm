@@ -1,12 +1,13 @@
 package storm.kafka;
 
 import backtype.storm.Config;
-import backtype.storm.metric.api.*;
+import backtype.storm.metric.api.CombinedMetric;
+import backtype.storm.metric.api.CountMetric;
+import backtype.storm.metric.api.MeanReducer;
+import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
-import java.util.*;
-
 import kafka.api.FetchRequestBuilder;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
@@ -18,6 +19,8 @@ import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
 import storm.kafka.trident.KafkaUtils;
 import storm.kafka.trident.MaxMetric;
+
+import java.util.*;
 
 public class PartitionManager {
     public static final Logger LOG = LoggerFactory.getLogger(PartitionManager.class);

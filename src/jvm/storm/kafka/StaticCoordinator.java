@@ -5,9 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import backtype.storm.task.IMetricsContext;
-import storm.kafka.KafkaConfig.StaticHosts;
-
 
 public class StaticCoordinator implements PartitionCoordinator {
     Map<GlobalPartitionId, PartitionManager> _managers = new HashMap<GlobalPartitionId, PartitionManager>();

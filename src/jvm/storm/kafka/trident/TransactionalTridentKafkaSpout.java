@@ -2,17 +2,11 @@ package storm.kafka.trident;
 
 import backtype.storm.Config;
 import backtype.storm.metric.api.CombinedMetric;
-import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
-
-import java.util.*;
-
-import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
-import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
@@ -23,6 +17,11 @@ import storm.kafka.GlobalPartitionId;
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IPartitionedTridentSpout;
 import storm.trident.topology.TransactionAttempt;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 
 public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<Map<String, List>, GlobalPartitionId, Map> {

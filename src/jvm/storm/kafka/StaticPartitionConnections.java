@@ -1,10 +1,9 @@
 package storm.kafka;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import kafka.javaapi.consumer.SimpleConsumer;
-import storm.kafka.KafkaConfig.StaticHosts;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class StaticPartitionConnections {
     Map<Integer, SimpleConsumer> _kafka = new HashMap<Integer, SimpleConsumer>();
@@ -13,7 +12,7 @@ public class StaticPartitionConnections {
     
     public StaticPartitionConnections(KafkaConfig conf) {
         _config = conf;
-        if(!(conf.hosts instanceof KafkaConfig.StaticHosts)) {
+        if(!(conf.hosts instanceof StaticHosts)) {
             throw new RuntimeException("Must configure with static hosts");
         }
         this.hosts = (StaticHosts) conf.hosts;

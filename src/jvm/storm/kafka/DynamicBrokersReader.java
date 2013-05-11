@@ -5,6 +5,8 @@ import backtype.storm.utils.Utils;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
+import org.json.simple.JSONValue;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -14,9 +16,9 @@ import java.util.Map;
 
 public class DynamicBrokersReader {
     
-    CuratorFramework _curator;
-    String _zkPath;
-    String _topic;
+    private CuratorFramework _curator;
+    private String _zkPath;
+    private String _topic;
     
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
         try {
@@ -42,26 +44,19 @@ public class DynamicBrokersReader {
     public Map<String, List> getBrokerInfo() {     
         Map<String, List> ret = new HashMap();
         try {
-            String topicBrokersPath = _zkPath + "/topics/" + _topic;
             String brokerInfoPath = _zkPath + "/ids";
-            List<String> children = _curator.getChildren().forPath(topicBrokersPath);
-
-            for(String c: children) {
+            List<String> brokerIds = _curator.getChildren().forPath(brokerInfoPath);
+            for(String brokerId: brokerIds) {
                 try {
-                    byte[] numPartitionsData = _curator.getData().forPath(topicBrokersPath + "/" + c);
-                    byte[] hostPortData = _curator.getData().forPath(brokerInfoPath + "/" + c);
-
-
-
+                    byte[] hostPortData = _curator.getData().forPath(brokerInfoPath + "/" + brokerId);
                     HostPort hp = getBrokerHost(hostPortData);
-                    int numPartitions = getNumPartitions(numPartitionsData);
+                    int numPartitions = getNumPartitions();
                     List info = new ArrayList();
                     info.add((long)hp.port);
                     info.add((long)numPartitions);
                     ret.put(hp.host, info);
-                    
                 } catch(org.apache.zookeeper.KeeperException.NoNodeException e) {
-
+			   		e.printStackTrace();
                 }
             }
         } catch(Exception e) {
@@ -69,6 +64,16 @@ public class DynamicBrokersReader {
         }
         return ret;
     }
+
+	private int getNumPartitions() {
+		try {
+			String topicBrokersPath = _zkPath + "/topics/" + _topic + "/partitions";
+			List<String> children = _curator.getChildren().forPath(topicBrokersPath);
+			return children.size();
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
     
     public void close() {
         _curator.close();
@@ -76,20 +81,13 @@ public class DynamicBrokersReader {
     
     private static HostPort getBrokerHost(byte[] contents) {
         try {
-            String[] hostString = new String(contents, "UTF-8").split(":");
-            String host = hostString[hostString.length - 2];
-            int port = Integer.parseInt(hostString[hostString.length - 1]);
+			Map<Object, Object> value = (Map<Object,Object>) JSONValue.parse(new String(contents, "UTF-8"));
+			String host = (String) value.get("host");
+			Integer port = ((Long) value.get("port")).intValue();
             return new HostPort(host, port);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }  
-    
-    private static int getNumPartitions(byte[] contents) {
-        try {
-            return Integer.parseInt(new String(contents, "UTF-8"));            
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-    } 
+
 }

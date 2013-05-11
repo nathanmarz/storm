@@ -1,9 +1,10 @@
 package storm.kafka.trident;
 
+import storm.kafka.DynamicBrokersReader;
+import storm.kafka.ZkHosts;
+
 import java.util.List;
 import java.util.Map;
-import storm.kafka.DynamicBrokersReader;
-import storm.kafka.KafkaConfig.ZkHosts;
 
 
 public class ZkBrokerReader implements IBrokerReader {

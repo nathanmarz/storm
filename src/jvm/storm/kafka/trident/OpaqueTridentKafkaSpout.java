@@ -7,9 +7,6 @@ import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.*;
-
 import kafka.javaapi.consumer.SimpleConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +15,8 @@ import storm.kafka.GlobalPartitionId;
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.topology.TransactionAttempt;
+
+import java.util.*;
 
 
 public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<Map<String, List>, GlobalPartitionId, Map> {

@@ -2,7 +2,6 @@ package storm.kafka.trident;
 
 
 import backtype.storm.metric.api.ICombiner;
-import clojure.lang.Numbers;
 
 public class MaxMetric implements ICombiner<Long> {
     @Override

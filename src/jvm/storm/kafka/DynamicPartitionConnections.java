@@ -1,10 +1,11 @@
 package storm.kafka;
 
+import kafka.javaapi.consumer.SimpleConsumer;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import kafka.javaapi.consumer.SimpleConsumer;
 
 
 public class DynamicPartitionConnections {

@@ -1,11 +1,12 @@
 package storm.kafka.trident;
 
+import storm.kafka.HostPort;
+import storm.kafka.StaticHosts;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import storm.kafka.HostPort;
-import storm.kafka.KafkaConfig.StaticHosts;
 
 
 public class StaticBrokerReader implements IBrokerReader {

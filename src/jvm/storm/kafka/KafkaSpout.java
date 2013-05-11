@@ -1,20 +1,18 @@
 package storm.kafka;
 
-import java.util.*;
-
-import backtype.storm.metric.api.*;
-import backtype.storm.task.IMetricsContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import backtype.storm.Config;
+import backtype.storm.metric.api.IMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import kafka.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import storm.kafka.PartitionManager.KafkaMessageId;
 import storm.kafka.trident.KafkaUtils;
+
+import java.util.*;
 
 // TODO: need to add blacklisting
 // TODO: need to make a best effort to not re-emit messages if don't have to
@@ -70,7 +68,7 @@ public class KafkaSpout extends BaseRichSpout {
 
         // using TransactionalState like this is a hack
         int totalTasks = context.getComponentTasks(context.getThisComponentId()).size();
-        if(_spoutConfig.hosts instanceof KafkaConfig.StaticHosts) {
+        if(_spoutConfig.hosts instanceof StaticHosts) {
             _coordinator = new StaticCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
         } else {
             _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);

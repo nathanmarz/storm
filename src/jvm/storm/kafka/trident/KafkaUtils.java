@@ -1,31 +1,26 @@
 package storm.kafka.trident;
 
-import java.net.ConnectException;
-import java.util.*;
-
 import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.ReducedMetric;
-import com.google.common.collect.ImmutableMap;
-
 import backtype.storm.utils.Utils;
+import com.google.common.collect.ImmutableMap;
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
-import kafka.javaapi.OffsetRequest;
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
+import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
 import kafka.message.MessageAndOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.kafka.DynamicPartitionConnections;
-import storm.kafka.GlobalPartitionId;
-import storm.kafka.HostPort;
-import storm.kafka.KafkaConfig.StaticHosts;
-import storm.kafka.KafkaConfig.ZkHosts;
+import storm.kafka.*;
 import storm.trident.operation.TridentCollector;
+
+import java.net.ConnectException;
+import java.util.*;
 
 public class KafkaUtils {
     public static final Logger LOG = LoggerFactory.getLogger(KafkaUtils.class);

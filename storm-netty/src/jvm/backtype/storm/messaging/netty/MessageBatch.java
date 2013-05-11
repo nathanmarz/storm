@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
 
 import backtype.storm.messaging.TaskMessage;
 
@@ -16,7 +17,7 @@ class MessageBatch {
     MessageBatch(int buffer_size) {
         this.buffer_size = buffer_size;
         msgs = new ArrayList<Object>();
-        encoded_length = 0;
+        encoded_length = ControlMessage.EOB_MESSAGE.encodeLength();
     }
 
     void add(Object obj) {
@@ -111,8 +112,7 @@ class MessageBatch {
      * create a buffer containing the encoding of this batch
      */
     ChannelBuffer buffer() throws Exception {
-        ChannelBuffer buf = ChannelBuffers.buffer(encoded_length+ControlMessage.EOB_MESSAGE.encodeLength());        
-        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(buf);
+        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.directBuffer(encoded_length));
         
         for (Object msg : msgs) 
             if (msg instanceof TaskMessage)

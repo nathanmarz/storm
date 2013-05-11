@@ -1,19 +1,14 @@
 package backtype.storm.messaging.netty;
 
-import java.util.Map;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
 class StormClientPipelineFactory implements ChannelPipelineFactory {
     private Client client;
-    @SuppressWarnings("rawtypes")
-    private Map conf;
 
-    @SuppressWarnings("rawtypes")
-    StormClientPipelineFactory(Client client, Map conf) {
+    StormClientPipelineFactory(Client client) {
         this.client = client;        
-        this.conf = conf;
     }
 
     public ChannelPipeline getPipeline() throws Exception {
@@ -23,7 +18,7 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
         // Decoder
         pipeline.addLast("decoder", new MessageDecoder());
         // Encoder
-        pipeline.addLast("encoder", new MessageEncoder(conf));
+        pipeline.addLast("encoder", new MessageEncoder());
         // business logic.
         pipeline.addLast("handler", new StormClientHandler(client));
 

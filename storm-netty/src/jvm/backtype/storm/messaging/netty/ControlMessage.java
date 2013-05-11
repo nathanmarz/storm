@@ -29,12 +29,16 @@ enum ControlMessage {
         return null;
     }
 
+    int encodeLength() {
+        return 2; //short
+    }
+    
     /**
      * encode the current Control Message into a channel buffer
      * @throws Exception
      */
     ChannelBuffer buffer() throws Exception {
-        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.buffer(2));      
+        ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.buffer(encodeLength()));      
         write(bout);
         bout.close();
         return bout.buffer();

@@ -1,7 +1,6 @@
 package backtype.storm.messaging.netty;
 
 import java.net.ConnectException;
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.netty.channel.Channel;
@@ -64,7 +63,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
      * Retrieve a request from message queue, and send to server
      * @param channel
      */
-    private void sendRequests(Channel channel, final ArrayList<Object> requests) {
+    private void sendRequests(Channel channel, final MessageBatch requests) {
         if (requests==null || requests.size()==0 || being_closed.get()) return;
 
         //if task==CLOSE_MESSAGE for our last request, the channel is to be closed

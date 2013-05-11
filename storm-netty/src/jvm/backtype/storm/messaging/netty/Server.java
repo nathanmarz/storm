@@ -44,7 +44,7 @@ class Server implements IConnection {
         bootstrap.setOption("child.keepAlive", true);
 
         // Set up the pipeline factory.
-        bootstrap.setPipelineFactory(new StormServerPipelineFactory(this, storm_conf));
+        bootstrap.setPipelineFactory(new StormServerPipelineFactory(this));
 
         // Bind and start to accept incoming connections.
         Channel channel = bootstrap.bind(new InetSocketAddress(port));

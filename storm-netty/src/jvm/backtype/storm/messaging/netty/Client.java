@@ -57,7 +57,7 @@ class Client implements IConnection {
         bootstrap.setOption("keepAlive", true);
 
         // Set up the pipeline factory.
-        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this, storm_conf));
+        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this));
 
         // Start the connection attempt.
         remote_addr = new InetSocketAddress(host, port);
@@ -116,18 +116,17 @@ class Client implements IConnection {
      * @return
      * @throws InterruptedException
      */
-    ArrayList<Object> takeMessages()  throws InterruptedException {
+    MessageBatch takeMessages()  throws InterruptedException {
         //1st message
-        ArrayList<Object> requests = new ArrayList<Object>();
+        MessageBatch batch = new MessageBatch(buffer_size);
         Object msg = message_queue.take();
-        requests.add(msg);
+        batch.add(msg);
         
         //we will discard any message after CLOSE
         if (msg==ControlMessage.CLOSE_MESSAGE) 
-            return requests;
+            return batch;
         
-        int size = msgSize((TaskMessage) msg); 
-        while (size < buffer_size) {
+        while (!batch.isFull()) {
             //peek the next message
             msg = message_queue.peek();
             //no more messages
@@ -136,28 +135,19 @@ class Client implements IConnection {
             //we will discard any message after CLOSE
             if (msg==ControlMessage.CLOSE_MESSAGE) {
                 message_queue.take();
-                requests.add(msg);
+                batch.add(msg);
                 break;
             }
             
-            //will this msg fit into our buffer?
-            size += msgSize((TaskMessage) msg);
-            if (size > buffer_size)
+            //try to add this msg into batch
+            if (!batch.tryAdd((TaskMessage) msg))
                 break;
             
             //remove this message
             message_queue.take();
-            requests.add(msg);
         }
 
-        return requests;
-    }
-
-    private int msgSize(TaskMessage taskMsg) {
-        int size = 6; //INT + SHORT
-        if (taskMsg.message() != null) 
-            size += taskMsg.message().length;
-        return size;
+        return batch;
     }
     
     /**

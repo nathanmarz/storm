@@ -34,28 +34,7 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
         _config = config;
     }
     
-    class Coordinator implements IPartitionedTridentSpout.Coordinator<Map> {
-        IBrokerReader reader;
-        
-        public Coordinator(Map conf) {
-            reader = KafkaUtils.makeBrokerReader(conf, _config);
-        }
-        
-        @Override
-        public void close() {
-            _config.coordinator.close();
-        }
 
-        @Override
-        public boolean isReady(long txid) {
-            return _config.coordinator.isReady(txid);
-        }
-
-        @Override
-        public Map getPartitionsForBatch() {
-           return reader.getCurrentBrokers();
-        }
-    }
     
     class Emitter implements IPartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> {
         DynamicPartitionConnections _connections;
@@ -128,7 +107,7 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
 
     @Override
     public IPartitionedTridentSpout.Coordinator getCoordinator(Map conf, TopologyContext context) {
-        return new Coordinator(conf);
+        return new storm.kafka.trident.Coordinator(conf, _config);
     }
 
     @Override

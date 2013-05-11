@@ -58,7 +58,7 @@ public class PartitionManager {
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;
         _consumer = connections.register(id.host, id.partition);
-	_state = state;
+		_state = state;
         _stormConf = stormConf;
 
         String jsonTopologyId = null;

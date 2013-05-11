@@ -36,7 +36,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
     
     @Override
     public IOpaquePartitionedTridentSpout.Coordinator getCoordinator(Map conf, TopologyContext tc) {
-        return new Coordinator(conf);
+        return new storm.kafka.trident.Coordinator(conf, _config);
     }
 
     @Override
@@ -48,29 +48,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
     public Map<String, Object> getComponentConfiguration() {
         return null;
     }
-    
-    class Coordinator implements IOpaquePartitionedTridentSpout.Coordinator<Map> {
-        IBrokerReader reader;
-        
-        public Coordinator(Map conf) {
-            reader = KafkaUtils.makeBrokerReader(conf, _config);
-        }
-        
-        @Override
-        public void close() {
-            _config.coordinator.close();
-        }
 
-        @Override
-        public boolean isReady(long txid) {
-            return _config.coordinator.isReady(txid);
-        }
-
-        @Override
-        public Map getPartitionsForBatch() {
-            return reader.getCurrentBrokers();
-        }
-    }
     
     class Emitter implements IOpaquePartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> {
         DynamicPartitionConnections _connections;

@@ -40,6 +40,8 @@ public class DynamicBrokersReader {
      * Map of host to List of port and number of partitions.
      * 
      * {"host1.mycompany.com" -> [9092, 5]}
+	 *
+	 * TODO: support multiple ports per host
      */
     public Map<String, List> getBrokerInfo() {     
         Map<String, List> ret = new HashMap();
@@ -78,7 +80,15 @@ public class DynamicBrokersReader {
     public void close() {
         _curator.close();
     }
-    
+
+	/**
+	 *
+	 * [zk: localhost:2181(CONNECTED) 56] get /brokers/ids/0
+	 * { "host":"localhost", "jmx_port":9999, "port":9092, "version":1 }
+	 *
+	 * @param contents
+	 * @return
+	 */
     private static HostPort getBrokerHost(byte[] contents) {
         try {
 			Map<Object, Object> value = (Map<Object,Object>) JSONValue.parse(new String(contents, "UTF-8"));

@@ -14,4 +14,5 @@
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :profiles {:release {}}
+  :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
   :aot :all))

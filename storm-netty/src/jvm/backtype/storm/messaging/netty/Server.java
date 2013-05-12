@@ -25,7 +25,7 @@ class Server implements IConnection {
     Map storm_conf;
     int port;
     private LinkedBlockingQueue<TaskMessage> message_queue;
-    final ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
+    volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     final ChannelFactory factory;
     final ServerBootstrap bootstrap;
 
@@ -100,9 +100,12 @@ class Server implements IConnection {
     /**
      * close all channels, and release resources
      */
-    public void close() {
-        allChannels.close().awaitUninterruptibly();
-        factory.releaseExternalResources();
+    public synchronized void close() {
+        if (allChannels != null) {  
+            allChannels.close().awaitUninterruptibly();
+            factory.releaseExternalResources();
+            allChannels = null;
+        }
     }
 
     public void send(int task, byte[] message) {

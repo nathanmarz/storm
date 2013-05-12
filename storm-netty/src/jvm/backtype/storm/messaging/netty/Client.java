@@ -154,13 +154,15 @@ class Client implements IConnection {
      * 
      * We will send all existing requests, and then invoke close_n_release() method
      */
-    public void close() {
-        //enqueue a CLOSE message so that shutdown() will be invoked 
-        try {
-            message_queue.put(ControlMessage.CLOSE_MESSAGE);
-            being_closed.set(true);
-        } catch (InterruptedException e) {
-            close_n_release();
+    public synchronized void close() {
+        if (!being_closed.get()) {  
+            //enqueue a CLOSE message so that shutdown() will be invoked 
+            try {
+                message_queue.put(ControlMessage.CLOSE_MESSAGE);
+                being_closed.set(true);
+            } catch (InterruptedException e) {
+                close_n_release();
+            }
         }
     }
 

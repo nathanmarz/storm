@@ -9,7 +9,7 @@ import backtype.storm.messaging.IContext;
 public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
-    private Vector<IConnection> connections;
+    private volatile Vector<IConnection> connections;
     
     /**
      * initialization per Storm configuration 
@@ -45,5 +45,6 @@ public class Context implements IContext {
         for (IConnection conn : connections) {
             conn.close();
         }
+        connections = null;
     }
 }

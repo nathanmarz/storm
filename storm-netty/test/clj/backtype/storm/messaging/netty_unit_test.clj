@@ -22,6 +22,8 @@
         resp (.recv server 0)]
     (is (= task (.task resp)))
     (is (= req_msg (String. (.message resp))))
+    (.close client)
+    (.close server)
     (.term context)))    
 
 (deftest test-large-msg
@@ -38,6 +40,8 @@
         resp (.recv server 0)]
     (is (= task (.task resp)))
     (is (= req_msg (String. (.message resp))))
+    (.close client)
+    (.close server)
     (.term context)))    
     
 (deftest test-server-delayed
@@ -55,6 +59,8 @@
         resp (.recv server 0)]
     (is (= task (.task resp)))
     (is (= req_msg (String. (.message resp))))
+    (.close client)
+    (.close server)
     (.term context)))    
 
 (deftest test-batch
@@ -74,4 +80,6 @@
             resp (.recv server 0)
             resp_msg (String. (.message resp))]
         (is (= req_msg resp_msg))))
+    (.close client)
+    (.close server)
     (.term context)))

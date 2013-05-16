@@ -23,19 +23,15 @@ public class DynamicBrokersReader {
     private String _topic;
     
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
-        try {
-            _zkPath = zkPath;
-            _topic = topic;
-            _curator = CuratorFrameworkFactory.newClient(
-                    zkStr,
-                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
-                    15000,
-                    new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
-            _curator.start();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+		_zkPath = zkPath;
+		_topic = topic;
+		_curator = CuratorFrameworkFactory.newClient(
+				zkStr,
+				Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+				15000,
+				new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+				Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+		_curator.start();
     }
     
     /**
@@ -45,7 +41,7 @@ public class DynamicBrokersReader {
 		GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation();
         try {
 			int numPartitionsForTopic = getNumPartitions();
-			String brokerInfoPath = _zkPath + "/ids";
+			String brokerInfoPath = brokerPath();
 			for (int partition = 0; partition < numPartitionsForTopic; partition++) {
 				int leader = getLeaderFor(partition);
 				String path = brokerInfoPath + "/" + leader;
@@ -64,9 +60,11 @@ public class DynamicBrokersReader {
         return globalPartitionInformation;
     }
 
+
+
 	private int getNumPartitions() {
 		try {
-			String topicBrokersPath = _zkPath + "/topics/" + _topic + "/partitions";
+			String topicBrokersPath = partitionPath();
 			List<String> children = _curator.getChildren().forPath(topicBrokersPath);
 			return children.size();
 		} catch(Exception e) {
@@ -74,6 +72,13 @@ public class DynamicBrokersReader {
 		}
 	}
 
+	public String partitionPath() {
+		return _zkPath + "/topics/" + _topic + "/partitions";
+	}
+
+	public String brokerPath() {
+		return _zkPath + "/ids";
+	}
 
 	/**
 	 * get /brokers/topics/distributedTopic/partitions/1/state
@@ -83,7 +88,7 @@ public class DynamicBrokersReader {
 	 */
 	private int getLeaderFor(long partition) {
 		try {
-			String topicBrokersPath = _zkPath + "/topics/" + _topic + "/partitions";
+			String topicBrokersPath = partitionPath();
 			byte[] hostPortData = _curator.getData().forPath(topicBrokersPath + "/" + partition + "/state" );
 			Map<Object, Object> value = (Map<Object,Object>) JSONValue.parse(new String(hostPortData, "UTF-8"));
 			Integer leader = ((Number) value.get("leader")).intValue();

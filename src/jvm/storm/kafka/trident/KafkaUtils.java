@@ -26,27 +26,15 @@ public class KafkaUtils {
     public static final Logger LOG = LoggerFactory.getLogger(KafkaUtils.class);
 	private static final int NO_OFFSET = -5;
 
-	public static IBrokerReader makeBrokerReader(Map stormConf, TridentKafkaConfig conf) {
-        if(conf.hosts instanceof StaticHosts) {
-            return new StaticBrokerReader((StaticHosts) conf.hosts);
-        } else {
-            return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
-        }
-    }
 
-    public static List<GlobalPartitionId> getOrderedPartitions(Map<String, List> partitions) {
-        List<GlobalPartitionId> ret = new ArrayList();
-        for(String host: new TreeMap<String, List>(partitions).keySet()) {
-            List info = partitions.get(host);
-            long port = (Long) info.get(0);
-            long numPartitions = (Long) info.get(1);
-            HostPort hp = new HostPort(host, (int) port);
-            for(int i=0; i<numPartitions; i++) {
-                ret.add(new GlobalPartitionId(hp, i));
-            }
-        }
-        return ret;
-    }
+	public static IBrokerReader makeBrokerReader(Map stormConf, KafkaConfig conf) {
+		if(conf.hosts instanceof StaticHosts) {
+			return new StaticBrokerReader(((StaticHosts) conf.hosts).getPartitionInformation());
+		} else {
+			return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
+		}
+	}
+
 
      public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta, String topologyInstanceId, String topologyName,
                                                ReducedMetric meanMetric, CombinedMetric maxMetric) {
@@ -125,7 +113,7 @@ public class KafkaUtils {
 		}
 	}
 
-    public static class KafkaOffsetMetric implements IMetric {
+	public static class KafkaOffsetMetric implements IMetric {
         Map<GlobalPartitionId, Long> _partitionToOffset = new HashMap<GlobalPartitionId, Long>();
         Set<GlobalPartitionId> _partitions;
         String _topic;
@@ -160,7 +148,7 @@ public class KafkaUtils {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
-                        long latestEmittedOffset = (Long)e.getValue();
+                        long latestEmittedOffset = e.getValue();
                         long spoutLag = latestTimeOffset - latestEmittedOffset;
                         ret.put(partition.getId() + "/" + "spoutLag", spoutLag);
                         ret.put(partition.getId() + "/" + "latestTime", latestTimeOffset);

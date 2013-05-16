@@ -9,7 +9,7 @@ import java.util.Map;
  * Date: 11/05/2013
  * Time: 19:35
  */
-class Coordinator implements IPartitionedTridentSpout.Coordinator<Map>, IOpaquePartitionedTridentSpout.Coordinator<Map> {
+class Coordinator implements IPartitionedTridentSpout.Coordinator<GlobalPartitionInformation>, IOpaquePartitionedTridentSpout.Coordinator<GlobalPartitionInformation> {
 
 	private IBrokerReader reader;
 	private TridentKafkaConfig config;
@@ -30,7 +30,7 @@ class Coordinator implements IPartitionedTridentSpout.Coordinator<Map>, IOpaqueP
 	}
 
 	@Override
-	public Map getPartitionsForBatch() {
+	public GlobalPartitionInformation getPartitionsForBatch() {
 		return reader.getCurrentBrokers();
 	}
 }

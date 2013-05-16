@@ -1,6 +1,5 @@
 (defproject storm/storm-kafka-0.8-plus "0.1.0-SNAPSHOT"
   :description "Storm module for kafka > 0.8"
-  :source-paths ["src" "src/main/clojure"]
   :java-source-paths ["src/jvm"]
   :test-paths ["src/test/"]
 

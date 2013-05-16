@@ -19,7 +19,7 @@ import storm.trident.topology.TransactionAttempt;
 import java.util.*;
 
 
-public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<Map<String, List>, GlobalPartitionId, Map> {
+public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<GlobalPartitionInformation, GlobalPartitionId, Map> {
     public static final Logger LOG = LoggerFactory.getLogger(OpaqueTridentKafkaSpout.class);
     
     TridentKafkaConfig _config;
@@ -30,7 +30,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
     }
     
     @Override
-    public IOpaquePartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> getEmitter(Map conf, TopologyContext context) {
+    public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map> getEmitter(Map conf, TopologyContext context) {
         return new Emitter(conf, context);
     }
     
@@ -50,7 +50,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
     }
 
     
-    class Emitter implements IOpaquePartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> {
+    class Emitter implements IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map> {
         DynamicPartitionConnections _connections;
         String _topologyName;
         KafkaUtils.KafkaOffsetMetric _kafkaOffsetMetric;
@@ -58,7 +58,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
         CombinedMetric _kafkaMaxFetchLatencyMetric;
 
         public Emitter(Map conf, TopologyContext context) {
-            _connections = new DynamicPartitionConnections(_config);
+            _connections = new DynamicPartitionConnections(_config, KafkaUtils.makeBrokerReader(conf, _config));
             _topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
             _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_config.topic, _connections);
             context.registerMetric("kafkaOffset", _kafkaOffsetMetric, 60);
@@ -97,8 +97,8 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<M
         }
 
         @Override
-        public List<GlobalPartitionId> getOrderedPartitions(Map<String, List> partitions) {
-            return KafkaUtils.getOrderedPartitions(partitions);
+        public List<GlobalPartitionId> getOrderedPartitions(GlobalPartitionInformation partitions) {
+            return partitions.getOrderedPartitions();
         }
 
         @Override

@@ -23,13 +23,17 @@ public class GlobalPartitionId implements ISpoutPartition {
         return 13 * host.hashCode() + partition;
     }
 
-    @Override
-    public String toString() {
-        return getId();
-    }
+	@Override
+	public String toString() {
+		return "GlobalPartitionId{" +
+				"host=" + host +
+				", partition=" + partition +
+				'}';
+	}
 
     @Override
     public String getId() {
-        return host.toString() + ":" + partition;
+        return toString();
     }
+
 }

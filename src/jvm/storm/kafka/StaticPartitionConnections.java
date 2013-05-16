@@ -19,21 +19,12 @@ public class StaticPartitionConnections {
     }
 
     public SimpleConsumer getConsumer(int partition) {
-        int hostIndex = partition / hosts.partitionsPerHost;
-        if(!_kafka.containsKey(hostIndex)) {
-            HostPort hp = hosts.hosts.get(hostIndex);
-            _kafka.put(hostIndex, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes, kafka.api.OffsetRequest.DefaultClientId()));
+		if(!_kafka.containsKey(partition)) {
+            HostPort hp = hosts.getPartitionInformation().getHostFor(partition);
+            _kafka.put(partition, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes, kafka.api.OffsetRequest.DefaultClientId()));
 
         }
-        return _kafka.get(hostIndex);
-    }
-
-    public int getHostPartition(int globalPartition) {
-        return globalPartition % hosts.partitionsPerHost;
-    }
-
-    public int getNumberOfHosts() {
-        return hosts.hosts.size();
+        return _kafka.get(partition);
     }
 
     public void close() {

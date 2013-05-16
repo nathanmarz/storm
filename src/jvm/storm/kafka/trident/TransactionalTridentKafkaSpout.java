@@ -10,8 +10,6 @@ import kafka.api.FetchRequestBuilder;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import storm.kafka.DynamicPartitionConnections;
 import storm.kafka.GlobalPartitionId;
 import storm.trident.operation.TridentCollector;
@@ -24,11 +22,10 @@ import java.util.Map;
 import java.util.UUID;
 
 
-public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<Map<String, List>, GlobalPartitionId, Map> {
+public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<GlobalPartitionInformation, GlobalPartitionId, Map> {
     
     TridentKafkaConfig _config;
     String _topologyInstanceId = UUID.randomUUID().toString();
-    public static final Logger LOG = LoggerFactory.getLogger(TransactionalTridentKafkaSpout.class);
 
     public TransactionalTridentKafkaSpout(TridentKafkaConfig config) {
         _config = config;
@@ -36,7 +33,7 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
     
 
     
-    class Emitter implements IPartitionedTridentSpout.Emitter<Map<String, List>, GlobalPartitionId, Map> {
+    class Emitter implements IPartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map> {
         DynamicPartitionConnections _connections;
         String _topologyName;
         TopologyContext _context;
@@ -44,14 +41,17 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
         ReducedMetric _kafkaMeanFetchLatencyMetric;
         CombinedMetric _kafkaMaxFetchLatencyMetric;
 
+
         public Emitter(Map conf, TopologyContext context) {
-            _connections = new DynamicPartitionConnections(_config);
+			IBrokerReader brokerReader = KafkaUtils.makeBrokerReader(conf, _config);
+            _connections = new DynamicPartitionConnections(_config, brokerReader);
             _topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
             _context = context;
             _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_config.topic, _connections);
             context.registerMetric("kafkaOffset", _kafkaOffsetMetric, 60);
             _kafkaMeanFetchLatencyMetric = context.registerMetric("kafkaFetchAvg", new MeanReducer(), 60);
             _kafkaMaxFetchLatencyMetric = context.registerMetric("kafkaFetchMax", new MaxMetric(), 60);
+
         }
         
         @Override
@@ -93,8 +93,8 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
         }
 
         @Override
-        public List<GlobalPartitionId> getOrderedPartitions(Map<String, List> partitions) {
-            return KafkaUtils.getOrderedPartitions(partitions);
+        public List<GlobalPartitionId> getOrderedPartitions(GlobalPartitionInformation partitions) {
+			return partitions.getOrderedPartitions();
         }
 
         @Override

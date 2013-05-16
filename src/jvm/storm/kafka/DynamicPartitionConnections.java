@@ -1,6 +1,9 @@
 package storm.kafka;
 
 import kafka.javaapi.consumer.SimpleConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import storm.kafka.trident.IBrokerReader;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,6 +12,9 @@ import java.util.Set;
 
 
 public class DynamicPartitionConnections {
+
+	public static final Logger LOG = LoggerFactory.getLogger(DynamicPartitionConnections.class);
+
     static class ConnectionInfo {
         SimpleConsumer consumer;
         Set<Integer> partitions = new HashSet();
@@ -20,13 +26,16 @@ public class DynamicPartitionConnections {
     
     Map<HostPort, ConnectionInfo> _connections = new HashMap();
     KafkaConfig _config;
+	IBrokerReader _reader;
     
-    public DynamicPartitionConnections(KafkaConfig config) {
+    public DynamicPartitionConnections(KafkaConfig config, IBrokerReader brokerReader) {
         _config = config;
+		_reader = brokerReader;
     }
     
     public SimpleConsumer register(GlobalPartitionId id) {
-        return register(id.host, id.partition);
+		HostPort hostPort = _reader.getCurrentBrokers().getHostFor(id.partition);
+		return register(hostPort, id.partition);
     }
     
     public SimpleConsumer register(HostPort host, int partition) {

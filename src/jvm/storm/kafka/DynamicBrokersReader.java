@@ -6,16 +6,18 @@ import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
 import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import storm.kafka.trident.GlobalPartitionInformation;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DynamicBrokersReader {
-    
+
+	public static final Logger LOG = LoggerFactory.getLogger(DynamicBrokersReader.class);
+
     private CuratorFramework _curator;
     private String _zkPath;
     private String _topic;
@@ -37,34 +39,29 @@ public class DynamicBrokersReader {
     }
     
     /**
-     * Map of host to List of port and number of partitions.
-     * 
-     * {"host1.mycompany.com" -> [9092, 5]}
-	 *
-	 * TODO: support multiple ports per host
+	 * Get all partitions with their current leaders
      */
-    public Map<String, List> getBrokerInfo() {     
-        Map<String, List> ret = new HashMap();
+    public GlobalPartitionInformation getBrokerInfo() {
+		GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation();
         try {
-            String brokerInfoPath = _zkPath + "/ids";
-            List<String> brokerIds = _curator.getChildren().forPath(brokerInfoPath);
-            for(String brokerId: brokerIds) {
-                try {
-                    byte[] hostPortData = _curator.getData().forPath(brokerInfoPath + "/" + brokerId);
-                    HostPort hp = getBrokerHost(hostPortData);
-                    int numPartitions = getNumPartitions();
-                    List info = new ArrayList();
-                    info.add((long)hp.port);
-                    info.add((long)numPartitions);
-                    ret.put(hp.host, info);
-                } catch(org.apache.zookeeper.KeeperException.NoNodeException e) {
-			   		e.printStackTrace();
-                }
-            }
+			int numPartitionsForTopic = getNumPartitions();
+			String brokerInfoPath = _zkPath + "/ids";
+			for (int partition = 0; partition < numPartitionsForTopic; partition++) {
+				int leader = getLeaderFor(partition);
+				String path = brokerInfoPath + "/" + leader;
+				try {
+					byte[] hostPortData = _curator.getData().forPath(path);
+					HostPort hp = getBrokerHost(hostPortData);
+					globalPartitionInformation.addPartition(partition, hp);
+				} catch(org.apache.zookeeper.KeeperException.NoNodeException e) {
+					LOG.error("Node {} does not exist ", path);
+				}
+			}
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        return ret;
+		LOG.info("Read partition info from zookeeper: " + globalPartitionInformation);
+        return globalPartitionInformation;
     }
 
 	private int getNumPartitions() {
@@ -76,7 +73,26 @@ public class DynamicBrokersReader {
 			throw new RuntimeException(e);
 		}
 	}
-    
+
+
+	/**
+	 * get /brokers/topics/distributedTopic/partitions/1/state
+	 * { "controller_epoch":4, "isr":[ 1, 0 ], "leader":1, "leader_epoch":1, "version":1 }
+	 * @param partition
+	 * @return
+	 */
+	private int getLeaderFor(long partition) {
+		try {
+			String topicBrokersPath = _zkPath + "/topics/" + _topic + "/partitions";
+			byte[] hostPortData = _curator.getData().forPath(topicBrokersPath + "/" + partition + "/state" );
+			Map<Object, Object> value = (Map<Object,Object>) JSONValue.parse(new String(hostPortData, "UTF-8"));
+			Integer leader = ((Number) value.get("leader")).intValue();
+			return leader;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
     public void close() {
         _curator.close();
     }
@@ -89,7 +105,7 @@ public class DynamicBrokersReader {
 	 * @param contents
 	 * @return
 	 */
-    private static HostPort getBrokerHost(byte[] contents) {
+    private HostPort getBrokerHost(byte[] contents) {
         try {
 			Map<Object, Object> value = (Map<Object,Object>) JSONValue.parse(new String(contents, "UTF-8"));
 			String host = (String) value.get("host");

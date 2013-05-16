@@ -3,6 +3,7 @@ package storm.kafka;
 import backtype.storm.task.IMetricsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import storm.kafka.trident.GlobalPartitionInformation;
 
 import java.util.*;
 
@@ -30,7 +31,7 @@ public class ZkCoordinator implements PartitionCoordinator {
         _totalTasks = totalTasks;
         _topologyInstanceId = topologyInstanceId;
         _stormConf = stormConf;
-	_state = state;
+		_state = state;
 
         ZkHosts brokerConf = (ZkHosts) spoutConfig.hosts;
         _refreshFreqMs = brokerConf.refreshFreqSecs * 1000;
@@ -50,22 +51,14 @@ public class ZkCoordinator implements PartitionCoordinator {
     void refresh() {
         try {
             LOG.info("Refreshing partition manager connections");
-            Map<String, List> brokerInfo = _reader.getBrokerInfo();
-            
+			GlobalPartitionInformation brokerInfo = _reader.getBrokerInfo();
             Set<GlobalPartitionId> mine = new HashSet();
-            for(String host: brokerInfo.keySet()) {
-                List info = brokerInfo.get(host);
-                long port = (Long) info.get(0);
-                HostPort hp = new HostPort(host, (int) port);
-                long numPartitions = (Long) info.get(1);
-                for(int i=0; i<numPartitions; i++) {
-                    GlobalPartitionId id = new GlobalPartitionId(hp, i);
-                    if(myOwnership(id)) {
-                        mine.add(id);
-                    }
-                }
-            }
-            
+			for (GlobalPartitionId partitionId: brokerInfo){
+				if(myOwnership(partitionId)) {
+					mine.add(partitionId);
+				}
+			}
+
             Set<GlobalPartitionId> curr = _managers.keySet();
             Set<GlobalPartitionId> newPartitions = new HashSet<GlobalPartitionId>(mine);
             newPartitions.removeAll(curr);

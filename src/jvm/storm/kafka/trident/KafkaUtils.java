@@ -1,26 +1,18 @@
 package storm.kafka.trident;
 
-import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.metric.api.IMetric;
-import backtype.storm.metric.api.ReducedMetric;
-import backtype.storm.utils.Utils;
-import com.google.common.collect.ImmutableMap;
-import kafka.api.FetchRequest;
-import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
-import kafka.javaapi.message.ByteBufferMessageSet;
-import kafka.message.Message;
-import kafka.message.MessageAndOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.*;
-import storm.trident.operation.TridentCollector;
 
-import java.net.ConnectException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 public class KafkaUtils {
     public static final Logger LOG = LoggerFactory.getLogger(KafkaUtils.class);
@@ -34,69 +26,6 @@ public class KafkaUtils {
 			return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
 		}
 	}
-
-
-     public static Map emitPartitionBatchNew(TridentKafkaConfig config, SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta, String topologyInstanceId, String topologyName,
-                                               ReducedMetric meanMetric, CombinedMetric maxMetric) {
-         long offset;
-         if(lastMeta!=null) {
-             String lastInstanceId = null;
-             Map lastTopoMeta = (Map) lastMeta.get("topology");
-             if(lastTopoMeta!=null) {
-                 lastInstanceId = (String) lastTopoMeta.get("id");
-             }
-             if(config.forceFromStart && !topologyInstanceId.equals(lastInstanceId)) {
-                 offset = getOffset(consumer, config.topic, partition.partition, config.startOffsetTime);
-             } else {
-                 offset = (Long) lastMeta.get("nextOffset");
-             }
-         } else {
-             long startTime = -1;
-             if(config.forceFromStart) startTime = config.startOffsetTime;
-             offset = getOffset(consumer, config.topic, partition.partition, startTime);
-         }
-         ByteBufferMessageSet msgs;
-         try {
-            long start = System.nanoTime();
-			FetchRequestBuilder builder = new FetchRequestBuilder();
-			FetchRequest fetchRequest = builder.addFetch(config.topic, partition.partition, offset, config.fetchSizeBytes).build();
-			msgs = consumer.fetch(fetchRequest).messageSet(config.topic, partition.partition);
-            long end = System.nanoTime();
-            long millis = (end - start) / 1000000;
-            meanMetric.update(millis);
-            maxMetric.update(millis);
-         } catch(Exception e) {
-             if(e instanceof ConnectException) {
-                 throw new FailedFetchException(e);
-             } else {
-                 throw new RuntimeException(e);
-             }
-         }
-         long endoffset = offset;
-         for(MessageAndOffset msg: msgs) {
-             emit(config, collector, msg.message());
-             endoffset = msg.nextOffset();
-         }
-         Map newMeta = new HashMap();
-         newMeta.put("offset", offset);
-         newMeta.put("nextOffset", endoffset);
-         newMeta.put("instanceId", topologyInstanceId);
-         newMeta.put("partition", partition.partition);
-         newMeta.put("broker", ImmutableMap.of("host", partition.host.host, "port", partition.host.port));
-         newMeta.put("topic", config.topic);
-         newMeta.put("topology", ImmutableMap.of("name", topologyName, "id", topologyInstanceId));
-         return newMeta;
-     }
-
-     public static void emit(TridentKafkaConfig config, TridentCollector collector, Message msg) {
-         Iterable<List<Object>> values =
-             config.scheme.deserialize(Utils.toByteArray(msg.payload()));
-         if(values!=null) {
-             for(List<Object> value: values)
-                 collector.emit(value);
-         }
-     }
-
 
 	public static long getOffset(SimpleConsumer consumer, String topic, int partition, long startOffsetTime) {
 		TopicAndPartition topicAndPartition = new TopicAndPartition(topic, partition);

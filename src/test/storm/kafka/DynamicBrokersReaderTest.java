@@ -17,7 +17,6 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 /**
- * User: thomas
  * Date: 16/05/2013
  * Time: 20:35
  */

@@ -9,13 +9,13 @@
                  "conjars" "http://conjars.org/repo/"}
   :dependencies [[org.scala-lang/scala-library "2.9.2"]
                  [junit/junit "4.11" :scope "test"]
-                 [com.netflix.curator/curator-framework "1.3.2"
+                 [com.netflix.curator/curator-framework "1.0.1"
                   :exclusions [log4j/log4j
                                org.slf4j/slf4j-log4j12] ]
-                 [com.netflix.curator/curator-recipes "1.2.6"
+                 [com.netflix.curator/curator-recipes "1.0.1"
                   :exclusions [log4j/log4j] :scope "test"]
-                 [com.netflix.curator/curator-test "1.2.6"
-                  :exclusions [log4j/log4j] :scope "test"]
+                 [com.netflix.curator/curator-test "1.0.1"
+                  :exclusions [log4j/log4j org.testng/testng] :scope "test"]
                  [org.apache/kafka_2.9.2 "0.8.0-SNAPSHOT"
                   :exclusions [org.apache.zookeeper/zookeeper
                                log4j/log4j]]]

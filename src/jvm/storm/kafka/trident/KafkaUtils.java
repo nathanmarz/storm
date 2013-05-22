@@ -32,7 +32,7 @@ public class KafkaUtils {
 		Map<TopicAndPartition, PartitionOffsetRequestInfo> requestInfo = new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
 		requestInfo.put(topicAndPartition, new PartitionOffsetRequestInfo(startOffsetTime, 1));
 		OffsetRequest request = new OffsetRequest(
-				requestInfo, kafka.api.OffsetRequest.CurrentVersion(), kafka.api.OffsetRequest.DefaultClientId());
+				requestInfo, kafka.api.OffsetRequest.CurrentVersion(), consumer.clientId());
 
 		long[] offsets = consumer.getOffsetsBefore(request).offsets(topic, partition);
 		if ( offsets.length > 0) {

@@ -97,20 +97,13 @@ public class TridentKafkaEmitter {
 				offset = (Long) lastMeta.get("nextOffset");
 			}
 		} else {
-			long startTime = -1;
+			long startTime = kafka.api.OffsetRequest.LatestTime();
 			if (_config.forceFromStart) startTime = _config.startOffsetTime;
 			offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, startTime);
 		}
 		ByteBufferMessageSet msgs;
 		try {
-			long start = System.nanoTime();
-			FetchRequestBuilder builder = new FetchRequestBuilder();
-			FetchRequest fetchRequest = builder.addFetch(_config.topic, partition.partition, offset, _config.fetchSizeBytes).build();
-			msgs = consumer.fetch(fetchRequest).messageSet(_config.topic, partition.partition);
-			long end = System.nanoTime();
-			long millis = (end - start) / 1000000;
-			_kafkaMeanFetchLatencyMetric.update(millis);
-			_kafkaMaxFetchLatencyMetric.update(millis);
+			msgs = fetchMessages(consumer, partition, offset);
 		} catch (Exception e) {
 			if (e instanceof ConnectException) {
 				throw new FailedFetchException(e);
@@ -134,6 +127,19 @@ public class TridentKafkaEmitter {
 		return newMeta;
 	}
 
+	private ByteBufferMessageSet fetchMessages(SimpleConsumer consumer, GlobalPartitionId partition, long offset) {
+		ByteBufferMessageSet msgs;
+		long start = System.nanoTime();
+		FetchRequestBuilder builder = new FetchRequestBuilder();
+		FetchRequest fetchRequest = builder.addFetch(_config.topic, partition.partition, offset, _config.fetchSizeBytes).clientId(_config.clientId).build();
+		msgs = consumer.fetch(fetchRequest).messageSet(_config.topic, partition.partition);
+		long end = System.nanoTime();
+		long millis = (end - start) / 1000000;
+		_kafkaMeanFetchLatencyMetric.update(millis);
+		_kafkaMaxFetchLatencyMetric.update(millis);
+		return msgs;
+	}
+
 	/**
 	 * re-emit the batch described by the meta data provided
 	 *
@@ -149,13 +155,7 @@ public class TridentKafkaEmitter {
 			SimpleConsumer consumer = _connections.register(partition);
 			long offset = (Long) meta.get("offset");
 			long nextOffset = (Long) meta.get("nextOffset");
-			long start = System.nanoTime();
-			ByteBufferMessageSet msgs = consumer.fetch(new FetchRequestBuilder().addFetch(_config.topic, partition.partition, offset, _config.fetchSizeBytes).build()).messageSet(_config.topic, partition.partition);
-			long end = System.nanoTime();
-			long millis = (end - start) / 1000000;
-			_kafkaMeanFetchLatencyMetric.update(millis);
-			_kafkaMaxFetchLatencyMetric.update(millis);
-
+			ByteBufferMessageSet msgs = fetchMessages(consumer, partition, offset);
 			for (MessageAndOffset msg : msgs) {
 				if (offset == nextOffset) break;
 				if (offset > nextOffset) {

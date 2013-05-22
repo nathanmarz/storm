@@ -21,7 +21,7 @@ public class StaticPartitionConnections {
     public SimpleConsumer getConsumer(int partition) {
 		if(!_kafka.containsKey(partition)) {
             HostPort hp = hosts.getPartitionInformation().getHostFor(partition);
-            _kafka.put(partition, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes, kafka.api.OffsetRequest.DefaultClientId()));
+            _kafka.put(partition, new SimpleConsumer(hp.host, hp.port, _config.socketTimeoutMs, _config.bufferSizeBytes, _config.clientId));
 
         }
         return _kafka.get(partition);

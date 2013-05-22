@@ -78,7 +78,7 @@ public class PartitionManager {
             _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, spoutConfig.startOffsetTime);
 	    LOG.info("Using startOffsetTime to choose last commit offset.");
         } else if(jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
-            _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, -1);
+            _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition,  kafka.api.OffsetRequest.LatestTime());
 	    LOG.info("Setting last commit offset to HEAD.");
         } else {
             _committedTo = jsonOffset;

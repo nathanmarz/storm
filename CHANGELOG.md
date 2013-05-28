@@ -15,9 +15,11 @@
  * Automatically drain and log error stream of multilang subprocesses
  * Append component name to thread name of running executors so that logs are easier to read
  * Messaging system used for passing messages between workers is now pluggable (thanks anfeng)
+ * Netty implementation of messaging (thanks anfeng)
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts
+ * Bug fix: Fix memory leak in Trident LRUMemoryMapState due to concurrency issue with LRUMap (thanks jasonjckn)
 
 ## 0.8.3 (unreleased)
 

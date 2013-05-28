@@ -62,17 +62,15 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
 
     public static class Factory implements StateFactory {
 
-        String _id;
         int _maxSize;
 
         public Factory(int maxSize) {
-            _id = UUID.randomUUID().toString();
             _maxSize = maxSize;
         }
 
         @Override
         public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            return new LRUMemoryMapState(_maxSize, _id);
+            return new LRUMemoryMapState(_maxSize, UUID.randomUUID().toString());
         }
     }
 

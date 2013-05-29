@@ -1,5 +1,5 @@
 (def ROOT-DIR (subs *file* 0 (- (count *file*) (count "project.clj"))))
-(def VERSION (-> ROOT-DIR (str "/../VERSION") slurp))
+(def VERSION (-> ROOT-DIR (str "/../VERSION") slurp (.trim)))
 
 (eval `(defproject storm/storm-netty ~VERSION
   :dependencies [[storm/storm-core ~VERSION]

@@ -27,6 +27,7 @@
  * Bug fix: Fix race condition between supervisor and Nimbus that could lead to stormconf.ser errors and infinite crashing of supervisor
  * Bug fix: Fix default scheduler to always reassign workers in a constrained topology when there are dead executors
  * Bug fix: Fix memory leak in Trident LRUMemoryMapState due to concurrency issue with LRUMap (thanks jasonjckn)
+ * Bug fix: Properly ignore NoNodeExists exceptions when deleting old transaction states
 
 ## 0.8.2
 

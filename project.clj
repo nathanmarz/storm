@@ -1,4 +1,4 @@
-(def VERSION (slurp "VERSION"))
+(def VERSION (.trim (slurp "VERSION")))
 (def MODULES (-> "MODULES" slurp (.split "\n")))
 (def DEPENDENCIES (for [m MODULES] [(symbol (str "storm/" m)) VERSION]))
 

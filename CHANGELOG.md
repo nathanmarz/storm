@@ -19,7 +19,6 @@
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts
- * Bug fix: Fix memory leak in Trident LRUMemoryMapState due to concurrency issue with LRUMap (thanks jasonjckn)
 
 ## 0.8.3 (unreleased)
 
@@ -27,6 +26,7 @@
  * Bug fix: Fix TransactionalMap and OpaqueMap to correctly do multiple updates to the same key in the same batch
  * Bug fix: Fix race condition between supervisor and Nimbus that could lead to stormconf.ser errors and infinite crashing of supervisor
  * Bug fix: Fix default scheduler to always reassign workers in a constrained topology when there are dead executors
+ * Bug fix: Fix memory leak in Trident LRUMemoryMapState due to concurrency issue with LRUMap (thanks jasonjckn)
 
 ## 0.8.2
 

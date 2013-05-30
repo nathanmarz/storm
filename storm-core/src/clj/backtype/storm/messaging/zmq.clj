@@ -59,11 +59,11 @@
                      ^{:unsynchronized-mutable true} local?]
   IContext
   (^void prepare [this ^Map storm-conf]
-    (let [num-threads (storm-conf ZMQ-THREADS)]
+    (let [num-threads (.get storm-conf ZMQ-THREADS)]
       (set! context (mq/context num-threads)) 
-      (set! linger-ms (storm-conf ZMQ-LINGER-MILLIS))
-      (set! hwm (storm-conf ZMQ-HWM))
-      (set! local? (= (storm-conf STORM-CLUSTER-MODE) "local"))))
+      (set! linger-ms (.get storm-conf ZMQ-LINGER-MILLIS))
+      (set! hwm (.get storm-conf ZMQ-HWM))
+      (set! local? (= (.get storm-conf STORM-CLUSTER-MODE) "local"))))
   (^IConnection bind [this ^String storm-id ^int port]
     (require 'backtype.storm.messaging.zmq)
     (-> context

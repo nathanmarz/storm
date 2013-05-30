@@ -26,6 +26,7 @@
               ))       
         (-> topo
             (.newDRPCStream "all-tuples" drpc)
+            (.broadcast)
             (.stateQuery word-counts (fields "args") (TupleCollectionGet.) (fields "word" "count"))
             (.project (fields "word" "count")))
         (with-topology [cluster topo]

@@ -15,6 +15,7 @@
  * Automatically drain and log error stream of multilang subprocesses
  * Append component name to thread name of running executors so that logs are easier to read
  * Messaging system used for passing messages between workers is now pluggable (thanks anfeng)
+ * Netty implementation of messaging (thanks anfeng)
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts
@@ -25,6 +26,8 @@
  * Bug fix: Fix TransactionalMap and OpaqueMap to correctly do multiple updates to the same key in the same batch
  * Bug fix: Fix race condition between supervisor and Nimbus that could lead to stormconf.ser errors and infinite crashing of supervisor
  * Bug fix: Fix default scheduler to always reassign workers in a constrained topology when there are dead executors
+ * Bug fix: Fix memory leak in Trident LRUMemoryMapState due to concurrency issue with LRUMap (thanks jasonjckn)
+ * Bug fix: Properly ignore NoNodeExists exceptions when deleting old transaction states
 
 ## 0.8.2
 

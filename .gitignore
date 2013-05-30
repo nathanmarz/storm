@@ -22,8 +22,7 @@ _release
 *.zip
 .lein-deps-sum
 *.iml
-/target
-/storm-core/target
+target
 /.project/
 /.lein-plugins/
 *.ipr

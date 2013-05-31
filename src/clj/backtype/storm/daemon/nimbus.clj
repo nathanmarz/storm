@@ -318,6 +318,7 @@
     (TopologyDetails. storm-id
                       topology-conf
                       topology
+                      (from-json (:meta storm-base))
                       (:num-workers storm-base)
                       executor->component
                       )))
@@ -689,6 +690,7 @@
           (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
           (.set-assignment! storm-cluster-state topology-id assignment)
           )))
+    
     (->> new-assignments
           (map (fn [[topology-id assignment]]
             (let [existing-assignment (get existing-assignments topology-id)]
@@ -700,8 +702,7 @@
 
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
   {:pre [(#{:active :inactive} topology-initial-status)]}                
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        conf (:conf nimbus)
+  (let [{:keys [conf storm-cluster-state inimbus]} nimbus
         storm-conf (read-storm-conf conf storm-id)
         topology (system-topology! storm-conf (read-storm-topology conf storm-id))
         num-executors (->> (all-components topology) (map-val num-start-executors))]
@@ -712,7 +713,8 @@
                                   (current-time-secs)
                                   {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
-                                  num-executors))))
+                                  num-executors
+                                  (to-json (or (.metaOfNewTopology inimbus storm-id storm-conf topology) {}))))))
 
 ;; Master:
 ;; job submit:
@@ -1147,6 +1149,7 @@
   (reify INimbus
     (prepare [this conf local-dir]
       )
+    (metaOfNewTopology [this topology-id topology-conf topology] {})
     (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
       (->> supervisors
            (mapcat (fn [^SupervisorDetails s]

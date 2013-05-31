@@ -186,6 +186,7 @@
       (prepare [this conf local-dir]
         (.prepare standalone conf local-dir)
         )
+      (metaOfNewTopology [this name conf topology] {})      
       (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
         (.allSlotsAvailableForScheduling standalone supervisors topologies topologies-missing-assignments))
       (assignSlots [this topology slots]
@@ -739,3 +740,47 @@
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
        ))))
+
+(defn inimbus-with-meta []
+  (let [standalone (nimbus/standalone-nimbus)
+        meta-data-valid? (atom false)]
+    [meta-data-valid?
+     (reify INimbus
+       (prepare [this conf local-dir]
+         (.prepare standalone conf local-dir)
+         )
+       (metaOfNewTopology [this id conf topology]
+         {"topology-name" (conf TOPOLOGY-NAME)})
+       (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
+         (.allSlotsAvailableForScheduling standalone supervisors topologies topologies-missing-assignments))
+       (assignSlots [this topologies slots]
+         (doseq [t (.getTopologies topologies)]
+           (if (= {"topology-name" (.getName t)} (.getMeta t))
+             (reset! meta-data-valid? true)))
+         (.assignSlots standalone topologies slots))
+       (getForcedScheduler [this]
+         (.getForcedScheduler standalone))
+       (getHostName [this supervisors node-id]
+         node-id
+         ))]))
+
+
+(deftest test-topology-meta
+  (let [[meta-data-valid? inimbus] (inimbus-with-meta)]
+    (with-simulated-time-local-cluster
+      [cluster
+       :inimbus inimbus                               
+       :daemon-conf {SUPERVISOR-ENABLE false
+                     TOPOLOGY-ACKER-EXECUTORS 0}]
+      (letlocals
+       (bind topology (thrift/mk-topology
+                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 1)}
+                       {}))
+
+       (submit-local-topology (:nimbus cluster)
+                              "test"
+                              {}
+                              topology)
+       (advance-cluster-time cluster 5)
+       (is @meta-data-valid?)))))
+

@@ -23,7 +23,7 @@ public class BasicTopologyValidator implements ITopologyValidator {
 
         while (it.hasNext()) {
             while (! toRet.isInstance(it.next())) {
-                toRet = toRet.getSuperClass();
+                toRet = toRet.getSuperclass();
             }
         }
         return toRet;
@@ -64,12 +64,14 @@ public class BasicTopologyValidator implements ITopologyValidator {
         return true;
     }
 
-    public void validateConfigurationTypes(Map<?, ?> conf) throws InvalidTopologyException {
+    protected void validateConfigurationTypes(Map<?, ?> conf) throws InvalidTopologyException {
         Map<?, ?> defaultConf = Utils.readDefaultConfig();
 
         for (Object key : conf.keySet()) {
-            if (defaultConf.containsKey(key) &&
-                    areObjectsInstances(defaultConf, conf, key)) {
+            if (! defaultConf.containsKey(key)) {
+                continue;
+            }
+            if (areObjectsInstances(defaultConf, conf, key)) {
                 continue;
             }
 

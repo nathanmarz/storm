@@ -720,47 +720,47 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
     public static final Object TOPOLOGY_TRANSFER_BUFFER_SIZE_SCHEMA = Number.class;
 
-    /**
-     * How often a tick tuple from the "__system" component and "__tick" stream should be sent
-     * to tasks. Meant to be used as a component-specific configuration.
-     */
-     public static final String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
+   /**
+    * How often a tick tuple from the "__system" component and "__tick" stream should be sent
+    * to tasks. Meant to be used as a component-specific configuration.
+    */
+    public static final String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
     public static final Object TOPOLOGY_TICK_TUPLE_FREQ_SECS_SCHEMA = Number.class;
 
 
-    /**
-     * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
-     * vs. throughput
-     */
-     public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
+   /**
+    * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
+    * vs. throughput
+    */
+    public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
     public static final Object TOPOLOGY_DISRUPTOR_WAIT_STRATEGY_SCHEMA = String.class;
     
-    /**
-     * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
-     * via the TopologyContext.
-     */
-     public static final String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
+   /**
+    * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
+    * via the TopologyContext.
+    */
+    public static final String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
     public static final Object TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE_SCHEMA = Number.class;
 
-     /**
-      * The interval in seconds to use for determining whether to throttle error reported to Zookeeper. For example, 
-      * an interval of 10 seconds with topology.max.error.report.per.interval set to 5 will only allow 5 errors to be
-      * reported to Zookeeper per task for every 10 second interval of time.
-      */
-     public static final String TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS="topology.error.throttle.interval.secs";
+    /**
+     * The interval in seconds to use for determining whether to throttle error reported to Zookeeper. For example, 
+     * an interval of 10 seconds with topology.max.error.report.per.interval set to 5 will only allow 5 errors to be
+     * reported to Zookeeper per task for every 10 second interval of time.
+     */
+    public static final String TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS="topology.error.throttle.interval.secs";
     public static final Object TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS_SCHEMA = Number.class;
 
-     /**
-      * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
-      */
-     public static final String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
+    /**
+     * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
+     */
+    public static final String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
     public static final Object TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL_SCHEMA = Number.class;
 
 
-     /**
-      * How often a batch can be emitted in a Trident topology.
-      */
-     public static final String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
+    /**
+     * How often a batch can be emitted in a Trident topology.
+     */
+    public static final String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
     public static final Object TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS_SCHEMA = Number.class;
 
     /**

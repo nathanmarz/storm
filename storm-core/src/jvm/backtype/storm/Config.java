@@ -193,7 +193,7 @@ public class Config extends HashMap<String, Object> {
      * Defaults to false.
      */
     public static final String STORM_LOCAL_MODE_ZMQ = "storm.local.mode.zmq";
-    public static final Object STORM_LOCAL_MODE_ZMQ_SCHEMA = String.class;
+    public static final Object STORM_LOCAL_MODE_ZMQ_SCHEMA = Boolean.class;
 
     /**
      * The root location at which Storm stores data in ZooKeeper.
@@ -402,13 +402,13 @@ public class Config extends HashMap<String, Object> {
      * timeout for the topology implementing the DRPC function.
      */
     public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
-    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = Map.class;
+    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = Number.class;
     
     /**
      * the metadata configed on the supervisor
      */    
     public static final String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
-    public static final Object SUPERVISOR_SCHEDULER_META_SCHEMA = String.class;
+    public static final Object SUPERVISOR_SCHEDULER_META_SCHEMA = Map.class;
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune

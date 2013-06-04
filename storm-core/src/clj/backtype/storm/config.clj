@@ -1,6 +1,6 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File])
-  (:import [backtype.storm Config])
+  (:import [backtype.storm Config Config$FieldValidator])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
@@ -24,6 +24,24 @@
   (dofor [f (seq (.getFields Config))]
          (.get f nil)
          ))
+
+;; Create a mapping of config-string -> validator
+;; Config fields must have a _SCHEMA field defined
+(def CONFIG-SCHEMA-MAP
+  (reduce (fn [mp [k v]] (assoc mp k v)) {}
+    (for [f (seq (.getFields Config))
+      :when (not (re-matches #".*_SCHEMA$" (.getName f)))
+      :let [k (.get f nil)
+            nam (.getName f) 
+            field-to-get (str/replace nam #"$" "_SCHEMA")
+;            _ (println (str "Trying to set " k " to " field-to-get " value"))
+            v (-> Config (.getField field-to-get) (.get nil))
+;            _ (println (str "and value was " v ))
+            ]]
+      [k v]
+    )
+  )
+)
 
 (defn cluster-mode [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
@@ -62,11 +80,40 @@
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
 
+(defn- validate-configs-with-schemas [conf]
+  (doseq [[k v] conf
+         :let [_ (println (str "trying to validate" [k v]))
+               _ (println (str "schema is (" (get CONFIG-SCHEMA-MAP k) ")"))
+               schema (get CONFIG-SCHEMA-MAP k)]]
+    (if (instance? Config$FieldValidator schema)
+      (if (and (not (nil? v))
+               (not (.validateField schema v)))
+        (throw (IllegalArgumentException.
+                 (str "'" k "' " (.getCriteriaPredicate schema))))
+        (println (str "OK: " k " " (.getCriteriaPredicate schema)))
+      )
+      (do 
+        (println "schema is (" schema ")")
+        (println "v is " v)
+        (if (and (not (instance? schema v))
+                 (not (nil? v)))
+          (throw (IllegalArgumentException.
+                   (str "'" k "' must be a '" (.getName schema) "'")))
+          (println (str "OK: " k " was a " (.getName schema)))
+        )
+      )
+    )))
+
+
 (defn read-storm-config []
-  (clojurify-structure (Utils/readStormConfig)))
+  (let [conf (clojurify-structure (Utils/readStormConfig))]
+    (validate-configs-with-schemas conf)
+    conf))
 
 (defn read-yaml-config [name]
-  (clojurify-structure (Utils/findAndReadConfigFile name true)))
+  (let [conf (clojurify-structure (Utils/findAndReadConfigFile name true))]
+    (validate-configs-with-schemas conf)
+    conf))
 
 (defn master-local-dir [conf]
   (let [ret (str (conf STORM-LOCAL-DIR) "/nimbus")]

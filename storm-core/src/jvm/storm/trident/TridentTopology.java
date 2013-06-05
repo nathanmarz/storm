@@ -3,6 +3,7 @@ package storm.trident;
 import backtype.storm.Config;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.drpc.DRPCSpout;
+import backtype.storm.drpc.LocalDRPCInvocationFactory;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
@@ -11,15 +12,6 @@ import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
@@ -33,34 +25,20 @@ import storm.trident.graph.GraphGrouper;
 import storm.trident.graph.Group;
 import storm.trident.operation.GroupedMultiReducer;
 import storm.trident.operation.MultiReducer;
-import storm.trident.operation.impl.FilterExecutor;
-import storm.trident.operation.impl.GroupedMultiReducerExecutor;
-import storm.trident.operation.impl.IdentityMultiReducer;
-import storm.trident.operation.impl.JoinerMultiReducer;
-import storm.trident.operation.impl.TrueFilter;
+import storm.trident.operation.impl.*;
 import storm.trident.partition.IdentityGrouping;
-import storm.trident.planner.Node;
-import storm.trident.planner.NodeStateInfo;
-import storm.trident.planner.PartitionNode;
-import storm.trident.planner.ProcessorNode;
-import storm.trident.planner.SpoutNode;
-import storm.trident.planner.SubtopologyBolt;
+import storm.trident.planner.*;
 import storm.trident.planner.processor.EachProcessor;
 import storm.trident.planner.processor.MultiReducerProcessor;
-import storm.trident.spout.BatchSpoutExecutor;
-import storm.trident.spout.IBatchSpout;
-import storm.trident.spout.IOpaquePartitionedTridentSpout;
-import storm.trident.spout.IPartitionedTridentSpout;
-import storm.trident.spout.ITridentSpout;
-import storm.trident.spout.OpaquePartitionedTridentSpoutExecutor;
-import storm.trident.spout.PartitionedTridentSpoutExecutor;
-import storm.trident.spout.RichSpoutBatchExecutor;
+import storm.trident.spout.*;
 import storm.trident.state.StateFactory;
 import storm.trident.state.StateSpec;
 import storm.trident.topology.TridentTopologyBuilder;
 import storm.trident.util.ErrorEdgeFactory;
 import storm.trident.util.IndexedEdge;
 import storm.trident.util.TridentUtils;
+
+import java.util.*;
 
 
 // graph with 3 kinds of nodes:
@@ -124,7 +102,7 @@ public class TridentTopology {
         if(server==null) {
             spout = new DRPCSpout(function);
         } else {
-            spout = new DRPCSpout(function, server);
+            spout = new DRPCSpout(function, new LocalDRPCInvocationFactory(server));
         }
         return newDRPCStream(spout);
     }

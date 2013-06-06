@@ -31,8 +31,6 @@ CONFIG_OPTS = []
 CONFFILE = ""
 JAR_JVM_OPTS = os.getenv('STORM_JAR_JVM_OPTS', '')
 
-print "Jvm opts" + JAR_JVM_OPTS
-
 
 def get_config_opts():
     global CONFIG_OPTS

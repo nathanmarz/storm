@@ -31,6 +31,7 @@ You must not remove this notice, or any other, from this software.
 
 * James Xu ([@xumingming](https://github.com/xumingming))
 * Jason Jackson ([@jason_j](http://twitter.com/jason_j))
+* Andy Feng ([@anfeng](https://github.com/anfeng))
 
 ## Contributors
 
@@ -66,7 +67,6 @@ You must not remove this notice, or any other, from this software.
 * Sam Ritchie ([@sritchie](https://github.com/sritchie))
 * Stuart Anderson ([@emblem](https://github.com/emblem))
 * Robert Evans ([@revans2](https://github.com/revans2)) 
-* Andy Feng ([@anfeng](https://github.com/anfeng))
 * Lorcan Coyle ([@lorcan](https://github.com/lorcan))
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Andrew Olson ([@noslowerdna](https://github.com/noslowerdna))

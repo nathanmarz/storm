@@ -8,6 +8,7 @@ import backtype.storm.utils.ShellProcess;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -60,6 +61,7 @@ public class ShellBolt implements IBolt {
     
     private Thread _readerThread;
     private Thread _writerThread;
+    private HashMap<String, String> _environment;
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -67,12 +69,21 @@ public class ShellBolt implements IBolt {
 
     public ShellBolt(String... command) {
         _command = command;
+        _environment = new HashMap<String, String>();
+    }
+
+    public void setEnvironmentVariable(String key, String value) {
+        _environment.put(key, value);
+    }
+
+    public Map<String, String> getEnvironment() {
+        return _environment;
     }
 
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
         _rand = new Random();
-        _process = new ShellProcess(_command);
+        _process = new ShellProcess(_command, _environment);
         _collector = collector;
 
         try {

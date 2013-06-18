@@ -72,7 +72,7 @@ public class LRUMemoryMapState<T> implements Snapshottable<T>, ITupleCollection,
 
         @Override
         public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            return new LRUMemoryMapState(_maxSize, _id);
+            return new LRUMemoryMapState(_maxSize, _id + partitionIndex);
         }
     }
 

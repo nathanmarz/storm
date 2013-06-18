@@ -22,6 +22,7 @@
                                      topology
                                      ;; important for test that
                                      ;; #tuples = multiple of 4 and 6
+                                     :storm-conf {TOPOLOGY-WORKERS 3}
                                      :mock-sources {"1" [["a"] ["b"]
                                                          ["a"] ["b"]
                                                          ["a"] ["b"]

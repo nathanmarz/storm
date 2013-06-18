@@ -300,6 +300,10 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
 
+    /**
+     * supervisor http ui port
+     */
+    public static final String SUPERVISOR_UI_PORT = "supervisor.ui.port";
 
 
     /**

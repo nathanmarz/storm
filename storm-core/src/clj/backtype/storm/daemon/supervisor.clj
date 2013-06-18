@@ -2,6 +2,7 @@
   (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
+  (:use [backtype.storm.ui [log :as logui]])
   (:require [backtype.storm.daemon [worker :as worker]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
@@ -469,6 +470,7 @@
 
 (defn -launch [supervisor]
   (let [conf (read-storm-config)]
+    (logui/start-log-ui (int (conf SUPERVISOR-UI-PORT)))
     (validate-distributed-mode! conf)
     (mk-supervisor conf nil supervisor)))
 

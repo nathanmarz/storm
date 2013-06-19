@@ -1,6 +1,5 @@
 package backtype.storm.drpc;
 
-import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -15,8 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 
 public class ReturnResults extends BaseRichBolt {
@@ -38,21 +35,6 @@ public class ReturnResults extends BaseRichBolt {
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
-        // Yuck.  Would happily ditch this if backwards compatibility is not an issue.
-        if (_factory == null) {
-            String localDrpcString = (String) stormConf.get(Config.STORM_CLUSTER_DRPC_IS_LOCAL);
-            boolean local;
-            if (isNotBlank(localDrpcString)) {
-                local = Boolean.parseBoolean(localDrpcString);
-            } else {
-                local = stormConf.get(Config.STORM_CLUSTER_MODE).equals("local");
-            }
-            if (local) {
-                _factory = new LocalDRPCInvocationFactory();
-            } else {
-                _factory = new DRPCInvocationsClientFactory();
-            }
-        }
     }
 
     @Override

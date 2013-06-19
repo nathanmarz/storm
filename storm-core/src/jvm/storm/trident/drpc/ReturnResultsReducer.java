@@ -1,10 +1,7 @@
 package storm.trident.drpc;
 
-import backtype.storm.Config;
 import backtype.storm.drpc.DRPCInvocations;
-import backtype.storm.drpc.DRPCInvocationsClientFactory;
 import backtype.storm.drpc.DRPCInvocationsFactory;
-import backtype.storm.drpc.LocalDRPCInvocationFactory;
 import backtype.storm.utils.Utils;
 import com.google.common.net.HostAndPort;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -20,8 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 
 public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
@@ -47,21 +42,6 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
 
     @Override
     public void prepare(Map stormConf, TridentMultiReducerContext context) {
-        // Yuck.  Would happily ditch this if backwards compatibility is not an issue.
-        if (_factory == null) {
-            String localDrpcString = (String) stormConf.get(Config.STORM_CLUSTER_DRPC_IS_LOCAL);
-            boolean local;
-            if (isNotBlank(localDrpcString)) {
-                local = Boolean.parseBoolean(localDrpcString);
-            } else {
-                local = stormConf.get(Config.STORM_CLUSTER_MODE).equals("local");
-            }
-            if (local) {
-                _factory = new LocalDRPCInvocationFactory();
-            } else {
-                _factory = new DRPCInvocationsClientFactory();
-            }
-        }
     }
 
     @Override

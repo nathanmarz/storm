@@ -17,7 +17,7 @@ public class LocalDRPCInvocationFactory implements DRPCInvocationsFactory {
 
     @Override
     public DRPCInvocations getClientForServer(HostAndPort hostAndPort) {
-        return new LocalDRPCInvocationClient((DRPCInvocations) ServiceRegistry.getService(localDrpcId), hostAndPort);
+        return new LocalDRPCInvocationClient((DistributedRPCInvocations.Iface) ServiceRegistry.getService(localDrpcId), hostAndPort);
     }
 
     private static class LocalDRPCInvocationClient implements DRPCInvocations {
@@ -25,7 +25,7 @@ public class LocalDRPCInvocationFactory implements DRPCInvocationsFactory {
         final DistributedRPCInvocations.Iface delegate;
         final HostAndPort hostAndPort;
 
-        private LocalDRPCInvocationClient(DRPCInvocations delegate, HostAndPort hostAndPort) {
+        private LocalDRPCInvocationClient(DistributedRPCInvocations.Iface delegate, HostAndPort hostAndPort) {
             this.delegate = delegate;
             this.hostAndPort = hostAndPort;
         }

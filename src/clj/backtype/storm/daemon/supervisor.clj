@@ -149,7 +149,10 @@
     (rmpath (worker-root conf id))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
-    )))
+    )
+  (catch java.io.FileNotFoundException e (log-message (.getMessage e)))
+  (catch java.io.IOException e (log-message (.getMessage e)))
+    ))
 
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
@@ -160,7 +163,9 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (ensure-process-killed! pid)
-      (rmpath (worker-pid-path conf id pid))
+      (try
+        (rmpath (worker-pid-path conf id pid))
+        (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
       )
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
@@ -258,6 +263,13 @@
        (map :storm-id)
        set))
 
+(defn try-shutdown-workers [supervisor]
+  (let [worker-root (worker-root (:conf supervisor))
+         ids (read-dir-contents worker-root)]
+    (doseq [id ids]
+      (shutdown-worker supervisor id))
+    ))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
@@ -317,7 +329,10 @@
         (when-not (assigned-storm-ids storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
-          (rmr (supervisor-stormdist-root conf storm-id))
+          (try
+            (if on-windows? (try-shutdown-workers supervisor))
+            (rmr (supervisor-stormdist-root conf storm-id))
+            (catch Exception e (log-message (.getMessage e))))
           ))
       (.add processes-event-manager sync-processes)
       )))
@@ -394,7 +409,7 @@
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
     ;; Downloading to permanent location is atomic
-    (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
+    (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/forceMkdir (File. tmproot))
       
@@ -444,7 +459,7 @@
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
-            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
+            target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
             (cond
               resources-jar
               (do

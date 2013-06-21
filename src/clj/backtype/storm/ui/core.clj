@@ -6,6 +6,7 @@
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [trim]])
+  (:use [clojure.java.shell :only [sh]])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -733,9 +734,11 @@
            ui-template))
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
        (let [include-sys? (get-include-sys? cookies)]
-         (-> (topology-page id (:window m) include-sys?)
+         (try
+           (-> (topology-page id (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)))
+             ui-template)
+           (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)]
          (-> (component-page id component (:window m) include-sys?)
@@ -773,7 +776,27 @@
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
     (resp/redirect (str "/topology/" id)))
+  (ring.middleware.multipart-params/wrap-multipart-params
+    (POST "/upload" [:as {params :params} :as {headers :headers}]
+      (let [file-params (params :file)
+            src (.getCanonicalPath (file-params :tempfile))
+            dest (if-not (nil? name) (file-params :filename) name)]
+        (if on-windows? (sh "cmd" "/c" "move" "/y" src dest)
+          (sh "mv" "-f" src dest)))
+        (resp/redirect (get headers "referer"))))
+  (POST "/submit/:jar/:class/:args" [:as {params :params} :as {headers :headers} jar class args]
+    (let [cmd (str (if on-windows? "bin/storm.cmd" "bin/storm")
+                     " jar " (params :jar) " " (params :class) " "
+                     (clojure.string/replace (params :args) #"&" " "))]
+      (exec-command! cmd)
+      (resp/redirect (get headers "referer"))))
+  (POST "/dir/:args" [:as {cookies :cookies} args]
+    (let [jars-str (if on-windows? (:out (sh "cmd" "/c" "dir" "/b" args))
+                      (:out (sh "ls" args)))
+          jars (clojure.string/split jars-str (if on-windows? #"\r\n" #"\n"))]
+        jars-str))
   (route/resources "/")
+  (route/files "/" {:root (str (System/getProperty "storm.home") file-path-separator "webapp") })
   (route/not-found "Page not found"))
 
 (defn exception->html [ex]

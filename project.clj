@@ -10,6 +10,8 @@
                  [clj-time "0.4.1"]
                  [com.netflix.curator/curator-framework "1.0.1"
                   :exclusions [log4j/log4j]]
+                 [org.apache.zookeeper/zookeeper "3.4.5"
+                  :exclusions [com.sun.jmx/jmxri com.sun.jdmk/jmxtools javax.jms/jms log4j/log4j jline org.slf4j/slf4j-log4j12]]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
                  [compojure "1.1.3"]

@@ -47,7 +47,12 @@ cp -R bin $DIR/
 cp README.markdown $DIR/
 cp LICENSE.html $DIR/
 
-cd _release
+cd _release/storm-$RELEASE
+for i in *.jar
+do
+	rm -f ./lib/$i
+done
+cd ..
 zip -r storm-$RELEASE.zip *
 cd ..
 mv _release/storm-*.zip .

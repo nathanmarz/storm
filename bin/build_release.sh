@@ -34,7 +34,7 @@ for i in *.jar
 do
 	rm -f lib/$i
 done 
-cd ..
+cd ../..
 
 cp CHANGELOG.md $DIR/
 

@@ -381,7 +381,7 @@
   (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
 (defn worker-log-link [host port]
-  (link-to (format "http://%s:%s/log?file=worker-%s.log" 
+  (link-to (url-format "http://%s:%s/log?file=worker-%s.log"
               host (*STORM-CONF* SUPERVISOR-UI-PORT) port) (str port " log")))
 
 (defn render-capacity [capacity]

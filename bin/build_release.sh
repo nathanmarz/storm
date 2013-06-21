@@ -29,7 +29,12 @@ do
 	cd ..
 done
 
-rm -f $DIR/lib/storm-core-$RELEASE.jar
+cd _release/storm-$RELEASE
+for i in *.jar
+do
+	rm -f lib/$i
+done 
+cd ..
 
 cp CHANGELOG.md $DIR/
 

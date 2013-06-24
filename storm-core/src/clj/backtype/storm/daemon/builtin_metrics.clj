@@ -3,6 +3,13 @@
   (:import [backtype.storm Config])
   (:use [backtype.storm.stats :only [stats-rate]]))
 
+;;;
+;;; Set up data structures for the built-in metrics, and facade methods that the
+;;; other framework components can use to update them. The metrics themselves
+;;; are calculated in the calling code -- see for example `ack-spout-msg` in
+;;; `daemon/executor.clj`
+;;; 
+
 (defrecord BuiltinSpoutMetrics [^MultiCountMetric ack-count                                
                                 ^MultiReducedMetric complete-latency
                                 ^MultiCountMetric fail-count

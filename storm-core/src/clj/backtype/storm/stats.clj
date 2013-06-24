@@ -6,6 +6,23 @@
   (:use [backtype.storm util])
   (:use [clojure.math.numeric-tower :only [ceil]]))
 
+;;;
+;;; The stats module helps accumulate raw measurements ('I did an ack', 'I took
+;;; 5 ms to process') into summary statistics (counts of acks, rolling average
+;;; of process time).
+;;;
+;;; This file has utility methods to prepare aggregate statistics; to set up and
+;;; track built-in internal metrics; and to consume and render stats. See the
+;;; `ack-spout-msg` in `daemon/executor.clj` for an example of how stats are
+;;; recorded.
+;;;
+
+
+;;; ___________________________________________________________________________
+;;;
+;;; Methods to aggregate measurements into summary statistics
+;;;
+
 ;;TODO: consider replacing this with some sort of RRD
 
 (defn curr-time-bucket [^Integer time-secs ^Integer bucket-size-secs]
@@ -22,7 +39,7 @@
      ;; this is 2.5x faster than using update-in...
      (let [time-bucket (curr-time-bucket time-secs (:bucket-size-secs rw))
            buckets (:buckets rw)
-           curr (get buckets time-bucket)           
+           curr (get buckets time-bucket)
            curr (apply (:updater rw) curr args)
            ]
        (assoc rw :buckets (assoc buckets time-bucket curr))
@@ -139,6 +156,11 @@
 ;;         :else (* 10 (to-proportional-bucket (ceil (/ val 10))
 ;;                                             buckets))))
 
+;;; ___________________________________________________________________________
+;;;
+;;; Methods to set up and track built-in internal metrics
+;;;
+
 (def COMMON-FIELDS [:emitted :transferred])
 (defrecord CommonStats [emitted transferred rate])
 
@@ -215,6 +237,11 @@
 (defn spout-failed-tuple! [^SpoutExecutorStats stats stream latency-ms]
   (update-executor-stat! stats :failed stream (stats-rate stats))
   )
+
+;;; ___________________________________________________________________________
+;;;
+;;; Methods to consume and render stats
+;;;
 
 (defn- cleanup-stat! [stat]
   (swap! stat cleanup-rolling-window-set))

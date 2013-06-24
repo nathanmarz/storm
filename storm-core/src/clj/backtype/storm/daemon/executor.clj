@@ -162,6 +162,7 @@
         (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error)
         ))))
 
+;;
 ;; Publish tuple to the executor send queue.
 ;;
 ;; With no overflow-buffer, it publishes with a blocking call -- it does not
@@ -173,6 +174,7 @@
 ;; InsufficientCapacityException rescues the tuple into the overflow-buffer.
 ;;
 ;; in its own function so that it can be mocked out by tracked topologies
+;;
 (defn mk-executor-transfer-fn [batch-transfer->worker]
   (fn this
     ([task tuple block? ^List overflow-buffer]
@@ -465,9 +467,10 @@
         (doseq [[task-id task-data] task-datas
                 :let [^ISpout spout-obj (:object task-data)
                       tasks-fn (:tasks-fn task-data)
+                      ;; 
                       ;; Assembles the tuple-id, dispatches the tuple, and handles bookeeping.
                       ;;
-                      ;; If the tuple is 'rooted' (ie. has ackers that care about its completion),
+                      ;; When the tuple is 'rooted' (ie. has ackers that care about its completion),
                       ;; make a root-id to identify the tuple tree, and an edge id for each destination.
                       ;; If nobody cares, just use a dummy unanchored tuple-id.
                       ;;
@@ -664,7 +667,7 @@
                       ;;   that anchor's ackVal (thus requiring that the tuple be processed)
                       ;;   and into the hash of root-id:edge-id pairs that will become its tuple-id
                       ;; Next, assemble the actual tuple to send, and send it.
-                      ;; Lastly, return the list of downstream tasks we sent to
+                      ;; Lastly, return the list of downstream tasks we sent to.
                       ;;
                       bolt-emit (fn [stream anchors values task]
                                   (let [out-tasks (if task

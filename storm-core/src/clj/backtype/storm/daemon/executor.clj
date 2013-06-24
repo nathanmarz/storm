@@ -162,6 +162,16 @@
         (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error)
         ))))
 
+;; Publish tuple to the executor send queue.
+;;
+;; With no overflow-buffer, it publishes with a blocking call -- it does not
+;; return until the queue accepts the tuple
+;;
+;; If given an overflow-buffer (as spouts do), it will always return with no
+;; blocking -- if there is already overflow, tuple is placed in overflow buffer;
+;; otherwise it publishes with a non-blocking call, and on
+;; InsufficientCapacityException rescues the tuple into the overflow-buffer.
+;;
 ;; in its own function so that it can be mocked out by tracked topologies
 (defn mk-executor-transfer-fn [batch-transfer->worker]
   (fn this
@@ -455,6 +465,18 @@
         (doseq [[task-id task-data] task-datas
                 :let [^ISpout spout-obj (:object task-data)
                       tasks-fn (:tasks-fn task-data)
+                      ;; Assembles the tuple-id, dispatches the tuple, and handles bookeeping.
+                      ;;
+                      ;; If the tuple is 'rooted' (ie. has ackers that care about its completion),
+                      ;; make a root-id to identify the tuple tree, and an edge id for each destination.
+                      ;; If nobody cares, just use a dummy unanchored tuple-id.
+                      ;;
+                      ;; After sending the tuple, add it to our own pending list so we can
+                      ;; throttle the flow, and pass an init-stream message to the acker,
+                      ;; seeding it with the XORed edge-ids of all the downstream tuples
+                      ;;
+                      ;; return value is the list of destination tasks
+                      ;;
                       send-spout-msg (fn [out-stream-id values message-id out-task-id]
                                        (.increment emitted-count)
                                        (let [out-tasks (if out-task-id
@@ -464,6 +486,7 @@
                                              root-id (if rooted? (MessageId/generateId rand))
                                              out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
                                          (fast-list-iter [out-task out-tasks id out-ids]
+                                                         ;; assemble the tuple id
                                                          (let [tuple-id (if rooted?
                                                                           (MessageId/makeRootId root-id id)
                                                                           (MessageId/makeUnanchored))
@@ -472,6 +495,7 @@
                                                                                      task-id
                                                                                      out-stream-id
                                                                                      tuple-id)]
+                                                           ;; send the tuple
                                                            (transfer-fn out-task
                                                                         out-tuple
                                                                         overflow-buffer)
@@ -634,6 +658,14 @@
                 :let [^IBolt bolt-obj (:object task-data)
                       tasks-fn (:tasks-fn task-data)
                       user-context (:user-context task-data)
+                      ;;
+                      ;; For each downstream task,
+                      ;; First generate a new unique edge-id for each anchor; hang it onto both 
+                      ;;   that anchor's ackVal (thus requiring that the tuple be processed)
+                      ;;   and into the hash of root-id:edge-id pairs that will become its tuple-id
+                      ;; Next, assemble the actual tuple to send, and send it.
+                      ;; Lastly, return the list of downstream tasks we sent to
+                      ;;
                       bolt-emit (fn [stream anchors values task]
                                   (let [out-tasks (if task
                                                     (tasks-fn task stream values)

@@ -25,6 +25,39 @@
   (.emitDirect collector task stream values)
   )
 
+;;; The acker tracks completion of each tuple tree with a checksum hash: each
+;;; time a tuple is sent, its value is XORed into the checksum, and each time a
+;;; tuple is acked its value is XORed in again. If all tuples have been
+;;; successfully acked, the checksum will be zero (and the odds that the
+;;; checksum will be zero otherwise are vanishingly small).
+;;;
+;;; When the tuple tree is born, the spout seeds the ledger with the XORed
+;;; edge-ids of each tuple recipient. Every time an executor acks, it sends back
+;;; a partial checksum that is the XOR of the tuple's own edge-id (clearing it
+;;; from the ledger) and the edge-id of each downstream tuple (thus entering
+;;; them into the ledger).
+;;;
+;;; This method proceeds as follows.
+;;;
+;;; On a tick tuple, just advance pending checksums towards death and
+;;; return. The RotatingMap will invoke the expiration callback for all the
+;;; over-stale tuple trees.
+;;;
+;;; Otherwise, update or create the record for this tuple tree:
+;;;
+;;; * on init: initialize with the given checksum value, and record the spout's id for later
+;;; * on ack:  xor the partial checksum into the existing checksum value
+;;; * on fail: just mark it as failed
+;;;
+;;; Next, take action:
+;;;
+;;; * if the total checksum is zero, the tuple tree is complete:
+;;;   remove it from the pending collection and notify the spout of success
+;;; * if the tuple tree has failed, it is also complete:
+;;;   remove it from the pending collection and notify the spout of failure
+;;;
+;;; Finally, pass on an ack of our own.
+;;;
 (defn mk-acker-bolt []
   (let [output-collector (MutableObject.)
         pending (MutableObject.)]

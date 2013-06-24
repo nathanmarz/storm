@@ -71,6 +71,7 @@ You must not remove this notice, or any other, from this software.
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Andrew Olson ([@noslowerdna](https://github.com/noslowerdna))
 * Gavin Li ([@lyogavin](https://github.com/lyogavin))
+* Tudor Scurtu ([@tscurtu](https://github.com/tscurtu))
 
 ## Acknowledgements
 

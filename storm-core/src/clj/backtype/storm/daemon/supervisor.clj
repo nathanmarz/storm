@@ -419,6 +419,9 @@
                        " -Dlogfile.name=" logfilename
                        " -Dstorm.home=" storm-home
                        " -Dlogback.configurationFile=" storm-home "/logback/cluster.xml"
+                       " -Dstorm.id=" storm-id
+                       " -Dworker.id=" worker-id
+                       " -Dworker.port=" port
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]

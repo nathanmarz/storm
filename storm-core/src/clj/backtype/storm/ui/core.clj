@@ -382,7 +382,7 @@
 
 (defn worker-log-link [host port]
   (link-to (url-format "http://%s:%s/log?file=worker-%s.log"
-              host (*STORM-CONF* SUPERVISOR-UI-PORT) port) (str port " log")))
+              host (*STORM-CONF* LOGVIEWER-PORT) port) (str port " log")))
 
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]

@@ -38,6 +38,10 @@ nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 ui.port: 8080
 ui.childopts: "-Xmx768m"
 
+logviewer.port: 8000
+logviewer.childopts: "-Xmx128m"
+
+
 drpc.port: 3772
 drpc.worker.threads: 64
 drpc.queue.size: 128
@@ -55,7 +59,6 @@ supervisor.slots.ports:
     - 6701
     - 6702
     - 6703
-supervisor.ui.port: 8000
 supervisor.childopts: "-Xmx256m"
 #how long supervisor will wait to ensure that a worker process is started
 supervisor.worker.start.timeout.secs: 120

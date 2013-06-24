@@ -1,18 +1,13 @@
-(ns backtype.storm.ui.log
+(ns backtype.storm.daemon.logviewer
   (:use compojure.core)
-  (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util])
-  (:use [backtype.storm.ui helpers core])
-  (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
+  (:use [backtype.storm config util log])
+  (:use [backtype.storm.ui.core :only [ui-template]])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:use [clojure.string :only [trim]])
-  (:import [java.io File])
   (:import [org.apache.commons.logging LogFactory])
   (:import [org.apache.commons.logging.impl Log4JLogger])
   (:import [org.apache.log4j Level])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler]
-            [backtype.storm [thrift :as thrift]])
+            [compojure.handler :as handler])
   (:gen-class))
 
 (defn tail-file [path tail]
@@ -60,6 +55,10 @@
   (handler/site log-routes)
  )
 
-(defn start-log-ui [port]
-  (run-jetty logapp {:port port :join? false}))
+(defn start-logviewer [port]
+  (run-jetty logapp {:port port}))
+
+(defn -main []
+  (let [conf (read-storm-config)]
+    (start-logviewer (int (conf LOGVIEWER-PORT)))))
 

@@ -252,6 +252,12 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_PORT = "ui.port";
 
     /**
+     * HTTP UI port for log viewer
+     */
+    public static final String LOGVIEWER_PORT = "logviewer.port";
+
+
+    /**
      * Childopts for Storm UI Java process.
      */
     public static final String UI_CHILDOPTS = "ui.childopts";
@@ -299,11 +305,6 @@ public class Config extends HashMap<String, Object> {
      * how many workers run on each machine.
      */
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
-
-    /**
-     * supervisor http ui port
-     */
-    public static final String SUPERVISOR_UI_PORT = "supervisor.ui.port";
 
 
     /**

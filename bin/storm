@@ -308,8 +308,9 @@ def drpc():
     See Distributed RPC for more information.
     (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
     """
-    jvmopts = ["-Xmx768m", 
-        "-Dlogfile.name=drpc.log", 
+    cppaths = [CLUSTER_CONF_DIR]
+    jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
+        "-Dlogfile.name=drpc.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml"
     ]
     exec_storm_class(

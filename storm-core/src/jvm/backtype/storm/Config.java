@@ -287,7 +287,13 @@ public class Config extends HashMap<String, Object> {
      * timeout based on the socket timeout on the DRPC client, and separately based on the topology message
      * timeout for the topology implementing the DRPC function.
      */
-    public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
+    public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";
+
+    /**
+     * Childopts for Storm DRPC Java process.
+     */
+    public static final String DRPC_CHILDOPTS = "drpc.childopts";
+  
     
     /**
      * the metadata configed on the supervisor

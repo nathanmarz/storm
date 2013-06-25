@@ -39,6 +39,7 @@ if not os.path.exists(STORM_DIR + "/RELEASE"):
     print "******************************************"
     print "The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code."
     print "\nYou can download a Storm release at https://github.com/nathanmarz/storm/downloads"
+    print "\nor build it yourself by running ./bin/build_release.sh from a clone of the source repo."
     print "******************************************"
     sys.exit(1)  
 

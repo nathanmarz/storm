@@ -829,8 +829,7 @@
     (doseq [f files]
       (if (.delete f)
         (log-message "Cleaning inbox ... deleted: " (.getName f))
-        ;; This should never happen
-        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        (throw (RuntimeException. (str "Failed clean inbox. Failed to delete " (.getName f) ". Check file permissions.")))
         ))))
 
 (defn cleanup-corrupt-topologies! [nimbus]

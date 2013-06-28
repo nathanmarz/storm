@@ -14,7 +14,7 @@ def cygpath(x):
     command = ["cygpath", "-wp", x]
     p = sub.Popen(command,stdout=sub.PIPE)
     output, errors = p.communicate()
-    lines = output.split("\n")
+    lines = output.decode("utf-8").split("\n")
     return lines[0]
 
 if sys.platform == "cygwin":
@@ -22,7 +22,7 @@ if sys.platform == "cygwin":
 else:
     normclasspath = identity
 
-STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
+STORM_DIR = "/".join(os.path.realpath( __file__ ).split(os.sep)[:-2])
 USER_CONF_DIR = os.path.expanduser("~/.storm")
 CLUSTER_CONF_DIR = STORM_DIR + "/conf"
 if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
@@ -36,10 +36,10 @@ def get_config_opts():
     return "-Dstorm.options=" + (','.join(CONFIG_OPTS)).replace(' ', "%%%%")
 
 if not os.path.exists(STORM_DIR + "/RELEASE"):
-    print "******************************************"
-    print "The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code."
-    print "\nYou can download a Storm release at https://github.com/nathanmarz/storm/downloads"
-    print "******************************************"
+    print("******************************************")
+    print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
+    print("\nYou can download a Storm release at https://github.com/nathanmarz/storm/downloads")
+    print("******************************************")
     sys.exit(1)  
 
 def get_jars_full(adir):
@@ -54,7 +54,7 @@ def get_classpath(extrajars):
     ret = get_jars_full(STORM_DIR)
     ret.extend(get_jars_full(STORM_DIR + "/lib"))
     ret.extend(extrajars)
-    return normclasspath(":".join(ret))
+    return normclasspath(";".join(ret))
 
 def confvalue(name, extrapaths):
     global CONFFILE
@@ -63,7 +63,7 @@ def confvalue(name, extrapaths):
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
-    lines = output.split("\n")
+    lines = output.decode("utf-8").split("\n")
     for line in lines:
         tokens = line.split(" ")
         if tokens[0] == "VALUE:":
@@ -77,7 +77,7 @@ def print_localconfvalue(name):
     The local Storm configs are the ones in ~/.storm/storm.yaml merged 
     in with the configs in defaults.yaml.
     """
-    print name + ": " + confvalue(name, [USER_CONF_DIR])
+    print(name + ": " + confvalue(name, [USER_CONF_DIR]))
 
 def print_remoteconfvalue(name):
     """Syntax: [storm remoteconfvalue conf-name]
@@ -88,7 +88,7 @@ def print_remoteconfvalue(name):
 
     This command must be run on a cluster machine.
     """
-    print name + ": " + confvalue(name, [CLUSTER_CONF_DIR])
+    print(name + ": " + confvalue(name, [CLUSTER_CONF_DIR]))
 
 def parse_args(string):
     r"""Takes a string of whitespace-separated tokens and parses it into a list.
@@ -118,7 +118,7 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         "-Dstorm.conf.file=" + CONFFILE,
         "-cp", get_classpath(extrajars),
     ] + jvmopts + [klass] + list(args)
-    print "Running: " + " ".join(all_args)
+    print("Running: " + " ".join(all_args))
     if fork:
         os.spawnvp(os.P_WAIT, "java", all_args)
     else:
@@ -338,37 +338,37 @@ def version():
   """
   releasefile = STORM_DIR + "/RELEASE"
   if os.path.exists(releasefile):
-    print open(releasefile).readline().strip()
+    print(open(releasefile).readline().strip())
   else:
-    print "Unknown"
+    print("Unknown")
 
 def print_classpath():
     """Syntax: [storm classpath]
 
     Prints the classpath used by the storm client when running commands.
     """
-    print get_classpath([])
+    print(get_classpath([]))
 
 def print_commands():
     """Print all client commands and link to documentation"""
-    print "Commands:\n\t",  "\n\t".join(sorted(COMMANDS.keys()))
-    print "\nHelp:", "\n\thelp", "\n\thelp <command>"
-    print "\nDocumentation for the storm client can be found at https://github.com/nathanmarz/storm/wiki/Command-line-client\n"
-    print "Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n"
+    print("Commands:\n\t",  "\n\t".join(sorted(COMMANDS.keys())))
+    print("\nHelp:", "\n\thelp", "\n\thelp <command>")
+    print("\nDocumentation for the storm client can be found at https://github.com/nathanmarz/storm/wiki/Command-line-client\n")
+    print("Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n")
 
 def print_usage(command=None):
     """Print one help message or list of available commands"""
     if command != None:
         if COMMANDS.has_key(command):
-            print (COMMANDS[command].__doc__ or 
+            print(COMMANDS[command].__doc__ or 
                   "No documentation provided for <%s>" % command)
         else:
-           print "<%s> is not a valid command" % command
+           print("<%s> is not a valid command" % command)
     else:
         print_commands()
 
 def unknown_command(*args):
-    print "Unknown command: [storm %s]" % ' '.join(sys.argv[1:])
+    print("Unknown command: [storm %s]" % ' '.join(sys.argv[1:]))
     print_usage()
 
 COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,

@@ -6,6 +6,6 @@ import java.util.Map;
 
 public class DefaultTopologyValidator implements ITopologyValidator {
     @Override
-    public void validate(String topologyName, Map topologyConf, StormTopology topology) throws InvalidTopologyException {        
+    public void validate(String topologyName, Map topologyConf, StormTopology topology, Map NimbusConf) throws InvalidTopologyException {        
     }    
 }

@@ -907,7 +907,8 @@
           (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
                      storm-name
                      (from-json serializedConf)
-                     topology)
+                     topology
+                     conf)
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 storm-conf (normalize-conf

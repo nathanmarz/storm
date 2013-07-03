@@ -5,6 +5,6 @@ import backtype.storm.generated.StormTopology;
 import java.util.Map;
 
 public interface ITopologyValidator {
-    void validate(String topologyName, Map topologyConf, StormTopology topology)
+    void validate(String topologyName, Map topologyConf, StormTopology topology, Map NimbusConf)
             throws InvalidTopologyException;
 }

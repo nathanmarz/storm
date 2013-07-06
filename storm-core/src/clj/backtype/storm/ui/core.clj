@@ -21,6 +21,8 @@
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:gen-class))
 
+(bootstrap)
+
 (defmacro with-nimbus [conf-sym nimbus-sym & body]
   `(let [state# (cluster/mk-storm-cluster-state ~conf-sym)
          hostPort# (.nimbus-info state#)] 

@@ -109,6 +109,7 @@
                            {STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-ZOOKEEPER-SERVERS ["localhost"]})
+        daemon-conf (nimbus/config-with-nimbus-port-assigned daemon-conf)
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
@@ -127,6 +128,7 @@
         supervisor-confs (if (sequential? supervisors)
                            supervisors
                            (repeat supervisors {}))]
+    (nimbus/announce-nimbus-info cluster-map (daemon-conf NIMBUS-HOST) (daemon-conf NIMBUS-THRIFT-PORT))
     (doseq [sc supervisor-confs]
       (add-supervisor cluster-map :ports ports-per-supervisor :conf sc))
     cluster-map

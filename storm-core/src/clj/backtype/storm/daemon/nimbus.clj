@@ -3,6 +3,7 @@
   (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift7 TException])
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [java.net InetAddress])
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
@@ -1125,10 +1126,25 @@
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
 
-(defn launch-server! [conf nimbus]
+(defn announce-nimbus-info [nimbus host port]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        nimbus-host-port (HostPort. host port)]
+    (.set-nimbus! storm-cluster-state nimbus-host-port)))
+
+(defn config-with-nimbus-port-assigned [conf]
+  (let [port_in_conf  (.intValue (Integer. (conf NIMBUS-THRIFT-PORT)))
+        nimbus_port  (assign-server-port port_in_conf)]
+    (assoc (assoc conf
+                  NIMBUS-THRIFT-PORT (.toString (Integer. nimbus_port))) 
+           NIMBUS-HOST (.getCanonicalHostName (InetAddress/getLocalHost)))))
+  
+(defn launch-server! [conf inimbus]
   (validate-distributed-mode! conf)
-  (let [service-handler (service-handler conf nimbus)
-        options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
+  (let [extended-conf (config-with-nimbus-port-assigned conf)
+        nimbus-port (extended-conf NIMBUS-THRIFT-PORT)
+        nimbus (nimbus-data extended-conf inimbus)
+        service-handler (service-handler extended-conf inimbus)
+        options (-> (TNonblockingServerSocket. nimbus-port)
                     (THsHaServer$Args.)
                     (.workerThreads 64)
                     (.protocolFactory (TBinaryProtocol$Factory.))
@@ -1136,7 +1152,8 @@
                     )
        server (THsHaServer. options)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
-    (log-message "Starting Nimbus server...")
+    (log-message "Starting Nimbus server with port " nimbus-port)
+    (announce-nimbus-info nimbus (extended-conf NIMBUS-HOST) nimbus-port)
     (.serve server)))
 
 

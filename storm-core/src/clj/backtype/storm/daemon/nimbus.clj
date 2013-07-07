@@ -1135,7 +1135,7 @@
   (let [port_in_conf  (.intValue (Integer. (conf NIMBUS-THRIFT-PORT)))
         nimbus_port  (assign-server-port port_in_conf)]
     (assoc (assoc conf
-                  NIMBUS-THRIFT-PORT (.toString (Integer. nimbus_port))) 
+                  NIMBUS-THRIFT-PORT (Integer. nimbus_port)) 
            NIMBUS-HOST (.getCanonicalHostName (InetAddress/getLocalHost)))))
   
 (defn launch-server! [conf inimbus]

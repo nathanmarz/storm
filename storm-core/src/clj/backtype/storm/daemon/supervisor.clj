@@ -322,7 +322,7 @@
 (defserverfn mk-supervisor [conf shared-context ^ISupervisor isupervisor]
   (log-message "Starting Supervisor with conf " conf)
   (let [nimbusHostPort (.nimbus-info (cluster/mk-storm-cluster-state conf))
-        conf (assoc (assoc conf NIMBUS-HOST (:host nimbusHostPort)) NIMBUS-THRIFT-PORT (:port nimbusHostPort))]
+        conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))]
     (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
     (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
     (let [supervisor (supervisor-data conf shared-context isupervisor)

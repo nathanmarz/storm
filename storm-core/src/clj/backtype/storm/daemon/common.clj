@@ -48,8 +48,6 @@
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
 
-(defrecord HostPort [host port])
-
 (defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
 (defrecord ExecutorStats [^long processed

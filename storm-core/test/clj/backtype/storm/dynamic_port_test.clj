@@ -5,6 +5,7 @@
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.security.auth ThriftServer])
   (:import [backtype.storm.scheduler INimbus])
+  (:import [backtype.storm.utils NimbusClient])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   )
@@ -69,7 +70,7 @@
       (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
                (read-tuples results "2"))))))
 
-(deftest test-ui-access-nimbus
+(deftest test-ui-access-nimbus-server
   (with-server [cluster 
                 :supervisors 0
                 :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
@@ -79,6 +80,18 @@
           req {:uri "/" :request-method :get}
           resp (ui-server-app req)]
       (is (pos? (Integer. (conf NIMBUS-THRIFT-PORT))))
-      (log-message "ui server app:" ui-server-app)
       (is (= 200 (:status resp)))
       (is (pos? (.indexOf (:body resp) "Cluster Summary"))))))
+
+(deftest test-client-access-nimbus-server
+  (with-server [cluster 
+                :supervisors 0
+                :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
+                              NIMBUS-THRIFT-PORT -2}]
+    (let [conf   (assoc (:daemon-conf cluster) NIMBUS-THRIFT-PORT 0)
+          nimbus (NimbusClient/getConfiguredClient conf)
+          client (.getClient nimbus)]
+      (testing "Accessing Nimbus without knowing host/port"
+               (is (thrown-cause? NotAliveException
+                                  (.activate client "non_existing_topology"))))
+      (.close nimbus))))

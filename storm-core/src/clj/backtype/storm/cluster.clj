@@ -5,7 +5,6 @@
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]])
-  
   )
 
 (defprotocol ClusterState

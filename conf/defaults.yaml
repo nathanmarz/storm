@@ -47,6 +47,7 @@ drpc.worker.threads: 64
 drpc.queue.size: 128
 drpc.invocations.port: 3773
 drpc.request.timeout.secs: 600
+drpc.childopts: "-Xmx768m"
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null

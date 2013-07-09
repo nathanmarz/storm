@@ -1,7 +1,7 @@
 (ns backtype.storm.daemon.logviewer
   (:use compojure.core)
+  (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
-  (:use [backtype.storm.ui.core :only [ui-template]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [org.apache.commons.logging LogFactory])
   (:import [org.apache.commons.logging.impl Log4JLogger])
@@ -43,11 +43,26 @@
         (.setLevel (.getLogger log) (Level/toLevel level))))
     (str "effective log level for " name " is " (.getLevel (.getLogger log)))))
 
+(defn log-template [body]
+  (html
+   [:head
+    [:title "Storm log viewer"]
+    (include-css "/css/bootstrap-1.1.0.css")
+    (include-css "/css/style.css")
+    (include-js "/js/jquery-1.6.2.min.js")
+    (include-js "/js/jquery.tablesorter.min.js")
+    (include-js "/js/jquery.cookies.2.2.0.min.js")
+    (include-js "/js/script.js")
+    ]
+   [:body
+    (seq body)
+    ]))
+
 (defroutes log-routes
   (GET "/log" [:as {cookies :cookies} & m]
-       (ui-template (log-page (:file m) (:tail m) (:grep m))))
+       (log-template (log-page (:file m) (:tail m) (:grep m))))
   (GET "/loglevel" [:as {cookies :cookies} & m]
-       (ui-template (log-level-page (:name m) (:level m))))
+       (log-template (log-level-page (:name m) (:level m))))
   (route/resources "/")
   (route/not-found "Page not found"))
 

@@ -380,6 +380,10 @@
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
+(defn worker-log-link [host port]
+  (link-to (url-format "http://%s:%s/log?file=worker-%s.log"
+              host (*STORM-CONF* LOGVIEWER-PORT) port) (str port " log")))
+
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]
     [:span (if (> capacity 0.9)
@@ -564,7 +568,7 @@
      [(pretty-executor-info (.get_executor_info e))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
-      (.get_port e)
+      (worker-log-link (.get_host e) (.get_port e))
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (float-str (:complete-latencies stats))
@@ -639,7 +643,7 @@
      [(pretty-executor-info (.get_executor_info e))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
-      (.get_port e)
+      (worker-log-link (.get_host e) (.get_port e))
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (render-capacity (compute-executor-capacity e))

@@ -19,6 +19,7 @@
  * Include topology id, worker port, and worker id in properties for worker processes, useful for logging (thanks d2r)
  * Tick tuples can now be scheduled using floating point seconds (thanks tscurtu)
  * Added log viewer daemon and links from UI to logviewers (thanks xiaokang)
+ * DRPC server childopts now configurable (thanks strongh)
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts

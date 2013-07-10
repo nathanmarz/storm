@@ -33,20 +33,20 @@
 (defmethod get-FieldValidator
   ConfigValidation$FieldValidator [validator] validator)
 
-(defmethod get-FieldValidator Object [class-obj]
-  (let [cls class-obj]
-    (reify ConfigValidation$FieldValidator
-      (validateField [this v]
-        (if (and (not (instance? cls v))
-                 (not (nil? v)))
-          (throw (IllegalArgumentException.
-                   (str "'" v "' must be a '" (.getName cls) "'"))))))))
+(defmethod get-FieldValidator Object [klass]
+  {:pre [(not (nil? klass))]}
+  (reify ConfigValidation$FieldValidator
+    (validateField [this v]
+      (if (and (not (nil? v))
+               (not (instance? klass v)))
+        (throw (IllegalArgumentException.
+                 (str "'" v "' must be a '" (.getName klass) "'")))))))
 
 ;; Create a mapping of config-string -> validator
 ;; Config fields must have a _SCHEMA field defined
 (def CONFIG-SCHEMA-MAP
   (->> (.getFields Config)
-          (filter #(not (re-matches #".*_SCHEMA" (.getName %))))
+          (filter #(not (re-matches #".*_SCHEMA$" (.getName %))))
           (map (fn [f] [(.get f nil) (get-FieldValidator
                                        (-> Config
                                          (.getField (str (.getName f) "_SCHEMA"))
@@ -93,10 +93,12 @@
 (defn- validate-configs-with-schemas [conf]
   (doseq [[k v] conf
          :let [schema (CONFIG-SCHEMA-MAP k)]]
-    (.validateField schema v)))
+    (if (not (nil? schema))
+      (.validateField schema v))))
 
 (defn read-storm-config []
-  (let [conf (clojurify-structure (Utils/readStormConfig))]
+  (let [
+        conf (clojurify-structure (Utils/readStormConfig))]
     (validate-configs-with-schemas conf)
     conf))
 

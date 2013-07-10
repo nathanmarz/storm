@@ -289,6 +289,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_PORT_SCHEMA = Number.class;
 
     /**
+     * HTTP UI port for log viewer
+     */
+    public static final String LOGVIEWER_PORT = "logviewer.port";
+    public static final Object LOGVIEWER_PORT_SCHEMA = Number.class;
+
+    /**
+     * Childopts for log viewer java process.
+     */
+    public static final String LOGVIEWER_CHILDOPTS = "logviewer.childopts";
+    public static final Object LOGVIEWER_CHILDOPTS_SCHEMA = String.class;
+
+    /**
      * Childopts for Storm UI Java process.
      */
     public static final String UI_CHILDOPTS = "ui.childopts";
@@ -333,6 +345,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = Number.class;
 
     /**
+     * Childopts for Storm DRPC Java process.
+     */
+    public static final String DRPC_CHILDOPTS = "drpc.childopts";
+    public static final Object DRPC_CHILDOPTS_SCHEMA = String.class;
+
+    /**
      * the metadata configed on the supervisor
      */
     public static final String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
@@ -344,7 +362,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
     public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = ConfigValidation.NumbersValidator;
-
 
 
     /**

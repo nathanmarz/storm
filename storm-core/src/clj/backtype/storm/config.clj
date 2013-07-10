@@ -1,6 +1,6 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File])
-  (:import [backtype.storm Config Config$FieldValidator])
+  (:import [backtype.storm Config ConfigValidation$FieldValidator])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
@@ -25,23 +25,33 @@
          (.get f nil)
          ))
 
+(defmulti get-FieldValidator class-selector)
+
+(defmethod get-FieldValidator nil [_]
+  (throw (IllegalArgumentException. "Cannot validate a nil field.")))
+
+(defmethod get-FieldValidator
+  ConfigValidation$FieldValidator [validator] validator)
+
+(defmethod get-FieldValidator Object [class-obj]
+  (let [cls class-obj]
+    (reify ConfigValidation$FieldValidator
+      (validateField [this v]
+        (if (and (not (instance? cls v))
+                 (not (nil? v)))
+          (throw (IllegalArgumentException.
+                   (str "'" v "' must be a '" (.getName cls) "'"))))))))
+
 ;; Create a mapping of config-string -> validator
 ;; Config fields must have a _SCHEMA field defined
 (def CONFIG-SCHEMA-MAP
-  (reduce (fn [mp [k v]] (assoc mp k v)) {}
-    (for [f (seq (.getFields Config))
-      :when (not (re-matches #".*_SCHEMA$" (.getName f)))
-      :let [k (.get f nil)
-            nam (.getName f) 
-            field-to-get (str/replace nam #"$" "_SCHEMA")
-;            _ (println (str "Trying to set " k " to " field-to-get " value"))
-            v (-> Config (.getField field-to-get) (.get nil))
-;            _ (println (str "and value was " v ))
-            ]]
-      [k v]
-    )
-  )
-)
+  (->> (.getFields Config)
+          (filter #(not (re-matches #".*_SCHEMA" (.getName %))))
+          (map (fn [f] [(.get f nil) (get-FieldValidator
+                                       (-> Config
+                                         (.getField (str (.getName f) "_SCHEMA"))
+                                         (.get nil)))]))
+          (into {})))
 
 (defn cluster-mode [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
@@ -82,28 +92,8 @@
 
 (defn- validate-configs-with-schemas [conf]
   (doseq [[k v] conf
-         :let [_ (println (str "trying to validate" [k v]))
-               _ (println (str "schema is (" (get CONFIG-SCHEMA-MAP k) ")"))
-               schema (get CONFIG-SCHEMA-MAP k)]]
-    (if (instance? Config$FieldValidator schema)
-      (if (and (not (nil? v))
-               (not (.validateField schema v)))
-        (throw (IllegalArgumentException.
-                 (str "'" k "' " (.getCriteriaPredicate schema))))
-        (println (str "OK: " k " " (.getCriteriaPredicate schema)))
-      )
-      (do 
-        (println "schema is (" schema ")")
-        (println "v is " v)
-        (if (and (not (instance? schema v))
-                 (not (nil? v)))
-          (throw (IllegalArgumentException.
-                   (str "'" k "' must be a '" (.getName schema) "'")))
-          (println (str "OK: " k " was a " (.getName schema)))
-        )
-      )
-    )))
-
+         :let [schema (CONFIG-SCHEMA-MAP k)]]
+    (.validateField schema v)))
 
 (defn read-storm-config []
   (let [conf (clojurify-structure (Utils/readStormConfig))]

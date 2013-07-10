@@ -1,5 +1,6 @@
 package backtype.storm;
 
+import backtype.storm.ConfigValidation;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
 import com.esotericsoftware.kryo.Serializer;
@@ -14,94 +15,23 @@ import java.util.Map;
  * all the configs that can be set. It also makes it easier to do things like add 
  * serializations.
  * 
- * <p>This class also provides constants for all the configurations possible on a Storm
- * cluster and Storm topology. Default values for these configs can be found in
- * defaults.yaml.</p>
+ * <p>This class also provides constants for all the configurations possible on
+ * a Storm cluster and Storm topology. Each constant is paired with a schema
+ * that defines the validity criterion of the corresponding field. Default
+ * values for these configs can be found in defaults.yaml.</p>
  *
  * <p>Note that you may put other configurations in any of the configs. Storm
  * will ignore anything it doesn't recognize, but your topologies are free to make
  * use of them by reading them in the prepare method of Bolts or the open method of 
- * Spouts. .</p>
+ * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
-
-    /**
-     * Declares methods for validating non-simple Classes and providing feedback.
-     */
-    public static interface FieldValidator {
-        /**
-         * Returns the critera against which a field is validated in predicate form
-         */
-        public String getCriteriaPredicate();
-        /**
-         * Returns true if the field is valid, false otherwise.
-         */
-        public boolean validateField(Object field);
-    }
-
-    /**
-     * Returns a new FieldValidator for a List of the given Class.
-     * @param c the Class of elements composing the list
-     * @return the FieldValidator validating a list of elements of the given class
-     */
-    static FieldValidator FieldListValidatorFactory(final Class cls) {
-        return new FieldValidator() {
-            @Override
-            public String getCriteriaPredicate() {
-                return "must be a list of " + cls.getName() +"s";
-            }
-
-            @Override
-            public boolean validateField(Object field) {
-                if (field instanceof Iterable) {
-                    for (Object e : (Iterable)field) {
-                        if (! cls.isInstance(e)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-                return false;
-            }
-        };
-    }
-
-    /**
-     * Validates a list of Numbers
-     */
-    static Object NumbersValidator = FieldListValidatorFactory(Number.class);
-
-    /**
-     * Validates is a list of Strings
-     */
-    static Object StringsValidator = FieldListValidatorFactory(String.class);
-
-    /**
-     * Validates a power of 2
-     */
-    static Object PowerOf2Validator = new FieldValidator() {
-        @Override
-        public String getCriteriaPredicate() {
-            return "must be a power of 2";
-        }
-        @Override 
-        public boolean validateField(Object field) {
-            if (field instanceof Number) {
-                int i = ((Number) field).intValue();
-                if (i > 0 && (i & (i-1)) == 0) { // Test whether a power of 2
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
-    
     /**
      * The transporter for communication among Storm tasks
      */
     public static final String STORM_MESSAGING_TRANSPORT = "storm.messaging.transport";
     public static final Object STORM_MESSAGING_TRANSPORT_SCHEMA = String.class;
-    
+
     /**
      * Netty based messaging: The buffer size for send/recv buffer
      */
@@ -130,7 +60,7 @@ public class Config extends HashMap<String, Object> {
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
     public static final String STORM_ZOOKEEPER_SERVERS = "storm.zookeeper.servers";
-    public static final Object STORM_ZOOKEEPER_SERVERS_SCHEMA = StringsValidator;
+    public static final Object STORM_ZOOKEEPER_SERVERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * The port Storm will use to connect to each of the ZooKeeper servers.
@@ -176,7 +106,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
     public static final Object STORM_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
-    
+
     /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
@@ -212,14 +142,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_ZOOKEEPER_CONNECTION_TIMEOUT = "storm.zookeeper.connection.timeout";
     public static final Object STORM_ZOOKEEPER_CONNECTION_TIMEOUT_SCHEMA = Number.class;
-    
-    
+
     /**
      * The number of times to retry a Zookeeper operation.
      */
     public static final String STORM_ZOOKEEPER_RETRY_TIMES="storm.zookeeper.retry.times";
     public static final Object STORM_ZOOKEEPER_RETRY_TIMES_SCHEMA = Number.class;
-    
+
     /**
      * The interval between retries of a Zookeeper operation.
      */
@@ -237,19 +166,19 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_ZOOKEEPER_AUTH_SCHEME="storm.zookeeper.auth.scheme";
     public static final Object STORM_ZOOKEEPER_AUTH_SCHEME_SCHEMA = String.class;
-    
+
     /**
      * A string representing the payload for Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
      */
     public static final String STORM_ZOOKEEPER_AUTH_PAYLOAD="storm.zookeeper.auth.payload";
     public static final Object STORM_ZOOKEEPER_AUTH_PAYLOAD_SCHEMA = String.class;
-    
+
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.
      */
     public static final String STORM_ID = "storm.id";
     public static final Object STORM_ID_SCHEMA = String.class;
-    
+
     /**
      * The host that the master server is running on.
      */
@@ -352,7 +281,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String NIMBUS_AUTHORIZER = "nimbus.authorizer";
     public static final Object NIMBUS_AUTHORIZER_SCHEMA = String.class;
-    
+
     /**
      * Storm UI binds to this port.
      */
@@ -364,20 +293,19 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_CHILDOPTS = "ui.childopts";
     public static final Object UI_CHILDOPTS_SCHEMA = String.class;
-    
-    
+
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static final String DRPC_SERVERS = "drpc.servers";
-    public static final Object DRPC_SERVERS_SCHEMA = StringsValidator;
+    public static final Object DRPC_SERVERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     public static final String DRPC_PORT = "drpc.port";
     public static final Object DRPC_PORT_SCHEMA = Number.class;
-    
+
     /**
      * DRPC thrift server worker threads 
      */
@@ -389,24 +317,24 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DRPC_QUEUE_SIZE = "drpc.queue.size";
     public static final Object DRPC_QUEUE_SIZE_SCHEMA = Number.class;
-    
+
     /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
-    public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
+    public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
     public static final Object DRPC_INVOCATIONS_PORT_SCHEMA = Number.class;
-    
+
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
      * timeout based on the socket timeout on the DRPC client, and separately based on the topology message
      * timeout for the topology implementing the DRPC function.
      */
-    public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
+    public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";
     public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = Number.class;
-    
+
     /**
      * the metadata configed on the supervisor
-     */    
+     */
     public static final String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
     public static final Object SUPERVISOR_SCHEDULER_META_SCHEMA = Map.class;
     /**
@@ -415,7 +343,7 @@ public class Config extends HashMap<String, Object> {
      * how many workers run on each machine.
      */
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
-    public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = NumbersValidator;
+    public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = ConfigValidation.NumbersValidator;
 
 
 
@@ -467,7 +395,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
     public static final Object SUPERVISOR_MONITOR_FREQUENCY_SECS_SCHEMA = Number.class;
-    
+
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
      * with an identifier for this worker.
@@ -499,15 +427,15 @@ public class Config extends HashMap<String, Object> {
     public static final String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
     public static final Object TASK_REFRESH_POLL_SECS_SCHEMA = Number.class;
 
-    
-    
+
+
     /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
      * in unit tests to prevent tuples from being accidentally timed out during the test.
      */
     public static final String TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS = "topology.enable.message.timeouts";
     public static final Object TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS_SCHEMA = Boolean.class;
-    
+
     /**
      * When set to true, Storm will log every message that's emitted.
      */
@@ -570,7 +498,7 @@ public class Config extends HashMap<String, Object> {
      * See Kryo's documentation for more information about writing custom serializers.
      */
     public static final String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
-    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = StringsValidator;
+    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * A list of classes that customize storm's kryo instance during start-up.
@@ -579,7 +507,7 @@ public class Config extends HashMap<String, Object> {
      * is called with storm's kryo instance as the only argument.
      */
     public static final String TOPOLOGY_KRYO_DECORATORS = "topology.kryo.decorators";
-    public static final Object TOPOLOGY_KRYO_DECORATORS_SCHEMA = StringsValidator;
+    public static final Object TOPOLOGY_KRYO_DECORATORS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * Class that specifies how to create a Kryo instance for serialization. Storm will then apply
@@ -589,7 +517,7 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_KRYO_FACTORY = "topology.kryo.factory";
     public static final Object TOPOLOGY_KRYO_FACTORY_SCHEMA = String.class;
 
-    
+
     /**
      * Whether or not Storm should skip the loading of kryo registrations for which it
      * does not know the class or have the serializer implementation. Otherwise, the task will
@@ -609,7 +537,7 @@ public class Config extends HashMap<String, Object> {
      * Each listed class maps 1:1 to a system bolt named __metrics_ClassName#N, and it's parallelism is configurable.
      */
     public static final String TOPOLOGY_METRICS_CONSUMER_REGISTER = "topology.metrics.consumer.register";
-    public static final Object TOPOLOGY_METRICS_CONSUMER_REGISTER_SCHEMA = StringsValidator;
+    public static final Object TOPOLOGY_METRICS_CONSUMER_REGISTER_SCHEMA = ConfigValidation.StringsValidator;
 
 
     /**
@@ -630,7 +558,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
     public static final Object TOPOLOGY_MAX_SPOUT_PENDING_SCHEMA = Number.class;
-    
+
     /**
      * A class that implements a strategy for what to do when a spout needs to wait. Waiting is
      * triggered in one of two conditions:
@@ -644,9 +572,9 @@ public class Config extends HashMap<String, Object> {
     /**
      * The amount of milliseconds the SleepEmptyEmitStrategy should sleep for.
      */
-    public static final String TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS="topology.sleep.spout.wait.strategy.time.ms";     
+    public static final String TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS="topology.sleep.spout.wait.strategy.time.ms";
     public static final Object TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS_SCHEMA = Number.class;
-    
+
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
@@ -685,34 +613,34 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
     public static final Object TOPOLOGY_TRANSACTIONAL_ID_SCHEMA = String.class;
-    
+
     /**
      * A list of task hooks that are automatically added to every spout and bolt in the topology. An example
      * of when you'd do this is to add a hook that integrates with your internal 
      * monitoring system. These hooks are instantiated using the zero-arg constructor.
      */
     public static final String TOPOLOGY_AUTO_TASK_HOOKS="topology.auto.task.hooks";
-    public static final Object TOPOLOGY_AUTO_TASK_HOOKS_SCHEMA = StringsValidator;
+    public static final Object TOPOLOGY_AUTO_TASK_HOOKS_SCHEMA = ConfigValidation.StringsValidator;
 
 
     /**
      * The size of the Disruptor receive queue for each executor. Must be a power of 2.
      */
     public static final String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
-    public static final Object TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE_SCHEMA = PowerOf2Validator;
+    public static final Object TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE_SCHEMA = ConfigValidation.PowerOf2Validator;
 
     /**
      * The maximum number of messages to batch from the thread receiving off the network to the 
      * executor queues. Must be a power of 2.
      */
     public static final String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
-    public static final Object TOPOLOGY_RECEIVER_BUFFER_SIZE_SCHEMA = PowerOf2Validator;
+    public static final Object TOPOLOGY_RECEIVER_BUFFER_SIZE_SCHEMA = ConfigValidation.PowerOf2Validator;
 
     /**
      * The size of the Disruptor send queue for each executor. Must be a power of 2.
      */
     public static final String TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE="topology.executor.send.buffer.size";
-    public static final Object TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE_SCHEMA = PowerOf2Validator;
+    public static final Object TOPOLOGY_EXECUTOR_SEND_BUFFER_SIZE_SCHEMA = ConfigValidation.PowerOf2Validator;
 
     /**
      * The size of the Disruptor transfer queue for each worker.
@@ -734,7 +662,7 @@ public class Config extends HashMap<String, Object> {
     */
     public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
     public static final Object TOPOLOGY_DISRUPTOR_WAIT_STRATEGY_SCHEMA = String.class;
-    
+
    /**
     * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
     * via the TopologyContext.
@@ -766,21 +694,21 @@ public class Config extends HashMap<String, Object> {
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */
-    public static final String TOPOLOGY_NAME="topology.name";  
+    public static final String TOPOLOGY_NAME="topology.name";
     public static final Object TOPOLOGY_NAME_SCHEMA = String.class;
-    
+
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
     public static final Object TRANSACTIONAL_ZOOKEEPER_ROOT_SCHEMA = String.class;
-    
+
     /**
      * The list of zookeeper servers in which to keep the transactional state. If null (which is default),
      * will use storm.zookeeper.servers
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_SERVERS="transactional.zookeeper.servers";
-    public static final Object TRANSACTIONAL_ZOOKEEPER_SERVERS_SCHEMA = StringsValidator;
+    public static final Object TRANSACTIONAL_ZOOKEEPER_SERVERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * The port to use to connect to the transactional zookeeper servers. If null (which is default),
@@ -788,7 +716,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
     public static final Object TRANSACTIONAL_ZOOKEEPER_PORT_SCHEMA = Number.class;
-    
+
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
@@ -809,7 +737,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String ZMQ_HWM = "zmq.hwm";
     public static final Object ZMQ_HWM_SCHEMA = Number.class;
-        
+
     /**
      * This value is passed to spawned JVMs (e.g., Nimbus, Supervisor, and Workers)
      * for the java.library.path value. java.library.path tells the JVM where 
@@ -818,7 +746,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String JAVA_LIBRARY_PATH = "java.library.path";
     public static final Object JAVA_LIBRARY_PATH_SCHEMA = String.class;
-    
+
     /**
      * The path to use as the zookeeper dir when running a zookeeper server via
      * "storm dev-zookeeper". This zookeeper instance is only intended for development;
@@ -826,7 +754,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DEV_ZOOKEEPER_PATH = "dev.zookeeper.path";
     public static final Object DEV_ZOOKEEPER_PATH_SCHEMA = String.class;
-    
+
     /**
      * A map from topology name to the number of machines that should be dedicated for that topology. Set storm.scheduler
      * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.

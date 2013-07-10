@@ -131,6 +131,7 @@
                            supervisors
                            (repeat supervisors {}))]
     (nimbus/announce-nimbus-info cluster-map (daemon-conf NIMBUS-HOST) (daemon-conf NIMBUS-THRIFT-PORT))
+    (ui/announce-ui-port daemon-conf)
     (doseq [sc supervisor-confs]
       (add-supervisor cluster-map :ports ports-per-supervisor :conf sc))
     cluster-map

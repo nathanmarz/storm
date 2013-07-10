@@ -1,6 +1,5 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
-  (:import [java.net ServerSocket])
   (:import [backtype.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId])
   (:import [backtype.storm.utils Utils])
@@ -330,13 +329,4 @@
   (->> executor->node+port
        (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
        (into {})))
-
-; allocate an available server port if port_in_conf<=0
-(defn assign-server-port [port]
-   (if (pos? port) port
-     (let [serverSocket (ServerSocket. 0)
-           port_assigned (.getLocalPort serverSocket)]
-       (.close serverSocket)
-       (log-message "Grabbed port number " port_assigned " instead of the configured port " port)
-       port_assigned)))
 

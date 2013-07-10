@@ -119,14 +119,17 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
-  (nimbus-info [this])  ;; fetch nimbus host + port as NimbusHostPort record
+  (nimbus-info [this])  ;; fetch nimbus host + port as HostPort
   (set-nimbus!  [this info])  ;; announce nimbus host+port
+  (ui-port [this])  ;; fetch ui port as Integer
+  (set-ui-port!  [this info])  ;; announce ui port
 
   (disconnect [this])
   )
 
 
 (def NIMBUS-ROOT "nimbus")
+(def UI-ROOT "ui")
 (def ASSIGNMENTS-ROOT "assignments")
 (def CODE-ROOT "code")
 (def STORMS-ROOT "storms")
@@ -135,6 +138,7 @@
 (def ERRORS-ROOT "errors")
 
 (def NIMBUS-SUBTREE (str "/" NIMBUS-ROOT))
+(def UI-SUBTREE (str "/" UI-ROOT))
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
@@ -230,6 +234,12 @@
      
      (set-nimbus! [this info]
        (set-data cluster-state NIMBUS-SUBTREE (Utils/serialize info)))
+
+     (ui-port [this]
+       (maybe-deserialize (get-data cluster-state UI-SUBTREE false)))
+     
+     (set-ui-port! [this info]
+       (set-data cluster-state UI-SUBTREE (Utils/serialize info)))
 
      (assignments [this callback]
         (when callback

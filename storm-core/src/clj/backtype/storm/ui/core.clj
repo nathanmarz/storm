@@ -809,8 +809,19 @@
     (wrap-reload '[backtype.storm.ui.core])
     catch-errors))
 
-(defn start-server! [conf] (run-jetty (app conf)
-                                      {:port (Integer. (conf UI-PORT))
-                                       :join? false}))
+(defn config-with-ui-port-assigned [conf]
+  (let [port-in-conf  (.intValue (Integer. (conf UI-PORT)))
+        ui-port  (assign-server-port port-in-conf)]
+    (assoc conf UI-PORT (Integer. ui-port))))
+
+(defn announce-ui-port [conf]
+  (let [state (cluster/mk-storm-cluster-state conf)
+        ui-port (conf UI-PORT)]
+    (.set-ui-port! state ui-port)))
+
+(defn start-server! [conf] 
+  (let [conf (config-with-ui-port-assigned conf)]
+    (announce-ui-port conf)
+    (run-jetty (app conf) {:port (conf UI-PORT) :join? false})))
 
 (defn -main [] (start-server! (read-storm-config)))

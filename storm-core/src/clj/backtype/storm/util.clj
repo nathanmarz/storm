@@ -1,5 +1,5 @@
 (ns backtype.storm.util
-  (:import [java.net InetAddress])
+  (:import [java.net InetAddress ServerSocket])
   (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
   (:import [java.io FileReader])
   (:import [backtype.storm Config])
@@ -833,3 +833,13 @@
                 (meta form))
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
+
+; allocate an available server port if port_in_conf<=0
+(defn assign-server-port [port]
+   (if (pos? port) port
+     (let [serverSocket (ServerSocket. 0)
+           port_assigned (.getLocalPort serverSocket)]
+       (.close serverSocket)
+       (log-message "Grabbed port number " port_assigned " instead of the configured port " port)
+       port_assigned)))
+

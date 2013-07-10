@@ -74,7 +74,8 @@
   (with-server [cluster 
                 :supervisors 0
                 :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
-                              NIMBUS-THRIFT-PORT -1}]
+                              NIMBUS-THRIFT-PORT -1
+                              UI-PORT 0}]
     (let [conf (:daemon-conf cluster)
           ui-server-app (ui/app conf)
           req {:uri "/" :request-method :get}

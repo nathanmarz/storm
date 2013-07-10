@@ -5,6 +5,7 @@
              [common :as common]
              [worker :as worker]
              [executor :as executor]])
+  (:require [backtype.storm.ui [core :as ui]])
   (:require [backtype.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
@@ -110,6 +111,7 @@
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-ZOOKEEPER-SERVERS ["localhost"]})
         daemon-conf (nimbus/config-with-nimbus-port-assigned daemon-conf)
+        ui-conf (ui/config-with-ui-port-assigned daemon-conf)
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler

@@ -22,6 +22,7 @@
  * DRPC server childopts now configurable (thanks strongh)
  * Default number of ackers to number of workers, instead of just one (thanks lyogavin)
  * Validate that Storm configs are of proper types/format/structure (thanks d2r)
+ * FixedBatchSpout will now replay batches appropriately on batch failure (thanks ptgoetz)
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts

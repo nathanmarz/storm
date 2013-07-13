@@ -50,7 +50,7 @@
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
     (.put state
-        Constants/LS-WORKER-HEARTBEAT
+        Constants/LS_WORKER_HEARTBEAT
         hb
         false
         )

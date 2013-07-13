@@ -6,6 +6,8 @@
                  [io.netty/netty "3.6.3.Final"]]
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
-  :profiles {:release {}}
+  :profiles {
+             :release { :target-path "target" }
+	     }
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
   :aot :all))

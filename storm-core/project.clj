@@ -36,7 +36,7 @@
 
   :profiles {:dev {:resource-paths ["src/dev"]
                    :dependencies [[org.mockito/mockito-all "1.9.5"]]}
-             :release {}
+             :release { :target-path "target" }
              :lib {}
              }
 

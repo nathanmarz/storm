@@ -6,7 +6,7 @@
                 ]
   :resource-paths ["logback"]
 
-  :profiles {:release {}
+  :profiles {
+             :release { :target-path "target" }
              }
-
   :aot :all)

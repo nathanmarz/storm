@@ -101,8 +101,7 @@ public class ShellBolt implements IBolt {
                         } else if (command.equals("error")) {
                             handleError(action);
                         } else if (command.equals("log")) {
-                            String msg = (String) action.get("msg");
-                            LOG.info("Shell msg: " + msg);
+                            handleLog(action);
                         } else if (command.equals("emit")) {
                             handleEmit(action);
                         }
@@ -162,6 +161,28 @@ public class ShellBolt implements IBolt {
         _running = false;
         _process.destroy();
         _inputs.clear();
+    }
+
+    private void handleLog(Map action) {
+        String msg = (String) action.get("msg");
+        String level = (String) action.get("level");
+        if (level == null) {
+            level = "info";
+        }
+        level = level.toLowerCase();
+        msg = "Shell msg: " + msg;
+
+        if (level.equals("debug")) {
+            LOG.debug(msg);
+        } else if (level.equals("info")) {
+            LOG.info(msg);
+        } else if (level.equals("warn")) {
+            LOG.warn(msg);
+        } else if (level.equals("error")) {
+            LOG.error(msg);
+        } else if (level.equals("trace")) {
+            LOG.trace(msg);
+        }
     }
 
     private void handleAck(Map action) {

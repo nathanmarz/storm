@@ -23,6 +23,8 @@ storm.messaging.transport: "backtype.storm.messaging.zmq"
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
+nimbus.bittorrent.port: 6969
+nimbus.bittorrent.bind.address: 0.0.0.0
 nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60

@@ -119,6 +119,9 @@
   ([conf storm-id]
      (str (master-stormdist-root conf) "/" storm-id)))
 
+(defn master-stormtorrent-path [stormroot]
+  (str stormroot "/stormjar.torrent"))
+
 (defn master-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))
 
@@ -149,6 +152,9 @@
   ([conf] (str (supervisor-local-dir conf) "/stormdist"))
   ([conf storm-id]
       (str (supervisor-stormdist-root conf) "/" (java.net.URLEncoder/encode storm-id))))
+
+(defn supervisor-stormtorrent-path [stormroot]
+  (str stormroot "/stormjar.torrent"))
 
 (defn supervisor-stormjar-path [stormroot]
   (str stormroot "/stormjar.jar"))

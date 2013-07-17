@@ -1,14 +1,14 @@
 (ns backtype.storm.clojure
   (:use [backtype.storm bootstrap util])
-  (:import [backtype.storm StormSubmitter])
-  (:import [backtype.storm.generated StreamInfo])
-  (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.task OutputCollector IBolt TopologyContext])
-  (:import [backtype.storm.spout SpoutOutputCollector ISpout])
-  (:import [backtype.storm.utils Utils])
-  (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
-  (:import [java.util List])
-  (:require [backtype.storm [thrift :as thrift]]))
+  (:import [backtype.storm StormSubmitter]
+           [backtype.storm.generated StreamInfo]
+           [backtype.storm.tuple Tuple]
+           [backtype.storm.task OutputCollector IBolt TopologyContext]
+           [backtype.storm.spout SpoutOutputCollector ISpout]
+           [backtype.storm.utils Utils]
+           [backtype.storm.clojure ClojureBolt ClojureSpout]
+           [java.util List])
+ (:require [backtype.storm [thrift :as thrift]]))
 
 
 (defn direct-stream [fields]

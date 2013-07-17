@@ -192,7 +192,20 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_THRIFT_PORT = "nimbus.thrift.port";
     public static final Object NIMBUS_THRIFT_PORT_SCHEMA = Number.class;
 
-
+    /**
+     * Which port the Nimbus BitTorrent tracker should bind to.
+     */
+    public static final String NIMBUS_BITTORRENT_PORT = "nimbus.bittorrent.port";
+    public static final Object NIMBUS_BITTORRENT_PORT_SCHEMA = Number.class;
+    
+    /**
+     * Which network interface the BitTorrent tracker should listen on. The
+     * default of 0.0.0.0 will listen on all interfaces. This can be an IP
+     * address or a hostname.
+     */
+    public static final String NIMBUS_BITTORRENT_BIND_ADDRESS = "nimbus.bittorrent.bind.address";
+    public static final Object NIMBUS_BITTORRENT_BIND_ADDRESS_SCHEMA = String.class;
+    
     /**
      * This parameter is used by the storm-deploy project to configure the
      * jvm options for the nimbus daemon.

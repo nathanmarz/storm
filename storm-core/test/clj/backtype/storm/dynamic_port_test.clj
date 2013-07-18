@@ -38,9 +38,10 @@
            (catch Throwable t1#))))
      ))
 
-(deftest test-dynamic-nimbus-port
+(deftest test-dynamic-ports-for-nimbus-n-supervisors
   (with-server [cluster 
                 :supervisors 4 
+                :ports-per-supervisor [ 0 0 ]
                 :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
                               NIMBUS-THRIFT-PORT 0}]
     (let [conf (:daemon-conf cluster)
@@ -96,3 +97,4 @@
                (is (thrown-cause? NotAliveException
                                   (.activate client "non_existing_topology"))))
       (.close nimbus))))
+

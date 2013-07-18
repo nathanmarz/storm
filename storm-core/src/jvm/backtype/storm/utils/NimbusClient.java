@@ -34,8 +34,6 @@ public class NimbusClient extends ThriftClient {
                     LOG.debug("Nimbus spec at ZK: "+nimbus_host_port);
                     nimbusHost = nimbus_host_port.host();
                     nimbusPort = nimbus_host_port.port();
-                    conf.put(Config.NIMBUS_HOST, nimbusHost);
-                    conf.put(Config.NIMBUS_THRIFT_PORT, (Integer)nimbusPort);
                 } catch (Exception e) {
                     LOG.warn("Failure in obtaining Nimbus host/port from Zookeeper "+zk_hosts+" port "+zk_port, e);
                 } finally {

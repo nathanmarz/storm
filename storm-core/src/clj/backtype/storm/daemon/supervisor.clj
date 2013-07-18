@@ -317,12 +317,18 @@
       (.add processes-event-manager sync-processes)
       )))
 
+(defn assign-worker-ports [conf]
+  (let [new-ports (vec (for [port (get conf SUPERVISOR-SLOTS-PORTS)] (assign-server-port port)))]
+    (assoc conf SUPERVISOR-SLOTS-PORTS new-ports) 
+  ))
+
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
 (defserverfn mk-supervisor [conf shared-context ^ISupervisor isupervisor]
-  (log-message "Starting Supervisor with conf " conf)
   (let [nimbusHostPort (.nimbus-info (cluster/mk-storm-cluster-state conf))
-        conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))]
+        conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
+        conf (assign-worker-ports conf)]
+    (log-message "Starting Supervisor with conf " conf)
     (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
     (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
     (let [supervisor (supervisor-data conf shared-context isupervisor)

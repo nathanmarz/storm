@@ -36,11 +36,11 @@
 (defmethod get-FieldValidator Object [klass]
   {:pre [(not (nil? klass))]}
   (reify ConfigValidation$FieldValidator
-    (validateField [this v]
+    (validateField [this name v]
       (if (and (not (nil? v))
                (not (instance? klass v)))
         (throw (IllegalArgumentException.
-                 (str "'" v "' must be a '" (.getName klass) "'")))))))
+                 (str "field " name " '" v "' must be a '" (.getName klass) "'")))))))
 
 ;; Create a mapping of config-string -> validator
 ;; Config fields must have a _SCHEMA field defined
@@ -94,7 +94,7 @@
   (doseq [[k v] conf
          :let [schema (CONFIG-SCHEMA-MAP k)]]
     (if (not (nil? schema))
-      (.validateField schema v))))
+      (.validateField schema k v))))
 
 (defn read-storm-config []
   (let [

@@ -15,10 +15,10 @@
   (let [validator ConfigValidation/PowerOf2Validator]
     (doseq [x [42.42 42 23423423423 -33 -32 -1 -0.00001 0 -0 "Forty-two"]]
       (is (thrown-cause? java.lang.IllegalArgumentException
-        (.validateField validator x))))
+        (.validateField validator "test" x))))
 
     (doseq [x [64 4294967296 1 nil]]
-      (.validateField validator x))))
+      (.validateField validator "test" x))))
 
 (deftest test-list-validator
   (let [validator ConfigValidation/StringsValidator]
@@ -31,12 +31,12 @@
               ]]
       (is (thrown-cause-with-msg?
             java.lang.IllegalArgumentException #"(?i).*each element.*"
-        (.validateField validator x))))
+        (.validateField validator "test" x))))
 
     (doseq [x ["not a list at all"]]
       (is (thrown-cause-with-msg?
             java.lang.IllegalArgumentException #"(?i).*must be an iterable.*"
-        (.validateField validator x))))
+        (.validateField validator "test" x))))
 
     (doseq [x [
                ["one" "two" "three"]
@@ -44,12 +44,12 @@
                ["42" "64"]
                nil
               ]]
-      (.validateField validator x))))
+      (.validateField validator "test" x))))
 
 (deftest test-topology-workers-is-number
   (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKERS)]
-    (.validateField validator 42)
+    (.validateField validator "test" 42)
     ;; The float can be rounded down to an int.
-    (.validateField validator 3.14159)
+    (.validateField validator "test" 3.14159)
     (is (thrown-cause? java.lang.IllegalArgumentException
-      (.validateField validator "42")))))
+      (.validateField validator "test" "42")))))

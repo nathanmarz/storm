@@ -415,7 +415,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
-     * with an identifier for this worker.
+     * with an identifier for this worker, and %STORMHOME% with the storm.home property.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = String.class;

@@ -30,3 +30,37 @@
 #     parallelism.hint: 1
 #     argument:
 #       - endpoint: "metrics-collector.mycompany.org"
+
+#
+# Baseline JVM options: enables GC logging to storm.home/logs
+#
+worker.childopts: >-
+    -Xmx768m
+    -server -Djava.net.preferIPv4Stack=true
+    -Xloggc:%STORMHOME%/logs/gc-worker-%ID%.log -verbose:gc
+    -XX:GCLogFileSize=100k
+    -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCTimeStamps -XX:+PrintClassHistogram
+    -XX:+PrintTenuringDistribution -XX:-PrintGCApplicationStoppedTime
+#
+# # Production JVM options: verbose GC logging with rotation, expands heap size
+# # to 2.5GB and new-gen to 1GB, uses concurrent-mark-and-sweep for old-gen
+#
+# worker.childopts: >-
+#     -server -XX:+AggressiveOpts -XX:+UseCompressedOops -Djava.net.preferIPv4Stack=true
+#     -Xmx2500m -Xms2500m -Xss256k -XX:MaxPermSize=128m -XX:PermSize=96m
+#     -XX:NewSize=1000m -XX:MaxNewSize=1000m -XX:MaxTenuringThreshold=1 -XX:SurvivorRatio=6
+#     -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled
+#     -XX:CMSInitiatingOccupancyFraction=75 -XX:+UseCMSInitiatingOccupancyOnly
+#     -Xloggc:%STORMHOME%/logs/gc-worker-%ID%.log -verbose:gc
+#     -XX:GCLogFileSize=1m -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10
+#     -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCTimeStamps -XX:+PrintClassHistogram
+#     -XX:+PrintTenuringDistribution -XX:-PrintGCApplicationStoppedTime
+
+## Ports for child worker processes; sets the number of workers on this machine.
+## Typically, run one worker for each topology this machine will host
+# supervisor.slots.ports:
+#   - 6700
+#   - 6701
+#   - 6702
+#   - 6703
+

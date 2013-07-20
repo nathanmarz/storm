@@ -16,7 +16,7 @@
     <encoder>
       <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
     </encoder>
- </appender> 
+ </appender>
 
  <appender name="ACCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${storm.home}/logs/access.log</file>
@@ -33,7 +33,24 @@
     <encoder>
       <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
     </encoder>
-  </appender> 
+  </appender>
+
+  <appender name="METRICS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${storm.home}/logs/metrics.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+      <fileNamePattern>metrics.log.%i</fileNamePattern>
+      <minIndex>1</minIndex>
+      <maxIndex>9</maxIndex>
+    </rollingPolicy>
+
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <maxFileSize>2MB</maxFileSize>
+    </triggeringPolicy>
+
+    <encoder>
+      <pattern>%d %-8r %m%n</pattern>
+    </encoder>
+  </appender>
 
   <root level="INFO">
     <appender-ref ref="A1"/>
@@ -43,4 +60,10 @@
     <level value="INFO" />
     <appender-ref ref="ACCESS" />
   </logger>
+
+  <logger name="backtype.storm.metric.LoggingMetricsConsumer" additivity="false" >
+    <level value="INFO"/>
+    <appender-ref ref="METRICS"/>
+  </logger>
+
 </configuration>

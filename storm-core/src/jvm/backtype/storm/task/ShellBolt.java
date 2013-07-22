@@ -169,7 +169,7 @@ public class ShellBolt implements IBolt {
 
     private void handleLog(Map action) {
         String msg = (String) action.get("msg");
-        int level = (int) action.get("level");
+        int level = (Integer) action.get("level");
 
         msg = "Shell msg: " + msg;
 

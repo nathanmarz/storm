@@ -9,6 +9,7 @@
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
+  (:import [backtype.storm.torrent NimbusTracker])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:gen-class
@@ -60,6 +61,7 @@
                                  (halt-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
+     :bt-tracker (NimbusTracker. conf)
      }))
 
 (defn inbox [nimbus]
@@ -295,9 +297,9 @@
    (FileUtils/forceMkdir (File. stormroot))
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
-   (.trackAndSeed (:bt-tracker nimbus) (master-stormjar-path stormroot) storm-id)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
+   (.trackAndSeed (:bt-tracker nimbus) stormroot storm-id)
    ))
 
 (defn- read-storm-topology [conf storm-id]

@@ -1,6 +1,6 @@
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor])
-  (:import [backtype.storm.torrent SupervisorClient])
+  (:import [backtype.storm.torrent SupervisorTracker])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -180,6 +180,7 @@
                                (log-error t "Error when processing event")
                                (halt-process! 20 "Error when processing an event")
                                ))
+   :bt-tracker (SupervisorTracker. conf)
    })
 
 (defn sync-processes [supervisor]
@@ -218,6 +219,7 @@
          ". Current supervisor time: " now
          ". State: " state
          ", Heartbeat: " (pr-str heartbeat))
+        (.stop (:bt-tracker supervisor) (:storm-id heartbeat))
         (shutdown-worker supervisor id)
         ))
     (doseq [id (vals new-worker-ids)]
@@ -288,7 +290,7 @@
              storm-id
              " from "
              master-code-dir)
-          (download-storm-code conf storm-id master-code-dir)
+          (download-storm-code conf storm-id master-code-dir supervisor)
           (log-message "Finished downloading code for storm id "
              storm-id
              " from "
@@ -388,18 +390,14 @@
 ;; distributed implementation
 
 (defmethod download-storm-code
-    :distributed [conf storm-id master-code-dir]
+    :distributed [conf storm-id master-code-dir supervisor]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/forceMkdir (File. tmproot))
-      
-      (Utils/downloadFromMaster conf (master-stormtorrent-path master-code-dir) (supervisor-stormtorrent-path tmproot))
-      (.download (SupervisorClient. (supervisor-stormtorrent-path tmproot)))
-      (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
-      (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
-      (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+      (FileUtils/forceMkdir (File. (supervisor-stormdist-root conf)))
+      (Utils/downloadFromMaster conf (master-stormtorrent-path master-code-dir storm-id) (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))
+      (.download (:bt-tracker supervisor) (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id) storm-id)
+      (extract-dir-from-jar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id) RESOURCES-SUBDIR (supervisor-stormdist-root conf))
       ))
 
 
@@ -408,7 +406,7 @@
     (let [conf (:conf supervisor)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
-          stormjar (supervisor-stormjar-path stormroot)
+          stormjar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))

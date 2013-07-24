@@ -207,6 +207,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_BITTORRENT_BIND_ADDRESS_SCHEMA = String.class;
     
     /**
+     * Max upload rate for topology torrents in kB/sec. 0.0 == unlimited.
+     */
+    public static final String NIMBUS_BITTORRENT_MAX_UPLOAD_RATE = "nimbus.bittorrent.max.upload.rate";
+    public static final Object NIMBUS_BITTORRENT_MAX_UPLOAD_RATE_SCHEMA = Number.class;
+    
+    /**
+     * Max download rate for topology torrents in kB/sec. 0.0 == unlimited.
+     */
+    public static final String NIMBUS_BITTORRENT_MAX_DOWNLOAD_RATE = "nimbus.bittorrent.max.download.rate";
+    public static final Object NIMBUS_BITTORRENT_MAX_DOWNLOAD_RATE_SCHEMA = Number.class;
+
+    
+    /**
      * This parameter is used by the storm-deploy project to configure the
      * jvm options for the nimbus daemon.
      */
@@ -425,6 +438,27 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
     public static final Object SUPERVISOR_MONITOR_FREQUENCY_SECS_SCHEMA = Number.class;
+    
+    /**
+     * Max upload rate for topology torrents in kB/sec. 0.0 == unlimited.
+     */
+    public static final String SUPERVISOR_BITTORRENT_MAX_UPLOAD_RATE = "supervisor.bittorrent.max.upload.rate";
+    public static final Object SUPERVISOR_BITTORRENT_MAX_UPLOAD_RATE_SCHEMA = Number.class;
+
+    /**
+     * Max download rate for topology torrents in kB/sec. 0.0 == unlimited.
+     */
+    public static final String SUPERVISOR_BITTORRENT_MAX_DOWNLOAD_RATE = "supervisor.bittorrent.max.download.rate";
+    public static final Object SUPERVISOR_BITTORRENT_MAX_DOWNLOAD_RATE_SCHEMA = Number.class;
+    
+    /**
+     * Time in seconds that a supervisor should seed after completing a topology torrent download.
+     * A value of 0 will disable seeding (download only). A value of -1 indicates that the supervisor
+     * should seed indefinitely (until the topology is killed).
+     */
+    public static final String SUPERVISOR_BITTORRENT_SEED_DURATION = "supervisor.bittorrent.seed.duration";
+    public static final Object SUPERVISOR_BITTORRENT_SEED_DURATION_SCHEMA = Number.class;
+
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced

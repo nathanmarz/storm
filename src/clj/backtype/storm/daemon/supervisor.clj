@@ -99,11 +99,11 @@
      {}
      (dofor [[id hb] id->heartbeat]
             (let [state (cond
+                         (not hb)
+                           :not-started
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
-                         (not hb)
-                           :not-started
                          (> (- now (:time-secs hb))
                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
                            :timed-out
@@ -263,10 +263,18 @@
        (map :storm-id)
        set))
 
-(defn try-shutdown-workers [supervisor]
-  (let [worker-root (worker-root (:conf supervisor))
-         ids (read-dir-contents worker-root)]
-    (doseq [id ids]
+(defn shutdown-disallowed-workers [supervisor]
+  (let [conf (:conf supervisor)
+        ^LocalState local-state (:local-state supervisor)
+        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        now (current-time-secs)
+        allocated (read-allocated-workers supervisor assigned-executors now)
+        disallowed (keys (filter-val
+                                  (fn [[state _]] (= state :disallowed))
+                                  allocated))]
+    (log-debug "Allocated workers " allocated)
+    (log-debug "Disallowed workers " disallowed)
+    (doseq [id disallowed]
       (shutdown-worker supervisor id))
     ))
 
@@ -325,12 +333,12 @@
       ;; important that this happens after setting the local assignment so that
       ;; synchronize-supervisor doesn't try to launch workers for which the
       ;; resources don't exist
+      (if on-windows? (shutdown-disallowed-workers supervisor))
       (doseq [storm-id downloaded-storm-ids]
         (when-not (assigned-storm-ids storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
           (try
-            (if on-windows? (try-shutdown-workers supervisor))
             (rmr (supervisor-stormdist-root conf storm-id))
             (catch Exception e (log-message (.getMessage e))))
           ))

@@ -733,9 +733,11 @@
            ui-template))
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
        (let [include-sys? (get-include-sys? cookies)]
-         (-> (topology-page id (:window m) include-sys?)
+         (try
+           (-> (topology-page id (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)))
+             ui-template)
+           (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)]
          (-> (component-page id component (:window m) include-sys?)

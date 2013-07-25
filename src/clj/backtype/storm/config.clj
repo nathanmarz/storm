@@ -69,67 +69,67 @@
   (clojurify-structure (Utils/findAndReadConfigFile name true)))
 
 (defn master-local-dir [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) "/nimbus")]
+  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "nimbus")]
     (FileUtils/forceMkdir (File. ret))
     ret
     ))
 
 (defn master-stormdist-root
   ([conf]
-     (str (master-local-dir conf) "/stormdist"))
+     (str (master-local-dir conf) file-path-separator "stormdist"))
   ([conf storm-id]
-     (str (master-stormdist-root conf) "/" storm-id)))
+     (str (master-stormdist-root conf) file-path-separator storm-id)))
 
 (defn master-stormjar-path [stormroot]
-  (str stormroot "/stormjar.jar"))
+  (str stormroot file-path-separator "stormjar.jar"))
 
 (defn master-stormcode-path [stormroot]
-  (str stormroot "/stormcode.ser"))
+  (str stormroot file-path-separator "stormcode.ser"))
 
 (defn master-stormconf-path [stormroot]
-  (str stormroot "/stormconf.ser"))
+  (str stormroot file-path-separator "stormconf.ser"))
 
 (defn master-inbox [conf]
-  (let [ret (str (master-local-dir conf) "/inbox")]
+  (let [ret (str (master-local-dir conf) file-path-separator "inbox")]
     (FileUtils/forceMkdir (File. ret))
     ret ))
 
 (defn master-inimbus-dir [conf]
-  (str (master-local-dir conf) "/inimbus"))
+  (str (master-local-dir conf) file-path-separator "inimbus"))
 
 (defn supervisor-local-dir [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) "/supervisor")]
+  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "supervisor")]
     (FileUtils/forceMkdir (File. ret))
     ret
     ))
 
 (defn supervisor-isupervisor-dir [conf]
-  (str (supervisor-local-dir conf) "/isupervisor"))
+  (str (supervisor-local-dir conf) file-path-separator "isupervisor"))
 
 (defn supervisor-stormdist-root
-  ([conf] (str (supervisor-local-dir conf) "/stormdist"))
+  ([conf] (str (supervisor-local-dir conf) file-path-separator "stormdist"))
   ([conf storm-id]
-      (str (supervisor-stormdist-root conf) "/" (java.net.URLEncoder/encode storm-id))))
+      (str (supervisor-stormdist-root conf) file-path-separator (java.net.URLEncoder/encode storm-id))))
 
 (defn supervisor-stormjar-path [stormroot]
-  (str stormroot "/stormjar.jar"))
+  (str stormroot file-path-separator "stormjar.jar"))
 
 (defn supervisor-stormcode-path [stormroot]
-  (str stormroot "/stormcode.ser"))
+  (str stormroot file-path-separator "stormcode.ser"))
 
 (defn supervisor-stormconf-path [stormroot]
-  (str stormroot "/stormconf.ser"))
+  (str stormroot file-path-separator "stormconf.ser"))
 
 (defn supervisor-tmp-dir [conf]
-  (let [ret (str (supervisor-local-dir conf) "/tmp")]
+  (let [ret (str (supervisor-local-dir conf) file-path-separator "tmp")]
     (FileUtils/forceMkdir (File. ret))
     ret ))
 
 (defn supervisor-storm-resources-path [stormroot]
-  (str stormroot "/" RESOURCES-SUBDIR))
+  (str stormroot file-path-separator RESOURCES-SUBDIR))
 
 (defn ^LocalState supervisor-state [conf]
-  (LocalState. (str (supervisor-local-dir conf) "/localstate")))
+  (LocalState. (str (supervisor-local-dir conf) file-path-separator "localstate")))
 
 (defn read-supervisor-storm-conf [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
@@ -146,20 +146,20 @@
 
 (defn worker-root
   ([conf]
-     (str (conf STORM-LOCAL-DIR) "/workers"))
+     (str (conf STORM-LOCAL-DIR) file-path-separator "workers"))
   ([conf id]
-     (str (worker-root conf) "/" id)))
+     (str (worker-root conf) file-path-separator id)))
 
 (defn worker-pids-root
   [conf id]
-  (str (worker-root conf id) "/pids"))
+  (str (worker-root conf id) file-path-separator "pids"))
 
 (defn worker-pid-path [conf id pid]
-  (str (worker-pids-root conf id) "/" pid))
+  (str (worker-pids-root conf id) file-path-separator pid))
 
 (defn worker-heartbeats-root
   [conf id]
-  (str (worker-root conf id) "/heartbeats"))
+  (str (worker-root conf id) file-path-separator "heartbeats"))
 
 ;; workers heartbeat here with pid and timestamp
 ;; if supervisor stops receiving heartbeat, it kills and restarts the process

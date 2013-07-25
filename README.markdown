@@ -73,6 +73,7 @@ You must not remove this notice, or any other, from this software.
 * Gavin Li ([@lyogavin](https://github.com/lyogavin))
 * Tudor Scurtu ([@tscurtu](https://github.com/tscurtu))
 * Homer Strong ([@strongh](https://github.com/strongh))
+* Sean Melody ([@srmelody](https://github.com/srmelody))
 
 ## Acknowledgements
 

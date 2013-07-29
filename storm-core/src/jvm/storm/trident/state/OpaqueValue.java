@@ -19,19 +19,23 @@ public class OpaqueValue<T> {
     
     public OpaqueValue<T> update(Long batchTxid, T newVal) {
         T prev;
-        if(batchTxid!=null && batchTxid.equals(this.currTxid)) {
+        if(batchTxid==null || (this.currTxid < batchTxid)) {
+            prev = this.curr;
+        } else if(batchTxid.equals(this.currTxid)){
             prev = this.prev;
         } else {
-            prev = this.curr;
+            throw new RuntimeException("Current batch (" + batchTxid + ") is behind state's batch: " + this.toString());
         }
         return new OpaqueValue<T>(batchTxid, newVal, prev);
     }
     
     public T get(Long batchTxid) {
-        if(batchTxid!=null && batchTxid.equals(currTxid)) {
+        if(batchTxid==null || (this.currTxid < batchTxid)) {
+            return curr;
+        } else if(batchTxid.equals(this.currTxid)){
             return prev;
         } else {
-            return curr;
+            throw new RuntimeException("Current batch (" + batchTxid + ") is behind state's batch: " + this.toString());
         }
     }
     

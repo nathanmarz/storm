@@ -2,6 +2,7 @@
   (:use [clojure test])
   (:require [backtype.storm [testing :as t]])
   (:import [storm.trident.operation.builtin Count])
+  (:import [storm.trident.state OpaqueValue])
   (:import [storm.trident.state CombinerValueUpdater])
   (:import [storm.trident.state.map TransactionalMap OpaqueMap])
   (:import [storm.trident.testing MemoryBackingMap])
@@ -13,6 +14,31 @@
 
 (defn single-update [map key amt]
   (-> map (.multiUpdate [[key]] [(CombinerValueUpdater. (Count.) amt)]) first))
+
+(deftest test-opaque-value
+  (let [opqval (OpaqueValue. 8 "v1" "v0")
+        upval0 (.update opqval 8 "v2")
+        upval1 (.update opqval 9 "v2")
+        ]
+    (is (= "v1" (.get opqval nil)))
+    (is (= "v1" (.get opqval 100)))
+    (is (= "v1" (.get opqval 9)))
+    (is (= "v0" (.get opqval 8)))
+    (let [has-exception (try
+                          (.get opqval 7) false
+                          (catch Exception e true))]
+      (is (= true has-exception)))
+    (is (= "v0" (.getPrev opqval)))
+    (is (= "v1" (.getCurr opqval)))
+    ;; update with current
+    (is (= "v0" (.getPrev upval0)))
+    (is (= "v2" (.getCurr upval0)))
+    (not (identical? opqval upval0))
+    ;; update
+    (is (= "v1" (.getPrev upval1)))
+    (is (= "v2" (.getCurr upval1)))
+    (not (identical? opqval upval1))
+    ))
 
 (deftest test-opaque-map
   (let [map (OpaqueMap/build (MemoryBackingMap.))]
@@ -53,4 +79,3 @@
     (is (= 7 (single-update map "a" 1)))
     (.commit map 2)
     ))
-

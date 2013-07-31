@@ -1,4 +1,5 @@
 package backtype.storm;
+import java.util.Map;
 
 /**
  * Provides functionality for validating configuration fields.
@@ -57,6 +58,11 @@ public class ConfigValidation {
      * Validates is a list of Strings.
      */
     public static Object StringsValidator = FieldListValidatorFactory(String.class);
+
+    /**
+     * Validates is a list of Maps.
+     */
+    public static Object MapsValidator = FieldListValidatorFactory(Map.class);
 
     /**
      * Validates a power of 2.

@@ -1,6 +1,6 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File])
-  (:import [backtype.storm Config])
+  (:import [backtype.storm Config ConfigValidation$FieldValidator])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
@@ -24,6 +24,34 @@
   (dofor [f (seq (.getFields Config))]
          (.get f nil)
          ))
+
+(defmulti get-FieldValidator class-selector)
+
+(defmethod get-FieldValidator nil [_]
+  (throw (IllegalArgumentException. "Cannot validate a nil field.")))
+
+(defmethod get-FieldValidator
+  ConfigValidation$FieldValidator [validator] validator)
+
+(defmethod get-FieldValidator Object [klass]
+  {:pre [(not (nil? klass))]}
+  (reify ConfigValidation$FieldValidator
+    (validateField [this name v]
+      (if (and (not (nil? v))
+               (not (instance? klass v)))
+        (throw (IllegalArgumentException.
+                 (str "field " name " '" v "' must be a '" (.getName klass) "'")))))))
+
+;; Create a mapping of config-string -> validator
+;; Config fields must have a _SCHEMA field defined
+(def CONFIG-SCHEMA-MAP
+  (->> (.getFields Config)
+          (filter #(not (re-matches #".*_SCHEMA$" (.getName %))))
+          (map (fn [f] [(.get f nil) (get-FieldValidator
+                                       (-> Config
+                                         (.getField (str (.getName f) "_SCHEMA"))
+                                         (.get nil)))]))
+          (into {})))
 
 (defn cluster-mode [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
@@ -62,11 +90,22 @@
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
 
+(defn- validate-configs-with-schemas [conf]
+  (doseq [[k v] conf
+         :let [schema (CONFIG-SCHEMA-MAP k)]]
+    (if (not (nil? schema))
+      (.validateField schema k v))))
+
 (defn read-storm-config []
-  (clojurify-structure (Utils/readStormConfig)))
+  (let [
+        conf (clojurify-structure (Utils/readStormConfig))]
+    (validate-configs-with-schemas conf)
+    conf))
 
 (defn read-yaml-config [name]
-  (clojurify-structure (Utils/findAndReadConfigFile name true)))
+  (let [conf (clojurify-structure (Utils/findAndReadConfigFile name true))]
+    (validate-configs-with-schemas conf)
+    conf))
 
 (defn master-local-dir [conf]
   (let [ret (str (conf STORM-LOCAL-DIR) "/nimbus")]

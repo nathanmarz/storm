@@ -5,7 +5,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-                 [storm/libthrift7 "0.7.0"
+                 [storm/libthrift7 "0.7.0-2"
                   :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]
                  [com.netflix.curator/curator-framework "1.0.1"
@@ -19,7 +19,7 @@
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
                  [storm/carbonite "1.5.0"]
-                 [org.yaml/snakeyaml "1.9"]
+                 [org.yaml/snakeyaml "1.11"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  [storm/tools.cli "0.2.2"]
                  [com.googlecode.disruptor/disruptor "2.10.1"]

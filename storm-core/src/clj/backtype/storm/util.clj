@@ -134,6 +134,14 @@
     (catch Throwable t#
       (exception-cause? ~klass t#))))
 
+(defmacro thrown-cause-with-msg? [klass re & body]
+  `(try
+    ~@body
+    false
+    (catch Throwable t#
+      (and (re-matches ~re (.getMessage t#))
+        (exception-cause? ~klass t#)))))
+
 (defmacro forcat [[args aseq] & body]
   `(mapcat (fn [~args]
              ~@body)
@@ -176,6 +184,9 @@
 
 (defn current-time-secs []
   (Time/currentTimeSecs))
+
+(defn current-time-millis []
+  (Time/currentTimeMillis))
 
 (defn clojurify-structure [s]
   (prewalk (fn [x]

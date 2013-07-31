@@ -21,7 +21,6 @@ cp ~/.gnupg/secring.gpg ~/.sbt/gpg/secring.asc
 ./sbt "++2.9.2" clean package publish-local
 ```
 - publish kafka to local maven repo
-
     - ```
 mvn install:install-file -Dfile=$HOME/.ivy2/local/org.apache.kafka/kafka_2.9.2/0.8.0-beta1/jars/kafka_2.9.2.jar -DpomFile=$HOME/.ivy2/local/org.apache.kafka/kafka_2.9.2/0.8.0-beta1/poms/kafka_2.9.2.pom
 ```

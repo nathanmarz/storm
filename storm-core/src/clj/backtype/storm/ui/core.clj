@@ -103,8 +103,8 @@
       (.get_num_executors t)
       (.get_num_tasks t)
       ])
-   :time-cols [2]
-   :sort-list "[[2,1]]"
+   :time-cols [3]
+   :sort-list "[[0,0]]"
    ))
 
 (defn supervisor-summary-table [summs]

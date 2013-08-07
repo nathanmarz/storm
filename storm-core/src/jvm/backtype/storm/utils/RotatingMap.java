@@ -8,13 +8,9 @@ import java.util.Map.Entry;
 
 /**
  * Expires keys that have not been updated in the configured number of seconds.
- * The algorithm used will take between expirationSecs and
- * expirationSecs * (1 + 1 / (numBuckets-1)) to actually expire the message.
  *
  * get, put, remove, containsKey, and size take O(numBuckets) time to run.
  *
- * The advantage of this design is that the expiration thread only locks the object
- * for O(1) time, meaning the object is essentially always available for gets/puts.
  */
 public class RotatingMap<K, V> {
     //this default ensures things expire at most 50% past the expiration time

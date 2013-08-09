@@ -6,6 +6,6 @@ import java.util.Map;
 
 public interface ITopologyValidator {
     void prepare(Map StormConf);
-    void validate(String topologyName, Map topologyConf, StormTopology topology, Map NimbusConf)
+    void validate(String topologyName, Map topologyConf, StormTopology topology)
             throws InvalidTopologyException;
 }

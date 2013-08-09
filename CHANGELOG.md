@@ -27,6 +27,7 @@
  * Throw error if batch id for transaction is behind the batch id in the opaque value (thanks mrflip)
  * Sort topologies by name in UI (thanks jaked)
  * Added LoggingMetricsConsumer to log all metrics to a file, by default not enabled (thanks mrflip)
+ * Add prepare(Map conf) method to TopologyValidator (thanks ankitoshniwal)
  * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
  * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
  * Bug fix: Set component-specific configs correctly for Trident spouts

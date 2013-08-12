@@ -724,10 +724,10 @@
 
 (defn join-maps [& maps]
   (let [all-keys (apply set/union (for [m maps] (-> m keys set)))]
-    (into {}
+    (map-val #(filter identity %) (into {}
       (for [k all-keys]
         [k (for [m maps] (m k))]
-        ))))
+        )))))
 
 (defn partition-fixed [max-num-chunks aseq]
   (if (zero? max-num-chunks)

@@ -163,7 +163,7 @@
     :builtin-metrics (builtin-metrics/make-data (:type executor-data))
     :tasks-fn (mk-tasks-fn <>)
     :object (try (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data)))
-    (catch RuntimeException re (:report-error-and-die executor-data))))
+    (catch Exception e (:report-error-and-die executor-data))))
 
 (defn mk-task [executor-data task-id]
   (let [task-data (mk-task-data executor-data task-id)

@@ -473,7 +473,7 @@
              {tid (SchedulerAssignmentImpl. tid executor->slot)})))
 
 (defn- read-all-supervisor-details [nimbus all-scheduling-slots supervisor->dead-ports]
-  "return a map: {topology-id SupervisorDetails}"
+  "return a map: {supervior-id SupervisorDetails}"
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         supervisor-infos (all-supervisor-info storm-cluster-state)
         nonexistent-supervisor-slots (apply dissoc all-scheduling-slots (keys supervisor-infos))

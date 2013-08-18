@@ -114,6 +114,7 @@
   (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
   (activate-storm! [this storm-id storm-base])
+  (initialize-version! [this]) 
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
@@ -131,6 +132,7 @@
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
+(def VERSION-PATH "version") 
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
@@ -158,6 +160,9 @@
 
 (defn error-path [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
+
+(defn version-path [] 
+  (str "/" VERSION-PATH)) 
 
 (defn- issue-callback! [cb-atom]
   (let [cb @cb-atom]
@@ -304,6 +309,10 @@
         (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base))
         )
 
+      (initialize-version! [this]
+        (set-data cluster-state (version-path) (Utils/serialize (read-storm-version)))
+        )
+      
       (update-storm! [this storm-id new-elems]
         (let [base (storm-base this storm-id nil)
               executors (:component->executors base)

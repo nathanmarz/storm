@@ -6,7 +6,6 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:use [clojure.string :only [trim]])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -53,14 +52,6 @@
     [:h1 (link-to "/" "Storm UI")]
     (seq body)
     ]))
-
-(defn read-storm-version []
-  (let [storm-home (System/getProperty "storm.home")
-        release-path (format "%s/RELEASE" storm-home)
-        release-file (File. release-path)]
-    (if (and (.exists release-file) (.isFile release-file))
-      (trim (slurp release-path))
-      "Unknown")))
 
 (defn cluster-summary-table [^ClusterSummary summ]
   (let [sups (.get_supervisors summ)

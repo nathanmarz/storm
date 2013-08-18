@@ -33,9 +33,9 @@ public class DynamicPartitionConnections {
 		_reader = brokerReader;
     }
     
-    public SimpleConsumer register(GlobalPartitionId id) {
-		HostPort hostPort = _reader.getCurrentBrokers().getHostFor(id.partition);
-		return register(hostPort, id.partition);
+    public SimpleConsumer register(Partition partition) {
+		HostPort hostPort = _reader.getCurrentBrokers().getHostFor(partition.partition);
+		return register(hostPort, partition.partition);
     }
     
     public SimpleConsumer register(HostPort host, int partition) {
@@ -47,8 +47,8 @@ public class DynamicPartitionConnections {
         return info.consumer;
     }
 
-    public SimpleConsumer getConnection(GlobalPartitionId id) {
-        ConnectionInfo info = _connections.get(id.host);
+    public SimpleConsumer getConnection(Partition partition) {
+        ConnectionInfo info = _connections.get(partition.host);
         if(info != null) return info.consumer;
         return null;
     }
@@ -62,8 +62,8 @@ public class DynamicPartitionConnections {
         }
     }
 
-    public void unregister(GlobalPartitionId id) {
-        unregister(id.host, id.partition);
+    public void unregister(Partition partition) {
+        unregister(partition.host, partition.partition);
     }
     
     public void clear() {

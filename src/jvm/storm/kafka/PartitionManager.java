@@ -30,10 +30,10 @@ public class PartitionManager {
     private final CountMetric _fetchAPIMessageCount;
 
     static class KafkaMessageId {
-        public GlobalPartitionId partition;
+        public Partition partition;
         public long offset;
 
-        public KafkaMessageId(GlobalPartitionId partition, long offset) {
+        public KafkaMessageId(Partition partition, long offset) {
             this.partition = partition;
             this.offset = offset;
         }
@@ -43,7 +43,7 @@ public class PartitionManager {
     SortedSet<Long> _pending = new TreeSet<Long>();
     Long _committedTo;
     LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
-    GlobalPartitionId _partition;
+    Partition _partition;
     SpoutConfig _spoutConfig;
     String _topologyInstanceId;
     SimpleConsumer _consumer;
@@ -52,7 +52,7 @@ public class PartitionManager {
     Map _stormConf;
 
 
-    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, Map stormConf, SpoutConfig spoutConfig, GlobalPartitionId id) {
+    public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, Map stormConf, SpoutConfig spoutConfig, Partition id) {
         _partition = id;
         _connections = connections;
         _spoutConfig = spoutConfig;
@@ -192,11 +192,11 @@ public class PartitionManager {
 
             Map<Object, Object> data = (Map<Object,Object>)ImmutableMap.builder()
                 .put("topology", ImmutableMap.of("id", _topologyInstanceId,
-                                                 "name", _stormConf.get(Config.TOPOLOGY_NAME)))
+						"name", _stormConf.get(Config.TOPOLOGY_NAME)))
                 .put("offset", committedTo)
                 .put("partition", _partition.partition)
                 .put("broker", ImmutableMap.of("host", _partition.host.host,
-                                               "port", _partition.host.port))
+						"port", _partition.host.port))
                 .put("topic", _spoutConfig.topic).build();
 	    _state.writeJSON(committedPath(), data);
 
@@ -227,7 +227,7 @@ public class PartitionManager {
         }
     }
 
-    public GlobalPartitionId getPartition() {
+    public Partition getPartition() {
         return _partition;
     }
 

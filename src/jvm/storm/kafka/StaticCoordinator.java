@@ -7,14 +7,14 @@ import java.util.Map;
 
 
 public class StaticCoordinator implements PartitionCoordinator {
-    Map<GlobalPartitionId, PartitionManager> _managers = new HashMap<GlobalPartitionId, PartitionManager>();
+    Map<Partition, PartitionManager> _managers = new HashMap<Partition, PartitionManager>();
     List<PartitionManager> _allManagers = new ArrayList();
 
     public StaticCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig config, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
         StaticHosts hosts = (StaticHosts) config.hosts;
-        List<GlobalPartitionId> allPartitionIds = hosts.getPartitionInformation().getOrderedPartitions();
-        for(int i=taskIndex; i<allPartitionIds.size(); i+=totalTasks) {
-            GlobalPartitionId myPartition = allPartitionIds.get(i);
+        List<Partition> partitions = hosts.getPartitionInformation().getOrderedPartitions();
+        for(int i=taskIndex; i<partitions.size(); i+=totalTasks) {
+            Partition myPartition = partitions.get(i);
             _managers.put(myPartition, new PartitionManager(connections, topologyInstanceId, state, stormConf, config, myPartition));
             
         }
@@ -27,8 +27,8 @@ public class StaticCoordinator implements PartitionCoordinator {
         return _allManagers;
     }
     
-    public PartitionManager getManager(GlobalPartitionId id) {
-        return _managers.get(id);
+    public PartitionManager getManager(Partition partition) {
+        return _managers.get(partition);
     }
     
 }

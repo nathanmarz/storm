@@ -2,14 +2,14 @@ package storm.kafka.trident;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
-import storm.kafka.GlobalPartitionId;
+import storm.kafka.Partition;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 
 import java.util.Map;
 import java.util.UUID;
 
 
-public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<GlobalPartitionInformation, GlobalPartitionId, Map> {
+public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<GlobalPartitionInformation, Partition, Map> {
 
     
     TridentKafkaConfig _config;
@@ -20,7 +20,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<G
     }
     
     @Override
-    public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map> getEmitter(Map conf, TopologyContext context) {
+    public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map> getEmitter(Map conf, TopologyContext context) {
 		return new TridentKafkaEmitter(conf, context, _config, _topologyInstanceId).asOpaqueEmitter();
     }
     

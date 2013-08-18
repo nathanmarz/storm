@@ -16,7 +16,7 @@ import kafka.message.MessageAndOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.DynamicPartitionConnections;
-import storm.kafka.GlobalPartitionId;
+import storm.kafka.Partition;
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
@@ -56,14 +56,14 @@ public class TridentKafkaEmitter {
 	}
 
 
-	private Map failFastEmitNewPartitionBatch(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
+	private Map failFastEmitNewPartitionBatch(TransactionAttempt attempt, TridentCollector collector, Partition partition, Map lastMeta) {
 		SimpleConsumer consumer = _connections.register(partition);
 		Map ret = doEmitNewPartitionBatch(consumer, partition, collector, lastMeta);
 		_kafkaOffsetMetric.setLatestEmittedOffset(partition, (Long) ret.get("offset"));
 		return ret;
 	}
 
-	private Map emitNewPartitionBatch(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map lastMeta) {
+	private Map emitNewPartitionBatch(TransactionAttempt attempt, TridentCollector collector, Partition partition, Map lastMeta) {
 		try {
 			return failFastEmitNewPartitionBatch(attempt, collector, partition, lastMeta);
 		} catch (FailedFetchException e) {
@@ -83,7 +83,7 @@ public class TridentKafkaEmitter {
 		}
 	}
 
-	private Map doEmitNewPartitionBatch(SimpleConsumer consumer, GlobalPartitionId partition, TridentCollector collector, Map lastMeta) {
+	private Map doEmitNewPartitionBatch(SimpleConsumer consumer, Partition partition, TridentCollector collector, Map lastMeta) {
 		long offset;
 		if (lastMeta != null) {
 			String lastInstanceId = null;
@@ -127,7 +127,7 @@ public class TridentKafkaEmitter {
 		return newMeta;
 	}
 
-	private ByteBufferMessageSet fetchMessages(SimpleConsumer consumer, GlobalPartitionId partition, long offset) {
+	private ByteBufferMessageSet fetchMessages(SimpleConsumer consumer, Partition partition, long offset) {
 		ByteBufferMessageSet msgs;
 		long start = System.nanoTime();
 		FetchRequestBuilder builder = new FetchRequestBuilder();
@@ -148,7 +148,7 @@ public class TridentKafkaEmitter {
 	 * @param partition
 	 * @param meta
 	 */
-	private void reEmitPartitionBatch(TransactionAttempt attempt, TridentCollector collector, GlobalPartitionId partition, Map meta) {
+	private void reEmitPartitionBatch(TransactionAttempt attempt, TridentCollector collector, Partition partition, Map meta) {
 		LOG.info("re-emitting batch, attempt " + attempt);
 		String instanceId = (String) meta.get("instanceId");
 		if (!_config.forceFromStart || instanceId.equals(_topologyInstanceId)) {
@@ -181,32 +181,38 @@ public class TridentKafkaEmitter {
 		_connections.clear();
 	}
 
-	private List<GlobalPartitionId> orderPartitions(GlobalPartitionInformation partitions) {
+	private List<Partition> orderPartitions(GlobalPartitionInformation partitions) {
 		return partitions.getOrderedPartitions();
 	}
 
-	private void refresh(List<GlobalPartitionId> list) {
+	private void refresh(List<Partition> list) {
 		_connections.clear();
-		_kafkaOffsetMetric.refreshPartitions(new HashSet<GlobalPartitionId>(list));
+		_kafkaOffsetMetric.refreshPartitions(new HashSet<Partition>(list));
 	}
 
 
-	public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map> asOpaqueEmitter() {
+	public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map> asOpaqueEmitter() {
 
-		return new IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map>() {
+		return new IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map>() {
 
+			/**
+			 * Emit a batch of tuples for a partition/transaction.
+			 *
+			 * Return the metadata describing this batch that will be used as lastPartitionMeta
+			 * for defining the parameters of the next batch.
+			 */
 			@Override
-			public Map emitPartitionBatch(TransactionAttempt transactionAttempt, TridentCollector tridentCollector, GlobalPartitionId globalPartitionId, Map map) {
-				return emitNewPartitionBatch(transactionAttempt, tridentCollector, globalPartitionId, map);
+			public Map emitPartitionBatch(TransactionAttempt transactionAttempt, TridentCollector tridentCollector, Partition partition, Map map) {
+				return emitNewPartitionBatch(transactionAttempt, tridentCollector, partition, map);
 			}
 
 			@Override
-			public void refreshPartitions(List<GlobalPartitionId> globalPartitionIds) {
-				refresh(globalPartitionIds);
+			public void refreshPartitions(List<Partition> partitions) {
+				refresh(partitions);
 			}
 
 			@Override
-			public List<GlobalPartitionId> getOrderedPartitions(GlobalPartitionInformation partitionInformation) {
+			public List<Partition> getOrderedPartitions(GlobalPartitionInformation partitionInformation) {
 				return orderPartitions(partitionInformation);
 			}
 
@@ -218,25 +224,37 @@ public class TridentKafkaEmitter {
 	}
 
 	public IPartitionedTridentSpout.Emitter asTransactionalEmitter() {
-		return new IPartitionedTridentSpout.Emitter<GlobalPartitionInformation, GlobalPartitionId, Map>() {
+		return new IPartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map>() {
 
+			/**
+			 * Emit a batch of tuples for a partition/transaction that's never been emitted before.
+			 * Return the metadata that can be used to reconstruct this partition/batch in the future.
+			 */
 			@Override
-			public Map emitPartitionBatchNew(TransactionAttempt transactionAttempt, TridentCollector tridentCollector, GlobalPartitionId globalPartitionId, Map map) {
-				return failFastEmitNewPartitionBatch(transactionAttempt, tridentCollector, globalPartitionId, map);
+			public Map emitPartitionBatchNew(TransactionAttempt transactionAttempt, TridentCollector tridentCollector, Partition partition, Map map) {
+				return failFastEmitNewPartitionBatch(transactionAttempt, tridentCollector, partition, map);
+			}
+
+			/**
+			 * Emit a batch of tuples for a partition/transaction that has been emitted before, using
+			 * the metadata created when it was first emitted.
+			 */
+			@Override
+			public void emitPartitionBatch(TransactionAttempt transactionAttempt, TridentCollector tridentCollector, Partition partition, Map map) {
+				reEmitPartitionBatch(transactionAttempt, tridentCollector, partition, map);
+			}
+
+			/**
+			 * This method is called when this task is responsible for a new set of partitions. Should be used
+			 * to manage things like connections to brokers.
+			 */
+			@Override
+			public void refreshPartitions(List<Partition> partitions) {
+				refresh(partitions);
 			}
 
 			@Override
-			public void emitPartitionBatch(TransactionAttempt transactionAttempt, TridentCollector tridentCollector, GlobalPartitionId globalPartitionId, Map map) {
-				reEmitPartitionBatch(transactionAttempt, tridentCollector, globalPartitionId, map);
-			}
-
-			@Override
-			public void refreshPartitions(List<GlobalPartitionId> globalPartitionIds) {
-				refresh(globalPartitionIds);
-			}
-
-			@Override
-			public List<GlobalPartitionId> getOrderedPartitions(GlobalPartitionInformation partitionInformation) {
+			public List<Partition> getOrderedPartitions(GlobalPartitionInformation partitionInformation) {
 				return orderPartitions(partitionInformation);
 			}
 

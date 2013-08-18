@@ -14,7 +14,7 @@ public class ZkCoordinator implements PartitionCoordinator {
     int _taskIndex;
     int _totalTasks;
     String _topologyInstanceId;
-    Map<GlobalPartitionId, PartitionManager> _managers = new HashMap();
+    Map<Partition, PartitionManager> _managers = new HashMap();
     List<PartitionManager> _cachedList;
     Long _lastRefreshTime = null;
     int _refreshFreqMs;
@@ -52,29 +52,29 @@ public class ZkCoordinator implements PartitionCoordinator {
         try {
             LOG.info("Refreshing partition manager connections");
 			GlobalPartitionInformation brokerInfo = _reader.getBrokerInfo();
-            Set<GlobalPartitionId> mine = new HashSet();
-			for (GlobalPartitionId partitionId: brokerInfo){
+            Set<Partition> mine = new HashSet();
+			for (Partition partitionId: brokerInfo){
 				if(myOwnership(partitionId)) {
 					mine.add(partitionId);
 				}
 			}
 
-            Set<GlobalPartitionId> curr = _managers.keySet();
-            Set<GlobalPartitionId> newPartitions = new HashSet<GlobalPartitionId>(mine);
+            Set<Partition> curr = _managers.keySet();
+            Set<Partition> newPartitions = new HashSet<Partition>(mine);
             newPartitions.removeAll(curr);
             
-            Set<GlobalPartitionId> deletedPartitions = new HashSet<GlobalPartitionId>(curr);
+            Set<Partition> deletedPartitions = new HashSet<Partition>(curr);
             deletedPartitions.removeAll(mine);
             
             LOG.info("Deleted partition managers: " + deletedPartitions.toString());
             
-            for(GlobalPartitionId id: deletedPartitions) {
+            for(Partition id: deletedPartitions) {
                 PartitionManager man = _managers.remove(id);
                 man.close();
             }
             LOG.info("New partition managers: " + newPartitions.toString());
             
-            for(GlobalPartitionId id: newPartitions) {
+            for(Partition id: newPartitions) {
                 PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _stormConf, _spoutConfig, id);
                 _managers.put(id, man);
             }
@@ -87,11 +87,11 @@ public class ZkCoordinator implements PartitionCoordinator {
     }
 
     @Override
-    public PartitionManager getManager(GlobalPartitionId id) {
-        return _managers.get(id);        
+    public PartitionManager getManager(Partition partition) {
+        return _managers.get(partition);
     }
     
-    private boolean myOwnership(GlobalPartitionId id) {
+    private boolean myOwnership(Partition id) {
         int val = Math.abs(id.host.hashCode() + 23 * id.partition);        
         return val % _totalTasks == _taskIndex;
     } 

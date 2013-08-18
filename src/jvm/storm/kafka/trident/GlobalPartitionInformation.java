@@ -1,6 +1,6 @@
 package storm.kafka.trident;
 
-import storm.kafka.GlobalPartitionId;
+import storm.kafka.Partition;
 import storm.kafka.HostPort;
 
 import java.io.Serializable;
@@ -10,7 +10,7 @@ import java.util.*;
  * Date: 14/05/2013
  * Time: 19:18
  */
-public class GlobalPartitionInformation implements Iterable<GlobalPartitionId>, Serializable {
+public class GlobalPartitionInformation implements Iterable<Partition>, Serializable {
 
 	private Map<Integer, HostPort> partitionMap;
 
@@ -33,28 +33,28 @@ public class GlobalPartitionInformation implements Iterable<GlobalPartitionId>, 
 		return partitionMap.get(partitionId);
 	}
 
-	public List<GlobalPartitionId> getOrderedPartitions(){
-		List<GlobalPartitionId> partitionIds = new LinkedList<GlobalPartitionId>();
+	public List<Partition> getOrderedPartitions(){
+		List<Partition> partitions = new LinkedList<Partition>();
 		for (Map.Entry<Integer, HostPort> partition : partitionMap.entrySet()) {
-			partitionIds.add(new GlobalPartitionId(partition.getValue(), partition.getKey()));
+			partitions.add(new Partition(partition.getValue(), partition.getKey()));
 		}
-		return partitionIds;
+		return partitions;
 	}
 
 	@Override
-	public Iterator<GlobalPartitionId> iterator() {
+	public Iterator<Partition> iterator() {
 		final Iterator<Map.Entry<Integer, HostPort>> iterator = partitionMap.entrySet().iterator();
 
-		return new Iterator<GlobalPartitionId>() {
+		return new Iterator<Partition>() {
 			@Override
 			public boolean hasNext() {
 				return iterator.hasNext();
 			}
 
 			@Override
-			public GlobalPartitionId next() {
+			public Partition next() {
 				Map.Entry<Integer, HostPort> next = iterator.next();
-				return new GlobalPartitionId(next.getValue(), next.getKey());
+				return new Partition(next.getValue(), next.getKey());
 			}
 
 			@Override

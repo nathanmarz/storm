@@ -43,8 +43,8 @@ public class KafkaUtils {
 	}
 
 	public static class KafkaOffsetMetric implements IMetric {
-        Map<GlobalPartitionId, Long> _partitionToOffset = new HashMap<GlobalPartitionId, Long>();
-        Set<GlobalPartitionId> _partitions;
+        Map<Partition, Long> _partitionToOffset = new HashMap<Partition, Long>();
+        Set<Partition> _partitions;
         String _topic;
         DynamicPartitionConnections _connections;
 
@@ -53,7 +53,7 @@ public class KafkaUtils {
             _connections = connections;
         }
 
-        public void setLatestEmittedOffset(GlobalPartitionId partition, long offset) {
+        public void setLatestEmittedOffset(Partition partition, long offset) {
             _partitionToOffset.put(partition, offset);
         }
 
@@ -65,8 +65,8 @@ public class KafkaUtils {
                 long totalLatestEmittedOffset = 0;
                 HashMap ret = new HashMap();
                 if(_partitions != null && _partitions.size() == _partitionToOffset.size()) {
-                    for(Map.Entry<GlobalPartitionId, Long> e : _partitionToOffset.entrySet()) {
-                        GlobalPartitionId partition = e.getKey();
+                    for(Map.Entry<Partition, Long> e : _partitionToOffset.entrySet()) {
+                        Partition partition = e.getKey();
                         SimpleConsumer consumer = _connections.getConnection(partition);
                         if(consumer == null) {
                             LOG.warn("partitionToOffset contains partition not found in _connections. Stale partition data?");
@@ -99,9 +99,9 @@ public class KafkaUtils {
             return null;
         }
 
-       public void refreshPartitions(Set<GlobalPartitionId> partitions) {
+       public void refreshPartitions(Set<Partition> partitions) {
            _partitions = partitions;
-           Iterator<GlobalPartitionId> it = _partitionToOffset.keySet().iterator();
+           Iterator<Partition> it = _partitionToOffset.keySet().iterator();
            while(it.hasNext()) {
                if(!partitions.contains(it.next())) it.remove();
            }

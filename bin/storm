@@ -112,13 +112,13 @@ def parse_args(string):
 
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
     global CONFFILE
-    all_args = [
+    all_args = filter(None, [
         "java", jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-Dstorm.conf.file=" + CONFFILE,
         "-cp", get_classpath(extrajars),
-    ] + jvmopts + [klass] + list(args)
+    ] + jvmopts + [klass] + list(args))
     print "Running: " + " ".join(all_args)
     if fork:
         os.spawnvp(os.P_WAIT, "java", all_args)
@@ -139,7 +139,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        jvmopts=[JAR_JVM_OPTS + " -Dstorm.jar=" + jarfile])
+        jvmopts=[JAR_JVM_OPTS, "-Dstorm.jar=" + jarfile])
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]

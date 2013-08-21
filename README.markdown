@@ -74,6 +74,8 @@ You must not remove this notice, or any other, from this software.
 * Tudor Scurtu ([@tscurtu](https://github.com/tscurtu))
 * Homer Strong ([@strongh](https://github.com/strongh))
 * Sean Melody ([@srmelody](https://github.com/srmelody))
+* Jake Donham ([@jaked](https://github.com/jaked))
+* Ankit Toshniwal ([@ankitoshniwal](https://github.com/ankitoshniwal))
 
 ## Acknowledgements
 

@@ -777,7 +777,7 @@ public class Config extends HashMap<String, Object> {
      * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
      */
     public static final String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
-    public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Number.class;
+    public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Map.class;
 
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

@@ -8,7 +8,7 @@ import storm.kafka.trident.GlobalPartitionInformation;
 import java.util.*;
 
 public class ZkCoordinator implements PartitionCoordinator {
-    public static Logger LOG = LoggerFactory.getLogger(ZkCoordinator.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ZkCoordinator.class);
     
     SpoutConfig _spoutConfig;
     int _taskIndex;

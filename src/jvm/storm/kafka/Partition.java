@@ -1,8 +1,7 @@
 package storm.kafka;
 
+import com.google.common.base.Objects;
 import storm.trident.spout.ISpoutPartition;
-
-import java.util.Objects;
 
 
 public class Partition implements ISpoutPartition {
@@ -17,7 +16,7 @@ public class Partition implements ISpoutPartition {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(host, partition);
+		return Objects.hashCode(host, partition);
 	}
 
 	@Override
@@ -29,7 +28,7 @@ public class Partition implements ISpoutPartition {
 			return false;
 		}
 		final Partition other = (Partition) obj;
-		return Objects.equals(this.host, other.host) && Objects.equals(this.partition, other.partition);
+		return Objects.equal(this.host, other.host) && Objects.equal(this.partition, other.partition);
 	}
 
 	@Override

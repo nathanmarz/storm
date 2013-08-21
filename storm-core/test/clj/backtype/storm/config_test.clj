@@ -18,7 +18,9 @@
         (.validateField validator "test" x))))
 
     (doseq [x [64 4294967296 1 nil]]
-      (.validateField validator "test" x))))
+      (is (nil? (try 
+                  (.validateField validator "test" x)
+                  (catch Exception e e)))))))
 
 (deftest test-list-validator
   (let [validator ConfigValidation/StringsValidator]
@@ -44,7 +46,9 @@
                ["42" "64"]
                nil
               ]]
-      (.validateField validator "test" x))))
+    (is (nil? (try 
+                (.validateField validator "test" x)
+                (catch Exception e e)))))))
 
 (deftest test-topology-workers-is-number
   (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKERS)]
@@ -53,3 +57,14 @@
     (.validateField validator "test" 3.14159)
     (is (thrown-cause? java.lang.IllegalArgumentException
       (.validateField validator "test" "42")))))
+
+(deftest test-isolation-scheduler-machines-is-map
+  (let [validator (CONFIG-SCHEMA-MAP ISOLATION-SCHEDULER-MACHINES)]
+    (is (nil? (try 
+                (.validateField validator "test" {}) 
+                (catch Exception e e))))
+    (is (nil? (try 
+                (.validateField validator "test" {"host0" 1 "host1" 2}) 
+                (catch Exception e e))))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+      (.validateField validator "test" 42)))))

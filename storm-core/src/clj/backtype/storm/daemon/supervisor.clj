@@ -344,6 +344,7 @@
                         0
                         (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
                         heartbeat-fn)
+    (.add event-manager synchronize-supervisor)
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right

@@ -82,7 +82,7 @@ public class RankableObjectWithFields implements Rankable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == obj) {
+        if (this == o) {
             return true;
         }
         if (!(o instanceof RankableObjectWithFields)) {

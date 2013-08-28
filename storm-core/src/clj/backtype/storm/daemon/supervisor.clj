@@ -1,4 +1,5 @@
 (ns backtype.storm.daemon.supervisor
+  (:import [java.io IOException])
   (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
@@ -142,6 +143,8 @@
     ;; this avoids a race condition with worker or subprocess writing pid around same time
     (rmpath (worker-pids-root conf id))
     (rmpath (worker-root conf id))
+  (catch IOException e
+    (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))

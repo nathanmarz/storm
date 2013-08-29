@@ -1,5 +1,22 @@
 # Example Storm Topologies
 
+Learn to use Storm!
+
+---
+
+Table of Contents
+
+* <a href="#getting-started">Getting started</a>
+* <a href="#leiningen">Using storm-starter with Leiningen</a>
+* <a href="#maven">Using storm-starter with Maven</a>
+
+---
+
+
+<a name="getting-started"></a>
+
+# Getting started
+
 storm-starter contains a variety of examples of using Storm.  If this is your first time working with Storm, check out
 these topologies first:
 
@@ -8,8 +25,10 @@ these topologies first:
    implementing one bolt in Python
 3. [ReachTopology](src/jvm/storm/starter/ReachTopology.java): Example of complex DRPC on top of Storm
 
-See the [Storm project page](http://github.com/nathanmarz/storm) for more information.
+See the [Storm project page](http://github.com/nathanmarz/storm) for more information on how Storm works..
 
+
+<a name="leiningen"></a>
 
 # Using storm-starter with Leiningen
 
@@ -34,6 +53,8 @@ The storm-starter build uses [Leiningen](http://leiningen.org/) 2.0.  Install Le
     $ lein compile
     $ lein run -m storm.starter.clj.word-count
 
+
+<a name="maven"></a>
 
 # Using storm-starter with Maven
 

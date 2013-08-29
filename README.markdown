@@ -17,6 +17,20 @@ Table of Contents
 
 # Getting started
 
+## Prerequisites
+
+First, you need `java` and `git` installed and in your user's `PATH`.  Also, two of the examples in storm-starter
+require Python and Ruby.
+
+Next, make sure you have the storm-starter code available on your machine.  Git/GitHub beginners may want to use the
+following command to download the latest storm-starter code and change to the new directory that contains the downloaded
+code.
+
+    $ git clone git://github.com/nathanmarz/storm-starter.git && cd storm-starter
+
+
+## storm-starter overview
+
 storm-starter contains a variety of examples of using Storm.  If this is your first time working with Storm, check out
 these topologies first:
 

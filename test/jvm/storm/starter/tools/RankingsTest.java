@@ -15,6 +15,7 @@ public class RankingsTest {
 
   private static final int ANY_TOPN = 42;
   private static final Rankable ANY_RANKABLE = new RankableObjectWithFields("someObject", ANY_TOPN);
+  private static final Rankable ZERO = new RankableObjectWithFields("ZERO_COUNT", 0);
   private static final Rankable A = new RankableObjectWithFields("A", 1);
   private static final Rankable B = new RankableObjectWithFields("B", 2);
   private static final Rankable C = new RankableObjectWithFields("C", 3);
@@ -192,6 +193,31 @@ public class RankingsTest {
 
     // then
     assertThat(rankings.size()).isEqualTo(1);
+  }
+
+  @DataProvider
+  public Object[][] removeZeroRankingsData() {
+    return new Object[][]{ { Lists.newArrayList(A, ZERO), Lists.newArrayList(A) }, { Lists.newArrayList(A),
+        Lists.newArrayList(A) }, { Lists.newArrayList(ZERO, A), Lists.newArrayList(A) }, { Lists.newArrayList(ZERO),
+        Lists.newArrayList() }, { Lists.newArrayList(ZERO, new RankableObjectWithFields("ZERO2", 0)),
+        Lists.newArrayList() }, { Lists.newArrayList(B, ZERO, new RankableObjectWithFields("ZERO2", 0), D,
+        new RankableObjectWithFields("ZERO3", 0), new RankableObjectWithFields("ZERO4", 0), C), Lists.newArrayList(D, C,
+        B) }, { Lists.newArrayList(A, ZERO, B), Lists.newArrayList(B, A) } };
+  }
+
+  @Test(dataProvider = "removeZeroRankingsData")
+  public void shouldRemoveZeroCounts(List<Rankable> unsorted, List<Rankable> expSorted) {
+    // given
+    Rankings rankings = new Rankings(unsorted.size());
+    for (Rankable r : unsorted) {
+      rankings.updateWith(r);
+    }
+
+    // when
+    rankings.pruneZeroCounts();
+
+    // then
+    assertThat(rankings.getRankings()).isEqualTo(expSorted);
   }
 
   @Test

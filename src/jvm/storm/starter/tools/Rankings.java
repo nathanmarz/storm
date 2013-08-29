@@ -89,6 +89,21 @@ public class Rankings implements Serializable {
     }
   }
 
+  /**
+   * Removes ranking entries that have a count of zero.
+   */
+  public void pruneZeroCounts() {
+    int i = 0;
+    while (i < rankedItems.size()) {
+      if (rankedItems.get(i).getCount() == 0) {
+        rankedItems.remove(i);
+      }
+      else {
+        i++;
+      }
+    }
+  }
+
   public String toString() {
     return rankedItems.toString();
   }

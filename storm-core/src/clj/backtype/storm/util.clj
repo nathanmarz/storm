@@ -1,7 +1,7 @@
 (ns backtype.storm.util
   (:import [java.net InetAddress])
   (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
-  (:import [java.io FileReader])
+  (:import [java.io FileReader FileNotFoundException])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
             MutableObject MutableInt])
@@ -431,7 +431,9 @@
 (defn rmr [path]
   (log-debug "Rmr path " path)
   (when (exists-file? path)
-    (FileUtils/forceDelete (File. path))))
+    (try
+      (FileUtils/forceDelete (File. path))
+    (catch FileNotFoundException e))))
 
 (defn rmpath
   "Removes file or directory at the path. Not recursive. Throws exception on failure"

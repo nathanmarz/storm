@@ -1,4 +1,4 @@
-# Example Storm topologies
+# storm-starter: Example Storm Topologies
 
 storm-starter contains a variety of examples of using Storm.  If this is your first time working with Storm, check out
 these topologies first:
@@ -11,35 +11,49 @@ these topologies first:
 See the [Storm project page](http://github.com/nathanmarz/storm) for more information.
 
 
-## Running an example with Leiningen
+# Using storm-starter with Leiningen
 
-Install Leiningen by following the [leiningen installation instructions](https://github.com/technomancy/leiningen).
-The storm-starter build uses Leiningen 2.0.
+## Install Leiningen
+
+The storm-starter build uses [Leiningen](http://leiningen.org/) 2.0.  Install Leiningen by following the
+[leiningen installation instructions](https://github.com/technomancy/leiningen).
 
 
-### To run a Java example:
+## Running topologies with Leiningen
+
+### To run a Java topology
 
     $ lein deps
     $ lein compile
     $ java -cp $(lein classpath) storm.starter.ExclamationTopology
 
 
-### To run a Clojure example:
+### To run a Clojure topology:
 
     $ lein deps
     $ lein compile
     $ lein run -m storm.starter.clj.word-count
 
 
-## Maven
+# Using storm-starter with Maven
 
-Maven is an alternative to Leiningen. storm-starter contains m2-pom.xml which can be used with Maven using the `-f`
-option. For example, to compile and run `WordCountTopology` in local mode, use this command:
+## Install Maven
 
+[Maven](http://maven.apache.org/) is an alternative to Leiningen.  Install Maven (preferably version 3.x) by following
+the [Maven installation instructions](http://maven.apache.org/download.cgi).
+
+
+## Running topologies with Maven
+
+storm-starter contains [m2-pom.xml](m2-pom.xml) which can be used with Maven using the `-f` option. For example, to
+compile and run `WordCountTopology` in local mode, use the command:
 
     $ mvn -f m2-pom.xml compile exec:java -Dexec.classpathScope=compile -Dexec.mainClass=storm.starter.WordCountTopology
 
-You can package a jar suitable for submitting to a cluster with this command:
+
+## Packaging storm-starter for use on a Storm cluster
+
+You can package a jar suitable for submitting to a Storm cluster with the command:
 
     $ mvn -f m2-pom.xml package
 
@@ -47,7 +61,7 @@ This will package your code and all the non-Storm dependencies into a single "ub
 `target/storm-starter-{version}-jar-with-dependencies.jar`.
 
 
-### To run unit tests
+## Running unit tests
 
 Use the following Maven command to run the unit tests that ship with storm-starter.  Unfortunately `lein test` does not
 yet run the included unit tests.

@@ -64,7 +64,7 @@ public abstract class AbstractRankerBolt extends BaseBasicBolt {
     @Override
     public final void execute(Tuple tuple, BasicOutputCollector collector) {
         if (TupleHelpers.isTickTuple(tuple)) {
-            getLogger().info("Received tick tuple, triggering emit of current rankings");
+            getLogger().debug("Received tick tuple, triggering emit of current rankings");
             emitRankings(collector);
         }
         else {
@@ -76,7 +76,7 @@ public abstract class AbstractRankerBolt extends BaseBasicBolt {
 
     private void emitRankings(BasicOutputCollector collector) {
         collector.emit(new Values(rankings));
-        getLogger().info("Rankings: " + rankings);
+        getLogger().debug("Rankings: " + rankings);
     }
 
     @Override

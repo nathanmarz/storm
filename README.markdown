@@ -1,13 +1,14 @@
 # Example Storm topologies
 
-storm-starter contains a variety of examples of using Storm. If this is your first time checking out Storm, check out
+storm-starter contains a variety of examples of using Storm.  If this is your first time working with Storm, check out
 these topologies first:
 
-1. ExclamationTopology: Basic topology written in all Java
-2. WordCountTopology: Basic topology that makes use of multilang by implementing one bolt in Python
-3. ReachTopology: Example of complex DRPC on top of Storm
+1. [ExclamationTopology](src/jvm/storm/starter/ExclamationTopology.java):  Basic topology written in all Java
+2. [WordCountTopology](src/jvm/storm/starter/WordCountTopology.java):  Basic topology that makes use of multilang by
+   implementing one bolt in Python
+3. [ReachTopology](src/jvm/storm/starter/ReachTopology.java): Example of complex DRPC on top of Storm
 
-More information about Storm can be found on the [project page](http://github.com/nathanmarz/storm).
+See the [Storm project page](http://github.com/nathanmarz/storm) for more information.
 
 
 ## Running an example with Leiningen

@@ -80,7 +80,7 @@ public class RollingCountBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         if (TupleHelpers.isTickTuple(tuple)) {
-            LOG.info("Received tick tuple, triggering emit of current window counts");
+            LOG.debug("Received tick tuple, triggering emit of current window counts");
             emitCurrentWindowCounts();
         }
         else {

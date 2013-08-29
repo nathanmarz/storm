@@ -25,7 +25,12 @@ these topologies first:
    implementing one bolt in Python
 3. [ReachTopology](src/jvm/storm/starter/ReachTopology.java): Example of complex DRPC on top of Storm
 
-See the [Storm project page](http://github.com/nathanmarz/storm) for more information on how Storm works..
+After you have familiarized yourself with these topologies, take a look at the other topopologies in
+[src/jvm/storm/starter/](src/jvm/storm/starter/) such as [RollingTopWords](src/jvm/storm/starter/RollingTopWords.java)
+for more advanced implementations.
+
+If you want to learn more about how Storm works, please head over to the
+[Storm project page](http://github.com/nathanmarz/storm).
 
 
 <a name="leiningen"></a>

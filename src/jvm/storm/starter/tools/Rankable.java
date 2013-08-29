@@ -2,8 +2,8 @@ package storm.starter.tools;
 
 public interface Rankable extends Comparable<Rankable> {
 
-    Object getObject();
+  Object getObject();
 
-    long getCount();
+  long getCount();
 
 }

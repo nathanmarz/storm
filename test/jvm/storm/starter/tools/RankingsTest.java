@@ -4,6 +4,9 @@ import static org.fest.assertions.api.Assertions.assertThat;
 
 import java.util.List;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import org.jmock.lib.concurrent.Blitzer;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -202,5 +205,44 @@ public class RankingsTest {
 
         // then
         assertThat(rankings.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatingWithNewRankablesShouldBeThreadSafe() throws InterruptedException {
+        // given
+        final List<Rankable> entries = ImmutableList.of(A, B, C, D);
+        final Rankings rankings = new Rankings(entries.size());
+
+        // We are capturing exceptions thrown in Blitzer's child threads into this data structure so that we can properly
+        // pass/fail this test.  The reason is that Blitzer doesn't report exceptions, which is a known bug in Blitzer
+        // (JMOCK-263).  See https://github.com/jmock-developers/jmock-library/issues/22 for more information.
+        final List<Exception> exceptions = Lists.newArrayList();
+        Blitzer blitzer = new Blitzer(1000);
+
+        // when
+        blitzer.blitz(new Runnable() {
+            public void run() {
+                for (Rankable r : entries) {
+                    try {
+                        rankings.updateWith(r);
+                    }
+                    catch (RuntimeException e) {
+                        synchronized(exceptions) {
+                            exceptions.add(e);
+                        }
+                    }
+                }
+            }
+        });
+        blitzer.shutdown();
+
+        // then
+        //
+        if (!exceptions.isEmpty()) {
+            for (Exception e : exceptions) {
+                System.err.println(Throwables.getStackTraceAsString(e));
+            }
+        }
+        assertThat(exceptions).isEmpty();
     }
 }

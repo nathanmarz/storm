@@ -50,9 +50,11 @@ public class Rankings implements Serializable {
     }
 
     public void updateWith(Rankable r) {
-        addOrReplace(r);
-        rerank();
-        shrinkRankingsIfNeeded();
+        synchronized(rankedItems) {
+            addOrReplace(r);
+            rerank();
+            shrinkRankingsIfNeeded();
+        }
     }
 
     private void addOrReplace(Rankable r) {

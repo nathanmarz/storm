@@ -43,3 +43,11 @@ mvn -f m2-pom.xml package
 ```
 
 This will package your code and all the non-Storm dependencies into a single "uberjar" at the path `target/storm-starter-{version}-jar-with-dependencies.jar`.
+
+
+### To run unit tests
+
+Use the following Maven command to run the unit tests that ship with storm-starter.  Unfortunately `lein test` does not
+yet run the included unit tests.
+
+    $ mvn -f m2-pom.xml test

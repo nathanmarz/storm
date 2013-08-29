@@ -80,7 +80,7 @@ public final class SlidingWindowCounter<T> implements Serializable {
    * successfully processed "upstream" (i.e. by the caller). Knowing this we will start counting any subsequent
    * objects within the next "chunk" of the sliding window.
    *
-   * @return
+   * @return The current (total) counts of all tracked objects.
    */
   public Map<T, Long> getCountsThenAdvanceWindow() {
     Map<T, Long> counts = objCounter.getCounts();

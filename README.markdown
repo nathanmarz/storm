@@ -1,4 +1,4 @@
-# storm-starter: Example Storm Topologies
+# Example Storm Topologies
 
 storm-starter contains a variety of examples of using Storm.  If this is your first time working with Storm, check out
 these topologies first:

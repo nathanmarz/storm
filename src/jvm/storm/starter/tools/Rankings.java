@@ -40,6 +40,10 @@ public class Rankings implements Serializable {
   }
 
   public List<Rankable> getRankings() {
+    return defensiveCopyOf(rankedItems);
+  }
+
+  private List<Rankable> defensiveCopyOf(List<Rankable> list) {
     return Lists.newArrayList(rankedItems);
   }
 

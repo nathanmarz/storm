@@ -43,7 +43,7 @@ public class RankableObjectWithFields implements Rankable, Serializable {
    *
    * @param tuple
    *
-   * @return
+   * @return new instance based on the provided tuple
    */
   public static RankableObjectWithFields from(Tuple tuple) {
     List<Object> otherFields = Lists.newArrayList(tuple.getValues());

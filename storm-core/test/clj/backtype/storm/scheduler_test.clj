@@ -1,7 +1,9 @@
 (ns backtype.storm.scheduler-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm bootstrap config testing util])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
+  (:require [backtype.storm.scheduler [EvenScheduler :as EvenScheduler]])
+  (:require [backtype.storm.scheduler [DefaultScheduler :as DefaultScheduler]])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))
@@ -243,4 +245,77 @@
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 1)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 3)))))
     (is (= false (.isSlotOccupied cluster (WorkerSlot. "supervisor1" (int 5)))))
+    ))
+
+(deftest test-use-resources-evenly
+  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 1 3 5 7 9)))
+        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 2 4 6 8 10)))
+        supervisor3 (SupervisorDetails. "supervisor3" "192.168.0.3" (list ) (map int (list 11 13 15 17 19)))
+        supervisor4 (SupervisorDetails. "supervisor4" "192.168.0.4" (list ) (map int (list 12 14 16 18 20)))
+        executor1 (ExecutorDetails. (int 1001) (int 1001))
+        executor2 (ExecutorDetails. (int 1002) (int 1002))
+        executor3 (ExecutorDetails. (int 1003) (int 1003))
+        executor4 (ExecutorDetails. (int 1004) (int 1004))
+        executor5 (ExecutorDetails. (int 1005) (int 1005))
+        executor6 (ExecutorDetails. (int 1006) (int 1006))
+        executor7 (ExecutorDetails. (int 1007) (int 1007))
+        executor8 (ExecutorDetails. (int 1008) (int 1008))
+        executor9 (ExecutorDetails. (int 1009) (int 1009))
+        executor10 (ExecutorDetails. (int 1010) (int 1010))
+        executor11 (ExecutorDetails. (int 1011) (int 1011))
+        executor12 (ExecutorDetails. (int 1012) (int 1012))
+        executor13 (ExecutorDetails. (int 1013) (int 1013))
+        topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"}
+                                    (StormTopology.)
+                                    4
+                                    {executor1 "spout1"
+                                     executor2 "bolt1"
+                                     executor3 "bolt2"
+                                     executor4 "bolt3"
+                                     executor5 "bolt4"
+                                     executor6 "bolt5"})
+        topology2 (TopologyDetails. "topology2" {TOPOLOGY-NAME "topology-name-2"}
+                                    (StormTopology.)
+                                    3
+                                    {executor11 "spout11"
+                                     executor12 "bolt11"
+                                     executor13 "bolt12"})
+        topology3 (TopologyDetails. "topology3" {TOPOLOGY-NAME "topology-name-3"}
+                                    (StormTopology.)
+                                    4
+                                    {executor7 "spout7"
+                                     executor8 "bolt8"
+                                     executor9 "bolt9"
+                                     executor10 "bolt10"})
+        topologies (Topologies. {"topology1" topology1 "topology2" topology2 "topology3" topology3})
+        executor->slot1 {executor1 (WorkerSlot. "supervisor1" (int 1))
+                         executor2 (WorkerSlot. "supervisor1" (int 3))
+                         executor3 (WorkerSlot. "supervisor1" (int 5))
+                         executor4 (WorkerSlot. "supervisor2" (int 2))
+                         executor5 (WorkerSlot. "supervisor3" (int 11))
+                         executor6 (WorkerSlot. "supervisor4" (int 12))
+                         }
+        assignment1 (SchedulerAssignmentImpl. "topology1" executor->slot1)
+        
+        executor->slot2 {executor11 (WorkerSlot. "supervisor1" (int 7))
+                         executor12 (WorkerSlot. "supervisor2" (int 4))
+                         executor13 (WorkerSlot. "supervisor3" (int 13))
+                         }
+        assignment2 (SchedulerAssignmentImpl. "topology2" executor->slot2)
+        
+        cluster (Cluster. (nimbus/standalone-nimbus)
+                          {"supervisor1" supervisor1 "supervisor2" supervisor2 "supervisor3" supervisor3 "supervisor4" supervisor4}
+                          {"topology1" assignment1 "topology2" assignment2})]
+    
+    (is (= false (.needsScheduling cluster topology1)))
+    (is (= false (.needsScheduling cluster topology2)))
+    (is (= true (.needsScheduling cluster topology3)))
+    
+    (DefaultScheduler/default-schedule topologies cluster)
+    ;(EvenScheduler/schedule-topologies-evenly topologies cluster)
+    
+    (is (= 4 (count (set (.getUsedPorts cluster supervisor1)))))
+    (is (= 3 (count (set (.getUsedPorts cluster supervisor2)))))
+    (is (= 3 (count (set (.getUsedPorts cluster supervisor3)))))
+    (is (= 3 (count (set (.getUsedPorts cluster supervisor4)))))
     ))

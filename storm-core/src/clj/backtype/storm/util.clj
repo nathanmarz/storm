@@ -320,6 +320,17 @@
       (assoc m v (conj existing k))))
     {} amap))
 
+(defn coll-to-map
+  "([:a 1][:a 2][:b 1][:c 2]) -> {:a [1 2] :b 1 :c 2}"
+  [acoll]
+  (reduce (fn [m item]
+            (let [existing (get m (first item) [])]
+              (assoc m (first item) (conj existing (second item)))
+              )
+            )
+          {} acoll)
+  )
+
 (defmacro print-vars [& vars]
   (let [prints (for [v vars] `(println ~(str v) ~v))]
     `(do ~@prints)))
@@ -600,15 +611,16 @@
     (Collections/shuffle state rand))
   (.get state (.get curr)))
 
-; this can be rewritten to be tail recursive
+;;'(1 2 3 4) '(5 6) '( 7 8 9 10) '() '(11) --> (1 5 7 11 2 6 8 3 9 4 10)
 (defn interleave-all [& colls]
   (if (empty? colls)
     []
-    (let [colls (filter (complement empty?) colls)
-          my-elems (map first colls)
-          rest-elems (apply interleave-all (map rest colls))]
-      (concat my-elems rest-elems)
-      )))
+    (loop [result [] colls colls]
+      (let [colls (filter (complement empty?) colls)]
+       (if (empty? colls)
+         (apply concat result)
+         (recur (conj result (map first colls)) (map rest colls))
+       )))))
 
 (defn update [m k afn]
   (assoc m k (afn (get m k))))

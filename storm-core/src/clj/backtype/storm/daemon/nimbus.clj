@@ -858,7 +858,7 @@
             (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))
   (if (clojure.string/blank? name) 
     (throw (InvalidTopologyException. 
-            (str "Topology name cannot be blank"))))))
+            ("Topology name cannot be blank"))))))
 
 (defn- try-read-storm-conf [conf storm-id]
   (try-cause

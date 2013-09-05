@@ -69,7 +69,7 @@
   ([^CuratorFramework zk ^String path ^bytes data mode]
     (try
       (.. zk (create) (withMode (zk-create-modes mode)) (withACL ZooDefs$Ids/OPEN_ACL_UNSAFE) (forPath (normalize-path path) data))
-      (catch Exception e (throw (RuntimeException. e)))))
+      (catch Exception e (throw (wrap-in-runtime e)))))
   ([^CuratorFramework zk ^String path ^bytes data]
     (create-node zk path data :persistent)))
 
@@ -79,13 +79,13 @@
       (if watch?
          (.. zk (checkExists) (watched) (forPath (normalize-path path))) 
          (.. zk (checkExists) (forPath (normalize-path path))))
-      (catch Exception e (throw (RuntimeException. e))))))
+      (catch Exception e (throw (wrap-in-runtime e))))))
 
 (defnk delete-node [^CuratorFramework zk ^String path :force false]
   (try-cause  (.. zk (delete) (forPath (normalize-path path)))
     (catch KeeperException$NoNodeException e
       (when-not force (throw e)))
-    (catch Exception e (throw (RuntimeException. e)))))
+    (catch Exception e (throw (wrap-in-runtime e)))))
 
 (defn mkdirs [^CuratorFramework zk ^String path]
   (let [path (normalize-path path)]
@@ -108,19 +108,19 @@
     (catch KeeperException$NoNodeException e
       ;; this is fine b/c we still have a watch from the successful exists call
       nil )
-    (catch Exception e (throw (RuntimeException. e))))))
+    (catch Exception e (throw (wrap-in-runtime e))))))
 
 (defn get-children [^CuratorFramework zk ^String path watch?]
   (try
     (if watch?
       (.. zk (getChildren) (watched) (forPath (normalize-path path)))
       (.. zk (getChildren) (forPath (normalize-path path))))
-      (catch Exception e (throw (RuntimeException. e)))))
+    (catch Exception e (throw (wrap-in-runtime e)))))
 
 (defn set-data [^CuratorFramework zk ^String path ^bytes data]
   (try
     (.. zk (setData) (forPath (normalize-path path) data))
-    (catch Exception e (throw (RuntimeException. e)))))
+    (catch Exception e (throw (wrap-in-runtime e)))))
 
 (defn exists [^CuratorFramework zk ^String path watch?]
   (exists-node? zk path watch?))

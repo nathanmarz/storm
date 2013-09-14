@@ -10,6 +10,7 @@
 (bootstrap)
 
 (defmulti download-storm-code cluster-mode)
+(defmulti mk-bt-tracker cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
 
 ;; used as part of a map from port to this
@@ -180,7 +181,7 @@
                                (log-error t "Error when processing event")
                                (halt-process! 20 "Error when processing an event")
                                ))
-   :bt-tracker (SupervisorTracker. conf)
+   :bt-tracker (mk-bt-tracker conf)
    })
 
 (defn sync-processes [supervisor]
@@ -219,7 +220,9 @@
          ". Current supervisor time: " now
          ". State: " state
          ", Heartbeat: " (pr-str heartbeat))
-        (.stop (:bt-tracker supervisor) (:storm-id heartbeat))
+        (if (:bt-tracker supervisor)
+          (.stop (:bt-tracker supervisor) (:storm-id heartbeat))
+        )
         (shutdown-worker supervisor id)
         ))
     (doseq [id (vals new-worker-ids)]
@@ -400,6 +403,10 @@
       (extract-dir-from-jar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id) RESOURCES-SUBDIR (supervisor-stormdist-root conf))
       ))
 
+(defmethod mk-bt-tracker
+    :distributed [conf]
+    (SupervisorTracker. conf)
+    )
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
@@ -455,6 +462,11 @@
                 (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
                 ))
             )))
+
+(defmethod mk-bt-tracker
+    :local [conf]
+    nil
+    )
 
 (defmethod launch-worker
     :local [supervisor storm-id port worker-id]

@@ -44,6 +44,8 @@
     scheduler
     ))
 
+(defmulti mk-bt-tracker cluster-mode)
+
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
@@ -61,7 +63,7 @@
                                  (halt-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
-     :bt-tracker (NimbusTracker. conf)
+     :bt-tracker (mk-bt-tracker conf)
      }))
 
 (defn inbox [nimbus]
@@ -299,7 +301,7 @@
    (setup-jar conf tmp-jar-location stormroot)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
-   (.trackAndSeed (:bt-tracker nimbus) stormroot storm-id)
+   (if (:bt-tracker nimbus) (.trackAndSeed (:bt-tracker nimbus) stormroot storm-id))
    ))
 
 (defn- read-storm-topology [conf storm-id]
@@ -815,7 +817,7 @@
       (when-not (empty? to-cleanup-ids)
         (doseq [id to-cleanup-ids]
           (log-message "Cleaning up " id)
-          (.stop (:bt-tracker nimbus) id)
+          (if (:bt-tracker nimbus) (.stop (:bt-tracker nimbus) id))
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
           (rmr (master-stormdist-root conf id))
@@ -1155,9 +1157,18 @@
              (FileUtils/copyFile src-file (File. (master-stormjar-path stormroot)))
              ))
 
+(defmethod mk-bt-tracker :local [conf]
+  (NimbusTracker. conf)
+  )
+
+
 ;; local implementation
 
 (defmethod setup-jar :local [conf & args]
+  nil
+  )
+
+(defmethod mk-bt-tracker :local [conf]
   nil
   )
 

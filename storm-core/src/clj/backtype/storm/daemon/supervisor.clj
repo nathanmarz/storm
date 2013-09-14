@@ -437,7 +437,7 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir]
+    :local [conf storm-id master-code-dir supervisor]
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))

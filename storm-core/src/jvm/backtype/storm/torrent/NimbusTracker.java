@@ -66,8 +66,12 @@ public class NimbusTracker extends BaseTracker {
         URI uri = URI.create("http://" + this.hostName + ":" + this.port + "/announce");
         LOG.info("Creating torrent with announce URL: {}", uri);
         ArrayList<File> files = new ArrayList<File>();
-        
-        files.add(new File(destDir, "stormjar.jar"));
+
+        File jar = new File(destDir, "stormjar.jar");
+        // no storm jar in local mode
+        if(jar.exists()){
+            files.add(jar);
+        }
         files.add(new File(destDir, "stormconf.ser"));
         files.add(new File(destDir, "stormcode.ser"));
         

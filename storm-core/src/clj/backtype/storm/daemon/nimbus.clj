@@ -651,6 +651,7 @@
                                        topologies
                                        scratch-topology-id)
         
+        topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)
         
         now-secs (current-time-secs)
         

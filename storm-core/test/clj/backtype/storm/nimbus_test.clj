@@ -709,6 +709,71 @@
       
       )))
 
+
+(defn check-for-collisions [state]
+ (log-message "Checking for collision")
+ (let [assignments (.assignments state nil)]
+   (log-message "Assignemts: " assignments)
+   (let [id->node->ports (into {} (for [id assignments
+                                                :let [executor->node+port (:executor->node+port (.assignment-info state id nil))
+                                                      node+ports (set (.values executor->node+port))
+                                                      node->ports (apply merge-with (fn [a b] (distinct (concat a b))) (for [[node port] node+ports] {node [port]}))]]
+                                                {id node->ports}))
+         _ (log-message "id->node->ports: " id->node->ports)
+         all-nodes (apply merge-with (fn [a b] 
+                                        (let [ret (concat a b)]
+                                              (log-message "Can we combine " (pr-str a) " and " (pr-str b) " without collisions? " (apply distinct? ret) " => " (pr-str ret)) 
+                                              (is (apply distinct? ret))
+                                              (distinct ret)))
+                          (.values id->node->ports))]
+)))
+
+(deftest test-rebalance-constrained-cluster
+  (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 4
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind topology2 (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind topology3 (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster)
+                             "test"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology)
+      (submit-local-topology (:nimbus cluster)
+                             "test2"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology2)
+      (submit-local-topology (:nimbus cluster)
+                             "test3"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology3)
+
+      (advance-cluster-time cluster 31)
+
+      (check-for-collisions state)
+      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.)
+                    (.set_num_workers 4)
+                    (.set_wait_secs 0)
+                    ))
+
+      (advance-cluster-time cluster 11)
+      (check-for-collisions state)
+
+      (advance-cluster-time cluster 30)
+      (check-for-collisions state)
+      )))
+
+
 (deftest test-submit-invalid
   (with-simulated-time-local-cluster [cluster
     :daemon-conf {SUPERVISOR-ENABLE false

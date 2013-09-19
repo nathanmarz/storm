@@ -2,7 +2,7 @@ package backtype.storm.scheduler;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +21,7 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     
     public SchedulerAssignmentImpl(String topologyId, Map<ExecutorDetails, WorkerSlot> executorToSlots) {
         this.topologyId = topologyId;
-        this.executorToSlot = new HashMap<ExecutorDetails, WorkerSlot>(0);
+        this.executorToSlot = new LinkedHashMap<ExecutorDetails, WorkerSlot>(0);
         if (executorToSlots != null) {
             this.executorToSlot.putAll(executorToSlots);
         }

@@ -6,7 +6,8 @@
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
-  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
+  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
+  (:import [backtype.storm Config])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
@@ -493,6 +494,10 @@
                                          (or out-tasks [])
                                          ))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf (:user-context task-data))
+          (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
+                                                   :receive receive-queue}
+                                                  storm-conf (:user-context task-data))
+
           (.open spout-obj
                  storm-conf
                  (:user-context task-data)
@@ -591,7 +596,6 @@
                           ;; TODO: how to handle incremental updates as well as synchronizations at same time
                           ;; TODO: need to version tuples somehow
                           
- 
                           ;;(log-debug "Received tuple " tuple " at task " task-id)
                           ;; need to do it this way to avoid reflection
                           (let [stream-id (.getSourceStreamId tuple)]
@@ -656,6 +660,16 @@
                                                                                (MessageId/makeId anchors-to-ids)))))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
+          (if (= component-id Constants/SYSTEM_COMPONENT_ID)
+            (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
+                                                     :receive (:receive-queue executor-data)
+                                                     :transfer (:transfer-queue (:worker executor-data))}
+                                                    storm-conf user-context)
+            (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
+                                                     :receive (:receive-queue executor-data)}
+                                                    storm-conf user-context)
+            )
+
           (.prepare bolt-obj
                     storm-conf
                     user-context

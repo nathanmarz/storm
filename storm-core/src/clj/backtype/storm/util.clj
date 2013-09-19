@@ -22,6 +22,13 @@
   (:use [backtype.storm log])
   )
 
+(defn wrap-in-runtime
+  "Wraps an exception in a RuntimeException if needed" 
+  [^Exception e]
+  (if (instance? RuntimeException e)
+    e
+    (RuntimeException. e)))
+
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
   any) and similar metadata. The metadata of the alias is its initial

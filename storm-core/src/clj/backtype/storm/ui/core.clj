@@ -39,7 +39,7 @@
              :onclick "toggleSys()"}]])
 
 (defn ui-template [body]
-  (html
+  (html4
    [:head
     [:title "Storm UI"]
     (include-css "/css/bootstrap-1.1.0.css")

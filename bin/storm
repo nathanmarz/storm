@@ -139,7 +139,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        jvmopts=[JAR_JVM_OPTS + " -Dstorm.jar=" + jarfile])
+        jvmopts=[JAR_JVM_OPTS, "-Dstorm.jar=" + jarfile])
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]

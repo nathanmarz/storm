@@ -14,7 +14,7 @@ public abstract class BaseTracker {
     protected Double maxDownload;
     protected Double maxUpload;
     
-    protected void rebalanceRates(){
+    protected synchronized void rebalanceRates(){
         int clientCount = this.clients.size();
         if(clientCount > 0){
             double maxDl = this.maxDownload <= 0.0 ? this.maxDownload : this.maxDownload / clientCount;

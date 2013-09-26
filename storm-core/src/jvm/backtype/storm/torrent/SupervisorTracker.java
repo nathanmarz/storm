@@ -41,32 +41,31 @@ public class SupervisorTracker extends BaseTracker{
         rebalanceRates();
     }
 
-    
     public void download(String torrentPath, String topologyId) throws IOException, NoSuchAlgorithmException{
-            LOG.info("Initiating BitTorrent download.");
-            InetAddress netAddr = InetAddress.getLocalHost();
-            File torrentFile = new File(torrentPath);
-            File destDir = torrentFile.getParentFile();
-            LOG.info("Downloading with torrent file: {}", torrentFile.getAbsolutePath());
-            LOG.info("Saving files to directory: {}", destDir.getAbsolutePath());
-            SharedTorrent st = SharedTorrent.fromFile(torrentFile, destDir);
-            
-            Client client = new Client(netAddr, st);
-            this.clients.put(topologyId, client);
-            rebalanceRates();
-            client.share(this.seedDuration);
-            if(this.seedDuration == 0){
-                client.waitForCompletion();
-            } else {
-                LOG.info("Waiting for seeding to begin...");
-                while(client.getState() != ClientState.SEEDING && client.getState() != ClientState.ERROR){
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                    }
+        LOG.info("Initiating BitTorrent download.");
+        InetAddress netAddr = InetAddress.getLocalHost();
+        File torrentFile = new File(torrentPath);
+        File destDir = torrentFile.getParentFile();
+        LOG.info("Downloading with torrent file: {}", torrentFile.getAbsolutePath());
+        LOG.info("Saving files to directory: {}", destDir.getAbsolutePath());
+        SharedTorrent st = SharedTorrent.fromFile(torrentFile, destDir);
+        
+        Client client = new Client(netAddr, st);
+        this.clients.put(topologyId, client);
+        rebalanceRates();
+        client.share(this.seedDuration);
+        if(this.seedDuration == 0){
+            client.waitForCompletion();
+        } else {
+            LOG.info("Waiting for seeding to begin...");
+            while(client.getState() != ClientState.SEEDING && client.getState() != ClientState.ERROR){
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
                 }
             }
-            LOG.info("BitTorrent download complete.");
+        }
+        LOG.info("BitTorrent download complete.");
     }
     
 }

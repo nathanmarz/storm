@@ -1157,7 +1157,7 @@
              (FileUtils/copyFile src-file (File. (master-stormjar-path stormroot)))
              ))
 
-(defmethod mk-bt-tracker :local [conf]
+(defmethod mk-bt-tracker :distributed [conf]
   (NimbusTracker. conf)
   )
 

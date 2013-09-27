@@ -1,6 +1,6 @@
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor])
-  (:import [backtype.storm.torrent SupervisorTracker])
+  (:import [backtype.storm.torrent SupervisorPeer])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -405,7 +405,7 @@
 
 (defmethod mk-bt-tracker
     :distributed [conf]
-    (SupervisorTracker. conf)
+    (SupervisorPeer. conf)
     )
 
 (defmethod launch-worker

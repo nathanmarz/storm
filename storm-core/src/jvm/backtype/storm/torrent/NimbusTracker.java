@@ -23,7 +23,7 @@ import com.turn.ttorrent.common.Torrent;
 import com.turn.ttorrent.tracker.TrackedTorrent;
 import com.turn.ttorrent.tracker.Tracker;
 
-public class NimbusTracker extends BaseTracker {
+public class NimbusTracker extends BasePeer {
     private static final Logger LOG = LoggerFactory.getLogger(NimbusTracker.class);
     private Tracker tracker;
     private InetAddress nimbusHost;

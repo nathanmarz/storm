@@ -24,7 +24,9 @@
 
 ## Metrics Consumers
 # topology.metrics.consumer.register:
-#    - class: "org.mycompany.MyMetricsConsumer"
-#      argument: 
-#         - endpoint: "metrics-collector.mycompany.org"
-#      parallelism.hint: 1
+#   - class: "backtype.storm.metrics.LoggingMetricsConsumer"
+#     parallelism.hint: 1
+#   - class: "org.mycompany.MyMetricsConsumer"
+#     parallelism.hint: 1
+#     argument:
+#       - endpoint: "metrics-collector.mycompany.org"

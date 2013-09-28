@@ -29,6 +29,7 @@ if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 CONFIG_OPTS = []
 CONFFILE = ""
+JAR_JVM_OPTS = os.getenv('STORM_JAR_JVM_OPTS', '')
 
 
 def get_config_opts():
@@ -138,7 +139,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        jvmopts=["-Dstorm.jar=" + jarfile])
+        jvmopts=[' '.join(filter(None, [JAR_JVM_OPTS, "-Dstorm.jar=" + jarfile]))])
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
@@ -299,6 +300,27 @@ def ui():
         jvmopts=jvmopts, 
         extrajars=[STORM_DIR, CLUSTER_CONF_DIR])
 
+def logviewer():
+    """Syntax: [storm logviewer]
+
+    Launches the log viewer daemon. It provides a web interface for viewing
+    storm log files. This command should be run under supervision with a 
+    tool like daemontools or monit. 
+
+    See Setting up a Storm cluster for more information.
+    (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
+    """
+    cppaths = [CLUSTER_CONF_DIR]
+    jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
+        "-Dlogfile.name=logviewer.log",
+        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+    ]
+    exec_storm_class(
+        "backtype.storm.daemon.logviewer", 
+        jvmtype="-server", 
+        jvmopts=jvmopts, 
+        extrajars=[STORM_DIR, CLUSTER_CONF_DIR])
+
 def drpc():
     """Syntax: [storm drpc]
 
@@ -308,8 +330,9 @@ def drpc():
     See Distributed RPC for more information.
     (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
     """
-    jvmopts = ["-Xmx768m", 
-        "-Dlogfile.name=drpc.log", 
+    cppaths = [CLUSTER_CONF_DIR]
+    jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
+        "-Dlogfile.name=drpc.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml"
     ]
     exec_storm_class(
@@ -371,7 +394,7 @@ def unknown_command(*args):
     print "Unknown command: [storm %s]" % ' '.join(sys.argv[1:])
     print_usage()
 
-COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui,
+COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "logviewer": logviewer,
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,

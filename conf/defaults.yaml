@@ -18,11 +18,21 @@ storm.zookeeper.retry.intervalceiling.millis: 30000
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
+storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
 storm.messaging.transport: "backtype.storm.messaging.zmq"
+storm.nimbus.retry.times: 5
+storm.nimbus.retry.interval.millis: 2000
+storm.nimbus.retry.intervalceiling.millis: 60000
+storm.auth.simple-white-list.users: []
+storm.auth.simple-acl.users: []
+storm.auth.simple-acl.users.commands: []
+storm.auth.simple-acl.admins: []
+
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
+nimbus.thrift.threads: 64
 nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60
@@ -38,11 +48,16 @@ nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 ui.port: 8080
 ui.childopts: "-Xmx768m"
 
+logviewer.port: 8000
+logviewer.childopts: "-Xmx128m"
+
+
 drpc.port: 3772
 drpc.worker.threads: 64
 drpc.queue.size: 128
 drpc.invocations.port: 3773
 drpc.request.timeout.secs: 600
+drpc.childopts: "-Xmx768m"
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null
@@ -82,8 +97,7 @@ topology.enable.message.timeouts: true
 topology.debug: false
 topology.optimize: true
 topology.workers: 1
-topology.acker.executors: 1
-topology.acker.tasks: null
+topology.acker.executors: null
 topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30

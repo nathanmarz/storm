@@ -55,8 +55,8 @@
                                     (not= alive-executors all-executors))
                                 (bad-slots alive-assigned (count all-executors) total-slots-to-use)
                                 [])]]
-      (.freeSlots cluster bad-slots)
-      (EvenScheduler/schedule-topologies-evenly (Topologies. {topology-id topology}) cluster))))
+      (.freeSlots cluster bad-slots))
+    (EvenScheduler/schedule-topologies-evenly (Topologies. {topology-id topology}) cluster)))
 
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (default-schedule topologies cluster))

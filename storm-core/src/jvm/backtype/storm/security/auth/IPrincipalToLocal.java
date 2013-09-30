@@ -4,7 +4,6 @@ import java.util.Map;
 import java.security.Principal;
 
 /**
- * Storm can be configured to launch worker processed as a given user.
  * Some transports need to map the Principal to a local user name.
  */
 public interface IPrincipalToLocal {

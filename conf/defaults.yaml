@@ -24,10 +24,6 @@ storm.nimbus.retry.times: 5
 storm.nimbus.retry.interval.millis: 2000
 storm.nimbus.retry.intervalceiling.millis: 60000
 storm.auth.simple-white-list.users: []
-storm.auth.simple-acl.users: []
-storm.auth.simple-acl.users.commands: []
-storm.auth.simple-acl.admins: []
-
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"

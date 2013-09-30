@@ -1,5 +1,6 @@
 (ns backtype.storm.daemon.drpc
   (:import [backtype.storm.security.auth ThriftServer ReqContext])
+  (:import [backtype.storm.security.auth.authorizer Audit])
   (:import [org.apache.thrift7 TException])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
@@ -27,11 +28,13 @@
   (@queues-atom function))
 
 (defn check-authorization! [aclHandler storm-conf operation]
-  (log-debug "DRPC check-authorization with handler: " aclHandler)
-  (if aclHandler
-    (if-not (.permit ^IAuthorizer aclHandler (ReqContext/context) operation storm-conf)
-          (throw (AuthorizationException. (str "DRPC request " operation " is not authorized")))
-          )))
+  (let [ctxt (ReqContext/context)]
+    (log-debug "DRPC check-authorization with handler: " aclHandler)
+    (Audit/log ctxt operation storm-conf)
+    (if aclHandler
+      (if-not (.permit aclHandler ctxt operation storm-conf)
+        (throw (AuthorizationException. (str "DRPC request " operation " is not authorized")))
+        ))))
 
 ;; TODO: change this to use TimeCacheMap
 (defn service-handler [conf]

@@ -4,6 +4,7 @@
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ReqContext])
+  (:import [backtype.storm.security.auth.authorizer Audit])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -736,15 +737,16 @@
 
 (defn check-authorization!
   ([nimbus storm-name storm-conf operation context]
-    (let [aclHandler (:authorization-handler nimbus)]
+    (let [aclHandler (:authorization-handler nimbus)
+          ctxt (or context (ReqContext/context))
+          conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
       (log-debug "check-authorization with handler: " aclHandler)
+      (Audit/log ctxt operation conf)
       (if aclHandler
-        (if-not (.permit aclHandler
-                  (or context (ReqContext/context))
-                  operation
-                  (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
-          (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
-          ))))
+          (if-not (.permit aclHandler ctxt operation conf)
+            (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
+          )))
+    )
   ([nimbus storm-name storm-conf operation]
     (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 

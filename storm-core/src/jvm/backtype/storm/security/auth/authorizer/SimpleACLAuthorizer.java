@@ -12,16 +12,11 @@ import backtype.storm.security.auth.ReqContext;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * An authorization implementation that simply checks if a user is allowed to perform specific
  * operations.
  */
 public class SimpleACLAuthorizer implements IAuthorizer {
-    private static final Logger LOG = LoggerFactory.getLogger(SimpleACLAuthorizer.class);
-
     protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
     protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
     protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo"));
@@ -52,18 +47,12 @@ public class SimpleACLAuthorizer implements IAuthorizer {
      * permit() method is invoked for each incoming Thrift request
      * @param context request context includes info about 
      * @param operation operation name
-     * @param topology_storm configuration of targeted topology 
+     * @param topology_conf configuration of targeted topology
      * @return true if the request is authorized, false if reject
      */
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
 
-        LOG.info("[req "+ context.requestID()+ "] Access "
-                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
-                 + (context.principal() == null? "" : (" principal:"+ context.principal()))
-                 +" op:"+operation
-                 + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
-       
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
 

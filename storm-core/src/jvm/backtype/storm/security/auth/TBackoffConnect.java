@@ -10,13 +10,13 @@ import backtype.storm.utils.Utils.BoundedExponentialBackoffRetry;
 
 public class TBackoffConnect {
     private static final Logger LOG = LoggerFactory.getLogger(TBackoffConnect.class);
-    private int _completedRetries = 0;
-    private int _retryTimes;
+    private int completedRetries = 0;
+    private int retryTimes;
     private BoundedExponentialBackoffRetry waitGrabber;
 
     public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling) {
 
-        _retryTimes = retryTimes;
+        this.retryTimes = retryTimes;
         waitGrabber = new BoundedExponentialBackoffRetry(retryInterval,
                                                          retryTimes,
                                                          retryIntervalCeiling);
@@ -41,19 +41,19 @@ public class TBackoffConnect {
             throw new RuntimeException(ex);
         }
         try {
-            int sleeptime = waitGrabber.getSleepTimeMs(_completedRetries, 0);
+            int sleeptime = waitGrabber.getSleepTimeMs(completedRetries, 0);
 
-            LOG.debug("Failed to connect. Retrying... (" + Integer.toString( _completedRetries) + ") in " + Integer.toString(sleeptime) + "ms");
+            LOG.debug("Failed to connect. Retrying... (" + Integer.toString( completedRetries) + ") in " + Integer.toString(sleeptime) + "ms");
 
             Thread.sleep(sleeptime);
         } catch (InterruptedException e) {
             LOG.info("Nimbus connection retry interrupted.");
         }
 
-        _completedRetries++;
+        completedRetries++;
     }
 
     private boolean canRetry() {
-        return (_completedRetries < _retryTimes);
+        return (completedRetries < retryTimes);
     }
 }

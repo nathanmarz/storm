@@ -17,13 +17,13 @@ import backtype.storm.security.auth.IPrincipalToLocal;
  * operations.
  */
 public class SimpleACLAuthorizer implements IAuthorizer {
-    protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
-    protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
-    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo"));
+    protected Set<String> userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
+    protected Set<String> supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
+    protected Set<String> topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo"));
 
-    protected Set<String> _admins;
-    protected Set<String> _supervisors;
-    protected IPrincipalToLocal _ptol;
+    protected Set<String> admins;
+    protected Set<String> supervisors;
+    protected IPrincipalToLocal ptol;
 
     /**
      * Invoked once immediately after construction
@@ -31,16 +31,16 @@ public class SimpleACLAuthorizer implements IAuthorizer {
      */
     @Override
     public void prepare(Map conf) {
-        _admins = new HashSet<String>();
-        _supervisors = new HashSet<String>();
+        admins = new HashSet<String>();
+        supervisors = new HashSet<String>();
 
         if (conf.containsKey(Config.NIMBUS_ADMINS)) {
-            _admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
+            admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
         }
         if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
-            _supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
+            supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
         }
-        _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
+        ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }
 
     /**
@@ -54,21 +54,21 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
 
         String principal = context.principal().getName();
-        String user = _ptol.toLocal(context.principal());
+        String user = ptol.toLocal(context.principal());
 
-        if (_admins.contains(principal) || _admins.contains(user)) {
+        if (admins.contains(principal) || admins.contains(user)) {
             return true;
         }
 
-        if (_supervisors.contains(principal) || _supervisors.contains(user)) {
-            return _supervisorCommands.contains(operation);
+        if (supervisors.contains(principal) || supervisors.contains(user)) {
+            return supervisorCommands.contains(operation);
         }
 
-        if (_userCommands.contains(operation)) {
+        if (userCommands.contains(operation)) {
             return true;
         }
 
-        if (_topoCommands.contains(operation)) {
+        if (topoCommands.contains(operation)) {
             Set topoUsers = new HashSet<String>();
             if (topology_conf.containsKey(Config.TOPOLOGY_USERS)) {
                 topoUsers.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_USERS));

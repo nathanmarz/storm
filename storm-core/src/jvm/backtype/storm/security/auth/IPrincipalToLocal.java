@@ -9,7 +9,7 @@ import java.security.Principal;
 public interface IPrincipalToLocal {
     /**
      * Invoked once immediately after construction
-     * @param conf Storm configuration 
+     * @param storm_conf Storm configuration
      */
     void prepare(Map storm_conf);
     

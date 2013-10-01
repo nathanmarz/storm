@@ -1,7 +1,7 @@
 package backtype.storm.clojure;
 
 import backtype.storm.generated.StreamInfo;
-import backtype.storm.spout.ShellSpout;
+import backtype.storm.multilang.ShellSpout;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;

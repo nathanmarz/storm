@@ -10,7 +10,7 @@
                  :archive "https://groups.google.com/group/storm-user"
                  :post "storm-user@googlegroups.com"}
   :dependencies [~@DEPENDENCIES]
-  :plugins [[~'lein-sub "0.2.1"]]  
+  :plugins [[~'lein-sub "0.2.1"],[no-man-is-an-island/lein-eclipse "2.0.0"]]
   :min-lein-version "2.0.0"
   :sub [~@MODULES]
   ))

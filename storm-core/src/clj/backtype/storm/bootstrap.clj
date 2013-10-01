@@ -12,10 +12,11 @@
                      RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
                      MutableObject MutableLong]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
-     (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
+     (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector]))
+     (import (quote [backtype.storm.multilang ShellSpout ShellBolt]))
      (import (quote [backtype.storm.tuple Tuple TupleImpl Fields MessageId]))
      (import (quote [backtype.storm.task IBolt IOutputCollector
-                     OutputCollector TopologyContext ShellBolt
+                     OutputCollector TopologyContext
                      GeneralTopologyContext WorkerTopologyContext]))
      (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
                      IBatchBolt BatchBoltExecutor]))

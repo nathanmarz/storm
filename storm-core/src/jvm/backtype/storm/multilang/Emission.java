@@ -1,0 +1,69 @@
+package backtype.storm.multilang;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Emission {
+	private String command;
+	private String id;
+	private List<String> anchors;
+	private String stream;
+	private long task;
+	private String msg;
+	private List<Object> tuple;
+	
+	public String getCommand() {
+		return command;
+	}
+	public void setCommand(String command) {
+		this.command = command;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public List<String> getAnchors() {
+		return anchors;
+	}
+	public void setAnchors(List<String> anchors) {
+		this.anchors = anchors;
+	}
+	public void addAnchor(String anchor) {
+		if (anchors == null) {
+			anchors = new ArrayList<String>();
+		}
+		this.anchors.add(anchor);
+	}
+	public String getStream() {
+		return stream;
+	}
+	public void setStream(String stream) {
+		this.stream = stream;
+	}
+	public long getTask() {
+		return task;
+	}
+	public void setTask(long task) {
+		this.task = task;
+	}
+	public String getMsg() {
+		return msg;
+	}
+	public void setMsg(String msg) {
+		this.msg = msg;
+	}
+	public List<Object> getTuple() {
+		return tuple;
+	}
+	public void setTuple(List<Object> tuple) {
+		this.tuple = tuple;
+	}
+	public void addTuple(Object tuple) {
+		if (this.tuple == null) {
+			this.tuple = new ArrayList<Object>();
+		}
+		this.tuple.add(tuple);
+	}
+}

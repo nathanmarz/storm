@@ -2,6 +2,7 @@
   (:use compojure.core)
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
+  (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [org.apache.commons.logging LogFactory])
   (:import [org.apache.commons.logging.impl Log4JLogger])
@@ -70,10 +71,14 @@
   (handler/site log-routes)
  )
 
-(defn start-logviewer [port]
-  (run-jetty logapp {:port port}))
+(defn start-logviewer! [conf]
+  (try
+    (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
+                       :join? false
+                       :configurator (fn [server]
+                                       (config-filter server logapp conf))})
+  (catch Exception ex
+    (log-error ex))))
 
 (defn -main []
-  (let [conf (read-storm-config)]
-    (start-logviewer (int (conf LOGVIEWER-PORT)))))
-
+  (start-logviewer! (read-storm-config)))

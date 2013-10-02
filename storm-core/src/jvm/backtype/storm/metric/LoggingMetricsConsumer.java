@@ -15,12 +15,12 @@ import backtype.storm.utils.Utils;
  * Listens for all metrics, dumps them to log
  *
  * To use, add this to your topology's configuration:
- *   conf.registerMetricsConsumer(backtype.storm.metrics.LoggingMetricsConsumer.class, 1);
+ *   conf.registerMetricsConsumer(backtype.storm.metric.LoggingMetricsConsumer.class, 1);
  *
  * Or edit the storm.yaml config file:
  *
  *   topology.metrics.consumer.register:
- *     - class: "backtype.storm.metrics.LoggingMetricsConsumer"
+ *     - class: "backtype.storm.metric.LoggingMetricsConsumer"
  *       parallelism.hint: 1
  *
  */

@@ -2,9 +2,11 @@
   (:use compojure.core)
   (:use [hiccup core page-helpers])
   (:use [clojure [string :only [join]]])
+  (:use [backtype.storm config log])
   (:use [backtype.storm.util :only [uuid defnk]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
 
@@ -131,4 +133,18 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
+
+(defn config-filter [server handler conf]
+  (if-let [filter-class (conf UI-FILTER)]
+    (let [filter (doto (org.mortbay.jetty.servlet.FilterHolder.)
+                   (.setName "springSecurityFilterChain")
+                   (.setClassName filter-class)
+                   (.setInitParameters (conf UI-FILTER-PARAMS)))
+          servlet (doto (org.mortbay.jetty.servlet.ServletHolder. (ring.util.servlet/servlet handler))
+                    (.setName "default"))
+          context (doto (org.mortbay.jetty.servlet.Context. server "/")
+                    (.addFilter filter "/*" 0)
+                    (.addServlet servlet "/"))]
+      (log-message "configuring filter " filter-class)
+      (.addHandler server context))))
 

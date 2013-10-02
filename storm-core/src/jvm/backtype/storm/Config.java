@@ -307,6 +307,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * A class implementing javax.servlet.Filter for authenticating/filtering UI requests
+     */
+    public static final String UI_FILTER = "ui.filter";
+    public static final Object UI_FILTER_SCHEMA = String.class;
+
+    /**
+     * Initialization parameters for the javax.servlet.Filter
+     */
+    public static final String UI_FILTER_PARAMS = "ui.filter.params";
+    public static final Object UI_FILTER_PARAMS_SCHEMA = Map.class;
+
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static final String DRPC_SERVERS = "drpc.servers";

@@ -1,62 +1,87 @@
 #!/bin/bash
 function quit {
-    exit 1
+  exit 1
 }
-trap quit 1 2 3 15  #Ctrl+C exits.
+trap quit 1 2 3 15  # Ctrl+C exits.
+
+function banner {
+  echo ; echo "=========================" ; echo "==" ; echo "== $1" ; echo "==" ; echo
+}
 
 RELEASE=`cat VERSION`
-LEIN=`which lein2 || which lein` 
+LEIN=`which lein2 || which lein`
 export LEIN_ROOT=1
 
-echo Making release $RELEASE
+# ==========================================================================
+banner "Making release $RELEASE"
 
-DIR=`pwd`/_release/storm-$RELEASE
+CODE_ROOT=`pwd`
+DIR="$CODE_ROOT/_release/storm-$RELEASE"
+ZIPFILE="$CODE_ROOT/storm-$RELEASE.zip"
 
-rm -rf _release
-rm -f *.zip 
+rm -rf "$DIR"
+rm -f  "$ZIPFILE"
 $LEIN pom || exit 1
-mkdir -p $DIR/lib
+mkdir -p "$DIR/lib"
 
+# ==========================================================================
+banner "Building submodules"
 
-sh bin/build_modules.sh
+/bin/bash "$CODE_ROOT/bin/build_modules.sh" || exit 1
+
+# ==========================================================================
+banner "Gathering dependencies"
 
 for module in $(cat MODULES)
 do
-	cd $module
-	mvn dependency:copy-dependencies || exit 1
-	cp -f target/dependency/*.jar $DIR/lib/
-	cp -f target/*.jar $DIR/
-	cd ..
+  cd "$CODE_ROOT/$module"
+  mvn dependency:copy-dependencies || exit 1
+  cp -f target/dependency/*.jar "$DIR/lib/"
+  cp -f target/*.jar "$DIR/"
+  cd "$CODE_ROOT"
 done
 
-cd _release/storm-$RELEASE
-for i in *.jar
+# The netty libs have storm itself as a dependency; remove any jar in $DIR/lib/ that is in $DIR/
+cd "$DIR"
+for base_jar in *.jar
 do
-	rm -f lib/$i
-done 
-cd ../..
+  rm -f lib/$base_jar
+done
+cd "$CODE_ROOT"
 
-cp CHANGELOG.md $DIR/
+# ==========================================================================
+banner "Copying support files"
 
-echo $RELEASE > $DIR/RELEASE
+cp -v CHANGELOG.md "$DIR/"
 
-mkdir -p $DIR/logback
-mkdir -p $DIR/logs
-cp -R logback/cluster.xml $DIR/logback/cluster.xml
+echo $RELEASE > "$DIR/RELEASE"
 
-mkdir $DIR/conf
-cp conf/storm.yaml.example $DIR/conf/storm.yaml
+mkdir -p "$DIR/logback"
+mkdir -p "$DIR/logs"
+cp -vR logback/cluster.xml "$DIR/logback/cluster.xml"
 
-cp -R storm-core/src/ui/public $DIR/
+mkdir "$DIR/conf"
+cp -v conf/storm.yaml.example "$DIR/conf/storm.yaml"
 
-cp -R bin $DIR/
+cp -vR storm-core/src/ui/public "$DIR/"
 
-cp README.markdown $DIR/
-cp LICENSE.html $DIR/
+cp -vRp bin "$DIR/"
+rm "$DIR"/bin/build_{release,modules}.sh
 
-cd _release
-zip -r storm-$RELEASE.zip *
-cd ..
-mv _release/storm-*.zip .
-rm -rf _release
+cp -v README.markdown "$DIR/"
+cp -v LICENSE.html "$DIR/"
 
+# ==========================================================================
+banner "Building Zip File in '$ZIPFILE'"
+
+cd "$CODE_ROOT/_release"
+zip -r "$ZIPFILE" *
+cd "$CODE_ROOT"
+echo
+
+if [ "$STORM_KEEP_RELEASE" == "true" ] ; then
+  echo "keeping _release dir '$DIR'"
+else
+  echo "removing _release dir"
+  rm -rf "$DIR"
+fi

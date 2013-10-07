@@ -1,10 +1,12 @@
-package backtype.storm.multilang;
+package backtype.storm.spout;
 
 import backtype.storm.generated.ShellComponent;
-import backtype.storm.spout.ISpout;
-import backtype.storm.spout.SpoutOutputCollector;
+import backtype.storm.multilang.Emission;
+import backtype.storm.multilang.ISerializer;
+import backtype.storm.multilang.JsonSerializer;
+import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.multilang.ShellProcess;
+import backtype.storm.utils.ShellProcess;
 import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.List;

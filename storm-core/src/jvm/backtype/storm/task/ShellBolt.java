@@ -1,11 +1,12 @@
-package backtype.storm.multilang;
+package backtype.storm.task;
 
 import backtype.storm.generated.ShellComponent;
-import backtype.storm.task.IBolt;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.multilang.ShellProcess;
+import backtype.storm.utils.ShellProcess;
+import backtype.storm.multilang.Emission;
+import backtype.storm.multilang.ISerializer;
+import backtype.storm.multilang.Immission;
+import backtype.storm.multilang.JsonSerializer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;

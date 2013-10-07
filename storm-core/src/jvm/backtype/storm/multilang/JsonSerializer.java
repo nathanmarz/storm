@@ -18,6 +18,9 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 
+/**
+ * JsonSerializer implements the JSON multilang protocol.
+ */
 public class JsonSerializer implements ISerializer {
 	private DataOutputStream processIn;
     private BufferedReader processOut;

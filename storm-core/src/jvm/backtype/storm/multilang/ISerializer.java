@@ -9,6 +9,11 @@ import java.util.Map;
 
 import backtype.storm.task.TopologyContext;
 
+/**
+ * The ISerializer interface describes the methods that an object should implement
+ * to provide serialization and de-serialization capabilities to non-JVM
+ * language components.
+ */
 public interface ISerializer extends Serializable {
 	void initialize (OutputStream processIn, InputStream processOut);
 	Number connect (Map conf, TopologyContext context) throws IOException, NoOutputException;

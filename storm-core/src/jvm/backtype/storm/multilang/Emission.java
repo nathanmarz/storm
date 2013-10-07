@@ -3,6 +3,16 @@ package backtype.storm.multilang;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Emission is an object that represents the data sent to a shell component
+ * from a process that implements a multi-language protocol. It is the union
+ * of all data types that a component can send to Storm.
+ *
+ * <p> Emissions are objects received from the ISerializer interface, after
+ * the serializer has deserialized the data from the underlying wire protocol.
+ * The Emission class allows for a decoupling between the serialized
+ * representation of the data and the data itself.</p>
+ */
 public class Emission {
 	private String command;
 	private String id;
@@ -11,7 +21,7 @@ public class Emission {
 	private long task;
 	private String msg;
 	private List<Object> tuple;
-	
+
 	public String getCommand() {
 		return command;
 	}

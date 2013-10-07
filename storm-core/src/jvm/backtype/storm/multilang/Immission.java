@@ -2,13 +2,23 @@ package backtype.storm.multilang;
 
 import java.util.List;
 
+/**
+ * Immission is an object that represents the data sent from a shell component
+ * to a process that implements a multi-language protocol. It is the union
+ * of all data types that a component can receive from Storm.
+ *
+ * <p> Immissions are objects sent to the ISerializer interface, for
+ * serialization according to the wire protocol implemented by the serializer.
+ * The Immission class allows for a decoupling between the serialized
+ * representation of the data and the data itself.</p>
+ */
 public class Immission {
 	private String id;
 	private String comp;
 	private String stream;
 	private long task;
 	private List<Object> tuple;
-	
+
 	public String getId() {
 		return id;
 	}

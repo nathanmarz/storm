@@ -27,7 +27,8 @@
                  [com.google.guava/guava "13.0"]
                  [ch.qos.logback/logback-classic "1.0.6"]
                  [org.slf4j/log4j-over-slf4j "1.6.6"]
-                 [com.turn/ttorrent "1.2"]
+                 [com.turn/ttorrent "1.2"
+                  :exclusions[org.slf4j/slf4j-log4j12]]
                  ]
 
   :source-paths ["src/clj"]

@@ -267,7 +267,7 @@
         executor13 (ExecutorDetails. (int 1013) (int 1013))
         topology1 (TopologyDetails. "topology1" {TOPOLOGY-NAME "topology-name-1"}
                                     (StormTopology.)
-                                    4
+                                    6
                                     {executor1 "spout1"
                                      executor2 "bolt1"
                                      executor3 "bolt2"

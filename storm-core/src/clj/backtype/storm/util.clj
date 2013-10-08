@@ -611,16 +611,15 @@
     (Collections/shuffle state rand))
   (.get state (.get curr)))
 
-;;'(1 2 3 4) '(5 6) '( 7 8 9 10) '() '(11) --> (1 5 7 11 2 6 8 3 9 4 10)
+; this can be rewritten to be tail recursive
 (defn interleave-all [& colls]
   (if (empty? colls)
     []
-    (loop [result [] colls colls]
-      (let [colls (filter (complement empty?) colls)]
-       (if (empty? colls)
-         (apply concat result)
-         (recur (conj result (map first colls)) (map rest colls))
-       )))))
+    (let [colls (filter (complement empty?) colls)
+          my-elems (map first colls)
+          rest-elems (apply interleave-all (map rest colls))]
+      (concat my-elems rest-elems)
+      )))
 
 (defn update [m k afn]
   (assoc m k (afn (get m k))))

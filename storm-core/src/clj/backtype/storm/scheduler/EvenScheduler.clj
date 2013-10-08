@@ -8,25 +8,25 @@
 
 (defn sort-slots
   "used-slots, {supervisorid count(used-slots)}
-   all-slots, ((supervisorid slot)......)"
-  [all-slots used-slots]
-  (loop [result [] all-slots (coll-to-map all-slots) used-slots used-slots]
-    (let [all-slots (filter-val (complement empty?) all-slots)
+   available-slots, ((supervisorid slot)......)"
+  [available-slots used-slots]
+  (loop [result [] available-slots (coll-to-map available-slots) used-slots used-slots]
+    (let [available-slots (filter-val (complement empty?) available-slots)
           sorted-used (->> used-slots
                            (sort-by val)
                            (into {}))]    
-      (if (empty? all-slots)
+      (if (empty? available-slots)
         result
-        (let [slot (loop [all-slots all-slots sorted sorted-used]
-                     (let [idle-supervisor (key (first sorted))
-                           ports (get all-slots idle-supervisor nil)]
+        (let [slot (loop [available-slots available-slots sorted-used sorted-used]
+                     (let [idle-supervisor (key (first sorted-used))
+                           ports (get available-slots idle-supervisor nil)]
 		                 (if ports
 		                   [idle-supervisor (first ports)]
-		                   (recur all-slots (dissoc sorted idle-supervisor)))))
+		                   (recur available-slots (dissoc sorted-used idle-supervisor)))))
 		          sv (first slot)
 		          inc-used (assoc sorted-used sv (inc (sorted-used sv)))
-		          update-all (assoc all-slots sv (rest (all-slots sv)))]
-          (recur (conj result slot) update-all inc-used))
+		          update-available (assoc available-slots sv (rest (available-slots sv)))]
+          (recur (conj result slot) update-available inc-used))
         ))))
 
 (defn get-alive-assigned-node+port->executors [cluster topology-id]

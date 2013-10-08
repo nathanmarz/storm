@@ -3,10 +3,9 @@ package backtype.storm.task;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.ShellProcess;
-import backtype.storm.multilang.Emission;
-import backtype.storm.multilang.ISerializer;
-import backtype.storm.multilang.Immission;
-import backtype.storm.multilang.JsonSerializer;
+import backtype.storm.multilang.BoltMsg;
+import backtype.storm.multilang.ShellMsg;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,23 +61,17 @@ public class ShellBolt implements IBolt {
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
-        _process = new ShellProcess(new JsonSerializer(), _command);
     }
 
     public ShellBolt(String... command) {
         _command = command;
-        _process = new ShellProcess(new JsonSerializer(), _command);
-    }
-
-    public ShellBolt(ISerializer serializer, String... command) {
-        _command = command;
-        _process = new ShellProcess(serializer, _command);
     }
 
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
         _rand = new Random();
         _collector = collector;
+        _process = new ShellProcess(_command);
 
         //subprocesses must send their pid first thing
         Number subpid = _process.launch(stormConf, context);
@@ -89,20 +82,20 @@ public class ShellBolt implements IBolt {
             public void run() {
                 while (_running) {
                     try {
-                        Emission emission = _process.readEmission();
+                        ShellMsg shellMsg = _process.readShellMsg();
 
-                        String command = emission.getCommand();
+                        String command = shellMsg.getCommand();
                         if(command.equals("ack")) {
-                            handleAck(emission.getId());
+                            handleAck(shellMsg.getId());
                         } else if (command.equals("fail")) {
-                            handleFail(emission.getId());
+                            handleFail(shellMsg.getId());
                         } else if (command.equals("error")) {
-                            handleError(emission.getMsg());
+                            handleError(shellMsg.getMsg());
                         } else if (command.equals("log")) {
-                            String msg = emission.getMsg();
+                            String msg = shellMsg.getMsg();
                             LOG.info("Shell msg: " + msg);
                         } else if (command.equals("emit")) {
-                            handleEmit(emission);
+                            handleEmit(shellMsg);
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
@@ -118,12 +111,13 @@ public class ShellBolt implements IBolt {
             public void run() {
                 while (_running) {
                     try {
-                    	// FIXME: This can either be TaskIds or Immissions
                         Object write = _pendingWrites.poll(1, SECONDS);
-                        if (write instanceof Immission) {
-                            _process.writeImmission((Immission)write);
+                        if (write instanceof BoltMsg) {
+                            _process.writeBoltMsg((BoltMsg)write);
                         } else if (write instanceof List<?>) {
-
+                            _process.writeTaskIds((List<Integer>)write);
+                        } else {
+                            throw new RuntimeException("Cannot write object to bolt:\n" + write.toString());
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
@@ -145,14 +139,14 @@ public class ShellBolt implements IBolt {
         String genId = Long.toString(_rand.nextLong());
         _inputs.put(genId, input);
         try {
-            Immission immission = new Immission();
-            immission.setId(genId);
-            immission.setComp(input.getSourceComponent());
-            immission.setStream(input.getSourceStreamId());
-            immission.setTask(input.getSourceTask());
-            immission.setTuple(input.getValues());
+            BoltMsg boltMsg = new BoltMsg();
+            boltMsg.setId(genId);
+            boltMsg.setComp(input.getSourceComponent());
+            boltMsg.setStream(input.getSourceStreamId());
+            boltMsg.setTask(input.getSourceTask());
+            boltMsg.setTuple(input.getValues());
 
-            _pendingWrites.put(immission);
+            _pendingWrites.put(boltMsg);
         } catch(InterruptedException e) {
             throw new RuntimeException("Error during multilang processing", e);
         }
@@ -184,9 +178,9 @@ public class ShellBolt implements IBolt {
         _collector.reportError(new Exception("Shell Process Exception: " + msg));
     }
 
-    private void handleEmit(Emission emission) throws InterruptedException {
+    private void handleEmit(ShellMsg shellMsg) throws InterruptedException {
     	List<Tuple> anchors = new ArrayList<Tuple>();
-    	for (String anchor : emission.getAnchors()) {
+    	for (String anchor : shellMsg.getAnchors()) {
 	    	Tuple t = _inputs.get(anchor);
 	        if (t == null) {
 	            throw new RuntimeException("Anchored onto " + anchor + " after ack/fail");
@@ -194,11 +188,12 @@ public class ShellBolt implements IBolt {
 	        anchors.add(t);
     	}
 
-        if(emission.getTask() == 0) {
-            List<Integer> outtasks = _collector.emit(emission.getStream(), anchors, emission.getTuple());
+        if(shellMsg.getTask() == 0) {
+            List<Integer> outtasks = _collector.emit(shellMsg.getStream(), anchors, shellMsg.getTuple());
             _pendingWrites.put(outtasks);
         } else {
-            _collector.emitDirect((int)emission.getTask(), emission.getStream(), anchors, emission.getTuple());
+            _collector.emitDirect((int) shellMsg.getTask(),
+                    shellMsg.getStream(), anchors, shellMsg.getTuple());
         }
     }
 

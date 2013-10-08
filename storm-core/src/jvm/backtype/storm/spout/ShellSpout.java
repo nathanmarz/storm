@@ -1,13 +1,10 @@
 package backtype.storm.spout;
 
 import backtype.storm.generated.ShellComponent;
-import backtype.storm.multilang.Emission;
-import backtype.storm.multilang.ISerializer;
-import backtype.storm.multilang.JsonSerializer;
+import backtype.storm.multilang.ShellMsg;
 import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
-import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
@@ -25,22 +22,16 @@ public class ShellSpout implements ISpout {
 
     public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
-        _process = new ShellProcess(new JsonSerializer(), _command);
     }
 
     public ShellSpout(String... command) {
         _command = command;
-        _process = new ShellProcess(new JsonSerializer(), _command);
-    }
-
-    public ShellSpout(ISerializer serializer, String... command) {
-        _command = command;
-        _process = new ShellProcess(serializer, _command);
     }
 
     public void open(Map stormConf, TopologyContext context,
                      SpoutOutputCollector collector) {
         _collector = collector;
+        _process = new ShellProcess(_command);
 
         Number subpid = _process.launch(stormConf, context);
         LOG.info("Launched subprocess with pid " + subpid);
@@ -82,23 +73,24 @@ public class ShellSpout implements ISpout {
             _process.writeSpoutMsg(spoutMsg);
 
             while (true) {
-                Emission emission = _process.readEmission();
-                String command = emission.getCommand();
+                ShellMsg shellMsg = _process.readShellMsg();
+                String command = shellMsg.getCommand();
                 if (command.equals("sync")) {
                     return;
                 } else if (command.equals("log")) {
-                    String msg = emission.getMsg();
+                    String msg = shellMsg.getMsg();
                     LOG.info("Shell msg: " + msg);
                 } else if (command.equals("emit")) {
-                    String stream = emission.getStream();
-                    Long task = emission.getTask();
-                    List<Object> tuple = emission.getTuple();
-                    Object messageId = emission.getId();
+                    String stream = shellMsg.getStream();
+                    Long task = shellMsg.getTask();
+                    List<Object> tuple = shellMsg.getTuple();
+                    Object messageId = shellMsg.getId();
                     if (task == 0) {
                         List<Integer> outtasks = _collector.emit(stream, tuple, messageId);
                         _process.writeTaskIds(outtasks);
                     } else {
-                        _collector.emitDirect((int)task.longValue(), stream, tuple, messageId);
+                        _collector.emitDirect((int) task.longValue(), stream,
+                                tuple, messageId);
                     }
                 }
             }

@@ -19,6 +19,7 @@ storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.messaging.transport: "backtype.storm.messaging.zmq"
+storm.multilang.serializer: "backtype.storm.multilang.JsonSerializer"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"

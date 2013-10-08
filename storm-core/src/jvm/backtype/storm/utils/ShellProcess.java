@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.List;
 
@@ -33,7 +34,7 @@ public class ShellProcess {
         _subprocess = builder.start();
 
         processIn = new DataOutputStream(_subprocess.getOutputStream());
-        processOut = new BufferedReader(new InputStreamReader(_subprocess.getInputStream()));
+        processOut = new BufferedReader(new InputStreamReader(_subprocess.getInputStream(), Charset.forName("UTF-8")));
         processErrorStream = _subprocess.getErrorStream();
 
         JSONObject setupInfo = new JSONObject();

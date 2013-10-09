@@ -89,6 +89,15 @@ public class JsonSerializer implements ISerializer {
         Object taskObj = msg.get("task");
         if (taskObj != null) {
             shellMsg.setTask((Long) taskObj);
+        } else {
+            shellMsg.setTask(0);
+        }
+        
+        Object need_task_ids = msg.get("need_task_ids");
+        if (need_task_ids == null || ((Boolean) need_task_ids).booleanValue()) {
+            shellMsg.setNeedTaskIds(true);
+        } else {
+            shellMsg.setNeedTaskIds(false);
         }
 
         shellMsg.setTuple((List) msg.get("tuple"));

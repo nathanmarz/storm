@@ -190,7 +190,9 @@ public class ShellBolt implements IBolt {
 
         if(shellMsg.getTask() == 0) {
             List<Integer> outtasks = _collector.emit(shellMsg.getStream(), anchors, shellMsg.getTuple());
-            _pendingWrites.put(outtasks);
+            if (shellMsg.areTaskIdsNeeded()) {
+                _pendingWrites.put(outtasks);
+            }
         } else {
             _collector.emitDirect((int) shellMsg.getTask(),
                     shellMsg.getStream(), anchors, shellMsg.getTuple());

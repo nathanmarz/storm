@@ -23,6 +23,7 @@ public class ShellMsg {
     private long task;
     private String msg;
     private List<Object> tuple;
+    private boolean needTaskIds;
 
     public String getCommand() {
         return command;
@@ -92,5 +93,13 @@ public class ShellMsg {
             this.tuple = new ArrayList<Object>();
         }
         this.tuple.add(tuple);
+    }
+
+    public boolean areTaskIdsNeeded() {
+        return needTaskIds;
+    }
+
+    public void setNeedTaskIds(boolean needTaskIds) {
+        this.needTaskIds = needTaskIds;
     }
 }

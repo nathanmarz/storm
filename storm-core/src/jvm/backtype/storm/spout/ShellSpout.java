@@ -87,7 +87,9 @@ public class ShellSpout implements ISpout {
                     Object messageId = shellMsg.getId();
                     if (task == 0) {
                         List<Integer> outtasks = _collector.emit(stream, tuple, messageId);
-                        _process.writeTaskIds(outtasks);
+                        if (shellMsg.areTaskIdsNeeded()) {
+                            _process.writeTaskIds(outtasks);
+                        }
                     } else {
                         _collector.emitDirect((int) task.longValue(), stream,
                                 tuple, messageId);

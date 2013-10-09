@@ -81,6 +81,12 @@ public class JsonSerializer implements ISerializer {
         String command = (String) msg.get("command");
         shellMsg.setCommand(command);
 
+        String id = (String) msg.get("id");
+        shellMsg.setId(id);
+
+        String log = (String) msg.get("msg");
+        shellMsg.setMsg(log);
+
         String stream = (String) msg.get("stream");
         if (stream == null)
             stream = Utils.DEFAULT_STREAM_ID;
@@ -92,7 +98,7 @@ public class JsonSerializer implements ISerializer {
         } else {
             shellMsg.setTask(0);
         }
-        
+
         Object need_task_ids = msg.get("need_task_ids");
         if (need_task_ids == null || ((Boolean) need_task_ids).booleanValue()) {
             shellMsg.setNeedTaskIds(true);

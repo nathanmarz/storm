@@ -164,6 +164,14 @@
     (rmr t)
     ))
 
+(def TEST-TIMEOUT-MS 5000)
+
+(defmacro while-timeout [timeout-ms condition & body]
+  `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
+    (while ~condition
+      (when (> (System/currentTimeMillis) end-time#)
+        (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms)"))))
+      ~@body)))
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
@@ -176,7 +184,7 @@
                   supervisors
                   workers) ; because a worker may already be dead
         ]
-    (while (not (every? (memfn waiting?) daemons))      
+    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))
       (Thread/sleep 10)
 ;;      (doseq [d daemons]
 ;;        (if-not ((memfn waiting?) d)
@@ -443,11 +451,11 @@
     
     
     (let [storm-id (common/get-storm-id state storm-name)]
-      (while (not (every? exhausted? (spout-objects spouts)))
+      (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while (.assignment-info state storm-id nil)
+      (while-timeout TEST-TIMEOUT-MS (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -554,7 +562,7 @@
                            (not= (global-amt track-id "transferred")                                 
                                  (global-amt track-id "processed"))
                            ))]
-        (while (waiting?)
+        (while-timeout TEST-TIMEOUT-MS (waiting?)
           ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
           ;; (println "Processed: " (global-amt track-id "processed"))
           ;; (println "Transferred: " (global-amt track-id "transferred"))

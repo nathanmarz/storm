@@ -401,10 +401,10 @@
       ))
 
 (defn jlp [stormroot conf]
-  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
+  (let [resource-root (str stormroot File/pathSeparator RESOURCES-SUBDIR)
         os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
         arch (System/getProperty "os.arch")
-        arch-resource-root (str resource-root "/" os "-" arch)]
+        arch-resource-root (str resource-root File/pathSeparator os "-" arch)]
     (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
 
 (defmethod launch-worker

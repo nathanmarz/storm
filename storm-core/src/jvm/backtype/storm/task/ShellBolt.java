@@ -116,8 +116,8 @@ public class ShellBolt implements IBolt {
                             _process.writeBoltMsg((BoltMsg)write);
                         } else if (write instanceof List<?>) {
                             _process.writeTaskIds((List<Integer>)write);
-                        } else {
-                            throw new RuntimeException("Cannot write object to bolt:\n" + write.toString());
+                        } else if (write != null) {
+                            throw new RuntimeException("Unknown class type to write: " + write.getClass().getName());
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {

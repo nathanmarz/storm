@@ -17,7 +17,7 @@
      (import (quote [backtype.storm.task IBolt IOutputCollector
                      OutputCollector TopologyContext ShellBolt
                      GeneralTopologyContext WorkerTopologyContext]))
-     (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs
+     (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
                      IBatchBolt BatchBoltExecutor]))
      (import (quote [backtype.storm.drpc KeyedFairBolt]))
      (import (quote [backtype.storm.daemon Shutdownable]))

@@ -3,11 +3,15 @@
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
   (:use [ring.adapter.jetty :only [run-jetty]])
+  (:import [org.slf4j LoggerFactory])
+  (:import [ch.qos.logback.classic Logger])
   (:import [org.apache.commons.logging LogFactory])
   (:import [org.apache.commons.logging.impl Log4JLogger])
+  (:import [ch.qos.logback.core FileAppender])
   (:import [org.apache.log4j Level])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler])
+            [compojure.handler :as handler]
+            [clojure.string :as string])
   (:gen-class))
 
 (defn tail-file [path tail]
@@ -25,8 +29,17 @@
       (.toString output))
     ))
 
+(defn log-root-dir
+  []
+  (let [appender (first (iterator-seq (.iteratorForAppenders (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME))))]
+    (if (and appender (instance? FileAppender appender))
+      (string/join
+       "/" (butlast
+            (string/split (.getFile appender) #"/")))
+      (str (System/getProperty "storm.home") "/logs/"))))
+
 (defn log-page [file tail grep]
-  (let [path (str (System/getProperty "storm.home") "/logs/" file)
+  (let [path (str (log-root-dir) "/" file)
         tail (if tail
                (min 10485760 (Integer/parseInt tail))
                10240)

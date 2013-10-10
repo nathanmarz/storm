@@ -9,6 +9,7 @@
   (:import [org.apache.commons.logging.impl Log4JLogger])
   (:import [ch.qos.logback.core FileAppender])
   (:import [org.apache.log4j Level])
+  (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [clojure.string :as string])
@@ -33,13 +34,11 @@
   []
   (let [appender (first (iterator-seq (.iteratorForAppenders (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME))))]
     (if (and appender (instance? FileAppender appender))
-      (string/join
-       "/" (butlast
-            (string/split (.getFile appender) #"/")))
-      (str (System/getProperty "storm.home") "/logs/"))))
+      (.getParent (File. (.getFile appender)))
+      (.getCanonicalPath (File. (System/getProperty "storm.home") "logs")))))
 
 (defn log-page [file tail grep]
-  (let [path (str (log-root-dir) "/" file)
+  (let [path (.getCanonicalPath (File. (log-root-dir) file))
         tail (if tail
                (min 10485760 (Integer/parseInt tail))
                10240)

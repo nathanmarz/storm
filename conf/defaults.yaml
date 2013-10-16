@@ -40,6 +40,7 @@ ui.childopts: "-Xmx768m"
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
+logviewer.appender.name: "A1"
 
 
 drpc.port: 3772

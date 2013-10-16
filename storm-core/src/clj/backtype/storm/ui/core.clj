@@ -803,7 +803,7 @@
         ))))
 
 (def app
-  (-> #'main-routes
+  (-> main-routes
       (wrap-reload '[backtype.storm.ui.core])
       catch-errors))
 

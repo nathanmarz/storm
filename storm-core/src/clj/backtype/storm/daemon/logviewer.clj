@@ -92,8 +92,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (fn [req]
     (app (assoc req :log-root log-root))))
 
-(defn start-logviewer [port conf]
-  (run-jetty (conf-middleware logapp conf) {:port port}))
+(defn start-logviewer [port log-root]
+  (run-jetty (conf-middleware logapp log-root) {:port port}))
 
 (defn -main []
   (let [conf (read-storm-config)

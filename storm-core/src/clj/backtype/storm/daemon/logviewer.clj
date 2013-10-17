@@ -38,10 +38,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (let [appender (.getAppender (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME) appender-name)]
     (if (and appender-name appender (instance? FileAppender appender))
       (.getParent (File. (.getFile appender)))
-      (do
-        (throw
-         (Error. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm.yaml and cluster.xml agree."))
-        (System/exit 1)))))
+      (throw
+       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
 
 (defn log-page [file tail grep root-dir]
   (let [path (.getCanonicalPath (File. root-dir file))

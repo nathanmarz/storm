@@ -136,17 +136,44 @@ public class Utils {
     public static Map readDefaultConfig() {
         return findAndReadConfigFile("defaults.yaml", true);
     }
-    
+
     public static Map readCommandLineOpts() {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
-        if(commandOptions != null) {
+        if (commandOptions != null) {
             commandOptions = commandOptions.replaceAll("%%%%", " ");
+
             String[] configs = commandOptions.split(",");
-            for (String config : configs) {
-                String[] options = config.split("=");
-                if (options.length == 2) {
+            String lastArgKey = null;
+            for (int i = 0; i < configs.length; i++) {
+                if (configs[i].contains("=")) {
+                    // we have a key value pair -> split it
+                    String[] options = configs[i].split("=");
                     ret.put(options[0], options[1]);
+                    lastArgKey = options[0];
+                } else {
+                    // list value, please add to previous full one
+                    ret.put(lastArgKey, ret.get(lastArgKey) + "," + configs[i]);
+                }
+            }
+
+            // If we have a list argument make it an actual list of the right type
+            for (Object key : ret.keySet()) {
+                String[] options = ret.get(key).toString().split(",");
+                if (options.length > 1) {
+                    // make a list out of it otherwise leave it as is
+                    if (StringUtils.isNumeric(options[0])) {
+                        ArrayList nums = new ArrayList(options.length);
+                        for(String num : options){
+                            nums.add(Long.parseLong(num));
+                        }
+                        ret.put(key, nums);
+                    } else {
+                        // fix type for single value numeric params
+                        if (StringUtils.isNumeric(options[0])) {
+                            ret.put(key, Long.parseLong(options[0]));
+                        }
+                    }
                 }
             }
         }

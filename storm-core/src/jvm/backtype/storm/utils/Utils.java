@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -169,10 +170,8 @@ public class Utils {
                         }
                         ret.put(key, nums);
                     } else {
-                        // fix type for single value numeric params
-                        if (StringUtils.isNumeric(options[0])) {
-                            ret.put(key, Long.parseLong(options[0]));
-                        }
+                        // fix type for string values
+                        ret.put(key, Arrays.asList(options));
                     }
                 }
             }

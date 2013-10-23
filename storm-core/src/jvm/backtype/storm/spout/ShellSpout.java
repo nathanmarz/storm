@@ -88,6 +88,10 @@ public class ShellSpout implements ISpout {
                 } else if (command.equals("log")) {
                     String msg = (String) action.get("msg");
                     LOG.info("Shell msg: " + msg);
+                } else if (command.equals("error")) {
+                    String msg = (String) action.get("msg");
+                    _collector.reportError(new Exception("Shell Process Exception: " + msg));
+                    return;
                 } else if (command.equals("emit")) {
                     String stream = (String) action.get("stream");
                     if (stream == null) stream = Utils.DEFAULT_STREAM_ID;

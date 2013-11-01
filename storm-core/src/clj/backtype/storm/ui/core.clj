@@ -13,6 +13,7 @@
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
   (:import [java.io File])
+  (:import [org.mortbay.jetty.servlet Context])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -807,7 +808,12 @@
       (wrap-reload '[backtype.storm.ui.core])
       catch-errors))
 
-(defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
-                                       :join? false}))
+(defn start-server! []
+  (try
+    (run-jetty app {:port (*STORM-CONF* UI-PORT)
+                    :join? false
+                    :configurator (fn [server] (config-filter server app *STORM-CONF*))})
+   (catch Exception ex
+     (log-error ex))))
 
 (defn -main [] (start-server!))

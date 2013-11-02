@@ -3,8 +3,10 @@
   (:use [backtype.storm bootstrap])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
-  (:import [backtype.storm.messaging TransportFactory])
-  (:import [backtype.storm.messaging IContext IConnection])
+  (:import [backtype.storm.messaging IContext IConnection TransportFactory])
+  (:import [backtype.storm.task TopologyContext])
+  (:import [backtype.storm.topology IWorkerHook])
+  (:import [backtype.storm.utils Utils])
   (:gen-class))
 
 (bootstrap)
@@ -150,6 +152,7 @@
                        )))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
+  "Returns a map of data required to starting a worker"
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
@@ -321,8 +324,19 @@
     (.shutdownNow (get dr WorkerTopologyContext/SHARED_EXECUTOR))
     (log-message "Shut down default resources")))
 
+(defn start-worker-hooks [worker]
+  (let [topology (:topology worker)
+        hooks (.get_worker_hooks topology)
+        topo-conf (:conf worker)
+        topo-context (worker-context worker)
+        task-ids (:task-ids worker)]
+    (dofor [hook hooks]
+      (let [hook-bytes (Utils/toByteArray hook)
+            deser-hook (Utils/deserialize hook-bytes)]
+        (.start deser-hook topo-conf topo-context task-ids)))))
+
 ;; TODO: should worker even take the storm-id as input? this should be
-;; deducable from cluster state (by searching through assignments)
+;; deducible from cluster state (by searching through assignments)
 ;; what about if there's inconsistency in assignments? -> but nimbus
 ;; should guarantee this consistency
 ;; TODO: consider doing worker heartbeating rather than task heartbeating to reduce the load on zookeeper
@@ -356,7 +370,10 @@
 
         _ (refresh-connections nil)
         _ (refresh-storm-active worker nil)
- 
+
+        ;; With the worker now activated (if the topology is active), call the worker hooks
+        _ (start-worker-hooks worker)
+
         _ (reset! executors (dofor [e (:executors worker)] (executor/mk-executor worker e)))
         receive-thread-shutdown (launch-receive-thread worker)
         

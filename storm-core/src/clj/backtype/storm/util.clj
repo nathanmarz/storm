@@ -760,7 +760,11 @@
 (defn assoc-apply-self [curr key afn]
   (assoc curr key (afn curr)))
 
-(defmacro recursive-map [& forms]
+
+(defmacro recursive-map
+          "Builds a map from the subsequent key value pairs, replacing '<>' literals with
+           the map preceding that."
+          [& forms]
   (->> (partition 2 forms)
        (map (fn [[key form]] `(assoc-apply-self ~key (fn [~'<>] ~form))))
        (concat `(-> {}))))

@@ -205,9 +205,9 @@
   ([spout-map bolt-map state-spout-map]
      (mk-topology spout-map bolt-map)))
 
-;; clojurify-structure is needed or else every element becomes the same after successive calls
-;; don't know why this happens
-(def STORM-TOPOLOGY-FIELDS (-> StormTopology/metaDataMap clojurify-structure keys))
+(def STORM-TOPOLOGY-COMPONENT-FIELDS [StormTopology$_Fields/SPOUTS
+                                      StormTopology$_Fields/BOLTS
+                                      StormTopology$_Fields/STATE_SPOUTS])
 
 (def SPOUT-FIELDS [StormTopology$_Fields/SPOUTS
                    StormTopology$_Fields/STATE_SPOUTS])

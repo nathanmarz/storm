@@ -13,8 +13,11 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.json.simple.JSONValue;
 
@@ -79,7 +82,8 @@ public class TopologyBuilder {
 
     private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<String, StateSpoutSpec>();
     
-    
+    private List<IWorkerHook> _workerHooks = new ArrayList<IWorkerHook>();
+
     public StormTopology createTopology() {
         Map<String, Bolt> boltSpecs = new HashMap<String, Bolt>();
         Map<String, SpoutSpec> spoutSpecs = new HashMap<String, SpoutSpec>();
@@ -94,9 +98,19 @@ public class TopologyBuilder {
             spoutSpecs.put(spoutId, new SpoutSpec(ComponentObject.serialized_java(Utils.serialize(spout)), common));
             
         }
-        return new StormTopology(spoutSpecs,
-                                 boltSpecs,
-                                 new HashMap<String, StateSpoutSpec>());
+
+        StormTopology stormTopology = new StormTopology(spoutSpecs,
+                boltSpecs,
+                new HashMap<String, StateSpoutSpec>());
+
+        if(_workerHooks.size() > 0) {
+            List<ByteBuffer> workerHooks = new ArrayList<ByteBuffer>();
+            for(IWorkerHook hook: _workerHooks) {
+                workerHooks.add(ByteBuffer.wrap(Utils.serialize(hook)));
+            }
+            stormTopology.set_worker_hooks(workerHooks);
+        }
+        return stormTopology;
     }
 
     /**
@@ -187,6 +201,13 @@ public class TopologyBuilder {
     public void setStateSpout(String id, IRichStateSpout stateSpout, Number parallelism_hint) {
         validateUnusedId(id);
         // TODO: finish
+    }
+
+    public void addWorkerHook(IWorkerHook workerHook) {
+        if (workerHook == null) {
+            throw new IllegalArgumentException("Worker hook cannot be null");
+        }
+        _workerHooks.add(workerHook);
     }
 
 

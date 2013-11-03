@@ -3,6 +3,7 @@
 
 (defproject storm/storm-console-logging VERSION
   :resource-paths ["logback"]
+  :target-path "target"
 
   :profiles {:release {}
              }

@@ -1,5 +1,5 @@
 (ns backtype.storm.daemon.builtin-metrics
-  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric MeanReducer])
+  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric MeanReducer StateMetric])
   (:import [backtype.storm Config])
   (:use [backtype.storm.stats :only [stats-rate]]))
 
@@ -36,6 +36,11 @@
     (.registerMetric topology-context (str "__" (name kw)) imetric
                      (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
           
+(defn register-queue-metrics [queues storm-conf topology-context]
+  (doseq [[qname q] queues]
+    (.registerMetric topology-context (str "__" (name qname)) (StateMetric. q)
+                     (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
+
 (defn spout-acked-tuple! [^BuiltinSpoutMetrics m stats stream latency-ms]  
   (-> m .ack-count (.scope stream) (.incrBy (stats-rate stats)))
   (-> m .complete-latency (.scope stream) (.update latency-ms)))

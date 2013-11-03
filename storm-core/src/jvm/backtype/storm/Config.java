@@ -57,6 +57,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_MESSAGING_NETTY_MAX_SLEEP_MS_SCHEMA = Number.class;
 
     /**
+     * Netty based messaging: The # of worker threads for the server.
+     */
+    public static final String STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS = "storm.messaging.netty.server_worker_threads"; 
+    public static final Object STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS_SCHEMA = Number.class;
+
+    /**
+     * Netty based messaging: The # of worker threads for the client.
+     */
+    public static final String STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS = "storm.messaging.netty.client_worker_threads"; 
+    public static final Object STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS_SCHEMA = Number.class;
+
+    /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
     public static final String STORM_ZOOKEEPER_SERVERS = "storm.zookeeper.servers";
@@ -777,7 +789,7 @@ public class Config extends HashMap<String, Object> {
      * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
      */
     public static final String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
-    public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Number.class;
+    public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Map.class;
 
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

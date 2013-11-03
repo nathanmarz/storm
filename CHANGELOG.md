@@ -1,4 +1,10 @@
-## Unreleased (0.9.0)
+## 0.9.0-rc3 (Unreleased)
+
+## 0.9.0-rc2 
+
+* Fixed `storm jar` command to work properly when STORM_JAR_JVM_OPTS is not specified (thanks roadkill001)
+
+## 0.9.0-rc1
 
  * All logging now done with slf4j
  * Replaced log4j logging system with logback

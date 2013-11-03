@@ -23,6 +23,7 @@ import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,7 @@ public class Utils {
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
         try {
-            List<URL> resources = findResources(name);
+            HashSet<URL> resources = new HashSet<URL>(findResources(name));
             if(resources.isEmpty()) {
                 if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
                 else return new HashMap();
@@ -115,7 +116,7 @@ public class Utils {
                 throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "
                   + resources);
             }
-            URL resource = resources.get(0);
+            URL resource = resources.iterator().next();
             Yaml yaml = new Yaml();
             Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
             if(ret==null) ret = new HashMap();

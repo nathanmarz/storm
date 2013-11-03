@@ -44,7 +44,7 @@
     (str "effective log level for " name " is " (.getLevel (.getLogger log)))))
 
 (defn log-template [body]
-  (html
+  (html4
    [:head
     [:title "Storm log viewer"]
     (include-css "/css/bootstrap-1.1.0.css")

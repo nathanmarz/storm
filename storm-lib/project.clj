@@ -14,4 +14,5 @@
                  :post "storm-user@googlegroups.com"}
   :dependencies [~@DEPENDENCIES]
   :min-lein-version "2.0.0"
+  :target-path "target"
   ))

@@ -27,11 +27,14 @@ You must not remove this notice, or any other, from this software.
 
 * Nathan Marz ([@nathanmarz](http://twitter.com/nathanmarz))
 
-## Core contributors
+## Committers
 
 * James Xu ([@xumingming](https://github.com/xumingming))
 * Jason Jackson ([@jason_j](http://twitter.com/jason_j))
 * Andy Feng ([@anfeng](https://github.com/anfeng))
+* Flip Kromer ([@mrflip](https://github.com/mrflip))
+* David Lao ([@davidlao2k](https://github.com/davidlao2k))
+* P. Taylor Goetz ([@ptgoetz](https://github.com/ptgoetz))
 
 ## Contributors
 

@@ -1,5 +1,6 @@
 package backtype.storm.task;
 
+import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
@@ -55,7 +56,7 @@ public class ShellBolt implements IBolt {
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
-    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue(100);
+    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
     private Random _rand;
     
     private Thread _readerThread;
@@ -66,16 +67,15 @@ public class ShellBolt implements IBolt {
     }
 
     public ShellBolt(String... command) {
-        this(100, command);
-    }
-    
-    public ShellBolt(int maxQueueSize, String... command) {
         _command = command;
-        _pendingWrites = new LinkedBlockingQueue(maxQueueSize);
     }
 
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
+        Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
+        if (maxPending != null && maxPending instanceof Integer) {
+            this._pendingWrites = new LinkedBlockingQueue((Integer)maxPending);
+        }
         _rand = new Random();
         _process = new ShellProcess(_command);
         _collector = collector;

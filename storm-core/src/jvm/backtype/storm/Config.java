@@ -587,6 +587,11 @@ public class Config extends HashMap<String, Object> {
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */
     public static String TOPOLOGY_NAME="topology.name";  
+
+    /**
+     * Max pending write for ShellBolt
+     */
+    public static String TOPOLOGY_SHELLBOLT_MAX_PENDING="topology.shellbolt.max.pending";
     
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.

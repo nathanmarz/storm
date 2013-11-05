@@ -73,7 +73,7 @@ public class ShellBolt implements IBolt {
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
         Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
-        if (maxPending != null && maxPending instanceof Number) {
+        if (maxPending != null) {
            this._pendingWrites = new LinkedBlockingQueue(((Number)maxPending).intValue());
         }
         _rand = new Random();

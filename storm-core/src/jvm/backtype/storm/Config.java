@@ -325,6 +325,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_SERVERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * This port is used by Storm DRPC for receiving HTTP DPRC requests from clients.
+     */
+    public static final String DRPC_HTTP_PORT = "drpc.http.port";
+    public static final Object DRPC_HTTP_PORT_SCHEMA = Number.class;
+
+    /**
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     public static final String DRPC_PORT = "drpc.port";

@@ -10,6 +10,10 @@
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
   (:use [backtype.storm bootstrap config log])
+  (:use compojure.core)
+  (:use ring.middleware.reload)
+  (:use [ring.adapter.jetty :only [run-jetty]])
+  (:require [ring.util.response :as resp])
   (:gen-class))
 
 (bootstrap)
@@ -97,6 +101,27 @@
         (.interrupt clear-thread))
       )))
 
+(defroutes main-routes
+  (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
+    (-> (.execute (service-handler) func args)
+      (resp/status 500)
+      (resp/content-type "text/text"))))
+
+(defn catch-errors [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception ex
+        (-> (str "DRPC Server Error")
+          (resp/status 500)
+          (resp/content-type "text/text"))
+        ))))
+
+(def webapp
+  (-> #'main-routes
+    (wrap-reload '[backtype.storm.daemon.drpc])
+    catch-errors))
+
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
@@ -107,7 +132,10 @@
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
-          handler-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-PORT)))
+          drpc-http-port (int (conf DRPC-HTTP-PORT))
+          drpc-port (int (conf DRPC-PORT))
+          handler-server (if (> drpc-port 0)
+                           (THsHaServer. (-> (TNonblockingServerSocket. drpc-port)
                                              (THsHaServer$Args.)
                                              (.workerThreads 64)
                                              (.executorService (ThreadPoolExecutor. worker-threads worker-threads 
@@ -115,17 +143,25 @@
                                              (.protocolFactory (TBinaryProtocol$Factory.))
                                              (.processor (DistributedRPC$Processor. service-handler))
                                              ))
+                           )
           invoke-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-INVOCATIONS-PORT)))
                                              (THsHaServer$Args.)
                                              (.workerThreads 64)
                                              (.protocolFactory (TBinaryProtocol$Factory.))
                                              (.processor (DistributedRPCInvocations$Processor. service-handler))
                                              ))]
-      
-      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
+      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
+                                                        (if handler-server (.stop handler-server))
+                                                        (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
-      (.serve handler-server))))
+      (if (> drpc-http-port 0)
+        (run-jetty webapp {:port drpc-http-port :join? false})
+        )
+      (if handler-server
+        (.serve handler-server)
+        )
+      )))
 
 (defn -main []
   (launch-server!))

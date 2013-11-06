@@ -30,7 +30,7 @@
   (@queues-atom function))
 
 ;; TODO: change this to use TimeCacheMap
-(defn service-handler []
+(def service-handler
   (let [conf (read-storm-config)
         ctr (atom 0)
         id->sem (atom {})
@@ -103,9 +103,7 @@
 
 (defroutes main-routes
   (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
-    (-> (.execute (service-handler) func args)
-      (resp/status 500)
-      (resp/content-type "text/text"))))
+    (.execute service-handler func args)))
 
 (defn catch-errors [handler]
   (fn [request]
@@ -127,7 +125,7 @@
     (let [conf (read-storm-config)
           worker-threads (int (conf DRPC-WORKER-THREADS))
           queue-size (int (conf DRPC-QUEUE-SIZE))
-          service-handler (service-handler)
+          ;; service-handler (service-handler)
           ;; requests and returns need to be on separate thread pools, since calls to
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result

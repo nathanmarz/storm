@@ -30,7 +30,7 @@
   (@queues-atom function))
 
 ;; TODO: change this to use TimeCacheMap
-(def service-handler
+(defn service-handler []
   (let [conf (read-storm-config)
         ctr (atom 0)
         id->sem (atom {})
@@ -101,37 +101,32 @@
         (.interrupt clear-thread))
       )))
 
-(defroutes main-routes
-  (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
-    (.execute service-handler func args)))
-
-(defn catch-errors [handler]
+(defn handle-request [handler]
   (fn [request]
-    (try
-      (handler request)
-      (catch Exception ex
-        (-> (str "DRPC Server Error")
-          (resp/status 500)
-          (resp/content-type "text/text"))
-        ))))
+    (handler request)))
 
-(def webapp
-  (-> #'main-routes
+(defn webapp [handler]
+  (->(def http-routes
+      (routes
+        (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
+          (.execute handler func args))
+        (GET "/drpc/:func" [:as {cookies :cookies} func & m]
+          (.execute handler func ""))))
     (wrap-reload '[backtype.storm.daemon.drpc])
-    catch-errors))
+    handle-request))
 
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
           worker-threads (int (conf DRPC-WORKER-THREADS))
           queue-size (int (conf DRPC-QUEUE-SIZE))
-          ;; service-handler (service-handler)
+          drpc-http-port (if (conf DRPC-HTTP-PORT) (int (conf DRPC-HTTP-PORT)) 0)
+          drpc-port (int (conf DRPC-PORT))
+          drpc-service-handler (service-handler)
           ;; requests and returns need to be on separate thread pools, since calls to
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
-          drpc-http-port (int (conf DRPC-HTTP-PORT))
-          drpc-port (int (conf DRPC-PORT))
           handler-server (if (> drpc-port 0)
                            (THsHaServer. (-> (TNonblockingServerSocket. drpc-port)
                                              (THsHaServer$Args.)
@@ -139,14 +134,14 @@
                                              (.executorService (ThreadPoolExecutor. worker-threads worker-threads 
                                                                  60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size)))
                                              (.protocolFactory (TBinaryProtocol$Factory.))
-                                             (.processor (DistributedRPC$Processor. service-handler))
+                                             (.processor (DistributedRPC$Processor. drpc-service-handler))
                                              ))
                            )
           invoke-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-INVOCATIONS-PORT)))
                                              (THsHaServer$Args.)
                                              (.workerThreads 64)
                                              (.protocolFactory (TBinaryProtocol$Factory.))
-                                             (.processor (DistributedRPCInvocations$Processor. service-handler))
+                                             (.processor (DistributedRPCInvocations$Processor. drpc-service-handler))
                                              ))]
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
                                                         (if handler-server (.stop handler-server))
@@ -154,7 +149,8 @@
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (if (> drpc-http-port 0)
-        (run-jetty webapp {:port drpc-http-port :join? false})
+        (run-jetty (webapp drpc-service-handler)
+            {:port drpc-http-port :join? false})
         )
       (if handler-server
         (.serve handler-server)

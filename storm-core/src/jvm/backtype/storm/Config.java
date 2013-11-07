@@ -727,6 +727,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_NAME_SCHEMA = String.class;
 
     /**
+     * Is update topology? true/false
+     */
+    public static final String TOPOLOGY_UPDATE = "topology.update";
+    public static final Object TOPOLOGY_UPDATE_SCHEMA = Boolean.class;
+
+    /**
+     * topology update interval for each worker restart
+     */
+    public static final String TOPOLOGY_UPDATE_INTERVAL_SECS = "topology.update.interval.secs";
+    public static final Object TOPOLOGY_UPDATE_INTERVAL_SECS_SCHEMA = Number.class;
+
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";

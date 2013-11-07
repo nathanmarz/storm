@@ -1485,6 +1485,7 @@ class TopologySummary:
    - num_workers
    - uptime_secs
    - status
+   - topology_version
   """
 
   thrift_spec = (
@@ -1496,12 +1497,13 @@ class TopologySummary:
     (5, TType.I32, 'num_workers', None, None, ), # 5
     (6, TType.I32, 'uptime_secs', None, None, ), # 6
     (7, TType.STRING, 'status', None, None, ), # 7
+    (8, TType.STRING, 'topology_version', None, None, ), # 8
   )
 
   def __hash__(self):
-    return 0 + hash(self.id) + hash(self.name) + hash(self.num_tasks) + hash(self.num_executors) + hash(self.num_workers) + hash(self.uptime_secs) + hash(self.status)
+    return 0 + hash(self.id) + hash(self.name) + hash(self.num_tasks) + hash(self.num_executors) + hash(self.num_workers) + hash(self.uptime_secs) + hash(self.status) + hash(self.topology_version)
 
-  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None,):
+  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None, topology_version=None,):
     self.id = id
     self.name = name
     self.num_tasks = num_tasks
@@ -1509,6 +1511,7 @@ class TopologySummary:
     self.num_workers = num_workers
     self.uptime_secs = uptime_secs
     self.status = status
+    self.topology_version = topology_version
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1554,6 +1557,11 @@ class TopologySummary:
           self.status = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.STRING:
+          self.topology_version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1592,6 +1600,10 @@ class TopologySummary:
       oprot.writeFieldBegin('status', TType.STRING, 7)
       oprot.writeString(self.status.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.topology_version is not None:
+      oprot.writeFieldBegin('topology_version', TType.STRING, 8)
+      oprot.writeString(self.topology_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -1610,6 +1622,8 @@ class TopologySummary:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
     if self.status is None:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
+    if self.topology_version is None:
+      raise TProtocol.TProtocolException(message='Required field topology_version is unset!')
     return
 
 
@@ -2612,6 +2626,7 @@ class ExecutorSummary:
    - host
    - port
    - uptime_secs
+   - topology_version
    - stats
   """
 
@@ -2622,19 +2637,20 @@ class ExecutorSummary:
     (3, TType.STRING, 'host', None, None, ), # 3
     (4, TType.I32, 'port', None, None, ), # 4
     (5, TType.I32, 'uptime_secs', None, None, ), # 5
-    None, # 6
+    (6, TType.STRING, 'topology_version', None, None, ), # 6
     (7, TType.STRUCT, 'stats', (ExecutorStats, ExecutorStats.thrift_spec), None, ), # 7
   )
 
   def __hash__(self):
-    return 0 + hash(self.executor_info) + hash(self.component_id) + hash(self.host) + hash(self.port) + hash(self.uptime_secs) + hash(self.stats)
+    return 0 + hash(self.executor_info) + hash(self.component_id) + hash(self.host) + hash(self.port) + hash(self.uptime_secs) + hash(self.topology_version) + hash(self.stats)
 
-  def __init__(self, executor_info=None, component_id=None, host=None, port=None, uptime_secs=None, stats=None,):
+  def __init__(self, executor_info=None, component_id=None, host=None, port=None, uptime_secs=None, topology_version=None, stats=None,):
     self.executor_info = executor_info
     self.component_id = component_id
     self.host = host
     self.port = port
     self.uptime_secs = uptime_secs
+    self.topology_version = topology_version
     self.stats = stats
 
   def read(self, iprot):
@@ -2670,6 +2686,11 @@ class ExecutorSummary:
       elif fid == 5:
         if ftype == TType.I32:
           self.uptime_secs = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.STRING:
+          self.topology_version = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 7:
@@ -2708,6 +2729,10 @@ class ExecutorSummary:
       oprot.writeFieldBegin('uptime_secs', TType.I32, 5)
       oprot.writeI32(self.uptime_secs)
       oprot.writeFieldEnd()
+    if self.topology_version is not None:
+      oprot.writeFieldBegin('topology_version', TType.STRING, 6)
+      oprot.writeString(self.topology_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.stats is not None:
       oprot.writeFieldBegin('stats', TType.STRUCT, 7)
       self.stats.write(oprot)
@@ -2726,6 +2751,8 @@ class ExecutorSummary:
       raise TProtocol.TProtocolException(message='Required field port is unset!')
     if self.uptime_secs is None:
       raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
+    if self.topology_version is None:
+      raise TProtocol.TProtocolException(message='Required field topology_version is unset!')
     return
 
 
@@ -2749,6 +2776,7 @@ class TopologyInfo:
    - executors
    - status
    - errors
+   - topology_version
   """
 
   thrift_spec = (
@@ -2759,18 +2787,20 @@ class TopologyInfo:
     (4, TType.LIST, 'executors', (TType.STRUCT,(ExecutorSummary, ExecutorSummary.thrift_spec)), None, ), # 4
     (5, TType.STRING, 'status', None, None, ), # 5
     (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
+    (7, TType.STRING, 'topology_version', None, None, ), # 7
   )
 
   def __hash__(self):
-    return 0 + hash(self.id) + hash(self.name) + hash(self.uptime_secs) + hash(self.executors) + hash(self.status) + hash(self.errors)
+    return 0 + hash(self.id) + hash(self.name) + hash(self.uptime_secs) + hash(self.executors) + hash(self.status) + hash(self.errors) + hash(self.topology_version)
 
-  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, topology_version=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
     self.executors = executors
     self.status = status
     self.errors = errors
+    self.topology_version = topology_version
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2829,6 +2859,11 @@ class TopologyInfo:
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.topology_version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2873,6 +2908,10 @@ class TopologyInfo:
         oprot.writeListEnd()
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
+    if self.topology_version is not None:
+      oprot.writeFieldBegin('topology_version', TType.STRING, 7)
+      oprot.writeString(self.topology_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2889,6 +2928,8 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
     if self.errors is None:
       raise TProtocol.TProtocolException(message='Required field errors is unset!')
+    if self.topology_version is None:
+      raise TProtocol.TProtocolException(message='Required field topology_version is unset!')
     return
 
 

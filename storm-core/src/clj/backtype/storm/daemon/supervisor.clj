@@ -89,6 +89,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
+        storm-id->topology-version (:storm-id->topology-version supervisor)
         approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
     (into
      {}
@@ -99,12 +100,19 @@
                            :disallowed
                          (not hb)
                            :not-started
+                         (and 
+                           (@(:storm-id->update-time supervisor) (:storm-id hb))
+                           (< (@(:storm-id->update-time supervisor) (:storm-id hb)) (current-time-secs)) 
+                           (not (= (@(:storm-id->topology-version supervisor) (:storm-id hb)) (:topology-version hb))))
+                           :update
                          (> (- now (:time-secs hb))
                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
                            :timed-out
                          true
                            :valid)]
               (log-debug "Worker " id " is " state ": " (pr-str hb) " at supervisor time-secs " now)
+              (if (= :update state)
+                (log-debug "Worker " id " is " state " update-time " (@(:storm-id->update-time supervisor) (:storm-id hb)) " topology-version " (:topology-version hb) " to " (@(:storm-id->topology-version supervisor) (:storm-id hb))))
               [id [state hb]]
               ))
      )))
@@ -167,6 +175,8 @@
    :active (atom true)
    :uptime (uptime-computer)
    :worker-thread-pids-atom (atom {})
+   :storm-id->topology-version (atom {})
+   :storm-id->update-time (atom {})
    :storm-cluster-state (cluster/mk-storm-cluster-state conf)
    :local-state (supervisor-state conf)
    :supervisor-id (.getSupervisorId isupervisor)
@@ -230,7 +240,8 @@
     (wait-for-workers-launch
      conf
      (dofor [[port assignment] reassign-executors]
-       (let [id (new-worker-ids port)]
+       (let [id (new-worker-ids port)
+             topology-version (@(:storm-id->topology-version supervisor) (:storm-id assignment))]
          (log-message "Launching worker with assignment "
                       (pr-str assignment)
                       " for this supervisor "
@@ -239,11 +250,14 @@
                       port
                       " with id "
                       id
+                      " topology-version "
+                      topology-version
                       )
          (launch-worker supervisor
                         (:storm-id assignment)
                         port
-                        id)
+                        id
+                        topology-version)
          id)))
     ))
 
@@ -281,18 +295,33 @@
       ;;   - should this be done separately from usual monitoring?
       ;; should we only download when topology is assigned to this supervisor?
       (doseq [[storm-id master-code-dir] storm-code-map]
-        (when (and (not (downloaded-storm-ids storm-id))
-                   (assigned-storm-ids storm-id))
-          (log-message "Downloading code for storm id "
-             storm-id
-             " from "
-             master-code-dir)
-          (download-storm-code conf storm-id master-code-dir)
-          (log-message "Finished downloading code for storm id "
-             storm-id
-             " from "
-             master-code-dir)
-          ))
+        (let [storm-base (.storm-base (:storm-cluster-state supervisor) storm-id nil)
+              topology-version (:topology-version storm-base)] 
+          (if-not storm-base
+             (log-warn "storm-id " storm-id " storm-base is nil")
+             (if-not topology-version
+               (log-warn "storm-id " storm-id " " topology-version " topology-version is nil")
+               (let [stormdist (supervisor-stormdist-root conf topology-version)
+                     exists? (exists-file? stormdist)
+                     rand (Random. (Utils/secureRandomLong))]
+                 (log-message "topology-version " (:topology-version storm-base)  "; path " stormdist " exists? " exists?)
+                 (when (and (or (not (downloaded-storm-ids topology-version)) (not (downloaded-storm-ids storm-id)))
+                            (assigned-storm-ids storm-id))
+                   (log-message "Downloading code for storm id "
+                      storm-id
+                      " from "
+                      master-code-dir)
+                   (download-storm-code conf storm-id master-code-dir topology-version)
+                   (log-message "Finished downloading code for storm id "
+                      storm-id
+                      " from "
+                      master-code-dir))
+                 (when-not (= (@(:storm-id->topology-version supervisor) storm-id) topology-version)
+                   (let [wait-time  (.nextInt rand (:update-used-time storm-base)) 
+                         update-time (+ (current-time-secs) wait-time)]
+                     (log-message "topology-version " (@(:storm-id->topology-version supervisor) storm-id) " change to " topology-version " wait-time " wait-time " update time " update-time)
+                     (swap! (:storm-id->update-time supervisor) assoc storm-id update-time))
+                   (swap! (:storm-id->topology-version supervisor) assoc storm-id topology-version)))))))
 
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
@@ -309,10 +338,11 @@
       ;; synchronize-supervisor doesn't try to launch workers for which the
       ;; resources don't exist
       (doseq [storm-id downloaded-storm-ids]
-        (when-not (assigned-storm-ids storm-id)
+        (when-not (or (storm-code-map storm-id) 
+                      (storm-code-map (.substring storm-id 0 (.lastIndexOf storm-id "-"))))
           (log-message "Removing code for storm id "
                        storm-id)
-          (rmr (supervisor-stormdist-root conf storm-id))
+          (Utils/rmrStormDist (supervisor-stormdist-root conf) storm-id)
           ))
       (.add processes-event-manager sync-processes)
       )))
@@ -387,10 +417,11 @@
 ;; distributed implementation
 
 (defmethod download-storm-code
-    :distributed [conf storm-id master-code-dir]
+    :distributed [conf storm-id master-code-dir topology-version]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
-          stormroot (supervisor-stormdist-root conf storm-id)]
+          stormroot (supervisor-stormdist-root conf topology-version)
+          stormroot-symb (supervisor-stormdist-root conf storm-id)]
       (FileUtils/forceMkdir (File. tmproot))
       
       (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
@@ -398,11 +429,15 @@
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+      (if (exists-file? stormroot-symb)
+         (rmpath stormroot-symb)
+         (log-message stormroot-symb " is not exists!"))
+      (symlink stormroot stormroot-symb)
       ))
 
 
 (defmethod launch-worker
-    :distributed [supervisor storm-id port worker-id]
+    :distributed [supervisor storm-id port worker-id topology-version]
     (let [conf (:conf supervisor)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
@@ -423,7 +458,7 @@
                        " -Dworker.port=" port
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
-                       " " port " " worker-id)]
+                       " " port " " worker-id " " topology-version)]
       (log-message "Launching worker with command: " command)
       (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))
@@ -437,9 +472,15 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir]
-  (let [stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
+    :local [conf storm-id master-code-dir topology-version]
+  (let [stormroot (supervisor-stormdist-root conf topology-version)
+        stormroot-symb (supervisor-stormdist-root conf storm-id)]
+      (when-not (exists-file? stormroot)
+        (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot)))
+      (if (exists-file? stormroot-symb)
+         (rmpath stormroot-symb)
+         (log-message stormroot-symb " is not exists!"))
+      (exec-command! (str "ln -s " stormroot " "  stormroot-symb))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
@@ -457,7 +498,7 @@
             )))
 
 (defmethod launch-worker
-    :local [supervisor storm-id port worker-id]
+    :local [supervisor storm-id port worker-id topology-version]
     (let [conf (:conf supervisor)
           pid (uuid)
           worker (worker/mk-worker conf
@@ -465,7 +506,8 @@
                                    storm-id
                                    (:assignment-id supervisor)
                                    port
-                                   worker-id)]
+                                   worker-id
+                                   topology-version)]
       (psim/register-process pid worker)
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))

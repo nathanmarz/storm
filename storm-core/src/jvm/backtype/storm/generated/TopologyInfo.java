@@ -30,6 +30,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
   private static final org.apache.thrift7.protocol.TField EXECUTORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("executors", org.apache.thrift7.protocol.TType.LIST, (short)4);
   private static final org.apache.thrift7.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift7.protocol.TField("status", org.apache.thrift7.protocol.TType.STRING, (short)5);
   private static final org.apache.thrift7.protocol.TField ERRORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("errors", org.apache.thrift7.protocol.TType.MAP, (short)6);
+  private static final org.apache.thrift7.protocol.TField TOPOLOGY_VERSION_FIELD_DESC = new org.apache.thrift7.protocol.TField("topology_version", org.apache.thrift7.protocol.TType.STRING, (short)7);
 
   private String id; // required
   private String name; // required
@@ -37,6 +38,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
   private List<ExecutorSummary> executors; // required
   private String status; // required
   private Map<String,List<ErrorInfo>> errors; // required
+  private String topology_version; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -45,7 +47,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     UPTIME_SECS((short)3, "uptime_secs"),
     EXECUTORS((short)4, "executors"),
     STATUS((short)5, "status"),
-    ERRORS((short)6, "errors");
+    ERRORS((short)6, "errors"),
+    TOPOLOGY_VERSION((short)7, "topology_version");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -72,6 +75,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
           return STATUS;
         case 6: // ERRORS
           return ERRORS;
+        case 7: // TOPOLOGY_VERSION
+          return TOPOLOGY_VERSION;
         default:
           return null;
       }
@@ -134,6 +139,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
             new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
             new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
                 new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ErrorInfo.class)))));
+    tmpMap.put(_Fields.TOPOLOGY_VERSION, new org.apache.thrift7.meta_data.FieldMetaData("topology_version", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TopologyInfo.class, metaDataMap);
   }
@@ -147,7 +154,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     int uptime_secs,
     List<ExecutorSummary> executors,
     String status,
-    Map<String,List<ErrorInfo>> errors)
+    Map<String,List<ErrorInfo>> errors,
+    String topology_version)
   {
     this();
     this.id = id;
@@ -157,6 +165,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     this.executors = executors;
     this.status = status;
     this.errors = errors;
+    this.topology_version = topology_version;
   }
 
   /**
@@ -200,6 +209,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       }
       this.errors = __this__errors;
     }
+    if (other.is_set_topology_version()) {
+      this.topology_version = other.topology_version;
+    }
   }
 
   public TopologyInfo deepCopy() {
@@ -215,6 +227,7 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     this.executors = null;
     this.status = null;
     this.errors = null;
+    this.topology_version = null;
   }
 
   public String get_id() {
@@ -380,6 +393,29 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     }
   }
 
+  public String get_topology_version() {
+    return this.topology_version;
+  }
+
+  public void set_topology_version(String topology_version) {
+    this.topology_version = topology_version;
+  }
+
+  public void unset_topology_version() {
+    this.topology_version = null;
+  }
+
+  /** Returns true if field topology_version is set (has been assigned a value) and false otherwise */
+  public boolean is_set_topology_version() {
+    return this.topology_version != null;
+  }
+
+  public void set_topology_version_isSet(boolean value) {
+    if (!value) {
+      this.topology_version = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ID:
@@ -430,6 +466,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       }
       break;
 
+    case TOPOLOGY_VERSION:
+      if (value == null) {
+        unset_topology_version();
+      } else {
+        set_topology_version((String)value);
+      }
+      break;
+
     }
   }
 
@@ -452,6 +496,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
 
     case ERRORS:
       return get_errors();
+
+    case TOPOLOGY_VERSION:
+      return get_topology_version();
 
     }
     throw new IllegalStateException();
@@ -476,6 +523,8 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       return is_set_status();
     case ERRORS:
       return is_set_errors();
+    case TOPOLOGY_VERSION:
+      return is_set_topology_version();
     }
     throw new IllegalStateException();
   }
@@ -547,6 +596,15 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
         return false;
     }
 
+    boolean this_present_topology_version = true && this.is_set_topology_version();
+    boolean that_present_topology_version = true && that.is_set_topology_version();
+    if (this_present_topology_version || that_present_topology_version) {
+      if (!(this_present_topology_version && that_present_topology_version))
+        return false;
+      if (!this.topology_version.equals(that.topology_version))
+        return false;
+    }
+
     return true;
   }
 
@@ -583,6 +641,11 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     builder.append(present_errors);
     if (present_errors)
       builder.append(errors);
+
+    boolean present_topology_version = true && (is_set_topology_version());
+    builder.append(present_topology_version);
+    if (present_topology_version)
+      builder.append(topology_version);
 
     return builder.toHashCode();
   }
@@ -651,6 +714,16 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
     }
     if (is_set_errors()) {
       lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.errors, typedOther.errors);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_topology_version()).compareTo(typedOther.is_set_topology_version());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_topology_version()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.topology_version, typedOther.topology_version);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -749,6 +822,13 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 7: // TOPOLOGY_VERSION
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.topology_version = iprot.readString();
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -812,6 +892,11 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       }
       oprot.writeFieldEnd();
     }
+    if (this.topology_version != null) {
+      oprot.writeFieldBegin(TOPOLOGY_VERSION_FIELD_DESC);
+      oprot.writeString(this.topology_version);
+      oprot.writeFieldEnd();
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -864,6 +949,14 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       sb.append(this.errors);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("topology_version:");
+    if (this.topology_version == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.topology_version);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -892,6 +985,10 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
 
     if (!is_set_errors()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'errors' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_topology_version()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'topology_version' is unset! Struct:" + toString());
     }
 
   }

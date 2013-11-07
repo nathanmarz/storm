@@ -191,6 +191,7 @@
              (if (contains? executor-stats t)
                {t {:time-secs (:time-secs worker-hb)
                     :uptime (:uptime worker-hb)
+                    :topology-version (:topology-version worker-hb)
                     :stats (get executor-stats t)}})))
       (into {}))))
 

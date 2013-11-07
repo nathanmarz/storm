@@ -29,6 +29,7 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
   private static final org.apache.thrift7.protocol.TField HOST_FIELD_DESC = new org.apache.thrift7.protocol.TField("host", org.apache.thrift7.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift7.protocol.TField PORT_FIELD_DESC = new org.apache.thrift7.protocol.TField("port", org.apache.thrift7.protocol.TType.I32, (short)4);
   private static final org.apache.thrift7.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)5);
+  private static final org.apache.thrift7.protocol.TField TOPOLOGY_VERSION_FIELD_DESC = new org.apache.thrift7.protocol.TField("topology_version", org.apache.thrift7.protocol.TType.STRING, (short)6);
   private static final org.apache.thrift7.protocol.TField STATS_FIELD_DESC = new org.apache.thrift7.protocol.TField("stats", org.apache.thrift7.protocol.TType.STRUCT, (short)7);
 
   private ExecutorInfo executor_info; // required
@@ -36,6 +37,7 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
   private String host; // required
   private int port; // required
   private int uptime_secs; // required
+  private String topology_version; // required
   private ExecutorStats stats; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -45,6 +47,7 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     HOST((short)3, "host"),
     PORT((short)4, "port"),
     UPTIME_SECS((short)5, "uptime_secs"),
+    TOPOLOGY_VERSION((short)6, "topology_version"),
     STATS((short)7, "stats");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -70,6 +73,8 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
           return PORT;
         case 5: // UPTIME_SECS
           return UPTIME_SECS;
+        case 6: // TOPOLOGY_VERSION
+          return TOPOLOGY_VERSION;
         case 7: // STATS
           return STATS;
         default:
@@ -129,6 +134,8 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     tmpMap.put(_Fields.UPTIME_SECS, new org.apache.thrift7.meta_data.FieldMetaData("uptime_secs", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+    tmpMap.put(_Fields.TOPOLOGY_VERSION, new org.apache.thrift7.meta_data.FieldMetaData("topology_version", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     tmpMap.put(_Fields.STATS, new org.apache.thrift7.meta_data.FieldMetaData("stats", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, ExecutorStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -143,7 +150,8 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     String component_id,
     String host,
     int port,
-    int uptime_secs)
+    int uptime_secs,
+    String topology_version)
   {
     this();
     this.executor_info = executor_info;
@@ -153,6 +161,7 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     set_port_isSet(true);
     this.uptime_secs = uptime_secs;
     set_uptime_secs_isSet(true);
+    this.topology_version = topology_version;
   }
 
   /**
@@ -172,6 +181,9 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     }
     this.port = other.port;
     this.uptime_secs = other.uptime_secs;
+    if (other.is_set_topology_version()) {
+      this.topology_version = other.topology_version;
+    }
     if (other.is_set_stats()) {
       this.stats = new ExecutorStats(other.stats);
     }
@@ -190,6 +202,7 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     this.port = 0;
     set_uptime_secs_isSet(false);
     this.uptime_secs = 0;
+    this.topology_version = null;
     this.stats = null;
   }
 
@@ -306,6 +319,29 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     __isset_bit_vector.set(__UPTIME_SECS_ISSET_ID, value);
   }
 
+  public String get_topology_version() {
+    return this.topology_version;
+  }
+
+  public void set_topology_version(String topology_version) {
+    this.topology_version = topology_version;
+  }
+
+  public void unset_topology_version() {
+    this.topology_version = null;
+  }
+
+  /** Returns true if field topology_version is set (has been assigned a value) and false otherwise */
+  public boolean is_set_topology_version() {
+    return this.topology_version != null;
+  }
+
+  public void set_topology_version_isSet(boolean value) {
+    if (!value) {
+      this.topology_version = null;
+    }
+  }
+
   public ExecutorStats get_stats() {
     return this.stats;
   }
@@ -371,6 +407,14 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
       }
       break;
 
+    case TOPOLOGY_VERSION:
+      if (value == null) {
+        unset_topology_version();
+      } else {
+        set_topology_version((String)value);
+      }
+      break;
+
     case STATS:
       if (value == null) {
         unset_stats();
@@ -399,6 +443,9 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     case UPTIME_SECS:
       return Integer.valueOf(get_uptime_secs());
 
+    case TOPOLOGY_VERSION:
+      return get_topology_version();
+
     case STATS:
       return get_stats();
 
@@ -423,6 +470,8 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
       return is_set_port();
     case UPTIME_SECS:
       return is_set_uptime_secs();
+    case TOPOLOGY_VERSION:
+      return is_set_topology_version();
     case STATS:
       return is_set_stats();
     }
@@ -487,6 +536,15 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
         return false;
     }
 
+    boolean this_present_topology_version = true && this.is_set_topology_version();
+    boolean that_present_topology_version = true && that.is_set_topology_version();
+    if (this_present_topology_version || that_present_topology_version) {
+      if (!(this_present_topology_version && that_present_topology_version))
+        return false;
+      if (!this.topology_version.equals(that.topology_version))
+        return false;
+    }
+
     boolean this_present_stats = true && this.is_set_stats();
     boolean that_present_stats = true && that.is_set_stats();
     if (this_present_stats || that_present_stats) {
@@ -527,6 +585,11 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     builder.append(present_uptime_secs);
     if (present_uptime_secs)
       builder.append(uptime_secs);
+
+    boolean present_topology_version = true && (is_set_topology_version());
+    builder.append(present_topology_version);
+    if (present_topology_version)
+      builder.append(topology_version);
 
     boolean present_stats = true && (is_set_stats());
     builder.append(present_stats);
@@ -590,6 +653,16 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     }
     if (is_set_uptime_secs()) {
       lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.uptime_secs, typedOther.uptime_secs);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_topology_version()).compareTo(typedOther.is_set_topology_version());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_topology_version()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.topology_version, typedOther.topology_version);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -659,6 +732,13 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 6: // TOPOLOGY_VERSION
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.topology_version = iprot.readString();
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         case 7: // STATS
           if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
             this.stats = new ExecutorStats();
@@ -701,6 +781,11 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     oprot.writeFieldBegin(UPTIME_SECS_FIELD_DESC);
     oprot.writeI32(this.uptime_secs);
     oprot.writeFieldEnd();
+    if (this.topology_version != null) {
+      oprot.writeFieldBegin(TOPOLOGY_VERSION_FIELD_DESC);
+      oprot.writeString(this.topology_version);
+      oprot.writeFieldEnd();
+    }
     if (this.stats != null) {
       if (is_set_stats()) {
         oprot.writeFieldBegin(STATS_FIELD_DESC);
@@ -748,6 +833,14 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
     sb.append("uptime_secs:");
     sb.append(this.uptime_secs);
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("topology_version:");
+    if (this.topology_version == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.topology_version);
+    }
+    first = false;
     if (is_set_stats()) {
       if (!first) sb.append(", ");
       sb.append("stats:");
@@ -782,6 +875,10 @@ public class ExecutorSummary implements org.apache.thrift7.TBase<ExecutorSummary
 
     if (!is_set_uptime_secs()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'uptime_secs' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_topology_version()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'topology_version' is unset! Struct:" + toString());
     }
 
   }

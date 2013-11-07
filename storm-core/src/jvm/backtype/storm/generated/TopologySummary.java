@@ -31,6 +31,7 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
   private static final org.apache.thrift7.protocol.TField NUM_WORKERS_FIELD_DESC = new org.apache.thrift7.protocol.TField("num_workers", org.apache.thrift7.protocol.TType.I32, (short)5);
   private static final org.apache.thrift7.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift7.protocol.TField("uptime_secs", org.apache.thrift7.protocol.TType.I32, (short)6);
   private static final org.apache.thrift7.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift7.protocol.TField("status", org.apache.thrift7.protocol.TType.STRING, (short)7);
+  private static final org.apache.thrift7.protocol.TField TOPOLOGY_VERSION_FIELD_DESC = new org.apache.thrift7.protocol.TField("topology_version", org.apache.thrift7.protocol.TType.STRING, (short)8);
 
   private String id; // required
   private String name; // required
@@ -39,6 +40,7 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
   private int num_workers; // required
   private int uptime_secs; // required
   private String status; // required
+  private String topology_version; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
@@ -48,7 +50,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     NUM_EXECUTORS((short)4, "num_executors"),
     NUM_WORKERS((short)5, "num_workers"),
     UPTIME_SECS((short)6, "uptime_secs"),
-    STATUS((short)7, "status");
+    STATUS((short)7, "status"),
+    TOPOLOGY_VERSION((short)8, "topology_version");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -77,6 +80,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
           return UPTIME_SECS;
         case 7: // STATUS
           return STATUS;
+        case 8: // TOPOLOGY_VERSION
+          return TOPOLOGY_VERSION;
         default:
           return null;
       }
@@ -140,6 +145,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
     tmpMap.put(_Fields.STATUS, new org.apache.thrift7.meta_data.FieldMetaData("status", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+    tmpMap.put(_Fields.TOPOLOGY_VERSION, new org.apache.thrift7.meta_data.FieldMetaData("topology_version", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(TopologySummary.class, metaDataMap);
   }
@@ -154,7 +161,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     int num_executors,
     int num_workers,
     int uptime_secs,
-    String status)
+    String status,
+    String topology_version)
   {
     this();
     this.id = id;
@@ -168,6 +176,7 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     this.uptime_secs = uptime_secs;
     set_uptime_secs_isSet(true);
     this.status = status;
+    this.topology_version = topology_version;
   }
 
   /**
@@ -189,6 +198,9 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     if (other.is_set_status()) {
       this.status = other.status;
     }
+    if (other.is_set_topology_version()) {
+      this.topology_version = other.topology_version;
+    }
   }
 
   public TopologySummary deepCopy() {
@@ -208,6 +220,7 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     set_uptime_secs_isSet(false);
     this.uptime_secs = 0;
     this.status = null;
+    this.topology_version = null;
   }
 
   public String get_id() {
@@ -367,6 +380,29 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     }
   }
 
+  public String get_topology_version() {
+    return this.topology_version;
+  }
+
+  public void set_topology_version(String topology_version) {
+    this.topology_version = topology_version;
+  }
+
+  public void unset_topology_version() {
+    this.topology_version = null;
+  }
+
+  /** Returns true if field topology_version is set (has been assigned a value) and false otherwise */
+  public boolean is_set_topology_version() {
+    return this.topology_version != null;
+  }
+
+  public void set_topology_version_isSet(boolean value) {
+    if (!value) {
+      this.topology_version = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ID:
@@ -425,6 +461,14 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
       }
       break;
 
+    case TOPOLOGY_VERSION:
+      if (value == null) {
+        unset_topology_version();
+      } else {
+        set_topology_version((String)value);
+      }
+      break;
+
     }
   }
 
@@ -451,6 +495,9 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     case STATUS:
       return get_status();
 
+    case TOPOLOGY_VERSION:
+      return get_topology_version();
+
     }
     throw new IllegalStateException();
   }
@@ -476,6 +523,8 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
       return is_set_uptime_secs();
     case STATUS:
       return is_set_status();
+    case TOPOLOGY_VERSION:
+      return is_set_topology_version();
     }
     throw new IllegalStateException();
   }
@@ -556,6 +605,15 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
         return false;
     }
 
+    boolean this_present_topology_version = true && this.is_set_topology_version();
+    boolean that_present_topology_version = true && that.is_set_topology_version();
+    if (this_present_topology_version || that_present_topology_version) {
+      if (!(this_present_topology_version && that_present_topology_version))
+        return false;
+      if (!this.topology_version.equals(that.topology_version))
+        return false;
+    }
+
     return true;
   }
 
@@ -597,6 +655,11 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     builder.append(present_status);
     if (present_status)
       builder.append(status);
+
+    boolean present_topology_version = true && (is_set_topology_version());
+    builder.append(present_topology_version);
+    if (present_topology_version)
+      builder.append(topology_version);
 
     return builder.toHashCode();
   }
@@ -679,6 +742,16 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_topology_version()).compareTo(typedOther.is_set_topology_version());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_topology_version()) {
+      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.topology_version, typedOther.topology_version);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -749,6 +822,13 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 8: // TOPOLOGY_VERSION
+          if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            this.topology_version = iprot.readString();
+          } else { 
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -787,6 +867,11 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
     if (this.status != null) {
       oprot.writeFieldBegin(STATUS_FIELD_DESC);
       oprot.writeString(this.status);
+      oprot.writeFieldEnd();
+    }
+    if (this.topology_version != null) {
+      oprot.writeFieldBegin(TOPOLOGY_VERSION_FIELD_DESC);
+      oprot.writeString(this.topology_version);
       oprot.writeFieldEnd();
     }
     oprot.writeFieldStop();
@@ -837,6 +922,14 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
       sb.append(this.status);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("topology_version:");
+    if (this.topology_version == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.topology_version);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -869,6 +962,10 @@ public class TopologySummary implements org.apache.thrift7.TBase<TopologySummary
 
     if (!is_set_status()) {
       throw new org.apache.thrift7.protocol.TProtocolException("Required field 'status' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_topology_version()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'topology_version' is unset! Struct:" + toString());
     }
 
   }

@@ -116,6 +116,7 @@ struct TopologySummary {
   5: required i32 num_workers;
   6: required i32 uptime_secs;
   7: required string status;
+  8: required string topology_version;
 }
 
 struct SupervisorSummary {
@@ -175,6 +176,7 @@ struct ExecutorSummary {
   3: required string host;
   4: required i32 port;
   5: required i32 uptime_secs;
+  6: required string topology_version;
   7: optional ExecutorStats stats;
 }
 
@@ -185,6 +187,7 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+  7: required string topology_version;
 }
 
 struct KillOptions {
@@ -208,6 +211,7 @@ struct SubmitOptions {
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
+  void updateTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: NotAliveException e, 2: InvalidTopologyException ite);
   void killTopology(1: string name) throws (1: NotAliveException e);
   void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
   void activate(1: string name) throws (1: NotAliveException e);

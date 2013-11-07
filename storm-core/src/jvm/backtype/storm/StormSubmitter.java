@@ -37,7 +37,7 @@ public class StormSubmitter {
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, NotAliveException, InvalidTopologyException {
         submitTopology(name, stormConf, topology, null);
     }    
     
@@ -53,7 +53,7 @@ public class StormSubmitter {
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, NotAliveException, InvalidTopologyException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
@@ -61,18 +61,36 @@ public class StormSubmitter {
         stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
+        boolean topologyUpdate = (conf.get(Config.TOPOLOGY_UPDATE) != null ? 
+                                  (Boolean)(conf.get(Config.TOPOLOGY_UPDATE)) : false);
         try {
             String serConf = JSONValue.toJSONString(stormConf);
             if(localNimbus!=null) {
-                LOG.info("Submitting topology " + name + " in local mode");
-                localNimbus.submitTopology(name, null, serConf, topology);
+                if (topologyUpdate) {
+                    LOG.info("Updating topology " + name + " in local mode");
+                    localNimbus.updateTopology(name, null, serConf, topology);
+                } else {
+                    LOG.info("Submitting topology " + name + " in local mode");
+                    localNimbus.submitTopology(name, null, serConf, topology);
+                }
             } else {
                 NimbusClient client = NimbusClient.getConfiguredClient(conf);
-                if(topologyNameExists(conf, name)) {
-                    throw new RuntimeException("Topology with name `" + name + "` already exists on cluster");
+                if (topologyUpdate) {
+                    if (!topologyNameExists(conf, name)) {
+                        throw new RuntimeException("Topology with name `" + name + "` not alive on cluster");
+                    }
+
+                } else {
+                    if (topologyNameExists(conf, name)) {
+                        throw new RuntimeException("Topology with name `" + name + "` already exists on cluster");
+                    }
                 }
                 submitJar(conf);
                 try {
+                  if (topologyUpdate) {
+                    LOG.info("Updating topology " + name + " in distributed mode with conf " + serConf);
+                    client.getClient().updateTopology(name, submittedJar, serConf, topology);
+                  } else {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
                     if(opts!=null) {
                         client.getClient().submitTopologyWithOpts(name, submittedJar, serConf, topology, opts);                    
@@ -80,6 +98,7 @@ public class StormSubmitter {
                         // this is for backwards compatibility
                         client.getClient().submitTopology(name, submittedJar, serConf, topology);                                            
                     }
+                  }
                 } catch(InvalidTopologyException e) {
                     LOG.warn("Topology submission exception", e);
                     throw e;
@@ -90,7 +109,11 @@ public class StormSubmitter {
                     client.close();
                 }
             }
-            LOG.info("Finished submitting topology: " +  name);
+            if (topologyUpdate) {
+                LOG.info("Finished Updating topology: " + name);
+            } else {
+                LOG.info("Finished submitting topology: " + name);
+            }
         } catch(TException e) {
             throw new RuntimeException(e);
         }

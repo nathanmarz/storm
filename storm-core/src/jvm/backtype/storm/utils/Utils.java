@@ -11,6 +11,7 @@ import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.ExponentialBackoffRetry;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
@@ -29,6 +30,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.text.SimpleDateFormat;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
@@ -395,4 +401,57 @@ public class Utils {
         }
         return false;
     }
+
+    public static String getCurrentTime(){
+        SimpleDateFormat tempDate = new SimpleDateFormat("yyyyMMddHHmmss");
+        String datetime = tempDate.format(new java.util.Date());
+        return datetime;
+    }
+
+       public static void execCommand(String command) {
+               try {
+                       String[] commandArgs = command.split(" ");
+                       CommandLine md = new CommandLine(commandArgs[0]);
+                       for(int i = 1; i < commandArgs.length; i++){
+                               md.addArgument(commandArgs[i]);
+                       }
+                       new DefaultExecutor().execute(md);
+               } catch (IOException e) {
+                       System.err.println("Exception when exec" + command + e);
+               }
+       }
+
+       public static void rmrStormDist(String dir, String file){
+               File stormDist = new File(dir);
+               if(stormDist.exists()){
+                       System.err.println("Trying to rm -f " + dir + "/" + file);
+                       execCommand("rm -rf " + dir + "/" + file);
+               }else{
+                       System.err.println("path " + dir + "/" + file + " is not exists");
+               }
+               if(stormDist.isDirectory()){
+                       for(String filename : stormDist.list()){
+                               Pattern p = Pattern.compile(file+"-[0-9]+$");
+                               Matcher m = p.matcher(filename);
+                               if(m.find()){
+                                       System.err.println("Trying to rm -rf " + dir + "/" + filename);
+                                       execCommand("rm -rf " + dir + "/" + filename);
+                               }
+                       }
+               }
+       }
+
+       public static boolean isSymlink(File file) throws IOException {
+               if (file == null)
+                       throw new NullPointerException("File must not be null");
+               File canon;
+               if (file.getParent() == null) {
+                       canon = file;
+               } else {
+                       File canonDir = file.getParentFile().getCanonicalFile();
+                       canon = new File(canonDir, file.getName());
+               }
+               return !canon.getCanonicalFile().equals(canon.getAbsoluteFile());
+       }
+
 }

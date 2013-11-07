@@ -93,10 +93,11 @@
   ;; make the id clickable
   ;; make the table sortable
   (sorted-table
-   ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
+   ["Name" "Id" "Version" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (escape-html (.get_id t))
+      (last (.split (.get_topology_version t) "-"))
       (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
@@ -555,7 +556,7 @@
 
 (defn spout-executor-table [topology-id executors window include-sys?]
   (sorted-table
-   ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
+   ["Id" "Version" "Uptime" "Host" "Port" "Emitted" "Transferred"
     "Complete latency (ms)" "Acked" "Failed"]
    (for [^ExecutorSummary e executors
          :let [stats (.get_stats e)
@@ -566,6 +567,7 @@
                            swap-map-order
                            (get window)))]]
      [(pretty-executor-info (.get_executor_info e))
+      (last (.split (.get_topology_version e) "-"))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
       (worker-log-link (.get_host e) (.get_port e))
@@ -630,7 +632,7 @@
 
 (defn bolt-executor-table [topology-id executors window include-sys?]
   (sorted-table
-   ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred" "Capacity (last 10m)"
+   ["Id" "Version" "Uptime" "Host" "Port" "Emitted" "Transferred" "Capacity (last 10m)"
     "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
    (for [^ExecutorSummary e executors
          :let [stats (.get_stats e)
@@ -641,6 +643,7 @@
                            swap-map-order
                            (get window)))]]
      [(pretty-executor-info (.get_executor_info e))
+      (last (.split (.get_topology_version e) "-"))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
       (worker-log-link (.get_host e) (.get_port e))

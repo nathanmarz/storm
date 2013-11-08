@@ -110,6 +110,8 @@
       (routes
         (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
           (.execute handler func args))
+        (GET "/drpc/:func/" [:as {cookies :cookies} func & m]
+          (.execute handler func ""))
         (GET "/drpc/:func" [:as {cookies :cookies} func & m]
           (.execute handler func ""))))
     (wrap-reload '[backtype.storm.daemon.drpc])

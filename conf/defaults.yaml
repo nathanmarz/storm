@@ -41,8 +41,6 @@ ui.childopts: "-Xmx768m"
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
 
-
-drpc.http.port: 3771
 drpc.port: 3772
 drpc.worker.threads: 64
 drpc.queue.size: 128

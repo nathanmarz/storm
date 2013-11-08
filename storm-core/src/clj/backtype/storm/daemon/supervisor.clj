@@ -412,17 +412,12 @@
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"
                                  (str port))
-          java_home (System/getenv "JAVA_HOME")
-          java_cmd (if java_home (str java_home "/bin/java") "java")
-          worker_logdir (System/getProperty "worker.logdir")
-          logfilename (str (if worker_logdir (str worker_logdir "/") "") "worker-" port ".log")
-          logback_configurationFile_property (System/getProperty "logback.configurationFile")
-          logback_configurationFile (if logback_configurationFile_property (str "-D" logback_configurationFile_property) "")
-          command (str java_cmd " -server " childopts
+          logfilename (str "worker-" port ".log")
+          command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
                        " -Dstorm.home=" storm-home
-                       logback_configurationFile
+                       " -Dlogback.configurationFile=" storm-home "/logback/cluster.xml"
                        " -Dstorm.id=" storm-id
                        " -Dworker.id=" worker-id
                        " -Dworker.port=" port

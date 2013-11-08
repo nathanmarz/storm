@@ -313,6 +313,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * Appender name used by log viewer to determine log directory.
+     */
+    public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
+    public static final Object LOGVIEWER_APPENDER_NAME_SCHEMA = String.class;
+
+    /**
      * Childopts for Storm UI Java process.
      */
     public static final String UI_CHILDOPTS = "ui.childopts";

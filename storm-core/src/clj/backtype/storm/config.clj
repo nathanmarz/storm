@@ -200,8 +200,16 @@
   [conf id]
   (str (worker-root conf id) "/heartbeats"))
 
+(defn worker-version-root
+  [conf id]
+  (str (worker-root conf id) "/version"))
+
 ;; workers heartbeat here with pid and timestamp
 ;; if supervisor stops receiving heartbeat, it kills and restarts the process
 ;; in local mode, keep a global map of ids to threads for simulating process management
 (defn ^LocalState worker-state  [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
+
+(defn ^LocalState worker-version  [conf id]
+  (LocalState. (worker-version-root conf id)))
+

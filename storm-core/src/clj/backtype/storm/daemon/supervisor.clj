@@ -75,6 +75,20 @@
         [id (read-worker-heartbeat conf id)]))
     ))
 
+(defn read-worker-version [conf id]
+  (let [local-state (worker-version conf id)]
+    (.get local-state LS-WORKER-VERSION)
+    ))
+
+(defn read-worker-versions
+  "Returns map from worker id to topology-version"
+  [conf]
+  (let [ids (my-worker-ids conf)]
+    (into {}
+      (dofor [id ids]
+        [id (read-worker-version conf id)]))
+    ))
+
 
 (defn matches-an-assignment? [worker-heartbeat assigned-executors]
   (let [local-assignment (assigned-executors (:port worker-heartbeat))]
@@ -89,6 +103,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
+        id->version (read-worker-versions conf)
         storm-id->topology-version (:storm-id->topology-version supervisor)
         approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
     (into
@@ -103,16 +118,17 @@
                          (and 
                            (@(:storm-id->update-time supervisor) (:storm-id hb))
                            (< (@(:storm-id->update-time supervisor) (:storm-id hb)) (current-time-secs)) 
-                           (not (= (@(:storm-id->topology-version supervisor) (:storm-id hb)) (:topology-version hb))))
+                           (id->version id)
+                           (not (= (@(:storm-id->topology-version supervisor) (:storm-id hb)) (id->version id))))
                            :update
                          (> (- now (:time-secs hb))
                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
                            :timed-out
                          true
                            :valid)]
-              (log-debug "Worker " id " is " state ": " (pr-str hb) " at supervisor time-secs " now)
+              (log-message "Worker " id " is " state " version: " (id->version id) ": " (pr-str hb) " at supervisor time-secs " now)
               (if (= :update state)
-                (log-debug "Worker " id " is " state " update-time " (@(:storm-id->update-time supervisor) (:storm-id hb)) " topology-version " (:topology-version hb) " to " (@(:storm-id->topology-version supervisor) (:storm-id hb))))
+                (log-message "Worker " id " is " state " update-time " (@(:storm-id->update-time supervisor) (:storm-id hb)) " topology-version " (id->version id) " to " (@(:storm-id->topology-version supervisor) (:storm-id hb))))
               [id [state hb]]
               ))
      )))
@@ -147,6 +163,7 @@
 (defn try-cleanup-worker [conf id]
   (try
     (rmr (worker-heartbeats-root conf id))
+    (rmr (worker-version-root conf id))
     ;; this avoids a race condition with worker or subprocess writing pid around same time
     (rmpath (worker-pids-root conf id))
     (rmpath (worker-root conf id))

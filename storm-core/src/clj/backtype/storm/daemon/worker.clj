@@ -45,9 +45,9 @@
              (current-time-secs)
              (:storm-id worker)
              (:executors worker)
-             (:port worker)
-             (:topology-version worker))
-        state (worker-state conf (:worker-id worker))]
+             (:port worker))
+        state (worker-state conf (:worker-id worker))
+        version (worker-version conf (:worker-id worker))]
     (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
     (.put state
@@ -57,6 +57,12 @@
         )
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
+    (.put version
+        LS-WORKER-VERSION
+        (:topology-version worker)
+        false
+        )
+    (.cleanup version 60)
 
     ))
 

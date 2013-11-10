@@ -41,6 +41,7 @@
   (waiting? [this]))
 
 (def LS-WORKER-HEARTBEAT "worker-heartbeat")
+(def LS-WORKER-VERSION "worker-version")
 
 ;; LocalState constants
 (def LS-ID "supervisor-id")
@@ -49,7 +50,7 @@
 
 
 
-(defrecord WorkerHeartbeat [time-secs storm-id executors port topology-version])
+(defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
 (defrecord ExecutorStats [^long processed
                           ^long acked

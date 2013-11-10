@@ -21,7 +21,7 @@
       (:component->stream->fields worker)
       (:storm-id worker)
       (supervisor-storm-resources-path
-        (supervisor-stormdist-root conf (:storm-id worker)))
+        (supervisor-stormdist-root conf (:topology-version worker)))
       (worker-pids-root conf (:worker-id worker))
       (int %)
       (:port worker)

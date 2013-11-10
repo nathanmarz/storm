@@ -4,12 +4,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class Time {
     public static Logger LOG = LoggerFactory.getLogger(Time.class);    
+
+    public static SimpleDateFormat DATE_yyyyMMddHHmmss = new SimpleDateFormat("yyyyMMddHHmmss");
     
     private static AtomicBoolean simulating = new AtomicBoolean(false);
     //TODO: should probably use weak references here or something
@@ -70,6 +74,10 @@ public class Time {
         return (int) (currentTimeMillis() / 1000);
     }
     
+    public static String currentTimeString() {
+        return DATE_yyyyMMddHHmmss.format(new Date(currentTimeMillis()));
+    }
+
     public static void advanceTime(long ms) {
         if(!simulating.get()) throw new IllegalStateException("Cannot simulate time unless in simulation mode");
         simulatedCurrTimeMs.set(simulatedCurrTimeMs.get() + ms);

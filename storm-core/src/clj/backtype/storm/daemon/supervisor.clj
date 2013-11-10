@@ -305,7 +305,7 @@
                      exists? (exists-file? stormdist)
                      rand (Random. (Utils/secureRandomLong))]
                  (log-message "topology-version " (:topology-version storm-base)  "; path " stormdist " exists? " exists?)
-                 (when (and (or (not (downloaded-storm-ids topology-version)) (not (downloaded-storm-ids storm-id)))
+                 (when (and (not (downloaded-storm-ids topology-version))
                             (assigned-storm-ids storm-id))
                    (log-message "Downloading code for storm id "
                       storm-id
@@ -342,7 +342,7 @@
                       (storm-code-map (.substring storm-id 0 (.lastIndexOf storm-id "-"))))
           (log-message "Removing code for storm id "
                        storm-id)
-          (Utils/rmrStormDist (supervisor-stormdist-root conf) storm-id)
+          (rmr (supervisor-stormdist-root conf storm-id))
           ))
       (.add processes-event-manager sync-processes)
       )))
@@ -420,8 +420,7 @@
     :distributed [conf storm-id master-code-dir topology-version]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
-          stormroot (supervisor-stormdist-root conf topology-version)
-          stormroot-symb (supervisor-stormdist-root conf storm-id)]
+          stormroot (supervisor-stormdist-root conf topology-version)]
       (FileUtils/forceMkdir (File. tmproot))
       
       (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
@@ -429,10 +428,6 @@
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      (if (exists-file? stormroot-symb)
-         (rmpath stormroot-symb)
-         (log-message stormroot-symb " is not exists!"))
-      (symlink stormroot stormroot-symb)
       ))
 
 
@@ -440,9 +435,9 @@
     :distributed [supervisor storm-id port worker-id topology-version]
     (let [conf (:conf supervisor)
           storm-home (System/getProperty "storm.home")
-          stormroot (supervisor-stormdist-root conf storm-id)
+          stormroot (supervisor-stormdist-root conf topology-version)
           stormjar (supervisor-stormjar-path stormroot)
-          storm-conf (read-supervisor-storm-conf conf storm-id)
+          storm-conf (read-supervisor-storm-conf conf topology-version)
           classpath (add-to-classpath (current-classpath) [stormjar])
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"

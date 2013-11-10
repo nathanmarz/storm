@@ -291,17 +291,12 @@
   topology)
 
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology topology-version]
-  (let [stormroot (master-stormdist-root conf topology-version)
-        stormroot-symb (master-stormdist-root conf storm-id)]
+  (let [stormroot (master-stormdist-root conf storm-id)]
    (FileUtils/forceMkdir (File. stormroot))
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
-   (if (exists-file? stormroot-symb)
-     (rmpath stormroot-symb)
-     (log-message stormroot-symb " is not exists"))
-   (symlink stormroot stormroot-symb)
    ))
 
 (defn- read-storm-topology [conf storm-id]
@@ -743,14 +738,11 @@
     ))
 
 (defn code-ids [conf]
-  (let [ids (-> conf
-                master-stormdist-root
-                read-dir-contents
-                set)]
-    (->> 
-        ids
-        (filter #(Utils/isSymlink (File. (str (master-stormdist-root conf) "/" %))))
-        set)))
+  (-> conf
+      master-stormdist-root
+      read-dir-contents
+      set
+      ))
 
 (defn cleanup-storm-ids [conf storm-cluster-state]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
@@ -826,7 +818,7 @@
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
-          (Utils/rmrStormDist (master-stormdist-root conf) id)
+          (rmr (master-stormdist-root conf id))
           (swap! (:heartbeats-cache nimbus) dissoc id))
         ))))
 
@@ -941,8 +933,8 @@
                      (from-json serializedConf)
                      topology)
           (swap! (:submitted-count nimbus) inc)
-          (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (Utils/getCurrentTime))
-                topology-version (str storm-id "-" (Utils/getCurrentTime))
+          (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
+                topology-version (str storm-id "-v" (current-time-string))
                 storm-conf (normalize-conf
                             conf
                             (-> serializedConf
@@ -981,7 +973,7 @@
         (validate-topology-name! storm-name)
         (check-storm-active! nimbus storm-name true)
         (let [storm-id (get-storm-id (:storm-cluster-state nimbus) storm-name)
-              topology-version (str storm-id "-" (Utils/getCurrentTime))
+              topology-version (str storm-id "-v" (current-time-string))
               storm-conf (normalize-conf
                           conf
                           (-> serializedConf

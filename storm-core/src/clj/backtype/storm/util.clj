@@ -195,6 +195,9 @@
 (defn current-time-millis []
   (Time/currentTimeMillis))
 
+(defn current-time-string []
+  (Time/currentTimeString))
+
 (defn clojurify-structure [s]
   (prewalk (fn [x]
               (cond (instance? Map x) (into {} x)

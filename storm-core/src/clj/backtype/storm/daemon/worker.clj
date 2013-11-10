@@ -154,7 +154,7 @@
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id topology-version]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
-        storm-conf (read-supervisor-storm-conf conf storm-id)
+        storm-conf (read-supervisor-storm-conf conf topology-version)
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
         transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
@@ -164,7 +164,7 @@
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
                                (into {}))
 
-        topology (read-supervisor-topology conf storm-id)]
+        topology (read-supervisor-topology conf topology-version)]
     (recursive-map
       :conf conf
       :mq-context (if mq-context

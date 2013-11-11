@@ -533,7 +533,7 @@ public class Config extends HashMap<String, Object> {
      * See Kryo's documentation for more information about writing custom serializers.
      */
     public static final String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
-    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.StringsValidator;
+    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.KryoRegValidator;
 
     /**
      * A list of classes that customize storm's kryo instance during start-up.

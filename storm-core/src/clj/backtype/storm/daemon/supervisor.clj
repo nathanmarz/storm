@@ -313,7 +313,7 @@
       ;; should we only download when topology is assigned to this supervisor?
       (doseq [[storm-id master-code-dir] storm-code-map]
         (let [storm-base (.storm-base (:storm-cluster-state supervisor) storm-id nil)
-              topology-version (:topology-version storm-base)] 
+              topology-version (-> storm-base :status :topology-version)]
           (if-not storm-base
              (log-warn "storm-id " storm-id " storm-base is nil")
              (if-not topology-version
@@ -321,7 +321,6 @@
                (let [stormdist (supervisor-stormdist-root conf topology-version)
                      exists? (exists-file? stormdist)
                      rand (Random. (Utils/secureRandomLong))]
-                 (log-message "topology-version " (:topology-version storm-base)  "; path " stormdist " exists? " exists?)
                  (when (and (not (downloaded-storm-ids topology-version))
                             (assigned-storm-ids storm-id))
                    (log-message "Downloading code for storm id "
@@ -334,7 +333,7 @@
                       " from "
                       master-code-dir))
                  (when-not (= (@(:storm-id->topology-version supervisor) storm-id) topology-version)
-                   (let [wait-time  (.nextInt rand (:update-used-time storm-base)) 
+                   (let [wait-time (.nextInt rand (-> storm-base :status :update-duration-secs))
                          update-time (+ (current-time-secs) wait-time)]
                      (log-message "topology-version " (@(:storm-id->topology-version supervisor) storm-id) " change to " topology-version " wait-time " wait-time " update time " update-time)
                      (swap! (:storm-id->update-time supervisor) assoc storm-id update-time))

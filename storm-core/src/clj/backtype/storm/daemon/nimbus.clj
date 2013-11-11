@@ -713,11 +713,11 @@
                       storm-id
                       (StormBase. storm-name
                                   (current-time-secs)
-                                  {:type topology-initial-status}
+                                  {:type topology-initial-status
+                                   :topology-version topology-version
+                                   :update-duration-secs 0}
                                   (storm-conf TOPOLOGY-WORKERS)
-                                  num-executors
-                                  topology-version
-                                  1))))
+                                  num-executors))))
 
 ;; Master:
 ;; job submit:
@@ -995,9 +995,11 @@
             (let [assignment (.assignment-info storm-cluster-state storm-id nil) 
                   storm-id->supervisors (:node->host assignment)
                   intervals (total-storm-conf TOPOLOGY-UPDATE-INTERVAL-SECS)
-                  update-used-time (* (count storm-id->supervisors) intervals)]
-              (log-message "updateTopology: topology-version "  topology-version " interval " intervals " update-used-time " update-used-time) 
-              (.update-storm! storm-cluster-state storm-id {:topology-version topology-version :update-used-time update-used-time}))
+                  update-duration-secs (* (count storm-id->supervisors) intervals)]
+              (set-topology-status! nimbus storm-id
+                (merge (topology-status nimbus storm-id)
+                       {:topology-version topology-version
+                        :update-duration-secs update-duration-secs})))
             )
           ))
       
@@ -1130,7 +1132,7 @@
                                                                  count)
                                                             (time-delta (:launch-time-secs base))
                                                             (extract-status-str base)
-                                                            (:topology-version base))
+                                                            (-> base :status :topology-version))
                                           ))]
           (ClusterSummary. supervisor-summaries
                            nimbus-uptime
@@ -1171,7 +1173,7 @@
                          executor-summaries
                          (extract-status-str base)
                          errors
-                         (:topology-version base)
+                         (-> base :status :topology-version)
                          )
           ))
       

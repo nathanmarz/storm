@@ -158,6 +158,11 @@
                                  (:old-status status))
                  }})
 
+(defn nil-to-unknown [x]
+  (if x
+    x
+    "unknown"))
+
 (defn topology-status [nimbus storm-id]
   (-> nimbus :storm-cluster-state (.storm-base storm-id nil) :status))
 
@@ -1119,7 +1124,7 @@
                                                                  count)
                                                             (time-delta (:launch-time-secs base))
                                                             (extract-status-str base)
-                                                            (-> base :status :topology-version))
+                                                            (nil-to-unknown (-> base :status :topology-version)))
                                           ))]
           (ClusterSummary. supervisor-summaries
                            nimbus-uptime
@@ -1148,9 +1153,8 @@
                                                                 host
                                                                 port
                                                                 (nil-to-zero (:uptime heartbeat))
-                                                                (if (:topology-version heartbeat)
-                                                                  (:topology-version heartbeat)
-                                                                  "unknow"))
+                                                                (nil-to-unknown (:topology-version heartbeat))
+                                                                )
                                             (.set_stats stats))
                                           ))
               ]
@@ -1160,7 +1164,7 @@
                          executor-summaries
                          (extract-status-str base)
                          errors
-                         (-> base :status :topology-version)
+                         (nil-to-unknown (-> base :status :topology-version))
                          )
           ))
       

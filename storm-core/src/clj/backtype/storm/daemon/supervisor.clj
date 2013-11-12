@@ -258,7 +258,8 @@
      conf
      (dofor [[port assignment] reassign-executors]
        (let [id (new-worker-ids port)
-             topology-version (@(:storm-id->topology-version supervisor) (:storm-id assignment))]
+             topology-version (@(:storm-id->topology-version supervisor) (:storm-id assignment))
+             topology-version (if topology-version topology-version (:storm-id assignment))]
          (log-message "Launching worker with assignment "
                       (pr-str assignment)
                       " for this supervisor "

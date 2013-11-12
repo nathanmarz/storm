@@ -300,12 +300,21 @@
 (defn bolt-summary? [topology s]
   (= :bolt (executor-summary-type topology s)))
 
+(defn update-percent [version executors]
+  (let [newest-executors (->> executors
+                             (filter #(= version (last (.split (.get_topology_version %) "-")))))]
+        (str "" (quot (* (count newest-executors) 100)
+                      (count executors)) " %")
+  ))
+
 (defn topology-summary-table [^TopologyInfo summ]
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors] [(.get_host e) (.get_port e)]))]
-    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
+    (table ["Name" "Id" "Version" "Update percent" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
            [[(escape-html (.get_name summ))
              (escape-html (.get_id summ))
+             (last (.split (.get_topology_version summ) "-"))
+             (update-percent (last (.split (.get_topology_version summ) "-")) executors)
              (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)

@@ -2,7 +2,8 @@
   (:use [clojure test])
   (:require [backtype.storm [testing :as t]])
   (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter
-            MemoryMapState$Factory])
+           MemoryMapState$Factory DebugMultiStream])
+  (:import [storm.trident.fluent StreamMap])
   (:import [storm.trident.state StateSpec])
   (:import [storm.trident.operation.impl CombinerAggStateUpdater])
   (:use [storm.trident testing])
@@ -126,7 +127,37 @@
           (is (= [[0]] (exec-drpc drpc "numwords" "")))
           (is (= [[8]] (exec-drpc drpc "numwords" "1 2 3 4 5 6 7 8")))
           )))))
-          
+
+(deftest test-multi-each
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind multi-stream
+              (-> topo
+                  (.newDRPCStream "multioutput" drpc)
+                  (.each (fields "args") (DebugMultiStream. "streamA" "streamB") (StreamMap. { "streamA" (fields "aValue") "streamB" (fields "bValue") }))
+                  ))
+        (bind s1
+          (-> multi-stream
+              (.getStream "streamA")
+              (.each (fields "aValue") (Split.) (fields "word"))
+              ))
+        ;; Rearrange fields here to illustrate they're from different streams
+        (bind s2
+          (-> multi-stream
+              (.getStream "streamB")
+              (.each (fields "bValue") (Split.) (fields "word"))
+              (.project (fields "word" "bValue" "args"))
+              ))
+
+        (.merge topo [s1 s2])
+        (with-topology [cluster topo]
+          (is (t/ms= [["A: This starts with A" "A" "A"]] (exec-drpc drpc "multioutput" "A: This starts with A")))
+          (is (t/ms= [["B" "B" "B: This starts with B"]] (exec-drpc drpc "multioutput" "B: This starts with B")))
+          )))))
+
+
 (deftest test-split-merge
   (t/with-local-cluster [cluster]
     (with-drpc [drpc]
@@ -202,6 +233,25 @@
                ))
      (bind stream (-> topo
                       (.newStream "tester" feeder)))
+     (bind multi-stream (-> stream
+                            (.each (fields "sentence") (DebugMultiStream. "streamA" "streamB") (StreamMap. { "streamA" (fields "aValue") "streamB" (fields "bValue") }))
+                            ))
+     (bind s1
+           (-> multi-stream
+               (.getStream "streamA")))
+     (bind s2
+           (-> multi-stream
+               (.getStream "streamB")))
+
+     ;; test each; can't select fields from different stream
+     (is (thrown? IllegalArgumentException
+                  (-> s1
+                      (.each (fields "bValue") (Split.) (fields "word")))))
+
+     (is (thrown? IllegalArgumentException
+                  (-> s2
+                      (.each (fields "aValue") (Split.) (fields "word")))))
+        
      ;; test .each
      (is (thrown? IllegalArgumentException
                   (-> stream
@@ -254,6 +304,8 @@
                         (.groupBy (fields "word"))
                         (.stateQuery word-counts (fields "word1") (MapGet.) (fields "count"))))))
      )))
+
+
 
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]

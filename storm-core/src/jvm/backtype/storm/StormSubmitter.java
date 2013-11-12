@@ -61,8 +61,16 @@ public class StormSubmitter {
         stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
-        boolean topologyUpdate = (conf.get(Config.TOPOLOGY_UPDATE) != null ? 
-                                  (Boolean)(conf.get(Config.TOPOLOGY_UPDATE)) : false);
+        boolean topologyUpdate = false;
+        Object o = conf.get(Config.TOPOLOGY_UPDATE);
+        if (o != null) {
+            if (o instanceof Boolean) {
+                topologyUpdate = (Boolean)o;
+            } else if (o instanceof String) {
+                topologyUpdate = Boolean.valueOf((String)o);
+            }
+        }
+
         try {
             String serConf = JSONValue.toJSONString(stormConf);
             if(localNimbus!=null) {

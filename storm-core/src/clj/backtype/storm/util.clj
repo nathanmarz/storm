@@ -359,10 +359,6 @@
     (log-message "Could not extract " dir " from " jarpath))
   ))
 
-(defn symlink [src dest]
-  (log-message "try to ln -s " src " " dest)
-  (exec-command! (str "ln -s " src " " dest)))
-
 (defn ensure-process-killed! [pid]
   ;; TODO: should probably do a ps ax of some sort to make sure it was killed
   (try-cause

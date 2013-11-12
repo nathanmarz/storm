@@ -290,7 +290,7 @@
   ;; need to somehow maintain stream/component ids inside tuples
   topology)
 
-(defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology topology-version]
+(defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
    (FileUtils/forceMkdir (File. stormroot))
    (FileUtils/cleanDirectory (File. stormroot))
@@ -715,7 +715,7 @@
                                   (current-time-secs)
                                   {:type topology-initial-status
                                    :topology-version topology-version
-                                   :update-duration-secs 0}
+                                   :update-duration-secs 1}
                                   (storm-conf TOPOLOGY-WORKERS)
                                   num-executors))))
 
@@ -864,22 +864,6 @@
     (throw (InvalidTopologyException. 
             ("Topology name cannot be blank"))))))
 
-(defn- validate-update-topology [storm-id conf storm-conf ^StormTopology topology]
-  (let [old-storm-conf (read-storm-conf conf storm-id)
-        update-storm-conf (merge conf storm-conf )
-        ^StormTopology old-topology (read-storm-topology conf storm-id)]
-   (if-not (= (old-storm-conf TOPOLOGY-WORKERS) (update-storm-conf TOPOLOGY-WORKERS))
-       (throw (InvalidTopologyException.
-          (str "the workers of update topology: " (update-storm-conf TOPOLOGY-WORKERS) " is different of existing topology: " (old-storm-conf TOPOLOGY-WORKERS))))
-       (if-not (= (old-storm-conf TOPOLOGY-ACKER-EXECUTORS) (update-storm-conf TOPOLOGY-ACKER-EXECUTORS))
-          (throw (InvalidTopologyException.
-            (str "the ack executors of update topology: " (update-storm-conf TOPOLOGY-ACKER-EXECUTORS) " is different of existing topology " (old-storm-conf TOPOLOGY-ACKER-EXECUTORS))))
-          (if-not (= (old-storm-conf TOPOLOGY-MAX-TASK-PARALLELISM) (update-storm-conf TOPOLOGY-MAX-TASK-PARALLELISM))
-              (throw (InvalidTopologyException.
-               (str "the max task parallelism of update topology: " (update-storm-conf TOPOLOGY-MAX-TASK-PARALLELISM) " is different of exsting topology: " (old-storm-conf TOPOLOGY-MAX-TASK-PARALLELISM))))
-  )))))
-
-
 (defn- try-read-storm-conf [conf storm-id]
   (try-cause
     (read-storm-conf conf storm-id)
@@ -934,7 +918,7 @@
                      topology)
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
-                topology-version (str storm-id "-v" (current-time-string))
+                topology-version (gen-topology-version storm-id)
                 storm-conf (normalize-conf
                             conf
                             (-> serializedConf
@@ -953,7 +937,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
-              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology topology-version)
+              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
@@ -972,8 +956,12 @@
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
         (validate-topology-name! storm-name)
         (check-storm-active! nimbus storm-name true)
+        (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                   storm-name
+                   (from-json serializedConf)
+                   topology)
         (let [storm-id (get-storm-id (:storm-cluster-state nimbus) storm-name)
-              topology-version (str storm-id "-v" (current-time-string))
+              topology-version (gen-topology-version storm-id)
               storm-conf (normalize-conf
                           conf
                           (-> serializedConf
@@ -988,10 +976,9 @@
                          topology)
               storm-cluster-state (:storm-cluster-state nimbus)]
           (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-          (validate-update-topology storm-id conf storm-conf topology); 
           (log-message "Received topology update for " storm-name " with conf " storm-conf)
           (locking (:submit-lock nimbus)
-            (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology topology-version)
+            (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
             (let [assignment (.assignment-info storm-cluster-state storm-id nil) 
                   storm-id->supervisors (:node->host assignment)
                   intervals (total-storm-conf TOPOLOGY-UPDATE-INTERVAL-SECS)

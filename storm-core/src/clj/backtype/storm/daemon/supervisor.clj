@@ -126,7 +126,7 @@
                            :timed-out
                          true
                            :valid)]
-              (log-message "Worker " id " is " state " version: " (id->version id) ": " (pr-str hb) " at supervisor time-secs " now)
+              (log-debug "Worker " id " is " state " version: " (id->version id) ": " (pr-str hb) " at supervisor time-secs " now)
               (if (= :update state)
                 (log-message "Worker " id " is " state " update-time " (@(:storm-id->update-time supervisor) (:storm-id hb)) " topology-version " (id->version id) " to " (@(:storm-id->topology-version supervisor) (:storm-id hb))))
               [id [state hb]]
@@ -318,9 +318,7 @@
              (log-warn "storm-id " storm-id " storm-base is nil")
              (if-not topology-version
                (log-warn "storm-id " storm-id " " topology-version " topology-version is nil")
-               (let [stormdist (supervisor-stormdist-root conf topology-version)
-                     exists? (exists-file? stormdist)
-                     rand (Random. (Utils/secureRandomLong))]
+               (do
                  (when (and (not (downloaded-storm-ids topology-version))
                             (assigned-storm-ids storm-id))
                    (log-message "Downloading code for storm id "
@@ -333,9 +331,10 @@
                       " from "
                       master-code-dir))
                  (when-not (= (@(:storm-id->topology-version supervisor) storm-id) topology-version)
-                   (let [wait-time (.nextInt rand (-> storm-base :status :update-duration-secs))
+                   (let [rand (Random. (Utils/secureRandomLong))
+                         wait-time (.nextInt rand (-> storm-base :status :update-duration-secs))
                          update-time (+ (current-time-secs) wait-time)]
-                     (log-message "topology-version " (@(:storm-id->topology-version supervisor) storm-id) " change to " topology-version " wait-time " wait-time " update time " update-time)
+                     (log-message storm-id " topology-version change from " (@(:storm-id->topology-version supervisor) storm-id) " to " topology-version " wait " wait-time " secs until " update-time " to do update restart")
                      (swap! (:storm-id->update-time supervisor) assoc storm-id update-time))
                    (swap! (:storm-id->topology-version supervisor) assoc storm-id topology-version)))))))
 
@@ -355,7 +354,7 @@
       ;; resources don't exist
       (doseq [storm-id downloaded-storm-ids]
         (when-not (or (storm-code-map storm-id) 
-                      (storm-code-map (.substring storm-id 0 (.lastIndexOf storm-id "-"))))
+                      (storm-code-map (get-topology-id storm-id)))
           (log-message "Removing code for storm id "
                        storm-id)
           (rmr (supervisor-stormdist-root conf storm-id))
@@ -484,14 +483,9 @@
 
 (defmethod download-storm-code
     :local [conf storm-id master-code-dir topology-version]
-  (let [stormroot (supervisor-stormdist-root conf topology-version)
-        stormroot-symb (supervisor-stormdist-root conf storm-id)]
+  (let [stormroot (supervisor-stormdist-root conf topology-version)]
       (when-not (exists-file? stormroot)
         (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot)))
-      (if (exists-file? stormroot-symb)
-         (rmpath stormroot-symb)
-         (log-message stormroot-symb " is not exists!"))
-      (exec-command! (str "ln -s " stormroot " "  stormroot-symb))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)

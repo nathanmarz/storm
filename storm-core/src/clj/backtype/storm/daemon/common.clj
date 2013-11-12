@@ -58,6 +58,12 @@
                           ^long transferred
                           ^long failed])
 
+(defn gen-topology-version [storm-id]
+  (str storm-id "-v" (current-time-string)))
+
+(defn get-topology-id [topology-version]
+  (.substring topology-version 0 (.lastIndexOf topology-version "-v")))
+
 (defn new-executor-stats []
   (ExecutorStats. 0 0 0 0 0))
 

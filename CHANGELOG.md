@@ -1,4 +1,53 @@
-## Unreleased
+## 0.9.0-rc3 (Unreleased)
+
+## 0.9.0-rc2 
+
+* Fixed `storm jar` command to work properly when STORM_JAR_JVM_OPTS is not specified (thanks roadkill001)
+
+## 0.9.0-rc1
+
+ * All logging now done with slf4j
+ * Replaced log4j logging system with logback
+ * Logs are now limited to 1GB per worker (configurable via logging configuration file)
+ * Build upgraded to leiningen 2.0
+ * Revamped Trident spout interfaces to support more dynamic spouts, such as a spout who reads from a changing set of brokers
+ * How tuples are serialized is now pluggable (thanks anfeng)
+ * Added blowfish encryption based tuple serialization (thanks anfeng)
+ * Have storm fall back to installed storm.yaml (thanks revans2)
+ * Improve error message when Storm detects bundled storm.yaml to show the URL's for offending resources (thanks revans2)
+ * Nimbus throws NotAliveException instead of FileNotFoundException from various query methods when topology is no longer alive (thanks revans2)
+ * Escape HTML and Javascript appropriately in Storm UI (thanks d2r)
+ * Storm's Zookeeper client now uses bounded exponential backoff strategy on failures
+ * Automatically drain and log error stream of multilang subprocesses
+ * Append component name to thread name of running executors so that logs are easier to read
+ * Messaging system used for passing messages between workers is now pluggable (thanks anfeng)
+ * Netty implementation of messaging (thanks anfeng)
+ * Include topology id, worker port, and worker id in properties for worker processes, useful for logging (thanks d2r)
+ * Tick tuples can now be scheduled using floating point seconds (thanks tscurtu)
+ * Added log viewer daemon and links from UI to logviewers (thanks xiaokang)
+ * DRPC server childopts now configurable (thanks strongh)
+ * Default number of ackers to number of workers, instead of just one (thanks lyogavin)
+ * Validate that Storm configs are of proper types/format/structure (thanks d2r)
+ * FixedBatchSpout will now replay batches appropriately on batch failure (thanks ptgoetz)
+ * Can set JAR_JVM_OPTS env variable to add jvm options when calling 'storm jar' (thanks srmelody)
+ * Throw error if batch id for transaction is behind the batch id in the opaque value (thanks mrflip)
+ * Sort topologies by name in UI (thanks jaked)
+ * Added LoggingMetricsConsumer to log all metrics to a file, by default not enabled (thanks mrflip)
+ * Add prepare(Map conf) method to TopologyValidator (thanks ankitoshniwal)
+ * Bug fix: Supervisor provides full path to workers to logging config rather than relative path (thanks revans2) 
+ * Bug fix: Call ReducerAggregator#init properly when used within persistentAggregate (thanks lorcan)
+ * Bug fix: Set component-specific configs correctly for Trident spouts
+
+## 0.8.3 (unreleased)
+
+ * Revert zmq layer to not rely on multipart messages to fix issue reported by some users
+ * Bug fix: Fix TransactionalMap and OpaqueMap to correctly do multiple updates to the same key in the same batch
+ * Bug fix: Fix race condition between supervisor and Nimbus that could lead to stormconf.ser errors and infinite crashing of supervisor
+ * Bug fix: Fix default scheduler to always reassign workers in a constrained topology when there are dead executors
+ * Bug fix: Fix memory leak in Trident LRUMemoryMapState due to concurrency issue with LRUMap (thanks jasonjckn)
+ * Bug fix: Properly ignore NoNodeExists exceptions when deleting old transaction states
+
+## 0.8.2
 
  * Added backtype.storm.scheduler.IsolationScheduler. This lets you run topologies that are completely isolated at the machine level. Configure Nimbus to isolate certain topologies, and how many machines to give to each of those topologies, with the isolation.scheduler.machines config in Nimbus's storm.yaml. Topologies run on the cluster that are not listed there will share whatever remaining machines there are on the cluster after machines are allocated to the listed topologies.
  * Storm UI now uses nimbus.host to find Nimbus rather than always using localhost (thanks Frostman)
@@ -31,12 +80,16 @@
  * Added MockTridentTuple for testing (thanks emblem)
  * Add whitelist methods to Cluster to allow only a subset of hosts to be revealed as available slots
  * Updated Trident Debug filter to take in an identifier to use when logging (thanks emblem)
+ * Number of DRPC server worker threads now customizable (thanks xiaokang)
+ * DRPC server now uses a bounded queue for requests to prevent being overloaded with requests (thanks xiaokang)
+ * Add __hash__ method to all generated Python Thrift objects so that Python code can read Nimbus stats which use Thrift objects as dict keys
  * Bug fix: Fix for bug that could cause topology to hang when ZMQ blocks sending to a worker that got reassigned
  * Bug fix: Fix deadlock bug due to variant of dining philosophers problem. Spouts now use an overflow buffer to prevent blocking and guarantee that it can consume the incoming queue of acks/fails.
  * Bug fix: Fix race condition in supervisor that would lead to supervisor continuously crashing due to not finding "stormconf.ser" file for an already killed topology
  * Bug fix: bin/storm script now displays a helpful error message when an invalid command is specified
  * Bug fix: fixed NPE when emitting during emit method of Aggregator
  * Bug fix: URLs with periods in them in Storm UI now route correctly
+ * Bug fix: Fix occasional cascading worker crashes due when a worker dies due to not removing connections from connection cache appropriately
   
 ## 0.8.1
 

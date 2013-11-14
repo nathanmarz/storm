@@ -14,8 +14,11 @@ storm.zookeeper.session.timeout: 20000
 storm.zookeeper.connection.timeout: 15000
 storm.zookeeper.retry.times: 5
 storm.zookeeper.retry.interval: 1000
+storm.zookeeper.retry.intervalceiling.millis: 30000
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
+storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
+storm.messaging.transport: "backtype.storm.messaging.zmq"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
@@ -35,9 +38,17 @@ nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 ui.port: 8080
 ui.childopts: "-Xmx768m"
 
+logviewer.port: 8000
+logviewer.childopts: "-Xmx128m"
+logviewer.appender.name: "A1"
+
+
 drpc.port: 3772
+drpc.worker.threads: 64
+drpc.queue.size: 128
 drpc.invocations.port: 3773
 drpc.request.timeout.secs: 600
+drpc.childopts: "-Xmx768m"
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null
@@ -72,13 +83,19 @@ zmq.threads: 1
 zmq.linger.millis: 5000
 zmq.hwm: 0
 
+storm.messaging.netty.server_worker_threads: 1
+storm.messaging.netty.client_worker_threads: 1
+storm.messaging.netty.buffer_size: 5242880 #5MB buffer
+storm.messaging.netty.max_retries: 100
+storm.messaging.netty.max_wait_ms: 1000
+storm.messaging.netty.min_wait_ms: 100
+
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
 topology.debug: false
 topology.optimize: true
 topology.workers: 1
-topology.acker.executors: 1
-topology.acker.tasks: null
+topology.acker.executors: null
 topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
@@ -87,6 +104,7 @@ topology.max.task.parallelism: null
 topology.max.spout.pending: null
 topology.state.synchronization.timeout.secs: 60
 topology.stats.sample.rate: 0.05
+topology.builtin.metrics.bucket.size.secs: 60
 topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
 topology.executor.receive.buffer.size: 1024 #batched
@@ -101,7 +119,7 @@ topology.sleep.spout.wait.strategy.time.ms: 1
 topology.error.throttle.interval.secs: 10
 topology.max.error.report.per.interval: 5
 topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
+topology.tuple.serializer: "backtype.storm.serialization.types.ListDelegateSerializer"
 topology.trident.batch.emit.interval.millis: 500
-
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

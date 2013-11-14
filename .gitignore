@@ -1,3 +1,4 @@
+.lein-repl-history
 /classes
 /lib
 deploy/lib
@@ -21,6 +22,9 @@ _release
 *.zip
 .lein-deps-sum
 *.iml
+target
+/.project/
+/.lein-plugins/
 *.ipr
 *.iws
 .idea

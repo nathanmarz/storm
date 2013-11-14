@@ -1,22 +1,37 @@
-#!/bin/bash
+#!/bin/bash 
+function quit {
+    exit 1
+}
+trap quit 1 2 3 15  #Ctrl+C exits.
 
-RELEASE=`cat project.clj | sed '6q;d' | awk '{print $3}' | sed -e 's/\"//' | sed -e 's/\"//'`
+RELEASE=`cat VERSION`
+LEIN=`which lein2 || which lein` 
+export LEIN_ROOT=1
 
-rm -rf classes
-rm *jar
-rm *xml
-lein jar
-lein pom
-scp storm*jar pom.xml clojars@clojars.org:
 
-rm *jar
-rm -rf classes
-rm conf/log4j.properties
-lein jar
-mv pom.xml old-pom.xml
-sed 's/artifactId\>storm/artifactId\>storm-lib/g' old-pom.xml > pom.xml
-mv storm-$RELEASE.jar storm-lib-$RELEASE.jar
-scp storm*jar pom.xml clojars@clojars.org:
-rm *xml
-rm *jar
-git checkout conf/log4j.properties
+sh bin/build_modules.sh
+
+echo ==== Module jars ====
+for module in $(cat MODULES)
+do
+	cd $module
+	scp target/*jar pom.xml clojars@clojars.org:
+	cd ..
+done
+
+
+#L
+
+echo ==== Storm jar ====
+$LEIN clean
+$LEIN pom
+$LEIN jar
+scp pom.xml target/*jar clojars@clojars.org:
+
+echo ==== Storm-lib jar ====
+cd storm-lib
+$LEIN clean
+$LEIN pom
+$LEIN jar
+scp pom.xml target/*jar clojars@clojars.org:
+cd ..

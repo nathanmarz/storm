@@ -1,34 +1,53 @@
 #!/bin/bash
+function quit {
+    exit 1
+}
+trap quit 1 2 3 15  #Ctrl+C exits.
 
-RELEASE=`cat project.clj | sed '6q;d' | awk '{print $3}' | sed -e 's/\"//' | sed -e 's/\"//'`
+RELEASE=`cat VERSION`
+LEIN=`which lein2 || which lein` 
+export LEIN_ROOT=1
 
 echo Making release $RELEASE
 
-DIR=_release/storm-$RELEASE
+DIR=`pwd`/_release/storm-$RELEASE
 
 rm -rf _release
-export LEIN_ROOT=1
-rm *.zip
-rm *jar
-rm -rf lib
-rm -rf classes
-lein deps
-lein jar
-mkdir -p $DIR
-mkdir $DIR/lib
-cp storm*jar $DIR/
-cp lib/*.jar $DIR/lib
+rm -f *.zip 
+$LEIN pom || exit 1
+mkdir -p $DIR/lib
+
+
+sh bin/build_modules.sh
+
+for module in $(cat MODULES)
+do
+	cd $module
+	mvn dependency:copy-dependencies || exit 1
+	cp -f target/dependency/*.jar $DIR/lib/
+	cp -f target/*.jar $DIR/
+	cd ..
+done
+
+cd _release/storm-$RELEASE
+for i in *.jar
+do
+	rm -f lib/$i
+done 
+cd ../..
+
 cp CHANGELOG.md $DIR/
 
 echo $RELEASE > $DIR/RELEASE
 
-cp -R log4j $DIR/
-mkdir $DIR/logs
+mkdir -p $DIR/logback
+mkdir -p $DIR/logs
+cp -R logback/cluster.xml $DIR/logback/cluster.xml
 
 mkdir $DIR/conf
 cp conf/storm.yaml.example $DIR/conf/storm.yaml
 
-cp -R src/ui/public $DIR/
+cp -R storm-core/src/ui/public $DIR/
 
 cp -R bin $DIR/
 

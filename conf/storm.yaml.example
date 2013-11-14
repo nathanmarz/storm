@@ -21,3 +21,12 @@
 # drpc.servers:
 #     - "server1"
 #     - "server2"
+
+## Metrics Consumers
+# topology.metrics.consumer.register:
+#   - class: "backtype.storm.metrics.LoggingMetricsConsumer"
+#     parallelism.hint: 1
+#   - class: "org.mycompany.MyMetricsConsumer"
+#     parallelism.hint: 1
+#     argument:
+#       - endpoint: "metrics-collector.mycompany.org"

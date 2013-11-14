@@ -1,4 +1,15 @@
-## 0.9.0-rc3 (Unreleased)
+## 0.9.0-rc4 (Unreleased)
+
+## 0.9.0-rc3
+* Added configuration to limit ShellBolt internal _pendingWrites queue length (thanks xiaokang)
+* Fixed a a netty client issue where sleep times for reconnection could be negative (thanks brndnmtthws)
+* Fixed a display issue with system stats in Storm UI (thanks d2r)
+* Nimbus now does worker heartbeat timeout checks as soon as heartbeats are updated (thanks d2r)
+* The logviewer now determines log file location by examining the logback configuration (thanks strongh)
+* Allow tick tuples to work with the system bolt (thanks xumingming)
+* Add default configuration values for the netty transport and the ability to configure the number of worker threads (thanks revans2)
+* Added timeout to unit tests to prevent a situation where tests would hang indefinitely (thanks d2r)
+* Fixed and issue in the system bolt where local mode would not be detected accurately (thanks miofthena)
 
 ## 0.9.0-rc2 
 

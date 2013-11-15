@@ -1,45 +1,34 @@
 package backtype.storm.utils;
 
+import backtype.storm.Config;
 import backtype.storm.generated.DRPCExecutionException;
 import backtype.storm.generated.DistributedRPC;
+import backtype.storm.generated.AuthorizationException;
 import org.apache.thrift7.TException;
-import org.apache.thrift7.protocol.TBinaryProtocol;
-import org.apache.thrift7.transport.TFramedTransport;
-import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
+import backtype.storm.security.auth.ThriftClient;
+import org.apache.thrift7.transport.TTransportException;
 
-public class DRPCClient implements DistributedRPC.Iface {
+import java.util.Map;
+
+public class DRPCClient extends ThriftClient implements DistributedRPC.Iface {
     private TTransport conn;
     private DistributedRPC.Client client;
     private String host;
     private int port;
     private Integer timeout;
 
-    public DRPCClient(String host, int port, Integer timeout) {
-        try {
-            this.host = host;
-            this.port = port;
-            this.timeout = timeout;
-            connect();
-        } catch(TException e) {
-            throw new RuntimeException(e);
-        }
+    public DRPCClient(Map conf, String host, int port) throws TTransportException {
+        this(conf, host, port, null);
     }
-    
-    public DRPCClient(String host, int port) {
-        this(host, port, null);
+
+    public DRPCClient(Map conf, String host, int port, Integer timeout) throws TTransportException {
+        super(conf, host, port, timeout);
+        this.host = host;
+        this.port = port;
+        this.client = new DistributedRPC.Client(_protocol);
     }
-    
-    private void connect() throws TException {
-        TSocket socket = new TSocket(host, port);
-        if(timeout!=null) {
-            socket.setTimeout(timeout);
-        }
-        conn = new TFramedTransport(socket);
-        client = new DistributedRPC.Client(new TBinaryProtocol(conn));
-        conn.open();
-    }
-    
+        
     public String getHost() {
         return host;
     }
@@ -48,20 +37,11 @@ public class DRPCClient implements DistributedRPC.Iface {
         return port;
     }   
     
-    public String execute(String func, String args) throws TException, DRPCExecutionException {
-        try {
-            if(client==null) connect();
-            return client.execute(func, args);
-        } catch(TException e) {
-            client = null;
-            throw e;
-        } catch(DRPCExecutionException e) {
-            client = null;
-            throw e;
-        }
+    public String execute(String func, String args) throws TException, DRPCExecutionException, AuthorizationException {
+        return client.execute(func, args);
     }
 
-    public void close() {
-        conn.close();
+    public DistributedRPC.Client getClient() {
+        return client;
     }
 }

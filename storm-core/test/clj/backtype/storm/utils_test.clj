@@ -34,15 +34,17 @@
                        "backtype.storm.security.auth.SimpleTransportPlugin"
                       Config/NIMBUS_HOST ""
                       Config/NIMBUS_THRIFT_PORT 65535
-                     })]
-    (is (thrown? RuntimeException
+                      STORM-NIMBUS-RETRY-TIMES 0})]
+    (is (thrown-cause? RuntimeException
       (NimbusClient/getConfiguredClient storm-conf)))
   )
 )
 
 (deftest test-getConfiguredClient-throws-RunTimeException-on-bad-args
-  (let [storm-conf (read-storm-config)]
-    (is (thrown? TTransportException
+  (let [storm-conf (merge
+                    (read-storm-config)
+                    {STORM-NIMBUS-RETRY-TIMES 0})]
+    (is (thrown-cause? TTransportException
       (NimbusClient. storm-conf "" 65535)
     ))
   )

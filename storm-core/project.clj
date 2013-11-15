@@ -36,7 +36,8 @@
   :target-path "target"
 
   :profiles {:dev {:resource-paths ["src/dev"]
-                   :dependencies [[org.mockito/mockito-all "1.9.5"]]}
+                   :dependencies [[org.clojars.runa/conjure "2.1.1"]
+                                  [org.mockito/mockito-all "1.9.5"]]}
              :release {}
              :lib {}
              }

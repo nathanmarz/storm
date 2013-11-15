@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPCInvocations;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -19,6 +20,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.thrift7.TException;
+import org.apache.thrift7.transport.TTransportException;
 import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
@@ -61,13 +63,18 @@ public class DRPCSpout extends BaseRichSpout {
             if(servers == null || servers.isEmpty()) {
                 throw new RuntimeException("No DRPC servers configured for topology");   
             }
-            if(numTasks < servers.size()) {
-                for(String s: servers) {
-                    _clients.add(new DRPCInvocationsClient(s, port));
+            
+            try {
+                if(numTasks < servers.size()) {
+                    for(String s: servers) {
+                        _clients.add(new DRPCInvocationsClient(conf, s, port));
+                    }   
+                } else {        
+                    int i = index % servers.size();
+                    _clients.add(new DRPCInvocationsClient(conf, servers.get(i), port));
                 }
-            } else {
-                int i = index % servers.size();
-                _clients.add(new DRPCInvocationsClient(servers.get(i), port));
+            } catch (TTransportException ex) {
+                throw new RuntimeException(ex); 
             }
         }
         
@@ -99,6 +106,8 @@ public class DRPCSpout extends BaseRichSpout {
                     }
                 } catch (TException e) {
                     LOG.error("Failed to fetch DRPC result from DRPC server", e);
+                } catch (AuthorizationException aze) {
+                    LOG.error("Not authorized to fetch DRPC result from DRPC server", aze);
                 }
             }
         } else {
@@ -116,6 +125,8 @@ public class DRPCSpout extends BaseRichSpout {
                     }
                 } catch (TException e) {
                     throw new RuntimeException(e);
+                } catch (AuthorizationException aze) {
+                    throw new RuntimeException(aze);
                 }
             }
         }
@@ -142,6 +153,8 @@ public class DRPCSpout extends BaseRichSpout {
             client.failRequest(did.id);
         } catch (TException e) {
             LOG.error("Failed to fail request", e);
+        } catch (AuthorizationException aze) {
+            LOG.error("Not authorized to failREquest from DRPC server", aze);
         }
     }
 

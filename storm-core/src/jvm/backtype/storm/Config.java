@@ -3,6 +3,7 @@ package backtype.storm;
 import backtype.storm.ConfigValidation;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
+import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -114,6 +115,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_LOCAL_HOSTNAME_SCHEMA = String.class;
 
     /**
+     * The plugin that will convert a principal to a local user.
+     */
+    public static final String STORM_PRINCIPAL_TO_LOCAL_PLUGIN = "storm.principal.tolocal";
+    public static final Object STORM_PRINCIPAL_TO_LOCAL_PLUGIN_SCHEMA = String.class;
+
+    /**
      * The transport plug-in for Thrift client/server communication
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
@@ -192,6 +199,24 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_ID_SCHEMA = String.class;
 
     /**
+     * The number of times to retry a Nimbus operation.
+     */
+    public static final String STORM_NIMBUS_RETRY_TIMES="storm.nimbus.retry.times";
+    public static final Object STORM_NIMBUS_RETRY_TIMES_SCHEMA = Number.class;
+    
+    /**
+     * The starting interval between exponential backoff retries of a Nimbus operation.
+     */
+    public static final String STORM_NIMBUS_RETRY_INTERVAL="storm.nimbus.retry.interval.millis";
+    public static final Object STORM_NIMBUS_RETRY_INTERVAL_SCHEMA = Number.class;
+
+    /**
+     * The ceiling of the interval between retries of a client connect to Nimbus operation.
+     */
+    public static final String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
+    public static final Object STORM_NIMBUS_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
+
+    /**
      * The host that the master server is running on.
      */
     public static final String NIMBUS_HOST = "nimbus.host";
@@ -204,6 +229,44 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_THRIFT_PORT = "nimbus.thrift.port";
     public static final Object NIMBUS_THRIFT_PORT_SCHEMA = Number.class;
 
+    /**
+     * The number of threads that should be used by the nimbus thrift server.
+     */
+    public static final String NIMBUS_THRIFT_THREADS = "nimbus.thrift.threads";
+    public static final Object NIMBUS_THRIFT_THREADS_SCHEMA = Number.class;
+
+    /**
+     * A list of users that are cluster admins and can run any command.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String NIMBUS_ADMINS = "nimbus.admins";
+    public static final Object NIMBUS_ADMINS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of users that run the supervisors and should be authorized to interact with 
+     * nimbus as a supervisor would.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
+    public static final Object NIMBUS_SUPERVISOR_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * The purpose for which the Thrift server is created.
+     */
+    public static enum ThriftServerPurpose {
+        NIMBUS("nimbus.thrift"),
+        DRPC("drpc.worker");
+
+        private final String configPrefix;
+
+        ThriftServerPurpose(String pfx) {
+            this.configPrefix = pfx;
+        }
+
+        public int getNumThreads(Map conf) {
+            return Utils.getInt(conf.get(this.configPrefix + ".threads"));
+        }
+    }
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -337,6 +400,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_PORT_SCHEMA = Number.class;
 
     /**
+     * Class name for authorization plugin for DRPC client
+     */
+    public static final String DRPC_AUTHORIZER = "drpc.authorizer";
+    public static final Object DRPC_AUTHORIZER_SCHEMA = String.class;
+
+    /**
      * DRPC thrift server worker threads 
      */
     public static final String DRPC_WORKER_THREADS = "drpc.worker.threads";
@@ -353,6 +422,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
     public static final Object DRPC_INVOCATIONS_PORT_SCHEMA = Number.class;
+
+    /**
+     * Class name for authorization plugin for DRPC Invocations client
+     */
+    public static final String DRPC_INVOCATIONS_AUTHORIZER = "drpc.invocations.authorizer";
+    public static final Object DRPC_INVOCATIONS_AUTHORIZER_SCHEMA = String.class;
 
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
@@ -462,7 +537,12 @@ public class Config extends HashMap<String, Object> {
     public static final String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
     public static final Object TASK_REFRESH_POLL_SECS_SCHEMA = Number.class;
 
-
+    /**
+     * A list of users that are allowed to interact with the topology.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String TOPOLOGY_USERS = "topology.users";
+    public static final Object TOPOLOGY_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used

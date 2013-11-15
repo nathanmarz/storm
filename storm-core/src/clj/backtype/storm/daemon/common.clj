@@ -6,6 +6,7 @@
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
+  (:import [backtype.storm.security.auth IAuthorizer])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
@@ -332,3 +333,14 @@
   (->> executor->node+port
        (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
        (into {})))
+
+
+(defn mk-authorization-handler [klassname conf]
+  (let [aznClass (if klassname (Class/forName klassname))
+        aznHandler (if aznClass (.newInstance aznClass))]
+    (if aznHandler (.prepare ^IAuthorizer aznHandler conf))
+    (log-debug "authorization class name:" klassname
+                 " class:" aznClass
+                 " handler:" aznHandler)
+    aznHandler
+  ))

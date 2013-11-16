@@ -324,7 +324,7 @@
               ;; can come in before the worker processes are killed. On Linux/MacOs this works fine
               ;; but on Windows rmr will throw "Unable to delete file" IOException because the resources
               ;; are still being used. After killing the next sync call should clean things up nicely.
-              (log-message (.getMessage e))))
+              (if on-windows? (log-message (.getMessage e)) (throw e))))
           ))
       (.add processes-event-manager sync-processes)
       )))

@@ -317,7 +317,14 @@
         (when-not (assigned-storm-ids storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
-          (rmr (supervisor-stormdist-root conf storm-id))
+          (try
+            (rmr (supervisor-stormdist-root conf storm-id))
+            (catch java.io.IOException e
+              ;; Handles a race condition resulting from topology kill where this sync call
+              ;; can come in before the worker processes are killed. On Linux/MacOs this works fine
+              ;; but on Windows rmr will throw "Unable to delete file" IOException because the resources
+              ;; are still being used. After killing the next sync call should clean things up nicely.
+              (log-message (.getMessage e))))
           ))
       (.add processes-event-manager sync-processes)
       )))
@@ -394,7 +401,7 @@
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
     ;; Downloading to permanent location is atomic
-    (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
+    (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/forceMkdir (File. tmproot))
       
@@ -404,7 +411,6 @@
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
       ))
-
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
@@ -444,7 +450,7 @@
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
-            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
+            target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
             (cond
               resources-jar
               (do

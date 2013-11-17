@@ -94,6 +94,7 @@ struct StormTopology {
   1: required map<string, SpoutSpec> spouts;
   2: required map<string, Bolt> bolts;
   3: required map<string, StateSpoutSpec> state_spouts;
+  4: optional list<binary> worker_hooks;
 }
 
 exception AlreadyAliveException {

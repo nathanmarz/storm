@@ -9,18 +9,33 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Utilities for retrieving fields from a {@link StormTopology}.
+ */
 public class ThriftTopologyUtils {
+
+    /**
+     * Fields we care about in both methods' use-cases
+     */
+    private static final StormTopology._Fields[] COMPONENT_FIELDS = new StormTopology._Fields[] {StormTopology._Fields.BOLTS, StormTopology._Fields.SPOUTS, StormTopology._Fields.STATE_SPOUTS };
+
+    /**
+     * Returns a set of the component IDs defined across the spouts, bolts, and state_spouts fields on the given {@code topology}.
+     */
     public static Set<String> getComponentIds(StormTopology topology) {
         Set<String> ret = new HashSet<String>();
-        for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
+        for(StormTopology._Fields f: COMPONENT_FIELDS) {
             Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
             ret.addAll(componentMap.keySet());
         }
         return ret;
     }
 
+    /**
+     * Gets the ComponentCommon object mapped to the given {@code componentId} from the given {@code topology}.
+     */
     public static ComponentCommon getComponentCommon(StormTopology topology, String componentId) {
-        for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
+        for(StormTopology._Fields f: COMPONENT_FIELDS) {
             Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
             if(componentMap.containsKey(componentId)) {
                 Object component = componentMap.get(componentId);

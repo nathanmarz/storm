@@ -47,3 +47,11 @@
     ))
   )
 )
+
+(deftest test-add-to-classpath
+  (is (= (add-to-classpath "a:b", ["", nil]) "a:b"))
+  (is (= (add-to-classpath "a:b", ["c", nil]) "a:b:c"))
+  (is (= (add-to-classpath "a:b", ["c", "d:e"]) "a:b:c:d:e"))
+)
+
+

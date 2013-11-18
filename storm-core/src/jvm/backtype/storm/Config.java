@@ -642,6 +642,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * Topology-specific options for the worker child process classpath.
+     */
+    public static final String TOPOLOGY_WORKER_CLASSPATH="topology.worker.classpath";
+    public static final Object TOPOLOGY_WORKER_CLASSPATH_SCHEMA = String.class;
+
+    /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
      * the transactional topology. This id is used to store the state of the transactional
      * topology in Zookeeper.

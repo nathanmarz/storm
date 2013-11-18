@@ -803,9 +803,9 @@
         ))))
 
 (def app
-  (-> #'main-routes
-      (wrap-reload '[backtype.storm.ui.core])
-      catch-errors))
+  (handler/site (-> main-routes
+                    (wrap-reload '[backtype.storm.ui.core])
+                    catch-errors)))
 
 (defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
                                        :join? false}))

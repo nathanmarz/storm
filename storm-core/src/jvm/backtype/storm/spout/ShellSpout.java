@@ -94,6 +94,8 @@ public class ShellSpout implements ISpout {
                         _collector.emitDirect((int) task.longValue(), stream,
                                 tuple, messageId);
                     }
+                } else {
+                    throw new RuntimeException("Unknown command received: " + command);
                 }
             }
         } catch (IOException e) {

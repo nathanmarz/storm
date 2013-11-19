@@ -208,6 +208,11 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_TASK_TIMEOUT_SECS = "nimbus.task.timeout.secs";
     public static final Object NIMBUS_TASK_TIMEOUT_SECS_SCHEMA = Number.class;
 
+    /**
+     * How long nimbus start wait for executor heartbeat connect
+     */
+    public static String NIMBUS_RECOVER_HEARTBEART_SECS = "nimbus.recover.heartbeat.secs";
+    public static final Object NIMBUS_RECOVER_HEARTBEART_SECS_SCHEMA = Number.class;
 
     /**
      * How often nimbus should wake up to check heartbeats and do reassignments. Note

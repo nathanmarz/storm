@@ -74,6 +74,19 @@ class Iface:
     """
     pass
 
+  def workerHeartBeat(self, stormId, workerId, port, executors, upTime, HBTime, stats):
+    """
+    Parameters:
+     - stormId
+     - workerId
+     - port
+     - executors
+     - upTime
+     - HBTime
+     - stats
+    """
+    pass
+
   def beginFileUpload(self, ):
     pass
 
@@ -380,6 +393,46 @@ class Client(Iface):
       raise result.e
     if result.ite is not None:
       raise result.ite
+    return
+
+  def workerHeartBeat(self, stormId, workerId, port, executors, upTime, HBTime, stats):
+    """
+    Parameters:
+     - stormId
+     - workerId
+     - port
+     - executors
+     - upTime
+     - HBTime
+     - stats
+    """
+    self.send_workerHeartBeat(stormId, workerId, port, executors, upTime, HBTime, stats)
+    self.recv_workerHeartBeat()
+
+  def send_workerHeartBeat(self, stormId, workerId, port, executors, upTime, HBTime, stats):
+    self._oprot.writeMessageBegin('workerHeartBeat', TMessageType.CALL, self._seqid)
+    args = workerHeartBeat_args()
+    args.stormId = stormId
+    args.workerId = workerId
+    args.port = port
+    args.executors = executors
+    args.upTime = upTime
+    args.HBTime = HBTime
+    args.stats = stats
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_workerHeartBeat(self, ):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = workerHeartBeat_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
     return
 
   def beginFileUpload(self, ):
@@ -715,6 +768,7 @@ class Processor(Iface, TProcessor):
     self._processMap["activate"] = Processor.process_activate
     self._processMap["deactivate"] = Processor.process_deactivate
     self._processMap["rebalance"] = Processor.process_rebalance
+    self._processMap["workerHeartBeat"] = Processor.process_workerHeartBeat
     self._processMap["beginFileUpload"] = Processor.process_beginFileUpload
     self._processMap["uploadChunk"] = Processor.process_uploadChunk
     self._processMap["finishFileUpload"] = Processor.process_finishFileUpload
@@ -842,6 +896,17 @@ class Processor(Iface, TProcessor):
     except InvalidTopologyException, ite:
       result.ite = ite
     oprot.writeMessageBegin("rebalance", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_workerHeartBeat(self, seqid, iprot, oprot):
+    args = workerHeartBeat_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = workerHeartBeat_result()
+    self._handler.workerHeartBeat(args.stormId, args.workerId, args.port, args.executors, args.upTime, args.HBTime, args.stats)
+    oprot.writeMessageBegin("workerHeartBeat", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -2005,6 +2070,202 @@ class rebalance_result:
       oprot.writeFieldBegin('ite', TType.STRUCT, 2)
       self.ite.write(oprot)
       oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class workerHeartBeat_args:
+  """
+  Attributes:
+   - stormId
+   - workerId
+   - port
+   - executors
+   - upTime
+   - HBTime
+   - stats
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'stormId', None, None, ), # 1
+    (2, TType.STRING, 'workerId', None, None, ), # 2
+    (3, TType.I32, 'port', None, None, ), # 3
+    (4, TType.SET, 'executors', (TType.LIST,(TType.I32,None)), None, ), # 4
+    (5, TType.I64, 'upTime', None, None, ), # 5
+    (6, TType.I64, 'HBTime', None, None, ), # 6
+    (7, TType.STRING, 'stats', None, None, ), # 7
+  )
+
+  def __hash__(self):
+    return 0 + hash(self.stormId) + hash(self.workerId) + hash(self.port) + hash(self.executors) + hash(self.upTime) + hash(self.HBTime) + hash(self.stats)
+
+  def __init__(self, stormId=None, workerId=None, port=None, executors=None, upTime=None, HBTime=None, stats=None,):
+    self.stormId = stormId
+    self.workerId = workerId
+    self.port = port
+    self.executors = executors
+    self.upTime = upTime
+    self.HBTime = HBTime
+    self.stats = stats
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.stormId = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.workerId = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.port = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.SET:
+          self.executors = set()
+          (_etype295, _size292) = iprot.readSetBegin()
+          for _i296 in xrange(_size292):
+            _elem297 = []
+            (_etype301, _size298) = iprot.readListBegin()
+            for _i302 in xrange(_size298):
+              _elem303 = iprot.readI32();
+              _elem297.append(_elem303)
+            iprot.readListEnd()
+            self.executors.add(_elem297)
+          iprot.readSetEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.I64:
+          self.upTime = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.I64:
+          self.HBTime = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.stats = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('workerHeartBeat_args')
+    if self.stormId is not None:
+      oprot.writeFieldBegin('stormId', TType.STRING, 1)
+      oprot.writeString(self.stormId.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.workerId is not None:
+      oprot.writeFieldBegin('workerId', TType.STRING, 2)
+      oprot.writeString(self.workerId.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.port is not None:
+      oprot.writeFieldBegin('port', TType.I32, 3)
+      oprot.writeI32(self.port)
+      oprot.writeFieldEnd()
+    if self.executors is not None:
+      oprot.writeFieldBegin('executors', TType.SET, 4)
+      oprot.writeSetBegin(TType.LIST, len(self.executors))
+      for iter304 in self.executors:
+        oprot.writeListBegin(TType.I32, len(iter304))
+        for iter305 in iter304:
+          oprot.writeI32(iter305)
+        oprot.writeListEnd()
+      oprot.writeSetEnd()
+      oprot.writeFieldEnd()
+    if self.upTime is not None:
+      oprot.writeFieldBegin('upTime', TType.I64, 5)
+      oprot.writeI64(self.upTime)
+      oprot.writeFieldEnd()
+    if self.HBTime is not None:
+      oprot.writeFieldBegin('HBTime', TType.I64, 6)
+      oprot.writeI64(self.HBTime)
+      oprot.writeFieldEnd()
+    if self.stats is not None:
+      oprot.writeFieldBegin('stats', TType.STRING, 7)
+      oprot.writeString(self.stats)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class workerHeartBeat_result:
+
+  thrift_spec = (
+  )
+
+  def __hash__(self):
+    return 0
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('workerHeartBeat_result')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 

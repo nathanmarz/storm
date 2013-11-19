@@ -39,6 +39,8 @@ public class Nimbus {
 
     public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException;
 
+    public void workerHeartBeat(String stormId, String workerId, int port, Set<List<Integer>> executors, long upTime, long HBTime, ByteBuffer stats) throws org.apache.thrift7.TException;
+
     public String beginFileUpload() throws org.apache.thrift7.TException;
 
     public void uploadChunk(String location, ByteBuffer chunk) throws org.apache.thrift7.TException;
@@ -78,6 +80,8 @@ public class Nimbus {
     public void deactivate(String name, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.deactivate_call> resultHandler) throws org.apache.thrift7.TException;
 
     public void rebalance(String name, RebalanceOptions options, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.rebalance_call> resultHandler) throws org.apache.thrift7.TException;
+
+    public void workerHeartBeat(String stormId, String workerId, int port, Set<List<Integer>> executors, long upTime, long HBTime, ByteBuffer stats, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.workerHeartBeat_call> resultHandler) throws org.apache.thrift7.TException;
 
     public void beginFileUpload(org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.beginFileUpload_call> resultHandler) throws org.apache.thrift7.TException;
 
@@ -299,6 +303,32 @@ public class Nimbus {
       if (result.ite != null) {
         throw result.ite;
       }
+      return;
+    }
+
+    public void workerHeartBeat(String stormId, String workerId, int port, Set<List<Integer>> executors, long upTime, long HBTime, ByteBuffer stats) throws org.apache.thrift7.TException
+    {
+      send_workerHeartBeat(stormId, workerId, port, executors, upTime, HBTime, stats);
+      recv_workerHeartBeat();
+    }
+
+    public void send_workerHeartBeat(String stormId, String workerId, int port, Set<List<Integer>> executors, long upTime, long HBTime, ByteBuffer stats) throws org.apache.thrift7.TException
+    {
+      workerHeartBeat_args args = new workerHeartBeat_args();
+      args.set_stormId(stormId);
+      args.set_workerId(workerId);
+      args.set_port(port);
+      args.set_executors(executors);
+      args.set_upTime(upTime);
+      args.set_HBTime(HBTime);
+      args.set_stats(stats);
+      sendBase("workerHeartBeat", args);
+    }
+
+    public void recv_workerHeartBeat() throws org.apache.thrift7.TException
+    {
+      workerHeartBeat_result result = new workerHeartBeat_result();
+      receiveBase(result, "workerHeartBeat");
       return;
     }
 
@@ -828,6 +858,56 @@ public class Nimbus {
       }
     }
 
+    public void workerHeartBeat(String stormId, String workerId, int port, Set<List<Integer>> executors, long upTime, long HBTime, ByteBuffer stats, org.apache.thrift7.async.AsyncMethodCallback<workerHeartBeat_call> resultHandler) throws org.apache.thrift7.TException {
+      checkReady();
+      workerHeartBeat_call method_call = new workerHeartBeat_call(stormId, workerId, port, executors, upTime, HBTime, stats, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class workerHeartBeat_call extends org.apache.thrift7.async.TAsyncMethodCall {
+      private String stormId;
+      private String workerId;
+      private int port;
+      private Set<List<Integer>> executors;
+      private long upTime;
+      private long HBTime;
+      private ByteBuffer stats;
+      public workerHeartBeat_call(String stormId, String workerId, int port, Set<List<Integer>> executors, long upTime, long HBTime, ByteBuffer stats, org.apache.thrift7.async.AsyncMethodCallback<workerHeartBeat_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.stormId = stormId;
+        this.workerId = workerId;
+        this.port = port;
+        this.executors = executors;
+        this.upTime = upTime;
+        this.HBTime = HBTime;
+        this.stats = stats;
+      }
+
+      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
+        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("workerHeartBeat", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+        workerHeartBeat_args args = new workerHeartBeat_args();
+        args.set_stormId(stormId);
+        args.set_workerId(workerId);
+        args.set_port(port);
+        args.set_executors(executors);
+        args.set_upTime(upTime);
+        args.set_HBTime(HBTime);
+        args.set_stats(stats);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws org.apache.thrift7.TException {
+        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_workerHeartBeat();
+      }
+    }
+
     public void beginFileUpload(org.apache.thrift7.async.AsyncMethodCallback<beginFileUpload_call> resultHandler) throws org.apache.thrift7.TException {
       checkReady();
       beginFileUpload_call method_call = new beginFileUpload_call(resultHandler, this, ___protocolFactory, ___transport);
@@ -1194,6 +1274,7 @@ public class Nimbus {
       processMap.put("activate", new activate());
       processMap.put("deactivate", new deactivate());
       processMap.put("rebalance", new rebalance());
+      processMap.put("workerHeartBeat", new workerHeartBeat());
       processMap.put("beginFileUpload", new beginFileUpload());
       processMap.put("uploadChunk", new uploadChunk());
       processMap.put("finishFileUpload", new finishFileUpload());
@@ -1350,6 +1431,22 @@ public class Nimbus {
         } catch (InvalidTopologyException ite) {
           result.ite = ite;
         }
+        return result;
+      }
+    }
+
+    private static class workerHeartBeat<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, workerHeartBeat_args> {
+      public workerHeartBeat() {
+        super("workerHeartBeat");
+      }
+
+      protected workerHeartBeat_args getEmptyArgsInstance() {
+        return new workerHeartBeat_args();
+      }
+
+      protected workerHeartBeat_result getResult(I iface, workerHeartBeat_args args) throws org.apache.thrift7.TException {
+        workerHeartBeat_result result = new workerHeartBeat_result();
+        iface.workerHeartBeat(args.stormId, args.workerId, args.port, args.executors, args.upTime, args.HBTime, args.stats);
         return result;
       }
     }
@@ -6857,6 +6954,1125 @@ public class Nimbus {
         sb.append(this.ite);
       }
       first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class workerHeartBeat_args implements org.apache.thrift7.TBase<workerHeartBeat_args, workerHeartBeat_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("workerHeartBeat_args");
+
+    private static final org.apache.thrift7.protocol.TField STORM_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("stormId", org.apache.thrift7.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift7.protocol.TField WORKER_ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("workerId", org.apache.thrift7.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift7.protocol.TField PORT_FIELD_DESC = new org.apache.thrift7.protocol.TField("port", org.apache.thrift7.protocol.TType.I32, (short)3);
+    private static final org.apache.thrift7.protocol.TField EXECUTORS_FIELD_DESC = new org.apache.thrift7.protocol.TField("executors", org.apache.thrift7.protocol.TType.SET, (short)4);
+    private static final org.apache.thrift7.protocol.TField UP_TIME_FIELD_DESC = new org.apache.thrift7.protocol.TField("upTime", org.apache.thrift7.protocol.TType.I64, (short)5);
+    private static final org.apache.thrift7.protocol.TField HBTIME_FIELD_DESC = new org.apache.thrift7.protocol.TField("HBTime", org.apache.thrift7.protocol.TType.I64, (short)6);
+    private static final org.apache.thrift7.protocol.TField STATS_FIELD_DESC = new org.apache.thrift7.protocol.TField("stats", org.apache.thrift7.protocol.TType.STRING, (short)7);
+
+    private String stormId; // required
+    private String workerId; // required
+    private int port; // required
+    private Set<List<Integer>> executors; // required
+    private long upTime; // required
+    private long HBTime; // required
+    private ByteBuffer stats; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+      STORM_ID((short)1, "stormId"),
+      WORKER_ID((short)2, "workerId"),
+      PORT((short)3, "port"),
+      EXECUTORS((short)4, "executors"),
+      UP_TIME((short)5, "upTime"),
+      HBTIME((short)6, "HBTime"),
+      STATS((short)7, "stats");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // STORM_ID
+            return STORM_ID;
+          case 2: // WORKER_ID
+            return WORKER_ID;
+          case 3: // PORT
+            return PORT;
+          case 4: // EXECUTORS
+            return EXECUTORS;
+          case 5: // UP_TIME
+            return UP_TIME;
+          case 6: // HBTIME
+            return HBTIME;
+          case 7: // STATS
+            return STATS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __PORT_ISSET_ID = 0;
+    private static final int __UPTIME_ISSET_ID = 1;
+    private static final int __HBTIME_ISSET_ID = 2;
+    private BitSet __isset_bit_vector = new BitSet(3);
+
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.STORM_ID, new org.apache.thrift7.meta_data.FieldMetaData("stormId", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      tmpMap.put(_Fields.WORKER_ID, new org.apache.thrift7.meta_data.FieldMetaData("workerId", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      tmpMap.put(_Fields.PORT, new org.apache.thrift7.meta_data.FieldMetaData("port", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)));
+      tmpMap.put(_Fields.EXECUTORS, new org.apache.thrift7.meta_data.FieldMetaData("executors", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.SetMetaData(org.apache.thrift7.protocol.TType.SET, 
+              new org.apache.thrift7.meta_data.ListMetaData(org.apache.thrift7.protocol.TType.LIST, 
+                  new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I32)))));
+      tmpMap.put(_Fields.UP_TIME, new org.apache.thrift7.meta_data.FieldMetaData("upTime", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)));
+      tmpMap.put(_Fields.HBTIME, new org.apache.thrift7.meta_data.FieldMetaData("HBTime", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.I64)));
+      tmpMap.put(_Fields.STATS, new org.apache.thrift7.meta_data.FieldMetaData("stats", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING          , true)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(workerHeartBeat_args.class, metaDataMap);
+    }
+
+    public workerHeartBeat_args() {
+    }
+
+    public workerHeartBeat_args(
+      String stormId,
+      String workerId,
+      int port,
+      Set<List<Integer>> executors,
+      long upTime,
+      long HBTime,
+      ByteBuffer stats)
+    {
+      this();
+      this.stormId = stormId;
+      this.workerId = workerId;
+      this.port = port;
+      set_port_isSet(true);
+      this.executors = executors;
+      this.upTime = upTime;
+      set_upTime_isSet(true);
+      this.HBTime = HBTime;
+      set_HBTime_isSet(true);
+      this.stats = stats;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public workerHeartBeat_args(workerHeartBeat_args other) {
+      __isset_bit_vector.clear();
+      __isset_bit_vector.or(other.__isset_bit_vector);
+      if (other.is_set_stormId()) {
+        this.stormId = other.stormId;
+      }
+      if (other.is_set_workerId()) {
+        this.workerId = other.workerId;
+      }
+      this.port = other.port;
+      if (other.is_set_executors()) {
+        Set<List<Integer>> __this__executors = new HashSet<List<Integer>>();
+        for (List<Integer> other_element : other.executors) {
+          List<Integer> __this__executors_copy = new ArrayList<Integer>();
+          for (Integer other_element_element : other_element) {
+            __this__executors_copy.add(other_element_element);
+          }
+          __this__executors.add(__this__executors_copy);
+        }
+        this.executors = __this__executors;
+      }
+      this.upTime = other.upTime;
+      this.HBTime = other.HBTime;
+      if (other.is_set_stats()) {
+        this.stats = org.apache.thrift7.TBaseHelper.copyBinary(other.stats);
+;
+      }
+    }
+
+    public workerHeartBeat_args deepCopy() {
+      return new workerHeartBeat_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.stormId = null;
+      this.workerId = null;
+      set_port_isSet(false);
+      this.port = 0;
+      this.executors = null;
+      set_upTime_isSet(false);
+      this.upTime = 0;
+      set_HBTime_isSet(false);
+      this.HBTime = 0;
+      this.stats = null;
+    }
+
+    public String get_stormId() {
+      return this.stormId;
+    }
+
+    public void set_stormId(String stormId) {
+      this.stormId = stormId;
+    }
+
+    public void unset_stormId() {
+      this.stormId = null;
+    }
+
+    /** Returns true if field stormId is set (has been assigned a value) and false otherwise */
+    public boolean is_set_stormId() {
+      return this.stormId != null;
+    }
+
+    public void set_stormId_isSet(boolean value) {
+      if (!value) {
+        this.stormId = null;
+      }
+    }
+
+    public String get_workerId() {
+      return this.workerId;
+    }
+
+    public void set_workerId(String workerId) {
+      this.workerId = workerId;
+    }
+
+    public void unset_workerId() {
+      this.workerId = null;
+    }
+
+    /** Returns true if field workerId is set (has been assigned a value) and false otherwise */
+    public boolean is_set_workerId() {
+      return this.workerId != null;
+    }
+
+    public void set_workerId_isSet(boolean value) {
+      if (!value) {
+        this.workerId = null;
+      }
+    }
+
+    public int get_port() {
+      return this.port;
+    }
+
+    public void set_port(int port) {
+      this.port = port;
+      set_port_isSet(true);
+    }
+
+    public void unset_port() {
+      __isset_bit_vector.clear(__PORT_ISSET_ID);
+    }
+
+    /** Returns true if field port is set (has been assigned a value) and false otherwise */
+    public boolean is_set_port() {
+      return __isset_bit_vector.get(__PORT_ISSET_ID);
+    }
+
+    public void set_port_isSet(boolean value) {
+      __isset_bit_vector.set(__PORT_ISSET_ID, value);
+    }
+
+    public int get_executors_size() {
+      return (this.executors == null) ? 0 : this.executors.size();
+    }
+
+    public java.util.Iterator<List<Integer>> get_executors_iterator() {
+      return (this.executors == null) ? null : this.executors.iterator();
+    }
+
+    public void add_to_executors(List<Integer> elem) {
+      if (this.executors == null) {
+        this.executors = new HashSet<List<Integer>>();
+      }
+      this.executors.add(elem);
+    }
+
+    public Set<List<Integer>> get_executors() {
+      return this.executors;
+    }
+
+    public void set_executors(Set<List<Integer>> executors) {
+      this.executors = executors;
+    }
+
+    public void unset_executors() {
+      this.executors = null;
+    }
+
+    /** Returns true if field executors is set (has been assigned a value) and false otherwise */
+    public boolean is_set_executors() {
+      return this.executors != null;
+    }
+
+    public void set_executors_isSet(boolean value) {
+      if (!value) {
+        this.executors = null;
+      }
+    }
+
+    public long get_upTime() {
+      return this.upTime;
+    }
+
+    public void set_upTime(long upTime) {
+      this.upTime = upTime;
+      set_upTime_isSet(true);
+    }
+
+    public void unset_upTime() {
+      __isset_bit_vector.clear(__UPTIME_ISSET_ID);
+    }
+
+    /** Returns true if field upTime is set (has been assigned a value) and false otherwise */
+    public boolean is_set_upTime() {
+      return __isset_bit_vector.get(__UPTIME_ISSET_ID);
+    }
+
+    public void set_upTime_isSet(boolean value) {
+      __isset_bit_vector.set(__UPTIME_ISSET_ID, value);
+    }
+
+    public long get_HBTime() {
+      return this.HBTime;
+    }
+
+    public void set_HBTime(long HBTime) {
+      this.HBTime = HBTime;
+      set_HBTime_isSet(true);
+    }
+
+    public void unset_HBTime() {
+      __isset_bit_vector.clear(__HBTIME_ISSET_ID);
+    }
+
+    /** Returns true if field HBTime is set (has been assigned a value) and false otherwise */
+    public boolean is_set_HBTime() {
+      return __isset_bit_vector.get(__HBTIME_ISSET_ID);
+    }
+
+    public void set_HBTime_isSet(boolean value) {
+      __isset_bit_vector.set(__HBTIME_ISSET_ID, value);
+    }
+
+    public byte[] get_stats() {
+      set_stats(org.apache.thrift7.TBaseHelper.rightSize(stats));
+      return stats == null ? null : stats.array();
+    }
+
+    public ByteBuffer buffer_for_stats() {
+      return stats;
+    }
+
+    public void set_stats(byte[] stats) {
+      set_stats(stats == null ? (ByteBuffer)null : ByteBuffer.wrap(stats));
+    }
+
+    public void set_stats(ByteBuffer stats) {
+      this.stats = stats;
+    }
+
+    public void unset_stats() {
+      this.stats = null;
+    }
+
+    /** Returns true if field stats is set (has been assigned a value) and false otherwise */
+    public boolean is_set_stats() {
+      return this.stats != null;
+    }
+
+    public void set_stats_isSet(boolean value) {
+      if (!value) {
+        this.stats = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case STORM_ID:
+        if (value == null) {
+          unset_stormId();
+        } else {
+          set_stormId((String)value);
+        }
+        break;
+
+      case WORKER_ID:
+        if (value == null) {
+          unset_workerId();
+        } else {
+          set_workerId((String)value);
+        }
+        break;
+
+      case PORT:
+        if (value == null) {
+          unset_port();
+        } else {
+          set_port((Integer)value);
+        }
+        break;
+
+      case EXECUTORS:
+        if (value == null) {
+          unset_executors();
+        } else {
+          set_executors((Set<List<Integer>>)value);
+        }
+        break;
+
+      case UP_TIME:
+        if (value == null) {
+          unset_upTime();
+        } else {
+          set_upTime((Long)value);
+        }
+        break;
+
+      case HBTIME:
+        if (value == null) {
+          unset_HBTime();
+        } else {
+          set_HBTime((Long)value);
+        }
+        break;
+
+      case STATS:
+        if (value == null) {
+          unset_stats();
+        } else {
+          set_stats((ByteBuffer)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case STORM_ID:
+        return get_stormId();
+
+      case WORKER_ID:
+        return get_workerId();
+
+      case PORT:
+        return Integer.valueOf(get_port());
+
+      case EXECUTORS:
+        return get_executors();
+
+      case UP_TIME:
+        return Long.valueOf(get_upTime());
+
+      case HBTIME:
+        return Long.valueOf(get_HBTime());
+
+      case STATS:
+        return get_stats();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case STORM_ID:
+        return is_set_stormId();
+      case WORKER_ID:
+        return is_set_workerId();
+      case PORT:
+        return is_set_port();
+      case EXECUTORS:
+        return is_set_executors();
+      case UP_TIME:
+        return is_set_upTime();
+      case HBTIME:
+        return is_set_HBTime();
+      case STATS:
+        return is_set_stats();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof workerHeartBeat_args)
+        return this.equals((workerHeartBeat_args)that);
+      return false;
+    }
+
+    public boolean equals(workerHeartBeat_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_stormId = true && this.is_set_stormId();
+      boolean that_present_stormId = true && that.is_set_stormId();
+      if (this_present_stormId || that_present_stormId) {
+        if (!(this_present_stormId && that_present_stormId))
+          return false;
+        if (!this.stormId.equals(that.stormId))
+          return false;
+      }
+
+      boolean this_present_workerId = true && this.is_set_workerId();
+      boolean that_present_workerId = true && that.is_set_workerId();
+      if (this_present_workerId || that_present_workerId) {
+        if (!(this_present_workerId && that_present_workerId))
+          return false;
+        if (!this.workerId.equals(that.workerId))
+          return false;
+      }
+
+      boolean this_present_port = true;
+      boolean that_present_port = true;
+      if (this_present_port || that_present_port) {
+        if (!(this_present_port && that_present_port))
+          return false;
+        if (this.port != that.port)
+          return false;
+      }
+
+      boolean this_present_executors = true && this.is_set_executors();
+      boolean that_present_executors = true && that.is_set_executors();
+      if (this_present_executors || that_present_executors) {
+        if (!(this_present_executors && that_present_executors))
+          return false;
+        if (!this.executors.equals(that.executors))
+          return false;
+      }
+
+      boolean this_present_upTime = true;
+      boolean that_present_upTime = true;
+      if (this_present_upTime || that_present_upTime) {
+        if (!(this_present_upTime && that_present_upTime))
+          return false;
+        if (this.upTime != that.upTime)
+          return false;
+      }
+
+      boolean this_present_HBTime = true;
+      boolean that_present_HBTime = true;
+      if (this_present_HBTime || that_present_HBTime) {
+        if (!(this_present_HBTime && that_present_HBTime))
+          return false;
+        if (this.HBTime != that.HBTime)
+          return false;
+      }
+
+      boolean this_present_stats = true && this.is_set_stats();
+      boolean that_present_stats = true && that.is_set_stats();
+      if (this_present_stats || that_present_stats) {
+        if (!(this_present_stats && that_present_stats))
+          return false;
+        if (!this.stats.equals(that.stats))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_stormId = true && (is_set_stormId());
+      builder.append(present_stormId);
+      if (present_stormId)
+        builder.append(stormId);
+
+      boolean present_workerId = true && (is_set_workerId());
+      builder.append(present_workerId);
+      if (present_workerId)
+        builder.append(workerId);
+
+      boolean present_port = true;
+      builder.append(present_port);
+      if (present_port)
+        builder.append(port);
+
+      boolean present_executors = true && (is_set_executors());
+      builder.append(present_executors);
+      if (present_executors)
+        builder.append(executors);
+
+      boolean present_upTime = true;
+      builder.append(present_upTime);
+      if (present_upTime)
+        builder.append(upTime);
+
+      boolean present_HBTime = true;
+      builder.append(present_HBTime);
+      if (present_HBTime)
+        builder.append(HBTime);
+
+      boolean present_stats = true && (is_set_stats());
+      builder.append(present_stats);
+      if (present_stats)
+        builder.append(stats);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(workerHeartBeat_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      workerHeartBeat_args typedOther = (workerHeartBeat_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_stormId()).compareTo(typedOther.is_set_stormId());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_stormId()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.stormId, typedOther.stormId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_workerId()).compareTo(typedOther.is_set_workerId());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_workerId()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.workerId, typedOther.workerId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_port()).compareTo(typedOther.is_set_port());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_port()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.port, typedOther.port);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_executors()).compareTo(typedOther.is_set_executors());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_executors()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.executors, typedOther.executors);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_upTime()).compareTo(typedOther.is_set_upTime());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_upTime()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.upTime, typedOther.upTime);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_HBTime()).compareTo(typedOther.is_set_HBTime());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_HBTime()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.HBTime, typedOther.HBTime);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_stats()).compareTo(typedOther.is_set_stats());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_stats()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.stats, typedOther.stats);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // STORM_ID
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.stormId = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // WORKER_ID
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.workerId = iprot.readString();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 3: // PORT
+            if (field.type == org.apache.thrift7.protocol.TType.I32) {
+              this.port = iprot.readI32();
+              set_port_isSet(true);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 4: // EXECUTORS
+            if (field.type == org.apache.thrift7.protocol.TType.SET) {
+              {
+                org.apache.thrift7.protocol.TSet _set163 = iprot.readSetBegin();
+                this.executors = new HashSet<List<Integer>>(2*_set163.size);
+                for (int _i164 = 0; _i164 < _set163.size; ++_i164)
+                {
+                  List<Integer> _elem165; // required
+                  {
+                    org.apache.thrift7.protocol.TList _list166 = iprot.readListBegin();
+                    _elem165 = new ArrayList<Integer>(_list166.size);
+                    for (int _i167 = 0; _i167 < _list166.size; ++_i167)
+                    {
+                      int _elem168; // required
+                      _elem168 = iprot.readI32();
+                      _elem165.add(_elem168);
+                    }
+                    iprot.readListEnd();
+                  }
+                  this.executors.add(_elem165);
+                }
+                iprot.readSetEnd();
+              }
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 5: // UP_TIME
+            if (field.type == org.apache.thrift7.protocol.TType.I64) {
+              this.upTime = iprot.readI64();
+              set_upTime_isSet(true);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 6: // HBTIME
+            if (field.type == org.apache.thrift7.protocol.TType.I64) {
+              this.HBTime = iprot.readI64();
+              set_HBTime_isSet(true);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 7: // STATS
+            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+              this.stats = iprot.readBinary();
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.stormId != null) {
+        oprot.writeFieldBegin(STORM_ID_FIELD_DESC);
+        oprot.writeString(this.stormId);
+        oprot.writeFieldEnd();
+      }
+      if (this.workerId != null) {
+        oprot.writeFieldBegin(WORKER_ID_FIELD_DESC);
+        oprot.writeString(this.workerId);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldBegin(PORT_FIELD_DESC);
+      oprot.writeI32(this.port);
+      oprot.writeFieldEnd();
+      if (this.executors != null) {
+        oprot.writeFieldBegin(EXECUTORS_FIELD_DESC);
+        {
+          oprot.writeSetBegin(new org.apache.thrift7.protocol.TSet(org.apache.thrift7.protocol.TType.LIST, this.executors.size()));
+          for (List<Integer> _iter169 : this.executors)
+          {
+            {
+              oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.I32, _iter169.size()));
+              for (int _iter170 : _iter169)
+              {
+                oprot.writeI32(_iter170);
+              }
+              oprot.writeListEnd();
+            }
+          }
+          oprot.writeSetEnd();
+        }
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldBegin(UP_TIME_FIELD_DESC);
+      oprot.writeI64(this.upTime);
+      oprot.writeFieldEnd();
+      oprot.writeFieldBegin(HBTIME_FIELD_DESC);
+      oprot.writeI64(this.HBTime);
+      oprot.writeFieldEnd();
+      if (this.stats != null) {
+        oprot.writeFieldBegin(STATS_FIELD_DESC);
+        oprot.writeBinary(this.stats);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("workerHeartBeat_args(");
+      boolean first = true;
+
+      sb.append("stormId:");
+      if (this.stormId == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.stormId);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("workerId:");
+      if (this.workerId == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.workerId);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("port:");
+      sb.append(this.port);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("executors:");
+      if (this.executors == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.executors);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("upTime:");
+      sb.append(this.upTime);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("HBTime:");
+      sb.append(this.HBTime);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("stats:");
+      if (this.stats == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift7.TBaseHelper.toString(this.stats, sb);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift7.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bit_vector = new BitSet(1);
+        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift7.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class workerHeartBeat_result implements org.apache.thrift7.TBase<workerHeartBeat_result, workerHeartBeat_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("workerHeartBeat_result");
+
+
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+;
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(workerHeartBeat_result.class, metaDataMap);
+    }
+
+    public workerHeartBeat_result() {
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public workerHeartBeat_result(workerHeartBeat_result other) {
+    }
+
+    public workerHeartBeat_result deepCopy() {
+      return new workerHeartBeat_result(this);
+    }
+
+    @Override
+    public void clear() {
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof workerHeartBeat_result)
+        return this.equals((workerHeartBeat_result)that);
+      return false;
+    }
+
+    public boolean equals(workerHeartBeat_result that) {
+      if (that == null)
+        return false;
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(workerHeartBeat_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      workerHeartBeat_result typedOther = (workerHeartBeat_result)other;
+
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
+      org.apache.thrift7.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          default:
+            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("workerHeartBeat_result(");
+      boolean first = true;
+
       sb.append(")");
       return sb.toString();
     }

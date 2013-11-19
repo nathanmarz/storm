@@ -328,6 +328,7 @@
 ;; tracked through heartbeat-cache
 (defn- update-executor-cache [curr hb]
   (let [reported-time (:time-secs hb)
+        uptime (:uptime hb)
         {last-nimbus-time :nimbus-time
          last-reported-time :executor-reported-time} curr
         reported-time (cond reported-time reported-time
@@ -339,7 +340,8 @@
                       last-nimbus-time
                       )]
       {:nimbus-time nimbus-time
-       :executor-reported-time reported-time}))
+       :executor-reported-time reported-time
+       :uptime uptime}))
 
 (defn update-heartbeat-cache [cache executor-beats all-executors]
   (let [cache (select-keys cache all-executors)]
@@ -381,20 +383,25 @@
         (filter (fn [executor]
           (let [start-time (get executor-start-times executor)
                 nimbus-time (-> heartbeats-cache (get executor) :nimbus-time)]
+            (log-debug "Exetutor " storm-id ":" executor " start-time: " start-time " nimbus-time: " nimbus-time)
             (if (and start-time
-                   (or
-                    (< (time-delta start-time)
-                       (conf NIMBUS-TASK-LAUNCH-SECS))
-                    (not nimbus-time)
-                    (< (time-delta nimbus-time)
-                       (conf NIMBUS-TASK-TIMEOUT-SECS))
-                    ))
+                  (if-not nimbus-time
+                    (do
+                      (log-debug "nimbus-time is nil, check nimbus if start time longer than NIMBUS-RECOIVER-HEARTBEART-SECS")
+                      (< ((:uptime nimbus)) (conf NIMBUS-RECOVER-HEARTBEART-SECS)))
+                    (do
+                      (log-debug "nimbus-time is " nimbus-time " check executor heartbeat time")
+                      (or
+                        (< (time-delta start-time)
+                          (conf NIMBUS-TASK-LAUNCH-SECS))
+                        (< (time-delta nimbus-time)
+                          (conf NIMBUS-TASK-TIMEOUT-SECS))))))
               true
               (do
-                (log-message "Executor " storm-id ":" executor " not alive")
+                (log-message "Executor " storm-id ":" executor " not alive, start-time is " (if start-time start-time "nil") " nimbus-time " (if nimbus-time nimbus-time "nil"))
                 false))
             )))
-        doall)))
+      doall)))
 
 
 (defn- to-executor-id [task-ids]
@@ -537,7 +544,7 @@
         storm-cluster-state (:storm-cluster-state nimbus)
         topology->executors (compute-topology->executors nimbus (keys existing-assignments))
         ;; update the executors heartbeats first.
-        _ (update-all-heartbeats! nimbus existing-assignments topology->executors)
+        ;;_ (update-all-heartbeats! nimbus existing-assignments topology->executors)
         topology->alive-executors (compute-topology->alive-executors nimbus
                                                                      existing-assignments
                                                                      topologies
@@ -975,6 +982,27 @@
           (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
           ))
 
+      (workerHeartBeat [this storm-id work-id port executors uptime hbtime stats]
+        (let [hb { :storm-id   storm-id
+                   :time-secs  hbtime
+                   :uptime     uptime
+                   }
+              node-port (str work-id "-" port)
+              byte-len  (.remaining stats)
+              data (byte-array byte-len)
+              _ (.get stats data)
+              executor-stats (Utils/deserialize  data)
+              cache (@(:heartbeats-cache nimbus) storm-id)
+              cache  (if cache cache {})
+              newcache (into {}
+                         (for [executor executors :let [curr (cache executor)]]
+                           [executor (merge (update-executor-cache curr hb) {:stats (get executor-stats executor)})]))
+              ]
+          (log-debug "worker heartbeat storm-id: " storm-id " worker-id: " work-id " port: " port "executors: " executors " uptime: " uptime " hbtime: " hbtime)
+
+          (swap! (:heartbeats-cache nimbus) assoc storm-id (merge cache newcache))
+          ))
+
       (activate [this storm-name]
         (transition-name! nimbus storm-name :activate true)
         )
@@ -1088,7 +1116,7 @@
               task->component (storm-task-info (try-read-storm-topology conf storm-id) (try-read-storm-conf conf storm-id))
               base (.storm-base storm-cluster-state storm-id nil)
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
+              beats (@(:heartbeats-cache nimbus) storm-id)
               all-components (-> task->component reverse-map keys)
               errors (->> all-components
                           (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))

@@ -5,6 +5,8 @@
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging IContext IConnection])
+  (:import [java.nio ByteBuffer])
+  (:import [backtype.storm.utils WorkerHbProxy])
   (:gen-class))
 
 (bootstrap)
@@ -29,13 +31,19 @@
                   (->> executors
                     (map (fn [e] {(executor/get-executor-id e) (executor/render-stats e)}))
                     (apply merge)))
-        zk-hb {:storm-id (:storm-id worker)
-               :executor-stats stats
-               :uptime ((:uptime worker))
-               :time-secs (current-time-secs)
-               }]
+        storm-id (:storm-id worker)
+        hb-proxy (:heartbeat-proxy worker)
+        assignment-id (:assignment-id worker)
+        port (:port worker)
+        uptime ((:uptime worker))
+        time-secs (current-time-secs)
+        executors (:executors worker)
+        stats-ser (Utils/serialize stats)]
+    ;;do socket heartbeat
+    (log-message "stats key type:" (map type executors))
+    (.workerHeartBeat hb-proxy storm-id assignment-id port executors uptime time-secs (ByteBuffer/wrap stats-ser))
     ;; do the zookeeper heartbeat
-    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)    
+    ;(.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
     ))
 
 (defn do-heartbeat [worker]
@@ -204,6 +212,7 @@
       :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
       :transfer-fn (mk-transfer-fn <>)
+      :heartbeat-proxy (WorkerHbProxy. (conf NIMBUS-HOST) (conf NIMBUS-THRIFT-PORT) (HashMap. conf))
       )))
 
 (defn- endpoint->string [[node port]]

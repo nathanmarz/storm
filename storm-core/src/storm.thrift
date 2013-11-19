@@ -214,6 +214,10 @@ service Nimbus {
   void deactivate(1: string name) throws (1: NotAliveException e);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite);
 
+  //heartbeat funciton
+  void workerHeartBeat(1: string stormId, 2: string workerId, 3: i32 port, 4: set<list<i32>> executors 5: i64 upTime, 6: i64 HBTime 7: binary stats)
+
+
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 
   string beginFileUpload();

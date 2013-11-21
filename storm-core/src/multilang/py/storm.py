@@ -16,6 +16,11 @@ def readMsg():
     msg = ""
     while True:
         line = sys.stdin.readline()[0:-1]
+
+        if not line:
+            # Handle EOF, which means that the Storm process went away
+            sys.exit()
+
         if line == "end":
             break
         msg = msg + line + "\n"

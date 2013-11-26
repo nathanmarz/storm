@@ -13,7 +13,10 @@
                                                     STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
                                                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                                                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
-                                                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000}]
+                                                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                                                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
+                                                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
+                                                    }]
     (let [topology (thrift/mk-topology
                      {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
                      {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)

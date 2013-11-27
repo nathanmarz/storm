@@ -13,7 +13,8 @@ echo Making release $RELEASE
 DIR=`pwd`/_release/storm-$RELEASE
 
 rm -rf _release
-rm -f *.zip 
+rm -f *.zip
+rm -f *.tar.gz
 $LEIN pom || exit 1
 mkdir -p $DIR/lib
 
@@ -56,7 +57,10 @@ cp LICENSE.html $DIR/
 
 cd _release
 zip -r storm-$RELEASE.zip *
+mv storm-*.zip ../
+tar -cvzf ../storm-$RELEASE.tar.gz ./
+
 cd ..
-mv _release/storm-*.zip .
+
 rm -rf _release
 

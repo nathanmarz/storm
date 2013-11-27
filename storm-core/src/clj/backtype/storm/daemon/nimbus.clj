@@ -832,7 +832,7 @@
       (if (.delete f)
         (log-message "Cleaning inbox ... deleted: " (.getName f))
         ;; This should never happen
-        (log-error "Cleaning inbox ... error deleting: " (.getName f))
+        (log-warn "Cleaning inbox ... error deleting: " (.getName f))
         ))))
 
 (defn cleanup-corrupt-topologies! [nimbus]

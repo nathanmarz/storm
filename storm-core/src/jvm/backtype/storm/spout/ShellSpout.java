@@ -31,6 +31,7 @@ public class ShellSpout implements ISpout {
     public void open(Map stormConf, TopologyContext context,
                      SpoutOutputCollector collector) {
         _collector = collector;
+
         _process = new ShellProcess(_command);
 
         Number subpid = _process.launch(stormConf, context);
@@ -51,7 +52,7 @@ public class ShellSpout implements ISpout {
     }
 
     public void ack(Object msgId) {
-    	if (spoutMsg == null) {
+        if (spoutMsg == null) {
             spoutMsg = new SpoutMsg();
         }
         spoutMsg.setCommand("ack");
@@ -60,7 +61,7 @@ public class ShellSpout implements ISpout {
     }
 
     public void fail(Object msgId) {
-    	if (spoutMsg == null) {
+        if (spoutMsg == null) {
             spoutMsg = new SpoutMsg();
         }
         spoutMsg.setCommand("fail");
@@ -91,8 +92,7 @@ public class ShellSpout implements ISpout {
                             _process.writeTaskIds(outtasks);
                         }
                     } else {
-                        _collector.emitDirect((int) task.longValue(), stream,
-                                tuple, messageId);
+                        _collector.emitDirect((int) task.longValue(), stream, tuple, messageId);
                     }
                 } else {
                     throw new RuntimeException("Unknown command received: " + command);

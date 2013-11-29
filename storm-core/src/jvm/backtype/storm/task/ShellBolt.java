@@ -184,14 +184,17 @@ public class ShellBolt implements IBolt {
     }
 
     private void handleEmit(ShellMsg shellMsg) throws InterruptedException {
-    	List<Tuple> anchors = new ArrayList<Tuple>();
-    	for (String anchor : shellMsg.getAnchors()) {
-	    	Tuple t = _inputs.get(anchor);
-	        if (t == null) {
-	            throw new RuntimeException("Anchored onto " + anchor + " after ack/fail");
-	        }
-	        anchors.add(t);
-    	}
+        List<Tuple> anchors = new ArrayList<Tuple>();
+        List<String> recvAnchors = shellMsg.getAnchors();
+        if (recvAnchors != null) {
+            for (String anchor : recvAnchors) {
+                Tuple t = _inputs.get(anchor);
+                if (t == null) {
+                    throw new RuntimeException("Anchored onto " + anchor + " after ack/fail");
+                }
+                anchors.add(t);
+            }
+        }
 
         if(shellMsg.getTask() == 0) {
             List<Integer> outtasks = _collector.emit(shellMsg.getStream(), anchors, shellMsg.getTuple());

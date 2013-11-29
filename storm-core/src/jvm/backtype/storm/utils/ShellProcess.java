@@ -19,6 +19,7 @@ import org.apache.log4j.Logger;
 
 public class ShellProcess implements Serializable {
     public static Logger LOG = Logger.getLogger(ShellProcess.class);
+    public static Logger ShellLogger;
     private Process      _subprocess;
     private InputStream  processErrorStream;
     private String[]     command;
@@ -32,14 +33,15 @@ public class ShellProcess implements Serializable {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(new File(context.getCodeDir()));
 
+        ShellLogger = Logger.getLogger(context.getThisComponentId());
+
         this.serializer = getSerializer(conf);
 
         Number pid;
         try {
             _subprocess = builder.start();
             processErrorStream = _subprocess.getErrorStream();
-            serializer.initialize(_subprocess.getOutputStream(),
-                    _subprocess.getInputStream());
+            serializer.initialize(_subprocess.getOutputStream(), _subprocess.getInputStream());
             pid = serializer.connect(conf, context);
         } catch (IOException e) {
             throw new RuntimeException(
@@ -83,35 +85,29 @@ public class ShellProcess implements Serializable {
 
     public void writeBoltMsg(BoltMsg msg) throws IOException {
         serializer.writeBoltMsg(msg);
-        // drain the error stream to avoid dead lock because of full error
-        // stream buffer
-        drainErrorStream();
+        // Log any info sent on the error stream
+        logErrorStream();
     }
 
     public void writeSpoutMsg(SpoutMsg msg) throws IOException {
         serializer.writeSpoutMsg(msg);
-        // drain the error stream to avoid dead lock because of full error
-        // stream buffer
-        drainErrorStream();
+        // Log any info sent on the error stream
+        logErrorStream();
     }
 
     public void writeTaskIds(List<Integer> taskIds) throws IOException {
         serializer.writeTaskIds(taskIds);
-        // drain the error stream to avoid dead lock because of full error
-        // stream buffer
-        drainErrorStream();
+        // Log any info sent on the error stream
+        logErrorStream();
     }
 
-    public void drainErrorStream() {
+    public void logErrorStream() {
         try {
             while (processErrorStream.available() > 0) {
                 int bufferSize = processErrorStream.available();
                 byte[] errorReadingBuffer = new byte[bufferSize];
-
                 processErrorStream.read(errorReadingBuffer, 0, bufferSize);
-
-                LOG.info("Got error from shell process: "
-                        + new String(errorReadingBuffer));
+                ShellLogger.info(new String(errorReadingBuffer));
             }
         } catch (Exception e) {
         }

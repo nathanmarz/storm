@@ -1,5 +1,6 @@
 (ns backtype.storm.testing4j
   (:import [java.util Map List Collection ArrayList])
+  (:require [backtype.storm LocalCluster])
   (:import [backtype.storm Config ILocalCluster LocalCluster])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.daemon nimbus])

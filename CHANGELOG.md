@@ -1,4 +1,6 @@
-## 0.9.0-rc4 (Unreleased)
+## 0.9.0
+* Fixed a netty client issue where sleep times for reconnection could be negative (thanks brndnmtthws)
+* Fixed an issue that would cause storm-netty unit tests to fail
 
 ## 0.9.0-rc3
 * Added configuration to limit ShellBolt internal _pendingWrites queue length (thanks xiaokang)

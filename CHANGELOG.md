@@ -1,3 +1,6 @@
+## 0.9.0.1
+* Update build configuration to force compatibility with Java 1.6
+
 ## 0.9.0
 * Fixed a netty client issue where sleep times for reconnection could be negative (thanks brndnmtthws)
 * Fixed an issue that would cause storm-netty unit tests to fail

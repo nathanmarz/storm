@@ -4,7 +4,7 @@
 (defproject storm/storm-console-logging VERSION
   :resource-paths ["logback"]
   :target-path "target"
-
+  :javac-options ["-target" "1.6" "-source" "1.6"]
   :profiles {:release {}
              }
 

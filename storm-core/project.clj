@@ -34,7 +34,7 @@
   :test-paths ["test/clj"]
   :resource-paths ["../conf"]
   :target-path "target"
-
+  :javac-options ["-target" "1.6" "-source" "1.6"]
   :profiles {:dev {:resource-paths ["src/dev"]
                    :dependencies [[org.mockito/mockito-all "1.9.5"]]}
              :release {}

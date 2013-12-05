@@ -9,4 +9,5 @@
   :profiles {:release {}}
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
   :target-path "target"
+  :javac-options ["-target" "1.6" "-source" "1.6"]
   :aot :all))

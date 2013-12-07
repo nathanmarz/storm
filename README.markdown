@@ -88,8 +88,11 @@ the [Maven installation instructions](http://maven.apache.org/download.cgi).
 storm-starter contains [m2-pom.xml](m2-pom.xml) which can be used with Maven using the `-f` option. For example, to
 compile and run `WordCountTopology` in local mode, use the command:
 
-    $ mvn -f m2-pom.xml compile exec:java -Dexec.classpathScope=compile -Dexec.mainClass=storm.starter.WordCountTopology
+    $ mvn -f m2-pom.xml compile exec:java -Dstorm.topology=storm.starter.WordCountTopology
 
+You can also run clojure topologies with Maven:
+
+    $ mvn -f m2-pom.xml compile exec:java -Dstorm.topology=storm.starter.clj.word_count
 
 ## Packaging storm-starter for use on a Storm cluster
 

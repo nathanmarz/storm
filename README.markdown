@@ -9,6 +9,7 @@ Table of Contents
 * <a href="#getting-started">Getting started</a>
 * <a href="#leiningen">Using storm-starter with Leiningen</a>
 * <a href="#maven">Using storm-starter with Maven</a>
+* <a href="#intellij-idea">Using storm-starter with IntelliJ IDEA</a>
 
 ---
 
@@ -110,3 +111,25 @@ Use the following Maven command to run the unit tests that ship with storm-start
 yet run the included unit tests.
 
     $ mvn -f m2-pom.xml test
+
+
+<a name="intellij-idea"></a>
+
+# Using storm-starter with IntelliJ IDEA
+
+## Importing storm-starter as a project in IDEA
+
+The following instructions will import storm-starter as a new project in IntelliJ IDEA.
+
+* Open _File > Import Project..._ and navigate to the top-level directory of your storm-starter clone (e.g.
+  `~/git/storm-starter`).
+* Select _Create project from existing sources_ and click _Next_.
+* You may now optionally change the suggested name of the project in IDEA (by default, IDEA suggests `storm-starter`).
+  Click _Next_ when you are done.
+* Click _Next_ on the following screen -- IDEA will auto-detect the correct source files of storm-starter.
+* Select the JDK to be used by IDEA for storm-starter, then click _Next_.
+    * At the time of this writing you should use JDK 6.
+    * It is strongly recommended to use Sun/Oracle JDK 6 rather than OpenJDK 6.
+* Click _Next_ on the following screen about reviewing libraries found by IDEA.  It is ok if none are listed.
+* CLick _Next_ on the following screen about reviwing suggested modules -- IDEA will auto-detect the relevant settings.
+* Click _Finish_.

@@ -121,15 +121,16 @@ yet run the included unit tests.
 
 The following instructions will import storm-starter as a new project in IntelliJ IDEA.
 
+* Copy `m2-pom.xml` to `pom.xml`.  This is requried so that IDEA (or Eclipse) can properly detect the maven
+  configuration.
 * Open _File > Import Project..._ and navigate to the top-level directory of your storm-starter clone (e.g.
   `~/git/storm-starter`).
-* Select _Create project from existing sources_ and click _Next_.
-* You may now optionally change the suggested name of the project in IDEA (by default, IDEA suggests `storm-starter`).
-  Click _Next_ when you are done.
-* Click _Next_ on the following screen -- IDEA will auto-detect the correct source files of storm-starter.
+* Select _Import project from external model_, select "Maven", and click _Next_.
+* In the following screen, enable the checkbox _Import Maven projects automatically_.  Leave all other values at their
+  defaults.  Click _Next_.
+* Click _Next_ on the following screen about selecting Maven projects to import.
 * Select the JDK to be used by IDEA for storm-starter, then click _Next_.
     * At the time of this writing you should use JDK 6.
     * It is strongly recommended to use Sun/Oracle JDK 6 rather than OpenJDK 6.
-* Click _Next_ on the following screen about reviewing libraries found by IDEA.  It is ok if none are listed.
-* CLick _Next_ on the following screen about reviwing suggested modules -- IDEA will auto-detect the relevant settings.
-* Click _Finish_.
+* You may now optionally change the name of the project in IDEA.  The default name suggested by IDEA is "storm-starter".
+  Click _Finish_ once you are done.

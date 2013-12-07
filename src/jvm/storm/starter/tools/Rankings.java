@@ -1,5 +1,6 @@
 package storm.starter.tools;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.io.Serializable;
@@ -26,6 +27,15 @@ public class Rankings implements Serializable {
   }
 
   /**
+   * Copy constructor.
+   * @param other
+   */
+  public Rankings(Rankings other) {
+    this(other.maxSize());
+    updateWith(other);
+  }
+
+  /**
    * @return the maximum possible number (size) of ranked objects this instance can hold
    */
   public int maxSize() {
@@ -39,12 +49,20 @@ public class Rankings implements Serializable {
     return rankedItems.size();
   }
 
+  /**
+   * The returned defensive copy is only "somewhat" defensive.  We do, for instance, return a defensive copy of the
+   * enclosing List instance, and we do try to defensively copy any contained Rankable objects, too.  However, the
+   * contract of {@link storm.starter.tools.Rankable#copy()} does not guarantee that any Object's embedded within
+   * a Rankable will be defensively copied, too.
+   *
+   * @return a somewhat defensive copy of ranked items
+   */
   public List<Rankable> getRankings() {
-    return defensiveCopyOf(rankedItems);
-  }
-
-  private List<Rankable> defensiveCopyOf(List<Rankable> list) {
-    return Lists.newArrayList(rankedItems);
+    List<Rankable> copy = Lists.newLinkedList();
+    for (Rankable r: rankedItems) {
+      copy.add(r.copy());
+    }
+    return ImmutableList.copyOf(copy);
   }
 
   public void updateWith(Rankings other) {
@@ -110,5 +128,12 @@ public class Rankings implements Serializable {
 
   public String toString() {
     return rankedItems.toString();
+  }
+
+  /**
+   * Creates a (defensive) copy of itself.
+   */
+  public Rankings copy() {
+    return new Rankings(this);
   }
 }

@@ -36,6 +36,57 @@ public class RankingsTest {
   }
 
   @DataProvider
+  public Object[][] copyRankingsData() {
+    return new Object[][]{ { 5, Lists.newArrayList(A, B, C) }, { 2, Lists.newArrayList(A, B, C, D) },
+        { 1, Lists.newArrayList() }, { 1, Lists.newArrayList(A) }, { 1, Lists.newArrayList(A, B) } };
+  }
+
+  @Test(dataProvider = "copyRankingsData")
+  public void copyConstructorShouldReturnCopy(int topN, List<Rankable> rankables) {
+    // given
+    Rankings rankings = new Rankings(topN);
+    for (Rankable r : rankables) {
+      rankings.updateWith(r);
+    }
+
+    // when
+    Rankings copy = new Rankings(rankings);
+
+    // then
+    assertThat(copy.maxSize()).isEqualTo(rankings.maxSize());
+    assertThat(copy.getRankings()).isEqualTo(rankings.getRankings());
+  }
+
+  @DataProvider
+  public Object[][] defensiveCopyRankingsData() {
+    return new Object[][]{ { 5, Lists.newArrayList(A, B, C), Lists.newArrayList(D) }, { 2, Lists.newArrayList(A, B, C,
+        D), Lists.newArrayList(E, F) }, { 1, Lists.newArrayList(), Lists.newArrayList(A) }, { 1, Lists.newArrayList(A),
+        Lists.newArrayList(B) }, { 1, Lists.newArrayList(ZERO), Lists.newArrayList(B) }, { 1, Lists.newArrayList(ZERO),
+        Lists.newArrayList() } };
+  }
+
+  @Test(dataProvider = "defensiveCopyRankingsData")
+  public void copyConstructorShouldReturnDefensiveCopy(int topN, List<Rankable> rankables, List<Rankable> changes) {
+    // given
+    Rankings original = new Rankings(topN);
+    for (Rankable r : rankables) {
+      original.updateWith(r);
+    }
+    int expSize = original.size();
+    List<Rankable> expRankings = original.getRankings();
+
+    // when
+    Rankings copy = new Rankings(original);
+    for (Rankable r : changes) {
+      copy.updateWith(r);
+    }
+
+    // then
+    assertThat(original.size()).isEqualTo(expSize);
+    assertThat(original.getRankings()).isEqualTo(expRankings);
+  }
+
+  @DataProvider
   public Object[][] legalTopNData() {
     return new Object[][]{ { 1 }, { 2 }, { 1000 }, { 1000000 } };
   }
@@ -258,4 +309,43 @@ public class RankingsTest {
     }
     assertThat(exceptions).isEmpty();
   }
+
+  @Test(dataProvider = "copyRankingsData")
+  public void copyShouldReturnCopy(int topN, List<Rankable> rankables) {
+    // given
+    Rankings rankings = new Rankings(topN);
+    for (Rankable r : rankables) {
+      rankings.updateWith(r);
+    }
+
+    // when
+    Rankings copy = rankings.copy();
+
+    // then
+    assertThat(copy.maxSize()).isEqualTo(rankings.maxSize());
+    assertThat(copy.getRankings()).isEqualTo(rankings.getRankings());
+  }
+
+  @Test(dataProvider = "defensiveCopyRankingsData")
+  public void copyShouldReturnDefensiveCopy(int topN, List<Rankable> rankables, List<Rankable> changes) {
+    // given
+    Rankings original = new Rankings(topN);
+    for (Rankable r : rankables) {
+      original.updateWith(r);
+    }
+    int expSize = original.size();
+    List<Rankable> expRankings = original.getRankings();
+
+    // when
+    Rankings copy = original.copy();
+    for (Rankable r : changes) {
+      copy.updateWith(r);
+    }
+    copy.pruneZeroCounts();
+
+    // then
+    assertThat(original.size()).isEqualTo(expSize);
+    assertThat(original.getRankings()).isEqualTo(expRankings);
+  }
+
 }

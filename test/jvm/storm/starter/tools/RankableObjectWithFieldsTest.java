@@ -211,4 +211,25 @@ public class RankableObjectWithFieldsTest {
     assertThat(r.getFields()).isEqualTo(fields);
 
   }
+
+  @DataProvider
+  public Object[][] copyData() {
+    return new Object[][]{ { new RankableObjectWithFields("foo", 0) }, { new RankableObjectWithFields("foo", 3,
+        "someOtherField") }, { new RankableObjectWithFields("foo", 0, "someField") } };
+  }
+
+  // TODO: What would be a good test to ensure that RankableObjectWithFields is at least somewhat defensively copied?
+  //       The contract of Rankable#copy() returns a Rankable value, not a RankableObjectWithFields.
+  @Test(dataProvider = "copyData")
+  public void copyShouldReturnCopy(RankableObjectWithFields original) {
+    // given
+
+    // when
+    Rankable copy = original.copy();
+
+    // then
+    assertThat(copy.getObject()).isEqualTo(original.getObject());
+    assertThat(copy.getCount()).isEqualTo(original.getCount());
+  }
+
 }

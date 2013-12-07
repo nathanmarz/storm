@@ -15,7 +15,7 @@
                  ]
 
   :profiles {:dev
-              {:dependencies [[storm "0.8.2"]
+              {:dependencies [[storm "0.9.0.1"]
                               [org.clojure/clojure "1.4.0"]
                               [org.testng/testng "6.8.5"]
                               [org.easytesting/fest-assert-core "2.0M8"]

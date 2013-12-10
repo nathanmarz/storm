@@ -1,10 +1,10 @@
 package backtype.storm.messaging.netty;
 
-import java.util.Map;
-import java.util.Vector;
-
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.IContext;
+
+import java.util.Map;
+import java.util.Vector;
 
 public class Context implements IContext {
     @SuppressWarnings("rawtypes")

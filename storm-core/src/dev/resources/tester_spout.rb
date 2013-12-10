@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# -*- coding: utf-8 -*-
 require File.expand_path("storm", File.dirname(__FILE__))
 
 $words = ["nathan", "mike", "jackson", "golda", "bertels人"]

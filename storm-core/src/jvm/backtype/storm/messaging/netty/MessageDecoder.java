@@ -1,10 +1,10 @@
 package backtype.storm.messaging.netty;
 
+import backtype.storm.messaging.TaskMessage;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
-import backtype.storm.messaging.TaskMessage;
 
 public class MessageDecoder extends FrameDecoder {    
     /*

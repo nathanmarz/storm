@@ -3,7 +3,6 @@ package backtype.storm.messaging.netty;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 
 enum ControlMessage {
     CLOSE_MESSAGE((short)-100),

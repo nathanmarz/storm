@@ -1,13 +1,11 @@
 package backtype.storm.messaging.netty;
 
-import java.util.ArrayList;
-
+import backtype.storm.messaging.TaskMessage;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 
-import backtype.storm.messaging.TaskMessage;
+import java.util.ArrayList;
 
 class MessageBatch {
     private int buffer_size;

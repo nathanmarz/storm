@@ -18,6 +18,7 @@ rm -f *.tar.gz
 $LEIN pom || exit 1
 mkdir -p $DIR/lib
 
+sh bin/install_libthrift7.sh
 
 sh bin/build_modules.sh
 

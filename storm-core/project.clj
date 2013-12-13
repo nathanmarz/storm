@@ -49,7 +49,7 @@
   :test-paths ["test/clj"]
   :resource-paths ["../conf"]
   :target-path "target"
-  :javac-options ["-target" "1.6" "-source" "1.6"]
+  :javac-options ["-target" "1.6" "-source" "1.6" "-g"]
   :profiles {:dev {:resource-paths ["src/dev"]
                    :dependencies [[org.mockito/mockito-all "1.9.5"]]}
              :release {}
@@ -61,7 +61,6 @@
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}
 
-  :javac-options ["-g"]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
 
   :aot :all)

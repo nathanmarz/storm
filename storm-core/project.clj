@@ -20,7 +20,9 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-                 [storm/libthrift7 "0.7.0-2"
+                 ;; the following dependency must be generated prior to building
+                 ;; to generate and install it, run ./bin/install_libthrift7.sh
+                 [org.apache.storm/libthrift7 "0.7.0"
                   :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]
                  [com.netflix.curator/curator-framework "1.0.1"

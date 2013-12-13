@@ -38,7 +38,7 @@
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  [org.clojure/tools.cli "0.2.2"]
                  [com.googlecode.disruptor/disruptor "2.10.1"]
-                 [org.jgrapht/jgrapht-core "0.9.0"]
+                 [org.jgrapht/jgrapht-core "0.9.0-SNAPSHOT"]
                  [com.google.guava/guava "13.0"]
                  [ch.qos.logback/logback-classic "1.0.6"]
                  [org.slf4j/log4j-over-slf4j "1.6.6"]

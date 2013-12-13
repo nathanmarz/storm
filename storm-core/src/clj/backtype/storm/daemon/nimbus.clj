@@ -1137,14 +1137,13 @@
         options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
                     (THsHaServer$Args.)
                     (.workerThreads 64)
-                    (.protocolFactory (TBinaryProtocol$Factory.))
+                    (.protocolFactory (TBinaryProtocol$Factory. false true (conf NIMBUS-THRIFT-MAX-BUFFER-SIZE)))
                     (.processor (Nimbus$Processor. service-handler))
                     )
-       server (THsHaServer. options)]
+       server (THsHaServer. (do (set! (. options maxReadBufferBytes)(conf NIMBUS-THRIFT-MAX-BUFFER-SIZE)) options))]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))
-
 
 ;; distributed implementation
 

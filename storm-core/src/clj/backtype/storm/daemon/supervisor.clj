@@ -423,7 +423,7 @@
           stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
-          classpath (add-to-classpath (current-classpath) [stormjar])
+          classpath (add-to-classpath (current-classpath) [stormjar (storm-conf TOPOLOGY-WORKER-CLASSPATH)])
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"
                                  (str port))

@@ -492,7 +492,7 @@
   (System/getProperty "java.class.path"))
 
 (defn add-to-classpath [classpath paths]
-  (str/join ":" (cons classpath paths)))
+  (str/join ":" (cons classpath (remove str/blank? paths))))
 
 (defn ^ReentrantReadWriteLock mk-rw-lock []
   (ReentrantReadWriteLock.))

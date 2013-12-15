@@ -31,9 +31,11 @@ import java.io.IOException;
  */
 public class LocalState {
     private VersionedStore _vs;
-    
-    public LocalState(String backingDir) throws IOException {
+    private StateSerializer _stSer;
+
+    public LocalState (String backingDir, StateSerializer stSer) throws IOException {
         _vs = new VersionedStore(backingDir);
+        _stSer = stSer;
     }
     
     public synchronized Map<Object, Object> snapshot() throws IOException {
@@ -42,7 +44,7 @@ public class LocalState {
             String latestPath = _vs.mostRecentVersionPath();
             if(latestPath==null) return new HashMap<Object, Object>();
             try {
-                return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
+                return (Map<Object, Object>) _stSer.deserializeState(FileUtils.readFileToByteArray(new File(latestPath)));
             } catch(IOException e) {
                 attempts++;
                 if(attempts >= 10) {
@@ -81,7 +83,7 @@ public class LocalState {
     }
     
     private void persist(Map<Object, Object> val, boolean cleanup) throws IOException {
-        byte[] toWrite = Utils.serialize(val);
+        byte[] toWrite = _stSer.serializeState(val);
         String newPath = _vs.createVersion();
         FileUtils.writeByteArrayToFile(new File(newPath), toWrite);
         _vs.succeedVersion(newPath);

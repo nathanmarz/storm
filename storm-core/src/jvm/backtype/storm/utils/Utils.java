@@ -48,6 +48,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
+import org.apache.thrift7.TSerializer;
+import org.apache.thrift7.TDeserializer;
+import org.apache.thrift7.protocol.TBinaryProtocol;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 
@@ -87,6 +90,30 @@ public class Utils {
         } catch(ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static byte[] serializeTopology(StormTopology topo) {
+	// TSerializer not threadsafe; lock or new instance every time
+	TSerializer serializer =
+	    new TSerializer(new TBinaryProtocol.Factory());
+	try {
+	    return serializer.serialize(topo);
+	} catch(TException te) {
+	    throw new RuntimeException(te);
+	}
+    }
+
+    public static StormTopology deserializeTopology(byte[] bytes) {
+	// TDeserializer not threadsafe; lock or new instance every time
+	TDeserializer deserializer =
+	    new TDeserializer(new TBinaryProtocol.Factory());
+	StormTopology topo = new StormTopology();
+	try {
+	    deserializer.deserialize(topo, bytes);
+	    return topo;
+	} catch(TException te) {
+	    throw new RuntimeException(te);
+	}
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {

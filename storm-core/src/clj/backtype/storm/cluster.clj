@@ -188,9 +188,9 @@
       (cb id))
     ))
 
-(defn- maybe-deserialize [ser]
+(defn- maybe-deserialize-clj-bytes [ser]
   (when ser
-    (Utils/deserialize ser)))
+    (deserialize-clj-bytes ser)))
 
 (defstruct TaskError :error :time-secs)
 
@@ -245,7 +245,7 @@
       (assignment-info [this storm-id callback]
         (when callback
           (swap! assignment-info-callback assoc storm-id callback))
-        (maybe-deserialize (get-data cluster-state (assignment-path storm-id) (not-nil? callback)))
+        (maybe-deserialize-clj-bytes (get-data cluster-state (assignment-path storm-id) (not-nil? callback)))
         )
 
       (active-storms [this]
@@ -263,7 +263,7 @@
       (get-worker-heartbeat [this storm-id node port]
         (-> cluster-state
             (get-data (workerbeat-path storm-id node port) false)
-            maybe-deserialize))
+            maybe-deserialize-clj-bytes))
 
       (executor-beats [this storm-id executor->node+port]
         ;; need to take executor->node+port in explicitly so that we don't run into a situation where a 
@@ -284,11 +284,11 @@
         )
 
       (supervisor-info [this supervisor-id]
-        (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false))
+        (maybe-deserialize-clj-bytes (get-data cluster-state (supervisor-path supervisor-id) false))
         )
 
       (worker-heartbeat! [this storm-id node port info]
-        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info)))
+        (set-data cluster-state (workerbeat-path storm-id node port) (serialize-clj-bytes info)))
 
       (remove-worker-heartbeat! [this storm-id node port]
         (delete-node cluster-state (workerbeat-path storm-id node port))
@@ -312,11 +312,11 @@
            )))
 
       (supervisor-heartbeat! [this supervisor-id info]
-        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info))
+        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (serialize-clj-bytes info))
         )
 
       (activate-storm! [this storm-id storm-base]
-        (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base))
+        (set-data cluster-state (storm-path storm-id) (serialize-clj-bytes storm-base))
         )
 
       (update-storm! [this storm-id new-elems]
@@ -326,12 +326,12 @@
           (set-data cluster-state (storm-path storm-id)
                                   (-> base
                                       (merge new-elems)
-                                      Utils/serialize))))
+                                      serialize-clj-bytes))))
 
       (storm-base [this storm-id callback]
         (when callback
           (swap! storm-base-callback assoc storm-id callback))
-        (maybe-deserialize (get-data cluster-state (storm-path storm-id) (not-nil? callback)))
+        (maybe-deserialize-clj-bytes (get-data cluster-state (storm-path storm-id) (not-nil? callback)))
         )
 
       (remove-storm-base! [this storm-id]
@@ -339,7 +339,7 @@
         )
 
       (set-assignment! [this storm-id info]
-        (set-data cluster-state (assignment-path storm-id) (Utils/serialize info))
+        (set-data cluster-state (assignment-path storm-id) (serialize-clj-bytes info))
         )
 
       (remove-storm! [this storm-id]
@@ -350,7 +350,7 @@
          (let [path (error-path storm-id component-id)
                data {:time-secs (current-time-secs) :error (stringify-error error)}
                _ (mkdirs cluster-state path)
-               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data))
+               _ (create-sequential cluster-state (str path "/e") (serialize-clj-bytes data))
                to-kill (->> (get-children cluster-state path false)
                             (sort-by parse-error-path)
                             reverse
@@ -364,7 +364,7 @@
                children (get-children cluster-state path false)
                errors (dofor [c children]
                              (let [data (-> (get-data cluster-state (str path "/" c) false)
-                                            maybe-deserialize)]
+                                            maybe-deserialize-clj-bytes)]
                                (when data
                                  (struct TaskError (:error data) (:time-secs data))
                                  )))

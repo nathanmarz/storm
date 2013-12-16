@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http:;; www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (def ROOT-DIR (subs *file* 0 (- (count *file*) (count "project.clj"))))
 (def VERSION (-> ROOT-DIR (str "/../VERSION") slurp (.trim)))
 
@@ -17,12 +32,12 @@
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
-                 [storm/carbonite "1.5.0"]
+                 [com.twitter/carbonite "1.3.2"]
                  [org.yaml/snakeyaml "1.11"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
-                 [storm/tools.cli "0.2.2"]
+                 [org.clojure/tools.cli "0.2.2"]
                  [com.googlecode.disruptor/disruptor "2.10.1"]
-                 [storm/jgrapht "0.8.3"]
+                 [org.jgrapht/jgrapht-core "0.9.0"]
                  [com.google.guava/guava "13.0"]
                  [ch.qos.logback/logback-classic "1.0.6"]
                  [org.slf4j/log4j-over-slf4j "1.6.6"]

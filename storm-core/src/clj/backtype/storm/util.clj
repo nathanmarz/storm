@@ -24,7 +24,7 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
-  (:import [java.io File RandomAccessFile StringWriter PrintWriter])
+  (:import [java.io File FileOutputStream StringWriter PrintWriter IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
@@ -33,6 +33,7 @@
   (:require [clojure [string :as str]])
   (:import [clojure.lang RT])
   (:require [clojure [set :as set]])
+  (:require [clojure.java.io :as io])
   (:use [clojure walk])
   (:use [backtype.storm log])
   )
@@ -366,8 +367,13 @@
 
 (defn extract-dir-from-jar [jarpath dir destdir]
   (try-cause
-    (exec-command! (str "unzip -qq " jarpath " " dir "/** -d " destdir))
-  (catch ExecuteException e
+    (with-open [jarpath (ZipFile. jarpath)]
+      (let [entries (enumeration-seq (.entries jarpath))]
+        (doseq [file (filter (fn [entry](and (not (.isDirectory entry)) (.startsWith (.getName entry) dir))) entries)]
+          (.mkdirs (.getParentFile (File. destdir (.getName file))))
+          (with-open [out (FileOutputStream. (File. destdir (.getName file)))]
+            (io/copy (.getInputStream jarpath file) out)))))
+  (catch IOException e
     (log-message "Could not extract " dir " from " jarpath))
   ))
 

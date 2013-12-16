@@ -13,7 +13,7 @@ if not exist %STORM_HOME%\storm*.jar (
     @echo ^|      Error: STORM_HOME is not set correctly                   ^|
     @echo +----------------------------------------------------------------+
     @echo ^| Please set your STORM_HOME variable to the absolute path of   ^|
-    @echo ^| the directory that contains the storm distribution            ^|
+    @echo ^| the directory that contains the storm distribution      ^|
     @echo +================================================================+
     exit /b 1
 )
@@ -54,12 +54,14 @@ if defined STORM_HEAPSIZE (
 @rem
 
 set CLASSPATH=%STORM_HOME%\*;%STORM_CONF_DIR%
-set CLASSPATH=!CLASSPATH!;%JAVA_HOME%\lib\tools.jar
+set CLASSPATH=%CLASSPATH%;%JAVA_HOME%\lib\tools.jar
 
 @rem
 @rem add libs to CLASSPATH
 @rem
 
+set CLASSPATH=!CLASSPATH!;%STORM_HOME%\lib\storm\*
+set CLASSPATH=!CLASSPATH!;%STORM_HOME%\lib\common\*
 set CLASSPATH=!CLASSPATH!;%STORM_HOME%\lib\*
 
 @rem
@@ -80,9 +82,23 @@ if not defined STORM_ROOT_LOGGER (
   set STORM_ROOT_LOGGER=INFO,console,DRFA
 )
 
-set STORM_OPTS=-Dstorm.home=%STORM_HOME% -Djava.library.path=sbin -Dlog4j.configuration=storm.log.properties
+if not defined STORM_LOGBACK_CONFIGURATION_FILE (
+  set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_CONF_DIR%\logback.xml
+)
+
+if not defined STORM_WORKER_JMXREMOTE_PORT_OFFSET (
+  set STORM_WORKER_JMXREMOTE_PORT_OFFSET=1000
+)
+
+set STORM_OPTS=-Dstorm.home=%STORM_HOME% -Djava.library.path=sbin
+set STORM_OPTS=%STORM_OPTS% -Dlogback.configurationFile=%STORM_LOGBACK_CONFIGURATION_FILE%
 set STORM_OPTS=%STORM_OPTS% -Dstorm.log.dir=%STORM_LOG_DIR%
 set STORM_OPTS=%STORM_OPTS% -Dstorm.root.logger=%STORM_ROOT_LOGGER%
+set STORM_OPTS=%STORM_OPTS% -Dstorm.worker.jmxremote.port.offset=%STORM_WORKER_JMXREMOTE_PORT_OFFSET%
+set STORM_OPTS=%STORM_OPTS% -Dcom.sun.management.jmxremote
+set STORM_OPTS=%STORM_OPTS% -Dcom.sun.management.jmxremote.authenticate=false
+set STORM_OPTS=%STORM_OPTS% -Dcom.sun.management.jmxremote.ssl=false
+
 
 if not defined STORM_SERVER_OPTS (
   set STORM_SERVER_OPTS=-server

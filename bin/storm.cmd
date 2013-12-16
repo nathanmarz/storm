@@ -34,11 +34,11 @@
     if %storm-command% == %%i set shellcommand=true
   )
   if defined shellcommand (
-    call :%storm-command%
+    call :%storm-command% %*
     goto :eof
   )
 
-  set corecommands=activate deactivate dev-zookeeper drpc kill list nimbus rebalance repl shell supervisor ui zookeeper
+  set corecommands=activate deactivate dev-zookeeper drpc kill list nimbus rebalance repl shell supervisor ui zookeeper compile
   for %%i in ( %corecommands% ) do (
     if %storm-command% == %%i set corecommand=true  
   )
@@ -50,6 +50,7 @@
 
   if %storm-command% == jar (
     set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS% -Dstorm.jar=%2
+    set CLASSPATH=%CLASSPATH%;%2
     set CLASS=%3
     set storm-command-arguments=%4 %5 %6 %7 %8 %9
   )
@@ -64,6 +65,7 @@
   set path=%STORM_BIN_DIR%;%STORM_SBIN_DIR%;%windir%\system32;%windir%
   call %JAVA% %JAVA_HEAP_MAX% %STORM_OPTS% %STORM_LOG_FILE% %CLASS% %storm-command-arguments%
   goto :eof
+
 
 :activate
   set CLASS=backtype.storm.command.activate
@@ -105,7 +107,8 @@
 
 :nimbus
   set CLASS=backtype.storm.daemon.nimbus
-  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  set JMX_REMOTE_PORT=7627
+  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS% -Dcom.sun.management.jmxremote.port=%JMX_REMOTE_PORT%
   goto :eof
 
 :rebalance
@@ -125,7 +128,8 @@
   
 :supervisor
   set CLASS=backtype.storm.daemon.supervisor
-  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  set JMX_REMOTE_PORT=7699
+  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS% -Dcom.sun.management.jmxremote.port=%JMX_REMOTE_PORT%
   goto :eof
 
 :ui
@@ -135,7 +139,14 @@
 
 :zookeeper
   set CLASS=org.apache.zookeeper.server.quorum.QuorumPeerMain
-  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  set JMX_REMOTE_PORT=3181
+  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS% -Dcom.sun.management.jmxremote.port=%JMX_REMOTE_PORT%
+  goto :eof
+
+:compile
+  echo Compiling %1...
+  set CLASS=scp.spec.compile
+  set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
 :version

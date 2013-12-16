@@ -134,6 +134,7 @@
 
 :ui
   set CLASS=backtype.storm.ui.core
+  set CLASSPATH=%CLASSPATH%;%STORM_HOME%
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
   goto :eof
 

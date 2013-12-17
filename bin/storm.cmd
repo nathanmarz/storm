@@ -38,7 +38,7 @@
     goto :eof
   )
 
-  set corecommands=activate deactivate dev-zookeeper drpc kill list nimbus rebalance repl shell supervisor ui zookeeper compile
+  set corecommands=activate deactivate dev-zookeeper drpc kill list nimbus rebalance repl shell supervisor ui zookeeper
   for %%i in ( %corecommands% ) do (
     if %storm-command% == %%i set corecommand=true  
   )
@@ -144,12 +144,6 @@
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS% -Dcom.sun.management.jmxremote.port=%JMX_REMOTE_PORT%
   goto :eof
 
-:compile
-  echo Compiling %1...
-  set CLASS=scp.spec.compile
-  set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
-  goto :eof
-
 :version
   type RELEASE
   goto :eof
@@ -176,7 +170,7 @@
   @echo where COMMAND is one of:
   @echo   activate             activates the specified topology's spouts
   @echo   classpath            prints the classpath used by the storm client when running commands
-  @echo   deactivatea          deactivates the specified topology's spouts
+  @echo   deactivate           deactivates the specified topology's spouts
   @echo   dev-zookeeper        launches a fresh dev/test Zookeeper server
   @echo   drpc                 launches a DRPC daemon
   @echo   help

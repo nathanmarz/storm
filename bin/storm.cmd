@@ -62,7 +62,7 @@
   if defined STORM_DEBUG ( 
     %JAVA% %JAVA_HEAP_MAX% %STORM_OPTS% %STORM_LOG_FILE% %CLASS% %storm-command-arguments%
   )
-  set path=%STORM_BIN_DIR%;%STORM_SBIN_DIR%;%windir%\system32;%windir%
+  set path=%PATH%;%STORM_BIN_DIR%;%STORM_SBIN_DIR%
   call %JAVA% %JAVA_HEAP_MAX% %STORM_OPTS% %STORM_LOG_FILE% %CLASS% %storm-command-arguments%
   goto :eof
 

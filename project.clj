@@ -15,15 +15,15 @@
 ;; limitations under the License.
 (def VERSION (.trim (slurp "VERSION")))
 (def MODULES (-> "MODULES" slurp (.split "\n")))
-(def DEPENDENCIES (for [m MODULES] [(symbol (str "storm/" m)) VERSION]))
+(def DEPENDENCIES (for [m MODULES] [(symbol (str "org.apache.storm/" m)) VERSION]))
 
-(eval `(defproject storm/storm ~VERSION
+(eval `(defproject org.apache.storm/storm ~VERSION
   :url "http://storm-project.net"
   :description "Distributed and fault-tolerant realtime computation"
-  :license {:name "Eclipse Public License - Version 1.0" :url "https://github.com/nathanmarz/storm/blob/master/LICENSE.html"}
+  :license {:name "The Apache Software License, Version 2.0" :url "http://www.apache.org/licenses/LICENSE-2.0.txt"}
   :mailing-list {:name "Storm user mailing list"
-                 :archive "https://groups.google.com/group/storm-user"
-                 :post "storm-user@googlegroups.com"}
+                 :archive "http://mail-archives.apache.org/mod_mbox/incubator-storm-user/"
+                 :post "user@storm.incubator.apache.org"}
   :dependencies [~@DEPENDENCIES]
   :plugins [[~'lein-sub "0.2.1"]]  
   :min-lein-version "2.0.0"

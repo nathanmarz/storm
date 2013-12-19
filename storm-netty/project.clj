@@ -16,8 +16,8 @@
 (def ROOT-DIR (subs *file* 0 (- (count *file*) (count "project.clj"))))
 (def VERSION (-> ROOT-DIR (str "/../VERSION") slurp (.trim)))
 
-(eval `(defproject storm/storm-netty ~VERSION
-  :dependencies [[storm/storm-core ~VERSION]
+(eval `(defproject org.apache.storm/storm-netty ~VERSION
+  :dependencies [[org.apache.storm/storm-core ~VERSION]
                  [io.netty/netty "3.6.3.Final"]]
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]

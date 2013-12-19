@@ -47,7 +47,7 @@
   (FeederSpout. (Fields. fields)))
 
 (defn local-temp-path []
-  (str (System/getProperty "java.io.tmpdir") "/" (uuid)))
+  (str (System/getProperty "java.io.tmpdir") (if-not on-windows? "/") (uuid)))
 
 (defn delete-all [paths]
   (dorun
@@ -176,7 +176,9 @@
   (log-message "Done shutting down in process zookeeper")
   (doseq [t @(:tmp-dirs cluster-map)]
     (log-message "Deleting temporary path " t)
-    (rmr t)
+    (try
+      (rmr t)
+      (catch Exception e (log-message (.getMessage e)))) ;; on windows, the host process still holds lock on the logfile
     ))
 
 (def TEST-TIMEOUT-MS 5000)

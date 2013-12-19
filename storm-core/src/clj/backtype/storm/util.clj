@@ -44,6 +44,15 @@
     e
     (RuntimeException. e)))
 
+(def on-windows?
+  (= "Windows_NT" (System/getenv "OS")))
+
+(def file-path-separator
+  (System/getProperty "file.separator"))
+
+(def class-path-separator
+  (System/getProperty "path.separator"))
+
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
   any) and similar metadata. The metadata of the alias is its initial
@@ -374,7 +383,7 @@
 (defn ensure-process-killed! [pid]
   ;; TODO: should probably do a ps ax of some sort to make sure it was killed
   (try-cause
-    (exec-command! (str "kill -9 " pid))
+    (exec-command! (str (if on-windows? "taskkill /f /pid " "kill -9 ") pid))
   (catch ExecuteException e
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
@@ -474,7 +483,8 @@
 
 (defn touch [path]
   (log-debug "Touching file at " path)
-  (let [success? (.createNewFile (File. path))]
+  (let [success? (do (if on-windows? (.mkdirs (.getParentFile (File. path))))
+                     (.createNewFile (File. path)))]
     (when-not success?
       (throw (RuntimeException. (str "Failed to touch " path))))
     ))
@@ -492,7 +502,7 @@
   (System/getProperty "java.class.path"))
 
 (defn add-to-classpath [classpath paths]
-  (str/join ":" (cons classpath paths)))
+  (str/join class-path-separator (cons classpath paths)))
 
 (defn ^ReentrantReadWriteLock mk-rw-lock []
   (ReentrantReadWriteLock.))
@@ -740,7 +750,7 @@
 
 (defn zip-contains-dir? [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target "/")) entries)
+    (some? #(.startsWith % (str target file-path-separator)) entries)
     ))
 
 (defn url-encode [s]

@@ -22,12 +22,13 @@ function quit {
 trap quit 1 2 3 15  #Ctrl+C exits.
 
 RELEASE=`cat VERSION`
+PROJECT=apache-storm
 LEIN=`which lein2 || which lein` 
 export LEIN_ROOT=1
 
-echo Making release $RELEASE
+echo Making release $PROJECT-$RELEASE
 
-DIR=`pwd`/_release/storm-$RELEASE
+DIR=`pwd`/_release/$PROJECT-$RELEASE
 
 rm -rf _release
 rm -f *.zip
@@ -47,7 +48,7 @@ do
 	cd ..
 done
 
-cd _release/storm-$RELEASE
+cd _release/$PROJECT-$RELEASE
 for i in *.jar
 do
 	rm -f lib/$i
@@ -73,9 +74,9 @@ cp README.markdown $DIR/
 cp LICENSE.html $DIR/
 
 cd _release
-zip -r storm-$RELEASE.zip *
-mv storm-*.zip ../
-tar -cvzf ../storm-$RELEASE.tar.gz ./
+zip -r $PROJECT-$RELEASE.zip *
+mv $PROJECT-*.zip ../
+tar -cvzf ../$PROJECT-$RELEASE.tar.gz ./
 
 cd ..
 

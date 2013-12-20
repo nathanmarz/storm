@@ -25,6 +25,7 @@
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
@@ -925,10 +926,15 @@
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
           (check-storm-active! nimbus storm-name false)
-          (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
-                     storm-name
-                     (from-json serializedConf)
-                     topology)
+          (let [topo-conf (from-json serializedConf)]
+            (try
+              (validate-configs-with-schemas topo-conf)
+              (catch IllegalArgumentException ex
+                (throw (InvalidTopologyException. (.getMessage ex)))))
+            (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                       storm-name
+                       topo-conf
+                       topology))
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 storm-conf (normalize-conf

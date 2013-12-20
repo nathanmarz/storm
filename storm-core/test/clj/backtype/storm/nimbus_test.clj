@@ -815,3 +815,12 @@
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
        ))))
+
+(deftest test-validate-topo-config-on-submit
+  (with-local-cluster [cluster]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology {} {})
+          bad-config {"topology.workers" "3"}]
+      (is (thrown-cause? InvalidTopologyException
+        (submit-local-topology-with-opts nimbus "test" bad-config topology
+                                         (SubmitOptions.)))))))

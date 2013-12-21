@@ -31,7 +31,7 @@
 
 (bootstrap)
 
-(def nimbus-timeout (Integer. 30))
+(def nimbus-timeout (Integer. 120))
 
 (defn mk-authorization-handler [storm-conf]
   (let [klassname (storm-conf NIMBUS-AUTHORIZER) 

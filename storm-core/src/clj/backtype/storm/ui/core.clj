@@ -51,7 +51,6 @@
 (def tips
   "Defines a mapping of help texts for elements of the UI pages."
   {:sys-stats "Use this to toggle inclusion of storm system components."
-   :user "This should be you."
    :version (str "The version of storm installed on the UI node. (Hopefully, "
                  "this is the same on all storm nodes!)")
    :nimbus-uptime (str "The duration the current Nimbus instance has been "

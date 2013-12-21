@@ -68,12 +68,12 @@
   (pretty-uptime-str* ms PRETTY-MS-DIVIDERS))
 
 
-(defelem table [headers data]
+(defelem table [headers-map data]
   [:table
    [:thead
     [:tr
-     (for [h headers]
-       [:th h])
+     (for [h headers-map]
+       [:th (if (:text h) [:span (:attr h) (:text h)] h)])
      ]]
    [:tbody
     (for [row data]

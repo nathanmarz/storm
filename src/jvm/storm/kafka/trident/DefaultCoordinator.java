@@ -10,5 +10,5 @@ public class DefaultCoordinator implements IBatchCoordinator {
     @Override
     public void close() {
     }
-    
+
 }

@@ -13,8 +13,8 @@ public class TridentKafkaConfig extends KafkaConfig {
         super(hosts, topic);
     }
 
-	public TridentKafkaConfig(BrokerHosts hosts, String topic, String clientId) {
-		super(hosts, topic, clientId);
-	}
+    public TridentKafkaConfig(BrokerHosts hosts, String topic, String clientId) {
+        super(hosts, topic, clientId);
+    }
 
 }

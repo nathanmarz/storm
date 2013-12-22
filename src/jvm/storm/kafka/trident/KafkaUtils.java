@@ -16,33 +16,33 @@ import java.util.Set;
 
 public class KafkaUtils {
     public static final Logger LOG = LoggerFactory.getLogger(KafkaUtils.class);
-	private static final int NO_OFFSET = -5;
+    private static final int NO_OFFSET = -5;
 
 
-	public static IBrokerReader makeBrokerReader(Map stormConf, KafkaConfig conf) {
-		if(conf.hosts instanceof StaticHosts) {
-			return new StaticBrokerReader(((StaticHosts) conf.hosts).getPartitionInformation());
-		} else {
-			return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
-		}
-	}
+    public static IBrokerReader makeBrokerReader(Map stormConf, KafkaConfig conf) {
+        if (conf.hosts instanceof StaticHosts) {
+            return new StaticBrokerReader(((StaticHosts) conf.hosts).getPartitionInformation());
+        } else {
+            return new ZkBrokerReader(stormConf, conf.topic, (ZkHosts) conf.hosts);
+        }
+    }
 
-	public static long getOffset(SimpleConsumer consumer, String topic, int partition, long startOffsetTime) {
-		TopicAndPartition topicAndPartition = new TopicAndPartition(topic, partition);
-		Map<TopicAndPartition, PartitionOffsetRequestInfo> requestInfo = new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
-		requestInfo.put(topicAndPartition, new PartitionOffsetRequestInfo(startOffsetTime, 1));
-		OffsetRequest request = new OffsetRequest(
-				requestInfo, kafka.api.OffsetRequest.CurrentVersion(), consumer.clientId());
+    public static long getOffset(SimpleConsumer consumer, String topic, int partition, long startOffsetTime) {
+        TopicAndPartition topicAndPartition = new TopicAndPartition(topic, partition);
+        Map<TopicAndPartition, PartitionOffsetRequestInfo> requestInfo = new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
+        requestInfo.put(topicAndPartition, new PartitionOffsetRequestInfo(startOffsetTime, 1));
+        OffsetRequest request = new OffsetRequest(
+                requestInfo, kafka.api.OffsetRequest.CurrentVersion(), consumer.clientId());
 
-		long[] offsets = consumer.getOffsetsBefore(request).offsets(topic, partition);
-		if ( offsets.length > 0) {
-			return offsets[0];
-		} else {
-			return NO_OFFSET;
-		}
-	}
+        long[] offsets = consumer.getOffsetsBefore(request).offsets(topic, partition);
+        if (offsets.length > 0) {
+            return offsets[0];
+        } else {
+            return NO_OFFSET;
+        }
+    }
 
-	public static class KafkaOffsetMetric implements IMetric {
+    public static class KafkaOffsetMetric implements IMetric {
         Map<Partition, Long> _partitionToOffset = new HashMap<Partition, Long>();
         Set<Partition> _partitions;
         String _topic;
@@ -64,16 +64,16 @@ public class KafkaUtils {
                 long totalLatestTimeOffset = 0;
                 long totalLatestEmittedOffset = 0;
                 HashMap ret = new HashMap();
-                if(_partitions != null && _partitions.size() == _partitionToOffset.size()) {
-                    for(Map.Entry<Partition, Long> e : _partitionToOffset.entrySet()) {
+                if (_partitions != null && _partitions.size() == _partitionToOffset.size()) {
+                    for (Map.Entry<Partition, Long> e : _partitionToOffset.entrySet()) {
                         Partition partition = e.getKey();
                         SimpleConsumer consumer = _connections.getConnection(partition);
-                        if(consumer == null) {
+                        if (consumer == null) {
                             LOG.warn("partitionToOffset contains partition not found in _connections. Stale partition data?");
                             return null;
                         }
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
-                        if(latestTimeOffset == 0) {
+                        if (latestTimeOffset == 0) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
@@ -93,18 +93,22 @@ public class KafkaUtils {
                 } else {
                     LOG.info("Metrics Tick: Not enough data to calculate spout lag.");
                 }
-            } catch(Throwable t) {
+            } catch (Throwable t) {
                 LOG.warn("Metrics Tick: Exception when computing kafkaOffset metric.", t);
             }
             return null;
         }
 
-       public void refreshPartitions(Set<Partition> partitions) {
-           _partitions = partitions;
-           Iterator<Partition> it = _partitionToOffset.keySet().iterator();
-           while(it.hasNext()) {
-               if(!partitions.contains(it.next())) it.remove();
-           }
-       }
-    };
+        public void refreshPartitions(Set<Partition> partitions) {
+            _partitions = partitions;
+            Iterator<Partition> it = _partitionToOffset.keySet().iterator();
+            while (it.hasNext()) {
+                if (!partitions.contains(it.next())) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    ;
 }

@@ -58,31 +58,30 @@ public class PartitionManager {
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;
         _consumer = connections.register(id.host, id.partition);
-		_state = state;
+        _state = state;
         _stormConf = stormConf;
 
         String jsonTopologyId = null;
         Long jsonOffset = null;
         try {
             Map<Object, Object> json = _state.readJSON(committedPath());
-            if(json != null) {
-                jsonTopologyId = (String)((Map<Object,Object>)json.get("topology")).get("id");
-                jsonOffset = (Long)json.get("offset");
+            if (json != null) {
+                jsonTopologyId = (String) ((Map<Object, Object>) json.get("topology")).get("id");
+                jsonOffset = (Long) json.get("offset");
             }
-        }
-        catch(Throwable e) {
+        } catch (Throwable e) {
             LOG.warn("Error reading and/or parsing at ZkNode: " + committedPath(), e);
         }
 
-        if(!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
+        if (!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
             _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, spoutConfig.startOffsetTime);
-	    LOG.info("Using startOffsetTime to choose last commit offset.");
-        } else if(jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
-            _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition,  kafka.api.OffsetRequest.LatestTime());
-	    LOG.info("Setting last commit offset to HEAD.");
+            LOG.info("Using startOffsetTime to choose last commit offset.");
+        } else if (jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
+            _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, kafka.api.OffsetRequest.LatestTime());
+            LOG.info("Setting last commit offset to HEAD.");
         } else {
             _committedTo = jsonOffset;
-	    LOG.info("Read last commit offset from zookeeper: " + _committedTo);
+            LOG.info("Read last commit offset from zookeeper: " + _committedTo);
         }
 
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
@@ -105,22 +104,25 @@ public class PartitionManager {
 
     //returns false if it's reached the end of current batch
     public EmitState next(SpoutOutputCollector collector) {
-        if(_waitingToEmit.isEmpty()) fill();
-        while(true) {
+        if (_waitingToEmit.isEmpty()) {
+            fill();
+        }
+        while (true) {
             MessageAndRealOffset toEmit = _waitingToEmit.pollFirst();
-            if(toEmit==null) {
+            if (toEmit == null) {
                 return EmitState.NO_EMITTED;
             }
             Iterable<List<Object>> tups = _spoutConfig.scheme.deserialize(Utils.toByteArray(toEmit.msg.payload()));
-            if(tups!=null) {
-                for(List<Object> tup: tups)
+            if (tups != null) {
+                for (List<Object> tup : tups) {
                     collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+                }
                 break;
             } else {
                 ack(toEmit.offset);
             }
         }
-        if(!_waitingToEmit.isEmpty()) {
+        if (!_waitingToEmit.isEmpty()) {
             return EmitState.EMITTED_MORE_LEFT;
         } else {
             return EmitState.EMITTED_END;
@@ -132,11 +134,11 @@ public class PartitionManager {
         long start = System.nanoTime();
         ByteBufferMessageSet msgs = _consumer.fetch(
                 new FetchRequestBuilder().addFetch(
-                    _spoutConfig.topic,
-                    _partition.partition,
-                    _emittedToOffset,
-                    _spoutConfig.fetchSizeBytes).build()).messageSet(_spoutConfig.topic,
-				_partition.partition);
+                        _spoutConfig.topic,
+                        _partition.partition,
+                        _emittedToOffset,
+                        _spoutConfig.fetchSizeBytes).build()).messageSet(_spoutConfig.topic,
+                _partition.partition);
         long end = System.nanoTime();
         long millis = (end - start) / 1000000;
         _fetchAPILatencyMax.update(millis);
@@ -145,26 +147,26 @@ public class PartitionManager {
         int numMessages = countMessages(msgs);
         _fetchAPIMessageCount.incrBy(numMessages);
 
-        if(numMessages>0) {
-          LOG.info("Fetched " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition);
+        if (numMessages > 0) {
+            LOG.info("Fetched " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition);
         }
-        for(MessageAndOffset msg: msgs) {
+        for (MessageAndOffset msg : msgs) {
             _pending.add(_emittedToOffset);
             _waitingToEmit.add(new MessageAndRealOffset(msg.message(), _emittedToOffset));
             _emittedToOffset = msg.nextOffset();
         }
-        if(numMessages>0) {
-          LOG.info("Added " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition + " to internal buffers");
+        if (numMessages > 0) {
+            LOG.info("Added " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition + " to internal buffers");
         }
     }
 
-	private int countMessages(ByteBufferMessageSet messageSet) {
-		int counter = 0;
-		for (MessageAndOffset messageAndOffset : messageSet) {
-			counter = counter + 1;
-		}
-		return counter;
-	}
+    private int countMessages(ByteBufferMessageSet messageSet) {
+        int counter = 0;
+        for (MessageAndOffset messageAndOffset : messageSet) {
+            counter = counter + 1;
+        }
+        return counter;
+    }
 
     public void ack(Long offset) {
         _pending.remove(offset);
@@ -173,7 +175,7 @@ public class PartitionManager {
     public void fail(Long offset) {
         //TODO: should it use in-memory ack set to skip anything that's been acked but not committed???
         // things might get crazy with lots of timeouts
-        if(_emittedToOffset > offset) {
+        if (_emittedToOffset > offset) {
             _emittedToOffset = offset;
             _pending.tailSet(offset).clear();
         }
@@ -182,23 +184,23 @@ public class PartitionManager {
     public void commit() {
         LOG.info("Committing offset for " + _partition);
         long committedTo;
-        if(_pending.isEmpty()) {
+        if (_pending.isEmpty()) {
             committedTo = _emittedToOffset;
         } else {
             committedTo = _pending.first();
         }
-        if(committedTo!=_committedTo) {
+        if (committedTo != _committedTo) {
             LOG.info("Writing committed offset to ZK: " + committedTo);
 
-            Map<Object, Object> data = (Map<Object,Object>)ImmutableMap.builder()
-                .put("topology", ImmutableMap.of("id", _topologyInstanceId,
-						"name", _stormConf.get(Config.TOPOLOGY_NAME)))
-                .put("offset", committedTo)
-                .put("partition", _partition.partition)
-                .put("broker", ImmutableMap.of("host", _partition.host.host,
-						"port", _partition.host.port))
-                .put("topic", _spoutConfig.topic).build();
-	    _state.writeJSON(committedPath(), data);
+            Map<Object, Object> data = (Map<Object, Object>) ImmutableMap.builder()
+                    .put("topology", ImmutableMap.of("id", _topologyInstanceId,
+                            "name", _stormConf.get(Config.TOPOLOGY_NAME)))
+                    .put("offset", committedTo)
+                    .put("partition", _partition.partition)
+                    .put("broker", ImmutableMap.of("host", _partition.host.host,
+                            "port", _partition.host.port))
+                    .put("topic", _spoutConfig.topic).build();
+            _state.writeJSON(committedPath(), data);
 
             LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;
@@ -212,7 +214,7 @@ public class PartitionManager {
 
     public long queryPartitionOffsetLatestTime() {
         return KafkaUtils.getOffset(_consumer, _spoutConfig.topic, _partition.partition,
-				OffsetRequest.LatestTime());
+                OffsetRequest.LatestTime());
     }
 
     public long lastCommittedOffset() {
@@ -220,7 +222,7 @@ public class PartitionManager {
     }
 
     public long lastCompletedOffset() {
-        if(_pending.isEmpty()) {
+        if (_pending.isEmpty()) {
             return _emittedToOffset;
         } else {
             return _pending.first();

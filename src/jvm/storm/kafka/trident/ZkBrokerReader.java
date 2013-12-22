@@ -10,9 +10,9 @@ import java.util.Map;
 
 public class ZkBrokerReader implements IBrokerReader {
 
-	public static final Logger LOG = LoggerFactory.getLogger(ZkBrokerReader.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ZkBrokerReader.class);
 
-	GlobalPartitionInformation cachedBrokers;
+    GlobalPartitionInformation cachedBrokers;
     DynamicBrokersReader reader;
     long lastRefreshTimeMs;
 
@@ -30,16 +30,16 @@ public class ZkBrokerReader implements IBrokerReader {
     @Override
     public GlobalPartitionInformation getCurrentBrokers() {
         long currTime = System.currentTimeMillis();
-        if(currTime > lastRefreshTimeMs + refreshMillis) {
-			LOG.info("brokers need refreshing because " + refreshMillis + "ms have expired");
+        if (currTime > lastRefreshTimeMs + refreshMillis) {
+            LOG.info("brokers need refreshing because " + refreshMillis + "ms have expired");
             cachedBrokers = reader.getBrokerInfo();
             lastRefreshTimeMs = currTime;
-		}
+        }
         return cachedBrokers;
     }
 
     @Override
     public void close() {
         reader.close();
-    }    
+    }
 }

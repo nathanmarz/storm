@@ -147,7 +147,7 @@
         <dependency>
             <groupId>storm</groupId>
             <artifactId>storm</artifactId>
-            <version>0.9.0-wip21</version>
+            <version>0.9.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

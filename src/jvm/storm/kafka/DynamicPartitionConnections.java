@@ -24,7 +24,7 @@ public class DynamicPartitionConnections {
         }
     }
 
-    Map<HostPort, ConnectionInfo> _connections = new HashMap();
+    Map<Broker, ConnectionInfo> _connections = new HashMap();
     KafkaConfig _config;
     IBrokerReader _reader;
 
@@ -34,11 +34,11 @@ public class DynamicPartitionConnections {
     }
 
     public SimpleConsumer register(Partition partition) {
-        HostPort hostPort = _reader.getCurrentBrokers().getHostFor(partition.partition);
-        return register(hostPort, partition.partition);
+        Broker broker = _reader.getCurrentBrokers().getBrokerFor(partition.partition);
+        return register(broker, partition.partition);
     }
 
-    public SimpleConsumer register(HostPort host, int partition) {
+    public SimpleConsumer register(Broker host, int partition) {
         if (!_connections.containsKey(host)) {
             _connections.put(host, new ConnectionInfo(new SimpleConsumer(host.host, host.port, _config.socketTimeoutMs, _config.bufferSizeBytes, _config.clientId)));
         }
@@ -55,7 +55,7 @@ public class DynamicPartitionConnections {
         return null;
     }
 
-    public void unregister(HostPort port, int partition) {
+    public void unregister(Broker port, int partition) {
         ConnectionInfo info = _connections.get(port);
         info.partitions.remove(partition);
         if (info.partitions.isEmpty()) {

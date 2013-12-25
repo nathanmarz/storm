@@ -51,8 +51,8 @@ public class DynamicBrokersReader {
                 int leader = getLeaderFor(partition);
                 String path = brokerInfoPath + "/" + leader;
                 try {
-                    byte[] hostPortData = _curator.getData().forPath(path);
-                    HostPort hp = getBrokerHost(hostPortData);
+                    byte[] brokerData = _curator.getData().forPath(path);
+                    Broker hp = getBrokerHost(brokerData);
                     globalPartitionInformation.addPartition(partition, hp);
                 } catch (org.apache.zookeeper.KeeperException.NoNodeException e) {
                     LOG.error("Node {} does not exist ", path);
@@ -114,12 +114,12 @@ public class DynamicBrokersReader {
      * @param contents
      * @return
      */
-    private HostPort getBrokerHost(byte[] contents) {
+    private Broker getBrokerHost(byte[] contents) {
         try {
             Map<Object, Object> value = (Map<Object, Object>) JSONValue.parse(new String(contents, "UTF-8"));
             String host = (String) value.get("host");
             Integer port = ((Long) value.get("port")).intValue();
-            return new HostPort(host, port);
+            return new Broker(host, port);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

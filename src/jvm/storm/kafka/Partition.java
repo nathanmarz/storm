@@ -6,10 +6,10 @@ import storm.trident.spout.ISpoutPartition;
 
 public class Partition implements ISpoutPartition {
 
-    public final HostPort host;
+    public final Broker host;
     public final int partition;
 
-    public Partition(HostPort host, int partition) {
+    public Partition(Broker host, int partition) {
         this.host = host;
         this.partition = partition;
     }

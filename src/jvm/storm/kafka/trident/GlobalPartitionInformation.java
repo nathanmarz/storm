@@ -1,6 +1,7 @@
 package storm.kafka.trident;
 
-import storm.kafka.HostPort;
+import storm.kafka.Broker;
+import storm.kafka.Broker;
 import storm.kafka.Partition;
 
 import java.io.Serializable;
@@ -12,13 +13,13 @@ import java.util.*;
  */
 public class GlobalPartitionInformation implements Iterable<Partition>, Serializable {
 
-    private Map<Integer, HostPort> partitionMap;
+    private Map<Integer, Broker> partitionMap;
 
     public GlobalPartitionInformation() {
-        partitionMap = new TreeMap<Integer, HostPort>();
+        partitionMap = new TreeMap<Integer, Broker>();
     }
 
-    public void addPartition(int partitionId, HostPort broker) {
+    public void addPartition(int partitionId, Broker broker) {
         partitionMap.put(partitionId, broker);
     }
 
@@ -29,13 +30,13 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
                 '}';
     }
 
-    public HostPort getHostFor(Integer partitionId) {
+    public Broker getBrokerFor(Integer partitionId) {
         return partitionMap.get(partitionId);
     }
 
     public List<Partition> getOrderedPartitions() {
         List<Partition> partitions = new LinkedList<Partition>();
-        for (Map.Entry<Integer, HostPort> partition : partitionMap.entrySet()) {
+        for (Map.Entry<Integer, Broker> partition : partitionMap.entrySet()) {
             partitions.add(new Partition(partition.getValue(), partition.getKey()));
         }
         return partitions;
@@ -43,7 +44,7 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
 
     @Override
     public Iterator<Partition> iterator() {
-        final Iterator<Map.Entry<Integer, HostPort>> iterator = partitionMap.entrySet().iterator();
+        final Iterator<Map.Entry<Integer, Broker>> iterator = partitionMap.entrySet().iterator();
 
         return new Iterator<Partition>() {
             @Override
@@ -53,7 +54,7 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
 
             @Override
             public Partition next() {
-                Map.Entry<Integer, HostPort> next = iterator.next();
+                Map.Entry<Integer, Broker> next = iterator.next();
                 return new Partition(next.getValue(), next.getKey());
             }
 

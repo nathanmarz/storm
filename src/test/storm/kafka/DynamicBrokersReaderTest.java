@@ -88,8 +88,8 @@ public class DynamicBrokersReaderTest {
         addPartition(partition, host, port);
         GlobalPartitionInformation brokerInfo = dynamicBrokersReader.getBrokerInfo();
         assertEquals(1, brokerInfo.getOrderedPartitions().size());
-        assertEquals(port, brokerInfo.getHostFor(partition).port);
-        assertEquals(host, brokerInfo.getHostFor(partition).host);
+        assertEquals(port, brokerInfo.getBrokerFor(partition).port);
+        assertEquals(host, brokerInfo.getBrokerFor(partition).host);
     }
 
 
@@ -106,11 +106,11 @@ public class DynamicBrokersReaderTest {
         GlobalPartitionInformation brokerInfo = dynamicBrokersReader.getBrokerInfo();
         assertEquals(2, brokerInfo.getOrderedPartitions().size());
 
-        assertEquals(port, brokerInfo.getHostFor(partition).port);
-        assertEquals(host, brokerInfo.getHostFor(partition).host);
+        assertEquals(port, brokerInfo.getBrokerFor(partition).port);
+        assertEquals(host, brokerInfo.getBrokerFor(partition).host);
 
-        assertEquals(secondPort, brokerInfo.getHostFor(secondPartition).port);
-        assertEquals(host, brokerInfo.getHostFor(secondPartition).host);
+        assertEquals(secondPort, brokerInfo.getBrokerFor(secondPartition).port);
+        assertEquals(host, brokerInfo.getBrokerFor(secondPartition).host);
     }
 
 
@@ -126,11 +126,11 @@ public class DynamicBrokersReaderTest {
         GlobalPartitionInformation brokerInfo = dynamicBrokersReader.getBrokerInfo();
         assertEquals(2, brokerInfo.getOrderedPartitions().size());
 
-        assertEquals(port, brokerInfo.getHostFor(partition).port);
-        assertEquals(host, brokerInfo.getHostFor(partition).host);
+        assertEquals(port, brokerInfo.getBrokerFor(partition).port);
+        assertEquals(host, brokerInfo.getBrokerFor(partition).host);
 
-        assertEquals(port, brokerInfo.getHostFor(secondPartition).port);
-        assertEquals(host, brokerInfo.getHostFor(secondPartition).host);
+        assertEquals(port, brokerInfo.getBrokerFor(secondPartition).port);
+        assertEquals(host, brokerInfo.getBrokerFor(secondPartition).host);
     }
 
     @Test
@@ -140,14 +140,14 @@ public class DynamicBrokersReaderTest {
         int partition = 0;
         addPartition(partition, host, port);
         GlobalPartitionInformation brokerInfo = dynamicBrokersReader.getBrokerInfo();
-        assertEquals(port, brokerInfo.getHostFor(partition).port);
-        assertEquals(host, brokerInfo.getHostFor(partition).host);
+        assertEquals(port, brokerInfo.getBrokerFor(partition).port);
+        assertEquals(host, brokerInfo.getBrokerFor(partition).host);
 
         String newHost = host + "switch";
         int newPort = port + 1;
         addPartition(partition, newHost, newPort);
         brokerInfo = dynamicBrokersReader.getBrokerInfo();
-        assertEquals(newPort, brokerInfo.getHostFor(partition).port);
-        assertEquals(newHost, brokerInfo.getHostFor(partition).host);
+        assertEquals(newPort, brokerInfo.getBrokerFor(partition).port);
+        assertEquals(newHost, brokerInfo.getBrokerFor(partition).host);
     }
 }

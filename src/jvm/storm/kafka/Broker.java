@@ -2,22 +2,22 @@ package storm.kafka;
 
 import java.io.Serializable;
 
-public class HostPort implements Serializable, Comparable<HostPort> {
-    public String host;
-    public int port;
+public class Broker implements Serializable, Comparable<Broker> {
+    public final String host;
+    public final int port;
 
-    public HostPort(String host, int port) {
+    public Broker(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
-    public HostPort(String host) {
+    public Broker(String host) {
         this(host, 9092);
     }
 
     @Override
     public boolean equals(Object o) {
-        HostPort other = (HostPort) o;
+        Broker other = (Broker) o;
         return host.equals(other.host) && port == other.port;
     }
 
@@ -31,13 +31,13 @@ public class HostPort implements Serializable, Comparable<HostPort> {
         return host + ":" + port;
     }
 
-    public static HostPort fromString(String host) {
-        HostPort hp;
+    public static Broker fromString(String host) {
+        Broker hp;
         String[] spec = host.split(":");
         if (spec.length == 1) {
-            hp = new HostPort(spec[0]);
+            hp = new Broker(spec[0]);
         } else if (spec.length == 2) {
-            hp = new HostPort(spec[0], Integer.parseInt(spec[1]));
+            hp = new Broker(spec[0], Integer.parseInt(spec[1]));
         } else {
             throw new IllegalArgumentException("Invalid host specification: " + host);
         }
@@ -46,7 +46,7 @@ public class HostPort implements Serializable, Comparable<HostPort> {
 
 
     @Override
-    public int compareTo(HostPort o) {
+    public int compareTo(Broker o) {
         if (this.host.equals(o.host)) {
             return this.port - o.port;
         } else {

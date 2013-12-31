@@ -33,6 +33,8 @@
                 <exclude>**/${project.build.directory}/**</exclude>
                 <exclude>**/*.idea/**</exclude>
                 <exclude>**/*.iml/**</exclude>
+                <exclude>**/*.ipr/**</exclude>
+                <exclude>**/*.iws/**</exclude>
                 <exclude>**/.lien.*/**</exclude>
             </excludes>
         </fileSet>

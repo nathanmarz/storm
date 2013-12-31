@@ -41,43 +41,7 @@
     </dependencies>
 
     <build>
-
-
         <plugins>
-
-
-
-            <!--<plugin>-->
-                <!--<groupId>org.sonatype.plugins</groupId>-->
-                <!--<artifactId>jarjar-maven-plugin</artifactId>-->
-                <!--<version>1.8</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>jarjar</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<includes>-->
-                                <!--<include>org.apache.thrift:libthrift</include>-->
-                            <!--</includes>-->
-                            <!--<rules>-->
-                                <!--<rule>-->
-                                    <!--<pattern>org.apache.thrift.**</pattern>-->
-                                    <!--<result>org.apache.thrift7.@1</result>-->
-                                <!--</rule>-->
-                            <!--</rules>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
-
-
-
-
-
-
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -115,35 +79,6 @@
                         <goals>
                             <goal>install</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.8</version>
-                <executions>
-                    <execution>
-                        <id>unpack</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>${groupId}</groupId>
-                                    <artifactId>${artifactId}</artifactId>
-                                    <version>${project.version}</version>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
-                                    <includes>**/*</includes>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

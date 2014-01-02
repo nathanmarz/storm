@@ -438,6 +438,19 @@
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
       ))
 
+(defn replace-childopts-tags-by-ids
+    [childopts worker-id storm-id port]
+    (
+        let [replacement-map {"%ID%"          (str port)
+                              "%WORKER-ID%"   (str worker-id)
+                              "%STORM-ID%"    (str storm-id)
+                              "%WORKER-PORT%" (str port)}]
+        (if-not (nil? childopts)
+            (reduce (fn [string entry]
+                      (apply clojure.string/replace string entry))
+                    childopts replacement-map)
+            nil)
+      ))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
@@ -447,9 +460,8 @@
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
-                                 "%ID%"
-                                 (str port))
+          childopts (replace-childopts-tags-by-ids (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+                                                   worker-id storm-id port)
           logfilename (str "worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)

@@ -51,7 +51,8 @@
   :target-path "target"
   :javac-options ["-target" "1.6" "-source" "1.6" "-g"]
   :profiles {:dev {:resource-paths ["src/dev"]
-                   :dependencies [[org.mockito/mockito-all "1.9.5"]]}
+                   :dependencies [[org.mockito/mockito-all "1.9.5"]
+                                  [org.clojure/clojure-contrib "1.2.0"]]}
              :release {}
              :lib {}
              }

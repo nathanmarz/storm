@@ -26,59 +26,81 @@ import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
 
 public class DRPCClient implements DistributedRPC.Iface {
-    private TTransport conn;
-    private DistributedRPC.Client client;
-    private String host;
-    private int port;
-    private Integer timeout;
+    protected TTransport conn;
+    protected DistributedRPC.Client client;
+    protected String host;
+    protected int port;
+    protected Integer timeout;
 
-    public DRPCClient(String host, int port, Integer timeout) {
+    public DRPCClient(String host, int port, Integer timeout, boolean connectImmediately) {
         try {
             this.host = host;
             this.port = port;
             this.timeout = timeout;
-            connect();
-        } catch(TException e) {
+            if (connectImmediately)
+                connect();
+        } catch (TException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
+    public DRPCClient(String host, int port, Integer timeout) {
+        this(host, port, timeout, true);
+    }
+
     public DRPCClient(String host, int port) {
         this(host, port, null);
     }
-    
-    private void connect() throws TException {
+
+    protected void ensureConnected() throws TException {
+        if (!isConnected())
+            connect();
+    }
+
+    protected boolean isConnected() {
+        return conn != null && conn.isOpen();
+    }
+
+    protected void connect() throws TException {
         TSocket socket = new TSocket(host, port);
-        if(timeout!=null) {
+        if (timeout != null) {
             socket.setTimeout(timeout);
         }
         conn = new TFramedTransport(socket);
         client = new DistributedRPC.Client(new TBinaryProtocol(conn));
         conn.open();
     }
-    
+
     public String getHost() {
         return host;
     }
-    
+
     public int getPort() {
         return port;
-    }   
-    
+    }
+
     public String execute(String func, String args) throws TException, DRPCExecutionException {
         try {
-            if(client==null) connect();
-            return client.execute(func, args);
-        } catch(TException e) {
-            client = null;
+            return doExecute(func, args);
+        } catch (TException e) {
+            close();
             throw e;
-        } catch(DRPCExecutionException e) {
-            client = null;
+        } catch (DRPCExecutionException e) {
+            close();
             throw e;
         }
     }
 
+    protected String doExecute(String func, String args) throws TException, DRPCExecutionException {
+        ensureConnected();
+        return client.execute(func, args);
+    }
+
     public void close() {
-        conn.close();
+        if (conn != null) {
+            conn.close();
+            conn = null;
+        }
+        client = null;
     }
 }

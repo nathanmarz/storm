@@ -56,7 +56,7 @@
              :lib {}
              }
 
-  :plugins [[lein-swank "1.4.4"]]
+  :plugins [[lein-swank "1.4.4"][lein-idea "1.0.1"]]
 
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}

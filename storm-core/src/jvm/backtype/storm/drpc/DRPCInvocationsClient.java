@@ -25,23 +25,37 @@ import org.apache.thrift7.transport.TFramedTransport;
 import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
 
-public class DRPCInvocationsClient implements DistributedRPCInvocations.Iface {
-    private TTransport conn;
-    private DistributedRPCInvocations.Client client;
-    private String host;
-    private int port;    
+public class DRPCInvocationsClient implements DRPCInvocations {
+    protected TTransport conn;
+    protected DistributedRPCInvocations.Client client;
+    protected String host;
+    protected int port;
 
     public DRPCInvocationsClient(String host, int port) {
+        this(host, port, true);
+    }
+
+    public DRPCInvocationsClient(String host, int port, boolean connectImmediately) {
         try {
             this.host = host;
             this.port = port;
-            connect();
+            if (connectImmediately)
+                connect();
         } catch(TException e) {
             throw new RuntimeException(e);
         }
     }
-    
-    private void connect() throws TException {
+
+    protected void ensureConnected() throws TException {
+        if (!isConnected())
+            connect();
+    }
+
+    protected boolean isConnected() {
+        return conn != null && conn.isOpen();
+    }
+
+    protected void connect() throws TException {
         conn = new TFramedTransport(new TSocket(host, port));
         client = new DistributedRPCInvocations.Client(new TBinaryProtocol(conn));
         conn.open();
@@ -57,35 +71,51 @@ public class DRPCInvocationsClient implements DistributedRPCInvocations.Iface {
 
     public void result(String id, String result) throws TException {
         try {
-            if(client==null) connect();
-            client.result(id, result);
+            doResult(id, result);
         } catch(TException e) {
-            client = null;
+            close();
             throw e;
         }
+    }
+
+    protected void doResult(String id, String result) throws TException {
+        ensureConnected();
+        client.result(id, result);
     }
 
     public DRPCRequest fetchRequest(String func) throws TException {
         try {
-            if(client==null) connect();
-            return client.fetchRequest(func);
+            return doFetchRequest(func);
         } catch(TException e) {
-            client = null;
-            throw e;
-        }
-    }    
-
-    public void failRequest(String id) throws TException {
-        try {
-            if(client==null) connect();
-            client.failRequest(id);
-        } catch(TException e) {
-            client = null;
+            close();
             throw e;
         }
     }
 
+    protected DRPCRequest doFetchRequest(String func) throws TException {
+        ensureConnected();
+        return client.fetchRequest(func);
+    }
+
+    public void failRequest(String id) throws TException {
+        try {
+            doFailRequest(id);
+        } catch(TException e) {
+            close();
+            throw e;
+        }
+    }
+
+    protected void doFailRequest(String id) throws TException {
+        ensureConnected();
+        client.failRequest(id);
+    }
+
     public void close() {
-        conn.close();
+        if (conn != null) {
+            conn.close();
+            conn = null;
+        }
+        client = null;
     }
 }

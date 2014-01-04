@@ -28,15 +28,9 @@ import backtype.storm.coordination.IBatchBolt;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.grouping.CustomStreamGrouping;
-import backtype.storm.topology.BaseConfigurationDeclarer;
-import backtype.storm.topology.BasicBoltExecutor;
-import backtype.storm.topology.BoltDeclarer;
-import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.IRichBolt;
-import backtype.storm.topology.InputDeclarer;
-import backtype.storm.topology.OutputFieldsGetter;
-import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.topology.*;
 import backtype.storm.tuple.Fields;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +78,7 @@ public class LinearDRPCTopologyBuilder {
     }
         
     public StormTopology createLocalTopology(ILocalDRPC drpc) {
-        return createTopology(new DRPCSpout(_function, drpc));
+        return createTopology(new DRPCSpout(_function, new LocalDRPCInvocationFactory(drpc)));
     }
     
     public StormTopology createRemoteTopology() {
@@ -161,7 +155,7 @@ public class LinearDRPCTopologyBuilder {
                 .fieldsGrouping(boltId(i-1), outputStream, new Fields(fields.get(0)))
                 .fieldsGrouping(PREPARE_ID, PrepareRequest.RETURN_STREAM, new Fields("request"));
         i++;
-        builder.setBolt(boltId(i), new ReturnResults())
+        builder.setBolt(boltId(i), new ReturnResults(spout._factory))
                 .noneGrouping(boltId(i-1));
         return builder.createTopology();
     }

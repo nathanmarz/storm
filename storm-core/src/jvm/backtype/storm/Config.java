@@ -21,6 +21,7 @@ import backtype.storm.ConfigValidation;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
 import com.esotericsoftware.kryo.Serializer;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -112,6 +113,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_SCHEDULER = "storm.scheduler";
     public static final Object STORM_SCHEDULER_SCHEMA = String.class;
+
+    /**
+     * Whether this Storm cluster is using local drpc.  Either "true" or "false".  If not set,
+     * STORM_CLUSTER_MODE is checked whether or not it is local.
+     */
+    public static final String STORM_CLUSTER_DRPC_IS_LOCAL = "storm.cluster.drpc.is.local";
 
     /**
      * The mode this Storm cluster is running in. Either "distributed" or "local".

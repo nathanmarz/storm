@@ -20,79 +20,86 @@ package backtype.storm.drpc;
 import backtype.storm.Config;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.generated.DRPCRequest;
-import backtype.storm.generated.DistributedRPCInvocations;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
+import com.google.common.net.HostAndPort;
+import org.apache.thrift7.TException;
+import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.thrift7.TException;
-import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
     public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
-    
-    SpoutOutputCollector _collector;
-    List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
-    String _function;
-    String _local_drpc_id = null;
-    
-    private static class DRPCMessageId {
+
+    protected SpoutOutputCollector _collector;
+    protected List<DRPCInvocations> _clients = new ArrayList<DRPCInvocations>();
+    protected String _function;
+    public final DRPCInvocationsFactory _factory;
+
+    protected static class DRPCMessageId {
         String id;
         int index;
-        
+
         public DRPCMessageId(String id, int index) {
             this.id = id;
             this.index = index;
         }
     }
-    
-    
+
+
     public DRPCSpout(String function) {
-        _function = function;
+        this(function, new DRPCInvocationsClientFactory());
     }
 
+    @Deprecated
     public DRPCSpout(String function, ILocalDRPC drpc) {
-        _function = function;
-        _local_drpc_id = drpc.getServiceId();
+        this(function, new LocalDRPCInvocationFactory(drpc));
     }
-    
+
+    public DRPCSpout(String function, DRPCInvocationsFactory factory) {
+        this._factory = factory;
+        this._function = function;
+    }
+
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
-        if(_local_drpc_id==null) {
-            int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
-            int index = context.getThisTaskIndex();
+        initializeDRPCInvocationClients(conf, context);
+    }
 
-            int port = Utils.getInt(conf.get(Config.DRPC_INVOCATIONS_PORT));
-            List<String> servers = (List<String>) conf.get(Config.DRPC_SERVERS);
-            if(servers == null || servers.isEmpty()) {
-                throw new RuntimeException("No DRPC servers configured for topology");   
-            }
-            if(numTasks < servers.size()) {
-                for(String s: servers) {
-                    _clients.add(new DRPCInvocationsClient(s, port));
-                }
-            } else {
-                int i = index % servers.size();
-                _clients.add(new DRPCInvocationsClient(servers.get(i), port));
-            }
+    protected void initializeDRPCInvocationClients(Map conf, TopologyContext context) {
+        int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
+        int index = context.getThisTaskIndex();
+
+        int port = Utils.getInt(conf.get(Config.DRPC_INVOCATIONS_PORT));
+        List<String> servers = (List<String>) conf.get(Config.DRPC_SERVERS);
+        if (servers == null || servers.isEmpty()) {
+            throw new RuntimeException("No DRPC servers configured for topology. Local DRPC should add 'localhost'");
         }
-        
+        if (numTasks < servers.size()) {
+            for (String s : servers) {
+                HostAndPort hostAndPort = HostAndPort.fromParts(s, port);
+                _clients.add(_factory.getClientForServer(hostAndPort));
+            }
+        } else {
+            int i = index % servers.size();
+            _clients.add(_factory.getClientForServer(HostAndPort.fromParts(servers.get(i), port)));
+        }
     }
 
     @Override
     public void close() {
-        for(DRPCInvocationsClient client: _clients) {
+        for (DRPCInvocations client : _clients) {
             client.close();
         }
     }
@@ -100,43 +107,24 @@ public class DRPCSpout extends BaseRichSpout {
     @Override
     public void nextTuple() {
         boolean gotRequest = false;
-        if(_local_drpc_id==null) {
-            for(int i=0; i<_clients.size(); i++) {
-                DRPCInvocationsClient client = _clients.get(i);
-                try {
-                    DRPCRequest req = client.fetchRequest(_function);
-                    if(req.get_request_id().length() > 0) {
-                        Map returnInfo = new HashMap();
-                        returnInfo.put("id", req.get_request_id());
-                        returnInfo.put("host", client.getHost());
-                        returnInfo.put("port", client.getPort());
-                        gotRequest = true;
-                        _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), i));
-                        break;
-                    }
-                } catch (TException e) {
-                    LOG.error("Failed to fetch DRPC result from DRPC server", e);
+        for (int i = 0; i < _clients.size(); i++) {
+            DRPCInvocations client = _clients.get(i);
+            try {
+                DRPCRequest req = client.fetchRequest(_function);
+                if (req.get_request_id().length() > 0) {
+                    Map returnInfo = new HashMap();
+                    returnInfo.put("id", req.get_request_id());
+                    returnInfo.put("host", client.getHost());
+                    returnInfo.put("port", client.getPort());
+                    gotRequest = true;
+                    _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), i));
+                    break;
                 }
-            }
-        } else {
-            DistributedRPCInvocations.Iface drpc = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(_local_drpc_id);
-            if(drpc!=null) { // can happen during shutdown of drpc while topology is still up
-                try {
-                    DRPCRequest req = drpc.fetchRequest(_function);
-                    if(req.get_request_id().length() > 0) {
-                        Map returnInfo = new HashMap();
-                        returnInfo.put("id", req.get_request_id());
-                        returnInfo.put("host", _local_drpc_id);
-                        returnInfo.put("port", 0);
-                        gotRequest = true;
-                        _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), 0));
-                    }
-                } catch (TException e) {
-                    throw new RuntimeException(e);
-                }
+            } catch (TException e) {
+                LOG.error("Failed to fetch DRPC result from DRPC server", e);
             }
         }
-        if(!gotRequest) {
+        if (!gotRequest) {
             Utils.sleep(1);
         }
     }
@@ -148,13 +136,7 @@ public class DRPCSpout extends BaseRichSpout {
     @Override
     public void fail(Object msgId) {
         DRPCMessageId did = (DRPCMessageId) msgId;
-        DistributedRPCInvocations.Iface client;
-        
-        if(_local_drpc_id == null) {
-            client = _clients.get(did.index);
-        } else {
-            client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(_local_drpc_id);
-        }
+        DRPCInvocations client = _clients.get(did.index);
         try {
             client.failRequest(did.id);
         } catch (TException e) {
@@ -165,5 +147,5 @@ public class DRPCSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("args", "return-info"));
-    }    
+    }
 }

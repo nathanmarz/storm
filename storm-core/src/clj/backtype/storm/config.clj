@@ -20,6 +20,7 @@
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
   (:use [backtype.storm util])
+  (:use [clojure.string :only [trim]])
   )
 
 (def RESOURCES-SUBDIR "resources")
@@ -197,6 +198,14 @@
         topology-path (supervisor-stormcode-path stormroot)]
     (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
     ))
+
+(defn read-storm-version []
+  (let [storm-home (System/getProperty "storm.home")
+        release-path (format "%s/RELEASE" storm-home)
+        release-file (File. release-path)]
+    (if (and (.exists release-file) (.isFile release-file))
+      (trim (slurp release-path))
+      "Unknown")))
 
 (defn worker-root
   ([conf]

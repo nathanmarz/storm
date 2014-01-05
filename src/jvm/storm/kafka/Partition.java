@@ -41,7 +41,7 @@ public class Partition implements ISpoutPartition {
 
     @Override
     public String getId() {
-        return toString();
+        return "partition_" + partition;
     }
 
 }

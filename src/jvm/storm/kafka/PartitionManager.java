@@ -63,14 +63,16 @@ public class PartitionManager {
 
         String jsonTopologyId = null;
         Long jsonOffset = null;
+        String path = committedPath();
         try {
-            Map<Object, Object> json = _state.readJSON(committedPath());
+            Map<Object, Object> json = _state.readJSON(path);
+            LOG.info("Read partition information from: " + path +  "  --> " + json );
             if (json != null) {
                 jsonTopologyId = (String) ((Map<Object, Object>) json.get("topology")).get("id");
                 jsonOffset = (Long) json.get("offset");
             }
         } catch (Throwable e) {
-            LOG.warn("Error reading and/or parsing at ZkNode: " + committedPath(), e);
+            LOG.warn("Error reading and/or parsing at ZkNode: " + path, e);
         }
 
         if (!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
@@ -81,7 +83,7 @@ public class PartitionManager {
             LOG.info("Setting last commit offset to HEAD.");
         } else {
             _committedTo = jsonOffset;
-            LOG.info("Read last commit offset from zookeeper: " + _committedTo);
+            LOG.info("Read last commit offset from zookeeper: " + _committedTo + "; old topology_id: " + jsonTopologyId + " - new topology_id: " + topologyInstanceId );
         }
 
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
@@ -205,11 +207,11 @@ public class PartitionManager {
             LOG.info("Wrote committed offset to ZK: " + committedTo);
             _committedTo = committedTo;
         }
-        LOG.info("Committed offset " + committedTo + " for " + _partition);
+        LOG.info("Committed offset " + committedTo + " for " + _partition + " for topology: " + _topologyInstanceId);
     }
 
     private String committedPath() {
-        return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition;
+        return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition.getId();
     }
 
     public long queryPartitionOffsetLatestTime() {

@@ -14,6 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns storm.trident.testing
+  (:require [backtype.storm.LocalDRPC :as LocalDRPC])
   (:import [storm.trident.testing FeederBatchSpout FeederCommitterBatchSpout MemoryMapState MemoryMapState$Factory TuplifyArgs])
   (:import [backtype.storm LocalDRPC])
   (:import [backtype.storm.tuple Fields])

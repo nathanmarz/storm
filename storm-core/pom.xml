@@ -187,7 +187,7 @@
                         <id>test-clojure</id>
                         <phase>test</phase>
                         <goals>
-                            <goal>test-with-junit</goal>
+                            <goal>test</goal>
                         </goals>
                     </execution>
                 </executions>

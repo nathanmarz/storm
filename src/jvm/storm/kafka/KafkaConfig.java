@@ -17,6 +17,7 @@ public class KafkaConfig implements Serializable {
     public MultiScheme scheme = new RawMultiScheme();
     public boolean forceFromStart = false;
     public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
+    public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
 
     public KafkaConfig(BrokerHosts hosts, String topic) {
         this(hosts, topic, kafka.api.OffsetRequest.DefaultClientId());
@@ -28,8 +29,4 @@ public class KafkaConfig implements Serializable {
         this.clientId = clientId;
     }
 
-    public void forceStartOffsetTime(long millis) {
-        startOffsetTime = millis;
-        forceFromStart = true;
-    }
 }

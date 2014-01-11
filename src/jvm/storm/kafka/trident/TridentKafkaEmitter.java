@@ -7,8 +7,6 @@ import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
-import kafka.api.FetchRequest;
-import kafka.api.FetchRequestBuilder;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
@@ -16,13 +14,14 @@ import kafka.message.MessageAndOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.DynamicPartitionConnections;
+import storm.kafka.FailedFetchException;
+import storm.kafka.KafkaUtils;
 import storm.kafka.Partition;
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
 import storm.trident.topology.TransactionAttempt;
 
-import java.net.ConnectException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -103,16 +102,7 @@ public class TridentKafkaEmitter {
             }
             offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, startTime);
         }
-        ByteBufferMessageSet msgs;
-        try {
-            msgs = fetchMessages(consumer, partition, offset);
-        } catch (Exception e) {
-            if (e instanceof ConnectException) {
-                throw new FailedFetchException(e);
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        ByteBufferMessageSet msgs = fetchMessages(consumer, partition, offset);
         long endoffset = offset;
         for (MessageAndOffset msg : msgs) {
             emit(collector, msg.message());
@@ -130,11 +120,8 @@ public class TridentKafkaEmitter {
     }
 
     private ByteBufferMessageSet fetchMessages(SimpleConsumer consumer, Partition partition, long offset) {
-        ByteBufferMessageSet msgs;
         long start = System.nanoTime();
-        FetchRequestBuilder builder = new FetchRequestBuilder();
-        FetchRequest fetchRequest = builder.addFetch(_config.topic, partition.partition, offset, _config.fetchSizeBytes).clientId(_config.clientId).build();
-        msgs = consumer.fetch(fetchRequest).messageSet(_config.topic, partition.partition);
+        ByteBufferMessageSet msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
         long end = System.nanoTime();
         long millis = (end - start) / 1000000;
         _kafkaMeanFetchLatencyMetric.update(millis);

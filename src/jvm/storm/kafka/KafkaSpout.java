@@ -10,7 +10,6 @@ import kafka.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.PartitionManager.KafkaMessageId;
-import storm.kafka.trident.KafkaUtils;
 
 import java.util.*;
 
@@ -171,27 +170,4 @@ public class KafkaSpout extends BaseRichSpout {
         }
     }
 
-    public static void main(String[] args) {
-//        TopologyBuilder builder = new TopologyBuilder();
-//        List<String> hosts = new ArrayList<String>();
-//        hosts.add("localhost");
-//        SpoutConfig spoutConf = SpoutConfig.fromHostStrings(hosts, 8, "clicks", "/kafkastorm", "id");
-//        spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
-//        spoutConf.forceStartOffsetTime(-2);
-//
-// //       spoutConf.zkServers = new ArrayList<String>() {{
-// //          add("localhost");
-// //       }};
-// //       spoutConf.zkPort = 2181;
-//
-//        builder.setSpout("spout", new KafkaSpout(spoutConf), 3);
-//
-//        Config conf = new Config();
-//        //conf.setDebug(true);
-//
-//        LocalCluster cluster = new LocalCluster();
-//        cluster.submitTopology("kafka-test", conf, builder.createTopology());
-//
-//        Utils.sleep(600000);
-    }
 }

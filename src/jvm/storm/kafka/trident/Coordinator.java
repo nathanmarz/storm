@@ -1,5 +1,6 @@
 package storm.kafka.trident;
 
+import storm.kafka.KafkaUtils;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
 

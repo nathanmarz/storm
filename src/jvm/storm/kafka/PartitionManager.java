@@ -8,7 +8,6 @@ import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
-import kafka.api.FetchRequestBuilder;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -17,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
-import storm.kafka.trident.KafkaUtils;
 import storm.kafka.trident.MaxMetric;
 
 import java.util.*;
@@ -132,15 +130,8 @@ public class PartitionManager {
     }
 
     private void fill() {
-        //LOG.info("Fetching from Kafka: " + _consumer.host() + ":" + _partition.partition + " from offset " + _emittedToOffset);
         long start = System.nanoTime();
-        ByteBufferMessageSet msgs = _consumer.fetch(
-                new FetchRequestBuilder().addFetch(
-                        _spoutConfig.topic,
-                        _partition.partition,
-                        _emittedToOffset,
-                        _spoutConfig.fetchSizeBytes).build()).messageSet(_spoutConfig.topic,
-                _partition.partition);
+        ByteBufferMessageSet msgs = KafkaUtils.fetchMessages(_spoutConfig, _consumer, _partition, _emittedToOffset);
         long end = System.nanoTime();
         long millis = (end - start) / 1000000;
         _fetchAPILatencyMax.update(millis);

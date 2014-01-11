@@ -98,7 +98,7 @@ public class StormSubmitter {
                         client.getClient().submitTopology(name, submittedJar, serConf, topology);                                            
                     }
                 } catch(InvalidTopologyException e) {
-                    LOG.warn("Topology submission exception", e);
+                    LOG.warn("Topology submission exception: "+e.get_msg());
                     throw e;
                 } catch(AlreadyAliveException e) {
                     LOG.warn("Topology already alive exception", e);

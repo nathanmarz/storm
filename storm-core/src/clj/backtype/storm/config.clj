@@ -105,7 +105,7 @@
 (defn read-default-config []
   (clojurify-structure (Utils/readDefaultConfig)))
 
-(defn- validate-configs-with-schemas [conf]
+(defn validate-configs-with-schemas [conf]
   (doseq [[k v] conf
          :let [schema (CONFIG-SCHEMA-MAP k)]]
     (if (not (nil? schema))

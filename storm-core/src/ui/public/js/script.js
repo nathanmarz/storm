@@ -96,3 +96,14 @@ function confirmAction(id, name, action, wait, defaultWait) {
 
     return false;
 }
+
+$(function () {
+    var placements = ['above', 'below', 'left', 'right'];
+    for (var i in placements) {
+      $('.tip.'+placements[i]).twipsy({
+          live: true,
+          placement: placements[i],
+          delayIn: 1000
+      });
+    }
+})

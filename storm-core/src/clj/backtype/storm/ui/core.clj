@@ -29,6 +29,7 @@
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
   (:import [java.io File])
+  (:import [java.net URLDecoder])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -1018,32 +1019,33 @@
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
        (let [include-sys? (get-include-sys? cookies)]
          (try
-           (-> (topology-page id (:window m) include-sys?)
+           (-> (topology-page (URLDecoder/decode id) (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)
            (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)]
-         (-> (component-page id component (:window m) include-sys?)
+         (-> (component-page (URLDecoder/decode id)
+                             component (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
   (POST "/topology/:id/activate" [id]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
             name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/deactivate" [id]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
             name (.get_name tplg)]
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
             name (.get_name tplg)
             options (RebalanceOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
@@ -1052,7 +1054,7 @@
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
             name (.get_name tplg)
             options (KillOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))

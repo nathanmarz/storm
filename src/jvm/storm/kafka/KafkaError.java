@@ -17,10 +17,11 @@ public enum KafkaError {
     REPLICA_NOT_AVAILABLE,
     MESSAGE_SIZE_TOO_LARGE,
     STALE_CONTROLLER_EPOCH,
+    OFFSET_METADATA_TOO_LARGE,
     UNKNOWN;
 
-    public static KafkaError getError(short errorCode) {
-        if (errorCode < 0) {
+    public static KafkaError getError(int errorCode) {
+        if (errorCode < 0 || errorCode >= UNKNOWN.ordinal()) {
             return UNKNOWN;
         } else {
             return values()[errorCode];

@@ -465,7 +465,7 @@
                    (str "-Dworker.port=" port)
                    "-cp" classpath
                    "backtype.storm.daemon.worker"
-                   (java.net.URLEncoder/encode storm-id)
+                   storm-id
                    (:assignment-id supervisor)
                    port
                    worker-id]

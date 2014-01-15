@@ -438,6 +438,11 @@
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
       ))
 
+(defn- substitute-worker-childopts [value port]
+  (let [sub-fn (fn [s] (.replaceAll s "%ID%" (str port)))]
+    (if (list? value)
+      (map sub-fn value)
+      (-> value sub-fn (.split " ")))))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
@@ -448,27 +453,27 @@
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
           worker-childopts (when-let [s (conf WORKER-CHILDOPTS)]
-                             (.replaceAll s "%ID%" (str port)))
-          topo-worker-childopts (when-let [s (conf TOPOLOGY-WORKER-CHILDOPTS)]
-                                  (.replaceAll s "%ID%" (str port)))
+                             (substitute-worker-childopts s port))
+          topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
+                                  (substitute-worker-childopts s port))
           logfilename (str "worker-" port ".log")
-          command ["java"
-                   "-server"
-                   worker-childopts
-                   topo-worker-childopts
-                   (str "-Djava.library.path=" (conf JAVA-LIBRARY-PATH))
-                   (str "-Dlogfile.name=" logfilename)
-                   (str "-Dstorm.home=" storm-home)
-                   (str "-Dlogback.configurationFile=" storm-home "/logback/cluster.xml")
-                   (str "-Dstorm.id=" storm-id)
-                   (str "-Dworker.id=" worker-id)
-                   (str "-Dworker.port=" port)
-                   "-cp" classpath
-                   "backtype.storm.daemon.worker"
-                   storm-id
-                   (:assignment-id supervisor)
-                   port
-                   worker-id]
+          command (concat
+                    ["java" "-server"]
+                    worker-childopts
+                    topo-worker-childopts
+                    [(str "-Djava.library.path=" (conf JAVA-LIBRARY-PATH))
+                     (str "-Dlogfile.name=" logfilename)
+                     (str "-Dstorm.home=" storm-home)
+                     (str "-Dlogback.configurationFile=" storm-home "/logback/cluster.xml")
+                     (str "-Dstorm.id=" storm-id)
+                     (str "-Dworker.id=" worker-id)
+                     (str "-Dworker.port=" port)
+                     "-cp" classpath
+                     "backtype.storm.daemon.worker"
+                     storm-id
+                     (:assignment-id supervisor)
+                     port
+                     worker-id])
           command (->> command (map str) (filter (complement empty?)))
           shell-cmd (->> command (map #(str \' % \')) (clojure.string/join " "))]
       (log-message "Launching worker with command: " shell-cmd)

@@ -18,6 +18,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>10</version>
+    </parent>
+
+
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
     <version>0.9.1-incubating-SNAPSHOT</version>
@@ -126,10 +134,10 @@
     </modules>
 
     <scm>
-        <connection>scm:git:git://github.com/apache/incubator-storm.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/apache/incubator-storm.git</developerConnection>
+        <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-storm.git</connection>
+        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-storm.git</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/apache/incubator-storm</url>
+        <url>https://git-wip-us.apache.org/repos/asf/incubator-storm</url>
     </scm>
 
     <issueManagement>

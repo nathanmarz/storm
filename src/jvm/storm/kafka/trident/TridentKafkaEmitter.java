@@ -96,11 +96,7 @@ public class TridentKafkaEmitter {
                 offset = (Long) lastMeta.get("nextOffset");
             }
         } else {
-            long startTime = kafka.api.OffsetRequest.LatestTime();
-            if (_config.forceFromStart) {
-                startTime = _config.startOffsetTime;
-            }
-            offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, startTime);
+            offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
         }
         ByteBufferMessageSet msgs = fetchMessages(consumer, partition, offset);
         long endoffset = offset;

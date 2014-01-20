@@ -133,8 +133,8 @@ def fail(tup):
 def reportError(msg):
     sendMsgToParent({"command": "error", "msg": msg})
 
-def log(msg):
-    sendMsgToParent({"command": "log", "msg": msg})
+def log(msg, level="info"):
+    sendMsgToParent({"command": "log", "msg": msg, "level": level})
 
 def initComponent():
     setupInfo = readMsg()

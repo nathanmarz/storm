@@ -32,6 +32,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.lang.reflect.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.json.simple.JSONObject;
@@ -124,7 +125,17 @@ public class ShellBolt implements IBolt {
                             handleError(action);
                         } else if (command.equals("log")) {
                             String msg = (String) action.get("msg");
-                            LOG.info("Shell msg: " + msg);
+                            String level = "info";
+                            if (action.has("level")) {
+                                level = (String) action.get("level");
+                            }
+                            try {
+                                Method logWithLevel = LOG.getClass().getMethod(level, String.class);
+                                logWithLevel.invoke(LOG, "Shell msg: " + msg);
+                            } catch (java.lang.NoSuchMethodException e) {
+                                LOG.warn("Unknown log level {} called for. Logging as 'info'.", level);
+                                LOG.info("Shell msg: " + msg);
+                            }
                         } else if (command.equals("emit")) {
                             handleEmit(action);
                         }

@@ -249,20 +249,6 @@
     </profiles>
 
     <distributionManagement>
-        <repository>
-            <uniqueVersion>false</uniqueVersion>
-            <id>releases</id>
-            <name>Local Release Repo</name>
-            <url>file:///tmp/repo/</url>
-            <layout>default</layout>
-        </repository>
-        <snapshotRepository>
-            <uniqueVersion>false</uniqueVersion>
-            <id>snapshots</id>
-            <name>Local Snapshot Repo</name>
-            <url>file:///tmp/repo/</url>
-            <layout>default</layout>
-        </snapshotRepository>
         <site>
             <id>storm.maven.website</id>
             <name>Storm Website</name>

@@ -93,6 +93,11 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
+            <source>${project.basedir}/../DISCLAIMER</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+
+        <file>
             <source>${project.basedir}/../CHANGELOG.md</source>
             <outputDirectory>/</outputDirectory>
         </file>

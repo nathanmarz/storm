@@ -28,3 +28,4 @@ target
 *.ipr
 *.iws
 .idea
+dependency-reduced-pom.xml

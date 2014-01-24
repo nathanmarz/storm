@@ -24,10 +24,10 @@
         <version>0.9.1-incubating-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.storm</groupId>
-    <artifactId>apache-storm</artifactId>
+    <artifactId>apache-storm-bin</artifactId>
     <packaging>pom</packaging>
-    <name>Storm Distribution</name>
-    <description>Builds Storm source and binary distributions.</description>
+    <name>Storm Binary Distribution</name>
+    <description>Storm binary distribution</description>
 
     <dependencies>
         <dependency>
@@ -38,6 +38,7 @@
     </dependencies>
 
     <build>
+        <finalName>apache-storm-${version}</finalName>
         <plugins>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -54,8 +55,8 @@
                 <attach>true</attach>
                 <descriptors>
                     <descriptor>${project.basedir}/src/main/assembly/binary.xml</descriptor>
-                    <descriptor>${project.basedir}/src/main/assembly/source.xml</descriptor>
                 </descriptors>
+				<appendAssemblyId>false</appendAssemblyId>
             </configuration>
         </plugin>
             <plugin>
@@ -63,7 +64,6 @@
                 <artifactId>maven-gpg-plugin</artifactId>
                 <executions>
                     <execution>
-                        <!-- TODO Bind to deploy phase -->
                         <phase>deploy</phase>
                         <goals>
                             <goal>sign</goal>

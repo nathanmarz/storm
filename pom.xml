@@ -202,7 +202,8 @@
         <profile>
             <id>dist</id>
             <modules>
-                <module>storm-dist</module>
+                <module>storm-dist/binary</module>
+                <module>storm-dist/source</module>
             </modules>
             <build>
                 <plugins>

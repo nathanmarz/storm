@@ -16,20 +16,19 @@
  limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>storm-deps</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.1-incubating-SNAPSHOT</version>
+        <version>0.9.2-incubating-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>libthrift7</artifactId>
     <packaging>jar</packaging>
     <name>Apache Thrift API (repackaged)</name>
-    <description>Repackaging of the Apache Thrift API ("org.apache.thrift" --> "org.apache.thrift7")</description>
+    <description>Repackaging of the Apache Thrift API ("org.apache.thrift" --&gt; "org.apache.thrift7")</description>
 
     <dependencies>
         <dependency>

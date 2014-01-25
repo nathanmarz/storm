@@ -20,10 +20,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>storm</artifactId>
+        <artifactId>storm-deps</artifactId>
         <groupId>org.apache.storm</groupId>
         <version>0.9.1-incubating-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>libthrift7</artifactId>
@@ -55,7 +55,7 @@
                             <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
                             <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <!--<shadedArtifactAttached>true</shadedArtifactAttached>-->
                             <artifactSet>
                                 <includes>
                                     <include>org.apache.thrift:*</include>
@@ -68,18 +68,6 @@
                                 </relocation>
                             </relocations>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>install</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

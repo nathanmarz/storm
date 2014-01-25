@@ -129,7 +129,6 @@
     </prerequisites>
 
     <modules>
-        <module>storm-deps/libthrift</module>
         <module>storm-core</module>
     </modules>
 

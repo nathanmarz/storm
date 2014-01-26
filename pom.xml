@@ -539,7 +539,7 @@
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <goals>deploy assembly:assembly</goals>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
-                    <preparationGoals>clean test</preparationGoals>
+                    <preparationGoals>clean verify</preparationGoals>
                 </configuration>
             </plugin>
             <plugin>

@@ -1,6 +1,7 @@
 package storm.kafka;
 
 import java.io.Serializable;
+import com.google.common.base.Objects;
 
 public class Broker implements Serializable, Comparable<Broker> {
     public final String host;
@@ -16,14 +17,20 @@ public class Broker implements Serializable, Comparable<Broker> {
     }
 
     @Override
-    public boolean equals(Object o) {
-        Broker other = (Broker) o;
-        return host.equals(other.host) && port == other.port;
+    public int hashCode() {
+        return Objects.hashCode(host, port);
     }
 
     @Override
-    public int hashCode() {
-        return host.hashCode();
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        final Broker other = (Broker) obj;
+        return Objects.equal(this.host, other.host) && Objects.equal(this.port, other.port);
     }
 
     @Override

@@ -1,11 +1,12 @@
 package storm.kafka.trident;
 
 import storm.kafka.Broker;
-import storm.kafka.Broker;
 import storm.kafka.Partition;
 
 import java.io.Serializable;
 import java.util.*;
+
+import com.google.common.base.Objects;
 
 /**
  * Date: 14/05/2013
@@ -67,27 +68,18 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result
-                + ((partitionMap == null) ? 0 : partitionMap.hashCode());
-        return result;
+        return Objects.hashCode(partitionMap);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
-        if (getClass() != obj.getClass())
-            return false;
-        GlobalPartitionInformation other = (GlobalPartitionInformation) obj;
-        if (partitionMap == null) {
-            if (other.partitionMap != null)
-                return false;
-        } else if (!partitionMap.equals(other.partitionMap))
-            return false;
-        return true;
+        }
+        final GlobalPartitionInformation other = (GlobalPartitionInformation) obj;
+        return Objects.equal(this.partitionMap, other.partitionMap);
     }
 }

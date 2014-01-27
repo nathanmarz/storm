@@ -30,6 +30,19 @@ HdfsBolt bolt = new HdfsBolt()
 
 ## Customization
 
+
+### Record Formats
+Record format can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.RecordFormat` interface:
+
+```java
+public interface RecordFormat extends Serializable {
+    byte[] format(Tuple tuple);
+}
+```
+
+The provided `org.apache.storm.hdfs.format.DelimitedRecordFormat` is capable of producing formats such as CSV and tab-delimited files.
+
+
 ### File Naming
 File naming can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.FileNameFormat` interface:
 
@@ -50,17 +63,6 @@ For example:
 
 By default, prefix is empty and extenstion is ".txt".
 
-### Record Formats
-Record format can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.RecordFormat` interface:
-
-```java
-public interface RecordFormat extends Serializable {
-    byte[] format(Tuple tuple);
-}
-```
-
-The provided `org.apache.storm.hdfs.format.DelimitedRecordFormat` is capable of producing formats such as CSV and tab-delimited files.
-
 
 
 ### Sync Policies
@@ -69,7 +71,7 @@ Sync policies allow you to control when buffered data is flushed to the underlyi
 ```java
 public interface SyncPolicy extends Serializable {
     boolean mark(Tuple tuple, byte[] data);
-    reset();
+    void reset();
 }
 ```
 The `HdfsBolt` will call the `mark()` method for every tuple it processes. Returning `true` will trigger the `HdfsBolt` to perform a sync/flush, after which it will call the `reset()` method.

@@ -38,15 +38,15 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, SubmitOptions._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("SubmitOptions");
+public class SubmitOptions implements org.apache.thrift.TBase<SubmitOptions, SubmitOptions._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("SubmitOptions");
 
-  private static final org.apache.thrift7.protocol.TField INITIAL_STATUS_FIELD_DESC = new org.apache.thrift7.protocol.TField("initial_status", org.apache.thrift7.protocol.TType.I32, (short)1);
+  private static final org.apache.thrift.protocol.TField INITIAL_STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("initial_status", org.apache.thrift.protocol.TType.I32, (short)1);
 
   private TopologyInitialStatus initial_status; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     /**
      * 
      * @see TopologyInitialStatus
@@ -109,13 +109,13 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
 
   // isset id assignments
 
-  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.INITIAL_STATUS, new org.apache.thrift7.meta_data.FieldMetaData("initial_status", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.EnumMetaData(org.apache.thrift7.protocol.TType.ENUM, TopologyInitialStatus.class)));
+    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.INITIAL_STATUS, new org.apache.thrift.meta_data.FieldMetaData("initial_status", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TopologyInitialStatus.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(SubmitOptions.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(SubmitOptions.class, metaDataMap);
   }
 
   public SubmitOptions() {
@@ -262,7 +262,7 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
       return lastComparison;
     }
     if (is_set_initial_status()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.initial_status, typedOther.initial_status);
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.initial_status, typedOther.initial_status);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -274,25 +274,25 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-    org.apache.thrift7.protocol.TField field;
+  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+    org.apache.thrift.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // INITIAL_STATUS
-          if (field.type == org.apache.thrift7.protocol.TType.I32) {
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
             this.initial_status = TopologyInitialStatus.findByValue(iprot.readI32());
           } else { 
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -300,7 +300,7 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
     validate();
   }
 
-  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -329,26 +329,26 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift7.TException {
+  public void validate() throws org.apache.thrift.TException {
     // check for required fields
     if (!is_set_initial_status()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'initial_status' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'initial_status' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift7.TException te) {
+      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift7.TException te) {
+      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }

@@ -14,10 +14,10 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift7.server THsHaServer THsHaServer$Args])
-  (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
-  (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift.exception])
+  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])

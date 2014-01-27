@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.thrift7.TException;
+import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import storm.trident.drpc.ReturnResultsReducer.ReturnResultsState;
 import storm.trident.operation.MultiReducer;

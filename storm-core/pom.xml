@@ -88,9 +88,18 @@
             <artifactId>commons-exec</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.storm</groupId>
-            <artifactId>libthrift7</artifactId>
+            <groupId>org.apache.thrift</groupId>
+            <artifactId>libthrift</artifactId>
+            <version>0.7.0</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
 
         <dependency>
             <groupId>com.netflix.curator</groupId>
@@ -201,6 +210,52 @@
                     </reportsDirectories>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
+                    <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
+                    <artifactSet>
+                        <includes>
+                            <include>org.apache.thrift:*</include>
+                        </includes>
+                    </artifactSet>
+
+                    <relocations>
+                        <relocation>
+                            <pattern>org.apache.thrift</pattern>
+                            <shadedPattern>org.apache.thrift7</shadedPattern>
+                        </relocation>
+                    </relocations>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/license/**</exclude>
+                                <exclude>META-INF/*</exclude>
+                                <exclude>META-INF/maven/**</exclude>
+                                <exclude>LICENSE</exclude>
+                                <exclude>NOTICE</exclude>
+                                <exclude>/*.txt</exclude>
+                                <exclude>build.properties</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 </project>

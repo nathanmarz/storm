@@ -70,7 +70,7 @@ Sync policies allow you to control when buffered data is flushed to the underlyi
 
 ```java
 public interface SyncPolicy extends Serializable {
-    boolean mark(Tuple tuple, byte[] data);
+    boolean mark(Tuple tuple, long offset);
     void reset();
 }
 ```
@@ -86,7 +86,7 @@ Similar to sync policies, file rotation policies allow you to control when data 
 
 ```java
 public interface FileRotationPolicy extends Serializable {
-    boolean mark(Tuple tuple, byte[] data);
+    boolean mark(Tuple tuple, long offset);
     void reset();
 }
 ``` 
@@ -101,7 +101,44 @@ FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 [coming soon]
 
 ## Support for HDFS Sequence Files
-[coming soon]
+
+The `org.apache.storm.hdfs.bolt.SequenceFileBolt` class allows you to write storm data to HDFS sequence files:
+
+```java
+        // sync the filesystem after every 1k tuples
+        SyncPolicy syncPolicy = new CountSyncPolicy(1000);
+
+        // rotate files when they reach 5MB
+        FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
+
+        FileNameFormat fileNameFormat = new DefaultFileNameFormat().withExtension(".seq");
+
+        // create sequence format instance.
+        DefaultSequenceFormat format = new DefaultSequenceFormat("timestamp", "sentence");
+
+        SequenceFileBolt bolt = new SequenceFileBolt()
+                .withFsUrl("hdfs://localhost:54310")
+                .withPath("/data/")
+                .withFileNameFormat(fileNameFormat)
+                .withSequenceFormat(format)
+                .withRotationPolicy(rotationPolicy)
+                .withSyncPolicy(syncPolicy)
+                .withCompressionType(SequenceFile.CompressionType.RECORD)
+                .withCompressionCodec("deflate");
+```
+
+The `SequenceFileBolt` requires that you provide a `org.apache.storm.hdfs.bolt.format.SequenceFormat` that maps tuples to
+key/value pairs:
+
+```java
+public interface SequenceFormat extends Serializable {
+    Class keyClass();
+    Class valueClass();
+
+    Writable key(Tuple tuple);
+    Writable value(Tuple tuple);
+}
+```
 
 ## License
 

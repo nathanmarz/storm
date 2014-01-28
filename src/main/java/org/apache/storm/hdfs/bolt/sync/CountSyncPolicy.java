@@ -34,7 +34,7 @@ public class CountSyncPolicy implements SyncPolicy {
     }
 
     @Override
-    public boolean mark(Tuple tuple, byte[] data) {
+    public boolean mark(Tuple tuple, long offset) {
         this.executeCount++;
         return this.executeCount >= this.count;
     }

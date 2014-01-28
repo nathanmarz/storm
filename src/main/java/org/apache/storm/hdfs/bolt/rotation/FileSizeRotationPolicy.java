@@ -19,6 +19,8 @@ package org.apache.storm.hdfs.bolt.rotation;
 
 
 import backtype.storm.tuple.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * File rotation policy that will rotate files when a certain
@@ -33,6 +35,7 @@ import backtype.storm.tuple.Tuple;
  *
  */
 public class FileSizeRotationPolicy implements FileRotationPolicy {
+    private static final Logger LOG = LoggerFactory.getLogger(FileSizeRotationPolicy.class);
 
     public static enum Units {
 
@@ -53,21 +56,26 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
     }
 
     private long maxBytes;
-    private long byteCount = 0;
+
+    private long lastOffset = 0;
+    private long currentBytesWritten = 0;
 
     public FileSizeRotationPolicy(float count, Units units){
         this.maxBytes = (long)(count * units.getByteCount());
     }
 
     @Override
-    public boolean mark(Tuple tuple, byte[] data) {
-        this.byteCount += data.length;
-        return this.byteCount >= this.maxBytes;
+    public boolean mark(Tuple tuple, long offset) {
+        long diff = offset - this.lastOffset;
+        this.currentBytesWritten += diff;
+        this.lastOffset = offset;
+        return this.currentBytesWritten >= this.maxBytes;
     }
 
     @Override
     public void reset() {
-        this.byteCount = 0;
+        this.currentBytesWritten = 0;
+        this.lastOffset = 0;
     }
 
 }

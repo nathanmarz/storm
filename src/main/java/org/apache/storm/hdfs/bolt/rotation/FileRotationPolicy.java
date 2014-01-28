@@ -37,10 +37,10 @@ public interface FileRotationPolicy extends Serializable {
      * Called for every tuple the HdfsBolt executes.
      *
      * @param tuple The tuple executed.
-     * @param data The data written to HDFS
+     * @param offset current offset of file being written
      * @return true if a file rotation should be performed
      */
-    boolean mark(Tuple tuple, byte[] data);
+    boolean mark(Tuple tuple, long offset);
 
 
     /**

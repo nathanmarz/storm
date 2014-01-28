@@ -31,10 +31,10 @@ public interface SyncPolicy extends Serializable {
      * Called for every tuple the HdfsBolt executes.
      *
      * @param tuple The tuple executed.
-     * @param data The data written to HDFS
+     * @param offset current offset for the file being written
      * @return true if a sync should be performed
      */
-    boolean mark(Tuple tuple, byte[] data);
+    boolean mark(Tuple tuple, long offset);
 
 
     /**

@@ -25,7 +25,7 @@ import backtype.storm.tuple.Tuple;
  */
 public class NoRotationPolicy implements FileRotationPolicy {
     @Override
-    public boolean mark(Tuple tuple, byte[] data) {
+    public boolean mark(Tuple tuple, long offset) {
         return false;
     }
 

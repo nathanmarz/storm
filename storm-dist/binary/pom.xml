@@ -21,7 +21,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.1-incubating-SNAPSHOT</version>
+        <version>0.9.1-incubating</version>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>apache-storm-bin</artifactId>

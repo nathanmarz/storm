@@ -22,6 +22,7 @@
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
         <version>0.9.1-incubating-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>apache-storm-source</artifactId>

@@ -87,6 +87,10 @@
             <artifactId>commons-exec</artifactId>
         </dependency>
         <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.thrift</groupId>
             <artifactId>libthrift</artifactId>
             <version>0.7.0</version>
@@ -95,6 +99,10 @@
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -223,12 +231,13 @@
                 </executions>
                 <configuration>
                     <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-                    <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-                    <createDependencyReducedPom>true</createDependencyReducedPom>
                     <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <minimizeJar>false</minimizeJar>
                     <artifactSet>
                         <includes>
                             <include>org.apache.thrift:*</include>
+                            <include>odg.apache.storm:*</include>
                         </includes>
                     </artifactSet>
 
@@ -238,6 +247,9 @@
                             <shadedPattern>org.apache.thrift7</shadedPattern>
                         </relocation>
                     </relocations>
+                    <transformers>
+                        <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer"/>
+                    </transformers>
                     <filters>
                         <filter>
                             <artifact>*:*</artifact>
@@ -253,6 +265,13 @@
                         </filter>
                     </filters>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.storm</groupId>
+                        <artifactId>maven-shade-clojure-transformer</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
         </plugins>

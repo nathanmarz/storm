@@ -22,7 +22,21 @@
         <developerConnection>scm:git:ssh://git@github.com/wurstmeister/storm-kafka-0.8-plus.git</developerConnection>
         <url>https://github.com/wurstmeister/storm-kafka-0.8-plus</url>
     </scm>
+    <properties>
+        <scalaVersion>2.9.2</scalaVersion>
+        <kafkaArtifact>kafka_2.9.2</kafkaArtifact>
+        <envClassifier></envClassifier>
+    </properties>
     <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <classifier>${envClassifier}</classifier>
+                </configuration>
+            </plugin>
+        </plugins>
         <sourceDirectory>src/jvm</sourceDirectory>
         <testSourceDirectory>src/test</testSourceDirectory>
         <resources>
@@ -87,7 +101,7 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
-            <version>2.9.2</version>
+            <version>${scalaVersion}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -140,7 +154,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.9.2</artifactId>
+            <artifactId>${kafkaArtifact}</artifactId>
             <version>0.8.0</version>
             <exclusions>
                 <exclusion>
@@ -179,4 +193,15 @@
             <url>https://clojars.org/repo</url>
         </repository>
     </distributionManagement>
+
+    <profiles>
+        <profile>
+            <id>Scala-2.10</id>
+            <properties>
+                <scalaVersion>2.10.3</scalaVersion>
+                <kafkaArtifact>kafka_2.10</kafkaArtifact>
+                <envClassifier>scala_2.10</envClassifier>
+            </properties>
+        </profile>
+    </profiles>
 </project>

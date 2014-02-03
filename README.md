@@ -97,9 +97,6 @@ The `org.apache.storm.hdfs.rotation.FileSizeRotationPolicy` implementation allow
 FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 ```
 
-## Trident Integration
-[coming soon]
-
 ## Support for HDFS Sequence Files
 
 The `org.apache.storm.hdfs.bolt.SequenceFileBolt` class allows you to write storm data to HDFS sequence files:
@@ -139,6 +136,35 @@ public interface SequenceFormat extends Serializable {
     Writable value(Tuple tuple);
 }
 ```
+
+## Trident API
+storm-hdfs also includes a Trident `state` implementation for writing data to HDFS, with an API that closely mirrors that of the bolts.
+
+ ```java
+         Fields hdfsFields = new Fields("field1", "field2");
+
+         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                 .withPrefix("trident")
+                 .withExtension(".txt");
+
+         RecordFormat recordFormat = new DelimitedRecordFormat()
+                 .withFields(hdfsFields);
+
+         FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, FileSizeRotationPolicy.Units.MB);
+
+         HdfsState.Options options = new HdfsState.Options()
+                 .withFileNameFormat(fileNameFormat)
+                 .withRecordFormat(recordFormat)
+                 .withRotationPolicy(rotationPolicy)
+                 .withFsUrl("hdfs://localhost:54310")
+                 .withPath("/trident");
+
+         StateFactory factory = new HdfsStateFactory().withOptions(options);
+
+         TridentState state = stream
+                 .partitionPersist(factory, hdfsFields, new HdfsUpdater(), new Fields());
+ ```
+
 
 ## License
 

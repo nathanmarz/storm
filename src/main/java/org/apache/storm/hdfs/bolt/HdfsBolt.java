@@ -19,10 +19,7 @@ package org.apache.storm.hdfs.bolt;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -38,19 +35,12 @@ import java.net.URI;
 import java.util.Map;
 
 
-public class HdfsBolt extends BaseRichBolt{
+public class HdfsBolt extends AbstractHdfsBolt{
     private static final Logger LOG = LoggerFactory.getLogger(HdfsBolt.class);
 
-    private OutputCollector collector;
-    private FileSystem fs;
     private FSDataOutputStream out;
     private RecordFormat format;
-    private SyncPolicy syncPolicy;
-    private FileRotationPolicy rotationPolicy;
-    private FileNameFormat fileNameFormat;
-    private int rotation = 0;
-    private String fsUrl;
-    private String path;
+
 
     private long offset = 0;
 
@@ -90,21 +80,11 @@ public class HdfsBolt extends BaseRichBolt{
     @Override
     public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector) {
         LOG.info("Preparing HDFS Bolt...");
-        if(this.format == null) throw new IllegalStateException("RecordFormat must be specified.");
-        if(this.syncPolicy == null) throw new IllegalStateException("SyncPolicy must be specified.");
-        if(this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
-
-
-        if(this.fsUrl ==  null || this.path == null){
-            throw new IllegalStateException("File system URL and base path must be specified.");
-        }
-        this.collector = collector;
-        this.fileNameFormat.prepare(conf, topologyContext);
+        super.prepare(conf, topologyContext, collector);
 
         try{
-            Configuration hdfsConfig = new Configuration();
             this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
-            out = this.fs.create(new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis())));
+            createOutputFile();
         } catch (Exception e){
             throw new RuntimeException("Error preparing HdfsBolt: " + e.getMessage(), e);
         }
@@ -117,7 +97,6 @@ public class HdfsBolt extends BaseRichBolt{
             out.write(bytes);
             this.offset += bytes.length;
 
-//            LOG.info("Current offset: {}", this.offset);
             this.collector.ack(tuple);
 
             if(this.syncPolicy.mark(tuple, this.offset)){
@@ -126,6 +105,7 @@ public class HdfsBolt extends BaseRichBolt{
             }
             if(this.rotationPolicy.mark(tuple, this.offset)){
                 rotateOutputFile();
+                this.offset = 0;
                 this.rotationPolicy.reset();
             }
         } catch (IOException e) {
@@ -134,20 +114,14 @@ public class HdfsBolt extends BaseRichBolt{
         }
     }
 
-    private void rotateOutputFile() throws IOException {
-        LOG.info("Rotating output file...");
-        long start = System.currentTimeMillis();
+    @Override
+    void closeOutputFile() throws IOException {
         this.out.hsync();
         this.out.close();
-        this.rotation++;
-        this.out = this.fs.create(new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis())));
-        long time = System.currentTimeMillis() - start;
-        LOG.info("File rotation took {} ms.", time);
     }
 
     @Override
-    public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-
+    void createOutputFile() throws IOException {
+        this.out = this.fs.create(new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis())));
     }
-
 }

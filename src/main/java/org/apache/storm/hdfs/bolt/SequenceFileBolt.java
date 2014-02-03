@@ -19,10 +19,7 @@ package org.apache.storm.hdfs.bolt;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
@@ -37,23 +34,12 @@ import java.io.IOException;
 import java.util.Map;
 
 
-public class SequenceFileBolt extends BaseRichBolt {
+public class SequenceFileBolt extends AbstractHdfsBolt {
     private static final Logger LOG = LoggerFactory.getLogger(SequenceFileBolt.class);
 
-    private OutputCollector collector;
-
-
     private SequenceFormat format;
-    private SyncPolicy syncPolicy;
-    private FileRotationPolicy rotationPolicy;
-    private FileNameFormat fileNameFormat;
-    private int rotation = 0;
-    private String fsUrl;
-    private String path;
-
     private SequenceFile.CompressionType compressionType = SequenceFile.CompressionType.RECORD;
     private SequenceFile.Writer writer;
-    private Configuration hdfsConfig;
 
     private String compressionCodec = "default";
     private transient CompressionCodecFactory codecFactory;
@@ -104,20 +90,11 @@ public class SequenceFileBolt extends BaseRichBolt {
 
     @Override
     public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector) {
-        LOG.info("Preparing HDFS Bolt...");
+        LOG.info("Preparing Sequence File Bolt...");
+        super.prepare(conf, topologyContext, collector);
         if (this.format == null) throw new IllegalStateException("SequenceFormat must be specified.");
-        if (this.syncPolicy == null) throw new IllegalStateException("SyncPolicy must be specified.");
-        if (this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
-
-
-        if (this.fsUrl == null || this.path == null) {
-            throw new IllegalStateException("File system URL and base path must be specified.");
-        }
-        this.collector = collector;
-        this.fileNameFormat.prepare(conf, topologyContext);
 
         try {
-            this.hdfsConfig = new Configuration();
             this.codecFactory = new CompressionCodecFactory(hdfsConfig);
             createOutputFile();
         } catch (Exception e) {
@@ -133,7 +110,6 @@ public class SequenceFileBolt extends BaseRichBolt {
             this.collector.ack(tuple);
 
             if (this.syncPolicy.mark(tuple, offset)) {
-                long start = System.currentTimeMillis();
                 this.writer.hsync();
                 this.syncPolicy.reset();
             }
@@ -148,18 +124,7 @@ public class SequenceFileBolt extends BaseRichBolt {
 
     }
 
-    private void rotateOutputFile() throws IOException {
-        LOG.info("Rotating output file...");
-        long start = System.currentTimeMillis();
-        this.writer.hsync();
-        this.writer.close();
-        this.rotation++;
-        createOutputFile();
-        long time = System.currentTimeMillis() - start;
-        LOG.info("File rotation took {} ms.", time);
-    }
-
-    private void createOutputFile() throws IOException {
+    void createOutputFile() throws IOException {
         this.writer = SequenceFile.createWriter(
                 this.hdfsConfig,
                 SequenceFile.Writer.file(new Path(this.fsUrl + path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()))),
@@ -169,9 +134,10 @@ public class SequenceFileBolt extends BaseRichBolt {
         );
     }
 
-    @Override
-    public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-
+    void closeOutputFile() throws IOException {
+        this.writer.hsync();
+        this.writer.close();
     }
+
 
 }

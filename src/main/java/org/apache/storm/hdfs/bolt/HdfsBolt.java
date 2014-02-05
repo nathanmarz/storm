@@ -27,6 +27,7 @@ import org.apache.storm.hdfs.bolt.format.FileNameFormat;
 import org.apache.storm.hdfs.bolt.format.RecordFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
+import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,17 +78,16 @@ public class HdfsBolt extends AbstractHdfsBolt{
         return this;
     }
 
-    @Override
-    public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector) {
-        LOG.info("Preparing HDFS Bolt...");
-        super.prepare(conf, topologyContext, collector);
+    public HdfsBolt addRotationAction(RotationAction action){
+        this.rotationActions.add(action);
+        return this;
+    }
 
-        try{
-            this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
-            createOutputFile();
-        } catch (Exception e){
-            throw new RuntimeException("Error preparing HdfsBolt: " + e.getMessage(), e);
-        }
+    @Override
+    public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
+        LOG.info("Preparing HDFS Bolt...");
+        this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
+
     }
 
     @Override
@@ -121,7 +121,9 @@ public class HdfsBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    void createOutputFile() throws IOException {
-        this.out = this.fs.create(new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis())));
+    Path createOutputFile() throws IOException {
+        Path path = new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
+        this.out = this.fs.create(path);
+        return path;
     }
 }

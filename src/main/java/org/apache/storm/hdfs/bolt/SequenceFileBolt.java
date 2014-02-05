@@ -20,6 +20,7 @@ package org.apache.storm.hdfs.bolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
@@ -27,10 +28,12 @@ import org.apache.storm.hdfs.bolt.format.FileNameFormat;
 import org.apache.storm.hdfs.bolt.format.SequenceFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
+import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 
 
@@ -88,18 +91,18 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
         return this;
     }
 
+    public SequenceFileBolt addRotationAction(RotationAction action){
+        this.rotationActions.add(action);
+        return this;
+    }
+
     @Override
-    public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector) {
+    public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing Sequence File Bolt...");
-        super.prepare(conf, topologyContext, collector);
         if (this.format == null) throw new IllegalStateException("SequenceFormat must be specified.");
 
-        try {
-            this.codecFactory = new CompressionCodecFactory(hdfsConfig);
-            createOutputFile();
-        } catch (Exception e) {
-            throw new RuntimeException("Error preparing HdfsBolt: " + e.getMessage(), e);
-        }
+        this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
+        this.codecFactory = new CompressionCodecFactory(hdfsConfig);
     }
 
     @Override
@@ -124,14 +127,16 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
 
     }
 
-    void createOutputFile() throws IOException {
+    Path createOutputFile() throws IOException {
+        Path p = new Path(this.fsUrl + path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.writer = SequenceFile.createWriter(
                 this.hdfsConfig,
-                SequenceFile.Writer.file(new Path(this.fsUrl + path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()))),
+                SequenceFile.Writer.file(p),
                 SequenceFile.Writer.keyClass(this.format.keyClass()),
                 SequenceFile.Writer.valueClass(this.format.valueClass()),
                 SequenceFile.Writer.compression(this.compressionType, this.codecFactory.getCodecByName(this.compressionCodec))
         );
+        return p;
     }
 
     void closeOutputFile() throws IOException {

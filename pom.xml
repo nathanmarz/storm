@@ -543,9 +543,7 @@
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <goals>deploy assembly:assembly</goals>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
-                    <preparationGoals>clean verify</preparationGoals>
                 </configuration>
             </plugin>
             <plugin>

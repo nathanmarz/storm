@@ -22,7 +22,7 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-hdfs</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.3-SNAPSHOT</version>
 
     <dependencies>
         <dependency>

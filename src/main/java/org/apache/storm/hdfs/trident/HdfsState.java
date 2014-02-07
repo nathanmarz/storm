@@ -6,6 +6,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.apache.storm.hdfs.trident.format.FileNameFormat;
 import org.apache.storm.hdfs.trident.format.RecordFormat;
 import org.apache.storm.hdfs.trident.rotation.FileRotationPolicy;
@@ -19,6 +20,7 @@ import storm.trident.tuple.TridentTuple;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +32,7 @@ public class HdfsState implements State {
         private String path;
         private FileRotationPolicy rotationPolicy;
         private FileNameFormat fileNameFormat;
+        private ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
 
         public Options(){}
 
@@ -55,6 +58,11 @@ public class HdfsState implements State {
 
         public Options withPath(String path){
             this.path = path;
+            return this;
+        }
+
+        public Options addRotationAction(RotationAction action){
+            this.rotationActions.add(action);
             return this;
         }
 
@@ -134,13 +142,16 @@ public class HdfsState implements State {
         this.out.hsync();
         this.out.close();
         this.rotation++;
-        this.out = this.fs.create(
-                new Path(
-                        this.options.path,
-                        this.options.fileNameFormat.getName(this.rotation, System.currentTimeMillis())
-                )
+        Path path = new Path(
+                this.options.path,
+                this.options.fileNameFormat.getName(this.rotation, System.currentTimeMillis())
         );
+        this.out = this.fs.create(path);
 
+        for(RotationAction action : this.options.rotationActions){
+            action.execute(this.fs, path);
+
+        }
         long time = System.currentTimeMillis() - start;
         LOG.info("File rotation took {} ms.", time);
     }

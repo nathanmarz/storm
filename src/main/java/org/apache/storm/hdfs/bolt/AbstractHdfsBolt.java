@@ -15,9 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.storm.hdfs.bolt;
-
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -41,7 +39,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
 
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
-    private Path currenFile;
+    private Path currentFile;
     protected OutputCollector collector;
     protected FileSystem fs;
     protected SyncPolicy syncPolicy;
@@ -62,32 +60,27 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
         Path newFile = createOutputFile();
         LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
         for(RotationAction action : this.rotationActions){
-            action.execute(this.fs, this.currenFile);
+            action.execute(this.fs, this.currentFile);
         }
-        this.currenFile = newFile;
+        this.currentFile = newFile;
         long time = System.currentTimeMillis() - start;
         LOG.info("File rotation took {} ms.", time);
-
-
     }
 
     public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector){
         if (this.syncPolicy == null) throw new IllegalStateException("SyncPolicy must be specified.");
         if (this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
-
-
         if (this.fsUrl == null || this.path == null) {
             throw new IllegalStateException("File system URL and base path must be specified.");
         }
 
         this.collector = collector;
         this.fileNameFormat.prepare(conf, topologyContext);
-
         this.hdfsConfig = new Configuration();
 
         try{
             doPrepare(conf, topologyContext, collector);
-            this.currenFile = createOutputFile();
+            this.currentFile = createOutputFile();
 
         } catch (Exception e){
             throw new RuntimeException("Error preparing HdfsBolt: " + e.getMessage(), e);
@@ -96,7 +89,6 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-
     }
 
     abstract void closeOutputFile() throws IOException;

@@ -4,7 +4,9 @@ Storm components for interacting with HDFS file systems
 
 
 ## Usage
-The following example will write pipe("|")-delimited files to the HDFS path hdfs://localhost:54310/foo. After every 1,000 tuples it will sync filesystem, making that data visible to other HDFS clients. It will rotate files when they reach 5 megabytes in size.
+The following example will write pipe("|")-delimited files to the HDFS path hdfs://localhost:54310/foo. After every
+1,000 tuples it will sync filesystem, making that data visible to other HDFS clients. It will rotate files when they
+reach 5 megabytes in size.
 
 ```java
 // use "|" instead of "," for field delimiter
@@ -29,9 +31,11 @@ HdfsBolt bolt = new HdfsBolt()
 ```
 
 ### Packaging a Topology
-When packaging your topology, it's important that you use the [maven-shade-plugin]() as opposed to the [maven-assempbly-plugin]().
+When packaging your topology, it's important that you use the [maven-shade-plugin]() as opposed to the
+[maven-assempbly-plugin]().
 
-The shade plugin provides facilities for merging JAR manifest entries, which the hadoop client leverages for URL scheme resolution.
+The shade plugin provides facilities for merging JAR manifest entries, which the hadoop client leverages for URL scheme
+resolution.
 
 If you experience errors such as the following:
 
@@ -41,7 +45,8 @@ java.lang.RuntimeException: Error preparing HdfsBolt: No FileSystem for scheme: 
 
 it's an indication that your topology jar file isn't packaged properly.
 
-If you are using maven to create your topology jar, you should use the following `maven-shade-plugin` configuration to create your topology jar:
+If you are using maven to create your topology jar, you should use the following `maven-shade-plugin` configuration to
+create your topology jar:
 
 ```xml
 <plugin>
@@ -104,7 +109,7 @@ By default, storm-hdfs uses the following Hadoop dependencies:
 If you are using a different version of Hadoop, you should exclude the Hadoop libraries from the storm-hdfs dependency
 and add the dependencies for your preferred version in your pom.
 
-Hadoop client version incompatibilites can be manifested as errors like:
+Hadoop client version incompatibilites can manifest as errors like:
 
 ```
 com.google.protobuf.InvalidProtocolBufferException: Protocol message contained an invalid tag (zero)
@@ -112,9 +117,9 @@ com.google.protobuf.InvalidProtocolBufferException: Protocol message contained a
 
 ## Customization
 
-
 ### Record Formats
-Record format can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.RecordFormat` interface:
+Record format can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.RecordFormat`
+interface:
 
 ```java
 public interface RecordFormat extends Serializable {
@@ -122,11 +127,13 @@ public interface RecordFormat extends Serializable {
 }
 ```
 
-The provided `org.apache.storm.hdfs.format.DelimitedRecordFormat` is capable of producing formats such as CSV and tab-delimited files.
+The provided `org.apache.storm.hdfs.format.DelimitedRecordFormat` is capable of producing formats such as CSV and
+tab-delimited files.
 
 
 ### File Naming
-File naming can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.FileNameFormat` interface:
+File naming can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.FileNameFormat`
+interface:
 
 ```java
 public interface FileNameFormat extends Serializable {
@@ -148,7 +155,8 @@ By default, prefix is empty and extenstion is ".txt".
 
 
 ### Sync Policies
-Sync policies allow you to control when buffered data is flushed to the underlying filesystem (thus making it available to clients reading the data) by implementing the `org.apache.storm.hdfs.sync.SyncPolicy` interface:
+Sync policies allow you to control when buffered data is flushed to the underlying filesystem (thus making it available
+to clients reading the data) by implementing the `org.apache.storm.hdfs.sync.SyncPolicy` interface:
 
 ```java
 public interface SyncPolicy extends Serializable {
@@ -156,15 +164,15 @@ public interface SyncPolicy extends Serializable {
     void reset();
 }
 ```
-The `HdfsBolt` will call the `mark()` method for every tuple it processes. Returning `true` will trigger the `HdfsBolt` to perform a sync/flush, after which it will call the `reset()` method.
+The `HdfsBolt` will call the `mark()` method for every tuple it processes. Returning `true` will trigger the `HdfsBolt`
+to perform a sync/flush, after which it will call the `reset()` method.
 
-The `org.apache.storm.hdfs.sync.CountSyncPolicy` class simply triggers a sync after the specified number of tuples have been processed.
-
-
-
+The `org.apache.storm.hdfs.sync.CountSyncPolicy` class simply triggers a sync after the specified number of tuples have
+been processed.
 
 ### File Rotation Policies
-Similar to sync policies, file rotation policies allow you to control when data files are rotated by providing a `org.apache.storm.hdfs.rotation.FileRotation` interface:
+Similar to sync policies, file rotation policies allow you to control when data files are rotated by providing a
+`org.apache.storm.hdfs.rotation.FileRotation` interface:
 
 ```java
 public interface FileRotationPolicy extends Serializable {
@@ -173,11 +181,60 @@ public interface FileRotationPolicy extends Serializable {
 }
 ``` 
 
-The `org.apache.storm.hdfs.rotation.FileSizeRotationPolicy` implementation allows you to trigger file rotation when data files reach a specific file size:
+The `org.apache.storm.hdfs.rotation.FileSizeRotationPolicy` implementation allows you to trigger file rotation when
+data files reach a specific file size:
 
 ```java
 FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 ```
+
+### File Rotation Actions
+Both the HDFS bolt and Trident State implementation allow you to register any number of `RotationAction`s.
+What `RotationAction`s do is provide a hook to allow you to perform some action right after a file is rotated. For
+example, moving a file to a different location or renaming it.
+
+
+```java
+public interface RotationAction extends Serializable {
+    void execute(FileSystem fileSystem, Path filePath) throws IOException;
+}
+```
+
+Storm-HDFS includes a simple action that will move a file after rotation:
+
+```java
+public class MoveFileAction implements RotationAction {
+    private static final Logger LOG = LoggerFactory.getLogger(MoveFileAction.class);
+
+    private String destination;
+
+    public MoveFileAction withDestination(String destDir){
+        destination = destDir;
+        return this;
+    }
+
+    @Override
+    public void execute(FileSystem fileSystem, Path filePath) throws IOException {
+        Path destPath = new Path(destination, filePath.getName());
+        LOG.info("Moving file {} to {}", filePath, destPath);
+        boolean success = fileSystem.rename(filePath, destPath);
+        return;
+    }
+}
+```
+
+If you are using Trident and sequence files you can do something like this:
+
+```java
+        HdfsState.Options seqOpts = new HdfsState.SequenceFileOptions()
+                .withFileNameFormat(fileNameFormat)
+                .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
+                .withRotationPolicy(rotationPolicy)
+                .withFsUrl("hdfs://localhost:54310")
+                .withPath("/trident")
+                .addRotationAction(new MoveFileAction().withDestination("/dest2/"));
+```
+
 
 ## Support for HDFS Sequence Files
 
@@ -220,7 +277,8 @@ public interface SequenceFormat extends Serializable {
 ```
 
 ## Trident API
-storm-hdfs also includes a Trident `state` implementation for writing data to HDFS, with an API that closely mirrors that of the bolts.
+storm-hdfs also includes a Trident `state` implementation for writing data to HDFS, with an API that closely mirrors
+that of the bolts.
 
  ```java
          Fields hdfsFields = new Fields("field1", "field2");
@@ -234,18 +292,29 @@ storm-hdfs also includes a Trident `state` implementation for writing data to HD
 
          FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, FileSizeRotationPolicy.Units.MB);
 
-         HdfsState.Options options = new HdfsState.Options()
-                 .withFileNameFormat(fileNameFormat)
-                 .withRecordFormat(recordFormat)
-                 .withRotationPolicy(rotationPolicy)
-                 .withFsUrl("hdfs://localhost:54310")
-                 .withPath("/trident");
+        HdfsState.Options options = new HdfsState.HdfsFileOptions()
+                .withFileNameFormat(fileNameFormat)
+                .withRecordFormat(recordFormat)
+                .withRotationPolicy(rotationPolicy)
+                .withFsUrl("hdfs://localhost:54310")
+                .withPath("/trident");
 
          StateFactory factory = new HdfsStateFactory().withOptions(options);
 
          TridentState state = stream
                  .partitionPersist(factory, hdfsFields, new HdfsUpdater(), new Fields());
  ```
+
+ To use the sequence file `State` implementation, use the `HdfsState.SequenceFileOptions`:
+
+ ```java
+            HdfsState.Options options = new HdfsState.HdfsFileOptions()
+                 .withFileNameFormat(fileNameFormat)
+                 .withRecordFormat(recordFormat)
+                 .withRotationPolicy(rotationPolicy)
+                 .withFsUrl("hdfs://localhost:54310")
+                 .withPath("/trident");
+```
 
 
 ## License

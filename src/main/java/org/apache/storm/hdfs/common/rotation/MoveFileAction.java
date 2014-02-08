@@ -1,6 +1,5 @@
 package org.apache.storm.hdfs.common.rotation;
 
-
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -13,8 +12,7 @@ public class MoveFileAction implements RotationAction {
 
     private String destination;
 
-
-    public MoveFileAction withDestination(String destDir){
+    public MoveFileAction toDestination(String destDir){
         destination = destDir;
         return this;
     }

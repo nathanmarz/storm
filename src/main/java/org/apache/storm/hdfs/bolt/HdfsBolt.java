@@ -35,18 +35,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
-
 public class HdfsBolt extends AbstractHdfsBolt{
     private static final Logger LOG = LoggerFactory.getLogger(HdfsBolt.class);
 
     private FSDataOutputStream out;
     private RecordFormat format;
-
-
     private long offset = 0;
-
-    public HdfsBolt(){
-    }
 
     public HdfsBolt withFsUrl(String fsUrl){
         this.fsUrl = fsUrl;
@@ -87,7 +81,6 @@ public class HdfsBolt extends AbstractHdfsBolt{
     public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing HDFS Bolt...");
         this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
-
     }
 
     @Override

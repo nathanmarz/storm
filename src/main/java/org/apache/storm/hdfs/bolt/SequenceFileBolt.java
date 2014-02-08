@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
-
 public class SequenceFileBolt extends AbstractHdfsBolt {
     private static final Logger LOG = LoggerFactory.getLogger(SequenceFileBolt.class);
 
@@ -46,7 +45,6 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
 
     private String compressionCodec = "default";
     private transient CompressionCodecFactory codecFactory;
-
 
     public SequenceFileBolt() {
     }

@@ -308,12 +308,13 @@ that of the bolts.
  To use the sequence file `State` implementation, use the `HdfsState.SequenceFileOptions`:
 
  ```java
-            HdfsState.Options options = new HdfsState.HdfsFileOptions()
-                 .withFileNameFormat(fileNameFormat)
-                 .withRecordFormat(recordFormat)
-                 .withRotationPolicy(rotationPolicy)
-                 .withFsUrl("hdfs://localhost:54310")
-                 .withPath("/trident");
+        HdfsState.Options seqOpts = new HdfsState.SequenceFileOptions()
+                .withFileNameFormat(fileNameFormat)
+                .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
+                .withRotationPolicy(rotationPolicy)
+                .withFsUrl("hdfs://localhost:54310")
+                .withPath("/trident")
+                .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 ```
 
 

@@ -67,7 +67,6 @@ public class DefaultFileNameFormat implements FileNameFormat {
     public void prepare(Map conf, TopologyContext topologyContext) {
         this.componentId = topologyContext.getThisComponentId();
         this.taskId = topologyContext.getThisTaskId();
-
     }
 
     @Override

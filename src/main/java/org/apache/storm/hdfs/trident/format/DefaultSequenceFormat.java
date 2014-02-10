@@ -5,6 +5,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import storm.trident.tuple.TridentTuple;
 
+/**
+ * Basic <code>SequenceFormat</code> implementation that uses
+ * <code>LongWritable</code> for keys and <code>Text</code> for values.
+ *
+ */
 public class DefaultSequenceFormat implements SequenceFormat {
     private transient LongWritable key;
     private transient Text value;

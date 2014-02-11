@@ -35,6 +35,7 @@ import java.util.Map;
  */
 public class DefaultFileNameFormat implements FileNameFormat {
     private int partitionIndex;
+    private String path = "/storm";
     private String prefix = "";
     private String extension = ".txt";
 
@@ -60,6 +61,11 @@ public class DefaultFileNameFormat implements FileNameFormat {
         return this;
     }
 
+    public DefaultFileNameFormat withPath(String path){
+        this.path = path;
+        return this;
+    }
+
     @Override
     public void prepare(Map conf, int partitionIndex, int numPartitions) {
         this.partitionIndex = partitionIndex;
@@ -69,5 +75,9 @@ public class DefaultFileNameFormat implements FileNameFormat {
     @Override
     public String getName(long rotation, long timeStamp) {
         return this.prefix + "-" + this.partitionIndex +  "-" + rotation + "-" + timeStamp + this.extension;
+    }
+
+    public String getPath(){
+        return this.path;
     }
 }

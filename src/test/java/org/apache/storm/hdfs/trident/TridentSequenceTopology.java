@@ -32,6 +32,7 @@ public class TridentSequenceTopology {
         Fields hdfsFields = new Fields("sentence", "key");
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                .withPath("/trident")
                 .withPrefix("trident")
                 .withExtension(".seq");
 
@@ -42,7 +43,6 @@ public class TridentSequenceTopology {
                 .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
                 .withRotationPolicy(rotationPolicy)
                 .withFsUrl("hdfs://localhost:54310")
-                .withPath("/trident")
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 
         StateFactory factory = new HdfsStateFactory().withOptions(seqOpts);

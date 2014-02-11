@@ -32,7 +32,6 @@ public class HdfsState implements State {
     public static abstract class Options implements Serializable {
 
         protected String fsUrl;
-        protected String path;
         protected FileSystem fs;
         private Path currentFile;
         protected FileRotationPolicy rotationPolicy;
@@ -69,8 +68,8 @@ public class HdfsState implements State {
 
         void prepare(Map conf, int partitionIndex, int numPartitions){
             if (this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
-            if (this.fsUrl == null || this.path == null) {
-                throw new IllegalStateException("File system URL and base path must be specified.");
+            if (this.fsUrl == null) {
+                throw new IllegalStateException("File system URL must be specified.");
             }
             this.fileNameFormat.prepare(conf, partitionIndex, numPartitions);
             this.hdfsConfig = new Configuration();
@@ -93,11 +92,6 @@ public class HdfsState implements State {
 
         public HdfsFileOptions withFsUrl(String fsUrl){
             this.fsUrl = fsUrl;
-            return this;
-        }
-
-        public HdfsFileOptions withPath(String path){
-            this.path = path;
             return this;
         }
 
@@ -135,7 +129,7 @@ public class HdfsState implements State {
 
         @Override
         Path createOutputFile() throws IOException {
-            Path path = new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
+            Path path = new Path(this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
             this.out = this.fs.create(path);
             return path;
         }
@@ -168,11 +162,6 @@ public class HdfsState implements State {
 
         public SequenceFileOptions withFsUrl(String fsUrl) {
             this.fsUrl = fsUrl;
-            return this;
-        }
-
-        public SequenceFileOptions withPath(String path) {
-            this.path = path;
             return this;
         }
 
@@ -212,7 +201,7 @@ public class HdfsState implements State {
 
         @Override
         Path createOutputFile() throws IOException {
-            Path p = new Path(this.fsUrl + path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
+            Path p = new Path(this.fsUrl + this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
             this.writer = SequenceFile.createWriter(
                     this.hdfsConfig,
                     SequenceFile.Writer.file(p),

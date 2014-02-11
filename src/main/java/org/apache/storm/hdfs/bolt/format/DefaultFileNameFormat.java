@@ -38,6 +38,7 @@ import java.util.Map;
 public class DefaultFileNameFormat implements FileNameFormat {
     private String componentId;
     private int taskId;
+    private String path = "/storm";
     private String prefix = "";
     private String extension = ".txt";
 
@@ -63,6 +64,11 @@ public class DefaultFileNameFormat implements FileNameFormat {
         return this;
     }
 
+    public DefaultFileNameFormat withPath(String path){
+        this.path = path;
+        return this;
+    }
+
     @Override
     public void prepare(Map conf, TopologyContext topologyContext) {
         this.componentId = topologyContext.getThisComponentId();
@@ -72,5 +78,9 @@ public class DefaultFileNameFormat implements FileNameFormat {
     @Override
     public String getName(long rotation, long timeStamp) {
         return this.prefix + this.componentId + "-" + this.taskId +  "-" + rotation + "-" + timeStamp + this.extension;
+    }
+
+    public String getPath(){
+        return this.path;
     }
 }

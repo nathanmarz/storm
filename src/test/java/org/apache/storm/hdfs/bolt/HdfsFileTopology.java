@@ -63,7 +63,9 @@ public class HdfsFileTopology {
         // rotate files when they reach 5MB
         FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 
-        FileNameFormat fileNameFormat = new DefaultFileNameFormat().withExtension(".seq");
+        FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                .withPath("/foo/")
+                .withExtension(".seq");
 
 
         // use "|" instead of "," for field delimiter
@@ -72,7 +74,6 @@ public class HdfsFileTopology {
 
         HdfsBolt bolt = new HdfsBolt()
                 .withFsUrl("hdfs://localhost:54310")
-                .withPath("/foo/")
                 .withFileNameFormat(fileNameFormat)
                 .withRecordFormat(format)
                 .withRotationPolicy(rotationPolicy)

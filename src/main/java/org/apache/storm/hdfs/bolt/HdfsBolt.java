@@ -47,11 +47,6 @@ public class HdfsBolt extends AbstractHdfsBolt{
         return this;
     }
 
-    public HdfsBolt withPath(String path){
-        this.path = path;
-        return this;
-    }
-
     public HdfsBolt withFileNameFormat(FileNameFormat fileNameFormat){
         this.fileNameFormat = fileNameFormat;
         return this;
@@ -115,7 +110,7 @@ public class HdfsBolt extends AbstractHdfsBolt{
 
     @Override
     Path createOutputFile() throws IOException {
-        Path path = new Path(this.path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
+        Path path = new Path(this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.out = this.fs.create(path);
         return path;
     }

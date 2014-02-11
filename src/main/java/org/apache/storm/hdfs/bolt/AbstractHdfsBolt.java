@@ -47,7 +47,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected FileNameFormat fileNameFormat;
     protected int rotation = 0;
     protected String fsUrl;
-    protected String path;
+//    protected String path;
 
     protected Configuration hdfsConfig;
 
@@ -70,8 +70,8 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector){
         if (this.syncPolicy == null) throw new IllegalStateException("SyncPolicy must be specified.");
         if (this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
-        if (this.fsUrl == null || this.path == null) {
-            throw new IllegalStateException("File system URL and base path must be specified.");
+        if (this.fsUrl == null) {
+            throw new IllegalStateException("File system URL must be specified.");
         }
 
         this.collector = collector;

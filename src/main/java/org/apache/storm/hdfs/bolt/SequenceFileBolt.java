@@ -59,11 +59,6 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
         return this;
     }
 
-    public SequenceFileBolt withPath(String path) {
-        this.path = path;
-        return this;
-    }
-
     public SequenceFileBolt withFileNameFormat(FileNameFormat fileNameFormat) {
         this.fileNameFormat = fileNameFormat;
         return this;
@@ -126,7 +121,7 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
     }
 
     Path createOutputFile() throws IOException {
-        Path p = new Path(this.fsUrl + path, this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
+        Path p = new Path(this.fsUrl + this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.writer = SequenceFile.createWriter(
                 this.hdfsConfig,
                 SequenceFile.Writer.file(p),

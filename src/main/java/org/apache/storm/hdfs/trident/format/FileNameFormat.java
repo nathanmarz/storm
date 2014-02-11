@@ -35,4 +35,6 @@ public interface FileNameFormat extends Serializable {
      * @return
      */
     String getName(long rotation, long timeStamp);
+
+    String getPath();
 }

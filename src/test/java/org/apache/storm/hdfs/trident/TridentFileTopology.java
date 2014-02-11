@@ -32,6 +32,7 @@ public class TridentFileTopology {
         Fields hdfsFields = new Fields("sentence", "key");
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                .withPath("/trident")
                 .withPrefix("trident")
                 .withExtension(".txt");
 
@@ -44,8 +45,7 @@ public class TridentFileTopology {
                 .withFileNameFormat(fileNameFormat)
                 .withRecordFormat(recordFormat)
                 .withRotationPolicy(rotationPolicy)
-                .withFsUrl("hdfs://localhost:54310")
-                .withPath("/trident");
+                .withFsUrl("hdfs://localhost:54310");
 
         StateFactory factory = new HdfsStateFactory().withOptions(options);
 

@@ -62,14 +62,15 @@ public class SequenceFileTopology {
         // rotate files when they reach 5MB
         FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 
-        FileNameFormat fileNameFormat = new DefaultFileNameFormat().withExtension(".seq");
+        FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                .withPath("/source/")
+                .withExtension(".seq");
 
         // create sequence format instance.
         DefaultSequenceFormat format = new DefaultSequenceFormat("timestamp", "sentence");
 
         SequenceFileBolt bolt = new SequenceFileBolt()
                 .withFsUrl("hdfs://localhost:54310")
-                .withPath("/source/")
                 .withFileNameFormat(fileNameFormat)
                 .withSequenceFormat(format)
                 .withRotationPolicy(rotationPolicy)

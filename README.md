@@ -19,11 +19,11 @@ SyncPolicy syncPolicy = new CountSyncPolicy(1000);
 // rotate files when they reach 5MB
 FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 
-FileNameFormat fileNameFormat = new DefaultFileNameFormat();
+FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+        .withPath("/foo/");
 
 HdfsBolt bolt = new HdfsBolt()
         .withFsUrl("hdfs://localhost:54310")
-        .withPath("/foo/")
         .withFileNameFormat(fileNameFormat)
         .withRecordFormat(format)
         .withRotationPolicy(rotationPolicy)
@@ -139,6 +139,7 @@ interface:
 public interface FileNameFormat extends Serializable {
     void prepare(Map conf, TopologyContext topologyContext);
     String getName(long rotation, long timeStamp);
+    String getPath();
 }
 ```
 
@@ -231,7 +232,6 @@ If you are using Trident and sequence files you can do something like this:
                 .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
                 .withRotationPolicy(rotationPolicy)
                 .withFsUrl("hdfs://localhost:54310")
-                .withPath("/trident")
                 .addRotationAction(new MoveFileAction().withDestination("/dest2/"));
 ```
 
@@ -247,14 +247,15 @@ The `org.apache.storm.hdfs.bolt.SequenceFileBolt` class allows you to write stor
         // rotate files when they reach 5MB
         FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 
-        FileNameFormat fileNameFormat = new DefaultFileNameFormat().withExtension(".seq");
+        FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                .withExtension(".seq")
+                .withPath("/data/");
 
         // create sequence format instance.
         DefaultSequenceFormat format = new DefaultSequenceFormat("timestamp", "sentence");
 
         SequenceFileBolt bolt = new SequenceFileBolt()
                 .withFsUrl("hdfs://localhost:54310")
-                .withPath("/data/")
                 .withFileNameFormat(fileNameFormat)
                 .withSequenceFormat(format)
                 .withRotationPolicy(rotationPolicy)
@@ -284,6 +285,7 @@ that of the bolts.
          Fields hdfsFields = new Fields("field1", "field2");
 
          FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                 .withPath("/trident")
                  .withPrefix("trident")
                  .withExtension(".txt");
 
@@ -296,8 +298,7 @@ that of the bolts.
                 .withFileNameFormat(fileNameFormat)
                 .withRecordFormat(recordFormat)
                 .withRotationPolicy(rotationPolicy)
-                .withFsUrl("hdfs://localhost:54310")
-                .withPath("/trident");
+                .withFsUrl("hdfs://localhost:54310");
 
          StateFactory factory = new HdfsStateFactory().withOptions(options);
 
@@ -313,7 +314,6 @@ that of the bolts.
                 .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
                 .withRotationPolicy(rotationPolicy)
                 .withFsUrl("hdfs://localhost:54310")
-                .withPath("/trident")
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 ```
 

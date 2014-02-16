@@ -148,10 +148,13 @@ public class StormSubmitter {
             throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");
         }
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
+        
+        int thriftChunkSize = ((Number) conf.get(Config.STORM_THRIFT_CHUNK_SIZE)).intValue();
+
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
-            BufferFileInputStream is = new BufferFileInputStream(localJar);
+            BufferFileInputStream is = new BufferFileInputStream(localJar, thriftChunkSize);
             while(true) {
                 byte[] toSubmit = is.read();
                 if(toSubmit.length==0) break;

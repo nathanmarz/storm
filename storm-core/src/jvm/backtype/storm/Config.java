@@ -137,6 +137,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
 
     /**
+     * The chunk size in bytes to use when sending binary blobs over the Thrift protocol
+     */
+    public static final String STORM_THRIFT_CHUNK_SIZE = "storm.thrift.chunk.size";
+    public static final Object STORM_THRIFT_CHUNK_SIZE_SCHEMA = Number.class;
+    
+    /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
      */

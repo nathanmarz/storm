@@ -22,7 +22,12 @@
     :implements [backtype.storm.scheduler.IScheduler]))
 
 (defn sort-slots [all-slots]
-  (let [split-up (vals (group-by first all-slots))]
+  (let [split-up
+         (map second
+           (reverse
+             (sort
+               (for [[host ports] (group-by first all-slots)]
+                 [(count ports) ports]))))]
     (apply interleave-all split-up)
     ))
 

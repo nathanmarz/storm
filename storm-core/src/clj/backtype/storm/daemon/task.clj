@@ -177,8 +177,8 @@
     :user-context (user-topology-context (:worker executor-data) executor-data task-id)
     :builtin-metrics (builtin-metrics/make-data (:type executor-data))
     :tasks-fn (mk-tasks-fn <>)
-    :object (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data))))
-
+    :object (try (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data)))
+    (catch Exception e (:report-error-and-die executor-data))))
 
 (defn mk-task [executor-data task-id]
   (let [task-data (mk-task-data executor-data task-id)

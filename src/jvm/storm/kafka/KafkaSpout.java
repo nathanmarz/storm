@@ -93,7 +93,7 @@ public class KafkaSpout extends BaseRichSpout {
                 }
                 return _kafkaOffsetMetric.getValueAndReset();
             }
-        }, 60);
+        }, _spoutConfig.metricsTimeBucketSizeInSecs);
 
         context.registerMetric("kafkaPartition", new IMetric() {
             @Override
@@ -105,7 +105,7 @@ public class KafkaSpout extends BaseRichSpout {
                 }
                 return concatMetricsDataMaps;
             }
-        }, 60);
+        }, _spoutConfig.metricsTimeBucketSizeInSecs);
     }
 
     @Override

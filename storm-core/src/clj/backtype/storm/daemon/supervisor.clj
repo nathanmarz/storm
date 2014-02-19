@@ -447,9 +447,9 @@
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
-                                 "%ID%"
-                                 (str port))
+          childopts (.replaceAll (.replaceAll
+                                  (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+                                 "%ID%" (str port)) "%STORMHOME%" (str storm-home))
           logfilename (str "worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)

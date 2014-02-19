@@ -91,7 +91,13 @@ supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
 
 ### worker.* configs are for task workers
-worker.childopts: "-Xmx768m"
+worker.childopts: >-
+    -Xmx768m
+    -server -Djava.net.preferIPv4Stack=true
+    -Xloggc:%STORMHOME%/logs/gc-worker-%ID%.log -verbose:gc
+    -XX:GCLogFileSize=100k
+    -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCTimeStamps -XX:+PrintClassHistogram
+    -XX:+PrintTenuringDistribution -XX:-PrintGCApplicationStoppedTime
 worker.heartbeat.frequency.secs: 1
 
 task.heartbeat.frequency.secs: 3

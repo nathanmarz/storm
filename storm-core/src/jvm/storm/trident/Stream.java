@@ -17,12 +17,16 @@
  */
 package storm.trident;
 
+import java.util.Map;
+import java.util.HashMap;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.NullStruct;
 import storm.trident.fluent.ChainedAggregatorDeclarer;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+import storm.trident.fluent.StreamMap;
+import storm.trident.fluent.StreamCollection;
 import storm.trident.fluent.GlobalAggregationScheme;
 import storm.trident.fluent.GroupedStream;
 import storm.trident.fluent.IAggregatableStream;
@@ -31,6 +35,7 @@ import storm.trident.operation.Assembly;
 import storm.trident.operation.CombinerAggregator;
 import storm.trident.operation.Filter;
 import storm.trident.operation.Function;
+import storm.trident.operation.MultiFunction;
 import storm.trident.operation.ReducerAggregator;
 import storm.trident.operation.impl.CombinerAggStateUpdater;
 import storm.trident.operation.impl.FilterExecutor;
@@ -46,6 +51,9 @@ import storm.trident.planner.Node;
 import storm.trident.planner.NodeStateInfo;
 import storm.trident.planner.PartitionNode;
 import storm.trident.planner.ProcessorNode;
+import storm.trident.planner.TupleReceiver;
+import storm.trident.planner.processor.MultiEachProcessor;
+import storm.trident.planner.processor.MultiOutputMapping;
 import storm.trident.planner.processor.AggregateProcessor;
 import storm.trident.planner.processor.EachProcessor;
 import storm.trident.planner.processor.PartitionPersistProcessor;
@@ -143,6 +151,62 @@ public class Stream implements IAggregatableStream {
                     new EachProcessor(inputFields, function)));
     }
 
+    /**
+       Special kind of each that allows user to route tuples to multiple output streams.
+       The output streams, one per key in StreamMap, are available in the returned
+       StreamCollection object.
+    */
+    public StreamCollection each(Fields inputFields, MultiFunction function, StreamMap map) {
+        projectionValidation(inputFields);
+ 
+        //
+        // Most important object here. It maintains the mapping (graph) from stream names
+        // to fields and processors. It gets serialized and passed to the backend. This work
+        // should ultimately happen in the TridentContext. Unfortunately, the TridentContext
+        // class is currently tied strongly to the notion of one output stream.
+        // 
+        MultiOutputMapping streamOutputMap = new MultiOutputMapping();
+        Map<String, Node> outputNodeMap = new HashMap<String,Node>();
+ 
+        //
+        // Walk the simplistic output mapping (StreamMap) created by the user and
+        // create identitity processor nodes for each output stream.
+        //
+        for (String streamName : map.getStreamNames()) {
+            Fields streamFields = map.getFields(streamName);
+ 
+            Node outputNode = new ProcessorNode(
+                                                _topology.getUniqueStreamId(),
+                                                _name,
+                                                TridentUtils.fieldsConcat(getOutputFields(), streamFields),
+                                                new Fields(), // no output fields; pass input fields to appropriate output factory
+                                                new MultiEachProcessor.MultiEachProcessorChild(TridentUtils.fieldsConcat(getOutputFields(), streamFields), streamName));
+            outputNodeMap.put(streamName, outputNode);
+            streamOutputMap.addStream(streamName, streamFields, ((ProcessorNode)outputNode).processor);
+        }
+ 
+        //
+        // This processor node, labeled workNode, does all the actual work
+        //
+        Node workNode = new ProcessorNode(_topology.getUniqueStreamId(),
+                                          _name,
+                                          TridentUtils.fieldsConcat(getOutputFields(), map.getScopedOutputFields()),
+                                          map.getScopedOutputFields(), // each set of fields is scoped by it's corresponding stream name
+                                          new MultiEachProcessor(inputFields, function, streamOutputMap));
+         
+        Stream intermediate = _topology.addSourcedNode(this, workNode);        
+ 
+        //
+        // Link the intermediate stream to each outputNode
+        //
+        StreamCollection result = new StreamCollection();
+        for (Map.Entry<String,Node> link : outputNodeMap.entrySet()) {           
+            result.addStream(link.getKey(), _topology.addSourcedNode(intermediate, link.getValue()));
+        }
+         
+        return result;
+    };
+    
     //creates brand new tuples with brand new fields
     @Override
     public Stream partitionAggregate(Fields inputFields, Aggregator agg, Fields functionFields) {

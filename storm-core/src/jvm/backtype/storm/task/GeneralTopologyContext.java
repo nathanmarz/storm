@@ -157,8 +157,35 @@ public class GeneralTopologyContext implements JSONAware {
     public String toJSONString() {
         Map obj = new HashMap();
         obj.put("task->component", _taskToComponent);
-        // TODO: jsonify StormTopology
-        // at the minimum should send source info
+        Map bolts = _topology.get_bolts();
+        Map spouts = _topology.get_spouts();
+        for (String compId : _taskToComponent.values()) {
+            Map compMap = new HashMap();
+            if (bolts.containsKey(compId)) {
+                List<String> jsonSources = new ArrayList<String>();
+                Map<GlobalStreamId, Grouping> sources = getSources(compId);
+                for (GlobalStreamId sourceId : sources.keySet()) {
+                    jsonSources.add(sourceId.get_componentId());
+                }
+                compMap.put("sources", jsonSources);
+            }
+
+            if (spouts.containsKey(compId) || bolts.containsKey(compId)) {
+                List<String> jsonTargets = new ArrayList<String>();
+                for (Map<String, Grouping> targets : getTargets(compId).values()) {
+                    for (String target : targets.keySet()) {
+                        jsonTargets.add(target);
+                    }
+                }
+                if (!jsonTargets.isEmpty()) {
+                    compMap.put("targets", jsonTargets);
+                }
+            }
+
+            if (!compMap.isEmpty()) {
+                obj.put(compId, compMap);
+            }
+        }
         return JSONValue.toJSONString(obj);
     }
 

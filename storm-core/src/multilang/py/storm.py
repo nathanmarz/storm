@@ -139,7 +139,9 @@ def log(msg):
 def initComponent():
     setupInfo = readMsg()
     sendpid(setupInfo['pidDir'])
-    return [setupInfo['conf'], setupInfo['context']]
+    context = setupInfo['context']
+    context['componentId'] = setupInfo['conponentId']
+    return setupInfo['conf'], context
 
 class Tuple(object):
     def __init__(self, id, component, stream, task, values):

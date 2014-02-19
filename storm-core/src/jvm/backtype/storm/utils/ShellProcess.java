@@ -57,6 +57,7 @@ public class ShellProcess {
         setupInfo.put("pidDir", context.getPIDDir());
         setupInfo.put("conf", conf);
         setupInfo.put("context", context);
+        setupInfo.put("componentId", context.getThisComponentId());
         writeMessage(setupInfo);
 
         return (Number)readMessage().get("pid");

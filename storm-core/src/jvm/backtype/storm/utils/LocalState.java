@@ -36,18 +36,19 @@ public class LocalState {
         _vs = new VersionedStore(backingDir);
     }
     
-    public synchronized Map<Object, Object> snapshot() throws IOException {
+    public synchronized Map<Object, Object> snapshot() {
         int attempts = 0;
         while(true) {
             String latestPath = _vs.mostRecentVersionPath();
             if(latestPath==null) return new HashMap<Object, Object>();
             try {
                 return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
-            } catch(IOException e) {
-                attempts++;
-                if(attempts >= 10) {
-                    throw e;
+            } catch(RuntimeException e) {
+                if (Utils.exceptionCauseIsInstanceOf(IOException.class, e) &&
+                        ++attempts < 10) {
+                    continue;
                 }
+                throw e;
             }
         }
     }

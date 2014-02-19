@@ -21,10 +21,28 @@
   (:gen-class
     :implements [backtype.storm.scheduler.IScheduler]))
 
-(defn sort-slots [all-slots]
-  (let [split-up (vals (group-by first all-slots))]
-    (apply interleave-all split-up)
-    ))
+(defn sort-slots
+  "used-slots, {supervisorid count(used-slots)}
+   available-slots, ((supervisorid slot)......)"
+  [available-slots used-slots]
+  (loop [result [] available-slots (coll-to-map available-slots) used-slots used-slots]
+    (let [available-slots (filter-val (complement empty?) available-slots)
+          sorted-used (->> used-slots
+                           (sort-by val)
+                           (into {}))]    
+      (if (empty? available-slots)
+        result
+        (let [slot (loop [available-slots available-slots sorted-used sorted-used]
+                     (let [idle-supervisor (key (first sorted-used))
+                           ports (get available-slots idle-supervisor nil)]
+		                 (if ports
+		                   [idle-supervisor (first ports)]
+		                   (recur available-slots (dissoc sorted-used idle-supervisor)))))
+		          sv (first slot)
+		          inc-used (assoc sorted-used sv (inc (sorted-used sv)))
+		          update-available (assoc available-slots sv (rest (available-slots sv)))]
+          (recur (conj result slot) update-available inc-used))
+        ))))
 
 (defn get-alive-assigned-node+port->executors [cluster topology-id]
   (let [existing-assignment (.getAssignmentById cluster topology-id)
@@ -38,6 +56,16 @@
         alive-assigned (reverse-map executor->node+port)]
     alive-assigned))
 
+(defn get-supervisors-used-slots
+  "return {supervisor-id count(used-slots)}"
+  [cluster]
+  (->> cluster
+       (.getSupervisors)
+       (map-val #(.getUsedPorts cluster %))
+       (map-val count)
+    )
+  )
+
 (defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
   (let [topology-id (.getId topology)
         available-slots (->> (.getAvailableSlots cluster)
@@ -50,7 +78,7 @@
         total-slots-to-use (min (.getNumWorkers topology)
                                 (+ (count available-slots) (count alive-assigned)))
         reassign-slots (take (- total-slots-to-use (count alive-assigned))
-                             (sort-slots available-slots))
+                             (sort-slots available-slots (get-supervisors-used-slots cluster)))
         reassign-executors (sort (set/difference all-executors (set (apply concat (vals alive-assigned)))))
         reassignment (into {}
                            (map vector

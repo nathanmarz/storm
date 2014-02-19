@@ -352,6 +352,17 @@
       (assoc m v (conj existing k))))
     {} amap))
 
+(defn coll-to-map
+  "([:a 1][:a 2][:b 1][:c 2]) -> {:a [1 2] :b 1 :c 2}"
+  [acoll]
+  (reduce (fn [m item]
+            (let [existing (get m (first item) [])]
+              (assoc m (first item) (conj existing (second item)))
+              )
+            )
+          {} acoll)
+  )
+
 (defmacro print-vars [& vars]
   (let [prints (for [v vars] `(println ~(str v) ~v))]
     `(do ~@prints)))

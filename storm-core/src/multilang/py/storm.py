@@ -73,9 +73,9 @@ def readTuple():
     return Tuple(cmd["id"], cmd["comp"], cmd["stream"], cmd["task"], cmd["tuple"])
 
 def sendMsgToParent(msg):
-    print json_encode(msg)
-    print "end"
-    sys.stdout.flush()
+    original_stdout.write(json_encode(msg) + '\n')
+    original_stdout.write("end\n")
+    original_stdout.flush()
 
 def sync():
     sendMsgToParent({'command':'sync'})
@@ -140,6 +140,28 @@ def initComponent():
     setupInfo = readMsg()
     sendpid(setupInfo['pidDir'])
     return [setupInfo['conf'], setupInfo['context']]
+
+# prevent custom code's print methods pollute stdout, resulting in wrong
+# message sent to JAVA layer.
+
+original_stdout = sys.stdout
+
+def nullify_stdout(func):
+    # a wrapper function nullify all print methods of its wrapped funcs.
+
+    class NullDevice():
+        def write(self, s):
+            pass
+
+    def wrapper(*args):
+        sys.stdout = NullDevice()
+        try:
+            result = func(*args)
+        finally:
+            sys.stdout = original_stdout
+        return result
+
+    return wrapper
 
 class Tuple(object):
     def __init__(self, id, component, stream, task, values):

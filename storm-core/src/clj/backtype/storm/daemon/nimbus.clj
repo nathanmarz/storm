@@ -660,7 +660,8 @@
                                         ;; for the topology which wants rebalance (specified by the scratch-topology-id)
                                         ;; we exclude its assignment, meaning that all the slots occupied by its assignment
                                         ;; will be treated as free slot in the scheduler code.
-                                        (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
+                                        (if (and (not-nil? scratch-topology-id) (= tid scratch-topology-id))
+                                          (.remove-assignment! storm-cluster-state tid)
                                           {tid (.assignment-info storm-cluster-state tid nil)})))
         ;; make the new assignments for topologies
         topology->executor->node+port (compute-new-topology->executor->node+port

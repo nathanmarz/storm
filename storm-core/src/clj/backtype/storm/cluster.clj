@@ -132,6 +132,7 @@
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
+  (remove-assignment! [this storm-id])
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
@@ -341,6 +342,9 @@
       (set-assignment! [this storm-id info]
         (set-data cluster-state (assignment-path storm-id) (Utils/serialize info))
         )
+
+      (remove-assignment! [this storm-id]
+        (delete-node cluster-state (assignment-path storm-id)))
 
       (remove-storm! [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))

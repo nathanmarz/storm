@@ -79,6 +79,10 @@ public class ShellBolt implements IBolt {
     private Thread _readerThread;
     private Thread _writerThread;
 
+    private enum LogLevels {
+        TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+    }
+
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
@@ -123,8 +127,7 @@ public class ShellBolt implements IBolt {
                         } else if (command.equals("error")) {
                             handleError(action);
                         } else if (command.equals("log")) {
-                            String msg = (String) action.get("msg");
-                            LOG.info("Shell msg: " + msg);
+                            handleLog(action);
                         } else if (command.equals("emit")) {
                             handleEmit(action);
                         }
@@ -184,6 +187,37 @@ public class ShellBolt implements IBolt {
         _running = false;
         _process.destroy();
         _inputs.clear();
+    }
+
+    private void handleLog(Map action) {
+        String msg = (String) action.get("msg");
+        int level = (Integer) action.get("level");
+
+        msg = "Shell msg: " + msg;
+
+        switch (level) {
+            case TRACE:
+                LOG.trace(msg);
+                break;
+            case DEBUG:
+                LOG.debug(msg);
+                break;
+            case INFO:
+                LOG.info(msg);
+                break;
+            case WARN:
+                LOG.warn(msg);
+                break;
+            case ERROR:
+                LOG.error(msg);
+                break;
+            case FATAL:
+                LOG.fatal(msg);
+                break;
+            default:
+                LOG.info(msg);
+                break;
+        }
     }
 
     private void handleAck(Map action) {

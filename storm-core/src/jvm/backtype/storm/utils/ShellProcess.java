@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
@@ -39,14 +40,24 @@ public class ShellProcess {
     private InputStream processErrorStream;
     private Process _subprocess;
     private String[] command;
+    private Map<String, String> environment;
 
     public ShellProcess(String[] command) {
+        this(command, null);
+    }
+
+    public ShellProcess(String[] command, Map<String, String> environment) {
         this.command = command;
+        if (environment == null) {
+            environment = new HashMap<String, String>();
+        }
+        this.environment = environment;
     }
 
     public Number launch(Map conf, TopologyContext context) throws IOException {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(new File(context.getCodeDir()));
+        builder.environment().putAll(environment);
         _subprocess = builder.start();
 
         processIn = new DataOutputStream(_subprocess.getOutputStream());

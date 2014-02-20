@@ -79,6 +79,7 @@ public class KafkaUtils {
         public Object getValueAndReset() {
             try {
                 long totalSpoutLag = 0;
+                long totalEarliestTimeOffset = 0;
                 long totalLatestTimeOffset = 0;
                 long totalLatestEmittedOffset = 0;
                 HashMap ret = new HashMap();
@@ -90,22 +91,26 @@ public class KafkaUtils {
                             LOG.warn("partitionToOffset contains partition not found in _connections. Stale partition data?");
                             return null;
                         }
+                        long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime()); 
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
-                        if (latestTimeOffset == 0) {
+                        if (earliestTimeOffset == 0 || latestTimeOffset == 0) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
                         long latestEmittedOffset = e.getValue();
                         long spoutLag = latestTimeOffset - latestEmittedOffset;
                         ret.put(partition.getId() + "/" + "spoutLag", spoutLag);
-                        ret.put(partition.getId() + "/" + "latestTime", latestTimeOffset);
+                        ret.put(partition.getId() + "/" + "earliestTimeOffset", earliestTimeOffset);
+                        ret.put(partition.getId() + "/" + "latestTimeOffset", latestTimeOffset);
                         ret.put(partition.getId() + "/" + "latestEmittedOffset", latestEmittedOffset);
                         totalSpoutLag += spoutLag;
+                        totalEarliestTimeOffset += earliestTimeOffset;
                         totalLatestTimeOffset += latestTimeOffset;
                         totalLatestEmittedOffset += latestEmittedOffset;
                     }
                     ret.put("totalSpoutLag", totalSpoutLag);
-                    ret.put("totalLatestTime", totalLatestTimeOffset);
+                    ret.put("totalEarliestTimeOffset", totalEarliestTimeOffset);
+                    ret.put("totalLatestTimeOffset", totalLatestTimeOffset);
                     ret.put("totalLatestEmittedOffset", totalLatestEmittedOffset);
                     return ret;
                 } else {

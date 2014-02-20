@@ -221,7 +221,7 @@
   (Time/currentTimeMillis))
 
 (defn secs-to-millis-long [secs]
-  (long (* 1000 secs)))
+  (long (* (long 1000) secs)))
 
 (defn clojurify-structure [s]
   (prewalk (fn [x]

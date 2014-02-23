@@ -28,13 +28,14 @@ public class KafkaUtilsTest {
     private KafkaTestBroker broker;
     private SimpleConsumer simpleConsumer;
     private KafkaConfig config;
+    private BrokerHosts brokerHosts;
 
     @Before
     public void setup() {
         broker = new KafkaTestBroker();
         GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation();
         globalPartitionInformation.addPartition(0, Broker.fromString(broker.getBrokerConnectionString()));
-        BrokerHosts brokerHosts = new StaticHosts(globalPartitionInformation);
+        brokerHosts = new StaticHosts(globalPartitionInformation);
         config = new KafkaConfig(brokerHosts, "testTopic");
         simpleConsumer = new SimpleConsumer("localhost", broker.getPort(), 60000, 1024, "testClient");
     }
@@ -60,19 +61,31 @@ public class KafkaUtilsTest {
 
     @Test
     public void fetchMessage() throws Exception {
-        long lastOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.EarliestTime());
-        sendMessageAndAssertValueForOffset(lastOffset);
+        String value = "test";
+        createTopicAndSendMessage(value);
+        long offset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.LatestTime()) - 1;
+        ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(config, simpleConsumer,
+                new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), offset);
+        String message = new String(Utils.toByteArray(messageAndOffsets.iterator().next().message().payload()));
+        assertThat(message, is(equalTo(value)));
     }
 
     @Test(expected = FailedFetchException.class)
     public void fetchMessagesWithInvalidOffsetAndDefaultHandlingDisabled() throws Exception {
         config.useStartOffsetTimeIfOffsetOutOfRange = false;
-        sendMessageAndAssertValueForOffset(-99);
+        KafkaUtils.fetchMessages(config, simpleConsumer,
+                new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), -99);
     }
 
     @Test
     public void fetchMessagesWithInvalidOffsetAndDefaultHandlingEnabled() throws Exception {
-        sendMessageAndAssertValueForOffset(-99);
+        config = new KafkaConfig(brokerHosts, "newTopic");
+        String value = "test";
+        createTopicAndSendMessage(value);
+        ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(config, simpleConsumer,
+                new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), -99);
+        String message = new String(Utils.toByteArray(messageAndOffsets.iterator().next().message().payload()));
+        assertThat(message, is(equalTo(value)));
     }
 
     @Test
@@ -164,13 +177,5 @@ public class KafkaUtilsTest {
         ProducerConfig producerConfig = new ProducerConfig(p);
         Producer<String, String> producer = new Producer<String, String>(producerConfig);
         producer.send(new KeyedMessage<String, String>(config.topic, key, value));
-    }
-
-    private void sendMessageAndAssertValueForOffset(long offset) {
-        String value = "test";
-        createTopicAndSendMessage(value);
-        ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(config, simpleConsumer, new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), offset);
-        String message = new String(Utils.toByteArray(messageAndOffsets.iterator().next().message().payload()));
-        assertThat(message, is(equalTo(value)));
     }
 }

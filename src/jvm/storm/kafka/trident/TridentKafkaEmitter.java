@@ -155,8 +155,7 @@ public class TridentKafkaEmitter {
     }
 
     private void emit(TridentCollector collector, Message msg) {
-        Iterable<List<Object>> values =
-                _config.scheme.deserialize(Utils.toByteArray(msg.payload()));
+        Iterable<List<Object>> values = KafkaUtils.generateTuples(_config, msg);
         if (values != null) {
             for (List<Object> value : values) {
                 collector.emit(value);

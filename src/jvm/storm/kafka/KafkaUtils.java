@@ -1,6 +1,7 @@
 package storm.kafka;
 
 import backtype.storm.metric.api.IMetric;
+import backtype.storm.utils.Utils;
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
@@ -9,6 +10,7 @@ import kafka.javaapi.FetchResponse;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
+import kafka.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.trident.IBrokerReader;
@@ -16,10 +18,8 @@ import storm.kafka.trident.StaticBrokerReader;
 import storm.kafka.trident.ZkBrokerReader;
 
 import java.net.ConnectException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.nio.ByteBuffer;
+import java.util.*;
 
 
 public class KafkaUtils {
@@ -165,4 +165,18 @@ public class KafkaUtils {
         }
         return msgs;
     }
+
+
+    public static Iterable<List<Object>> generateTuples(KafkaConfig kafkaConfig, Message msg) {
+        Iterable<List<Object>> tups;
+        ByteBuffer payload = msg.payload();
+        ByteBuffer key = msg.key();
+        if (key != null && kafkaConfig.scheme instanceof KeyValueSchemeAsMultiScheme) {
+            tups = ((KeyValueSchemeAsMultiScheme) kafkaConfig.scheme).deserializeKeyAndValue(Utils.toByteArray(key), Utils.toByteArray(payload));
+        } else {
+            tups = kafkaConfig.scheme.deserialize(Utils.toByteArray(payload));
+        }
+        return tups;
+    }
+
 }

@@ -1,10 +1,13 @@
 package storm.kafka;
 
+import backtype.storm.spout.SchemeAsMultiScheme;
 import backtype.storm.utils.Utils;
+import com.google.common.collect.ImmutableMap;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.javaapi.producer.Producer;
+import kafka.message.MessageAndOffset;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 import org.junit.After;
@@ -12,10 +15,12 @@ import org.junit.Before;
 import org.junit.Test;
 import storm.kafka.trident.GlobalPartitionInformation;
 
+import java.util.List;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class KafkaUtilsTest {
@@ -90,19 +95,80 @@ public class KafkaUtilsTest {
         assertThat(earliestOffset, is(equalTo(offsetFromConfig)));
     }
 
-    private String createTopicAndSendMessage() {
+    @Test
+    public void generateTuplesWithoutKeyAndKeyValueScheme() {
+        config.scheme = new KeyValueSchemeAsMultiScheme(new StringKeyValueScheme());
+        runGetValueOnlyTuplesTest();
+    }
+
+    @Test
+    public void generateTuplesWithKeyAndKeyValueScheme() {
+        config.scheme = new KeyValueSchemeAsMultiScheme(new StringKeyValueScheme());
+        String value = "value";
+        String key = "key";
+        createTopicAndSendMessage(key, value);
+        ByteBufferMessageSet messageAndOffsets = getLastMessage();
+        for (MessageAndOffset msg : messageAndOffsets) {
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message());
+            assertEquals(ImmutableMap.of(key, value), lists.iterator().next().get(0));
+        }
+    }
+
+    @Test
+    public void generateTupelsWithValueScheme() {
+        config.scheme = new SchemeAsMultiScheme(new StringScheme());
+        runGetValueOnlyTuplesTest();
+    }
+
+    @Test
+    public void generateTuplesWithValueSchemeAndKeyValueMessage() {
+        config.scheme = new SchemeAsMultiScheme(new StringScheme());
+        String value = "value";
+        String key = "key";
+        createTopicAndSendMessage(key, value);
+        ByteBufferMessageSet messageAndOffsets = getLastMessage();
+        for (MessageAndOffset msg : messageAndOffsets) {
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message());
+            assertEquals(value, lists.iterator().next().get(0));
+        }
+    }
+
+    private ByteBufferMessageSet getLastMessage() {
+        long offsetOfLastMessage = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.LatestTime()) - 1;
+        return KafkaUtils.fetchMessages(config, simpleConsumer, new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), offsetOfLastMessage);
+    }
+
+    private void runGetValueOnlyTuplesTest() {
+        String value = "value";
+        createTopicAndSendMessage(null, value);
+        ByteBufferMessageSet messageAndOffsets = getLastMessage();
+        for (MessageAndOffset msg : messageAndOffsets) {
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message());
+            assertEquals(value, lists.iterator().next().get(0));
+        }
+    }
+
+
+    private void createTopicAndSendMessage() {
+        createTopicAndSendMessage(null, "someValue");
+    }
+
+    private void createTopicAndSendMessage(String value) {
+        createTopicAndSendMessage(null, value);
+    }
+
+    private void createTopicAndSendMessage(String key, String value) {
         Properties p = new Properties();
         p.setProperty("metadata.broker.list", "localhost:49123");
         p.setProperty("serializer.class", "kafka.serializer.StringEncoder");
         ProducerConfig producerConfig = new ProducerConfig(p);
         Producer<String, String> producer = new Producer<String, String>(producerConfig);
-        String value = "value";
-        producer.send(new KeyedMessage<String, String>(config.topic, value));
-        return value;
+        producer.send(new KeyedMessage<String, String>(config.topic, key, value));
     }
 
     private void sendMessageAndAssertValueForOffset(long offset) {
-        String value = createTopicAndSendMessage();
+        String value = "test";
+        createTopicAndSendMessage(value);
         ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(config, simpleConsumer, new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), offset);
         String message = new String(Utils.toByteArray(messageAndOffsets.iterator().next().message().payload()));
         assertThat(message, is(equalTo(value)));

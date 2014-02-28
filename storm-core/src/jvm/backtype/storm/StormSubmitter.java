@@ -150,7 +150,6 @@ public class StormSubmitter {
             throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");
         }
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
-
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);

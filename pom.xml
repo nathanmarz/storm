@@ -146,6 +146,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <test.extra.args>-Djava.net.preferIPv4Stack=true</test.extra.args>
 
         <!-- dependency versions -->
         <clojure.version>1.4.0</clojure.version>

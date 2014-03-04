@@ -16,7 +16,7 @@
 (ns backtype.storm.utils-test
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient Utils])
-  (:import [com.netflix.curator.retry ExponentialBackoffRetry])
+  (:import [org.apache.curator.retry ExponentialBackoffRetry])
   (:import [org.apache.thrift.transport TTransportException])
   (:use [backtype.storm config util])
   (:use [clojure test])

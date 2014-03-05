@@ -7,7 +7,6 @@ Learn to use Storm!
 Table of Contents
 
 * <a href="#getting-started">Getting started</a>
-* <a href="#leiningen">Using storm-starter with Leiningen</a>
 * <a href="#maven">Using storm-starter with Maven</a>
 * <a href="#intellij-idea">Using storm-starter with IntelliJ IDEA</a>
 
@@ -27,7 +26,7 @@ Next, make sure you have the storm-starter code available on your machine.  Git/
 following command to download the latest storm-starter code and change to the new directory that contains the downloaded
 code.
 
-    $ git clone git://github.com/nathanmarz/storm-starter.git && cd storm-starter
+    $ git clone git://github.com/apache/incubator-storm.git && cd storm/examples/storm-starter
 
 
 ## storm-starter overview
@@ -45,7 +44,7 @@ After you have familiarized yourself with these topologies, take a look at the o
 for more advanced implementations.
 
 If you want to learn more about how Storm works, please head over to the
-[Storm project page](http://github.com/nathanmarz/storm).
+[Storm project page](http://storm.incubator.apache.org).
 
 
 <a name="leiningen"></a>
@@ -58,48 +57,32 @@ The storm-starter build uses [Leiningen](http://leiningen.org/) 2.0.  Install Le
 [leiningen installation instructions](https://github.com/technomancy/leiningen).
 
 
-## Running topologies with Leiningen
-
-### To run a Java topology
-
-    $ lein deps
-    $ lein compile
-    $ java -cp $(lein classpath) storm.starter.ExclamationTopology
-
-
-### To run a Clojure topology:
-
-    $ lein deps
-    $ lein compile
-    $ lein run -m storm.starter.clj.word-count
-
-
 <a name="maven"></a>
 
 # Using storm-starter with Maven
 
 ## Install Maven
 
-[Maven](http://maven.apache.org/) is an alternative to Leiningen.  Install Maven (preferably version 3.x) by following
+Install [Maven](http://maven.apache.org/) (preferably version 3.x) by following
 the [Maven installation instructions](http://maven.apache.org/download.cgi).
 
 
 ## Running topologies with Maven
 
-storm-starter contains [m2-pom.xml](m2-pom.xml) which can be used with Maven using the `-f` option. For example, to
+storm-starter topologies can be run with the maven-exec-plugin. For example, to
 compile and run `WordCountTopology` in local mode, use the command:
 
-    $ mvn -f m2-pom.xml compile exec:java -Dstorm.topology=storm.starter.WordCountTopology
+    $ mvn compile exec:java -Dstorm.topology=storm.starter.WordCountTopology
 
 You can also run clojure topologies with Maven:
 
-    $ mvn -f m2-pom.xml compile exec:java -Dstorm.topology=storm.starter.clj.word_count
+    $ mvn compile exec:java -Dstorm.topology=storm.starter.clj.word_count
 
 ## Packaging storm-starter for use on a Storm cluster
 
 You can package a jar suitable for submitting to a Storm cluster with the command:
 
-    $ mvn -f m2-pom.xml package
+    $ mvn package
 
 This will package your code and all the non-Storm dependencies into a single "uberjar" at the path
 `target/storm-starter-{version}-jar-with-dependencies.jar`.
@@ -110,7 +93,7 @@ This will package your code and all the non-Storm dependencies into a single "ub
 Use the following Maven command to run the unit tests that ship with storm-starter.  Unfortunately `lein test` does not
 yet run the included unit tests.
 
-    $ mvn -f m2-pom.xml test
+    $ mvn test
 
 
 <a name="intellij-idea"></a>
@@ -121,10 +104,9 @@ yet run the included unit tests.
 
 The following instructions will import storm-starter as a new project in IntelliJ IDEA.
 
-* Copy `m2-pom.xml` to `pom.xml`.  This is requried so that IDEA (or Eclipse) can properly detect the maven
-  configuration.
-* Open _File > Import Project..._ and navigate to the top-level directory of your storm-starter clone (e.g.
-  `~/git/storm-starter`).
+
+* Open _File > Import Project..._ and navigate to the storm-starter directory of your storm clone (e.g.
+  `~/git/storm/examples/storm-starter`).
 * Select _Import project from external model_, select "Maven", and click _Next_.
 * In the following screen, enable the checkbox _Import Maven projects automatically_.  Leave all other values at their
   defaults.  Click _Next_.

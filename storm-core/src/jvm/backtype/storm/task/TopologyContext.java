@@ -26,6 +26,8 @@ import backtype.storm.metric.api.IReducer;
 import backtype.storm.metric.api.ICombiner;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.metric.api.CombinedMetric;
+import backtype.storm.metric.api.rpc.IShellMetric;
+import backtype.storm.spout.ShellSpout;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -249,6 +251,22 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         }
 
         return metric;
+    }
+    
+    /*
+     * Convinience method for ShellBolt to registering ShellMetric.
+     */
+    public <T extends IShellMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs, ShellBolt bolt) {
+    	bolt.registerMetric(name, metric);
+        return registerMetric(name, metric, timeBucketSizeInSecs);
+    }
+    
+    /*
+     * Convinience method for ShellSpout to registering ShellMetric.
+     */
+    public <T extends IShellMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs, ShellSpout spout) {
+    	spout.registerMetric(name, metric);
+        return registerMetric(name, metric, timeBucketSizeInSecs);
     }
 
     /*

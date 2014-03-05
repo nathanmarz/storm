@@ -18,12 +18,17 @@
 package backtype.storm.spout;
 
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.metric.api.rpc.IShellMetric;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
 import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.json.simple.JSONObject;
@@ -35,6 +40,8 @@ public class ShellSpout implements ISpout {
     private SpoutOutputCollector _collector;
     private String[] _command;
     private ShellProcess _process;
+    
+    private Map<String, IShellMetric> _registeredShellMetrics = new ConcurrentHashMap<String, IShellMetric>();
 
     public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -92,6 +99,49 @@ public class ShellSpout implements ISpout {
         _fail.put("id", msgId);
         querySubprocess(_fail);
     }
+    
+    private void handleMetrics(Map action) {
+    	//get metrics
+    	Object nameObj = action.get("name");
+    	if ( !(nameObj instanceof String) ) {
+    		throw new RuntimeException("Receive Metrics name is not String");
+    	}
+    	String name = (String) nameObj;
+    	if (name == null || name.isEmpty()) {
+    		throw new RuntimeException("Receive Metrics name is NULL");
+    	}
+    	if ( !_registeredShellMetrics.containsKey(name)) {
+    		throw new RuntimeException("Receive Metrics name:" + name + " does not reigster.");
+    	}
+    	IShellMetric iMetric = _registeredShellMetrics.get(name);
+    	
+    	//get paramList
+    	Object paramsObj = action.get("params");
+        
+    	Class<? extends IShellMetric> oriClass = iMetric.getClass();
+    	Method method = null;
+		try {
+			method = oriClass.getMethod(IShellMetric.SHELL_METRICS_UPDATE_METHOD_NAME, new Class[]{Object.class});
+		} catch (SecurityException e) {
+			LOG.error("handleMetrics get method ["+name+"] SecurityException");
+			throw new RuntimeException(e);
+		} catch (NoSuchMethodException e) {
+			LOG.error("handleMetrics get method ["+name+"] NoSuchMethodException");
+			throw new RuntimeException(e);
+		}
+    	try {
+			method.invoke(iMetric, paramsObj);
+		} catch (IllegalArgumentException e) {
+			LOG.error("handleMetrics invoke["+name+"] IllegalArgumentException");
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			LOG.error("handleMetrics invoke["+name+"] IllegalAccessException");
+			throw new RuntimeException(e);
+		} catch (InvocationTargetException e) {
+			LOG.error("handleMetrics invoke["+name+"] InvocationTargetException");
+			throw new RuntimeException(e);
+		}
+    }
 
     private void querySubprocess(Object query) {
         try {
@@ -120,11 +170,22 @@ public class ShellSpout implements ISpout {
                     } else {
                         _collector.emitDirect((int)task.longValue(), stream, tuple, messageId);
                     }
+                } else if (command.equals("metrics")) {
+                	handleMetrics(action);
                 }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    public <T extends IShellMetric> T registerMetric(String name, T metric) {
+    	if ( _registeredShellMetrics.containsKey(name) ) {
+    		throw new RuntimeException("The same metric name `" + name + "` was registered in ShellSpout twice." );
+    	} else {
+    		_registeredShellMetrics.put(name, metric);
+    	}
+    	return metric;
     }
 
     @Override

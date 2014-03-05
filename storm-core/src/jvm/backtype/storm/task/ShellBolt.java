@@ -19,11 +19,14 @@ package backtype.storm.task;
 
 import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.metric.api.rpc.IShellMetric;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import backtype.storm.utils.ShellProcess;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,6 +82,8 @@ public class ShellBolt implements IBolt {
     private Thread _readerThread;
     private Thread _writerThread;
 
+    private Map<String, IShellMetric> _registeredShellMetrics = new ConcurrentHashMap<String, IShellMetric>();
+    
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
@@ -127,6 +132,8 @@ public class ShellBolt implements IBolt {
                             LOG.info("Shell msg: " + msg);
                         } else if (command.equals("emit")) {
                             handleEmit(action);
+                        } else if (command.equals("metrics")) {
+                        	handleMetrics(action);
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
@@ -186,6 +193,15 @@ public class ShellBolt implements IBolt {
         _inputs.clear();
     }
 
+    public <T extends IShellMetric> T registerMetric(String name, T metric) {
+    	if ( _registeredShellMetrics.containsKey(name) ) {
+    		throw new RuntimeException("The same metric name `" + name + "` was registered in ShellBolt twice." );
+    	} else {
+    		_registeredShellMetrics.put(name, metric);
+    	}
+    	return metric;
+    }
+    
     private void handleAck(Map action) {
         String id = (String) action.get("id");
         Tuple acked = _inputs.remove(id);
@@ -237,6 +253,49 @@ public class ShellBolt implements IBolt {
         } else {
             _collector.emitDirect((int)task.longValue(), stream, anchors, tuple);
         }
+    }
+    
+    private void handleMetrics(Map action) {
+    	//get metrics
+    	Object nameObj = action.get("name");
+    	if ( !(nameObj instanceof String) ) {
+    		throw new RuntimeException("Receive Metrics name is not String");
+    	}
+    	String name = (String) nameObj;
+    	if (name == null || name.isEmpty()) {
+    		throw new RuntimeException("Receive Metrics name is NULL");
+    	}
+    	if ( !_registeredShellMetrics.containsKey(name)) {
+    		throw new RuntimeException("Receive Metrics name:" + name + " does not reigster.");
+    	}
+    	IShellMetric iMetric = _registeredShellMetrics.get(name);
+    	
+    	//get paramList
+    	Object paramsObj = action.get("params");
+        
+    	Class<? extends IShellMetric> oriClass = iMetric.getClass();
+    	Method method = null;
+		try {
+			method = oriClass.getMethod(IShellMetric.SHELL_METRICS_UPDATE_METHOD_NAME, new Class[]{Object.class});
+		} catch (SecurityException e) {
+			LOG.error("handleMetrics get method ["+name+"] SecurityException");
+			throw new RuntimeException(e);
+		} catch (NoSuchMethodException e) {
+			LOG.error("handleMetrics get method ["+name+"] NoSuchMethodException");
+			throw new RuntimeException(e);
+		}
+    	try {
+			method.invoke(iMetric, paramsObj);
+		} catch (IllegalArgumentException e) {
+			LOG.error("handleMetrics invoke["+name+"] IllegalArgumentException");
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			LOG.error("handleMetrics invoke["+name+"] IllegalAccessException");
+			throw new RuntimeException(e);
+		} catch (InvocationTargetException e) {
+			LOG.error("handleMetrics invoke["+name+"] InvocationTargetException");
+			throw new RuntimeException(e);
+		}
     }
 
     private void die(Throwable exception) {

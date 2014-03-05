@@ -38,14 +38,14 @@
             $STORM_HOME/bin
         -->
         <fileSet>
-            <directory>${project.basedir}/../bin</directory>
+            <directory>${project.basedir}/../../bin</directory>
             <outputDirectory>bin</outputDirectory>
             <includes>
                 <include>storm*</include>
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/../storm-core/src/ui/public</directory>
+            <directory>${project.basedir}/../../storm-core/src/ui/public</directory>
             <outputDirectory>public</outputDirectory>
             <includes>
                 <include>*/**</include>
@@ -61,20 +61,20 @@
             $STORM_HOME/conf
         -->
         <file>
-            <source>${project.basedir}/../conf/storm.yaml.example</source>
+            <source>${project.basedir}/../../conf/storm.yaml.example</source>
             <outputDirectory>/conf</outputDirectory>
             <destName>storm.yaml</destName>
         </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>
-            <source>${project.basedir}/../VERSION</source>
+            <source>${project.basedir}/../../VERSION</source>
             <outputDirectory>/</outputDirectory>
             <destName>RELEASE</destName>
             <filtered>true</filtered>
         </file>
 
         <file>
-            <source>${project.basedir}/../logback/cluster.xml</source>
+            <source>${project.basedir}/../../logback/cluster.xml</source>
             <outputDirectory>/logback</outputDirectory>
         </file>
 
@@ -89,16 +89,16 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>${project.basedir}/../README.markdown</source>
+            <source>${project.basedir}/../../README.markdown</source>
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>${project.basedir}/../DISCLAIMER</source>
+            <source>${project.basedir}/../../DISCLAIMER</source>
             <outputDirectory>/</outputDirectory>
         </file>
 
         <file>
-            <source>${project.basedir}/../CHANGELOG.md</source>
+            <source>${project.basedir}/../../CHANGELOG.md</source>
             <outputDirectory>/</outputDirectory>
         </file>
     </files>

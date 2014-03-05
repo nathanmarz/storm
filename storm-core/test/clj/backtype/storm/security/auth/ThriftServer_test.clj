@@ -17,7 +17,7 @@
   (:use [backtype.storm config])
   (:use [clojure test])
   (:import [backtype.storm.security.auth ThriftServer])
-  (:import [org.apache.thrift7.transport TTransportException])
+  (:import [org.apache.thrift.transport TTransportException])
 )
 
 (deftest test-stop-checks-for-null

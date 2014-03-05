@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
-import org.apache.thrift7.TException;
+import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 

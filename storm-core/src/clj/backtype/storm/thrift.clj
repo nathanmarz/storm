@@ -23,8 +23,8 @@
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
-  (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
-  (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TProtocol])
+  (:import [org.apache.thrift.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config log])
   )
 

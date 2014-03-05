@@ -21,7 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.security.auth.ThriftClient;
 import backtype.storm.generated.Nimbus;
 import java.util.Map;
-import org.apache.thrift7.transport.TTransportException;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

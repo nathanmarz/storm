@@ -16,8 +16,8 @@
 (ns backtype.storm.security.auth.auth-test
   (:use [clojure test])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TTransportException])
+  (:import [org.apache.thrift TException])
+  (:import [org.apache.thrift.transport TTransportException])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient])

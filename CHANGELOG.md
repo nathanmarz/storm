@@ -1,3 +1,17 @@
+## 0.9.1-incubating
+* Fix to prevent Nimbus from hanging if random data is sent to nimbus thrift port
+* Improved support for running on Windows platforms
+* Removed dependency on the `unzip` binary
+* Switch build system from Leiningen to Maven
+* STORM-1: Replaced 0MQ as the default transport with Netty.
+* STORM-181: Nimbus now validates topology configuration when topologies are submitted (thanks d2r)
+* STORM-182: Storm UI now includes tooltips to document fields (thanks d2r)
+* STORM-195: `dependency-reduced-pom.xml` should be in `.gitignore`
+* STORM-13: Change license on README.md
+* STORM-2: Move all dependencies off of storm-specific builds
+* STORM-159: Upload separate source and javadoc jars for maven use
+* STORM-149: `storm jar` doesn't work on Windows
+
 ## 0.9.0.1
 * Update build configuration to force compatibility with Java 1.6
 

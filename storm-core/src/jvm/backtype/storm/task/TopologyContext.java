@@ -252,23 +252,31 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
 
         return metric;
     }
-    
-    /*
-     * Convinience method for ShellBolt to registering ShellMetric.
-     */
-    public <T extends IShellMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs, ShellBolt bolt) {
-    	bolt.registerMetric(name, metric);
-        return registerMetric(name, metric, timeBucketSizeInSecs);
-    }
-    
-    /*
-     * Convinience method for ShellSpout to registering ShellMetric.
-     */
-    public <T extends IShellMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs, ShellSpout spout) {
-    	spout.registerMetric(name, metric);
-        return registerMetric(name, metric, timeBucketSizeInSecs);
-    }
 
+    /**
+     * Get component's metric from registered metrics by name.
+     * Notice: Normally, one component can only register one metric name once.
+     *         But now registerMetric has a bug(https://issues.apache.org/jira/browse/STORM-254) 
+     *         cause the same metric name can register twice.
+     *         So we just return the first metric we meet.
+     */
+    public IMetric getRegisteredMetricByName(String name) {
+        IMetric metric = null;
+
+        for (Map<Integer, Map<String, IMetric>> taskIdToNameToMetric: _registeredMetrics.values()) {
+            Map<String, IMetric> nameToMetric = taskIdToNameToMetric.get(_taskId);
+            if (nameToMetric != null) {
+                metric = nameToMetric.get(name);
+                if (metric != null) {
+                    //we just return the first metric we meet
+                    break;  
+                }
+            }
+        } 
+        
+        return metric;
+    }   
+ 
     /*
      * Convinience method for registering ReducedMetric.
      */

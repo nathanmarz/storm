@@ -26,13 +26,13 @@ public class CountShellMetric extends CountMetric implements IShellMetric {
      *  if value is null, it will call incr()
      *  if value is long, it will call incrBy((long)params)
      * */
-	public void updateMetricFromRPC(Object value) {
-		if (value == null) {
-			incr();
-		} else if (value instanceof Long) {
-			incrBy((Long)value);
-		} else {
-			throw new RuntimeException("CountShellMetric updateMetricFromRPC params should be null or Long");
-		}
-	}
+    public void updateMetricFromRPC(Object value) {
+        if (value == null) {
+            incr();
+        } else if (value instanceof Long) {
+            incrBy((Long)value);
+        } else {
+            throw new RuntimeException("CountShellMetric updateMetricFromRPC params should be null or Long");
+        }
+    }
 }

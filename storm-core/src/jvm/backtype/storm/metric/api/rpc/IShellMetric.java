@@ -20,14 +20,12 @@ package backtype.storm.metric.api.rpc;
 import backtype.storm.metric.api.IMetric;
 
 public interface IShellMetric extends IMetric {
-	public static final String SHELL_METRICS_UPDATE_METHOD_NAME = "updateMetricFromRPC";
-	
     /***
      * @function
-     * 	This interface is used by ShellBolt and ShellSpout through RPC call to update Metric 
+     *     This interface is used by ShellBolt and ShellSpout through RPC call to update Metric 
      * @param
-     * 	value used to update metric, its's meaning change according implementation
-     *  Object can be any json support types: String, Long, Double, Boolean, Null, List, Map
+     *     value used to update metric, its's meaning change according implementation
+     *     Object can be any json support types: String, Long, Double, Boolean, Null, List, Map
      * */
     public void updateMetricFromRPC(Object value);
 }

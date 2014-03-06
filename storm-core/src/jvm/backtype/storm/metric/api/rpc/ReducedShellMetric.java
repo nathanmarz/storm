@@ -22,11 +22,11 @@ import backtype.storm.metric.api.ReducedMetric;
 
 public class ReducedShellMetric extends ReducedMetric implements IShellMetric {
 
-	public ReducedShellMetric(IReducer reducer) {
-		super(reducer);
-	}
+    public ReducedShellMetric(IReducer reducer) {
+        super(reducer);
+    }
 
-	public void updateMetricFromRPC(Object value) {
-		update(value);
-	}
+    public void updateMetricFromRPC(Object value) {
+        update(value);
+    }
 }

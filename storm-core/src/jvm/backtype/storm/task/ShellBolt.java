@@ -19,6 +19,7 @@ package backtype.storm.task;
 
 import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.rpc.IShellMetric;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
@@ -81,9 +82,9 @@ public class ShellBolt implements IBolt {
     
     private Thread _readerThread;
     private Thread _writerThread;
-
-    private Map<String, IShellMetric> _registeredShellMetrics = new ConcurrentHashMap<String, IShellMetric>();
     
+    private TopologyContext _context;
+
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
@@ -101,6 +102,7 @@ public class ShellBolt implements IBolt {
         _rand = new Random();
         _process = new ShellProcess(_command);
         _collector = collector;
+        _context = context;
 
         try {
             //subprocesses must send their pid first thing
@@ -133,7 +135,7 @@ public class ShellBolt implements IBolt {
                         } else if (command.equals("emit")) {
                             handleEmit(action);
                         } else if (command.equals("metrics")) {
-                        	handleMetrics(action);
+                            handleMetrics(action);
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
@@ -192,15 +194,6 @@ public class ShellBolt implements IBolt {
         _process.destroy();
         _inputs.clear();
     }
-
-    public <T extends IShellMetric> T registerMetric(String name, T metric) {
-    	if ( _registeredShellMetrics.containsKey(name) ) {
-    		throw new RuntimeException("The same metric name `" + name + "` was registered in ShellBolt twice." );
-    	} else {
-    		_registeredShellMetrics.put(name, metric);
-    	}
-    	return metric;
-    }
     
     private void handleAck(Map action) {
         String id = (String) action.get("id");
@@ -256,46 +249,35 @@ public class ShellBolt implements IBolt {
     }
     
     private void handleMetrics(Map action) {
-    	//get metrics
-    	Object nameObj = action.get("name");
-    	if ( !(nameObj instanceof String) ) {
-    		throw new RuntimeException("Receive Metrics name is not String");
-    	}
-    	String name = (String) nameObj;
-    	if (name == null || name.isEmpty()) {
-    		throw new RuntimeException("Receive Metrics name is NULL");
-    	}
-    	if ( !_registeredShellMetrics.containsKey(name)) {
-    		throw new RuntimeException("Receive Metrics name:" + name + " does not reigster.");
-    	}
-    	IShellMetric iMetric = _registeredShellMetrics.get(name);
-    	
-    	//get paramList
-    	Object paramsObj = action.get("params");
+        //get metric name
+        Object nameObj = action.get("name");
+        if (nameObj == null || !(nameObj instanceof String) ) {
+            throw new RuntimeException("Receive Metrics name is null or is not String");
+        }
+        String name = (String) nameObj;
+        if (name.isEmpty()) {
+            throw new RuntimeException("Receive Metrics name is empty");
+        }
         
-    	Class<? extends IShellMetric> oriClass = iMetric.getClass();
-    	Method method = null;
-		try {
-			method = oriClass.getMethod(IShellMetric.SHELL_METRICS_UPDATE_METHOD_NAME, new Class[]{Object.class});
-		} catch (SecurityException e) {
-			LOG.error("handleMetrics get method ["+name+"] SecurityException");
-			throw new RuntimeException(e);
-		} catch (NoSuchMethodException e) {
-			LOG.error("handleMetrics get method ["+name+"] NoSuchMethodException");
-			throw new RuntimeException(e);
-		}
-    	try {
-			method.invoke(iMetric, paramsObj);
-		} catch (IllegalArgumentException e) {
-			LOG.error("handleMetrics invoke["+name+"] IllegalArgumentException");
-			throw new RuntimeException(e);
-		} catch (IllegalAccessException e) {
-			LOG.error("handleMetrics invoke["+name+"] IllegalAccessException");
-			throw new RuntimeException(e);
-		} catch (InvocationTargetException e) {
-			LOG.error("handleMetrics invoke["+name+"] InvocationTargetException");
-			throw new RuntimeException(e);
-		}
+        //get metric by name
+        IMetric iMetric = _context.getRegisteredMetricByName(name);
+        if (iMetric == null) {
+            throw new RuntimeException("Not find metric by name["+name+"] ");
+        }
+        if ( !(iMetric instanceof IShellMetric)) {
+            throw new RuntimeException("Metric["+name+"] is not IShellMetric, can not call by RPC");
+        }
+        IShellMetric iShellMetric = (IShellMetric)iMetric;
+        
+        //call updateMetricFromRPC with params
+        Object paramsObj = action.get("params");
+        try {
+            iShellMetric.updateMetricFromRPC(paramsObj);
+        } catch (RuntimeException re) {
+            throw re;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }       
     }
 
     private void die(Throwable exception) {

@@ -21,13 +21,11 @@ import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.metric.api.ICombiner;
 
 public class CombinedShellMetric extends CombinedMetric implements IShellMetric {
+    public CombinedShellMetric(ICombiner combiner) {
+        super(combiner);
+    }
 
-	public CombinedShellMetric(ICombiner combiner) {
-		super(combiner);
-	}
-
-	public void updateMetricFromRPC(Object value) {
-		update(value);
-	}
-
+    public void updateMetricFromRPC(Object value) {
+        update(value);
+    }
 }

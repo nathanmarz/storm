@@ -26,8 +26,6 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import backtype.storm.utils.ShellProcess;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;

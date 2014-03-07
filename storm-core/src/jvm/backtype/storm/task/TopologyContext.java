@@ -26,8 +26,6 @@ import backtype.storm.metric.api.IReducer;
 import backtype.storm.metric.api.ICombiner;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.metric.api.CombinedMetric;
-import backtype.storm.metric.api.rpc.IShellMetric;
-import backtype.storm.spout.ShellSpout;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;

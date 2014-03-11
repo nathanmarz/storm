@@ -70,7 +70,7 @@ public class SequenceFileTopology {
         DefaultSequenceFormat format = new DefaultSequenceFormat("timestamp", "sentence");
 
         SequenceFileBolt bolt = new SequenceFileBolt()
-                .withFsUrl("hdfs://localhost:54310")
+                .withFsUrl(args[0])
                 .withFileNameFormat(fileNameFormat)
                 .withSequenceFormat(format)
                 .withRotationPolicy(rotationPolicy)
@@ -90,7 +90,7 @@ public class SequenceFileTopology {
                 .shuffleGrouping(SENTENCE_SPOUT_ID);
 
 
-        if (args.length == 0) {
+        if (args.length == 1) {
             LocalCluster cluster = new LocalCluster();
 
             cluster.submitTopology(TOPOLOGY_NAME, config, builder.createTopology());
@@ -98,8 +98,8 @@ public class SequenceFileTopology {
             cluster.killTopology(TOPOLOGY_NAME);
             cluster.shutdown();
             System.exit(0);
-        } else {
-            StormSubmitter.submitTopology(args[0], config, builder.createTopology());
+        } else if(args.length == 2) {
+            StormSubmitter.submitTopology(args[1], config, builder.createTopology());
         }
     }
 

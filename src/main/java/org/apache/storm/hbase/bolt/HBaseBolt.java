@@ -104,9 +104,11 @@ public class HBaseBolt  extends BaseRichBolt {
             } catch(RetriesExhaustedWithDetailsException e){
                 LOG.warn("Failing tuple. Error writing column.", e);
                 this.collector.fail(tuple);
+                return;
             } catch (InterruptedIOException e) {
                 LOG.warn("Failing tuple. Error writing column.", e);
                 this.collector.fail(tuple);
+                return;
             }
         }
         if(cols.hasCounters()){
@@ -125,8 +127,10 @@ public class HBaseBolt  extends BaseRichBolt {
             } catch (IOException e) {
                 LOG.warn("Failing tuple. Error incrementing counter.", e);
                 this.collector.fail(tuple);
+                return;
             }
         }
+        this.collector.ack(tuple);
 
     }
 

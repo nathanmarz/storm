@@ -20,7 +20,7 @@ import storm.trident.tuple.TridentTuple;
 
 public class TridentSequenceTopology {
 
-    public static StormTopology buildTopology(){
+    public static StormTopology buildTopology(String hdfsUrl){
         FixedBatchSpout spout = new FixedBatchSpout(new Fields("sentence", "key"), 1000, new Values("the cow jumped over the moon", 1l),
                 new Values("the man went to the store and bought some candy", 2l), new Values("four score and seven years ago", 3l),
                 new Values("how many apples can you eat", 4l), new Values("to be or not to be the person", 5l));
@@ -42,7 +42,7 @@ public class TridentSequenceTopology {
                 .withFileNameFormat(fileNameFormat)
                 .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
                 .withRotationPolicy(rotationPolicy)
-                .withFsUrl("hdfs://localhost:54310")
+                .withFsUrl(hdfsUrl)
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 
         StateFactory factory = new HdfsStateFactory().withOptions(seqOpts);
@@ -56,14 +56,16 @@ public class TridentSequenceTopology {
     public static void main(String[] args) throws Exception {
         Config conf = new Config();
         conf.setMaxSpoutPending(5);
-        if (args.length == 0) {
+        if (args.length == 1) {
             LocalCluster cluster = new LocalCluster();
-            cluster.submitTopology("wordCounter", conf, buildTopology());
+            cluster.submitTopology("wordCounter", conf, buildTopology(args[0]));
             Thread.sleep(120 * 1000);
         }
-        else {
+        else if(args.length == 2) {
             conf.setNumWorkers(3);
-            StormSubmitter.submitTopology(args[0], conf, buildTopology());
+            StormSubmitter.submitTopology(args[1], conf, buildTopology(args[0]));
+        } else{
+            System.out.println("Usage: TridentFileTopology <hdfs url> [topology name]");
         }
     }
 }

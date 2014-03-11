@@ -65,7 +65,7 @@ public class HdfsFileTopology {
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
                 .withPath("/foo/")
-                .withExtension(".seq");
+                .withExtension(".txt");
 
 
         // use "|" instead of "," for field delimiter

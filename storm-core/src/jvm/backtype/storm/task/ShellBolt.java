@@ -241,5 +241,8 @@ public class ShellBolt implements IBolt {
 
     private void die(Throwable exception) {
         _exception = exception;
+        LOG.info("Halting process: ShellBolt died.", exception);
+        _collector.reportError(exception);
+        Runtime.getRuntime().halt(11);
     }
 }

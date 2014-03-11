@@ -68,6 +68,12 @@ public class HBaseBolt  extends BaseRichBolt {
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
         this.collector = collector;
         Configuration hbConfig = HBaseConfiguration.create();
+        String hbRoot = (String)map.get("hbase.rootdir");
+        if(hbRoot != null){
+            LOG.info("Using hbase.rootdir={}", hbRoot);
+            hbConfig.set("hbase.rootdir", hbRoot);
+        }
+
         try{
             this.table = new HTable(hbConfig, this.tableName);
         } catch(IOException e){

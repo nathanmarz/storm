@@ -34,6 +34,9 @@ public class PersistentWordCount {
 
     public static void main(String[] args) throws Exception {
         Config config = new Config();
+        if(args.length > 0){
+            config.put("hbase.rootdir", args[0]);
+        }
 
         WordSpout spout = new WordSpout();
         WordCounter bolt = new WordCounter();
@@ -55,16 +58,11 @@ public class PersistentWordCount {
         builder.setBolt(HBASE_BOLT, hbase, 1).fieldsGrouping(COUNT_BOLT, new Fields("word"));
 
 
-        if (args.length == 0) {
-            LocalCluster cluster = new LocalCluster();
-            cluster.submitTopology("test", config, builder.createTopology());
-            Thread.sleep(10000);
-            cluster.killTopology("test");
-            cluster.shutdown();
-            System.exit(0);
-        } else {
-            config.setNumWorkers(3);
-            StormSubmitter.submitTopology(args[0], config, builder.createTopology());
-        }
+        LocalCluster cluster = new LocalCluster();
+        cluster.submitTopology("test", config, builder.createTopology());
+        Thread.sleep(10000);
+        cluster.killTopology("test");
+        cluster.shutdown();
+        System.exit(0);
     }
 }

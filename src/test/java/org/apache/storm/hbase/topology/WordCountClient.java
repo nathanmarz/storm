@@ -33,8 +33,12 @@ public class WordCountClient {
 
     public static void main(String[] args) throws Exception {
         Configuration config = HBaseConfiguration.create();
+        if(args.length > 0){
+            config.set("hbase.rootdir", args[0]);
+        }
 
         HTable table = new HTable(config, "WordCount");
+
 
         for (String word : WordSpout.words) {
             Get get = new Get(Bytes.toBytes(word));

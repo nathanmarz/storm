@@ -52,11 +52,23 @@
             </includes>
             <excludes/>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../examples</directory>
+            <outputDirectory>examples</outputDirectory>
+            <excludes>
+                <exclude>**/target/**</exclude>
+            </excludes>
+        </fileSet>
 
 
     </fileSets>
 
     <files>
+        <file>
+            <source>${project.basedir}/../../examples/storm-starter/target/storm-starter-${project.version}-jar-with-dependencies.jar</source>
+            <outputDirectory>/examples/storm-starter/</outputDirectory>
+            <destName>storm-starter-topologies-${project.version}.jar</destName>
+        </file>
         <!--
             $STORM_HOME/conf
         -->

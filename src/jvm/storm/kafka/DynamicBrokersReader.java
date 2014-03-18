@@ -26,17 +26,13 @@ public class DynamicBrokersReader {
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
         _zkPath = zkPath;
         _topic = topic;
-        try {
-            _curator = CuratorFrameworkFactory.newClient(
-                    zkStr,
-                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
-                    15000,
-                    new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
-            _curator.start();
-        } catch (IOException ex) {
-            LOG.error("can't connect to zookeeper");
-        }
+        _curator = CuratorFrameworkFactory.newClient(
+                zkStr,
+                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)),
+                15000,
+                new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+        _curator.start();
     }
 
     /**

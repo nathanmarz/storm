@@ -1,3 +1,8 @@
+## 0.9.2-incubating (unreleased)
+ * STORM-187: Fix Netty error "java.lang.IllegalArgumentException: timeout value is negative"
+ * STORM-186: fix float secs to millis long convertion
+ * STORM-70: Upgrade to ZK-3.4.5 and curator-1.3.3
+ * STORM-146: Unit test regression when storm is compiled with 3.4.5 zookeeper
 ## 0.9.1-incubating
 * Fix to prevent Nimbus from hanging if random data is sent to nimbus thrift port
 * Improved support for running on Windows platforms

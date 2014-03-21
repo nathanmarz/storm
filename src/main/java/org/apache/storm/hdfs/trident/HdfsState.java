@@ -6,6 +6,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.storm.hdfs.common.rotation.RotationAction;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +46,7 @@ public class HdfsState implements State {
 
         abstract Path createOutputFile() throws IOException;
 
-        abstract void execute(TridentTuple tuple) throws IOException;
+        abstract void execute(List<TridentTuple> tuples) throws IOException;
 
         abstract void doPrepare(Map conf, int partitionIndex, int numPartitions) throws IOException;
 
@@ -135,15 +137,26 @@ public class HdfsState implements State {
         }
 
         @Override
-        public void execute(TridentTuple tuple) throws IOException {
-            byte[] bytes = this.format.format(tuple);
-            out.write(bytes);
-            this.offset += bytes.length;
+        public void execute(List<TridentTuple> tuples) throws IOException {
+            boolean rotated = false;
+            for(TridentTuple tuple : tuples){
+                byte[] bytes = this.format.format(tuple);
+                out.write(bytes);
+                this.offset += bytes.length;
 
-            if(this.rotationPolicy.mark(tuple, this.offset)){
-                rotateOutputFile();
-                this.offset = 0;
-                this.rotationPolicy.reset();
+                if(this.rotationPolicy.mark(tuple, this.offset)){
+                    rotateOutputFile();
+                    this.offset = 0;
+                    this.rotationPolicy.reset();
+                    rotated = true;
+                }
+            }
+            if(!rotated){
+                if(this.out instanceof HdfsDataOutputStream){
+                    ((HdfsDataOutputStream)this.out).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
+                } else {
+                    this.out.hsync();
+                }
             }
         }
     }
@@ -219,8 +232,8 @@ public class HdfsState implements State {
         }
 
         @Override
-        public void execute(TridentTuple tuple) {
-            try {
+        public void execute(List<TridentTuple> tuples) throws IOException {
+            for(TridentTuple tuple : tuples) {
                 this.writer.append(this.format.key(tuple), this.format.value(tuple));
                 long offset = this.writer.getLength();
 
@@ -228,11 +241,7 @@ public class HdfsState implements State {
                     rotateOutputFile();
                     this.rotationPolicy.reset();
                 }
-            } catch (IOException e) {
-                LOG.warn("write/sync failed. Triggering batch replay...", e);
-                throw new FailedException(e);
             }
-
         }
 
     }
@@ -258,9 +267,7 @@ public class HdfsState implements State {
 
     public void updateState(List<TridentTuple> tuples, TridentCollector tridentCollector){
         try{
-            for(TridentTuple tuple : tuples){
-                this.options.execute(tuple);
-            }
+            this.options.execute(tuples);
         } catch (IOException e){
             LOG.warn("Failing batch due to IOException.", e);
             throw new FailedException(e);

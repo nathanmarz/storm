@@ -47,16 +47,6 @@ If you want to learn more about how Storm works, please head over to the
 [Storm project page](http://storm.incubator.apache.org).
 
 
-<a name="leiningen"></a>
-
-# Using storm-starter with Leiningen
-
-## Install Leiningen
-
-The storm-starter build uses [Leiningen](http://leiningen.org/) 2.0.  Install Leiningen by following the
-[leiningen installation instructions](https://github.com/technomancy/leiningen).
-
-
 <a name="maven"></a>
 
 # Using storm-starter with Maven

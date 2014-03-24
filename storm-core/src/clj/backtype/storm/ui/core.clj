@@ -1024,7 +1024,7 @@
            (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)]
-         (-> (component-page id component (:window m) include-sys?)
+         (-> (component-page id (java.net.URLDecoder/decode component) (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
   (POST "/topology/:id/activate" [id]

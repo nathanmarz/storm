@@ -500,14 +500,6 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_DEBUG = "topology.debug";
     public static final Object TOPOLOGY_DEBUG_SCHEMA = Boolean.class;
 
-
-    /**
-     * Whether or not the master should optimize topologies by running multiple
-     * tasks in a single thread where appropriate.
-     */
-    public static final String TOPOLOGY_OPTIMIZE = "topology.optimize";
-    public static final Object TOPOLOGY_OPTIMIZE_SCHEMA = Boolean.class;
-
     /**
      * How many processes should be spawned around the cluster to execute this
      * topology. Each process will execute some number of tasks as threads within
@@ -833,11 +825,6 @@ public class Config extends HashMap<String, Object> {
     public void setDebug(boolean isOn) {
         setDebug(this, isOn);
     }
-    
-    @Deprecated
-    public void setOptimize(boolean isOn) {
-        put(Config.TOPOLOGY_OPTIMIZE, isOn);
-    } 
     
     public static void setNumWorkers(Map conf, int workers) {
         conf.put(Config.TOPOLOGY_WORKERS, workers);

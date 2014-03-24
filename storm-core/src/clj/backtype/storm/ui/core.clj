@@ -485,7 +485,7 @@
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
                  (url-format "/topology/%s?window=%s" id k)
-                 disp)
+                 (escape-html disp))
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
         (float-str (get-in stats [:complete-latencies k]))
@@ -717,7 +717,7 @@
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
                  (url-format "/topology/%s/component/%s?window=%s" topology-id id k)
-                 disp)
+                 (escape-html disp))
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
         (float-str (get-in stats [:complete-latencies k]))
@@ -935,7 +935,7 @@
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
                  (url-format "/topology/%s/component/%s?window=%s" topology-id id k)
-                 disp)
+                 (escape-html disp))
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
         (float-str (get-in stats [:execute-latencies k]))

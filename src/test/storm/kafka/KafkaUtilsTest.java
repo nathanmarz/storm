@@ -178,4 +178,43 @@ public class KafkaUtilsTest {
         Producer<String, String> producer = new Producer<String, String>(producerConfig);
         producer.send(new KeyedMessage<String, String>(config.topic, key, value));
     }
+
+
+    @Test
+    public void assignOnePartitionPerTask() {
+        runPartitionToTaskMappingTest(16, 1);
+    }
+
+    @Test
+    public void assignTwoPartitionsPerTask() {
+        runPartitionToTaskMappingTest(16, 2);
+    }
+
+    @Test
+    public void assignAllPartitionsToOneTask() {
+        runPartitionToTaskMappingTest(32, 32);
+    }
+
+
+    public void runPartitionToTaskMappingTest(int numPartitions, int partitionsPerTask) {
+        GlobalPartitionInformation globalPartitionInformation = TestUtils.buildPartitionInfo(numPartitions);
+        int numTasks = numPartitions / partitionsPerTask;
+        for (int i = 0 ; i < numTasks ; i++) {
+            assertEquals(partitionsPerTask, KafkaUtils.calculatePartitionsForTask(globalPartitionInformation, numTasks, i).size());
+        }
+    }
+
+    @Test
+    public void moreTasksThanPartitions() {
+        GlobalPartitionInformation globalPartitionInformation = TestUtils.buildPartitionInfo(1);
+        int numTasks = 2;
+        assertEquals(1, KafkaUtils.calculatePartitionsForTask(globalPartitionInformation, numTasks, 0).size());
+        assertEquals(0, KafkaUtils.calculatePartitionsForTask(globalPartitionInformation, numTasks, 1).size());
+    }
+
+    @Test (expected = IllegalArgumentException.class )
+    public void assignInvalidTask() {
+        GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation();
+        KafkaUtils.calculatePartitionsForTask(globalPartitionInformation, 1, 1);
+    }
 }

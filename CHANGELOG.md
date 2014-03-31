@@ -1,3 +1,5 @@
+## 0.5.0
+* fixed partition assignment for KafkaSpout
 ## 0.4.0
 * added support for reading kafka message keys
 * configurable metrics emit interval

@@ -174,9 +174,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>storm</groupId>
-            <artifactId>storm</artifactId>
-            <version>0.9.0</version>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-core</artifactId>
+            <version>0.9.1-incubating</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

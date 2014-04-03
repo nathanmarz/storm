@@ -40,8 +40,8 @@ import java.util.concurrent.atomic.AtomicReference;
 class Client implements IConnection {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private final int max_retries;
-    private final int base_sleep_ms;
-    private final int max_sleep_ms;
+    private final long base_sleep_ms;
+    private final long max_sleep_ms;
     private LinkedBlockingQueue<Object> message_queue; //entry should either be TaskMessage or ControlMessage
     private AtomicReference<Channel> channelRef;
     private final ClientBootstrap bootstrap;
@@ -107,10 +107,13 @@ class Client implements IConnection {
     /**
      * # of milliseconds to wait per exponential back-off policy
      */
-    private int getSleepTimeMs()
+    private long getSleepTimeMs()
     {
+        if (retries.get() > 30) {
+           return max_sleep_ms;
+        }
         int backoff = 1 << retries.get();
-        int sleepMs = base_sleep_ms * Math.max(1, random.nextInt(backoff));
+        long sleepMs = base_sleep_ms * Math.max(1, random.nextInt(backoff));
         if ( sleepMs > max_sleep_ms )
             sleepMs = max_sleep_ms;
         return sleepMs;

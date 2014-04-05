@@ -6,6 +6,8 @@ import storm.kafka.trident.GlobalPartitionInformation;
 
 import java.util.*;
 
+import static storm.kafka.KafkaUtils.taskId;
+
 public class ZkCoordinator implements PartitionCoordinator {
     public static final Logger LOG = LoggerFactory.getLogger(ZkCoordinator.class);
 
@@ -55,7 +57,7 @@ public class ZkCoordinator implements PartitionCoordinator {
 
     void refresh() {
         try {
-            LOG.info(taskIdentifier() + "Refreshing partition manager connections");
+            LOG.info(taskId(_taskIndex, _totalTasks) + "Refreshing partition manager connections");
             GlobalPartitionInformation brokerInfo = _reader.getBrokerInfo();
             List<Partition> mine = KafkaUtils.calculatePartitionsForTask(brokerInfo, _totalTasks, _taskIndex);
 
@@ -66,13 +68,13 @@ public class ZkCoordinator implements PartitionCoordinator {
             Set<Partition> deletedPartitions = new HashSet<Partition>(curr);
             deletedPartitions.removeAll(mine);
 
-            LOG.info(taskIdentifier() + "Deleted partition managers: " + deletedPartitions.toString());
+            LOG.info(taskId(_taskIndex, _totalTasks) + "Deleted partition managers: " + deletedPartitions.toString());
 
             for (Partition id : deletedPartitions) {
                 PartitionManager man = _managers.remove(id);
                 man.close();
             }
-            LOG.info(taskIdentifier() + "New partition managers: " + newPartitions.toString());
+            LOG.info(taskId(_taskIndex, _totalTasks) + "New partition managers: " + newPartitions.toString());
 
             for (Partition id : newPartitions) {
                 PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _stormConf, _spoutConfig, id);
@@ -83,11 +85,7 @@ public class ZkCoordinator implements PartitionCoordinator {
             throw new RuntimeException(e);
         }
         _cachedList = new ArrayList<PartitionManager>(_managers.values());
-        LOG.info(taskIdentifier() + "Finished refreshing");
-    }
-
-    private String taskIdentifier() {
-        return "[" + _taskIndex + "/" + _totalTasks + "] - ";
+        LOG.info(taskId(_taskIndex, _totalTasks) + "Finished refreshing");
     }
 
     @Override

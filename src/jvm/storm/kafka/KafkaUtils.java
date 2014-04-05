@@ -204,11 +204,15 @@ public class KafkaUtils {
     }
 
     private static void logPartitionMapping(int totalTasks, int taskIndex, List<Partition> taskPartitions) {
-        String taskPrefix = "[" + taskIndex + "/" + totalTasks + "] --> ";
+        String taskPrefix = taskId(taskIndex, totalTasks);
         if (taskPartitions.isEmpty()) {
             LOG.warn(taskPrefix + "no partitions assigned");
         } else {
             LOG.info(taskPrefix + "assigned " + taskPartitions);
         }
+    }
+
+    public static String taskId(int taskIndex, int totalTasks) {
+        return "Task [" + (taskIndex + 1) + "/" + totalTasks + "] ";
     }
 }

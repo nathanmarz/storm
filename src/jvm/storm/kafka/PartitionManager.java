@@ -174,25 +174,20 @@ public class PartitionManager {
     }
 
     public void commit() {
-        long committedTo;
-        if (_pending.isEmpty()) {
-            committedTo = _emittedToOffset;
-        } else {
-            committedTo = _pending.first();
-        }
-        if (committedTo != _committedTo) {
-            LOG.info("Writing committed offset (" + committedTo + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
+        long lastCompletedOffset = lastCompletedOffset();
+        if (lastCompletedOffset != lastCommittedOffset()) {
+            LOG.info("Writing last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
             Map<Object, Object> data = ImmutableMap.builder()
                     .put("topology", ImmutableMap.of("id", _topologyInstanceId,
                             "name", _stormConf.get(Config.TOPOLOGY_NAME)))
-                    .put("offset", committedTo)
+                    .put("offset", lastCompletedOffset)
                     .put("partition", _partition.partition)
                     .put("broker", ImmutableMap.of("host", _partition.host.host,
                             "port", _partition.host.port))
                     .put("topic", _spoutConfig.topic).build();
             _state.writeJSON(committedPath(), data);
-            _committedTo = committedTo;
-            LOG.info("Wrote committed offset (" + committedTo + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
+            _committedTo = lastCompletedOffset;
+            LOG.info("Wrote last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
         } else {
             LOG.info("No new offset for " + _partition + " for topology: " + _topologyInstanceId);
         }

@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
 
 package storm.starter.spout;
 
@@ -35,18 +34,29 @@ import java.util.concurrent.LinkedBlockingQueue;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
+import twitter4j.FilterQuery;
+import twitter4j.StallWarning;
+import twitter4j.auth.AccessToken;
 
 public class TwitterSampleSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
     LinkedBlockingQueue<Status> queue = null;
     TwitterStream _twitterStream;
-    String _username;
-    String _pwd;
+    String consumerKey;
+    String consumerSecret;
+    String accessToken;
+    String accessTokenSecret;
+    String[] keyWords;
     
     
-    public TwitterSampleSpout(String username, String pwd) {
-        _username = username;
-        _pwd = pwd;
+    public TwitterSampleSpout(String consumerKey, String consumerSecret,
+                    String accessToken, String accessTokenSecret, String[] keyWords) {
+        
+        this.consumerKey = consumerKey;
+        this.consumerSecret = consumerSecret;
+        this.accessToken = accessToken;
+        this.accessTokenSecret = accessTokenSecret;
+        this.keyWords = keyWords;
     }
     
     @Override
@@ -77,10 +87,23 @@ public class TwitterSampleSpout extends BaseRichSpout {
             }
             
         };
-        TwitterStreamFactory fact = new TwitterStreamFactory(new ConfigurationBuilder().setUser(_username).setPassword(_pwd).build());
-        _twitterStream = fact.getInstance();
-        _twitterStream.addListener(listener);
-        _twitterStream.sample();
+        
+        TwitterStream twitterStream = new TwitterStreamFactory(
+				new ConfigurationBuilder().setJSONStoreEnabled(true).build())
+				.getInstance();
+         
+         twitterStream.addListener(listener);
+         twitterStream.setOAuthConsumer(consumerKey, consumerSecret);
+         AccessToken token = new AccessToken(accessToken, accessTokenSecret);
+         twitterStream.setOAuthAccessToken(token);
+         
+         if (keyWords.length == 0) {
+             twitterStream.sample();
+         }
+         else {
+             FilterQuery query = new FilterQuery().track(keyWords);
+             twitterStream.filter(query);
+         }
     }
 
     @Override
@@ -119,4 +142,3 @@ public class TwitterSampleSpout extends BaseRichSpout {
     }
     
 }
-*/

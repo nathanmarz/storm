@@ -31,6 +31,7 @@ public class ZkCoordinatorTest {
     private Map stormConf = new HashMap();
     private SpoutConfig spoutConfig;
     private ZkState state;
+    private SimpleConsumer simpleConsumer;
 
     @Before
     public void setUp() throws Exception {
@@ -42,7 +43,7 @@ public class ZkCoordinatorTest {
         spoutConfig = new SpoutConfig(hosts, "topic", "/test", "id");
         Map conf = buildZookeeperConfig(server);
         state = new ZkState(conf);
-        SimpleConsumer simpleConsumer = new SimpleConsumer("localhost", broker.getPort(), 60000, 1024, "testClient");
+        simpleConsumer = new SimpleConsumer("localhost", broker.getPort(), 60000, 1024, "testClient");
         when(dynamicPartitionConnections.register(any(Broker.class), anyInt())).thenReturn(simpleConsumer);
     }
 
@@ -58,6 +59,7 @@ public class ZkCoordinatorTest {
 
     @After
     public void shutdown() throws Exception {
+        simpleConsumer.close();
         broker.shutdown();
         server.stop();
     }

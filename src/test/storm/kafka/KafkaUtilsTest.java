@@ -42,6 +42,7 @@ public class KafkaUtilsTest {
 
     @After
     public void shutdown() {
+        simpleConsumer.close();
         broker.shutdown();
     }
 

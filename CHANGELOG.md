@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STROM-247: Replace links to github resources in storm script
  * STORM-263: Update Kryo version to 2.21+
  * STORM-187: Fix Netty error "java.lang.IllegalArgumentException: timeout value is negative"
  * STORM-186: fix float secs to millis long convertion

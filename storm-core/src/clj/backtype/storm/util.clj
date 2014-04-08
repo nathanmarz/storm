@@ -759,7 +759,7 @@
 
 (defn zip-contains-dir? [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target file-path-separator)) entries)
+    (some? #(.startsWith % (str target "/")) entries)
     ))
 
 (defn url-encode [s]

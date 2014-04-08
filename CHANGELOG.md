@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-273: Error while running storm topologies on Windows using "storm jar"
  * STROM-247: Replace links to github resources in storm script
  * STORM-263: Update Kryo version to 2.21+
  * STORM-187: Fix Netty error "java.lang.IllegalArgumentException: timeout value is negative"

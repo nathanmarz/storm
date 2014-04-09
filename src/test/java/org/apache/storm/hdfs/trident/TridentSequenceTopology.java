@@ -40,7 +40,7 @@ public class TridentSequenceTopology {
 
         HdfsState.Options seqOpts = new HdfsState.SequenceFileOptions()
                 .withFileNameFormat(fileNameFormat)
-                .withSequenceFormat(new DefaultSequenceFormat("key", "data"))
+                .withSequenceFormat(new DefaultSequenceFormat("key", "sentence"))
                 .withRotationPolicy(rotationPolicy)
                 .withFsUrl(hdfsUrl)
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));

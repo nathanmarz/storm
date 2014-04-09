@@ -77,7 +77,7 @@ public class DelimitedRecordFormat implements RecordFormat {
         Fields fields = this.fields == null ? tuple.getFields() : this.fields;
         int size = fields.size();
         for(int i = 0; i < size; i++){
-            sb.append(tuple.getValue(i));
+            sb.append(tuple.getValueByField(fields.get(i)));
             if(i != size - 1){
                 sb.append(this.fieldDelimiter);
             }

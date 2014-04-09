@@ -131,6 +131,7 @@
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
+        <module>external/storm-kafka</module>
     </modules>
 
     <scm>

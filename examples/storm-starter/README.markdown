@@ -26,7 +26,7 @@ Next, make sure you have the storm-starter code available on your machine.  Git/
 following command to download the latest storm-starter code and change to the new directory that contains the downloaded
 code.
 
-    $ git clone git://github.com/apache/incubator-storm.git && cd storm/examples/storm-starter
+    $ git clone git://github.com/apache/incubator-storm.git && cd incubator-storm/examples/storm-starter
 
 
 ## storm-starter overview
@@ -106,7 +106,7 @@ The following instructions will import storm-starter as a new project in Intelli
 
 
 * Open _File > Import Project..._ and navigate to the storm-starter directory of your storm clone (e.g.
-  `~/git/storm/examples/storm-starter`).
+  `~/git/incubator-storm/examples/storm-starter`).
 * Select _Import project from external model_, select "Maven", and click _Next_.
 * In the following screen, enable the checkbox _Import Maven projects automatically_.  Leave all other values at their
   defaults.  Click _Next_.

@@ -43,6 +43,8 @@ public class DynamicBrokersReaderTest {
 
     @After
     public void tearDown() throws Exception {
+        dynamicBrokersReader.close();
+        zookeeper.close();
         server.close();
     }
 

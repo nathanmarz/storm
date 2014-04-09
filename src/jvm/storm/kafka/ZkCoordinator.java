@@ -1,11 +1,12 @@
 package storm.kafka;
 
-import backtype.storm.task.IMetricsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.trident.GlobalPartitionInformation;
 
 import java.util.*;
+
+import static storm.kafka.KafkaUtils.taskId;
 
 public class ZkCoordinator implements PartitionCoordinator {
     public static final Logger LOG = LoggerFactory.getLogger(ZkCoordinator.class);
@@ -22,9 +23,12 @@ public class ZkCoordinator implements PartitionCoordinator {
     DynamicBrokersReader _reader;
     ZkState _state;
     Map _stormConf;
-    IMetricsContext _metricsContext;
 
     public ZkCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId) {
+        this(connections, stormConf, spoutConfig, state, taskIndex, totalTasks, topologyInstanceId, buildReader(stormConf, spoutConfig));
+    }
+
+    public ZkCoordinator(DynamicPartitionConnections connections, Map stormConf, SpoutConfig spoutConfig, ZkState state, int taskIndex, int totalTasks, String topologyInstanceId, DynamicBrokersReader reader) {
         _spoutConfig = spoutConfig;
         _connections = connections;
         _taskIndex = taskIndex;
@@ -32,11 +36,14 @@ public class ZkCoordinator implements PartitionCoordinator {
         _topologyInstanceId = topologyInstanceId;
         _stormConf = stormConf;
         _state = state;
-
         ZkHosts brokerConf = (ZkHosts) spoutConfig.hosts;
         _refreshFreqMs = brokerConf.refreshFreqSecs * 1000;
-        _reader = new DynamicBrokersReader(stormConf, brokerConf.brokerZkStr, brokerConf.brokerZkPath, spoutConfig.topic);
+        _reader = reader;
+    }
 
+    private static DynamicBrokersReader buildReader(Map stormConf, SpoutConfig spoutConfig) {
+        ZkHosts hosts = (ZkHosts) spoutConfig.hosts;
+        return new DynamicBrokersReader(stormConf, hosts.brokerZkStr, hosts.brokerZkPath, spoutConfig.topic);
     }
 
     @Override
@@ -50,14 +57,9 @@ public class ZkCoordinator implements PartitionCoordinator {
 
     void refresh() {
         try {
-            LOG.info("Refreshing partition manager connections");
+            LOG.info(taskId(_taskIndex, _totalTasks) + "Refreshing partition manager connections");
             GlobalPartitionInformation brokerInfo = _reader.getBrokerInfo();
-            Set<Partition> mine = new HashSet();
-            for (Partition partitionId : brokerInfo) {
-                if (myOwnership(partitionId)) {
-                    mine.add(partitionId);
-                }
-            }
+            List<Partition> mine = KafkaUtils.calculatePartitionsForTask(brokerInfo, _totalTasks, _taskIndex);
 
             Set<Partition> curr = _managers.keySet();
             Set<Partition> newPartitions = new HashSet<Partition>(mine);
@@ -66,13 +68,13 @@ public class ZkCoordinator implements PartitionCoordinator {
             Set<Partition> deletedPartitions = new HashSet<Partition>(curr);
             deletedPartitions.removeAll(mine);
 
-            LOG.info("Deleted partition managers: " + deletedPartitions.toString());
+            LOG.info(taskId(_taskIndex, _totalTasks) + "Deleted partition managers: " + deletedPartitions.toString());
 
             for (Partition id : deletedPartitions) {
                 PartitionManager man = _managers.remove(id);
                 man.close();
             }
-            LOG.info("New partition managers: " + newPartitions.toString());
+            LOG.info(taskId(_taskIndex, _totalTasks) + "New partition managers: " + newPartitions.toString());
 
             for (Partition id : newPartitions) {
                 PartitionManager man = new PartitionManager(_connections, _topologyInstanceId, _state, _stormConf, _spoutConfig, id);
@@ -83,16 +85,11 @@ public class ZkCoordinator implements PartitionCoordinator {
             throw new RuntimeException(e);
         }
         _cachedList = new ArrayList<PartitionManager>(_managers.values());
-        LOG.info("Finished refreshing");
+        LOG.info(taskId(_taskIndex, _totalTasks) + "Finished refreshing");
     }
 
     @Override
     public PartitionManager getManager(Partition partition) {
         return _managers.get(partition);
-    }
-
-    private boolean myOwnership(Partition id) {
-        int val = Math.abs(id.host.hashCode() + 23 * id.partition);
-        return val % _totalTasks == _taskIndex;
     }
 }

@@ -53,6 +53,7 @@ public class KafkaBoltTest {
 
     @After
     public void shutdown() {
+        simpleConsumer.close();
         broker.shutdown();
     }
 

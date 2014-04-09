@@ -2,6 +2,7 @@ package storm.kafka;
 
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.utils.Utils;
+import com.google.common.base.Preconditions;
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
@@ -13,6 +14,7 @@ import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import storm.kafka.trident.GlobalPartitionInformation;
 import storm.kafka.trident.IBrokerReader;
 import storm.kafka.trident.StaticBrokerReader;
 import storm.kafka.trident.ZkBrokerReader;
@@ -39,7 +41,7 @@ public class KafkaUtils {
 
     public static long getOffset(SimpleConsumer consumer, String topic, int partition, KafkaConfig config) {
         long startOffsetTime = kafka.api.OffsetRequest.LatestTime();
-        if ( config.forceFromStart ) {
+        if (config.forceFromStart) {
             startOffsetTime = config.startOffsetTime;
         }
         return getOffset(consumer, topic, partition, startOffsetTime);
@@ -91,7 +93,7 @@ public class KafkaUtils {
                             LOG.warn("partitionToOffset contains partition not found in _connections. Stale partition data?");
                             return null;
                         }
-                        long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime()); 
+                        long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
                         if (earliestTimeOffset == 0 || latestTimeOffset == 0) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
@@ -184,4 +186,33 @@ public class KafkaUtils {
         return tups;
     }
 
+
+    public static List<Partition> calculatePartitionsForTask(GlobalPartitionInformation partitionInformation, int totalTasks, int taskIndex) {
+        Preconditions.checkArgument(taskIndex < totalTasks, "task index must be less that total tasks");
+        List<Partition> partitions = partitionInformation.getOrderedPartitions();
+        int numPartitions = partitions.size();
+        if (numPartitions < totalTasks) {
+            LOG.warn("there are more tasks than partitions (tasks: " + totalTasks + "; partitions: " + numPartitions + "), some tasks will be idle");
+        }
+        List<Partition> taskPartitions = new ArrayList<Partition>();
+        for (int i = taskIndex; i < numPartitions; i += totalTasks) {
+            Partition taskPartition = partitions.get(i);
+            taskPartitions.add(taskPartition);
+        }
+        logPartitionMapping(totalTasks, taskIndex, taskPartitions);
+        return taskPartitions;
+    }
+
+    private static void logPartitionMapping(int totalTasks, int taskIndex, List<Partition> taskPartitions) {
+        String taskPrefix = taskId(taskIndex, totalTasks);
+        if (taskPartitions.isEmpty()) {
+            LOG.warn(taskPrefix + "no partitions assigned");
+        } else {
+            LOG.info(taskPrefix + "assigned " + taskPartitions);
+        }
+    }
+
+    public static String taskId(int taskIndex, int totalTasks) {
+        return "Task [" + (taskIndex + 1) + "/" + totalTasks + "] ";
+    }
 }

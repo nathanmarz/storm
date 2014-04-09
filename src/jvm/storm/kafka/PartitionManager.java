@@ -6,7 +6,6 @@ import backtype.storm.metric.api.CountMetric;
 import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
@@ -64,7 +63,7 @@ public class PartitionManager {
         String path = committedPath();
         try {
             Map<Object, Object> json = _state.readJSON(path);
-            LOG.info("Read partition information from: " + path +  "  --> " + json );
+            LOG.info("Read partition information from: " + path +  " --> " + json );
             if (json != null) {
                 jsonTopologyId = (String) ((Map<Object, Object>) json.get("topology")).get("id");
                 jsonOffset = (Long) json.get("offset");
@@ -84,7 +83,7 @@ public class PartitionManager {
             LOG.info("Read last commit offset from zookeeper: " + _committedTo + "; old topology_id: " + jsonTopologyId + " - new topology_id: " + topologyInstanceId );
         }
 
-        LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
+        LOG.info("Starting " + _partition + " from offset " + _committedTo);
         _emittedToOffset = _committedTo;
 
         _fetchAPILatencyMax = new CombinedMetric(new MaxMetric());
@@ -141,7 +140,7 @@ public class PartitionManager {
         _fetchAPIMessageCount.incrBy(numMessages);
 
         if (numMessages > 0) {
-            LOG.info("Fetched " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition);
+            LOG.info("Fetched " + numMessages + " messages from: " + _partition);
         }
         for (MessageAndOffset msg : msgs) {
             _pending.add(_emittedToOffset);
@@ -149,7 +148,7 @@ public class PartitionManager {
             _emittedToOffset = msg.nextOffset();
         }
         if (numMessages > 0) {
-            LOG.info("Added " + numMessages + " messages from Kafka: " + _consumer.host() + ":" + _partition.partition + " to internal buffers");
+            LOG.info("Added " + numMessages + " messages from: " + _partition + " to internal buffers");
         }
     }
 
@@ -175,30 +174,23 @@ public class PartitionManager {
     }
 
     public void commit() {
-        LOG.info("Committing offset for " + _partition);
-        long committedTo;
-        if (_pending.isEmpty()) {
-            committedTo = _emittedToOffset;
-        } else {
-            committedTo = _pending.first();
-        }
-        if (committedTo != _committedTo) {
-            LOG.info("Writing committed offset to ZK: " + committedTo);
-
-            Map<Object, Object> data = (Map<Object, Object>) ImmutableMap.builder()
+        long lastCompletedOffset = lastCompletedOffset();
+        if (lastCompletedOffset != lastCommittedOffset()) {
+            LOG.info("Writing last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
+            Map<Object, Object> data = ImmutableMap.builder()
                     .put("topology", ImmutableMap.of("id", _topologyInstanceId,
                             "name", _stormConf.get(Config.TOPOLOGY_NAME)))
-                    .put("offset", committedTo)
+                    .put("offset", lastCompletedOffset)
                     .put("partition", _partition.partition)
                     .put("broker", ImmutableMap.of("host", _partition.host.host,
                             "port", _partition.host.port))
                     .put("topic", _spoutConfig.topic).build();
             _state.writeJSON(committedPath(), data);
-
-            LOG.info("Wrote committed offset to ZK: " + committedTo);
-            _committedTo = committedTo;
+            _committedTo = lastCompletedOffset;
+            LOG.info("Wrote last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
+        } else {
+            LOG.info("No new offset for " + _partition + " for topology: " + _topologyInstanceId);
         }
-        LOG.info("Committed offset " + committedTo + " for " + _partition + " for topology: " + _topologyInstanceId);
     }
 
     private String committedPath() {

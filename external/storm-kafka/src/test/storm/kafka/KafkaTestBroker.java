@@ -6,6 +6,7 @@ import com.netflix.curator.retry.ExponentialBackoffRetry;
 import com.netflix.curator.test.TestingServer;
 import kafka.server.KafkaServerStartable;
 
+import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -48,6 +49,10 @@ public class KafkaTestBroker {
 
     public void shutdown() {
         kafka.shutdown();
-        server.stop();
+        try {
+            server.stop();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

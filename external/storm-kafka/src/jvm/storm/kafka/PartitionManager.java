@@ -194,7 +194,7 @@ public class PartitionManager {
     }
 
     private String committedPath() {
-        return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition.getId();
+        return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" +  _spoutConfig.topic + "/" + _partition.getId();
     }
 
     public long queryPartitionOffsetLatestTime() {

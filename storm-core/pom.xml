@@ -190,6 +190,10 @@
                         <testSourceDirectory>test/clj</testSourceDirectory>
                     </testSourceDirectories>
                     <warnOnReflection>false</warnOnReflection>
+                    <copyDeclaredNamespaceOnly>true</copyDeclaredNamespaceOnly>
+                    <copiedNamespaces>
+                        <copiedNamespace>none</copiedNamespace>
+                    </copiedNamespaces>
                 </configuration>
                 <executions>
                     <execution>

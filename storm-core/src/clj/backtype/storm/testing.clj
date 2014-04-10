@@ -53,7 +53,10 @@
   (dorun
     (for [t paths]
       (if (.exists (File. t))
-        (FileUtils/forceDelete (File. t))
+        (try
+          (FileUtils/forceDelete (File. t))
+          (catch Exception e
+            (log-message (.getMessage e))))
         ))))
 
 (defmacro with-local-tmp [[& tmp-syms] & body]

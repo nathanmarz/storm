@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-196: When JVM_OPTS are set, storm jar fails to detect storm.jar from environment
  * STORM-260: Fix a potential race condition with simulated time in Storm's unit tests
  * STORM-258: Update commons-io version to 2.4
  * STORM-270: don't package .clj files in release jars.

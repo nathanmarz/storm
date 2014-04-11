@@ -17,8 +17,16 @@
  */
 package backtype.storm.messaging.netty;
 
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+
+import java.util.concurrent.Executors;
+import java.util.Map;
+import java.util.Vector;
+
+import backtype.storm.Config;
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.IContext;
+import backtype.storm.utils.Utils;
 
 import java.util.Map;
 import java.util.Vector;
@@ -27,14 +35,25 @@ public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
     private volatile Vector<IConnection> connections;
-    
+    private NioClientSocketChannelFactory clientChannelFactory;
+
     /**
      * initialization per Storm configuration 
      */
     @SuppressWarnings("rawtypes")
     public void prepare(Map storm_conf) {
-       this.storm_conf = storm_conf;
-       connections = new Vector<IConnection>(); 
+        this.storm_conf = storm_conf;
+        connections = new Vector<IConnection>();
+
+        //each context will have a single client channel factory
+        int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS));
+        if (maxWorkers > 0) {
+            clientChannelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
+                    Executors.newCachedThreadPool(), maxWorkers);
+        } else {
+            clientChannelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
+                    Executors.newCachedThreadPool());
+        }
     }
 
     /**
@@ -50,7 +69,7 @@ public class Context implements IContext {
      * establish a connection to a remote server
      */
     public IConnection connect(String storm_id, String host, int port) {        
-        IConnection client =  new Client(storm_conf, host, port);
+        IConnection client =  new Client(storm_conf, clientChannelFactory, host, port);
         connections.add(client);
         return client;
     }
@@ -63,5 +82,8 @@ public class Context implements IContext {
             conn.close();
         }
         connections = null;
+
+        //we need to release resources associated with client channel factory
+        clientChannelFactory.releaseExternalResources();
     }
 }

@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-12: reduce thread usage of netty transport
  * STORM-281: fix and issue with config parsing that could lead to leaking file descriptors
  * STORM-196: When JVM_OPTS are set, storm jar fails to detect storm.jar from environment
  * STORM-260: Fix a potential race condition with simulated time in Storm's unit tests

@@ -22,6 +22,7 @@ import random
 import subprocess as sub
 import getopt
 import re
+import shlex
 
 def identity(x):
     return x
@@ -45,7 +46,7 @@ if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 CONFIG_OPTS = []
 CONFFILE = ""
-JAR_JVM_OPTS = os.getenv('STORM_JAR_JVM_OPTS', '')
+JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 
 
 def get_config_opts():
@@ -155,7 +156,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        jvmopts=[' '.join(filter(None, [JAR_JVM_OPTS, "-Dstorm.jar=" + jarfile]))])
+        jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]

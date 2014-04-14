@@ -47,6 +47,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected FileNameFormat fileNameFormat;
     protected int rotation = 0;
     protected String fsUrl;
+    protected String configKey;
 //    protected String path;
 
     protected Configuration hdfsConfig;
@@ -77,6 +78,13 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
         this.collector = collector;
         this.fileNameFormat.prepare(conf, topologyContext);
         this.hdfsConfig = new Configuration();
+        Map<String, Object> map = (Map<String, Object>)conf.get(this.configKey);
+        if(map != null){
+            for(String key : map.keySet()){
+                this.hdfsConfig.set(key, String.valueOf(map.get(key)));
+            }
+        }
+
 
         try{
             doPrepare(conf, topologyContext, collector);

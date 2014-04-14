@@ -50,6 +50,11 @@ public class HdfsBolt extends AbstractHdfsBolt{
         return this;
     }
 
+    public HdfsBolt withConfigKey(String configKey){
+        this.configKey = configKey;
+        return this;
+    }
+
     public HdfsBolt withFileNameFormat(FileNameFormat fileNameFormat){
         this.fileNameFormat = fileNameFormat;
         return this;

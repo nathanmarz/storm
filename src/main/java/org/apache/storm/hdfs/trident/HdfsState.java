@@ -34,6 +34,7 @@ public class HdfsState implements State {
     public static abstract class Options implements Serializable {
 
         protected String fsUrl;
+        protected String configKey;
         protected FileSystem fs;
         private Path currentFile;
         protected FileRotationPolicy rotationPolicy;
@@ -75,6 +76,12 @@ public class HdfsState implements State {
             }
             this.fileNameFormat.prepare(conf, partitionIndex, numPartitions);
             this.hdfsConfig = new Configuration();
+            Map<String, Object> map = (Map<String, Object>)conf.get(this.configKey);
+            if(map != null){
+                for(String key : map.keySet()){
+                    this.hdfsConfig.set(key, String.valueOf(map.get(key)));
+                }
+            }
             try{
                 doPrepare(conf, partitionIndex, numPartitions);
                 this.currentFile = createOutputFile();
@@ -94,6 +101,11 @@ public class HdfsState implements State {
 
         public HdfsFileOptions withFsUrl(String fsUrl){
             this.fsUrl = fsUrl;
+            return this;
+        }
+
+        public HdfsFileOptions withConfigKey(String configKey){
+            this.configKey = configKey;
             return this;
         }
 
@@ -175,6 +187,11 @@ public class HdfsState implements State {
 
         public SequenceFileOptions withFsUrl(String fsUrl) {
             this.fsUrl = fsUrl;
+            return this;
+        }
+
+        public SequenceFileOptions withConfigKey(String configKey){
+            this.configKey = configKey;
             return this;
         }
 

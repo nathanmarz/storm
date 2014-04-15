@@ -244,7 +244,7 @@
                     <artifactSet>
                         <includes>
                             <include>org.apache.thrift:*</include>
-                            <include>odg.apache.storm:*</include>
+                            <include>org.apache.storm:*</include>
                         </includes>
                     </artifactSet>
 

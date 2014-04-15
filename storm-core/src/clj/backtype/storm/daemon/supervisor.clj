@@ -475,7 +475,9 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))
-          shell-cmd (->> command (map #(str \' % \')) (clojure.string/join " "))]
+          shell-cmd (->> command
+                         (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
+                         (clojure.string/join " "))]
       (log-message "Launching worker with command: " shell-cmd)
       (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       ))

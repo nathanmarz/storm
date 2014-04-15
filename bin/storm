@@ -22,6 +22,7 @@ import random
 import subprocess as sub
 import getopt
 import re
+import shlex
 
 def identity(x):
     return x
@@ -45,7 +46,7 @@ if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 CONFIG_OPTS = []
 CONFFILE = ""
-JAR_JVM_OPTS = os.getenv('STORM_JAR_JVM_OPTS', '')
+JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 
 
 def get_config_opts():
@@ -147,7 +148,7 @@ def jar(jarfile, klass, *args):
     Runs the main method of class with the specified arguments. 
     The storm jars and configs in ~/.storm are put on the classpath. 
     The process is configured so that StormSubmitter 
-    (http://nathanmarz.github.com/storm/doc/backtype/storm/StormSubmitter.html)
+    (http://storm.incubator.apache.org/apidocs/backtype/storm/StormSubmitter.html)
     will upload the jar at topology-jar-path when the topology is submitted.
     """
     exec_storm_class(
@@ -155,7 +156,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
         args=args,
-        jvmopts=[' '.join(filter(None, [JAR_JVM_OPTS, "-Dstorm.jar=" + jarfile]))])
+        jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
@@ -262,7 +263,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     supervision with a tool like daemontools or monit. 
 
     See Setting up a Storm cluster for more information.
-    (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
+    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
@@ -282,7 +283,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     under supervision with a tool like daemontools or monit. 
 
     See Setting up a Storm cluster for more information.
-    (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
+    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
@@ -303,7 +304,7 @@ def ui():
     should be run under supervision with a tool like daemontools or monit. 
 
     See Setting up a Storm cluster for more information.
-    (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
+    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
@@ -324,7 +325,7 @@ def logviewer():
     tool like daemontools or monit. 
 
     See Setting up a Storm cluster for more information.
-    (https://github.com/nathanmarz/storm/wiki/Setting-up-a-Storm-cluster)
+    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
@@ -344,7 +345,7 @@ def drpc():
     with a tool like daemontools or monit. 
 
     See Distributed RPC for more information.
-    (https://github.com/nathanmarz/storm/wiki/Distributed-RPC)
+    (http://storm.incubator.apache.org/documentation/Distributed-RPC)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
@@ -392,7 +393,7 @@ def print_commands():
     """Print all client commands and link to documentation"""
     print "Commands:\n\t",  "\n\t".join(sorted(COMMANDS.keys()))
     print "\nHelp:", "\n\thelp", "\n\thelp <command>"
-    print "\nDocumentation for the storm client can be found at https://github.com/nathanmarz/storm/wiki/Command-line-client\n"
+    print "\nDocumentation for the storm client can be found at http://storm.incubator.apache.org/documentation/Command-line-client.html\n"
     print "Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n"
 
 def print_usage(command=None):

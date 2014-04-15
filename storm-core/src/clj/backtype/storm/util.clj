@@ -220,6 +220,9 @@
 (defn current-time-millis []
   (Time/currentTimeMillis))
 
+(defn secs-to-millis-long [secs]
+  (long (* (long 1000) secs)))
+
 (defn clojurify-structure [s]
   (prewalk (fn [x]
               (cond (instance? Map x) (into {} x)
@@ -754,7 +757,7 @@
 
 (defn zip-contains-dir? [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target file-path-separator)) entries)
+    (some? #(.startsWith % (str target "/")) entries)
     ))
 
 (defn url-encode [s]

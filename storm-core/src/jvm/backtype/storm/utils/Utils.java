@@ -29,6 +29,7 @@ import com.netflix.curator.retry.ExponentialBackoffRetry;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -47,7 +48,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
-import org.apache.thrift7.TException;
+import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 
@@ -135,7 +136,13 @@ public class Utils {
             }
             URL resource = resources.iterator().next();
             Yaml yaml = new Yaml();
-            Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
+            Map ret = null;
+            InputStream input = resource.openStream();
+            try {
+                ret = (Map) yaml.load(new InputStreamReader(input));
+            } finally {
+                input.close();
+            }
             if(ret==null) ret = new HashMap();
             
 
@@ -335,22 +342,18 @@ public class Utils {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root;
-        try {
-            CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
-                    .connectString(zkStr)
-                    .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                    .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                    .retryPolicy(new BoundedExponentialBackoffRetry(
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
-            if(auth!=null && auth.scheme!=null) {
-                builder = builder.authorization(auth.scheme, auth.payload);
-            }
-            return builder.build();
-        } catch (IOException e) {
-           throw new RuntimeException(e);
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                .connectString(zkStr)
+                .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+                .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+                .retryPolicy(new BoundedExponentialBackoffRetry(
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
+        if(auth!=null && auth.scheme!=null) {
+            builder = builder.authorization(auth.scheme, auth.payload);
         }
+        return builder.build();
     }
 
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port) {

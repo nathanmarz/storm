@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.thrift7.TException;
+import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 
 /**
@@ -37,6 +37,8 @@ import org.json.simple.JSONValue;
 public class StormSubmitter {
     public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
 
+    private static final int THRIFT_CHUNK_SIZE_BYTES = 307200;
+    
     private static Nimbus.Iface localNimbus = null;
 
     public static void setLocalNimbus(Nimbus.Iface localNimbusHandler) {
@@ -151,7 +153,7 @@ public class StormSubmitter {
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
-            BufferFileInputStream is = new BufferFileInputStream(localJar);
+            BufferFileInputStream is = new BufferFileInputStream(localJar, THRIFT_CHUNK_SIZE_BYTES);
             while(true) {
                 byte[] toSubmit = is.read();
                 if(toSubmit.length==0) break;

@@ -23,9 +23,11 @@ import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
 import clojure.lang.IFn;
 import clojure.lang.RT;
+
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.ExponentialBackoffRetry;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -47,7 +49,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
@@ -170,7 +174,11 @@ public class Utils {
             for (String config : configs) {
                 String[] options = config.split("=");
                 if (options.length == 2) {
-                    ret.put(options[0], options[1]);
+                    Object confValue = options[1];
+                    if (NumberUtils.isNumber(options[1])) {
+                        confValue = NumberUtils.createNumber(String.valueOf(confValue));
+                    }
+                    ret.put(options[0], confValue);
                 }
             }
         }

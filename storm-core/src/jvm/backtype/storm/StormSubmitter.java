@@ -81,12 +81,6 @@ public class StormSubmitter {
         }
         stormConf = new HashMap(stormConf);
         stormConf.putAll(Utils.readCommandLineOpts());
-        for (Object confName : stormConf.keySet()) {
-            String confValue = String.valueOf(stormConf.get(confName));
-            if (NumberUtils.isNumber(confValue)) {
-                stormConf.put(confName, NumberUtils.createNumber(confValue));
-            }
-        }
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
         try {

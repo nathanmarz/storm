@@ -172,13 +172,13 @@ public class Utils {
             commandOptions = commandOptions.replaceAll("%%%%", " ");
             String[] configs = commandOptions.split(",");
             for (String config : configs) {
-                String[] options = config.split("=");
+                String[] options = config.split("=", 2);
                 if (options.length == 2) {
-                    Object confValue = options[1];
-                    if (NumberUtils.isNumber(options[1])) {
-                        confValue = NumberUtils.createNumber(String.valueOf(confValue));
+                    Object val = JSONValue.parse(options[1]);
+                    if (val == null) {
+                        val = options[1];
                     }
-                    ret.put(options[0], confValue);
+                    ret.put(options[0], val);
                 }
             }
         }

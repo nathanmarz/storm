@@ -17,23 +17,12 @@
  */
 package backtype.storm.utils;
 
-import backtype.storm.Config;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.StormTopology;
-import clojure.lang.IFn;
-import clojure.lang.RT;
-
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.retry.ExponentialBackoffRetry;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URL;
@@ -51,10 +40,20 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
+
+import backtype.storm.Config;
+import backtype.storm.generated.ComponentCommon;
+import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.StormTopology;
+import clojure.lang.IFn;
+import clojure.lang.RT;
+
+import com.netflix.curator.framework.CuratorFramework;
+import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.retry.ExponentialBackoffRetry;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";

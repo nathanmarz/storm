@@ -69,7 +69,7 @@
   (map-val :master-code-dir assignments-snapshot))
 
 (defn- read-downloaded-storm-ids [conf]
-  (map #(java.net.URLDecoder/decode %) (read-dir-contents (supervisor-stormdist-root conf)))
+  (map #(url-decode %) (read-dir-contents (supervisor-stormdist-root conf)))
   )
 
 (defn read-worker-heartbeat [conf id]

@@ -1017,7 +1017,7 @@
            ui-template))
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
        (let [include-sys? (get-include-sys? cookies)
-            id (java.net.URLDecoder/decode id)]
+            id (url-decode id)]
          (try
            (-> (topology-page id (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
@@ -1025,14 +1025,14 @@
            (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)
-            id (java.net.URLDecoder/decode id)
-            component (java.net.URLDecoder/decode component)]
+            id (url-decode id)
+            component (url-decode component)]
          (-> (component-page id component (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
   (POST "/topology/:id/activate" [id]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.activate nimbus name)
@@ -1040,7 +1040,7 @@
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/deactivate" [id]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.deactivate nimbus name)
@@ -1048,7 +1048,7 @@
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)
             options (RebalanceOptions.)]
@@ -1058,7 +1058,7 @@
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)
             options (KillOptions.)]

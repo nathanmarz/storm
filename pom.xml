@@ -26,7 +26,7 @@
 
     <groupId>com.github.ptgoetz</groupId>
     <artifactId>storm-hbase</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
 
     <licenses>
         <license>

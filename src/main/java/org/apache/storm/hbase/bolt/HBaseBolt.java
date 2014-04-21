@@ -28,13 +28,16 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
 import org.apache.storm.hbase.common.ColumnList;
+import org.apache.storm.hbase.security.HBaseSecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
 /**
@@ -73,7 +76,7 @@ public class HBaseBolt  extends BaseRichBolt {
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
         this.collector = collector;
-        Configuration hbConfig = HBaseConfiguration.create();
+        final Configuration hbConfig = HBaseConfiguration.create();
 
         Map<String, Object> conf = (Map<String, Object>)map.get(this.configKey);
         if(conf == null){
@@ -87,8 +90,14 @@ public class HBaseBolt  extends BaseRichBolt {
         }
 
         try{
-            this.table = new HTable(hbConfig, this.tableName);
-        } catch(IOException e){
+            UserProvider provider = HBaseSecurityUtil.login(map, hbConfig);
+            this.table = provider.getCurrent().getUGI().doAs(new PrivilegedExceptionAction<HTable>() {
+                @Override
+                public HTable run() throws IOException {
+                    return new HTable(hbConfig, tableName);
+                }
+            });
+        } catch(Exception e){
             throw new RuntimeException("HBase bolt preparation failed: " + e.getMessage(), e);
         }
     }

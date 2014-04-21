@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-208: Add storm-kafka as an external module
  * STORM-285: Fix storm-core shade plugin config
  * STORM-12: reduce thread usage of netty transport
  * STORM-281: fix and issue with config parsing that could lead to leaking file descriptors

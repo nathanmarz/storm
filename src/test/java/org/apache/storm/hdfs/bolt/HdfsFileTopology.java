@@ -40,7 +40,10 @@ import org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy.Units;
 import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
 import org.apache.storm.hdfs.common.rotation.MoveFileAction;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -68,11 +71,19 @@ public class HdfsFileTopology {
                 .withExtension(".txt");
 
 
+
         // use "|" instead of "," for field delimiter
         RecordFormat format = new DelimitedRecordFormat()
                 .withFieldDelimiter("|");
 
+        Yaml yaml = new Yaml();
+        InputStream in = new FileInputStream(args[1]);
+        Map<String, Object> yamlConf = (Map<String, Object>) yaml.load(in);
+        in.close();
+        config.put("hdfs.config", yamlConf);
+
         HdfsBolt bolt = new HdfsBolt()
+                .withConfigKey("hdfs.config")
                 .withFsUrl(args[0])
                 .withFileNameFormat(fileNameFormat)
                 .withRecordFormat(format)
@@ -96,9 +107,9 @@ public class HdfsFileTopology {
             cluster.shutdown();
             System.exit(0);
         } else if (args.length == 2) {
-            StormSubmitter.submitTopology(args[1], config, builder.createTopology());
+            StormSubmitter.submitTopology(args[0], config, builder.createTopology());
         } else{
-            System.out.println("Usage: HdfsFileTopology <hdfs url> [topology name]");
+            System.out.println("Usage: HdfsFileTopology [topology name] <yaml config file>");
         }
     }
 

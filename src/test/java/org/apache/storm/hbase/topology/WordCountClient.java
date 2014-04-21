@@ -48,6 +48,7 @@ public class WordCountClient {
             byte[] wordBytes = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("word"));
 
             String wordStr = Bytes.toString(wordBytes);
+            System.out.println(wordStr);
             long count = Bytes.toLong(countBytes);
             System.out.println("Word: '" + wordStr + "', Count: " + count);
         }

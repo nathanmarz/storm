@@ -25,6 +25,9 @@ import backtype.storm.tuple.Fields;
 import org.apache.storm.hbase.bolt.HBaseBolt;
 import org.apache.storm.hbase.bolt.mapper.SimpleHBaseMapper;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class PersistentWordCount {
     private static final String WORD_SPOUT = "WORD_SPOUT";
@@ -34,9 +37,12 @@ public class PersistentWordCount {
 
     public static void main(String[] args) throws Exception {
         Config config = new Config();
+
+        Map<String, Object> hbConf = new HashMap<String, Object>();
         if(args.length > 0){
-            config.put("hbase.rootdir", args[0]);
+            hbConf.put("hbase.rootdir", args[0]);
         }
+        config.put("hbase.conf", hbConf);
 
         WordSpout spout = new WordSpout();
         WordCounter bolt = new WordCounter();
@@ -47,7 +53,8 @@ public class PersistentWordCount {
                 .withCounterFields(new Fields("count"))
                 .withColumnFamily("cf");
 
-        HBaseBolt hbase = new HBaseBolt("WordCount", mapper);
+        HBaseBolt hbase = new HBaseBolt("WordCount", mapper)
+                .withConfigKey("hbase.conf");
 
 
         // wordSpout ==> countBolt ==> HBaseBolt
@@ -58,11 +65,17 @@ public class PersistentWordCount {
         builder.setBolt(HBASE_BOLT, hbase, 1).fieldsGrouping(COUNT_BOLT, new Fields("word"));
 
 
-        LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology("test", config, builder.createTopology());
-        Thread.sleep(10000);
-        cluster.killTopology("test");
-        cluster.shutdown();
-        System.exit(0);
+        if (args.length == 1) {
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("test", config, builder.createTopology());
+            Thread.sleep(30000);
+            cluster.killTopology("test");
+            cluster.shutdown();
+            System.exit(0);
+        } else if (args.length == 2) {
+            StormSubmitter.submitTopology(args[1], config, builder.createTopology());
+        } else{
+            System.out.println("Usage: HdfsFileTopology <hdfs url> [topology name]");
+        }
     }
 }

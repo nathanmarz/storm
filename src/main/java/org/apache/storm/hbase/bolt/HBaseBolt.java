@@ -53,6 +53,7 @@ public class HBaseBolt  extends BaseRichBolt {
     private String tableName;
     private HBaseMapper mapper;
     boolean writeToWAL = true;
+    private String configKey;
 
     public HBaseBolt(String tableName, HBaseMapper mapper){
         this.tableName = tableName;
@@ -64,14 +65,25 @@ public class HBaseBolt  extends BaseRichBolt {
         return this;
     }
 
+    public HBaseBolt withConfigKey(String configKey){
+        this.configKey = configKey;
+        return this;
+    }
+
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
         this.collector = collector;
         Configuration hbConfig = HBaseConfiguration.create();
-        String hbRoot = (String)map.get("hbase.rootdir");
-        if(hbRoot != null){
-            LOG.info("Using hbase.rootdir={}", hbRoot);
-            hbConfig.set("hbase.rootdir", hbRoot);
+
+        Map<String, Object> conf = (Map<String, Object>)map.get(this.configKey);
+        if(conf == null){
+            throw new IllegalArgumentException("HBase configuration not found using key '" + this.configKey + "'");
+        }
+        if(conf.get("hbase.rootdir") == null){
+            LOG.warn("No 'hbase.rootdir' value found in configuration! Using HBase defaults.");
+        }
+        for(String key : conf.keySet()){
+            hbConfig.set(key, String.valueOf(map.get(key)));
         }
 
         try{

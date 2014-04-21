@@ -60,15 +60,34 @@
             </excludes>
         </fileSet>
 
+        <!-- EXTERNAL -->
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-kafka/target</directory>
+            <outputDirectory>external/storm-kafka</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-kafka</directory>
+            <outputDirectory>external/storm-kafka</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+
 
     </fileSets>
 
     <files>
+        <!-- EXAMPLES -->
         <file>
             <source>${project.basedir}/../../examples/storm-starter/target/storm-starter-${project.version}-jar-with-dependencies.jar</source>
             <outputDirectory>/examples/storm-starter/</outputDirectory>
             <destName>storm-starter-topologies-${project.version}.jar</destName>
         </file>
+
+
         <!--
             $STORM_HOME/conf
         -->

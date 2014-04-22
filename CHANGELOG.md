@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-173: Treat command line "-c" option number config values as such
  * STORM-194: Support list of strings in *.worker.childopts, handle spaces
  * STORM-288: Fixes version spelling in pom.xml
  * STORM-208: Add storm-kafka as an external module

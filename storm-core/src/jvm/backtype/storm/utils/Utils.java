@@ -171,6 +171,7 @@ public class Utils {
             commandOptions = commandOptions.replaceAll("%%%%", " ");
             String[] configs = commandOptions.split(",");
             for (String config : configs) {
+                config = config.replaceAll("%%comma%%", " ");
                 String[] options = config.split("=", 2);
                 if (options.length == 2) {
                     Object val = JSONValue.parse(options[1]);

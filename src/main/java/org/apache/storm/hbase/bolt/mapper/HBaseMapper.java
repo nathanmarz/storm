@@ -24,7 +24,7 @@ import org.apache.storm.hbase.common.ColumnList;
 import java.io.Serializable;
 
 /**
- * Maps a <code>backtype.storm.tuple.Tupe</code> object
+ * Maps a <code>backtype.storm.tuple.Tuple</code> object
  * to a row in an HBase table.
  */
 public interface HBaseMapper extends Serializable {

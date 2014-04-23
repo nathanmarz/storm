@@ -15,64 +15,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.hbase.bolt.mapper;
+package org.apache.storm.hbase.trident.mapper;
 
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
+import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
 import org.apache.storm.hbase.common.ColumnList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.storm.hbase.common.Utils.*;
+import storm.trident.tuple.TridentTuple;
+
+import static org.apache.storm.hbase.common.Utils.toBytes;
+import static org.apache.storm.hbase.common.Utils.toLong;
 
 /**
  *
  */
-public class SimpleHBaseMapper implements HBaseMapper {
-    private static final Logger LOG = LoggerFactory.getLogger(SimpleHBaseMapper.class);
+public class SimpleTridentHBaseMapper implements TridentHBaseMapper {
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleTridentHBaseMapper.class);
     
     private String rowKeyField;
-//    private String timestampField;
     private byte[] columnFamily;
     private Fields columnFields;
     private Fields counterFields;
 
-    public SimpleHBaseMapper(){
+    public SimpleTridentHBaseMapper(){
     }
 
 
-    public SimpleHBaseMapper withRowKeyField(String rowKeyField){
+    public SimpleTridentHBaseMapper withRowKeyField(String rowKeyField){
         this.rowKeyField = rowKeyField;
         return this;
     }
 
-    public SimpleHBaseMapper withColumnFields(Fields columnFields){
+    public SimpleTridentHBaseMapper withColumnFields(Fields columnFields){
         this.columnFields = columnFields;
         return this;
     }
 
-    public SimpleHBaseMapper withCounterFields(Fields counterFields){
+    public SimpleTridentHBaseMapper withCounterFields(Fields counterFields){
         this.counterFields = counterFields;
         return this;
     }
 
-    public SimpleHBaseMapper withColumnFamily(String columnFamily){
+    public SimpleTridentHBaseMapper withColumnFamily(String columnFamily){
         this.columnFamily = columnFamily.getBytes();
         return this;
     }
 
-//    public SimpleTridentHBaseMapper withTimestampField(String timestampField){
-//        this.timestampField = timestampField;
-//        return this;
-//    }
 
     @Override
-    public byte[] rowKey(Tuple tuple) {
+    public byte[] rowKey(TridentTuple tuple) {
         Object objVal = tuple.getValueByField(this.rowKeyField);
         return toBytes(objVal);
     }
 
     @Override
-    public ColumnList columns(Tuple tuple) {
+    public ColumnList columns(TridentTuple tuple) {
         ColumnList cols = new ColumnList();
         if(this.columnFields != null){
             // TODO timestamps

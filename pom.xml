@@ -48,17 +48,21 @@
         </developer>
     </developers>
 
+    <properties>
+        <hbase.version>0.98.1-hadoop2</hbase.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
-            <version>0.9.1-incubating</version>
+            <version>0.9.2-incubating-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
-            <version>0.98.0-hadoop2</version>
+            <version>${hbase.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>

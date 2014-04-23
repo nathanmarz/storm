@@ -158,6 +158,7 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
                 long r = _rand.nextLong();
                 _collector.emitDirect(t, _coordStream, new Values(batchId, count), r);
                 finish.vals.add(r);
+                _msgIdToBatchId.put(r, batchIdVal);
             }
             _finishConditions.put(batchIdVal, finish);
             return tasks;

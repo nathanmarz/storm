@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -168,10 +169,9 @@ public class Utils {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
         if(commandOptions != null) {
-            commandOptions = commandOptions.replaceAll("%%%%", " ");
             String[] configs = commandOptions.split(",");
             for (String config : configs) {
-                config = config.replaceAll("%%comma%%", " ");
+                config = URLDecoder.decode(config);
                 String[] options = config.split("=", 2);
                 if (options.length == 2) {
                     Object val = JSONValue.parse(options[1]);

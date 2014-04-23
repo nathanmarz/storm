@@ -20,7 +20,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.1-incubating-SNAPSHOT</version>
+        <version>0.9.2-incubating-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-core</artifactId>
@@ -161,6 +161,11 @@
             <artifactId>mockito-all</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.clojars.runa</groupId>
+            <artifactId>conjure</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <sourceDirectory>src/jvm</sourceDirectory>
@@ -190,6 +195,10 @@
                         <testSourceDirectory>test/clj</testSourceDirectory>
                     </testSourceDirectories>
                     <warnOnReflection>false</warnOnReflection>
+                    <copyDeclaredNamespaceOnly>true</copyDeclaredNamespaceOnly>
+                    <copiedNamespaces>
+                        <copiedNamespace>none</copiedNamespace>
+                    </copiedNamespaces>
                 </configuration>
                 <executions>
                     <execution>
@@ -205,6 +214,9 @@
                         <goals>
                             <goal>test-with-junit</goal>
                         </goals>
+                        <configuration>
+                            <vmargs>${test.extra.args}</vmargs>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -237,7 +249,7 @@
                     <artifactSet>
                         <includes>
                             <include>org.apache.thrift:*</include>
-                            <include>odg.apache.storm:*</include>
+                            <include>org.apache.storm:*</include>
                         </includes>
                     </artifactSet>
 
@@ -250,7 +262,7 @@
                     <transformers>
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
                     </transformers>
-                    <filters/>
+                    <filters />
                 </configuration>
                 <dependencies>
                     <dependency>

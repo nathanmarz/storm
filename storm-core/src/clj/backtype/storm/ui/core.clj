@@ -29,6 +29,7 @@
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
   (:import [java.io File])
+  (:import [java.net URLDecoder])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -485,7 +486,7 @@
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
                  (url-format "/topology/%s?window=%s" id k)
-                 disp)
+                 (escape-html disp))
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
         (float-str (get-in stats [:complete-latencies k]))
@@ -717,7 +718,7 @@
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
                  (url-format "/topology/%s/component/%s?window=%s" topology-id id k)
-                 disp)
+                 (escape-html disp))
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
         (float-str (get-in stats [:complete-latencies k]))
@@ -935,7 +936,7 @@
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
                  (url-format "/topology/%s/component/%s?window=%s" topology-id id k)
-                 disp)
+                 (escape-html disp))
         (get-in stats [:emitted k])
         (get-in stats [:transferred k])
         (float-str (get-in stats [:execute-latencies k]))
@@ -1016,34 +1017,40 @@
        (-> (main-page)
            ui-template))
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
-       (let [include-sys? (get-include-sys? cookies)]
+       (let [include-sys? (get-include-sys? cookies)
+            id (java.net.URLDecoder/decode id)]
          (try
-           (-> (topology-page id (:window m) include-sys?)
+           (-> (topology-page (URLDecoder/decode id) (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)
            (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
-       (let [include-sys? (get-include-sys? cookies)]
+       (let [include-sys? (get-include-sys? cookies)
+            id (java.net.URLDecoder/decode id)
+            component (java.net.URLDecoder/decode component)]
          (-> (component-page id component (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)))
   (POST "/topology/:id/activate" [id]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [id (java.net.URLDecoder/decode id)
+            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/deactivate" [id]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [id (java.net.URLDecoder/decode id)
+            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [id (java.net.URLDecoder/decode id)
+            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)
             options (RebalanceOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
@@ -1052,7 +1059,8 @@
     (resp/redirect (str "/topology/" id)))
   (POST "/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [id (java.net.URLDecoder/decode id)
+            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)
             options (KillOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))

@@ -135,4 +135,21 @@ public class ConfigValidation {
                     "Field " + name + " must be an Iterable containing only Strings or Maps of Strings");
         }
     };
+
+    /**
+     * Validates a String or a list of Strings
+     */
+    public static Object StringOrStringListValidator = new FieldValidator() {
+
+        private FieldValidator fv = FieldListValidatorFactory(String.class);
+
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null || o instanceof String) {
+                // A null value or a String value is acceptable
+                return;
+            }
+            this.fv.validateField(name, o);
+        }
+    };
 }

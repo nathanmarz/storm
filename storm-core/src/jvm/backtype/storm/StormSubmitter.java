@@ -17,17 +17,25 @@
  */
 package backtype.storm;
 
-import backtype.storm.generated.*;
-import backtype.storm.utils.BufferFileInputStream;
-import backtype.storm.utils.NimbusClient;
-import backtype.storm.utils.Utils;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import backtype.storm.generated.AlreadyAliveException;
+import backtype.storm.generated.ClusterSummary;
+import backtype.storm.generated.InvalidTopologyException;
+import backtype.storm.generated.Nimbus;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.SubmitOptions;
+import backtype.storm.generated.TopologySummary;
+import backtype.storm.utils.BufferFileInputStream;
+import backtype.storm.utils.NimbusClient;
+import backtype.storm.utils.Utils;
 
 /**
  * Use this class to submit topologies to run on the Storm cluster. You should run your program
@@ -37,6 +45,8 @@ import org.json.simple.JSONValue;
 public class StormSubmitter {
     public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
 
+    private static final int THRIFT_CHUNK_SIZE_BYTES = 307200;
+    
     private static Nimbus.Iface localNimbus = null;
 
     public static void setLocalNimbus(Nimbus.Iface localNimbusHandler) {
@@ -151,7 +161,7 @@ public class StormSubmitter {
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
-            BufferFileInputStream is = new BufferFileInputStream(localJar);
+            BufferFileInputStream is = new BufferFileInputStream(localJar, THRIFT_CHUNK_SIZE_BYTES);
             while(true) {
                 byte[] toSubmit = is.read();
                 if(toSubmit.length==0) break;

@@ -82,7 +82,7 @@
   (let [id (uuid)
         ^PriorityQueue queue (:queue timer)]
     (locking (:lock timer)
-      (.add queue [(+ (current-time-millis) (* 1000 (long delay-secs))) afn id])
+      (.add queue [(+ (current-time-millis) (secs-to-millis-long delay-secs)) afn id])
       )))
 
 (defn schedule-recurring [timer delay-secs recur-secs afn]

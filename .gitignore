@@ -7,7 +7,6 @@ deploy/logs
 *.jar
 bin/jzmq
 .DS_Store
-pom.xml
 deploy/classes
 *.fyc
 *.rbc
@@ -20,6 +19,7 @@ NANNY
 .lein-failures
 _release
 *.zip
+*.tar.gz
 .lein-deps-sum
 *.iml
 target

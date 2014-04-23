@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 ########### These all have default values as shown
 ########### Additional configuration goes into storm.yaml
 
@@ -18,12 +35,13 @@ storm.zookeeper.retry.intervalceiling.millis: 30000
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
-storm.messaging.transport: "backtype.storm.messaging.zmq"
 storm.multilang.serializer: "backtype.storm.multilang.JsonSerializer"
+storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
+nimbus.thrift.max_buffer_size: 1048576
 nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60
@@ -84,10 +102,11 @@ zmq.threads: 1
 zmq.linger.millis: 5000
 zmq.hwm: 0
 
+
 storm.messaging.netty.server_worker_threads: 1
 storm.messaging.netty.client_worker_threads: 1
 storm.messaging.netty.buffer_size: 5242880 #5MB buffer
-storm.messaging.netty.max_retries: 100
+storm.messaging.netty.max_retries: 30
 storm.messaging.netty.max_wait_ms: 1000
 storm.messaging.netty.min_wait_ms: 100
 

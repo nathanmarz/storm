@@ -1,8 +1,23 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift7.server THsHaServer THsHaServer$Args])
-  (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
-  (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift.exception])
+  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
@@ -10,6 +25,7 @@
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
@@ -910,10 +926,15 @@
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
           (check-storm-active! nimbus storm-name false)
-          (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
-                     storm-name
-                     (from-json serializedConf)
-                     topology)
+          (let [topo-conf (from-json serializedConf)]
+            (try
+              (validate-configs-with-schemas topo-conf)
+              (catch IllegalArgumentException ex
+                (throw (InvalidTopologyException. (.getMessage ex)))))
+            (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                       storm-name
+                       topo-conf
+                       topology))
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 storm-conf (normalize-conf
@@ -1137,14 +1158,13 @@
         options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
                     (THsHaServer$Args.)
                     (.workerThreads 64)
-                    (.protocolFactory (TBinaryProtocol$Factory.))
+                    (.protocolFactory (TBinaryProtocol$Factory. false true (conf NIMBUS-THRIFT-MAX-BUFFER-SIZE)))
                     (.processor (Nimbus$Processor. service-handler))
                     )
-       server (THsHaServer. options)]
+       server (THsHaServer. (do (set! (. options maxReadBufferBytes)(conf NIMBUS-THRIFT-MAX-BUFFER-SIZE)) options))]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))
-
 
 ;; distributed implementation
 

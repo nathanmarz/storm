@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.ui.core
   (:use compojure.core)
   (:use ring.middleware.reload)
@@ -7,6 +22,7 @@
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [trim]])
+  (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -32,21 +48,85 @@
        (map #(.get_stats ^ExecutorSummary %))
        (filter not-nil?)))
 
+(def tips
+  "Defines a mapping of help texts for elements of the UI pages."
+  {:sys-stats "Use this to toggle inclusion of storm system components."
+   :version (str "The version of storm installed on the UI node. (Hopefully, "
+                 "this is the same on all storm nodes!)")
+   :nimbus-uptime (str "The duration the current Nimbus instance has been "
+                       "running. (Note that the storm cluster may have been "
+                       "deployed and available for a much longer period than "
+                       "the current Nimbus process has been running.)")
+   :num-supervisors "The number of nodes in the cluster currently."
+   :num-slots "Slots are Workers (processes)."
+   :num-execs "Executors are threads in a Worker process."
+   :num-tasks (str "A Task is an instance of a Bolt or Spout. The number of "
+                   "Tasks is almost always equal to the number of Executors.")
+   :name "The name given to the topology by when it was submitted."
+   :name-link "Click the name to view the Topology's information."
+   :topo-id "The unique ID given to a Topology each time it is launched."
+   :status "The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING."
+   :topo-uptime "The time since the Topology was submitted."
+   :num-workers "The number of Workers (processes)."
+   :sup-id (str "A unique identifier given to a Supervisor when it joins the "
+                "cluster.")
+   :sup-host (str "The hostname reported by the remote host. (Note that this "
+                  "hostname is not the result of a reverse lookup at the "
+                  "Nimbus node.)")
+   :sup-uptime (str "The length of time a Supervisor has been registered to the "
+                    "cluster.")
+   :window (str "The past period of time for which the statistics apply. "
+                "Click on a value to set the window for this page.")
+   :emitted "The number of Tuples emitted."
+   :transferred "The number of Tuples emitted that sent to one or more bolts."
+   :complete-lat (str "The average time a Tuple \"tree\" takes to be completely "
+                      "processed by the Topology. A value of 0 is expected "
+                      "if no acking is done.")
+   :spout-acked (str "The number of Tuple \"trees\" successfully processed. A "
+                     "value of 0 is expected if no acking is done.")
+   :spout-failed (str "The number of Tuple \"trees\" that were explicitly "
+                      "failed or timed out before acking was completed. A value "
+                      "of 0 is expected if no acking is done.")
+   :comp-id "The ID assigned to a the Component by the Topology."
+   :comp-id-link "Click on the name to view the Component's page."
+   :capacity (str "If this is around 1.0, the corresponding Bolt is running as "
+                  "fast as it can, so you may want to increase the Bolt's "
+                  "parallelism. This is (number executed * average execute "
+                  "latency) / measurement time.")
+   :exec-lat (str "The average time a Tuple spends in the execute method. The "
+                  "execute method may complete without sending an Ack for the "
+                  "tuple.")
+   :num-executed "The number of incoming Tuples processed."
+   :proc-lat (str "The average time it takes to Ack a Tuple after it is first "
+                  "received.  Bolts that join, aggregate or batch may not Ack a "
+                  "tuple until a number of other Tuples have been received.")
+   :bolt-acked "The number of Tuples acknowledged by this Bolt."
+   :bolt-failed "The number of tuples Failed by this Bolt."
+   :stream (str "The name of the Tuple stream given in the Topolgy, or \""
+                Utils/DEFAULT_STREAM_ID "\" if none was given.")
+   :exec-id "The unique executor ID."
+   :exec-uptime "The length of time an Executor (thread) has been alive."
+   :port (str "The port number used by the Worker to which an Executor is "
+              "assigned. Click on the port number to open the logviewer page "
+              "for this Worker.")})
+
 (defn mk-system-toggle-button [include-sys?]
   [:p {:class "js-only"}
+   [:span.tip.right {:title (:sys-stats tips)}
     [:input {:type "button"
              :value (str (if include-sys? "Hide" "Show") " System Stats")
-             :onclick "toggleSys()"}]])
+             :onclick "toggleSys()"}]]])
 
 (defn ui-template [body]
   (html4
    [:head
     [:title "Storm UI"]
-    (include-css "/css/bootstrap-1.1.0.css")
+    (include-css "/css/bootstrap-1.4.0.css")
     (include-css "/css/style.css")
     (include-js "/js/jquery-1.6.2.min.js")
     (include-js "/js/jquery.tablesorter.min.js")
     (include-js "/js/jquery.cookies.2.2.0.min.js")
+    (include-js "/js/bootstrap-twipsy.js")
     (include-js "/js/script.js")
     ]
    [:body
@@ -73,7 +153,22 @@
         total-executors (->> (.get_topologies summ)
                              (map #(.get_num_executors ^TopologySummary %))
                              (reduce +))]
-    (table ["Version" "Nimbus uptime" "Supervisors" "Used slots" "Free slots" "Total slots" "Executors" "Tasks"]
+    (table [{:text "Version" :attr {:class "tip right"
+                                    :title (:version tips)}}
+            {:text "Nimbus uptime" :attr {:class "tip right"
+                                          :title (:nimbus-uptime tips)}}
+            {:text "Supervisors" :attr {:class "tip above"
+                                        :title (:num-supervisors tips)}}
+            {:text "Used slots" :attr {:class "tip above"
+                                       :title (:num-slots tips)}}
+            {:text "Free slots" :attr {:class "tip above"
+                                       :title (:num-slots tips)}}
+            {:text "Total slots" :attr {:class "tip above"
+                                       :title (:num-slots tips)}}
+            {:text  "Executors" :attr {:class "tip above"
+                                       :title (:num-execs tips)}}
+            {:text "Tasks" :attr {:class "tip left"
+                                  :title (:num-tasks tips)}}]
            [[(read-storm-version)
              (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
              (count sups)
@@ -90,10 +185,21 @@
      (link-to (url-format "/topology/%s" id) (escape-html content))))
 
 (defn main-topology-summary-table [summs]
-  ;; make the id clickable
-  ;; make the table sortable
   (sorted-table
-   ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
+   [{:text "Name" :attr {:class "tip right"
+                         :title (str (:name tips) " " (:name-link tips))}}
+    {:text "Id" :attr {:class "tip right"
+                       :title (:topo-id tips)}}
+    {:text "Status" :attr {:class "tip above"
+                           :title (:status tips)}}
+    {:text "Uptime" :attr {:class "tip above"
+                           :title (:topo-uptime tips)}}
+    {:text "Num workers" :attr {:class "tip above"
+                                :title (:num-workers tips)}}
+    {:text "Num executors" :attr {:class "tip above"
+                                  :title (:num-execs tips)}}
+    {:text "Num tasks" :attr {:class "tip above"
+                              :title (:num-tasks tips)}}]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (escape-html (.get_id t))
@@ -109,7 +215,16 @@
 
 (defn supervisor-summary-table [summs]
   (sorted-table
-   ["Id" "Host" "Uptime" "Slots" "Used slots"]
+   [{:text "Id" :attr {:class "tip right"
+                       :title (:sup-id tips)}}
+    {:text "Host" :attr {:class "tip above"
+                         :title (:sup-host tips)}}
+    {:text "Uptime" :attr {:class "tip above"
+                         :title (:sup-uptime tips)}}
+    {:text "Slots" :attr {:class "tip above"
+                          :title (:num-slots tips)}}
+    {:text "Used slots" :attr {:class "tip left"
+                               :title (:num-slots tips)}}]
    (for [^SupervisorSummary s summs]
      [(.get_supervisor_id s)
       (.get_host s)
@@ -302,7 +417,20 @@
 (defn topology-summary-table [^TopologyInfo summ]
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors] [(.get_host e) (.get_port e)]))]
-    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
+    (table [{:text "Name" :attr {:class "tip right"
+                                 :title (:name tips)}}
+            {:text "Id" :attr {:class "tip right"
+                               :title (:topo-id tips)}}
+            {:text "Status" :attr {:class "tip above"
+                                   :title (:status tips)}}
+            {:text "Uptime" :attr {:class "tip above"
+                                   :title (:topo-uptime tips)}}
+            {:text "Num workers" :attr {:class "tip above"
+                                        :title (:num-workers tips)}}
+            {:text "Num executors" :attr {:class "tip above"
+                                          :title (:num-execs tips)}}
+            {:text "Num tasks" :attr {:class "tip above"
+                                      :title (:num-tasks tips)}}]
            [[(escape-html (.get_name summ))
              (escape-html (.get_id summ))
              (.get_status summ)
@@ -341,7 +469,18 @@
         display-map (into {} (for [t times] [t pretty-uptime-sec]))
         display-map (assoc display-map ":all-time" (fn [_] "All time"))]
     (sorted-table
-     ["Window" "Emitted" "Transferred" "Complete latency (ms)" "Acked" "Failed"]
+     [{:text "Window" :attr {:class "tip right"
+                             :title (:window tips)}}
+      {:text "Emitted" :attr {:class "tip above"
+                              :title (:emitted tips)}}
+      {:text "Transferred" :attr {:class "tip above"
+                                  :title (:transferred tips)}}
+      {:text "Complete latency (ms)" :attr {:class "tip above"
+                                            :title (:complete-lat tips)}}
+      {:text "Acked" :attr {:class "tip above"
+                            :title (:spout-acked tips)}}
+      {:text "Failed" :attr {:class "tip left"
+                            :title (:spout-failed tips)}}]
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
@@ -416,8 +555,23 @@
 
 (defn spout-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
-   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Complete latency (ms)"
-    "Acked" "Failed" "Last error"]
+   [{:text "Id" :attr {:class "tip right"
+                       :title (str (:comp-id tips) " " (:comp-id-link tips))}}
+    {:text "Executors" :attr {:class "tip right"
+                       :title (:num-execs tips)}}
+    {:text "Tasks" :attr {:class "tip above"
+                   :title (:num-tasks tips)}}
+    {:text "Emitted" :attr {:class "tip above"
+                     :title (:emitted tips)}}
+    {:text "Transferred" :attr {:class "tip above"
+                         :title (:transferred tips)}}
+    {:text "Complete latency (ms)" :attr {:class "tip above"
+                                   :title (:complete-lat tips)}}
+    {:text "Acked" :attr {:class "tip above"
+                          :title (:spout-acked tips)}}
+    {:text "Failed" :attr {:class "tip above"
+                           :title (:spout-failed tips)}}
+    "Last error"]
    (for [[id summs] summ-map
          :let [stats-seq (get-filled-stats summs)
                stats (aggregate-spout-streams
@@ -437,8 +591,29 @@
 
 (defn bolt-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
-   ["Id" "Executors" "Tasks" "Emitted" "Transferred" "Capacity (last 10m)" "Execute latency (ms)" "Executed" "Process latency (ms)"
-    "Acked" "Failed" "Last error"]
+   [{:text "Id" :attr {:class "tip right"
+                       :title (str (:comp-id tips) " " (:comp-id-link tips))}}
+    {:text "Executors" :attr {:class "tip right"
+                              :title (:num-execs tips)}}
+    {:text "Tasks" :attr {:class "tip above"
+                          :title (:num-tasks tips)}}
+    {:text "Emitted" :attr {:class "tip above"
+                            :title (:emitted tips)}}
+    {:text "Transferred" :attr {:class "tip above"
+                                :title (:transferred tips)}}
+    {:text "Capacity (last 10m)" :attr {:class "tip above"
+                                        :title (:capacity tips)}}
+    {:text "Execute latency (ms)" :attr {:class "tip above"
+                                         :title (:exec-lat tips)}}
+    {:text "Executed" :attr {:class "tip above"
+                             :title (:num-executed tips)}}
+    {:text "Process latency (ms)":attr {:class "tip above"
+                                        :title (:proc-lat tips)}}
+    {:text "Acked" :attr {:class "tip above"
+                          :title (:bolt-acked tips)}}
+    {:text "Failed" :attr {:class "tip left"
+                           :title (:bolt-failed tips)}}
+    "Last error"]
    (for [[id summs] summ-map
          :let [stats-seq (get-filled-stats summs)
                stats (aggregate-bolt-streams
@@ -526,7 +701,18 @@
         display-map (into {} (for [t times] [t pretty-uptime-sec]))
         display-map (assoc display-map ":all-time" (fn [_] "All time"))]
     (sorted-table
-     ["Window" "Emitted" "Transferred" "Complete latency (ms)" "Acked" "Failed"]
+     [{:text "Window" :attr {:class "tip right"
+                             :title (:window tips)}}
+      {:text "Emitted" :attr {:class "tip above"
+                              :title (:emitted tips)}}
+      {:text "Transferred" :attr {:class "tip above"
+                                  :title (:transferred tips)}}
+      {:text "Complete latency (ms)" :attr {:class "tip above"
+                                            :title (:complete-lat tips)}}
+      {:text "Acked" :attr {:class "tip above"
+                            :title (:spout-acked tips)}}
+      {:text "Failed" :attr {:class "tip left"
+                            :title (:spout-failed tips)}}]
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
@@ -543,7 +729,18 @@
 (defn spout-output-summary-table [stream-summary window]
   (let [stream-summary (map-val swap-map-order (swap-map-order stream-summary))]
     (sorted-table
-     ["Stream" "Emitted" "Transferred" "Complete latency (ms)" "Acked" "Failed"]
+     [{:text "Stream" :attr {:class "tip right"
+                             :title (:stream tips)}}
+      {:text "Emitted" :attr {:class "tip above"
+                              :title (:emitted tips)}}
+      {:text "Transferred" :attr {:class "tip above"
+                                  :title (:transferred tips)}}
+      {:text "Complete latency (ms)" :attr {:class "tip above"
+                                            :title (:complete-lat tips)}}
+      {:text "Acked" :attr {:class "tip above"
+                            :title (:spout-acked tips)}}
+      {:text "Failed" :attr {:class "tip left"
+                            :title (:spout-failed tips)}}]
      (for [[s stats] (stream-summary window)]
        [s
         (nil-to-zero (:emitted stats))
@@ -555,8 +752,24 @@
 
 (defn spout-executor-table [topology-id executors window include-sys?]
   (sorted-table
-   ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred"
-    "Complete latency (ms)" "Acked" "Failed"]
+   [{:text "Id" :attr {:class "tip right"
+                       :title (:exec-id tips)}}
+    {:text "Uptime" :attr {:class "tip right"
+                           :title (:exec-uptime tips)}}
+    {:text "Host" :attr {:class "tip above"
+                         :title (:sup-host tips)}}
+    {:text "Port" :attr {:class "tip above"
+                         :title (:port tips)}}
+    {:text "Emitted" :attr {:class "tip above"
+                            :title (:emitted tips)}}
+    {:text "Transferred" :attr {:class "tip above"
+                                :title (:transferred tips)}}
+    {:text "Complete latency (ms)" :attr {:class "tip above"
+                                          :title (:complete-lat tips)}}
+    {:text "Acked" :attr {:class "tip above"
+                          :title (:spout-acked tips)}}
+    {:text "Failed" :attr {:class "tip left"
+                          :title (:spout-failed tips)}}]
    (for [^ExecutorSummary e executors
          :let [stats (.get_stats e)
                stats (if stats
@@ -601,7 +814,12 @@
                            (select-keys [:emitted :transferred])
                            swap-map-order)]
     (sorted-table
-     ["Stream" "Emitted" "Transferred"]
+     [{:text "Stream" :attr {:class "tip right"
+                             :title (:stream tips)}}
+      {:text "Emitted" :attr {:class "tip above"
+                              :title (:emitted tips)}}
+      {:text "Transferred" :attr {:class "tip above"
+                                  :title (:transferred tips)}}]
      (for [[s stats] stream-summary]
        [s
         (nil-to-zero (:emitted stats))
@@ -616,7 +834,20 @@
                            (select-keys [:acked :failed :process-latencies :executed :execute-latencies])
                            swap-map-order)]
     (sorted-table
-     ["Component" "Stream" "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
+     [{:text "Component" :attr {:class "tip right"
+                         :title (:comp-id tips)}}
+      {:text "Stream" :attr {:class "tip right"
+                             :title (:stream tips)}}
+      {:text "Execute latency (ms)" :attr {:class "tip above"
+                                           :title (:exec-lat tips)}}
+      {:text "Executed" :attr {:class "tip above"
+                               :title (:num-executed tips)}}
+      {:text "Process latency (ms)":attr {:class "tip above"
+                                          :title (:proc-lat tips)}}
+      {:text "Acked" :attr {:class "tip above"
+                            :title (:bolt-acked tips)}}
+      {:text "Failed" :attr {:class "tip left"
+                             :title (:bolt-failed tips)}}]
      (for [[^GlobalStreamId s stats] stream-summary]
        [(escape-html (.get_componentId s))
         (.get_streamId s)
@@ -630,8 +861,30 @@
 
 (defn bolt-executor-table [topology-id executors window include-sys?]
   (sorted-table
-   ["Id" "Uptime" "Host" "Port" "Emitted" "Transferred" "Capacity (last 10m)"
-    "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
+   [{:text "Id" :attr {:class "tip right"
+                       :title (:exec-id tips)}}
+    {:text "Uptime" :attr {:class "tip right"
+                           :title (:exec-uptime tips)}}
+    {:text "Host" :attr {:class "tip above"
+                         :title (:sup-host tips)}}
+    {:text "Port" :attr {:class "tip above"
+                         :title (:port tips)}}
+    {:text "Emitted" :attr {:class "tip above"
+                            :title (:emitted tips)}}
+    {:text "Transferred" :attr {:class "tip above"
+                                :title (:transferred tips)}}
+    {:text "Capacity (last 10m)" :attr {:class "tip above"
+                                        :title (:capacity tips)}}
+    {:text "Execute latency (ms)" :attr {:class "tip above"
+                                         :title (:exec-lat tips)}}
+    {:text "Executed" :attr {:class "tip above"
+                             :title (:num-executed tips)}}
+    {:text "Process latency (ms)":attr {:class "tip above"
+                                        :title (:proc-lat tips)}}
+    {:text "Acked" :attr {:class "tip above"
+                          :title (:bolt-acked tips)}}
+    {:text "Failed" :attr {:class "tip left"
+                           :title (:bolt-failed tips)}}]
    (for [^ExecutorSummary e executors
          :let [stats (.get_stats e)
                stats (if stats
@@ -662,7 +915,22 @@
         display-map (into {} (for [t times] [t pretty-uptime-sec]))
         display-map (assoc display-map ":all-time" (fn [_] "All time"))]
     (sorted-table
-     ["Window" "Emitted" "Transferred" "Execute latency (ms)" "Executed" "Process latency (ms)" "Acked" "Failed"]
+     [{:text "Window" :attr {:class "tip right"
+                             :title (:window tips)}}
+      {:text "Emitted" :attr {:class "tip above"
+                              :title (:emitted tips)}}
+      {:text "Transferred" :attr {:class "tip above"
+                                  :title (:transferred tips)}}
+      {:text "Execute latency (ms)" :attr {:class "tip above"
+                                           :title (:exec-lat tips)}}
+      {:text "Executed" :attr {:class "tip above"
+                               :title (:num-executed tips)}}
+      {:text "Process latency (ms)":attr {:class "tip above"
+                                          :title (:proc-lat tips)}}
+      {:text "Acked" :attr {:class "tip above"
+                            :title (:bolt-acked tips)}}
+      {:text "Failed" :attr {:class "tip left"
+                             :title (:bolt-failed tips)}}]
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
        [(link-to (if (= k window) {:class "red"} {})
@@ -720,7 +988,14 @@
                      (= type :bolt) (bolt-page window summ component summs include-sys?))]
       (concat
        [[:h2 "Component summary"]
-        (table ["Id" "Topology" "Executors" "Tasks"]
+        (table [{:text "Id" :attr {:class "tip right"
+                                   :title (:comp-id tips)}}
+                {:text "Topology" :attr {:class "tip above"
+                                   :title (str (:name tips) " " (:name-link tips))}}
+                {:text "Executors" :attr {:class "tip above"
+                                   :title (:num-execs tips)}}
+                {:text "Tasks" :attr {:class "tip above"
+                               :title (:num-tasks tips)}}]
                [[(escape-html component)
                  (topology-link (.get_id summ) (.get_name summ))
                  (count summs)
@@ -742,9 +1017,11 @@
            ui-template))
   (GET "/topology/:id" [:as {cookies :cookies} id & m]
        (let [include-sys? (get-include-sys? cookies)]
-         (-> (topology-page id (:window m) include-sys?)
+         (try
+           (-> (topology-page id (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)))
+             ui-template)
+           (catch Exception e (resp/redirect "/")))))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)]
          (-> (component-page id component (:window m) include-sys?)

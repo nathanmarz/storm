@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm;
 import java.util.Map;
 
@@ -84,6 +101,38 @@ public class ConfigValidation {
                 }
             }
             throw new IllegalArgumentException("Field " + name + " must be a power of 2.");
+        }
+    };
+
+    /**
+     * Validates Kryo Registration
+     */
+    public static Object KryoRegValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            if (o instanceof Iterable) {
+                for (Object e : (Iterable)o) {
+                    if (e instanceof Map) {
+                        for (Map.Entry<Object,Object> entry: ((Map<Object,Object>)e).entrySet()) {
+                            if (!(entry.getKey() instanceof String) ||
+                                !(entry.getValue() instanceof String)) {
+                                throw new IllegalArgumentException(
+                                    "Each element of the list " + name + " must be a String or a Map of Strings");
+                            }
+                        }
+                    } else if (!(e instanceof String)) {
+                        throw new IllegalArgumentException(
+                                "Each element of the list " + name + " must be a String or a Map of Strings");
+                    }
+                }
+                return;
+            }
+            throw new IllegalArgumentException(
+                    "Field " + name + " must be an Iterable containing only Strings or Maps of Strings");
         }
     };
 }

@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.logviewer
   (:use compojure.core)
   (:use [hiccup core page-helpers])
@@ -63,7 +78,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (html4
    [:head
     [:title "Storm log viewer"]
-    (include-css "/css/bootstrap-1.1.0.css")
+    (include-css "/css/bootstrap-1.4.0.css")
     (include-css "/css/style.css")
     (include-js "/js/jquery-1.6.2.min.js")
     (include-js "/js/jquery.tablesorter.min.js")

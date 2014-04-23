@@ -1,0 +1,36 @@
+Apache Storm
+Copyright 2013 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+This product includes software developed by Nathan Marz
+Copyright 2011-2013 Nathan Marz
+
+
+This product includes software developed by Yahoo! Inc. (www.yahoo.com)
+Copyright © 2012-2013 Yahoo! Inc.  All rights reserved.
+
+YAML support provided by snakeyaml (http://code.google.com/p/snakeyaml/).
+Copyright (c) 2008-2010 Andrey Somov
+
+The Netty transport uses Netty
+(https://netty.io/)
+Copyright (C) 2011 The Netty Project
+
+This product uses LMAX Disruptor
+(http://lmax-exchange.github.io/disruptor/)
+Copyright 2011 LMAX Ltd.
+
+This product includes the Jetty HTTP server
+(http://jetty.codehaus.org/jetty/).
+Copyright 1995-2006 Mort Bay Consulting Pty Ltd
+
+JSON (de)serialization by json-simple from
+(http://code.google.com/p/json-simple).
+Copyright (C) 2009 Fang Yidong and Chris Nokleberg
+
+Alternative collection types provided by google-collections from
+http://code.google.com/p/google-collections/.
+Copyright (C) 2007 Google Inc.

@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])
@@ -94,11 +109,11 @@
      {}
      (dofor [[id hb] id->heartbeat]
             (let [state (cond
+                         (not hb)
+                           :not-started
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
-                         (not hb)
-                           :not-started
                          (> (- now (:time-secs hb))
                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
                            :timed-out
@@ -144,7 +159,10 @@
     (rmpath (worker-root conf id))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
-    )))
+    )
+  (catch java.io.FileNotFoundException e (log-message (.getMessage e)))
+  (catch java.io.IOException e (log-message (.getMessage e)))
+    ))
 
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
@@ -155,7 +173,9 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (ensure-process-killed! pid)
-      (rmpath (worker-pid-path conf id pid))
+      (try
+        (rmpath (worker-pid-path conf id pid))
+        (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
       )
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
@@ -253,6 +273,21 @@
        (map :storm-id)
        set))
 
+(defn shutdown-disallowed-workers [supervisor]
+  (let [conf (:conf supervisor)
+        ^LocalState local-state (:local-state supervisor)
+        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        now (current-time-secs)
+        allocated (read-allocated-workers supervisor assigned-executors now)
+        disallowed (keys (filter-val
+                                  (fn [[state _]] (= state :disallowed))
+                                  allocated))]
+    (log-debug "Allocated workers " allocated)
+    (log-debug "Disallowed workers " disallowed)
+    (doseq [id disallowed]
+      (shutdown-worker supervisor id))
+    ))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
@@ -308,11 +343,14 @@
       ;; important that this happens after setting the local assignment so that
       ;; synchronize-supervisor doesn't try to launch workers for which the
       ;; resources don't exist
+      (if on-windows? (shutdown-disallowed-workers supervisor))
       (doseq [storm-id downloaded-storm-ids]
         (when-not (assigned-storm-ids storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
-          (rmr (supervisor-stormdist-root conf storm-id))
+          (try
+            (rmr (supervisor-stormdist-root conf storm-id))
+            (catch Exception e (log-message (.getMessage e))))
           ))
       (.add processes-event-manager sync-processes)
       )))
@@ -389,7 +427,7 @@
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
     ;; Downloading to permanent location is atomic
-    (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
+    (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/forceMkdir (File. tmproot))
       
@@ -443,7 +481,7 @@
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
-            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
+            target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
             (cond
               resources-jar
               (do

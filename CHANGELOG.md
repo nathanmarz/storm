@@ -1,4 +1,7 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-287: Fix the positioning of documentation strings in clojure code
+ * STORM-290: Fix a log binding conflict caused by curator dependencies
+ * STORM-289: Fix Trident DRPC memory leak
  * STORM-173: Treat command line "-c" option number config values as such
  * STORM-194: Support list of strings in *.worker.childopts, handle spaces
  * STORM-288: Fixes version spelling in pom.xml

@@ -459,8 +459,7 @@ public class Config extends HashMap<String, Object> {
      * with an identifier for this worker.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
-    public static final Object WORKER_CHILDOPTS_SCHEMA = String.class;
-
+    public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * How often this worker should heartbeat to the supervisor.
@@ -662,7 +661,7 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
      */
     public static final String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
-    public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = String.class;
+    public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for

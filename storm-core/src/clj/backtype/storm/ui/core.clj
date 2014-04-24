@@ -29,7 +29,6 @@
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
   (:import [java.io File])
-  (:import [java.net URLDecoder])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -1020,7 +1019,7 @@
        (let [include-sys? (get-include-sys? cookies)
             id (url-decode id)]
          (try
-           (-> (topology-page (URLDecoder/decode id) (:window m) include-sys?)
+           (-> (topology-page (url-decode id) (:window m) include-sys?)
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)
            (catch Exception e (resp/redirect "/")))))

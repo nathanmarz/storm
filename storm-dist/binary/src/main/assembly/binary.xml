@@ -96,6 +96,11 @@
             <outputDirectory>/conf</outputDirectory>
             <destName>storm.yaml</destName>
         </file>
+        <file>
+            <source>${project.basedir}/../../conf/storm_env.ini</source>
+            <outputDirectory>/conf</outputDirectory>
+            <destName>storm_env.ini</destName>
+        </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>
             <source>${project.basedir}/../../VERSION</source>

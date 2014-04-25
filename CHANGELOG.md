@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-223: use safe parsing for reading YAML
  * STORM-238: LICENSE and NOTICE files are duplicated in storm-core jar
  * STORM-276: Add support for logviewer in storm.cmd.
  * STORM-286: Use URLEncoder#encode with the encoding specified.

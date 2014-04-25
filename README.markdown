@@ -72,7 +72,7 @@ under the License.
 * David Lao ([@davidlao2k](https://github.com/davidlao2k))
 * P. Taylor Goetz ([@ptgoetz](https://github.com/ptgoetz))
 * Derek Dagit ([@d2r](https://github.com/d2r))
-* Robert Evans ([@revans2](https://github.com/revans2)) 
+* Robert Evans ([@revans2](https://github.com/revans2))
 
 
 ## Contributors

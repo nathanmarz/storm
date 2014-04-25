@@ -55,7 +55,7 @@
     goto :eof
   )
 
-  set corecommands=activate deactivate dev-zookeeper drpc kill list nimbus rebalance repl shell supervisor ui
+  set corecommands=activate deactivate dev-zookeeper drpc kill list nimbus logviewer rebalance repl shell supervisor ui
   for %%i in ( %corecommands% ) do (
     if %storm-command% == %%i set corecommand=true  
   )
@@ -122,6 +122,11 @@
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
+:logviewer
+  set CLASS=backtype.storm.daemon.logviewer
+  set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  goto :eof
+
 :nimbus
   set CLASS=backtype.storm.daemon.nimbus
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
@@ -154,7 +159,7 @@
   goto :eof
 
 :version
-  type RELEASE
+  type %STORM_HOME%\RELEASE
   goto :eof
 
 :make_command_arguments

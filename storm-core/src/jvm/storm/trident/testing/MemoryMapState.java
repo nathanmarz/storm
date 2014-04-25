@@ -30,10 +30,13 @@ import storm.trident.state.ValueUpdater;
 import storm.trident.state.map.*;
 import storm.trident.state.snapshot.Snapshottable;
 
-public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, MapState<T> {
+public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, MapState<T>, RemovableMapState<T> {
 
     MemoryMapStateBacking<OpaqueValue> _backing;
     SnapshottableMap<T> _delegate;
+    List<List<Object>> _removed = new ArrayList();
+    Long _currTx = null;
+
 
     public MemoryMapState(String id) {
         _backing = new MemoryMapStateBacking(id);
@@ -54,6 +57,11 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
 
     public void beginCommit(Long txid) {
         _delegate.beginCommit(txid);
+        if(txid==null || !txid.equals(_currTx)) {
+            _backing.multiRemove(_removed);
+        }
+        _removed = new ArrayList();
+        _currTx = txid;
     }
 
     public void commit(Long txid) {
@@ -74,6 +82,17 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
 
     public List<T> multiGet(List<List<Object>> keys) {
         return _delegate.multiGet(keys);
+    }
+
+    @Override
+    public void multiRemove(List<List<Object>> keys) {
+        List nulls = new ArrayList();
+        for(int i=0; i<keys.size(); i++) {
+            nulls.add(null);
+        }
+        // first just set the keys to null, then flag to remove them at beginning of next commit when we know the current and last value are both null
+        multiPut(keys, nulls);
+        _removed.addAll(keys);
     }
 
     public static class Factory implements StateFactory {
@@ -104,6 +123,12 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
                 _dbs.put(id, new HashMap());
             }
             this.db = (Map<List<Object>, T>) _dbs.get(id);
+        }
+
+        public void multiRemove(List<List<Object>> keys) {
+            for(List<Object> key: keys) {
+                db.remove(key);
+            }
         }
 
         @Override

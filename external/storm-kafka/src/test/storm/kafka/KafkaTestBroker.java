@@ -25,12 +25,14 @@ public class KafkaTestBroker {
             server = new TestingServer();
             zookeeperConnectionString = server.getConnectString();
             ExponentialBackoffRetry retryPolicy = new ExponentialBackoffRetry(1000, 3);
+            String tempDir = System.getProperty("java.io.tmpdir");
             CuratorFramework zookeeper = CuratorFrameworkFactory.newClient(zookeeperConnectionString, retryPolicy);
             zookeeper.start();
             Properties p = new Properties();
             p.setProperty("zookeeper.connect", zookeeperConnectionString);
             p.setProperty("broker.id", "0");
             p.setProperty("port", "" + port);
+            p.setProperty("log.dirs",tempDir+"kafka_tmp_logs");
             kafka.server.KafkaConfig config = new kafka.server.KafkaConfig(p);
             kafka = new KafkaServerStartable(config);
             kafka.startup();

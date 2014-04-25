@@ -47,6 +47,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
@@ -138,7 +139,7 @@ public class Utils {
                   + resources);
             }
             URL resource = resources.iterator().next();
-            Yaml yaml = new Yaml();
+            Yaml yaml = new Yaml(new SafeConstructor());
             Map ret = null;
             InputStream input = resource.openStream();
             try {

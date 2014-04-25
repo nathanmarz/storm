@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-291: upgrade http-client to 4.3.3
  * STORM-252: Upgrade curator to latest version
  * STORM-294: Commas not escaped in command line
  * STORM-287: Fix the positioning of documentation strings in clojure code

@@ -183,6 +183,19 @@
             <resource>
                 <directory>../conf</directory>
             </resource>
+            <resource>
+                <directory>../</directory>
+                <targetPath>META-INF</targetPath>
+                <includes>
+                    <!--
+                    storm-core doesn't package jquery, etc. so the stock
+                    apache LICENSE file is okay. We do want our version
+                    of the NOTICE file, however
+                    -->
+                    <include>NOTICE</include>
+                </includes>
+            </resource>
+
         </resources>
         <testResources>
             <testResource>
@@ -272,7 +285,15 @@
                     <transformers>
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
                     </transformers>
-                    <filters />
+                    <filters>
+                        <filter>
+                            <artifact>org.apache.thrift:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <dependencies>
                     <dependency>

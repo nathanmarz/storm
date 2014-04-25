@@ -54,7 +54,7 @@
   <appender name="METRICS" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${storm.home}/logs/metrics.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>metrics.log.%i</fileNamePattern>
+      <fileNamePattern>${storm.home}/logs/metrics.log.%i</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>9</maxIndex>
     </rollingPolicy>

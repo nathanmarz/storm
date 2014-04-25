@@ -1,6 +1,7 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-276: Add support for logviewer in storm.cmd.
  * STORM-286: Use URLEncoder#encode with the encoding specified.
- * STORM-296. Storm kafka unit tests are failing on windows
+ * STORM-296: Storm kafka unit tests are failing on windows
  * STORM-291: upgrade http-client to 4.3.3
  * STORM-252: Upgrade curator to latest version
  * STORM-294: Commas not escaped in command line

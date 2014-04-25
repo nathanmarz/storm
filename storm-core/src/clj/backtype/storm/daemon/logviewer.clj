@@ -30,9 +30,10 @@
             [clojure.string :as string])
   (:gen-class))
 
-(defn tail-file [path tail]
+(defn tail-file [path tail root-dir]
   (let [flen (.length (clojure.java.io/file path))
         skip (- flen tail)]
+    (if (.startsWith path root-dir)
     (with-open [input (clojure.java.io/input-stream path)
                 output (java.io.ByteArrayOutputStream.)]
       (if (> skip 0) (.skip input skip))
@@ -42,7 +43,7 @@
             (when (and (pos? size) (< (.size output) tail))
               (do (.write output buffer 0 size)
                   (recur))))))
-      (.toString output))
+      (.toString output)) "File not found")
     ))
 
 (defn log-root-dir
@@ -61,7 +62,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         tail (if tail
                (min 10485760 (Integer/parseInt tail))
                10240)
-        tail-string (tail-file path tail)]
+        tail-string (tail-file path tail root-dir)]
     (if grep
        (clojure.string/join "\n<br>"
          (filter #(.contains % grep) (.split tail-string "\n")))

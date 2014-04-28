@@ -45,4 +45,7 @@ public class StaticCoordinator implements PartitionCoordinator {
         return _managers.get(partition);
     }
 
+    @Override
+    public void refresh() { return; }
+
 }

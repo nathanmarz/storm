@@ -36,8 +36,11 @@ import storm.kafka.trident.IBrokerReader;
 import storm.kafka.trident.StaticBrokerReader;
 import storm.kafka.trident.ZkBrokerReader;
 
+import java.io.IOException;
 import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.*;
 
 
@@ -110,9 +113,9 @@ public class KafkaUtils {
                             LOG.warn("partitionToOffset contains partition not found in _connections. Stale partition data?");
                             return null;
                         }
-                        long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime()); 
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
-                        if (earliestTimeOffset == 0 || latestTimeOffset == 0) {
+                        long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
+                        if (latestTimeOffset == 0 || earliestTimeOffset == 0) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
@@ -159,12 +162,17 @@ public class KafkaUtils {
         for (int errors = 0; errors < 2 && msgs == null; errors++) {
             FetchRequestBuilder builder = new FetchRequestBuilder();
             FetchRequest fetchRequest = builder.addFetch(topic, partitionId, offset, config.fetchSizeBytes).
-                    clientId(config.clientId).build();
+                    clientId(config.clientId).maxWait(config.fetchMaxWait).build();
             FetchResponse fetchResponse;
             try {
                 fetchResponse = consumer.fetch(fetchRequest);
             } catch (Exception e) {
-                if (e instanceof ConnectException) {
+                if (e instanceof ConnectException ||
+                        e instanceof SocketTimeoutException ||
+                        e instanceof IOException ||
+                        e instanceof UnresolvedAddressException
+                        ) {
+                    LOG.warn("Network error when fetching messages:", e);
                     throw new FailedFetchException(e);
                 } else {
                     throw new RuntimeException(e);

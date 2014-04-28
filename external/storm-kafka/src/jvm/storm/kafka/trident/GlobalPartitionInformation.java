@@ -17,13 +17,12 @@
  */
 package storm.kafka.trident;
 
+import com.google.common.base.Objects;
 import storm.kafka.Broker;
 import storm.kafka.Partition;
 
 import java.io.Serializable;
 import java.util.*;
-
-import com.google.common.base.Objects;
 
 
 public class GlobalPartitionInformation implements Iterable<Partition>, Serializable {

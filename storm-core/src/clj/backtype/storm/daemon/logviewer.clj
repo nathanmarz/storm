@@ -33,18 +33,18 @@
 (defn tail-file [path tail root-dir]
   (let [flen (.length (clojure.java.io/file path))
         skip (- flen tail)
-        log-dir (File. root-dir)
+        log-dir (.getCanonicalFile (File. root-dir))
         log-file (File. path)]
     (if (= log-dir (.getParentFile log-file))
-    (with-open [input (clojure.java.io/input-stream path)
-                output (java.io.ByteArrayOutputStream.)]
-      (if (> skip 0) (.skip input skip))
-        (let [buffer (make-array Byte/TYPE 1024)]
-          (loop []
-            (let [size (.read input buffer)]
-              (when (and (pos? size) (< (.size output) tail))
-                (do (.write output buffer 0 size)
-                    (recur))))))
+      (with-open [input (clojure.java.io/input-stream path)
+                  output (java.io.ByteArrayOutputStream.)]
+        (if (> skip 0) (.skip input skip))
+          (let [buffer (make-array Byte/TYPE 1024)]
+            (loop []
+              (let [size (.read input buffer)]
+                (when (and (pos? size) (< (.size output) tail))
+                  (do (.write output buffer 0 size)
+                      (recur))))))
         (.toString output)) "File not found")
     ))
 

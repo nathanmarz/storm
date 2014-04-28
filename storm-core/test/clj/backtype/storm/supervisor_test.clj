@@ -248,7 +248,7 @@
           mock-worker-id "fake-worker-id"
           mock-cp "mock-classpath"
           exp-args-fn (fn [opts topo-opts]
-                       (concat ["java" "-server"]
+                       (concat [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="

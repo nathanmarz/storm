@@ -71,6 +71,9 @@ under the License.
 * Flip Kromer ([@mrflip](https://github.com/mrflip))
 * David Lao ([@davidlao2k](https://github.com/davidlao2k))
 * P. Taylor Goetz ([@ptgoetz](https://github.com/ptgoetz))
+* Derek Dagit ([@d2r](https://github.com/d2r))
+* Robert Evans ([@revans2](https://github.com/revans2))
+
 
 ## Contributors
 
@@ -105,9 +108,7 @@ under the License.
 * Bryan Peterson ([@Lazyshot](https://github.com/Lazyshot))
 * Sam Ritchie ([@sritchie](https://github.com/sritchie))
 * Stuart Anderson ([@emblem](https://github.com/emblem))
-* Robert Evans ([@revans2](https://github.com/revans2)) 
 * Lorcan Coyle ([@lorcan](https://github.com/lorcan))
-* Derek Dagit ([@d2r](https://github.com/d2r))
 * Andrew Olson ([@noslowerdna](https://github.com/noslowerdna))
 * Gavin Li ([@lyogavin](https://github.com/lyogavin))
 * Tudor Scurtu ([@tscurtu](https://github.com/tscurtu))

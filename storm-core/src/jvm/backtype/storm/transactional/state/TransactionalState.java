@@ -21,7 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.serialization.KryoValuesDeserializer;
 import backtype.storm.serialization.KryoValuesSerializer;
 import backtype.storm.utils.Utils;
-import com.netflix.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFramework;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

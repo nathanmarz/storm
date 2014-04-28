@@ -20,7 +20,7 @@ package storm.trident.topology.state;
 
 import backtype.storm.Config;
 import backtype.storm.utils.Utils;
-import com.netflix.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFramework;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;

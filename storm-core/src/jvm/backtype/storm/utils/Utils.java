@@ -17,23 +17,16 @@
  */
 package backtype.storm.utils;
 
-import backtype.storm.Config;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.StormTopology;
-import clojure.lang.IFn;
-import clojure.lang.RT;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.retry.ExponentialBackoffRetry;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -46,10 +39,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+
+import backtype.storm.Config;
+import backtype.storm.generated.ComponentCommon;
+import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.StormTopology;
+import clojure.lang.IFn;
+import clojure.lang.RT;
 
 public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
@@ -134,8 +139,14 @@ public class Utils {
                   + resources);
             }
             URL resource = resources.iterator().next();
-            Yaml yaml = new Yaml();
-            Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
+            Yaml yaml = new Yaml(new SafeConstructor());
+            Map ret = null;
+            InputStream input = resource.openStream();
+            try {
+                ret = (Map) yaml.load(new InputStreamReader(input));
+            } finally {
+                input.close();
+            }
             if(ret==null) ret = new HashMap();
             
 
@@ -158,12 +169,16 @@ public class Utils {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
         if(commandOptions != null) {
-            commandOptions = commandOptions.replaceAll("%%%%", " ");
             String[] configs = commandOptions.split(",");
             for (String config : configs) {
-                String[] options = config.split("=");
+                config = URLDecoder.decode(config);
+                String[] options = config.split("=", 2);
                 if (options.length == 2) {
-                    ret.put(options[0], options[1]);
+                    Object val = JSONValue.parse(options[1]);
+                    if (val == null) {
+                        val = options[1];
+                    }
+                    ret.put(options[0], val);
                 }
             }
         }
@@ -335,22 +350,18 @@ public class Utils {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root;
-        try {
-            CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
-                    .connectString(zkStr)
-                    .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                    .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                    .retryPolicy(new BoundedExponentialBackoffRetry(
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
-            if(auth!=null && auth.scheme!=null) {
-                builder = builder.authorization(auth.scheme, auth.payload);
-            }
-            return builder.build();
-        } catch (IOException e) {
-           throw new RuntimeException(e);
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                .connectString(zkStr)
+                .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+                .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+                .retryPolicy(new BoundedExponentialBackoffRetry(
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
+        if(auth!=null && auth.scheme!=null) {
+            builder = builder.authorization(auth.scheme, auth.payload);
         }
+        return builder.build();
     }
 
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port) {

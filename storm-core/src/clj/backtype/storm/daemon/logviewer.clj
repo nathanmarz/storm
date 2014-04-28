@@ -32,8 +32,10 @@
 
 (defn tail-file [path tail root-dir]
   (let [flen (.length (clojure.java.io/file path))
-        skip (- flen tail)]
-    (if (.startsWith path (.getCanonicalPath (File. root-dir)))
+        skip (- flen tail)
+        log-dir (File. root-dir)
+        log-file (File. path)]
+    (if (= log-dir (.getParentFile log-file))
     (with-open [input (clojure.java.io/input-stream path)
                 output (java.io.ByteArrayOutputStream.)]
       (if (> skip 0) (.skip input skip))

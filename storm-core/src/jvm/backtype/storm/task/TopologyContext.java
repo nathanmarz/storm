@@ -232,7 +232,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         }
 
         if (metric == null) {
-            throw new NullPointerException("Cannot register a null metric");
+            throw new IllegalArgumentException("Cannot register a null metric");
         }
         
         Map m1 = _registeredMetrics;

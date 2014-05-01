@@ -72,8 +72,8 @@ public class ShellProcess implements Serializable {
 
     private ISerializer getSerializer(Map conf) {
         //get factory class name
-        String serializer_className = (String)conf.get(Config.STORM_MULTILANG_SERIALIZER);
-        LOG.info("Storm multilang serializer:" + serializer_className);
+        String serializer_className = (String)conf.get(Config.TOPOLOGY_MULTILANG_SERIALIZER);
+        LOG.info("Storm multilang serializer: " + serializer_className);
 
         ISerializer serializer = null;
         try {

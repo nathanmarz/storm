@@ -14,7 +14,7 @@ package backtype.storm.multilang;
  */
 public class SpoutMsg {
     private String command;
-    private String id;
+    private Object id;
 
     public String getCommand() {
         return command;
@@ -24,11 +24,11 @@ public class SpoutMsg {
         this.command = command;
     }
 
-    public String getId() {
+    public Object getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Object id) {
         this.id = id;
     }
 }

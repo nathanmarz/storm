@@ -73,7 +73,7 @@ public class ShellSpout implements ISpout {
             spoutMsg = new SpoutMsg();
         }
         spoutMsg.setCommand("ack");
-        spoutMsg.setId(msgId.toString());
+        spoutMsg.setId(msgId);
         querySubprocess();
     }
 
@@ -82,7 +82,7 @@ public class ShellSpout implements ISpout {
             spoutMsg = new SpoutMsg();
         }
         spoutMsg.setCommand("fail");
-        spoutMsg.setId(msgId.toString());
+        spoutMsg.setId(msgId);
         querySubprocess();
     }
 

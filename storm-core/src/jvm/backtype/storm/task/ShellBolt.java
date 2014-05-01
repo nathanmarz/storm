@@ -180,7 +180,7 @@ public class ShellBolt implements IBolt {
         _inputs.clear();
     }
 
-    private void handleAck(String id) {
+    private void handleAck(Object id) {
         Tuple acked = _inputs.remove(id);
         if(acked==null) {
             throw new RuntimeException("Acked a non-existent or already acked/failed id: " + id);
@@ -188,7 +188,7 @@ public class ShellBolt implements IBolt {
         _collector.ack(acked);
     }
 
-    private void handleFail(String id) {
+    private void handleFail(Object id) {
         Tuple failed = _inputs.remove(id);
         if(failed==null) {
             throw new RuntimeException("Failed a non-existent or already acked/failed id: " + id);

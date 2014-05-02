@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-113: making thrift usage thread safe for local cluster
  * STORM-223: use safe parsing for reading YAML
  * STORM-238: LICENSE and NOTICE files are duplicated in storm-core jar
  * STORM-276: Add support for logviewer in storm.cmd.

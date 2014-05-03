@@ -21,6 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
+import backtype.storm.StormSubmitterWithProgressBar;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
 import backtype.storm.task.TopologyContext;
@@ -190,7 +191,7 @@ public class ReachTopology {
     }
     else {
       conf.setNumWorkers(6);
-      StormSubmitter.submitTopology(args[0], conf, builder.createRemoteTopology());
+      StormSubmitterWithProgressBar.submitTopology(args[0], conf, builder.createRemoteTopology());
     }
   }
 }

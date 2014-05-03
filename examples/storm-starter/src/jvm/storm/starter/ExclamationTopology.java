@@ -20,6 +20,7 @@ package storm.starter;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
+import backtype.storm.StormSubmitterWithProgressBar;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.TestWordSpout;
@@ -73,7 +74,7 @@ public class ExclamationTopology {
     if (args != null && args.length > 0) {
       conf.setNumWorkers(3);
 
-      StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
+      StormSubmitterWithProgressBar.submitTopology(args[0], conf, builder.createTopology());
     }
     else {
 

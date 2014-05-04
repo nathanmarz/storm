@@ -1,0 +1,152 @@
+<script id="component-summary-template" type="text/html">
+<h2>Component summary</h2>
+<table><thead><tr><th><span class="tip right" title="The ID assigned to a the Component by the Topology.">Id</span></th><th><span class="tip above" title="The name given to the topology by when it was submitted. Click the name to view the Topology's information.">Topology</span></th><th><span class="tip above" title="Executors are threads in a Worker process.">Executors</span></th><th><span class="tip above" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">Tasks</span></th></tr></thead>
+<tbody>
+<tr>
+<td>{{id}}</td>
+<td><a href="/topology.html?id={{topologyId}}">{{name}}</a></td>
+<td>{{executors}}</td>
+<td>{{tasks}}</td>
+</tbody>
+</table>
+</script>
+<script id="spout-stats-detail-template" type="text/html">
+<h2>Spout stats</h2>
+<table class="zebra-striped" id="spout-stats-table"><thead><tr><th class="header headerSortDown"><span class="tip right" title="The past period of time for which the statistics apply. Click on a value to set the window for this page.">Window</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span data-original-title="The number of Tuples emitted that sent to one or more bolts." class="tip above">Transferred</span></th><th class="header"><span class="tip above" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">Complete latency (ms)</span></th><th class="header"><span class="tip above" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">Acked</span></th><th class="header"><span data-original-title="The number of Tuple &quot;trees&quot; that were explicitly failed or timed out before acking was completed. A value of 0 is expected if no acking is done." class="tip left">Failed</span></th></tr></thead>
+<tbody>
+{{#spoutSummary}}
+<tr>
+<td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</td>
+<td>{{transferred}}</td>
+<td>{{emitted}}</td>
+<td>{{completeLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+</tr>
+{{/spoutSummary}}
+</tbody>
+</script>
+<script id="output-stats-template" type="text/html">
+<h2>Output stats ({{windowHint}})</h2>
+<table class="zebra-striped" id="output-stats-table"><thead><tr><th class="header headerSortDown"><span data-original-title="The name of the Tuple stream given in the Topolgy, or &quot;default&quot; if none was given." class="tip right">Stream</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span data-original-title="The number of Tuples emitted that sent to one or more bolts." class="tip above">Transferred</span></th><th class="header"><span data-original-title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done." class="tip above">Complete latency (ms)</span></th><th class="header"><span data-original-title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done." class="tip above">Acked</span></th><th class="header"><span data-original-title="The number of Tuple &quot;trees&quot; that were explicitly failed or timed out before acking was completed. A value of 0 is expected if no acking is done." class="tip left">Failed</span></th></tr></thead>
+<tbody>
+{{#outputStats}}
+<tr>
+<td>{{stream}}</td>
+<td>{{emitted}}</td>
+<td>{{transferred}}</td>
+<td>{{completeLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+</tr>
+{{/outputStats}}
+</tbody>
+</table>
+</script>
+<script id="executor-stats-template" type="text/html">
+<h2>Executors ({{windowHint}})</h2>
+<table class="zebra-striped" id="executor-stats-table"><thead><tr><th class="header headerSortDown"><span class="tip right" title="The unique executor ID.">Id</span></th><th class="header"><span class="tip right" title="The length of time an Executor (thread) has been alive.">Uptime</span></th><th class="header"><span class="tip above" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">Host</span></th><th class="header"><span data-original-title="The port number used by the Worker to which an Executor is assigned. Click on the port number to open the logviewer page for this Worker." class="tip above">Port</span></th><th class="header"><span data-original-title="The number of Tuples emitted." class="tip above">Emitted</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th><th class="header"><span class="tip above" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">Complete latency (ms)</span></th><th class="header"><span class="tip above" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">Acked</span></th><th class="header"><span data-original-title="The number of Tuple &quot;trees&quot; that were explicitly failed or timed out before acking was completed. A value of 0 is expected if no acking is done." class="tip left">Failed</span></th></tr></thead>
+<tbody>
+{{#executorStats}}
+<tr>
+<td>{{id}}</td>
+<td>{{uptime}}</td>
+<td>{{host}}</td>
+<td><a href="{{workerLogLink}}">{{port}}</a></td>
+<td>{{emitted}}</td>
+<td>{{transferred}}</td>
+<td>{{completeLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+</tr>
+{{/executorStats}}
+</tbody>
+</table>
+</script>
+<script id="bolt-stats-template" type="text/html">
+<h2>Bolt stats</h2>
+<table class="zebra-striped" id="bolt-stats-table"><thead><tr><th class="header headerSortDown"><span class="tip right" title="The past period of time for which the statistics apply. Click on a value to set the window for this page.">Window</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th><th class="header"><span data-original-title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple." class="tip above">Execute latency (ms)</span></th><th class="header"><span class="tip above" title="The number of incoming Tuples processed.">Executed</span></th><th class="header"><span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." class="tip above">Process latency (ms)</span></th><th class="header"><span data-original-title="The number of Tuples acknowledged by this Bolt." class="tip above">Acked</span></th><th class="header"><span data-original-title="The number of tuples Failed by this Bolt." class="tip left">Failed</span></th></tr></thead>
+<tbody>
+{{#boltStats}}
+<tr>
+<td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</td>
+<td>{{emitted}}</td>
+<td>{{transferred}}</td>
+<td>{{executeLatency}}</td>
+<td>{{executed}}</td>
+<td>{{processLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+</tr>
+{{/boltStats}}
+</tbody>
+</script>
+<script id="bolt-input-stats-template" type="text/html">
+<h2>Input stats ({{windowHint}})</h2>
+<table class="zebra-striped" id="bolt-input-stats-table"><thead><tr><th class="header headerSortDown"><span class="tip right" title="The ID assigned to a the Component by the Topology.">Component</span></th><th class="header"><span class="tip right" title="The name of the Tuple stream given in the Topolgy, or &quot;default&quot; if none was given.">Stream</span></th><th class="header"><span class="tip above" title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple.">Execute latency (ms)</span></th><th class="header"><span class="tip above" title="The number of incoming Tuples processed.">Executed</span></th><th class="header"><span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." class="tip above">Process latency (ms)</span></th><th class="header"><span class="tip above" title="The number of Tuples acknowledged by this Bolt.">Acked</span></th><th class="header"><span data-original-title="The number of tuples Failed by this Bolt." class="tip left">Failed</span></th></tr></thead>
+<tbody>
+{{#inputStats}}
+<tr>
+<td>{{component}}</td>
+<td>{{stream}}</td>
+<td>{{executeLatency}}</td>
+<td>{{executed}}</td>
+<td>{{processLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+</tr>
+{{/inputStats}}
+</tbody>
+</table>
+</script>
+<script id="bolt-output-stats-template" type="text/html">
+<h2>Output stats ({{windowHint}})</h2>
+<table class="zebra-striped" id="bolt-output-stats-table"><thead><tr><th class="header headerSortDown"><span class="tip right" title="The name of the Tuple stream given in the Topolgy, or &quot;default&quot; if none was given.">Stream</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th></tr></thead>
+<tbody>
+{{#outputStats}}
+<tr>
+<td>{{stream}}</td>
+<td>{{emitted}}</td>
+<td>{{transferred}}</td>
+</tr>
+{{/outputStats}}
+</tbody>
+</table>
+</script>
+<script id="bolt-executor-template" type="text/html">
+<h2>Executors</h2>
+<table class="zebra-striped" id="bolt-executor-table"><thead><tr><th class="header headerSortDown"><span class="tip right" title="The unique executor ID.">Id</span></th><th class="header"><span data-original-title="The length of time an Executor (thread) has been alive." class="tip right">Uptime</span></th><th class="header"><span class="tip above" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">Host</span></th><th class="header"><span class="tip above" title="The port number used by the Worker to which an Executor is assigned. Click on the port number to open the logviewer page for this Worker.">Port</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th><th class="header"><span class="tip above" title="If this is around 1.0, the corresponding Bolt is running as fast as it can, so you may want to increase the Bolt's parallelism. This is (number executed * average execute latency) / measurement time.">Capacity (last 10m)</span></th><th class="header"><span data-original-title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple." class="tip above">Execute latency (ms)</span></th><th class="header"><span class="tip above" title="The number of incoming Tuples processed.">Executed</span></th><th class="header"><span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." class="tip above">Process latency (ms)</span></th><th class="header"><span data-original-title="The number of Tuples acknowledged by this Bolt." class="tip above">Acked</span></th><th class="header"><span data-original-title="The number of tuples Failed by this Bolt." class="tip left">Failed</span></th></tr></thead>
+<tbody>
+{{#executorStats}}
+<tr>
+<td>{{id}}}</td>
+<td>{{uptime}}</td>
+<td>{{host}}</td>
+<td><a href="{{workerLogLink}}">{{port}}</a></td>
+<td>{{emitted}}</td>
+<td>{{transferred}}</td>
+<td>{{capacity}}</td>
+<td>{{executeLatency}}</td>
+<td>{{executed}}</td>
+<td>{{processLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+</tr>
+{{/executorStats}}
+</tbody>
+</table>
+</script>
+
+<script id="errors-template" type="text/html">
+<h2>Errors</h2>
+<table class="zebra-striped" id="errors-table"><thead><tr><th>Time</th><th>Error</th></tr></thead>
+<tbody>
+{{#errors}}
+<tr>
+<td>{{time}}</td>
+<td>{{error}}</td>
+</tr>
+{{/errors}}
+</tbody>
+</table>
+</script>

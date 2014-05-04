@@ -1,0 +1,97 @@
+<script id="topology-summary-template" type="text/html">
+<table id="topology-summary-table">
+<thead><tr><th><span class="tip right" title="The name given to the topology by when it was submitted.">Name</span></th><th><span class="tip right" title="The unique ID given to a Topology each time it is launched.">Id</span></th><th><span class="tip above" title="The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING.">Status</span></th><th><span class="tip above" title="The time since the Topology was submitted.">Uptime</span></th><th><span class="tip above" title="The number of Workers (processes).">Num workers</span></th><th><span class="tip above" title="Executors are threads in a Worker process.">Num executors</span></th><th><span class="tip above" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">Num tasks</span></th></tr></thead>
+<tbody>
+<tr>
+  <td>{{name}}</td>
+  <td>{{id}}</td>
+  <td>{{status}}</td>
+  <td>{{uptime}}</td>
+  <td>{{tasksTotal}}</td>
+  <td>{{workersTotal}}</td>
+  <td>{{executorsTotal}}</td>
+</tr>
+</tbody>
+</table>
+</script>
+<script id="topology-stats-template" type="text/html">
+<h2>Topology stats</h2>
+<table class="zebra-striped" id="topology-stats-table">
+<thead><tr><th><span class="tip right" title="The past period of time for which the statistics apply. Click on a value to set the window for this page.">Window</span></th><th><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th><th><span class="tip above" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">Complete latency (ms)</span></th><th><span class="tip above" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">Acked</span></th><th><span class="tip left" title="The number of Tuple &quot;trees&quot; that were explicitly failed or timed out before acking was completed. A value of 0 is expected if no acking is done.">Failed</span></th></tr></thead>
+<tbody>
+{{#topologyStats}}
+<tr>
+  <td><a href="/topology.html?id={{id}}&window={{window}}">{{windowPretty}}</td>
+  <td>{{emitted}}</td>
+  <td>{{transferred}}</td>
+  <td>{{completeLatency}}</td>
+  <td>{{acked}}</td>
+  <td>{{failed}}</td>
+</tr>
+{{/topologyStats}}
+</tbody>
+</table>
+</script>
+<script id="topology-configuration-template" type="text/html">
+<h2>Topology Configuration</h2>
+<table class="zebra-striped" id="topology-configuration-table"><thead><tr><th>Key</th><th>Value</th></tr></thead>
+<tbody>
+{{#config}}
+<tr>
+<td>{{key}}</td>
+<td>{{value}}</td>
+</tr>
+{{/config}}
+</tbody>
+</table>
+</script>
+<script id="spout-stats-template" type="text/html">
+<h2>Spouts ({{windowHint}})</h2>
+<table class="zebra-striped" id="spout-stats-table">
+<thead>
+<tr><th class="header headerSortDown"><span data-original-title="The ID assigned to a the Component by the Topology. Click on the name to view the Component's page." class="tip right">Id</span></th><th class="header"><span data-original-title="Executors are threads in a Worker process." class="tip right">Executors</span></th><th class="header"><span class="tip above" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">Tasks</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th><th class="header"><span class="tip above" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">Complete latency (ms)</span></th><th class="header"><span class="tip above" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">Acked</span></th><th class="header"><span class="tip above" title="The number of Tuple &quot;trees&quot; that were explicitly failed or timed out before acking was completed. A value of 0 is expected if no acking is done.">Failed</span></th><th class="header">Last error</th>
+</tr>
+</thead>
+<tbody>
+{{#spouts}}
+<tr>
+<td><a href="/component.html?id={{spoutId}}&topology_id={{id}}">{{spoutId}}</a></td>
+<td>{{executors}}</td>
+<td>{{tasks}}</td>
+<td>{{emitted}}<td>
+<td>{{transferred}}</td>
+<td>{{completeLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+<td>{{lastError}}</td>
+{{/spouts}}
+</tbody>
+</table>
+</script>
+<script id="bolt-stats-template" type="text/html">
+<h2>Bolts ({{windowHint}})</h2>
+<table class="zebra-striped" id="bolt-stats-table"><thead>
+<tr><th class="header headerSortDown"><span class="tip right" title="The ID assigned to a the Component by the Topology. Click on the name to view the Component's page.">Id</span></th><th class="header"><span data-original-title="Executors are threads in a Worker process." class="tip right">Executors</span></th><th class="header"><span class="tip above" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">Tasks</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted.">Emitted</span></th><th class="header"><span class="tip above" title="The number of Tuples emitted that sent to one or more bolts.">Transferred</span></th><th class="header"><span data-original-title="If this is around 1.0, the corresponding Bolt is running as fast as it can, so you may want to increase the Bolt's parallelism. This is (number executed * average execute latency) / measurement time." class="tip above">Capacity (last 10m)</span></th><th class="header"><span class="tip above" title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple.">Execute latency (ms)</span></th><th class="header"><span class="tip above" title="The number of incoming Tuples processed.">Executed</span></th><th class="header"><span class="tip above" title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received.">Process latency (ms)</span></th><th class="header"><span class="tip above" title="The number of Tuples acknowledged by this Bolt.">Acked</span></th><th class="header"><span class="tip left" title="The number of tuples Failed by this Bolt.">Failed</span></th><th class="header">Last error</th>
+</tr></thead>
+<tbody>
+{{#bolts}}
+<tr>
+<td><a href="/component.html?id={{boltId}}&topology_id={{id}}">{{boltId}}</a></td>
+<td>{{executors}}</td>
+<td>{{tasks}}</td>
+<td>{{emitted}}</td>
+<td>{{transferred}}</td>
+<td>{{capacity}}</td>
+<td>{{executeLatency}}</td>
+<td>{{executed}}</td>
+<td>{{processLatency}}</td>
+<td>{{acked}}</td>
+<td>{{failed}}</td>
+<td>{{lastError}}</td>
+{{/bolts}}
+</tbody>
+</script>
+
+<script id="topology-actions-template" type="text/html">
+<input {{activateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate"><input {{deactivateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate"><input {{rebalanceStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance"><input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
+</script>

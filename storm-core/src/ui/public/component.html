@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Storm UI</title>
+<link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
+<link href="/css/style.css" rel="stylesheet" type="text/css">
+<script src="/js/jquery-1.6.2.min.js" type="text/javascript"></script>
+<script src="/js/jquery.tablesorter.min.js" type="text/javascript"></script>
+<script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
+<script src="/js/jquery.mustache.js" type="text/javascript"></script>
+<script src="/js/purl.js" type="text/javascript"></script>
+<script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
+</head>
+<body>
+<h1><a href="/">Storm UI</a></h1>
+<div id="component-summary">
+</div>
+<div id="component-stats-detail">
+</div>
+<div id="component-input-stats">
+</div>
+<div id="component-output-stats">
+</div>
+<div id="component-executor-stats">
+</div>
+<div id="component-errors">
+</div>
+<div id="error">
+</div>
+<p id="toggle-switch" style="display: block;" class="js-only"></p>
+<script>
+$(document).ready(function() {
+    var componentId = $.url().param("id");
+    var topologyId = $.url().param("topology_id");
+    var window = $.url().param("window");
+    var sys = $.cookies.get("sys") || "false";
+    var url = "/api/topology/"+topologyId+"/component/"+componentId+"?sys="+sys;
+    if(window) url += "&window="+window;
+    renderToggleSys($("#toggle-switch"));
+    $.ajaxSetup({
+        "error":function(jqXHR,textStatus,response) {
+            var errorJson = jQuery.parseJSON(jqXHR.responseText);
+            $.get("/templates/error-template.html", function(template) {
+                $("#error").append(Mustache.render($(template).filter("#error-template").html(),errorJson));
+            });
+        }
+    });
+
+    $.getJSON(url,function(response,status,jqXHR) {
+        var componentSummary = $("#component-summary");
+        var componentStatsDetail = $("#component-stats-detail")
+        var inputStats = $("#component-input-stats");
+        var outputStats = $("#component-output-stats");
+        var executorStats = $("#component-executor-stats");
+        var errors = $("#component-errors");
+        $.get("/templates/component-page-template.html", function(template) {
+            componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
+            if(response["componentType"] == "spout") {
+                componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
+                $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
+                $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
+                $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+            } else {
+                componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
+                $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
+                if (response["inputStats"].length > 0) {
+                    $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                }
+                outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
+                $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
+                if(response["outputStats"].length > 0) {
+                    $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                }
+            }
+            errors.append(Mustache.render($(template).filter("#errors-template").html(),response));
+            if(response["errors"].length > 0) {
+                $("#errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>

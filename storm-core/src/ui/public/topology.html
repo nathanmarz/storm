@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Storm UI</title>
+<link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
+<link href="/css/style.css" rel="stylesheet" type="text/css">
+<script src="/js/jquery-1.6.2.min.js" type="text/javascript"></script>
+<script src="/js/jquery.tablesorter.min.js" type="text/javascript"></script>
+<script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
+<script src="/js/jquery.mustache.js" type="text/javascript"></script>
+<script src="/js/purl.js" type="text/javascript"></script>
+<script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
+</head>
+<body>
+<h1><a href="/">Storm UI</a></h1>
+<h2>Topology summary</h2>
+<div id="topology-summary">
+</div>
+<div id="topology-actions">
+<h2 class="js-only">Topology actions</h2>
+<p id="topology-actions" class="js-only">
+</p>
+</div>
+<div id="topology-stats"></div>
+<div id="spout-stats">
+</div>
+<div id="bolt-stats">
+</div>
+<div id="topology-configuration">
+</div>
+<p id="toggle-switch" style="display: block;" class="js-only"></p>
+<div id="error">
+</div>
+</body>
+<script>
+$(document).ready(function() {
+    var topologyId = $.url().param("id");
+    var window = $.url().param("window");
+    var sys = $.cookies.get("sys") || "false";
+    var url = "/api/topology/"+topologyId+"?sys="+sys;
+    if(window) url += "&window="+window;
+    renderToggleSys($("#toggle-switch"));
+    $.ajaxSetup({
+        "error":function(jqXHR,textStatus,response) {
+            var errorJson = jQuery.parseJSON(jqXHR.responseText);
+            $.get("/templates/error-template.html", function(template) {
+                $("#error").append(Mustache.render($(template).filter("#error-template").html(),errorJson));
+            });
+        }
+    });
+
+    $.getJSON(url,function(response,status,jqXHR) {
+        var topologySummary = $("#topology-summary");
+        var topologyStats = $("#topology-stats");
+        var spoutStats = $("#spout-stats");
+        var boltStats = $("#bolt-stats");
+        var config = $("#topology-configuration");
+        var topologyActions = $("#topology-actions");
+        var formattedConfig = formatConfigData(response["configuration"]);
+        var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"]);
+        $.get("/templates/topology-page-template.html", function(template) {
+            topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
+            topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
+            topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
+            $("#topology-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+            spoutStats.append(Mustache.render($(template).filter("#spout-stats-template").html(),response));
+            if(response["spouts"].length > 0) {
+                $("#spout-stats-table").tablesorter({sortList: [[0,0]], headers:{}});
+            }
+            boltStats.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
+            if(response["bolts"].length > 0) {
+                $("#bolt-stats-table").tablesorter({sortList: [[0,0]], headers:{}});
+            }
+            config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
+            $("#topology-configuration-table").tablesorter({ sortList: [[0,0]], headers: {}});
+
+        });
+    });
+ });
+</script>
+</html>

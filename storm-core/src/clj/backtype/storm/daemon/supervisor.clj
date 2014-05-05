@@ -439,11 +439,11 @@
       ))
 
 (defn jlp [stormroot conf]
-  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
+  (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
         os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
         arch (System/getProperty "os.arch")
-        arch-resource-root (str resource-root "/" os "-" arch)]
-    (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH)))) 
+        arch-resource-root (str resource-root File/separator os "-" arch)]
+    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
 (defn- substitute-worker-childopts [value port]
   (let [sub-fn (fn [s] (.replaceAll s "%ID%" (str port)))]

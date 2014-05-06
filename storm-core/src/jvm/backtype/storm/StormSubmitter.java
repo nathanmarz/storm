@@ -158,20 +158,13 @@ public class StormSubmitter {
     public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException {
         // show a progress bar so we know we're not stuck (especially on slow connections)
         submitTopology(name, stormConf, topology, opts, new StormSubmitter.ProgressListener() {
-            private long totalBytes;
-            private String srcFile;
-            private String targetFile;
-
             @Override
             public void onStart(String srcFile, String targetFile, long totalBytes) {
-                this.srcFile = srcFile;
-                this.targetFile = targetFile;
-                this.totalBytes = totalBytes;
                 System.out.printf("Start uploading file '%s' to '%s' (%d bytes)\n", srcFile, targetFile, totalBytes);
             }
 
             @Override
-            public void onProgress(long bytesUploaded) {
+            public void onProgress(String srcFile, String targetFile, long bytesUploaded, long totalBytes) {
                 int length = 50;
                 int p = (int)((length * bytesUploaded) / totalBytes);
                 String progress = StringUtils.repeat("=", p);
@@ -181,7 +174,7 @@ public class StormSubmitter {
             }
 
             @Override
-            public void onCompleted() {
+            public void onCompleted(String srcFile, String targetFile, long totalBytes) {
                 System.out.printf("\nFile '%s' uploaded to '%s' (%d bytes)\n", srcFile, targetFile, totalBytes);
             }
         });
@@ -241,7 +234,7 @@ public class StormSubmitter {
                 byte[] toSubmit = is.read();
                 bytesUploaded += toSubmit.length;
                 if (listener != null) {
-                    listener.onProgress(bytesUploaded);
+                    listener.onProgress(localJar, uploadLocation, bytesUploaded, totalSize);
                 }
 
                 if(toSubmit.length==0) break;
@@ -250,7 +243,7 @@ public class StormSubmitter {
             client.getClient().finishFileUpload(uploadLocation);
 
             if (listener != null) {
-                listener.onCompleted();
+                listener.onCompleted(localJar, uploadLocation, totalSize);
             }
 
             LOG.info("Successfully uploaded topology jar to assigned location: " + uploadLocation);
@@ -277,13 +270,19 @@ public class StormSubmitter {
 
         /**
          * called whenever a chunk of bytes is uploaded
+         * @param srcFile - jar file to be uploaded
+         * @param targetFile - destination file
          * @param bytesUploaded - number of bytes transferred so far
+         * @param totalBytes - total number of bytes of the file
          */
-        public void onProgress(long bytesUploaded);
+        public void onProgress(String srcFile, String targetFile, long bytesUploaded, long totalBytes);
 
         /**
          * called when the file is uploaded
+         * @param srcFile - jar file to be uploaded
+         * @param targetFile - destination file
+         * @param totalBytes - total number of bytes of the file
          */
-        public void onCompleted();
+        public void onCompleted(String srcFile, String targetFile, long totalBytes);
     }
 }

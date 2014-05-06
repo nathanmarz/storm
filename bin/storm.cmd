@@ -106,6 +106,12 @@
 :drpc
   set CLASS=backtype.storm.daemon.drpc
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value drpc.childopts > temp.txt
+  FOR /F "tokens=1,* delims= " %%i in (temp.txt) do (
+     if %%i == VALUE: (
+ 	set JAVA_HEAP_MAX=%%j )
+   )
+  del /F temp.txt
   goto :eof
 
 :help
@@ -125,11 +131,23 @@
 :logviewer
   set CLASS=backtype.storm.daemon.logviewer
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+   %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value logviewer.childopts > temp.txt
+  FOR /F "tokens=1,* delims= " %%i in (temp.txt) do (
+ 	if %%i == VALUE: (
+ 	set JAVA_HEAP_MAX=%%j )
+  )
+  del /F temp.txt
   goto :eof
 
 :nimbus
   set CLASS=backtype.storm.daemon.nimbus
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value nimbus.childopts > temp.txt
+    FOR /F "tokens=1,* delims= " %%i in (temp.txt) do (
+ 	if %%i == VALUE: (
+ 	set JAVA_HEAP_MAX=%%j )
+  )
+  del /F temp.txt
   goto :eof
 
 :rebalance
@@ -150,12 +168,25 @@
 :supervisor
   set CLASS=backtype.storm.daemon.supervisor
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value supervisor.childopts > temp.txt
+  FOR /F "tokens=1,* delims= " %%i in (temp.txt) do (
+ 	if %%i == VALUE: (
+ 	set JAVA_HEAP_MAX=%%j )
+  )
+  del /F temp.txt
+
   goto :eof
 
 :ui
   set CLASS=backtype.storm.ui.core
   set CLASSPATH=%CLASSPATH%;%STORM_HOME%
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
+  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value ui.childopts > temp.txt
+  FOR /F "tokens=1,* delims= " %%i in (temp.txt) do (
+ 	if %%i == VALUE: (
+ 	set JAVA_HEAP_MAX=%%j )
+  )
+  del /F temp.txt
   goto :eof
 
 :version

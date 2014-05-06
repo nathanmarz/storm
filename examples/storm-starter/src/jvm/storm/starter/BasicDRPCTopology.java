@@ -21,7 +21,6 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
-import backtype.storm.StormSubmitterWithProgressBar;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -73,7 +72,7 @@ public class BasicDRPCTopology {
     }
     else {
       conf.setNumWorkers(3);
-        StormSubmitterWithProgressBar.submitTopology(args[0], conf, builder.createRemoteTopology());
+        StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createRemoteTopology());
     }
   }
 }

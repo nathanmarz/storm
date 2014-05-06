@@ -20,7 +20,6 @@ package storm.starter;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
-import backtype.storm.StormSubmitterWithProgressBar;
 import backtype.storm.task.ShellBolt;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IRichBolt;
@@ -92,7 +91,7 @@ public class WordCountTopology {
     if (args != null && args.length > 0) {
       conf.setNumWorkers(3);
 
-      StormSubmitterWithProgressBar.submitTopology(args[0], conf, builder.createTopology());
+      StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createTopology());
     }
     else {
       conf.setMaxTaskParallelism(3);

@@ -21,7 +21,6 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
-import backtype.storm.StormSubmitterWithProgressBar;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
@@ -80,7 +79,7 @@ public class TridentWordCount {
     }
     else {
       conf.setNumWorkers(3);
-      StormSubmitterWithProgressBar.submitTopology(args[0], conf, buildTopology(null));
+      StormSubmitter.submitTopologyWithProgressBar(args[0], conf, buildTopology(null));
     }
   }
 }

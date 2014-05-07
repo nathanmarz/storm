@@ -44,6 +44,11 @@ class MessageBatch {
         encoded_length += msgEncodeLength(msg);
     }
 
+
+    TaskMessage get(int index) {
+        return msgs.get(index);
+    }
+
     /**
      * try to add a TaskMessage to a batch
      * @param taskMsg

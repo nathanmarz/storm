@@ -47,8 +47,9 @@
 ;; This would manifest itself in Trident when doing 1 batch at a time processing, and the ack_init message
 ;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue, 
 ;; unblocking the consumer
-(defnk disruptor-queue [buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
-  (DisruptorQueue. ((CLAIM-STRATEGY claim-strategy) buffer-size)
+(defnk disruptor-queue [^String queue-name buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
+  (DisruptorQueue. queue-name
+                   ((CLAIM-STRATEGY claim-strategy) buffer-size)
                    (mk-wait-strategy wait-strategy)
                    ))
 
@@ -89,7 +90,7 @@
                 (consume-batch-when-available queue handler)
                 0 )
               :kill-fn kill-fn
-              :thread-name thread-name
+              :thread-name (.getName queue)
               )]
      (consumer-started! queue)
      ret
@@ -97,5 +98,5 @@
 
 (defmacro consume-loop [queue & handler-args]
   `(let [handler# (handler ~@handler-args)]
-     (consume-loop* ~queue handler#)
+     (consume-loop* ~queue handler# :thread-name (.getName queue))
      ))

@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.messaging.loader
   (:use [backtype.storm util log])
-  (:import [java.util ArrayList])
+  (:import [java.util ArrayList Iterator])
   (:import [backtype.storm.messaging IContext IConnection TaskMessage])
   (:import [backtype.storm.utils DisruptorQueue MutableObject])
   (:require [backtype.storm.messaging [local :as local]])
@@ -24,45 +24,62 @@
 (defn mk-local-context []
   (local/mk-context))
 
+(defn- mk-receive-thread [context storm-id port transfer-local-fn  daemon kill-fn priority socket max-buffer-size thread-id]
+    (async-loop
+       (fn []
+         (log-message "Starting receive-thread: [stormId: " storm-id ", port: " port ", thread-id: " thread-id  " ]")
+         (fn []
+           (let [batched (ArrayList.)
+                 ^Iterator iter (.recv ^IConnection socket 0 thread-id)
+                 closed (atom false)]
+             (when iter
+               (while (and (not @closed) (.hasNext iter)) 
+                  (let [packet (.next iter)
+                        task (if packet (.task ^TaskMessage packet))
+                        message (if packet (.message ^TaskMessage packet))]
+                      (if (= task -1)
+                         (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
+                           (.close socket)
+                           (reset! closed  true))
+                         (when packet (.add batched [task message]))))))
+             
+             (when (not @closed)
+               (do
+                 (if (> (.size batched) 0)
+                   (transfer-local-fn batched))
+                 0)))))
+         :factory? true
+         :daemon daemon
+         :kill-fn kill-fn
+         :priority priority
+         :thread-name (str "worker-receiver-thread-" thread-id)))
+
+(defn- mk-receive-threads [context storm-id port transfer-local-fn  daemon kill-fn priority socket max-buffer-size thread-count]
+  (into [] (for [thread-id (range thread-count)] 
+             (mk-receive-thread context storm-id port transfer-local-fn  daemon kill-fn priority socket max-buffer-size thread-id))))
+
+
 (defnk launch-receive-thread!
-  [context storm-id port transfer-local-fn max-buffer-size
+  [context storm-id receiver-thread-count port transfer-local-fn max-buffer-size
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
   (let [max-buffer-size (int max-buffer-size)
-        vthread (async-loop
-                 (fn []
-                   (let [socket (.bind ^IContext context storm-id port)]
-                     (fn []
-                       (let [batched (ArrayList.)
-                             init (.recv ^IConnection socket 0)]
-                         (loop [packet init]
-                           (let [task (if packet (.task ^TaskMessage packet))
-                                 message (if packet (.message ^TaskMessage packet))]
-                             (if (= task -1)
-                               (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
-                                 (.close socket)
-                                 nil )
-                               (do
-                                 (when packet (.add batched [task message]))
-                                 (if (and packet (< (.size batched) max-buffer-size))
-                                   (recur (.recv ^IConnection socket 1))
-                                   (do (transfer-local-fn batched)
-                                     0 ))))))))))
-                 :factory? true
-                 :daemon daemon
-                 :kill-fn kill-fn
-                 :priority priority)]
+        socket (.bind ^IContext context storm-id port)
+        thread-count (if receiver-thread-count receiver-thread-count 1)
+        vthreads (mk-receive-threads context storm-id port transfer-local-fn daemon kill-fn priority socket max-buffer-size thread-count)]
     (fn []
       (let [kill-socket (.connect ^IContext context storm-id "localhost" port)]
         (log-message "Shutting down receiving-thread: [" storm-id ", " port "]")
         (.send ^IConnection kill-socket
-                  -1
-                  (byte-array []))
-        (log-message "Waiting for receiving-thread:[" storm-id ", " port "] to die")
-        (.join vthread)
+                  -1 (byte-array []))
+        
         (.close ^IConnection kill-socket)
+        
+        (log-message "Waiting for receiving-thread:[" storm-id ", " port "] to die")
+        
+        (for [thread-id (range thread-count)] 
+             (.join (vthreads thread-id)))
+        
         (log-message "Shutdown receiving-thread: [" storm-id ", " port "]")
         ))))
-
-

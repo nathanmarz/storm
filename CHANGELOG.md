@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-306: Add security documentation
  * STORM-302: Fix Indentation for pom.xml in storm-dist
  * STORM-235: Registering a null metric should blow up early
  * STORM-113: making thrift usage thread safe for local cluster

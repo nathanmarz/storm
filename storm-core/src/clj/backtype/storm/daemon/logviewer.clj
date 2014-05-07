@@ -20,10 +20,7 @@
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [org.slf4j LoggerFactory])
   (:import [ch.qos.logback.classic Logger])
-  (:import [org.apache.commons.logging LogFactory])
-  (:import [org.apache.commons.logging.impl Log4JLogger])
   (:import [ch.qos.logback.core FileAppender])
-  (:import [org.apache.log4j Level])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -70,13 +67,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (filter #(.contains % grep) (.split tail-string "\n")))
        (.replaceAll tail-string "\n" "\n<br>"))))
 
-(defn log-level-page [name level]
-  (let [log (LogFactory/getLog name)]
-    (if level
-      (if (instance? Log4JLogger log)
-        (.setLevel (.getLogger log) (Level/toLevel level))))
-    (str "effective log level for " name " is " (.getLevel (.getLogger log)))))
-
 (defn log-template [body]
   (html4
    [:head
@@ -95,8 +85,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defroutes log-routes
   (GET "/log" [:as req & m]
        (log-template (log-page (:file m) (:tail m) (:grep m) (:log-root req))))
-  (GET "/loglevel" [:as {cookies :cookies} & m]
-       (log-template (log-level-page (:name m) (:level m))))
   (route/resources "/")
   (route/not-found "Page not found"))
 

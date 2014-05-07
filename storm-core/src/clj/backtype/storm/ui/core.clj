@@ -231,12 +231,8 @@
                    reverse
                    first)]
     (if error
-      [:span (if (< (time-delta (.get_error_time_secs ^ErrorInfo error))
-                    (* 60 30))
-               {:class "red"}
-               {})
-       (error-subset (.get_error ^ErrorInfo error))]
-      )))
+      (error-subset (.get_error ^ErrorInfo error))
+      "")))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
   (let [spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
@@ -288,8 +284,8 @@
     (merge-with
      (fn [s1 s2]
        (merge-with + s1 s2))
-     (select-keys agg-bolt-stats [:emitted :transferred])
-     agg-spout-stats
+     (select-keys agg-bolt-stats [:emitted :transferred :acked :failed])
+     (select-keys agg-spout-stats [:emitted :transferred :acked :failed])
      )))
 
 (defn stats-times [stats-map]
@@ -312,6 +308,11 @@
                          (StringEscapeUtils/escapeJavaScript id) "', '"
                          (StringEscapeUtils/escapeJavaScript name) "', '"
                          command "', " is-wait ", " default-wait ")")}])
+
+(defn print-map [t]
+  (doseq [[k v] t]
+    (log-message "key " k " value " v)
+    ))
 
 (defn cluster-configuration []
   (with-nimbus nimbus
@@ -366,7 +367,7 @@
         {"id" (.get_id t)
          "name" (.get_name t)
          "status" (.get_status t)
-         "uptime" (.get_uptime_secs t)
+         "uptime" (pretty-uptime-sec (.get_uptime_secs t))
          "tasksTotal" (.get_num_tasks t)
          "workersTotal" (.get_num_workers t)
          "executorsTotal" (.get_num_executors t)})
@@ -399,10 +400,10 @@
      "tasks" (sum-tasks summs)
      "emitted" (get-in stats [:emitted window])
      "transferred" (get-in stats [:transferred window])
-     "complete_latency" (float-str (get-in stats [:complete-latencies window]))
+     "completeLatency" (float-str (get-in stats [:complete-latencies window]))
      "acked" (get-in stats [:acked window])
      "failed" (get-in stats [:failed window])
-     "last_error" (most-recent-error (get errors id))
+     "lastError" (most-recent-error (get errors id))
      }))
 
 (defn bolt-comp [top-id summ-map errors window include-sys?]
@@ -416,14 +417,14 @@
      "executors" (count summs)
      "tasks" (sum-tasks summs)
      "emitted" (get-in stats [:emitted window])
-     "trasnferred" (get-in stats [:transferred window])
-     "capacity" (compute-bolt-capacity summs)
-     "execute_latency" (float-str (get-in stats [:execute-latencies window]))
+     "transferred" (get-in stats [:transferred window])
+     "capacity" (float-str (nil-to-zero (compute-bolt-capacity summs)))
+     "executeLatency" (float-str (get-in stats [:execute-latencies window]))
      "executed" (get-in stats [:executed window])
-     "process_latency" (float-str (get-in stats [:process-latencies window]))
+     "processLatency" (float-str (get-in stats [:process-latencies window]))
      "acked" (get-in stats [:acked window])
      "failed" (get-in stats [:failed window])
-     "last_error" (most-recent-error (get errors id))
+     "lastError" (most-recent-error (get errors id))
      }
     ))
 
@@ -439,7 +440,7 @@
        "executorsTotal" (count executors)}
       ))
 
-(defn spout-summary [topology-id id stats window]
+(defn spout-summary-json [topology-id id stats window]
   (let [times (stats-times (:emitted stats))
         display-map (into {} (for [t times] [t pretty-uptime-sec]))
         display-map (assoc display-map ":all-time" (fn [_] "All time"))]
@@ -488,7 +489,7 @@
       {"stream" s
        "emitted" (nil-to-zero (:emitted stats))
        "transferred" (nil-to-zero (:transferred stats))
-       "complete_latency" (float-str (:complete-latencies stats))
+       "completeLatency" (float-str (:complete-latencies stats))
        "acked" (nil-to-zero (:acked stats))
        "failed" (nil-to-zero (:failed stats))
        }
@@ -532,7 +533,7 @@
         stats (get-filled-stats executors)
         stream-summary (-> stats (aggregate-spout-stats include-sys?))
         summary (-> stream-summary aggregate-spout-streams)]
-    {"spoutSummary" (spout-summary (.get_id topology-info) component summary window)
+    {"spoutSummary" (spout-summary-json (.get_id topology-info) component summary window)
      "outputStats" (spout-output-stats stream-summary window)
      "executorStats" (spout-executor-stats (.get_id topology-info) executors window include-sys?)}
      ))
@@ -596,7 +597,7 @@
       "port" (.get_port e)
       "emitted" (nil-to-zero (:emitted stats))
       "transferred" (nil-to-zero (:transferred stats))
-      "capacity" (compute-executor-capacity e)
+      "capacity" (float-str (nil-to-zero (compute-executor-capacity e)))
       "executeLatency" (float-str (:execute-latencies stats))
       "executed" (nil-to-zero (:executed stats))
       "processLatency" (float-str (:process-latencies stats))
@@ -656,15 +657,15 @@
   (GET "/api/topology/summary" []
        (json-response (all-topologies-summary)))
   (GET  "/api/topology/:id" [id & m]
-        (let [id (java.net.URLDecoder/decode id)]
+        (let [id (url-decode id)]
           (json-response (topology-page id (:window m) (check-include-sys? (:sys m))))))
   (GET "/api/topology/:id/component/:component" [id component & m]
-       (let [id (java.net.URLDecoder/decode id)
-             component (java.net.URLDecoder/decode component)]
+       (let [id (url-decode id)
+             component (url-decode component)]
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m))))))
   (POST "/api/topology/:id/activate" [id]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.activate nimbus name)
@@ -673,7 +674,7 @@
 
   (POST "/api/topology/:id/deactivate" [id]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.deactivate nimbus name)
@@ -681,7 +682,7 @@
     (resp/redirect (str "/api/topology/" id)))
   (POST "/api/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)
             options (RebalanceOptions.)]
@@ -691,7 +692,7 @@
     (resp/redirect (str "/api/topology/" id)))
   (POST "/api/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
-      (let [id (java.net.URLDecoder/decode id)
+      (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)
             options (KillOptions.)]

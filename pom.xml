@@ -131,6 +131,7 @@
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
+        <module>external/storm-kafka</module>
     </modules>
 
     <scm>
@@ -153,18 +154,18 @@
         <clojure.version>1.4.0</clojure.version>
         <compojure.version>1.1.3</compojure.version>
         <hiccup.version>0.3.6</hiccup.version>
-        <commons-io.verson>2.4</commons-io.verson>
+        <commons-io.version>2.4</commons-io.version>
         <commons-lang.version>2.5</commons-lang.version>
         <commons-exec.version>1.1</commons-exec.version>
         <clj-time.version>0.4.1</clj-time.version>
-        <curator.version>1.3.3</curator.version>
+        <curator.version>2.4.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
         <ring.version>0.3.11</ring.version>
         <clojure.tools.logging.version>0.2.3</clojure.tools.logging.version>
         <clojure.math.numeric-tower.version>0.0.1</clojure.math.numeric-tower.version>
         <carbonite.version>1.4.0</carbonite.version>
         <snakeyaml.version>1.11</snakeyaml.version>
-        <httpclient.version>4.1.1</httpclient.version>
+        <httpclient.version>4.3.3</httpclient.version>
         <clojure.tools.cli.version>0.2.2</clojure.tools.cli.version>
         <disruptor.version>2.10.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
@@ -176,6 +177,7 @@
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>
         <reply.version>0.3.0</reply.version>
+        <conjure.version>2.1.3</conjure.version>
         <zookeeper.version>3.4.5</zookeeper.version>
 
     </properties>
@@ -269,7 +271,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>${commons-io.verson}</version>
+                <version>${commons-io.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -318,7 +320,7 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>com.netflix.curator</groupId>
+                <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
                 <version>${curator.version}</version>
                 <exclusions>
@@ -441,6 +443,12 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-all</artifactId>
                 <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.clojars.runa</groupId>
+                <artifactId>conjure</artifactId>
+                <version>${conjure.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

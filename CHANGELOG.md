@@ -1,4 +1,23 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-302: Fix Indentation for pom.xml in storm-dist
+ * STORM-235: Registering a null metric should blow up early
+ * STORM-113: making thrift usage thread safe for local cluster
+ * STORM-223: use safe parsing for reading YAML
+ * STORM-238: LICENSE and NOTICE files are duplicated in storm-core jar
+ * STORM-276: Add support for logviewer in storm.cmd.
+ * STORM-286: Use URLEncoder#encode with the encoding specified.
+ * STORM-296: Storm kafka unit tests are failing on windows
+ * STORM-291: upgrade http-client to 4.3.3
+ * STORM-252: Upgrade curator to latest version
+ * STORM-294: Commas not escaped in command line
+ * STORM-287: Fix the positioning of documentation strings in clojure code
+ * STORM-290: Fix a log binding conflict caused by curator dependencies
+ * STORM-289: Fix Trident DRPC memory leak
+ * STORM-173: Treat command line "-c" option number config values as such
+ * STORM-194: Support list of strings in *.worker.childopts, handle spaces
+ * STORM-288: Fixes version spelling in pom.xml
+ * STORM-208: Add storm-kafka as an external module
+ * STORM-285: Fix storm-core shade plugin config
  * STORM-12: reduce thread usage of netty transport
  * STORM-281: fix and issue with config parsing that could lead to leaking file descriptors
  * STORM-196: When JVM_OPTS are set, storm jar fails to detect storm.jar from environment

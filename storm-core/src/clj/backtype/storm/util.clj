@@ -398,9 +398,7 @@
     ))
 
 (defnk launch-process [command :environment {}]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
+  (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
     (doseq [[k v] environment]
       (.put process-env k v))
@@ -763,7 +761,10 @@
     ))
 
 (defn url-encode [s]
-  (java.net.URLEncoder/encode s))
+  (java.net.URLEncoder/encode s "UTF-8"))
+
+(defn url-decode [s]
+  (java.net.URLDecoder/decode s "UTF-8"))
 
 (defn join-maps [& maps]
   (let [all-keys (apply set/union (for [m maps] (-> m keys set)))]

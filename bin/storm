@@ -23,6 +23,7 @@ import subprocess as sub
 import getopt
 import re
 import shlex
+import urllib
 
 def identity(x):
     return x
@@ -51,7 +52,7 @@ JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 
 def get_config_opts():
     global CONFIG_OPTS
-    return "-Dstorm.options=" + (','.join(CONFIG_OPTS)).replace(' ', "%%%%")
+    return "-Dstorm.options=" + ','.join(map(urllib.quote_plus,CONFIG_OPTS))
 
 if not os.path.exists(STORM_DIR + "/RELEASE"):
     print "******************************************"

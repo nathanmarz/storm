@@ -163,7 +163,7 @@
 (defn supervisor-stormdist-root
   ([conf] (str (supervisor-local-dir conf) file-path-separator "stormdist"))
   ([conf storm-id]
-      (str (supervisor-stormdist-root conf) file-path-separator (java.net.URLEncoder/encode storm-id))))
+      (str (supervisor-stormdist-root conf) file-path-separator (url-encode storm-id))))
 
 (defn supervisor-stormjar-path [stormroot]
   (str stormroot file-path-separator "stormjar.jar"))

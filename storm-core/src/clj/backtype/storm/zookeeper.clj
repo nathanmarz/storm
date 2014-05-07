@@ -14,9 +14,9 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.zookeeper
-  (:import [com.netflix.curator.retry RetryNTimes])
-  (:import [com.netflix.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
-  (:import [com.netflix.curator.framework CuratorFramework CuratorFrameworkFactory])
+  (:import [org.apache.curator.retry RetryNTimes])
+  (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
+  (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])

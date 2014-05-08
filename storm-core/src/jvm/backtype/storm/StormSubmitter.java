@@ -210,10 +210,23 @@ public class StormSubmitter {
         }
     }
 
+    /**
+     * Submit jar file
+     * @param conf the topology-specific configuration. See {@link Config}.
+     * @param localJar file path of the jar file to submit
+     * @return
+     */
     public static String submitJar(Map conf, String localJar) {
         return submitJar(conf, localJar, null);
     }
 
+    /**
+     * Submit jar file
+     * @param conf the topology-specific configuration. See {@link Config}.
+     * @param localJar file path of the jar file to submit
+     * @param listener progress listener to track the jar file upload
+     * @return
+     */
     public static String submitJar(Map conf, String localJar, ProgressListener listener) {
         if (localJar == null) {
             throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");

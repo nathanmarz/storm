@@ -117,7 +117,7 @@ public class Client implements IConnection {
                 }
                 
             }
-        });
+        }, "netty-client-flush-checker");
         
         flushChecker.setDaemon(true);
         flushChecker.start();

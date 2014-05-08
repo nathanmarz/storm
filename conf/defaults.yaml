@@ -93,6 +93,8 @@ supervisor.enable: true
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"
 worker.heartbeat.frequency.secs: 1
+
+# control how many worker receiver threads we need per worker 
 worker.receiver.thread.count: 1
 
 task.heartbeat.frequency.secs: 3
@@ -109,10 +111,15 @@ storm.messaging.netty.buffer_size: 5242880 #5MB buffer
 storm.messaging.netty.max_retries: 30
 storm.messaging.netty.max_wait_ms: 1000
 storm.messaging.netty.min_wait_ms: 100
-storm.messaging.netty.transfer.batch.size: 262144
-storm.messaging.netty.blocking: false
-storm.messaging.netty.flush.check.interval.ms: 10
 
+# If the Netty messaging layer is busy(netty internal buffer not writable), the Netty client will try to batch message as more as possible up to the size of storm.messaging.netty.transfer.batch.size bytes, otherwise it will try to flush message as soon as possible to reduce latency.
+storm.messaging.netty.transfer.batch.size: 262144
+
+# If storm.messaging.netty.blocking is set to true, the Netty Client will send messages in synchronized way, otherwise it will do it in async way. Set storm.messaging.netty.blocking to false to improve the latency and throughput.
+storm.messaging.netty.blocking: false
+
+# We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
+storm.messaging.netty.flush.check.interval.ms: 10
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true

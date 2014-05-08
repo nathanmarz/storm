@@ -46,7 +46,11 @@ class Server implements IConnection {
     @SuppressWarnings("rawtypes")
     Map storm_conf;
     int port;
+    
+    // Create multiple queues for incoming messages. The size equals the number of receiver threads.
+    // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
     private LinkedBlockingQueue<ArrayList<TaskMessage>>[] message_queue;
+    
     volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     final ChannelFactory factory;
     final ServerBootstrap bootstrap;
@@ -126,12 +130,15 @@ class Server implements IConnection {
     }
     
     private Integer getMessageQueueId(int task) {
+      // try to construct the map from taskId -> queueId in round robin manner.
+      
       Integer queueId = taskToQueueId.get(task);
       if (null == queueId) {
         synchronized(taskToQueueId) {
           //assgin task to queue in round-robin manner
           if (null == taskToQueueId.get(task)) {
             queueId = roundRobinQueueId++;
+            
             taskToQueueId.put(task, queueId);
             if (roundRobinQueueId == queueCount) {
               roundRobinQueueId = 0;

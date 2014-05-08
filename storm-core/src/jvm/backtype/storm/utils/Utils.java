@@ -400,25 +400,6 @@ public class Utils {
         return ret;
     }
     
-    public static void redirectStreamAsync(Process process) {
-      redirectStreamAsync(process.getInputStream(), System.out);
-      redirectStreamAsync(process.getErrorStream(), System.err);
-    }
-    
-    static void redirectStreamAsync(final InputStream input,
-        final PrintStream output) {
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          Scanner scanner = new Scanner(input);
-          while (scanner.hasNextLine()) {
-            output.println(scanner.nextLine());
-          }
-        }
-      }).start();
-    }
- 
-
     public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port) {
         CuratorFramework ret = newCurator(conf, servers, port);
         ret.start();

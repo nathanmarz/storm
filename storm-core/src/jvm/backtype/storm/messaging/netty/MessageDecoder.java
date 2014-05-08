@@ -45,6 +45,7 @@ public class MessageDecoder extends FrameDecoder {
 
         List<Object> ret = new ArrayList<Object>();
 
+        // Use while loop, try to decode as more messages as possible in single call
         while (available >= 2) {
 
             // Mark the current buffer position before reading task/len field

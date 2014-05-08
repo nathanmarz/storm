@@ -117,7 +117,7 @@ public class Client implements IConnection {
                 }
                 
             }
-        }, "netty-client-flush-checker");
+        }, name() + "-flush-checker");
         
         flushChecker.setDaemon(true);
         flushChecker.start();
@@ -224,6 +224,8 @@ public class Client implements IConnection {
                 flushRequest(channel, toBeFlushed, blocking);
                 
             } else {
+                // when channel is NOT writable, it means the internal netty buffer is full. 
+                // In this case, we can try to buffer up more incoming messages.
                 flushCheckTimer.set(System.currentTimeMillis() + flushCheckInterval);
             }
         }

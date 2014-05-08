@@ -101,7 +101,7 @@ public class StormSubmitter {
                 if(topologyNameExists(conf, name)) {
                     throw new RuntimeException("Topology with name `" + name + "` already exists on cluster");
                 }
-                submitJar(conf, null, progressListener);
+                submitJar(conf, progressListener);
                 try {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
                     if(opts!=null) {
@@ -199,23 +199,24 @@ public class StormSubmitter {
     }
 
     private static String submittedJar = null;
-    
+
+    private static void submitJar(Map conf, ProgressListener listener) {
+        if(submittedJar==null) {
+            LOG.info("Jar not uploaded to master yet. Submitting jar...");
+            String localJar = System.getProperty("storm.jar");
+            submittedJar = submitJar(conf, localJar, listener);
+        } else {
+            LOG.info("Jar already uploaded to master. Not submitting jar.");
+        }
+    }
+
     public static String submitJar(Map conf, String localJar) {
         return submitJar(conf, localJar, null);
     }
 
     public static String submitJar(Map conf, String localJar, ProgressListener listener) {
-
-        if (submittedJar==null && localJar==null) {
-                LOG.info("Jar not uploaded to master yet. Submitting jar...");
-                localJar = System.getProperty("storm.jar");
-
-                if (localJar==null) {
-                    throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");
-                }
-        } else if (localJar!=null) {
-            LOG.info("Jar already uploaded to master. Not submitting jar.");
-            return submittedJar;
+        if (localJar == null) {
+            throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");
         }
 
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
@@ -247,7 +248,6 @@ public class StormSubmitter {
             }
 
             LOG.info("Successfully uploaded topology jar to assigned location: " + uploadLocation);
-            submittedJar = uploadLocation;
             return uploadLocation;
         } catch(Exception e) {
             throw new RuntimeException(e);            

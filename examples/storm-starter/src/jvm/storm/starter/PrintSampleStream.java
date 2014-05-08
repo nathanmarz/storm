@@ -21,13 +21,15 @@
 
 package storm.starter;
 
-import storm.starter.spout.TwitterSampleSpout;
+import java.util.Arrays;
+
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.utils.Utils;
-import storm.starter.bolt.PrinterBolt;
 
+import storm.starter.bolt.PrinterBolt;
+import storm.starter.spout.TwitterSampleSpout;
 
 public class PrintSampleStream {        
     public static void main(String[] args) {
@@ -35,6 +37,7 @@ public class PrintSampleStream {
         String consumerSecret = args[1]; 
         String accessToken = args[2]; 
         String accessTokenSecret = args[3];
+        String[] arguments = args.clone();
         String[] keyWords = Arrays.copyOfRange(arguments, 4, arguments.length);
         
         TopologyBuilder builder = new TopologyBuilder();

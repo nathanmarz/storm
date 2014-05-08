@@ -214,7 +214,7 @@ public class StormSubmitter {
      * Submit jar file
      * @param conf the topology-specific configuration. See {@link Config}.
      * @param localJar file path of the jar file to submit
-     * @return
+     * @return the remote location of the submitted jar
      */
     public static String submitJar(Map conf, String localJar) {
         return submitJar(conf, localJar, null);
@@ -225,7 +225,7 @@ public class StormSubmitter {
      * @param conf the topology-specific configuration. See {@link Config}.
      * @param localJar file path of the jar file to submit
      * @param listener progress listener to track the jar file upload
-     * @return
+     * @return the remote location of the submitted jar
      */
     public static String submitJar(Map conf, String localJar, ProgressListener listener) {
         if (localJar == null) {

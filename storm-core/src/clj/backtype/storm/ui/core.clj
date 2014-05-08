@@ -309,11 +309,6 @@
                          (StringEscapeUtils/escapeJavaScript name) "', '"
                          command "', " is-wait ", " default-wait ")")}])
 
-(defn print-map [t]
-  (doseq [[k v] t]
-    (log-message "key " k " value " v)
-    ))
-
 (defn cluster-configuration []
   (with-nimbus nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))

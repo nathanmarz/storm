@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-317: Add SECURITY.md to release binaries
  * STORM-214: Windows: storm.cmd does not properly handle multiple -c arguments
  * STORM-306: Add security documentation
  * STORM-302: Fix Indentation for pom.xml in storm-dist

@@ -190,7 +190,7 @@ public class ReachTopology {
     }
     else {
       conf.setNumWorkers(6);
-      StormSubmitter.submitTopology(args[0], conf, builder.createRemoteTopology());
+      StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createRemoteTopology());
     }
   }
 }

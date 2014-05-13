@@ -236,8 +236,8 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         }
 
         if (timeBucketSizeInSecs <= 0) {
-            throw new RuntimeException("TopologyContext.registerMetric can only be called with timeBucketSizeInSecs " +
-                                       "greater than or equal to 1 second.");
+            throw new IllegalArgumentException("TopologyContext.registerMetric can only be called with timeBucketSizeInSecs " +
+                                               "greater than or equal to 1 second.");
         }
         
         Map m1 = _registeredMetrics;

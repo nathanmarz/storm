@@ -234,6 +234,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         if (metric == null) {
             throw new IllegalArgumentException("Cannot register a null metric");
         }
+
+        if (timeBucketSizeInSecs <= 0) {
+            throw new IllegalArgumentException("TopologyContext.registerMetric can only be called with timeBucketSizeInSecs " +
+                                               "greater than or equal to 1 second.");
+        }
         
         Map m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {

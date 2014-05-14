@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-298: Logback file does not include full path for metrics appender fileNamePattern
  * STORM-316: added validation to registermetrics to have timebucketSizeInSecs >= 1
  * STORM-315: Added progress bar when submitting topology
  * STORM-214: Windows: storm.cmd does not properly handle multiple -c arguments

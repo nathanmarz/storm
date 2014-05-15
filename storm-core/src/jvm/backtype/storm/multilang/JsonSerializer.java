@@ -135,7 +135,6 @@ public class JsonSerializer implements ISerializer {
     private String readString() throws IOException, NoOutputException {
         StringBuilder line = new StringBuilder();
 
-        // synchronized (processOut) {
         while (true) {
             String subline = processOut.readLine();
             if (subline == null) {
@@ -158,7 +157,6 @@ public class JsonSerializer implements ISerializer {
             }
             line.append(subline);
         }
-        // }
         return line.toString();
     }
 }

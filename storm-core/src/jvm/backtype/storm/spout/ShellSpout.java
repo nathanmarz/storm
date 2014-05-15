@@ -35,7 +35,7 @@ public class ShellSpout implements ISpout {
     private SpoutOutputCollector _collector;
     private String[] _command;
     private ShellProcess _process;
-    private SpoutMsg spoutMsg;
+    private SpoutMsg _spoutMsg;
 
     public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -60,35 +60,35 @@ public class ShellSpout implements ISpout {
     }
 
     public void nextTuple() {
-        if (spoutMsg == null) {
-            spoutMsg = new SpoutMsg();
+        if (_spoutMsg == null) {
+            _spoutMsg = new SpoutMsg();
         }
-        spoutMsg.setCommand("next");
-        spoutMsg.setId("");
+        _spoutMsg.setCommand("next");
+        _spoutMsg.setId("");
         querySubprocess();
     }
 
     public void ack(Object msgId) {
-        if (spoutMsg == null) {
-            spoutMsg = new SpoutMsg();
+        if (_spoutMsg == null) {
+            _spoutMsg = new SpoutMsg();
         }
-        spoutMsg.setCommand("ack");
-        spoutMsg.setId(msgId);
+        _spoutMsg.setCommand("ack");
+        _spoutMsg.setId(msgId);
         querySubprocess();
     }
 
     public void fail(Object msgId) {
-        if (spoutMsg == null) {
-            spoutMsg = new SpoutMsg();
+        if (_spoutMsg == null) {
+            _spoutMsg = new SpoutMsg();
         }
-        spoutMsg.setCommand("fail");
-        spoutMsg.setId(msgId);
+        _spoutMsg.setCommand("fail");
+        _spoutMsg.setId(msgId);
         querySubprocess();
     }
 
     private void querySubprocess() {
         try {
-            _process.writeSpoutMsg(spoutMsg);
+            _process.writeSpoutMsg(_spoutMsg);
 
             while (true) {
                 ShellMsg shellMsg = _process.readShellMsg();

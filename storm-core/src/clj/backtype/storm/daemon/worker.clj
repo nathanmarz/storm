@@ -352,7 +352,11 @@
     (touch (worker-pid-path conf worker-id (process-pid))))
   (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id)
         heartbeat-fn #(do-heartbeat worker)
-        
+
+        ;; do this here so that the worker process dies if this fails
+        ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
+        _ (heartbeat-fn)
+ 
         executors (atom nil)
         ;; launch heartbeat threads immediately so that slow-loading tasks don't cause the worker to timeout
         ;; to the supervisor

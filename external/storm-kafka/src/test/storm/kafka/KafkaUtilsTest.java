@@ -57,7 +57,11 @@ public class KafkaUtilsTest {
         int port = broker.getPort();
         broker.shutdown();
         SimpleConsumer simpleConsumer = new SimpleConsumer("localhost", port, 100, 1024, "testClient");
-        KafkaUtils.fetchMessages(config, simpleConsumer, new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), OffsetRequest.LatestTime());
+        try {
+            KafkaUtils.fetchMessages(config, simpleConsumer, new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), OffsetRequest.LatestTime());
+        } finally {
+            simpleConsumer.close();
+        }
     }
 
     @Test
@@ -173,7 +177,7 @@ public class KafkaUtilsTest {
 
     private void createTopicAndSendMessage(String key, String value) {
         Properties p = new Properties();
-        p.setProperty("metadata.broker.list", "localhost:49123");
+        p.setProperty("metadata.broker.list", broker.getBrokerConnectionString());
         p.setProperty("serializer.class", "kafka.serializer.StringEncoder");
         ProducerConfig producerConfig = new ProducerConfig(p);
         Producer<String, String> producer = new Producer<String, String>(producerConfig);

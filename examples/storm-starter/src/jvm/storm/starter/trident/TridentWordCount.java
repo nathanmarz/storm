@@ -79,7 +79,7 @@ public class TridentWordCount {
     }
     else {
       conf.setNumWorkers(3);
-      StormSubmitter.submitTopology(args[0], conf, buildTopology(null));
+      StormSubmitter.submitTopologyWithProgressBar(args[0], conf, buildTopology(null));
     }
   }
 }

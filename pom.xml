@@ -166,7 +166,7 @@
         <carbonite.version>1.4.0</carbonite.version>
         <snakeyaml.version>1.11</snakeyaml.version>
         <httpclient.version>4.3.3</httpclient.version>
-        <clojure.tools.cli.version>0.2.2</clojure.tools.cli.version>
+        <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
         <disruptor.version>2.10.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>13.0</guava.version>

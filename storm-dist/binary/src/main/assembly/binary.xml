@@ -132,5 +132,10 @@
             <source>${project.basedir}/../../CHANGELOG.md</source>
             <outputDirectory>/</outputDirectory>
         </file>
+
+        <file>
+            <source>${project.basedir}/../../SECURITY.md</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
     </files>
 </assembly>

@@ -30,7 +30,12 @@
   (let [[{wait :wait executor :executor num-workers :num-workers} [name] _]
                   (cli args ["-w" "--wait" :default nil :parse-fn #(Integer/parseInt %)]
                             ["-n" "--num-workers" :default nil :parse-fn #(Integer/parseInt %)]
-                            ["-e" "--executor" :combine-fn merge :parse-fn parse-executor])
+                            ["-e" "--executor"  :parse-fn parse-executor
+                             :assoc-fn (fn [previous key val]
+                                         (assoc previous key
+                                                (if-let [oldval (get previous key)]
+                                                  (merge oldval val)
+                                                  val)))])
         opts (RebalanceOptions.)]
     (if wait (.set_wait_secs opts wait))
     (if executor (.set_num_executors opts executor))

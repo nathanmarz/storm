@@ -8,6 +8,9 @@ Storm has a website at [storm-project.net](http://storm-project.net). Follow [@s
 
 Documentation and tutorials can be found on the [Storm wiki](http://github.com/nathanmarz/storm/wiki).
 
+Developers and contributors should also take a look at our [Developer documentation](DEVELOPER.md).
+
+
 ## Getting help
 
 __NOTE:__ The google groups account storm-user@googlegroups.com is now officially deprecated in favor of the Apache-hosted user/dev mailing lists.

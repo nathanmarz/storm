@@ -72,7 +72,7 @@ public class BasicDRPCTopology {
     }
     else {
       conf.setNumWorkers(3);
-      StormSubmitter.submitTopology(args[0], conf, builder.createRemoteTopology());
+      StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createRemoteTopology());
     }
   }
 }

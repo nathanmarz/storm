@@ -77,7 +77,6 @@ under the License.
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Robert Evans ([@revans2](https://github.com/revans2))
 
-
 ## Contributors
 
 * Christopher Bertels ([@bakkdoor](http://twitter.com/bakkdoor))

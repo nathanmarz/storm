@@ -165,6 +165,10 @@
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
         </dependency>
+        <dependency>
+            <groupId>args4j</groupId>
+            <artifactId>args4j</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>

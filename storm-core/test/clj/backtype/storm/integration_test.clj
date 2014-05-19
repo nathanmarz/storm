@@ -430,8 +430,7 @@
 
 (deftest test-kryo-decorators-config
   (with-simulated-time-local-cluster [cluster
-                                      :daemon-conf {TOPOLOGY-OPTIMIZE false
-                                                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
+                                      :daemon-conf {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                                                     TOPOLOGY-KRYO-DECORATORS ["this-is-overriden"]}]
     (letlocals
      (bind builder (TopologyBuilder.))
@@ -454,8 +453,7 @@
 
 (deftest test-component-specific-config
   (with-simulated-time-local-cluster [cluster
-                                      :daemon-conf {TOPOLOGY-OPTIMIZE false
-                                                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true}]
+                                      :daemon-conf {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true}]
     (letlocals
      (bind builder (TopologyBuilder.))
      (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
@@ -465,7 +463,6 @@
                     {"fake.config" 123
                      TOPOLOGY-MAX-TASK-PARALLELISM 20
                      TOPOLOGY-MAX-SPOUT-PENDING 30
-                     TOPOLOGY-OPTIMIZE true
                      TOPOLOGY-KRYO-REGISTER [{"fake.type" "bad.serializer"}
                                              {"fake.type2" "a.serializer"}]
                      }))
@@ -482,7 +479,6 @@
                               :mock-sources {"1" [["fake.config"]
                                                   [TOPOLOGY-MAX-TASK-PARALLELISM]
                                                   [TOPOLOGY-MAX-SPOUT-PENDING]
-                                                  [TOPOLOGY-OPTIMIZE]
                                                   ["fake.config2"]
                                                   [TOPOLOGY-KRYO-REGISTER]
                                                   ]}))
@@ -490,7 +486,6 @@
              "fake.config2" 987
              TOPOLOGY-MAX-TASK-PARALLELISM 2
              TOPOLOGY-MAX-SPOUT-PENDING 30
-             TOPOLOGY-OPTIMIZE false
              TOPOLOGY-KRYO-REGISTER {"fake.type" "good.serializer"
                                      "fake.type2" "a.serializer"
                                      "fake.type3" "a.serializer3"}}

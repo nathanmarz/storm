@@ -117,6 +117,7 @@ topology.acker.executors: null
 topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
+topology.multilang.serializer: "backtype.storm.multilang.JsonSerializer"
 topology.skip.missing.kryo.registrations: false
 topology.max.task.parallelism: null
 topology.max.spout.pending: null

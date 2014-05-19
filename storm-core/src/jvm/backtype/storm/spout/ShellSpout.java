@@ -18,15 +18,15 @@
 package backtype.storm.spout;
 
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.multilang.ShellMsg;
+import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
-import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.json.simple.JSONObject;
 
 
 public class ShellSpout implements ISpout {
@@ -35,91 +35,84 @@ public class ShellSpout implements ISpout {
     private SpoutOutputCollector _collector;
     private String[] _command;
     private ShellProcess _process;
+    private SpoutMsg _spoutMsg;
 
     public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
-    
+
     public ShellSpout(String... command) {
         _command = command;
     }
-    
+
     public void open(Map stormConf, TopologyContext context,
                      SpoutOutputCollector collector) {
-        _process = new ShellProcess(_command);
         _collector = collector;
 
-        try {
-            Number subpid = _process.launch(stormConf, context);
-            LOG.info("Launched subprocess with pid " + subpid);
-        } catch (IOException e) {
-            throw new RuntimeException("Error when launching multilang subprocess\n" + _process.getErrorsString(), e);
-        }
+        _process = new ShellProcess(_command);
+
+        Number subpid = _process.launch(stormConf, context);
+        LOG.info("Launched subprocess with pid " + subpid);
     }
 
     public void close() {
         _process.destroy();
     }
 
-    private JSONObject _next;
     public void nextTuple() {
-        if (_next == null) {
-            _next = new JSONObject();
-            _next.put("command", "next");
+        if (_spoutMsg == null) {
+            _spoutMsg = new SpoutMsg();
         }
-
-        querySubprocess(_next);
+        _spoutMsg.setCommand("next");
+        _spoutMsg.setId("");
+        querySubprocess();
     }
 
-    private JSONObject _ack;
     public void ack(Object msgId) {
-        if (_ack == null) {
-            _ack = new JSONObject();
-            _ack.put("command", "ack");
+        if (_spoutMsg == null) {
+            _spoutMsg = new SpoutMsg();
         }
-
-        _ack.put("id", msgId);
-        querySubprocess(_ack);
+        _spoutMsg.setCommand("ack");
+        _spoutMsg.setId(msgId);
+        querySubprocess();
     }
 
-    private JSONObject _fail;
     public void fail(Object msgId) {
-        if (_fail == null) {
-            _fail = new JSONObject();
-            _fail.put("command", "fail");
+        if (_spoutMsg == null) {
+            _spoutMsg = new SpoutMsg();
         }
-
-        _fail.put("id", msgId);
-        querySubprocess(_fail);
+        _spoutMsg.setCommand("fail");
+        _spoutMsg.setId(msgId);
+        querySubprocess();
     }
 
-    private void querySubprocess(Object query) {
+    private void querySubprocess() {
         try {
-            _process.writeMessage(query);
+            _process.writeSpoutMsg(_spoutMsg);
 
             while (true) {
-                JSONObject action = _process.readMessage();
-                String command = (String) action.get("command");
+                ShellMsg shellMsg = _process.readShellMsg();
+                String command = shellMsg.getCommand();
                 if (command.equals("sync")) {
                     return;
                 } else if (command.equals("log")) {
-                    String msg = (String) action.get("msg");
+                    String msg = shellMsg.getMsg();
                     LOG.info("Shell msg: " + msg);
                 } else if (command.equals("emit")) {
-                    String stream = (String) action.get("stream");
-                    if (stream == null) stream = Utils.DEFAULT_STREAM_ID;
-                    Long task = (Long) action.get("task");
-                    List<Object> tuple = (List) action.get("tuple");
-                    Object messageId = (Object) action.get("id");
-                    if (task == null) {
+                    String stream = shellMsg.getStream();
+                    Long task = shellMsg.getTask();
+                    List<Object> tuple = shellMsg.getTuple();
+                    Object messageId = shellMsg.getId();
+                    if (task == 0) {
                         List<Integer> outtasks = _collector.emit(stream, tuple, messageId);
-                        Object need_task_ids = action.get("need_task_ids");
-                        if (need_task_ids == null || ((Boolean) need_task_ids).booleanValue()) {
-                            _process.writeMessage(outtasks);
+                        if (shellMsg.areTaskIdsNeeded()) {
+                            _process.writeTaskIds(outtasks);
                         }
                     } else {
-                        _collector.emitDirect((int)task.longValue(), stream, tuple, messageId);
+                        _collector.emitDirect((int) task.longValue(), stream, tuple, messageId);
                     }
+                } else {
+                    throw new RuntimeException("Unknown command received: " + command);
                 }
             }
         } catch (IOException e) {

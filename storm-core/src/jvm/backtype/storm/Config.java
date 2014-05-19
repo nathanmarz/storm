@@ -500,6 +500,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_DEBUG_SCHEMA = Boolean.class;
 
     /**
+     * The serializer for communication between shell components and non-JVM
+     * processes
+     */
+    public static final String TOPOLOGY_MULTILANG_SERIALIZER = "topology.multilang.serializer";
+    public static final Object TOPOLOGY_MULTILANG_SERIALIZER_SCHEMA = String.class;
+
+    /**
      * How many processes should be spawned around the cluster to execute this
      * topology. Each process will execute some number of tasks as threads within
      * them. This parameter should be used in conjunction with the parallelism hints

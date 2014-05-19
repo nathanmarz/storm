@@ -100,7 +100,10 @@ public class Stream implements IAggregatableStream {
     public Stream shuffle() {
         return partition(Grouping.shuffle(new NullStruct()));
     }
-    
+
+    public Stream localOrShuffle() {
+        return partition(Grouping.local_or_shuffle(new NullStruct()));
+    }
     public Stream global() {
         // use this instead of storm's built in one so that we can specify a singleemitbatchtopartition
         // without knowledge of storm's internals

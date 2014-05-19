@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-245: implement Stream.localOrShuffle() for trident
  * STORM-317: Add SECURITY.md to release binaries
  * STORM-310: Change Twitter authentication
  * STORM-305: Create developer documentation

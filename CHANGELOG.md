@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-138: Pluggable serialization for multilang
  * STORM-264: Removes references to the deprecated topology.optimize
  * STORM-245: implement Stream.localOrShuffle() for trident
  * STORM-317: Add SECURITY.md to release binaries

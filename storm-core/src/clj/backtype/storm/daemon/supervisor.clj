@@ -444,6 +444,14 @@
       (map sub-fn value)
       (-> value sub-fn (.split " ")))))
 
+(defn java-cmd []
+  (let [java-home (.get (System/getenv) "JAVA_HOME")]
+    (if (nil? java-home)
+      "java"
+      (str java-home file-path-separator "bin" file-path-separator "java")
+      )))
+
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
@@ -458,7 +466,7 @@
                                   (substitute-worker-childopts s port))
           logfilename (str "worker-" port ".log")
           command (concat
-                    ["java" "-server"]
+                    [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts
                     [(str "-Djava.library.path=" (conf JAVA-LIBRARY-PATH))

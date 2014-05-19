@@ -20,10 +20,10 @@ import os
 import sys
 import random
 import subprocess as sub
-import getopt
 import re
 import shlex
 import urllib
+import ConfigParser
 
 def identity(x):
     return x
@@ -35,20 +35,33 @@ def cygpath(x):
     lines = output.split("\n")
     return lines[0]
 
-if sys.platform == "cygwin":
-    normclasspath = cygpath
-else:
-    normclasspath = identity
+def init_storm_env():
+    global CLUSTER_CONF_DIR
+    ini_file = os.path.join(CLUSTER_CONF_DIR, 'storm_env.ini')
+    if not os.path.isfile(ini_file):
+        return
+    config = ConfigParser.ConfigParser()
+    config.optionxform = str
+    config.read(ini_file)
+    options = config.options('environment')
+    for option in options:
+        value = config.get('environment', option)
+        os.environ[option] = value
 
+normclasspath = cygpath if sys.platform == 'cygwin' else identity
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 USER_CONF_DIR = os.path.expanduser("~/.storm")
 CLUSTER_CONF_DIR = STORM_DIR + "/conf"
 if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
+
+init_storm_env()
+
 CONFIG_OPTS = []
 CONFFILE = ""
 JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
-
+JAVA_HOME = os.getenv('JAVA_HOME', None)
+JAVA_CMD = 'java' if not JAVA_HOME else os.path.join(JAVA_HOME, 'bin', 'java')
 
 def get_config_opts():
     global CONFIG_OPTS
@@ -78,7 +91,8 @@ def get_classpath(extrajars):
 def confvalue(name, extrapaths):
     global CONFFILE
     command = [
-        "java", "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE, "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
+        JAVA_CMD, "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE,
+        "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
@@ -131,7 +145,7 @@ def parse_args(string):
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
     global CONFFILE
     all_args = [
-        "java", jvmtype, get_config_opts(),
+        JAVA_CMD, jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-Dstorm.conf.file=" + CONFFILE,
@@ -139,9 +153,10 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
     ] + jvmopts + [klass] + list(args)
     print "Running: " + " ".join(all_args)
     if fork:
-        os.spawnvp(os.P_WAIT, "java", all_args)
+        os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
     else:
-        os.execvp("java", all_args) # replaces the current process and never returns
+        os.execvp(JAVA_CMD, all_args) # replaces the current process and
+        # never returns
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]

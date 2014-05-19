@@ -270,27 +270,27 @@
           receive-queue
           [[nil (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID)]]))))))
 
-(defn metrics-tick [executor-data task-datas ^TupleImpl tuple]
+(defn metrics-tick [executor-data task-data ^TupleImpl tuple]
   (let [{:keys [interval->task->metric-registry ^WorkerTopologyContext worker-context]} executor-data
-        interval (.getInteger tuple 0)]
-    (doseq [[task-id task-data] task-datas
-            :let [name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
-                  task-info (IMetricsConsumer$TaskInfo.
-                             (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
-                             (.getThisWorkerPort worker-context)
-                             (:component-id executor-data)
-                             task-id
-                             (long (/ (System/currentTimeMillis) 1000))
-                             interval)
-                  data-points (->> name->imetric
-                                   (map (fn [[name imetric]]
-                                          (let [value (.getValueAndReset ^IMetric imetric)]
-                                            (if value
-                                              (IMetricsConsumer$DataPoint. name value)))))
-                                   (filter identity)
-                                   (into []))]]
+        interval (.getInteger tuple 0)
+        task-id (:task-id task-data)
+        name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
+        task-info (IMetricsConsumer$TaskInfo.
+                    (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+                    (.getThisWorkerPort worker-context)
+                    (:component-id executor-data)
+                    task-id
+                    (long (/ (System/currentTimeMillis) 1000))
+                    interval)
+        data-points (->> name->imetric
+                      (map (fn [[name imetric]]
+                             (let [value (.getValueAndReset ^IMetric imetric)]
+                               (if value
+                                 (IMetricsConsumer$DataPoint. name value)))))
+                      (filter identity)
+                      (into []))]
       (if (seq data-points)
-        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))
+        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
@@ -432,7 +432,7 @@
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
                               Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
-                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
                               (let [id (.getValue tuple 0)
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
@@ -616,7 +616,7 @@
                           ;; need to do it this way to avoid reflection
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
-                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
                               (let [task-data (get task-datas task-id)
                                     ^IBolt bolt-obj (:object task-data)
                                     user-context (:user-context task-data)

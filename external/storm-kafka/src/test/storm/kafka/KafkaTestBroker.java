@@ -1,11 +1,11 @@
 package storm.kafka;
 
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.imps.CuratorFrameworkState;
-import com.netflix.curator.retry.ExponentialBackoffRetry;
-import com.netflix.curator.test.InstanceSpec;
-import com.netflix.curator.test.TestingServer;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.test.InstanceSpec;
+import org.apache.curator.test.TestingServer;
 
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServerStartable;

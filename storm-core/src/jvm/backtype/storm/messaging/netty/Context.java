@@ -63,7 +63,7 @@ public class Context implements IContext {
                     Executors.newCachedThreadPool(workerFactory));
         }
         
-        int otherWorkers = Utils.getInt(storm_conf.get(Config.TOPOLOGY_WORKERS)) - 1;
+        int otherWorkers = Utils.getInt(storm_conf.get(Config.TOPOLOGY_WORKERS), 1) - 1;
         int poolSize = Math.min(Math.max(1, otherWorkers), MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE);
         clientScheduleService = Executors.newScheduledThreadPool(poolSize, new NettyRenameThreadFactory("client-schedule-service"));
     }

@@ -73,7 +73,7 @@ class Server implements IConnection {
         taskToQueueId = new HashMap<Integer, Integer>();
     
         message_queue = new LinkedBlockingQueue[queueCount];
-		    for (int i = 0; i < queueCount; i++) {
+        for (int i = 0; i < queueCount; i++) {
             message_queue[i] = new LinkedBlockingQueue<ArrayList<TaskMessage>>();
         }
         
@@ -247,7 +247,7 @@ class Server implements IConnection {
       throw new RuntimeException("Server connection should not send any messages");
     }
 	
-	 public String name() {
+    public String name() {
       return "Netty-server-localhost-" + port;
     }
 }

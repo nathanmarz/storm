@@ -34,6 +34,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,10 +61,13 @@ public class Client implements IConnection {
     MessageBatch messageBatch = null;
     private AtomicLong flushCheckTimer;
     private int flushCheckInterval;
+    private ScheduledExecutorService scheduler;
 
     @SuppressWarnings("rawtypes")
-    Client(Map storm_conf, ChannelFactory factory, String host, int port) {
+    Client(Map storm_conf, ChannelFactory factory, 
+            ScheduledExecutorService scheduler, String host, int port) {
         this.factory = factory;
+        this.scheduler = scheduler;
         channelRef = new AtomicReference<Channel>(null);
         closing = false;
         pendings = new AtomicLong(0);
@@ -92,12 +97,18 @@ public class Client implements IConnection {
         // Start the connection attempt.
         remote_addr = new InetSocketAddress(host, port);
         
-        Thread flushChecker = new Thread(new Runnable() {
+        // setup the connection asyncly now
+        scheduler.execute(new Runnable() {
+            @Override
+            public void run() {   
+                connect();
+            }
+        });
+        
+        Runnable flusher = new Runnable() {
             @Override
             public void run() {
-                //make sure we have a connection
-                connect();
-                
+
                 while(!closing) {
                     long flushCheckTime = flushCheckTimer.get();
                     long now = System.currentTimeMillis();
@@ -107,18 +118,13 @@ public class Client implements IConnection {
                             flush(channel);
                         }
                     }
-                    try {
-                        Thread.sleep(flushCheckInterval);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
                 }
                 
             }
-        }, name() + "-flush-checker");
+        };
         
-        flushChecker.setDaemon(true);
-        flushChecker.start();
+        long initialDelay = Math.min(30L * 1000, max_sleep_ms * max_retries); //max wait for 30s
+        scheduler.scheduleWithFixedDelay(flusher, initialDelay, flushCheckInterval, TimeUnit.MILLISECONDS);
     }
 
     /**

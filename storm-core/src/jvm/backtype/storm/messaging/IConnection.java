@@ -20,12 +20,6 @@ package backtype.storm.messaging;
 import java.util.Iterator;
 
 public interface IConnection {   
-    /**
-     * receive a batch message iterator (consists taskId and payload)
-     * @param flags 0: block, 1: non-block
-     * @return
-     */
-    public Iterator<TaskMessage> recv(int flags);
     
     /**
      * receive a batch message iterator (consists taskId and payload)

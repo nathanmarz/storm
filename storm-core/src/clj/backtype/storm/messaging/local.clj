@@ -31,16 +31,6 @@
 
 (deftype LocalConnection [storm-id port queues-map lock queue]
   IConnection
-  (^Iterator recv [this ^int flags]
-    (when-not queue
-      (throw (IllegalArgumentException. "Cannot receive on this socket")))
-    (let [ret (ArrayList.)
-          msg (if (= flags 1) (.poll queue) (.take queue))]
-      (if msg
-        (do 
-          (.add ret msg)
-          (.iterator ret))
-        nil)))
   (^Iterator recv [this ^int flags ^int clientId]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))

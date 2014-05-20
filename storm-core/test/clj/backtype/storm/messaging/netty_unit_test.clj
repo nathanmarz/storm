@@ -37,7 +37,7 @@
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
         _ (.send client task (.getBytes req_msg))
-        iter (.recv server 0)
+        iter (.recv server 0 0)
         resp (.next iter)]
     (is (= task (.task resp)))
     (is (= req_msg (String. (.message resp))))
@@ -59,7 +59,7 @@
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
         _ (.send client task (.getBytes req_msg))
-        iter (.recv server 0)
+        iter (.recv server 0 0)
         resp (.next iter)]
     (is (= task (.task resp)))
     (is (= req_msg (String. (.message resp))))
@@ -84,7 +84,7 @@
                 (fn []
                   (Thread/sleep 1000)
                   (let [server (.bind context nil port)
-                        iter (.recv server 0)
+                        iter (.recv server 0 0)
                         resp (.next iter)]
                     (is (= task (.task resp)))
                     (is (= req_msg (String. (.message resp))))
@@ -116,7 +116,7 @@
     (let [resp (ArrayList.)
           received (atom 0)]
       (while (< @received (- 100000 1))
-        (let [iter (.recv server 0)]
+        (let [iter (.recv server 0 0)]
           (while (.hasNext iter)
             (let [msg (.next iter)]
               (.add resp msg)

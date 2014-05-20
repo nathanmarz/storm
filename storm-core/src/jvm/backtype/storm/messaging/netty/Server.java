@@ -172,16 +172,6 @@ class Server implements IConnection {
           message_queue[receiverId].put(msgGroup);
         }
       }
-   }
-    
-    /**
-     * fetch a message from message queue synchronously (flags != 1) or asynchronously (flags==1)
-     */
-    public Iterator<TaskMessage> recv(int flags)  {
-      if (queueCount > 1) {
-        throw new RuntimeException("Use recv(int flags, int clientId) instead, as we have worker.receiver.thread.count=" + queueCount + " receive threads, clientId should be 0 <= clientId < " + queueCount);
-      }
-      return recv(flags, 0);
     }
     
     public Iterator<TaskMessage> recv(int flags, int receiverId)  {
@@ -210,7 +200,7 @@ class Server implements IConnection {
       }
       return null;
     }
-
+   
     /**
      * register a newly created channel
      * @param channel

@@ -294,10 +294,7 @@ public class Client implements IConnection {
         }
     }
 
-    public Iterator<TaskMessage> recv(int flags) {
-        throw new RuntimeException("Client connection should not receive any messages");
-    }
-
+    @Override
     public Iterator<TaskMessage> recv(int flags, int clientId) {
         throw new RuntimeException("Client connection should not receive any messages");
     }

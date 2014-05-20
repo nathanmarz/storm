@@ -52,7 +52,7 @@ public class Client implements IConnection {
     private final int buffer_size;
     private boolean closing;
 
-    private Integer messageBatchSize;
+    private int messageBatchSize;
     
     private AtomicLong pendings;
 

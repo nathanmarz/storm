@@ -67,6 +67,10 @@ compile and run `WordCountTopology` in local mode, use the command:
 You can also run clojure topologies with Maven:
 
     $ mvn compile exec:java -Dstorm.topology=storm.starter.clj.word_count
+    
+In Windows parameter should be quoted, like this: 
+
+    $ mvn compile exec:java "-Dstorm.topology=storm.starter.clj.word_count"
 
 ## Packaging storm-starter for use on a Storm cluster
 

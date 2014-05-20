@@ -438,6 +438,13 @@
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
       ))
 
+(defn jlp [stormroot conf]
+  (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
+        os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
+        arch (System/getProperty "os.arch")
+        arch-resource-root (str resource-root File/separator os "-" arch)]
+    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
+
 (defn- substitute-worker-childopts [value port]
   (let [sub-fn (fn [s] (.replaceAll s "%ID%" (str port)))]
     (if (list? value)
@@ -457,6 +464,7 @@
     (let [conf (:conf supervisor)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
+          jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
@@ -469,7 +477,7 @@
                     [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts
-                    [(str "-Djava.library.path=" (conf JAVA-LIBRARY-PATH))
+                    [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dlogback.configurationFile=" storm-home "/logback/cluster.xml")
@@ -487,7 +495,7 @@
                          (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
                          (clojure.string/join " "))]
       (log-message "Launching worker with command: " shell-cmd)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
+      (launch-process command :environment {"LD_LIBRARY_PATH" jlp})
       ))
 
 ;; local implementation

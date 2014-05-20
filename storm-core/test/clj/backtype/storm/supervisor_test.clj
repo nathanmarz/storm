@@ -274,6 +274,7 @@
                                                    topo-string-opts}
                      add-to-classpath mock-cp
                      supervisor-stormdist-root nil
+                     supervisor/jlp nil
                      launch-process nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -292,6 +293,7 @@
                                                    topo-list-opts}
                      add-to-classpath mock-cp
                      supervisor-stormdist-root nil
+                     supervisor/jlp nil
                      launch-process nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id

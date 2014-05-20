@@ -104,7 +104,7 @@ public class Client implements IConnection {
                     if (now > flushCheckTime) {
                         Channel channel = channelRef.get();
                         if (null != channel && channel.isWritable()) {
-                            flush();
+                            flush(channel);
                         }
                     }
                     try {
@@ -237,15 +237,12 @@ public class Client implements IConnection {
         return "";
     }
 
-    private synchronized void flush() {
+    private synchronized void flush(Channel channel) {
         if (!closing) {
             if (null != messageBatch && !messageBatch.isEmpty()) {
                 MessageBatch toBeFlushed = messageBatch;
-                Channel channel = channelRef.get();
-                if (channel != null) {
-                    flushCheckTimer.set(Long.MAX_VALUE);
-                    flushRequest(channel, toBeFlushed);
-                }
+                flushCheckTimer.set(Long.MAX_VALUE);
+                flushRequest(channel, toBeFlushed);
                 messageBatch = null;
             }
         }

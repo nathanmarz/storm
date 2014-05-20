@@ -260,6 +260,8 @@ public class Client implements IConnection {
     public synchronized void close() {
         if (!closing) {
             closing = true;
+            LOG.info("Closing Netty Client " + name());
+            
             if (null != messageBatch && !messageBatch.isEmpty()) {
                 MessageBatch toBeFlushed = messageBatch;
                 Channel channel = channelRef.get();
@@ -270,8 +272,18 @@ public class Client implements IConnection {
             }
         
             //wait for pendings to exit
+            final long timeoutMilliSeconds = 600 * 1000; //600 seconds
+            final long start = System.currentTimeMillis();
+            
+            LOG.info("Waiting for pending batchs to be sent with "+ name() + "..., timeout: {}ms, pendings: {}", timeoutMilliSeconds, pendings.get());
+            
             while(pendings.get() != 0) {
                 try {
+                    long delta = System.currentTimeMillis() - start;
+                    if (delta > timeoutMilliSeconds) {
+                        LOG.error("Timeout when sending pending batchs with {}..., there are still {} pending batchs not sent", name(), pendings.get());
+                        break;
+                    }
                     Thread.sleep(1000); //sleep 1s
                 } catch (InterruptedException e) {
                     break;

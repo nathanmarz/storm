@@ -68,7 +68,7 @@ class Server implements IConnection {
         this.storm_conf = storm_conf;
         this.port = port;
         
-        queueCount = Utils.getInt(storm_conf.get("worker.receiver.thread.count"), 1);
+        queueCount = Utils.getInt(storm_conf.get(Config.WORKER_RECEIVER_THREAD_COUNT), 1);
         roundRobinQueueId = 0;
         taskToQueueId = new HashMap<Integer, Integer>();
     

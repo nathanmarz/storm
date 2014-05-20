@@ -115,9 +115,6 @@ storm.messaging.netty.min_wait_ms: 100
 # If the Netty messaging layer is busy(netty internal buffer not writable), the Netty client will try to batch message as more as possible up to the size of storm.messaging.netty.transfer.batch.size bytes, otherwise it will try to flush message as soon as possible to reduce latency.
 storm.messaging.netty.transfer.batch.size: 262144
 
-# If storm.messaging.netty.blocking is set to true, the Netty Client will send messages in synchronized way, otherwise it will do it in async way. Set storm.messaging.netty.blocking to false to improve the latency and throughput.
-storm.messaging.netty.blocking: false
-
 # We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
 storm.messaging.netty.flush.check.interval.ms: 10
 

@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-233: Removed inline heartbeat to nimbus to avoid workers being killed when under heavy ZK load
  * STORM-267: fix package name of LoggingMetricsConsumer in storm.yaml.example
  * STORM-265: upgrade to clojure 1.5.1
  * STORM-232: ship JNI dependencies with the topology jar

@@ -165,11 +165,12 @@
   ;; actually just do it via interfaces. just need to make sure to hide setResource from tasks
   {})
 
-(defn mk-halting-timer []
+(defn mk-halting-timer [timer-name]
   (mk-timer :kill-fn (fn [t]
                        (log-error t "Error when processing event")
                        (halt-process! 20 "Error when processing an event")
-                       )))
+                       )
+            :timer-name timer-name))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
@@ -202,11 +203,11 @@
       :storm-conf storm-conf
       :topology topology
       :system-topology (system-topology! storm-conf topology)
-      :heartbeat-timer (mk-halting-timer)
-      :refresh-connections-timer (mk-halting-timer)
-      :refresh-active-timer (mk-halting-timer)
-      :executor-heartbeat-timer (mk-halting-timer)
-      :user-timer (mk-halting-timer)
+      :heartbeat-timer (mk-halting-timer "heartbeat-timer")
+      :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
+      :refresh-active-timer (mk-halting-timer "refresh-active-timer")
+      :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
+      :user-timer (mk-halting-timer "user-timer")
       :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
       :component->stream->fields (component->stream->fields (:system-topology <>))
       :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))

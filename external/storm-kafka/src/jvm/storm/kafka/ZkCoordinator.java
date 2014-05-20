@@ -72,7 +72,8 @@ public class ZkCoordinator implements PartitionCoordinator {
         return _cachedList;
     }
 
-    void refresh() {
+    @Override
+    public void refresh() {
         try {
             LOG.info(taskId(_taskIndex, _totalTasks) + "Refreshing partition manager connections");
             GlobalPartitionInformation brokerInfo = _reader.getBrokerInfo();

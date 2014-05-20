@@ -135,14 +135,19 @@ public class KafkaSpout extends BaseRichSpout {
         List<PartitionManager> managers = _coordinator.getMyManagedPartitions();
         for (int i = 0; i < managers.size(); i++) {
 
-            // in case the number of managers decreased
-            _currPartitionIndex = _currPartitionIndex % managers.size();
-            EmitState state = managers.get(_currPartitionIndex).next(_collector);
-            if (state != EmitState.EMITTED_MORE_LEFT) {
-                _currPartitionIndex = (_currPartitionIndex + 1) % managers.size();
-            }
-            if (state != EmitState.NO_EMITTED) {
-                break;
+            try {
+                // in case the number of managers decreased
+                _currPartitionIndex = _currPartitionIndex % managers.size();
+                EmitState state = managers.get(_currPartitionIndex).next(_collector);
+                if (state != EmitState.EMITTED_MORE_LEFT) {
+                    _currPartitionIndex = (_currPartitionIndex + 1) % managers.size();
+                }
+                if (state != EmitState.NO_EMITTED) {
+                    break;
+                }
+            } catch (FailedFetchException e) {
+                LOG.warn("Fetch failed", e);
+                _coordinator.refresh();
             }
         }
 

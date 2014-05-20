@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-232: ship JNI dependencies with the topology jar
  * STORM-295: Add storm configuration to define JAVA_HOME
  * STORM-138: Pluggable serialization for multilang
  * STORM-264: Removes references to the deprecated topology.optimize

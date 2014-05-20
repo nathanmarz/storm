@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-309: storm-starter Readme: windows documentation update
  * STORM-318: update storm-kafka to use apache curator-2.4.0
  * STORM-303: storm-kafka reliability improvements
  * STORM-233: Removed inline heartbeat to nimbus to avoid workers being killed when under heavy ZK load

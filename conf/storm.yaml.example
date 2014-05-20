@@ -40,7 +40,7 @@
 
 ## Metrics Consumers
 # topology.metrics.consumer.register:
-#   - class: "backtype.storm.metrics.LoggingMetricsConsumer"
+#   - class: "backtype.storm.metric.LoggingMetricsConsumer"
 #     parallelism.hint: 1
 #   - class: "org.mycompany.MyMetricsConsumer"
 #     parallelism.hint: 1

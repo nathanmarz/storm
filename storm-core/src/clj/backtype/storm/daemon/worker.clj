@@ -119,6 +119,8 @@
         (fast-list-iter [[task tuple :as pair] tuple-batch]
           (if (local-tasks task)
             (.add local pair)
+            
+            ;;Using java objects directly to avoid performance issues in java code
             (let [node+port (get @task->node+port task)]
               (when (not (.get remoteMap node+port))
                 (.put remoteMap node+port (ArrayList.)))

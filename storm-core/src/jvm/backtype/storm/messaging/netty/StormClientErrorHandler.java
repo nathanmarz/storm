@@ -23,19 +23,19 @@ import org.jboss.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StormClientHandler extends SimpleChannelUpstreamHandler  {
-    private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
-    private Client client;
+public class StormClientErrorHandler extends SimpleChannelUpstreamHandler  {
+    private static final Logger LOG = LoggerFactory.getLogger(StormClientErrorHandler.class);
+    private String name;
     
-    StormClientHandler(Client client) {
-        this.client = client;
+    StormClientErrorHandler(String name) {
+        this.name = name;
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
         Throwable cause = event.getCause();
         if (!(cause instanceof ConnectException)) {
-            LOG.info("Connection failed " + client.name(), cause);
+            LOG.info("Connection failed " + name, cause);
         } 
     }
 }

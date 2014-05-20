@@ -53,7 +53,6 @@ public class Client implements IConnection {
     private boolean closing;
 
     private Integer messageBatchSize;
-    private Boolean blocking = false;
     
     private AtomicLong pendings;
 
@@ -76,7 +75,6 @@ public class Client implements IConnection {
         max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
 
         this.messageBatchSize = Utils.getInt(storm_conf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
-        blocking = Utils.getBoolean(storm_conf.get(Config.STORM_NETTY_BLOCKING), false);
         
         flushCheckInterval = Utils.getInt(storm_conf.get(Config.STORM_NETTY_FLUSH_CHECK_INTERVAL_MS), 10); // default 10 ms
 
@@ -209,7 +207,7 @@ public class Client implements IConnection {
             messageBatch.add(message);
             if (messageBatch.isFull()) {
                 MessageBatch toBeFlushed = messageBatch;
-                flushRequest(channel, toBeFlushed, blocking);
+                flushRequest(channel, toBeFlushed);
                 messageBatch = null;
             }
         }
@@ -221,7 +219,7 @@ public class Client implements IConnection {
                 // Flush as fast as we can to reduce the latency
                 MessageBatch toBeFlushed = messageBatch;
                 messageBatch = null;
-                flushRequest(channel, toBeFlushed, blocking);
+                flushRequest(channel, toBeFlushed);
                 
             } else {
                 // when channel is NOT writable, it means the internal netty buffer is full. 
@@ -246,7 +244,7 @@ public class Client implements IConnection {
                 Channel channel = channelRef.get();
                 if (channel != null) {
                     flushCheckTimer.set(Long.MAX_VALUE);
-                    flushRequest(channel, toBeFlushed, true);
+                    flushRequest(channel, toBeFlushed);
                 }
                 messageBatch = null;
             }
@@ -266,7 +264,7 @@ public class Client implements IConnection {
                 MessageBatch toBeFlushed = messageBatch;
                 Channel channel = channelRef.get();
                 if (channel != null) {
-                    flushRequest(channel, toBeFlushed, true);
+                    flushRequest(channel, toBeFlushed);
                 }
                 messageBatch = null;
             }
@@ -307,8 +305,7 @@ public class Client implements IConnection {
         send(wrapper.iterator());
     }
 
-    private void flushRequest(Channel channel, final MessageBatch requests,
-            boolean blocking) {
+    private void flushRequest(Channel channel, final MessageBatch requests) {
         if (requests == null)
             return;
 
@@ -334,9 +331,5 @@ public class Client implements IConnection {
                 }
             }
         });
-
-        if (blocking) {
-            future.awaitUninterruptibly();
-        }
     }
 }

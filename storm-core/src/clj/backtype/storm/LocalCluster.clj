@@ -43,6 +43,9 @@
                       topology
                       submit-opts))
 
+(defn -uploadNewCredentials [this name creds]
+  (.uploadNewCredentials (:nimbus (. this state)) name creds))
+
 (defn -shutdown [this]
   (kill-local-storm-cluster (. this state)))
 

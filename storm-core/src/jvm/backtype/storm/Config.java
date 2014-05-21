@@ -20,6 +20,7 @@ package backtype.storm;
 import backtype.storm.ConfigValidation;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
+import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,6 +44,13 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+    /**
+     * This is part of a temporary workaround to a ZK bug, it is the 'scheme:acl' for
+     * the user Nimbus and Supervisors use to authenticate with ZK.
+     */
+    public static final String STORM_ZOOKEEPER_SUPERACL = "storm.zookeeper.superACL";
+    public static final Object STORM_ZOOKEEPER_SUPERACL_SCHEMA = String.class;
+
     /**
      * The transporter for communication among Storm tasks
      */
@@ -131,7 +139,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_LOCAL_HOSTNAME_SCHEMA = String.class;
 
     /**
-     * The transport plug-in for Thrift client/server communication
+     * The plugin that will convert a principal to a local user.
+     */
+    public static final String STORM_PRINCIPAL_TO_LOCAL_PLUGIN = "storm.principal.tolocal";
+    public static final Object STORM_PRINCIPAL_TO_LOCAL_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * The default transport plug-in for Thrift client/server communication
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
     public static final Object STORM_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
@@ -142,6 +156,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_TUPLE_SERIALIZER = "topology.tuple.serializer";
     public static final Object TOPOLOGY_TUPLE_SERIALIZER_SCHEMA = String.class;
+
+    /**
+     * Try to serialize all tuples, even for local transfers.  This should only be used
+     * for testing, as a sanity check that all of your tuples are setup properly.
+     */
+    public static final String TOPOLOGY_TESTING_ALWAYS_TRY_SERIALIZE = "topology.testing.always.try.serialize";
+    public static final Object TOPOLOGY_TESTING_ALWAYS_TRY_SERIALIZE_SCHEMA = Boolean.class;
 
     /**
      * Whether or not to use ZeroMQ for messaging in local mode. If this is set 
@@ -191,16 +212,34 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
 
     /**
-     * The Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
+     * The cluster Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
      */
     public static final String STORM_ZOOKEEPER_AUTH_SCHEME="storm.zookeeper.auth.scheme";
     public static final Object STORM_ZOOKEEPER_AUTH_SCHEME_SCHEMA = String.class;
 
     /**
-     * A string representing the payload for Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
+     * A string representing the payload for cluster Zookeeper authentication.
+     * It gets serialized using UTF-8 encoding during authentication.
+     * Note that if this is set to something with a secret (as when using
+     * digest authentication) then it should only be set in the
+     * storm-cluster-auth.yaml file.
+     * This file storm-cluster-auth.yaml should then be protected with
+     * appropriate permissions that deny access from workers.
      */
     public static final String STORM_ZOOKEEPER_AUTH_PAYLOAD="storm.zookeeper.auth.payload";
     public static final Object STORM_ZOOKEEPER_AUTH_PAYLOAD_SCHEMA = String.class;
+
+    /**
+     * The topology Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
+     */
+    public static final String STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME="storm.zookeeper.topology.auth.scheme";
+    public static final Object STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME_SCHEMA = String.class;
+
+    /**
+     * A string representing the payload for topology Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
+     */
+    public static final String STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD="storm.zookeeper.topology.auth.payload";
+    public static final Object STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD_SCHEMA = String.class;
 
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.
@@ -209,10 +248,34 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_ID_SCHEMA = String.class;
 
     /**
+     * The number of times to retry a Nimbus operation.
+     */
+    public static final String STORM_NIMBUS_RETRY_TIMES="storm.nimbus.retry.times";
+    public static final Object STORM_NIMBUS_RETRY_TIMES_SCHEMA = Number.class;
+    
+    /**
+     * The starting interval between exponential backoff retries of a Nimbus operation.
+     */
+    public static final String STORM_NIMBUS_RETRY_INTERVAL="storm.nimbus.retry.interval.millis";
+    public static final Object STORM_NIMBUS_RETRY_INTERVAL_SCHEMA = Number.class;
+
+    /**
+     * The ceiling of the interval between retries of a client connect to Nimbus operation.
+     */
+    public static final String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
+    public static final Object STORM_NIMBUS_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
+
+    /**
      * The host that the master server is running on.
      */
     public static final String NIMBUS_HOST = "nimbus.host";
     public static final Object NIMBUS_HOST_SCHEMA = String.class;
+
+    /**
+     * The Nimbus transport plug-in for Thrift client/server communication
+     */
+    public static final String NIMBUS_THRIFT_TRANSPORT_PLUGIN = "nimbus.thrift.transport";
+    public static final Object NIMBUS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
 
     /**
      * Which port the Thrift interface of Nimbus should run on. Clients should
@@ -222,11 +285,31 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_THRIFT_PORT_SCHEMA = Number.class;
 
     /**
+     * The number of threads that should be used by the nimbus thrift server.
+     */
+    public static final String NIMBUS_THRIFT_THREADS = "nimbus.thrift.threads";
+    public static final Object NIMBUS_THRIFT_THREADS_SCHEMA = Number.class;
+
+    /**
+     * A list of users that are cluster admins and can run any command.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String NIMBUS_ADMINS = "nimbus.admins";
+    public static final Object NIMBUS_ADMINS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of users that run the supervisors and should be authorized to interact with 
+     * nimbus as a supervisor would.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
+    public static final Object NIMBUS_SUPERVISOR_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * The maximum buffer size thrift should use when reading messages.
      */
     public static final String NIMBUS_THRIFT_MAX_BUFFER_SIZE = "nimbus.thrift.max_buffer_size";
     public static final Object NIMBUS_THRIFT_MAX_BUFFER_SIZE_SCHEMA = Number.class;
-
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -318,6 +401,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_AUTHORIZER_SCHEMA = String.class;
 
     /**
+     * How often nimbus should wake up to renew credentials if needed.
+     */
+    public static final String NIMBUS_CREDENTIAL_RENEW_FREQ_SECS = "nimbus.credential.renewers.freq.secs";
+    public static final Object NIMBUS_CREDENTIAL_RENEW_FREQ_SECS_SCHEMA = Number.class;
+
+    /**
+     * A list of credential renewers that nimbus should load.
+     */
+    public static final String NIMBUS_CREDENTIAL_RENEWERS = "nimbus.credential.renewers.classes";
+    public static final Object NIMBUS_CREDENTIAL_RENEWERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Storm UI binds to this port.
      */
     public static final String UI_PORT = "ui.port";
@@ -336,6 +431,24 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * How often to clean up old log files
+     */
+    public static final String LOGVIEWER_CLEANUP_INTERVAL_SECS = "logviewer.cleanup.interval.secs";
+    public static final Object LOGVIEWER_CLEANUP_INTERVAL_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * How many minutes since a log was last modified for the log to be considered for clean-up
+     */
+    public static final String LOGVIEWER_CLEANUP_AGE_MINS = "logviewer.cleanup.age.mins";
+    public static final Object LOGVIEWER_CLEANUP_AGE_MINS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * A list of users allowed to view logs via the Log Viewer 
+     */
+    public static final String LOGS_USERS = "logs.users";
+    public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Appender name used by log viewer to determine log directory.
      */
     public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
@@ -348,10 +461,80 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * A class implementing javax.servlet.Filter for authenticating/filtering UI requests
+     */
+    public static final String UI_FILTER = "ui.filter";
+    public static final Object UI_FILTER_SCHEMA = String.class;
+
+    /**
+     * Initialization parameters for the javax.servlet.Filter
+     */
+    public static final String UI_FILTER_PARAMS = "ui.filter.params";
+    public static final Object UI_FILTER_PARAMS_SCHEMA = Map.class;
+
+    /**
+     * The size of the header buffer for the UI in bytes
+     */
+    public static final String UI_HEADER_BUFFER_BYTES = "ui.header.buffer.bytes";
+    public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
+
+    /**
+     * A list of users allowed to view topologies via the UI
+     */
+    public static final String UI_USERS = "ui.users";
+    public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * Whether or not actions should be enabled.  When disabled, requests to
+     * modify the state of topologies via HTTP will not be honored.
+     *
+     * Defaults to true.
+     */
+    public static final String UI_ACTIONS_ENABLED = "ui.actions.enabled";
+    public static final Object UI_ACTIONS_ENABLED_SCHEMA = Boolean.class;
+
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static final String DRPC_SERVERS = "drpc.servers";
     public static final Object DRPC_SERVERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * This port is used by Storm DRPC for receiving HTTP DPRC requests from clients.
+     */
+    public static final String DRPC_HTTP_PORT = "drpc.http.port";
+    public static final Object DRPC_HTTP_PORT_SCHEMA = Number.class;
+
+    /**
+     * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
+     */
+    public static final String DRPC_HTTPS_PORT = "drpc.https.port";
+    public static final Object DRPC_HTTPS_PORT_SCHEMA = Number.class;
+
+    /**
+     * Path to the keystore used by Storm DRPC for setting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_KEYSTORE_PATH = "drpc.https.keystore.path";
+    public static final Object DRPC_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the keystore used by Storm DRPC for setting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_KEYSTORE_PASSWORD = "drpc.https.keystore.password";
+    public static final Object DRPC_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of keystore used by Storm DRPC for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String DRPC_HTTPS_KEYSTORE_TYPE = "drpc.https.keystore.type";
+    public static final Object DRPC_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * The DRPC transport plug-in for Thrift client/server communication
+     */
+    public static final String DRPC_THRIFT_TRANSPORT_PLUGIN = "drpc.thrift.transport";
+    public static final Object DRPC_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
 
     /**
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
@@ -360,10 +543,48 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_PORT_SCHEMA = Number.class;
 
     /**
+     * Class name for authorization plugin for DRPC client
+     */
+    public static final String DRPC_AUTHORIZER = "drpc.authorizer";
+    public static final Object DRPC_AUTHORIZER_SCHEMA = String.class;
+
+    /**
+     * The Access Control List for the DRPC Authorizer.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL = "drpc.authorizer.acl";
+    public static final Object DRPC_AUTHORIZER_ACL_SCHEMA = Map.class;
+
+    /**
+     * File name of the DRPC Authorizer ACL.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL_FILENAME = "drpc.authorizer.acl.filename";
+    public static final Object DRPC_AUTHORIZER_ACL_FILENAME_SCHEMA = String.class;
+
+    /**
+     * Whether the DRPCSimpleAclAuthorizer should deny requests for operations
+     * involving functions that have no explicit ACL entry. When set to false
+     * (the default) DRPC functions that have no entry in the ACL will be
+     * permitted, which is appropriate for a development environment. When set
+     * to true, explicit ACL entries are required for every DRPC function, and
+     * any request for functions will be denied.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL_STRICT = "drpc.authorizer.acl.strict";
+    public static final Object DRPC_AUTHORIZER_ACL_STRICT_SCHEMA = Boolean.class;
+
+    /**
      * DRPC thrift server worker threads 
      */
     public static final String DRPC_WORKER_THREADS = "drpc.worker.threads";
     public static final Object DRPC_WORKER_THREADS_SCHEMA = Number.class;
+
+    /**
+     * The maximum buffer size thrift should use when reading messages for DRPC.
+     */
+    public static final String DRPC_MAX_BUFFER_SIZE = "drpc.max_buffer_size";
+    public static final Object DRPC_MAX_BUFFER_SIZE_SCHEMA = Number.class;
 
     /**
      * DRPC thrift server queue size 
@@ -372,10 +593,22 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_QUEUE_SIZE_SCHEMA = Number.class;
 
     /**
+     * The DRPC invocations transport plug-in for Thrift client/server communication
+     */
+    public static final String DRPC_INVOCATIONS_THRIFT_TRANSPORT_PLUGIN = "drpc.invocations.thrift.transport";
+    public static final Object DRPC_INVOCATIONS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
     public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
     public static final Object DRPC_INVOCATIONS_PORT_SCHEMA = Number.class;
+
+    /**
+     * DRPC invocations thrift server worker threads 
+     */
+    public static final String DRPC_INVOCATIONS_THREADS = "drpc.invocations.threads";
+    public static final Object DRPC_INVOCATIONS_THREADS_SCHEMA = Number.class;
 
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
@@ -392,7 +625,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_CHILDOPTS_SCHEMA = String.class;
 
     /**
-     * the metadata configed on the supervisor
+     * Class name of the HTTP credentials plugin for the UI.
+     */
+    public static final String UI_HTTP_CREDS_PLUGIN = "ui.http.creds.plugin";
+    public static final Object UI_HTTP_CREDS_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * Class name of the HTTP credentials plugin for DRPC.
+     */
+    public static final String DRPC_HTTP_CREDS_PLUGIN = "drpc.http.creds.plugin";
+    public static final Object DRPC_HTTP_CREDS_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * the metadata configured on the supervisor
      */
     public static final String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
     public static final Object SUPERVISOR_SCHEDULER_META_SCHEMA = Map.class;
@@ -403,7 +648,31 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
     public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = ConfigValidation.NumbersValidator;
+    
+    /**
+     * A number representing the maximum number of workers any single topology can acquire.
+     */
+    public static final String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
+    public static final Object NIMBUS_SLOTS_PER_TOPOLOGY_SCHEMA = Number.class;
 
+    /**
+     * A class implementing javax.servlet.Filter for DRPC HTTP requests
+     */
+    public static final String DRPC_HTTP_FILTER = "drpc.http.filter";
+    public static final Object DRPC_HTTP_FILTER_SCHEMA = String.class;
+
+    /**
+     * Initialization parameters for the javax.servlet.Filter of the DRPC HTTP
+     * service
+     */
+    public static final String DRPC_HTTP_FILTER_PARAMS = "drpc.http.filter.params";
+    public static final Object DRPC_HTTP_FILTER_PARAMS_SCHEMA = Map.class;
+
+    /**
+     * A number representing the maximum number of executors any single topology can acquire.
+     */
+    public static final String NIMBUS_EXECUTORS_PER_TOPOLOGY = "nimbus.executors.perTopology";
+    public static final Object NIMBUS_EXECUTORS_PER_TOPOLOGY_SCHEMA = Number.class;
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -412,14 +681,12 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_CHILDOPTS = "supervisor.childopts";
     public static final Object SUPERVISOR_CHILDOPTS_SCHEMA = String.class;
 
-
     /**
      * How long a worker can go without heartbeating before the supervisor tries to
      * restart the worker process.
      */
     public static final String SUPERVISOR_WORKER_TIMEOUT_SECS = "supervisor.worker.timeout.secs";
     public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = Number.class;
-
 
     /**
      * How long a worker can go without heartbeating during the initial launch before
@@ -430,7 +697,6 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_WORKER_START_TIMEOUT_SECS = "supervisor.worker.start.timeout.secs";
     public static final Object SUPERVISOR_WORKER_START_TIMEOUT_SECS_SCHEMA = Number.class;
 
-
     /**
      * Whether or not the supervisor should launch workers assigned to it. Defaults
      * to true -- and you should probably never change this value. This configuration
@@ -438,7 +704,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_ENABLE = "supervisor.enable";
     public static final Object SUPERVISOR_ENABLE_SCHEMA = Boolean.class;
-
 
     /**
      * how often the supervisor sends a heartbeat to the master.
@@ -455,11 +720,33 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_MONITOR_FREQUENCY_SECS_SCHEMA = Number.class;
 
     /**
+     * Should the supervior try to run the worker as the lauching user or not.  Defaults to false. 
+     */
+    public static final String SUPERVISOR_RUN_WORKER_AS_USER = "supervisor.run.worker.as.user";
+    public static final Object SUPERVISOR_RUN_WORKER_AS_USER_SCHEMA = Boolean.class;
+
+    /**
+     * Full path to the worker-laucher executable that will be used to lauch workers when 
+     * SUPERVISOR_RUN_WORKER_AS_USER is set to true.
+     */ 
+    public static final String SUPERVISOR_WORKER_LAUNCHER = "supervisor.worker.launcher";
+    public static final Object SUPERVISOR_WORKER_LAUNCHER_SCHEMA = String.class;
+
+    /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
-     * with an identifier for this worker.
+     * with an identifier for this worker. Also, "%WORKER-ID%", "%STORM-ID%" and "%WORKER-PORT%" are
+     * replaced with appropriate runtime values for this worker.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
+     * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
+     * with an identifier for this worker.  Because the JVM complains about multiple GC opts the topology
+     * can override this default value by setting topology.worker.gc.childopts.
+     */
+    public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
+    public static final Object WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * How often this worker should heartbeat to the supervisor.
@@ -485,6 +772,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object TASK_REFRESH_POLL_SECS_SCHEMA = Number.class;
 
 
+    /**
+     * How often a task should sync credentials, worst case.
+     */
+    public static final String TASK_CREDENTIALS_POLL_SECS = "task.credentials.poll.secs";
+    public static final Object TASK_CREDENTIALS_POLL_SECS_SCHEMA = Number.class;
+
+
+    /**
+     * A list of users that are allowed to interact with the topology.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String TOPOLOGY_USERS = "topology.users";
+    public static final Object TOPOLOGY_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
@@ -663,6 +963,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * Topology-specific options GC for the worker child process. This overrides WORKER_GC_CHILDOPTS.
+     */
+    public static final String TOPOLOGY_WORKER_GC_CHILDOPTS="topology.worker.gc.childopts";
+    public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
      * the transactional topology. This id is used to store the state of the transactional
      * topology in Zookeeper.
@@ -750,9 +1056,33 @@ public class Config extends HashMap<String, Object> {
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */
-    public static final String TOPOLOGY_NAME="topology.name";
+    public final static String TOPOLOGY_NAME="topology.name";  
     public static final Object TOPOLOGY_NAME_SCHEMA = String.class;
 
+    /**
+     * The principal who submitted a topology
+     */
+    public final static String TOPOLOGY_SUBMITTER_PRINCIPAL = "topology.submitter.principal";
+    public static final Object TOPOLOGY_SUBMITTER_PRINCIPAL_SCHEMA = String.class;
+
+    /**
+     * The local user name of the user who submitted a topology.
+     */
+    public static final String TOPOLOGY_SUBMITTER_USER = "topology.submitter.user";
+    public static final Object TOPOLOGY_SUBMITTER_USER_SCHEMA = String.class;
+    
+    /**
+     * Array of components that scheduler should try to place on separate hosts.
+     */
+    public static final String TOPOLOGY_SPREAD_COMPONENTS = "topology.spread.components";
+    public static final Object TOPOLOGY_SPREAD_COMPONENTS_SCHEMA = ConfigValidation.StringsValidator;
+   
+    /**
+     * A list of IAutoCredentials that the topology should load and use.
+     */
+    public static final String TOPOLOGY_AUTO_CREDENTIALS = "topology.auto-credentials";
+    public static final Object TOPOLOGY_AUTO_CREDENTIALS_SCHEMA = ConfigValidation.StringsValidator;
+ 
     /**
      * Max pending tuples in one ShellBolt
      */
@@ -822,8 +1152,22 @@ public class Config extends HashMap<String, Object> {
      * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
      */
     public static final String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
-    public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Map.class;
+    public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = ConfigValidation.MapOfStringToNumberValidator;
+    
+    /**
+     * A map from the user name to the number of machines that should that user is allowed to use. Set storm.scheduler
+     * to backtype.storm.scheduler.multitenant.MultitenantScheduler
+     */
+    public static final String MULTITENANT_SCHEDULER_USER_POOLS = "multitenant.scheduler.user.pools";
+    public static final Object MULTITENANT_SCHEDULER_USER_POOLS_SCHEMA = ConfigValidation.MapOfStringToNumberValidator;
 
+    /**
+     * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
+     * to backtype.storm.scheduler.multitenant.MultitenantScheduler
+     */
+    public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
+    public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
+    
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);
     } 

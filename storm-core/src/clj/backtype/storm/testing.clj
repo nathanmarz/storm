@@ -188,10 +188,16 @@
 
 (defmacro while-timeout [timeout-ms condition & body]
   `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
+    (log-debug "Looping until " '~condition)
     (while ~condition
       (when (> (System/currentTimeMillis) end-time#)
-        (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms)"))))
-      ~@body)))
+        (let [thread-dump# (Utils/threadDump)]
+          (log-message "Condition " '~condition  " not met in " ~timeout-ms "ms")
+          (log-message thread-dump#)
+          (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms) " '~condition)))))
+      ~@body)
+    (log-debug "Condition met " '~condition)
+    ))
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
@@ -204,8 +210,8 @@
                   supervisors
                   workers) ; because a worker may already be dead
         ]
-    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))
-      (Thread/sleep 10)
+    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))      
+      (Thread/sleep (rand-int 20))
 ;;      (doseq [d daemons]
 ;;        (if-not ((memfn waiting?) d)
 ;;          (println d)))
@@ -280,7 +286,9 @@
 (defn mk-capture-launch-fn [capture-atom]
   (fn [supervisor storm-id port worker-id]
     (let [supervisor-id (:supervisor-id supervisor)
+          conf (:conf supervisor)
           existing (get @capture-atom [supervisor-id port] [])]
+      (set-worker-user! conf worker-id "")
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id))
       )))
 
@@ -471,6 +479,9 @@
     
     
     (let [storm-id (common/get-storm-id state storm-name)]
+      ;;Give the topology time to come up without using it to wait for the spouts to complete
+      (simulate-wait cluster-map)
+
       (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
@@ -586,7 +597,7 @@
           ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
           ;; (println "Processed: " (global-amt track-id "processed"))
           ;; (println "Transferred: " (global-amt track-id "transferred"))
-          (Thread/sleep 500))
+          (Thread/sleep (rand-int 200)))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
 
@@ -620,3 +631,9 @@
                   (atom false))]
     (TupleImpl. context values 1 stream)
     ))
+
+(defmacro with-timeout [millis unit & body]
+  `(let [f# (future ~@body)]
+     (try
+       (.get f# ~millis ~unit)
+       (finally (future-cancel f#)))))

@@ -48,6 +48,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
   private static final org.apache.thrift.protocol.TField NUM_WORKERS_FIELD_DESC = new org.apache.thrift.protocol.TField("num_workers", org.apache.thrift.protocol.TType.I32, (short)5);
   private static final org.apache.thrift.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("uptime_secs", org.apache.thrift.protocol.TType.I32, (short)6);
   private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.STRING, (short)7);
+  private static final org.apache.thrift.protocol.TField SCHED_STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("sched_status", org.apache.thrift.protocol.TType.STRING, (short)513);
+  private static final org.apache.thrift.protocol.TField OWNER_FIELD_DESC = new org.apache.thrift.protocol.TField("owner", org.apache.thrift.protocol.TType.STRING, (short)514);
 
   private String id; // required
   private String name; // required
@@ -56,6 +58,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
   private int num_workers; // required
   private int uptime_secs; // required
   private String status; // required
+  private String sched_status; // required
+  private String owner; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -65,7 +69,9 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     NUM_EXECUTORS((short)4, "num_executors"),
     NUM_WORKERS((short)5, "num_workers"),
     UPTIME_SECS((short)6, "uptime_secs"),
-    STATUS((short)7, "status");
+    STATUS((short)7, "status"),
+    SCHED_STATUS((short)513, "sched_status"),
+    OWNER((short)514, "owner");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -94,6 +100,10 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
           return UPTIME_SECS;
         case 7: // STATUS
           return STATUS;
+        case 513: // SCHED_STATUS
+          return SCHED_STATUS;
+        case 514: // OWNER
+          return OWNER;
         default:
           return null;
       }
@@ -157,6 +167,10 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.STATUS, new org.apache.thrift.meta_data.FieldMetaData("status", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.SCHED_STATUS, new org.apache.thrift.meta_data.FieldMetaData("sched_status", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.OWNER, new org.apache.thrift.meta_data.FieldMetaData("owner", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TopologySummary.class, metaDataMap);
   }
@@ -206,6 +220,12 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     if (other.is_set_status()) {
       this.status = other.status;
     }
+    if (other.is_set_sched_status()) {
+      this.sched_status = other.sched_status;
+    }
+    if (other.is_set_owner()) {
+      this.owner = other.owner;
+    }
   }
 
   public TopologySummary deepCopy() {
@@ -225,6 +245,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     set_uptime_secs_isSet(false);
     this.uptime_secs = 0;
     this.status = null;
+    this.sched_status = null;
+    this.owner = null;
   }
 
   public String get_id() {
@@ -384,6 +406,52 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     }
   }
 
+  public String get_sched_status() {
+    return this.sched_status;
+  }
+
+  public void set_sched_status(String sched_status) {
+    this.sched_status = sched_status;
+  }
+
+  public void unset_sched_status() {
+    this.sched_status = null;
+  }
+
+  /** Returns true if field sched_status is set (has been assigned a value) and false otherwise */
+  public boolean is_set_sched_status() {
+    return this.sched_status != null;
+  }
+
+  public void set_sched_status_isSet(boolean value) {
+    if (!value) {
+      this.sched_status = null;
+    }
+  }
+
+  public String get_owner() {
+    return this.owner;
+  }
+
+  public void set_owner(String owner) {
+    this.owner = owner;
+  }
+
+  public void unset_owner() {
+    this.owner = null;
+  }
+
+  /** Returns true if field owner is set (has been assigned a value) and false otherwise */
+  public boolean is_set_owner() {
+    return this.owner != null;
+  }
+
+  public void set_owner_isSet(boolean value) {
+    if (!value) {
+      this.owner = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ID:
@@ -442,6 +510,22 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       }
       break;
 
+    case SCHED_STATUS:
+      if (value == null) {
+        unset_sched_status();
+      } else {
+        set_sched_status((String)value);
+      }
+      break;
+
+    case OWNER:
+      if (value == null) {
+        unset_owner();
+      } else {
+        set_owner((String)value);
+      }
+      break;
+
     }
   }
 
@@ -468,6 +552,12 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     case STATUS:
       return get_status();
 
+    case SCHED_STATUS:
+      return get_sched_status();
+
+    case OWNER:
+      return get_owner();
+
     }
     throw new IllegalStateException();
   }
@@ -493,6 +583,10 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       return is_set_uptime_secs();
     case STATUS:
       return is_set_status();
+    case SCHED_STATUS:
+      return is_set_sched_status();
+    case OWNER:
+      return is_set_owner();
     }
     throw new IllegalStateException();
   }
@@ -573,6 +667,24 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         return false;
     }
 
+    boolean this_present_sched_status = true && this.is_set_sched_status();
+    boolean that_present_sched_status = true && that.is_set_sched_status();
+    if (this_present_sched_status || that_present_sched_status) {
+      if (!(this_present_sched_status && that_present_sched_status))
+        return false;
+      if (!this.sched_status.equals(that.sched_status))
+        return false;
+    }
+
+    boolean this_present_owner = true && this.is_set_owner();
+    boolean that_present_owner = true && that.is_set_owner();
+    if (this_present_owner || that_present_owner) {
+      if (!(this_present_owner && that_present_owner))
+        return false;
+      if (!this.owner.equals(that.owner))
+        return false;
+    }
+
     return true;
   }
 
@@ -614,6 +726,16 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     builder.append(present_status);
     if (present_status)
       builder.append(status);
+
+    boolean present_sched_status = true && (is_set_sched_status());
+    builder.append(present_sched_status);
+    if (present_sched_status)
+      builder.append(sched_status);
+
+    boolean present_owner = true && (is_set_owner());
+    builder.append(present_owner);
+    if (present_owner)
+      builder.append(owner);
 
     return builder.toHashCode();
   }
@@ -696,6 +818,26 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_sched_status()).compareTo(typedOther.is_set_sched_status());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_sched_status()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sched_status, typedOther.sched_status);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_owner()).compareTo(typedOther.is_set_owner());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_owner()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.owner, typedOther.owner);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -766,6 +908,20 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 513: // SCHED_STATUS
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+            this.sched_status = iprot.readString();
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 514: // OWNER
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+            this.owner = iprot.readString();
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -805,6 +961,20 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       oprot.writeFieldBegin(STATUS_FIELD_DESC);
       oprot.writeString(this.status);
       oprot.writeFieldEnd();
+    }
+    if (this.sched_status != null) {
+      if (is_set_sched_status()) {
+        oprot.writeFieldBegin(SCHED_STATUS_FIELD_DESC);
+        oprot.writeString(this.sched_status);
+        oprot.writeFieldEnd();
+      }
+    }
+    if (this.owner != null) {
+      if (is_set_owner()) {
+        oprot.writeFieldBegin(OWNER_FIELD_DESC);
+        oprot.writeString(this.owner);
+        oprot.writeFieldEnd();
+      }
     }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
@@ -854,6 +1024,26 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       sb.append(this.status);
     }
     first = false;
+    if (is_set_sched_status()) {
+      if (!first) sb.append(", ");
+      sb.append("sched_status:");
+      if (this.sched_status == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sched_status);
+      }
+      first = false;
+    }
+    if (is_set_owner()) {
+      if (!first) sb.append(", ");
+      sb.append("owner:");
+      if (this.owner == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.owner);
+      }
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }

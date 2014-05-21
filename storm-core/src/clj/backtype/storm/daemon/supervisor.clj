@@ -14,10 +14,14 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
+  (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
+  (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.yaml.snakeyaml Yaml]
+           [org.yaml.snakeyaml.constructor SafeConstructor])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
@@ -62,7 +66,7 @@
   "Returns map from port to struct containing :storm-id and :executors"
   [assignments-snapshot assignment-id]
   (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
-       (apply merge-with (fn [& ignored] (throw-runtime "Should not have multiple topologies assigned to one port")))))
+       (apply merge-with (fn [& params] (throw-runtime (str "Should not have multiple topologies assigned to one port " params))))))
 
 (defn- read-storm-code-locations
   [assignments-snapshot]
@@ -98,6 +102,18 @@
          (= (disj (set (:executors worker-heartbeat)) Constants/SYSTEM_EXECUTOR_ID)
             (set (:executors local-assignment))))))
 
+(let [dead-workers (atom #{})]
+  (defn get-dead-workers []
+    @dead-workers)
+  (defn add-dead-worker [worker]
+    (swap! dead-workers conj worker))
+  (defn remove-dead-worker [worker]
+    (swap! dead-workers disj worker)))
+
+(defn is-worker-hb-timed-out? [now hb conf]
+  (> (- now (:time-secs hb))
+     (conf SUPERVISOR-WORKER-TIMEOUT-SECS)))
+
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"
   [supervisor assigned-executors now]
@@ -114,8 +130,11 @@
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
-                         (> (- now (:time-secs hb))
-                            (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
+                         (or 
+                          (when (get (get-dead-workers) id)
+                            (log-message "Worker Process " id " has died!")
+                            true)
+                          (is-worker-hb-timed-out? now hb conf))
                            :timed-out
                          true
                            :valid)]
@@ -151,34 +170,75 @@
 (defn generate-supervisor-id []
   (uuid))
 
-(defn try-cleanup-worker [conf id]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil]
+  (let [_ (when (clojure.string/blank? user)
+            (throw (java.lang.IllegalArgumentException.
+                     "User cannot be blank when calling worker-launcher.")))
+        wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
+        storm-home (System/getProperty "storm.home")
+        wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
+        command (concat [wl user] args)]
+    (log-message "Running as user:" user " command:" (pr-str command))
+    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback)
+  ))
+
+(defnk worker-launcher-and-wait [conf user args :environment {} :log-prefix nil]
+  (let [process (worker-launcher conf user args :environment environment)]
+    (if log-prefix
+      (read-and-log-stream log-prefix (.getInputStream process)))
+      (try
+        (.waitFor process)
+      (catch InterruptedException e
+        (log-message log-prefix " interrupted.")))
+      (.exitValue process)))
+
+(defn try-cleanup-worker [conf id user]
   (try
-    (rmr (worker-heartbeats-root conf id))
-    ;; this avoids a race condition with worker or subprocess writing pid around same time
-    (rmpath (worker-pids-root conf id))
-    (rmpath (worker-root conf id))
+    (if (.exists (File. (worker-root conf id)))
+      (do
+        (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+          (worker-launcher-and-wait conf user ["rmr" (worker-root conf id)] :log-prefix (str "rmr " id) )
+          (do
+            (rmr (worker-heartbeats-root conf id))
+            ;; this avoids a race condition with worker or subprocess writing pid around same time
+            (rmpath (worker-pids-root conf id))
+            (rmpath (worker-root conf id))))
+        (remove-worker-user! conf id)
+        (remove-dead-worker id)
+      ))
+  (catch IOException e
+    (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )
   (catch java.io.FileNotFoundException e (log-message (.getMessage e)))
-  (catch java.io.IOException e (log-message (.getMessage e)))
     ))
 
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
   (let [conf (:conf supervisor)
         pids (read-dir-contents (worker-pids-root conf id))
-        thread-pid (@(:worker-thread-pids-atom supervisor) id)]
+        thread-pid (@(:worker-thread-pids-atom supervisor) id)
+        as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
+        user (get-worker-user conf id)]
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
-      (ensure-process-killed! pid)
-      (try
-        (rmpath (worker-pid-path conf id pid))
-        (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
-      )
-    (try-cleanup-worker conf id))
+      (if as-user
+        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
+        (ensure-process-killed! pid))
+      (if as-user
+        (worker-launcher-and-wait conf user ["rmr" (worker-pid-path conf id pid)] :log-prefix (str "rmr for " pid))
+        (try
+          (rmpath (worker-pid-path conf id pid))
+          (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
+      ))
+    (try-cleanup-worker conf id user))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
+
+(def SUPERVISOR-ZK-ACLS
+  [(first ZooDefs$Ids/CREATOR_ALL_ACL) 
+   (ACL. (bit-or ZooDefs$Perms/READ ZooDefs$Perms/CREATE) ZooDefs$Ids/ANYONE_ID_UNSAFE)])
 
 (defn supervisor-data [conf shared-context ^ISupervisor isupervisor]
   {:conf conf
@@ -187,7 +247,10 @@
    :active (atom true)
    :uptime (uptime-computer)
    :worker-thread-pids-atom (atom {})
-   :storm-cluster-state (cluster/mk-storm-cluster-state conf)
+   :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
+                                                                     (Utils/isZkAuthenticationConfiguredStormServer
+                                                                       conf)
+                                                                     SUPERVISOR-ZK-ACLS))
    :local-state (supervisor-state conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)
@@ -240,7 +303,8 @@
         (shutdown-worker supervisor id)
         ))
     (doseq [id (vals new-worker-ids)]
-      (local-mkdirs (worker-pids-root conf id)))
+      (local-mkdirs (worker-pids-root conf id))
+      (local-mkdirs (worker-heartbeats-root conf id)))
     (.put local-state LS-APPROVED-WORKERS
           (merge
            (select-keys (.get local-state LS-APPROVED-WORKERS)
@@ -422,8 +486,11 @@
   (.shutdown supervisor)
   )
 
-;; distributed implementation
+(defn setup-storm-code-dir [conf storm-conf dir]
+ (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) ["code-dir" dir] :log-prefix (str "setup conf for " dir))))
 
+;; distributed implementation
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
     ;; Downloading to permanent location is atomic
@@ -436,7 +503,31 @@
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      ))
+      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
+    ))
+
+(defn write-log-metadata-to-yaml-file! [storm-id port data conf]
+  (let [file (get-log-metadata-file storm-id port)]
+    ;;run worker as user needs the directory to have special permissions
+    ;; or it is insecure
+    (when (and (not (conf SUPERVISOR-RUN-WORKER-AS-USER))
+               (not (.exists (.getParentFile file))))
+      (.mkdirs (.getParentFile file)))
+    (let [writer (java.io.FileWriter. file)
+        yaml (Yaml.)]
+      (try
+        (.dump yaml data writer)
+        (finally
+          (.close writer))))))
+
+(defn write-log-metadata! [storm-conf user worker-id storm-id port conf]
+  (let [data {TOPOLOGY-SUBMITTER-USER user
+              "worker-id" worker-id
+              LOGS-USERS (sort (distinct (remove nil?
+                                           (concat
+                                             (storm-conf LOGS-USERS)
+                                             (storm-conf TOPOLOGY-USERS)))))}]
+    (write-log-metadata-to-yaml-file! storm-id port data conf)))
 
 (defn jlp [stormroot conf]
   (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
@@ -445,11 +536,23 @@
         arch-resource-root (str resource-root File/separator os "-" arch)]
     (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
-(defn- substitute-worker-childopts [value port]
-  (let [sub-fn (fn [s] (.replaceAll s "%ID%" (str port)))]
-    (if (list? value)
-      (map sub-fn value)
-      (-> value sub-fn (.split " ")))))
+(defn substitute-childopts
+  [childopts worker-id storm-id port]
+  (
+    let [replacement-map {"%ID%"          (str port)
+                          "%WORKER-ID%"   (str worker-id)
+                          "%STORM-ID%"    (str storm-id)
+                          "%WORKER-PORT%" (str port)}
+         sub-fn (fn [s] 
+                  (reduce (fn [string entry]
+                    (apply clojure.string/replace string entry))
+                     s replacement-map))]
+    (if-not (nil? childopts)
+      (if (sequential? childopts)
+        (map sub-fn childopts)
+        (-> childopts sub-fn (.split " ")))
+      nil)
+    ))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]
@@ -462,21 +565,25 @@
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
+          run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          worker-childopts (when-let [s (conf WORKER-CHILDOPTS)]
-                             (substitute-worker-childopts s port))
-          topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
-                                  (substitute-worker-childopts s port))
-          logfilename (str "worker-" port ".log")
+          top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
+          gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
+          user (storm-conf TOPOLOGY-SUBMITTER-USER)
+          logfilename (logs-filename storm-id port)
+
+          worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
+          topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
           command (concat
                     [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts
+                    gc-opts
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
@@ -490,13 +597,21 @@
                      (:assignment-id supervisor)
                      port
                      worker-id])
-          command (->> command (map str) (filter (complement empty?)))
-          shell-cmd (->> command
-                         (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
-                         (clojure.string/join " "))]
-      (log-message "Launching worker with command: " shell-cmd)
-      (launch-process command :environment {"LD_LIBRARY_PATH" jlp})
-      ))
+          command (->> command (map str) (filter (complement empty?)))]
+
+      (log-message "Launching worker with command: " (shell-cmd command))
+      (write-log-metadata! storm-conf user worker-id storm-id port conf)
+      (set-worker-user! conf worker-id user)
+      (let [log-prefix (str "Worker Process " worker-id)
+           callback (fn [exit-code] 
+                          (log-message log-prefix " exited with code: " exit-code)
+                          (add-dead-worker worker-id))]
+        (remove-dead-worker worker-id) 
+        (if run-worker-as-user
+          (let [worker-dir (worker-root conf worker-id)]
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})] :log-prefix log-prefix :exit-code-callback callback))
+          (launch-process command :environment {"LD_LIBRARY_PATH" jlp} :log-prefix log-prefix :exit-code-callback callback)
+      ))))
 
 ;; local implementation
 
@@ -536,6 +651,7 @@
                                    (:assignment-id supervisor)
                                    port
                                    worker-id)]
+      (set-worker-user! conf worker-id "")
       (psim/register-process pid worker)
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))

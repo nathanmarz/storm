@@ -18,12 +18,18 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import javax.security.auth.login.Configuration;
+import javax.security.auth.Subject;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -39,33 +45,43 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.security.auth.ThriftConnectionType;
+
 /**
  * Simple transport for Thrift plugin.
  * 
  * This plugin is designed to be backward compatible with existing Storm code.
  */
 public class SimpleTransportPlugin implements ITransportPlugin {
+    protected ThriftConnectionType type;
+    protected Map storm_conf;
     protected Configuration login_conf;
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTransportPlugin.class);
 
-    /**
-     * Invoked once immediately after construction
-     * @param conf Storm configuration 
-     * @param login_conf login configuration
-     */
-    public void prepare(Map storm_conf, Configuration login_conf) {        
+    @Override
+    public void prepare(ThriftConnectionType type, Map storm_conf, Configuration login_conf) {
+        this.type = type;
+        this.storm_conf = storm_conf;
         this.login_conf = login_conf;
     }
 
-    /**
-     * We will let Thrift to apply default transport factory
-     */
-    public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException {
+    @Override
+    public TServer getServer(TProcessor processor) throws IOException, TTransportException {
+        int port = type.getPort(storm_conf);
         TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(port);
+        int numWorkerThreads = type.getNumThreads(storm_conf);
+        int maxBufferSize = type.getMaxBufferSize(storm_conf);
+        Integer queueSize = type.getQueueSize(storm_conf);
+
         THsHaServer.Args server_args = new THsHaServer.Args(serverTransport).
                 processor(new SimpleWrapProcessor(processor)).
-                workerThreads(64).
-                protocolFactory(new TBinaryProtocol.Factory());            
+                workerThreads(numWorkerThreads).
+                protocolFactory(new TBinaryProtocol.Factory(false, true, maxBufferSize));
+
+        if (queueSize != null) {
+            server_args.executorService(new ThreadPoolExecutor(numWorkerThreads, numWorkerThreads, 
+                                   60, TimeUnit.SECONDS, new ArrayBlockingQueue(queueSize)));
+        }
 
         //construct THsHaServer
         return new THsHaServer(server_args);
@@ -84,6 +100,13 @@ public class SimpleTransportPlugin implements ITransportPlugin {
         LOG.debug("Simple client transport has been established");
 
         return conn;
+    }
+
+    /**
+     * @return the subject that will be used for all connections
+     */  
+    protected Subject getDefaultSubject() {
+        return null;
     }
 
     /**                                                                                                                                                                             
@@ -115,7 +138,19 @@ public class SimpleTransportPlugin implements ITransportPlugin {
             } 
 
             //anonymous user
-            req_context.setSubject(null);
+            Subject s = getDefaultSubject();
+            if (s == null) {
+              final String user = (String)storm_conf.get("debug.simple.transport.user");
+              if (user != null) {
+                HashSet<Principal> principals = new HashSet<Principal>();
+                principals.add(new Principal() {
+                  public String getName() { return user; }
+                  public String toString() { return user; }
+                });
+                s = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
+              }
+            }
+            req_context.setSubject(s);
 
             //invoke service handler
             return wrapped.process(inProt, outProt);

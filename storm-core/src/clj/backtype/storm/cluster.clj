@@ -14,38 +14,45 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.cluster
-  (:import [org.apache.zookeeper.data Stat])
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException])
+  (:import [org.apache.zookeeper.data Stat ACL Id])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
+  (:import [java.security MessageDigest])
+  (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]])
-  
   )
 
 (defprotocol ClusterState
-  (set-ephemeral-node [this path data])
+  (set-ephemeral-node [this path data acls])
   (delete-node [this path])
-  (create-sequential [this path data])
-  (set-data [this path data])  ;; if node does not exist, create persistent with this data 
+  (create-sequential [this path data acls])
+  (set-data [this path data acls])  ;; if node does not exist, create persistent with this data 
   (get-data [this path watch?])
   (get-children [this path watch?])
-  (mkdirs [this path])
+  (mkdirs [this path acls])
   (close [this])
   (register [this callback])
   (unregister [this id])
   )
 
-(defn mk-distributed-cluster-state [conf]
-  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)]
-    (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
+(defn mk-topo-only-acls [topo-conf]
+  (let [payload (.get topo-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
+    (when (Utils/isZkAuthenticationConfiguredTopology topo-conf)
+      [(first ZooDefs$Ids/CREATOR_ALL_ACL)
+       (ACL. ZooDefs$Perms/READ (Id. "digest" (DigestAuthenticationProvider/generateDigest payload)))])))
+
+(defnk mk-distributed-cluster-state [conf :auth-conf nil :acls nil]
+  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
+    (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT) acls)
     (.close zk))
   (let [callbacks (atom {})
         active (atom true)
         zk (zk/mk-client conf
                          (conf STORM-ZOOKEEPER-SERVERS)
                          (conf STORM-ZOOKEEPER-PORT)
-                         :auth-conf conf
+                         :auth-conf auth-conf
                          :root (conf STORM-ZOOKEEPER-ROOT)
                          :watcher (fn [state type path]
                                      (when @active
@@ -65,28 +72,28 @@
      (unregister [this id]
                  (swap! callbacks dissoc id))
 
-     (set-ephemeral-node [this path data]
-                         (zk/mkdirs zk (parent-path path))
+     (set-ephemeral-node [this path data acls]
+                         (zk/mkdirs zk (parent-path path) acls)
                          (if (zk/exists zk path false)
                            (try-cause
                              (zk/set-data zk path data) ; should verify that it's ephemeral
                              (catch KeeperException$NoNodeException e
                                (log-warn-error e "Ephemeral node disappeared between checking for existing and setting data")
-                               (zk/create-node zk path data :ephemeral)
+                               (zk/create-node zk path data :ephemeral acls)
                                ))
-                           (zk/create-node zk path data :ephemeral)
+                           (zk/create-node zk path data :ephemeral acls)
                            ))
      
-     (create-sequential [this path data]
-       (zk/create-node zk path data :sequential))
+     (create-sequential [this path data acls]
+       (zk/create-node zk path data :sequential acls))
      
-     (set-data [this path data]
+     (set-data [this path data acls]
                ;; note: this does not turn off any existing watches
                (if (zk/exists zk path false)
                  (zk/set-data zk path data)
                  (do
-                   (zk/mkdirs zk (parent-path path))
-                   (zk/create-node zk path data :persistent)
+                   (zk/mkdirs zk (parent-path path) acls)
+                   (zk/create-node zk path data :persistent acls)
                    )))
      
      (delete-node [this path]
@@ -100,8 +107,8 @@
      (get-children [this path watch?]
                    (zk/get-children zk path watch?))
      
-     (mkdirs [this path]
-             (zk/mkdirs zk path))
+     (mkdirs [this path acls]
+             (zk/mkdirs zk path acls))
      
      (close [this]
             (reset! active false)
@@ -135,6 +142,8 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
+  (set-credentials! [this storm-id creds topo-conf])
+  (credentials [this storm-id callback])
 
   (disconnect [this])
   )
@@ -146,12 +155,14 @@
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
+(def CREDENTIALS-ROOT "credentials")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
+(def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 
 (defn supervisor-path [id]
   (str SUPERVISORS-SUBTREE "/" id))
@@ -173,6 +184,9 @@
 
 (defn error-path [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
+
+(defn credentials-path [storm-id]
+  (str CREDENTIALS-SUBTREE "/" storm-id))
 
 (defn- issue-callback! [cb-atom]
   (let [cb @cb-atom]
@@ -210,14 +224,15 @@
       (into {}))))
 
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
-(defn mk-storm-cluster-state [cluster-state-spec]
+(defnk mk-storm-cluster-state [cluster-state-spec :acls nil]
   (let [[solo? cluster-state] (if (satisfies? ClusterState cluster-state-spec)
                                 [false cluster-state-spec]
-                                [true (mk-distributed-cluster-state cluster-state-spec)])
+                                [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls)])
         assignment-info-callback (atom {})
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
+        credentials-callback (atom {})
         state-id (register
                   cluster-state
                   (fn [type path]
@@ -228,12 +243,13 @@
                                              (issue-map-callback! assignment-info-callback (first args)))
                           SUPERVISORS-ROOT (issue-callback! supervisors-callback)
                           STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
+                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
                           ;; this should never happen
                           (halt-process! 30 "Unknown callback for subtree " subtree args)
                           )
                       )))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
-      (mkdirs cluster-state p))
+      (mkdirs cluster-state p acls))
     (reify
      StormClusterState
      
@@ -288,14 +304,14 @@
         )
 
       (worker-heartbeat! [this storm-id node port info]
-        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info)))
+        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
 
       (remove-worker-heartbeat! [this storm-id node port]
         (delete-node cluster-state (workerbeat-path storm-id node port))
         )
 
       (setup-heartbeats! [this storm-id]
-        (mkdirs cluster-state (workerbeat-storm-root storm-id)))
+        (mkdirs cluster-state (workerbeat-storm-root storm-id) acls))
 
       (teardown-heartbeats! [this storm-id]
         (try-cause
@@ -312,11 +328,11 @@
            )))
 
       (supervisor-heartbeat! [this supervisor-id info]
-        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info))
+        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info) acls)
         )
 
       (activate-storm! [this storm-id storm-base]
-        (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base))
+        (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base) acls)
         )
 
       (update-storm! [this storm-id new-elems]
@@ -326,7 +342,8 @@
           (set-data cluster-state (storm-path storm-id)
                                   (-> base
                                       (merge new-elems)
-                                      Utils/serialize))))
+                                      Utils/serialize)
+                                  acls)))
 
       (storm-base [this storm-id callback]
         (when callback
@@ -339,18 +356,29 @@
         )
 
       (set-assignment! [this storm-id info]
-        (set-data cluster-state (assignment-path storm-id) (Utils/serialize info))
+        (set-data cluster-state (assignment-path storm-id) (Utils/serialize info) acls)
         )
 
       (remove-storm! [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))
+        (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
+
+      (set-credentials! [this storm-id creds topo-conf]
+         (let [topo-acls (mk-topo-only-acls topo-conf)
+               path (credentials-path storm-id)]
+           (set-data cluster-state path (Utils/serialize creds) topo-acls)))
+
+      (credentials [this storm-id callback]
+        (when callback
+          (swap! credentials-callback assoc storm-id callback))
+        (maybe-deserialize (get-data cluster-state (credentials-path storm-id) (not-nil? callback))))
 
       (report-error [this storm-id component-id error]                
          (let [path (error-path storm-id component-id)
                data {:time-secs (current-time-secs) :error (stringify-error error)}
-               _ (mkdirs cluster-state path)
-               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data))
+               _ (mkdirs cluster-state path acls)
+               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data) acls)
                to-kill (->> (get-children cluster-state path false)
                             (sort-by parse-error-path)
                             reverse
@@ -360,7 +388,7 @@
 
       (errors [this storm-id component-id]
          (let [path (error-path storm-id component-id)
-               _ (mkdirs cluster-state path)
+               _ (mkdirs cluster-state path acls)
                children (get-children cluster-state path false)
                errors (dofor [c children]
                              (let [data (-> (get-data cluster-state (str path "/" c) false)

@@ -21,14 +21,16 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:use [clojure.string :only [trim]])
+  (:use [clojure.string :only [blank? lower-case trim]])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
-  (:import [java.io File])
+  (:import [backtype.storm.security.auth AuthUtils])
+  (:import [java.io File PrintWriter StringWriter])
+  (:import [java.net URLDecoder])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -51,6 +53,7 @@
 (def tips
   "Defines a mapping of help texts for elements of the UI pages."
   {:sys-stats "Use this to toggle inclusion of storm system components."
+   :user "This should be you."
    :version (str "The version of storm installed on the UI node. (Hopefully, "
                  "this is the same on all storm nodes!)")
    :nimbus-uptime (str "The duration the current Nimbus instance has been "
@@ -65,9 +68,13 @@
    :name "The name given to the topology by when it was submitted."
    :name-link "Click the name to view the Topology's information."
    :topo-id "The unique ID given to a Topology each time it is launched."
+   :owner "The user that submitted the Topology, if authentication is enabled."
    :status "The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING."
    :topo-uptime "The time since the Topology was submitted."
    :num-workers "The number of Workers (processes)."
+   :scheduler-info (str "This shows information from the scheduler about the "
+                        "latest attempt to schedule the Topology on the "
+                        "cluster.")
    :sup-id (str "A unique identifier given to a Supervisor when it joins the "
                 "cluster.")
    :sup-host (str "The hostname reported by the remote host. (Note that this "
@@ -112,27 +119,33 @@
 
 (defn mk-system-toggle-button [include-sys?]
   [:p {:class "js-only"}
-   [:span.tip.right {:title (:sys-stats tips)}
-    [:input {:type "button"
+    [:span.tip.right {:title (:sys-stats tips)}
+     [:input {:type "button"
              :value (str (if include-sys? "Hide" "Show") " System Stats")
              :onclick "toggleSys()"}]]])
 
-(defn ui-template [body]
-  (html4
-   [:head
-    [:title "Storm UI"]
-    (include-css "/css/bootstrap-1.4.0.css")
-    (include-css "/css/style.css")
-    (include-js "/js/jquery-1.6.2.min.js")
-    (include-js "/js/jquery.tablesorter.min.js")
-    (include-js "/js/jquery.cookies.2.2.0.min.js")
-    (include-js "/js/bootstrap-twipsy.js")
-    (include-js "/js/script.js")
-    ]
-   [:body
-    [:h1 (link-to "/" "Storm UI")]
-    (seq body)
-    ]))
+(defn ui-template
+  ([body] (ui-template body nil))
+  ([body user]
+    (html4
+     [:head
+      [:title "Storm UI"]
+      (include-css "/css/bootstrap-1.4.0.css")
+      (include-css "/css/style.css")
+      (include-js "/js/jquery-1.6.2.min.js")
+      (include-js "/js/jquery.tablesorter.min.js")
+      (include-js "/js/jquery.cookies.2.2.0.min.js")
+      (include-js "/js/bootstrap-twipsy.js")
+      (include-js "/js/script.js")
+      ]
+     [:body
+      (concat
+        (when (not (blank? user))
+          [[:div.ui-user
+            [:p [:span.tip.below {:title (:user tips)} "User: " user]]]])
+        [[:h1 (link-to "/" "Storm UI")]]
+        (seq body))
+      ])))
 
 (defn read-storm-version []
   (let [storm-home (System/getProperty "storm.home")
@@ -190,6 +203,8 @@
                          :title (str (:name tips) " " (:name-link tips))}}
     {:text "Id" :attr {:class "tip right"
                        :title (:topo-id tips)}}
+    {:text "Owner" :attr {:class "tip above"
+                          :title (:owner tips)}}
     {:text "Status" :attr {:class "tip above"
                            :title (:status tips)}}
     {:text "Uptime" :attr {:class "tip above"
@@ -199,17 +214,21 @@
     {:text "Num executors" :attr {:class "tip above"
                                   :title (:num-execs tips)}}
     {:text "Num tasks" :attr {:class "tip above"
-                              :title (:num-tasks tips)}}]
+                              :title (:num-tasks tips)}}
+    {:text "Scheduler Info" :attr {:class "tip left"
+                                   :title (:scheduler-info tips)}}]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (escape-html (.get_id t))
+      (escape-html (.get_owner t))
       (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
       (.get_num_executors t)
       (.get_num_tasks t)
+      (.get_sched_status t)
       ])
-   :time-cols [3]
+   :time-cols [4]
    :sort-list "[[0,0]]"
    ))
 
@@ -421,6 +440,8 @@
                                  :title (:name tips)}}
             {:text "Id" :attr {:class "tip right"
                                :title (:topo-id tips)}}
+            {:text "Owner" :attr {:class "tip above"
+                                  :title (:owner tips)}}
             {:text "Status" :attr {:class "tip above"
                                    :title (:status tips)}}
             {:text "Uptime" :attr {:class "tip above"
@@ -430,14 +451,18 @@
             {:text "Num executors" :attr {:class "tip above"
                                           :title (:num-execs tips)}}
             {:text "Num tasks" :attr {:class "tip above"
-                                      :title (:num-tasks tips)}}]
+                                      :title (:num-tasks tips)}}
+            {:text "Scheduler Info" :attr {:class "tip left"
+                                           :title (:scheduler-info tips)}}]
            [[(escape-html (.get_name summ))
              (escape-html (.get_id summ))
+             (escape-html (.get_owner summ))
              (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)
              (count executors)
              (sum-tasks executors)
+             (.get_sched_status summ)
              ]]
            )))
 
@@ -519,9 +544,10 @@
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
-(defn worker-log-link [host port]
-  (link-to (url-format "http://%s:%s/log?file=worker-%s.log"
-              host (*STORM-CONF* LOGVIEWER-PORT) port) (str port)))
+(defn worker-log-link [host port topology-id]
+  (let [fname (logs-filename topology-id port)]
+    (link-to (url-format (str "http://%s:%s/log?file=%s")
+                host (*STORM-CONF* LOGVIEWER-PORT) fname) (str port))))
 
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]
@@ -649,7 +675,30 @@
                          (StringEscapeUtils/escapeJavaScript name) "', '"
                          command "', " is-wait ", " default-wait ")")}])
 
-(defn topology-page [id window include-sys?]
+(defn- ui-actions-enabled? []
+  (= "true" (lower-case (*STORM-CONF* UI-ACTIONS-ENABLED))))
+
+(defn- topology-actions [id name status msg-timeout]
+  (if (ui-actions-enabled?)
+    (concat
+       [[:h2 {:class "js-only"} "Topology actions"]]
+       [[:p {:class "js-only"} (concat
+         [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
+         [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
+         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (or (= "ACTIVE" status) (= "INACTIVE" status)))]
+         [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
+       )]] )
+    []))
+
+(defn authorized-ui-user? [user conf topology-conf]
+  (let [ui-users (concat (conf UI-USERS)
+                         (conf NIMBUS-ADMINS)
+                         (topology-conf UI-USERS)
+                         (topology-conf TOPOLOGY-USERS))]
+    (and (not (blank? user))
+         (some #(= % user) ui-users))))
+
+(defn topology-page [id window include-sys? user]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
@@ -665,25 +714,24 @@
           status (.get_status summ)
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
           ]
-      (concat
-       [[:h2 "Topology summary"]]
-       [(topology-summary-table summ)]
-       [[:h2 {:class "js-only"} "Topology actions"]]
-       [[:p {:class "js-only"} (concat
-         [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
-         [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
-         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (or (= "ACTIVE" status) (= "INACTIVE" status)))]
-         [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
-       )]]
-       [[:h2 "Topology stats"]]
-       (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
-       [[:h2 "Spouts (" window-hint ")"]]
-       (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
-       [[:h2 "Bolts (" window-hint ")"]]
-       (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
-       [[:h2 "Topology Configuration"]]
-       (configuration-table topology-conf)
-       ))))
+      (if (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-ui-user? user *STORM-CONF* topology-conf))
+        (concat
+          [[:h2 "Topology summary"]]
+          [(topology-summary-table summ)]
+          (topology-actions id name status msg-timeout)
+          [[:h2 "Topology stats"]]
+          (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
+          [[:h2 "Spouts (" window-hint ")"]]
+          (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
+          [[:h2 "Bolts (" window-hint ")"]]
+          (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+          [[:h2 "Topology Configuration"]]
+          (configuration-table topology-conf)
+          [(mk-system-toggle-button include-sys?)]
+        )
+
+        (unauthorized-user-html user)))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
   (let [spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
@@ -781,7 +829,7 @@
      [(pretty-executor-info (.get_executor_info e))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
-      (worker-log-link (.get_host e) (.get_port e))
+      (worker-log-link (.get_host e) (.get_port e) topology-id)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (float-str (:complete-latencies stats))
@@ -896,7 +944,7 @@
      [(pretty-executor-info (.get_executor_info e))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
-      (worker-log-link (.get_host e) (.get_port e))
+      (worker-log-link (.get_host e) (.get_port e) topology-id)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (render-capacity (compute-executor-capacity e))
@@ -977,7 +1025,7 @@
      :sort-list "[[0,1]]"
      )))
 
-(defn component-page [topology-id component window include-sys?]
+(defn component-page [topology-id component window include-sys? user]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
           summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
@@ -985,89 +1033,106 @@
           type (component-type topology component)
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-page window summ component summs include-sys?)
-                     (= type :bolt) (bolt-page window summ component summs include-sys?))]
-      (concat
-       [[:h2 "Component summary"]
-        (table [{:text "Id" :attr {:class "tip right"
-                                   :title (:comp-id tips)}}
-                {:text "Topology" :attr {:class "tip above"
-                                   :title (str (:name tips) " " (:name-link tips))}}
-                {:text "Executors" :attr {:class "tip above"
-                                   :title (:num-execs tips)}}
-                {:text "Tasks" :attr {:class "tip above"
-                               :title (:num-tasks tips)}}]
-               [[(escape-html component)
-                 (topology-link (.get_id summ) (.get_name summ))
-                 (count summs)
-                 (sum-tasks summs)
-                 ]])]
-       spec
-       [[:h2 "Errors"]
-        (errors-table (get (.get_errors summ) component))]
-       ))))
+                     (= type :bolt) (bolt-page window summ component summs include-sys?))
+          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))]
+      (if (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-ui-user? user *STORM-CONF* topology-conf))
+        (concat
+          [[:h2 "Component summary"]
+           (table [{:text "Id" :attr {:class "tip right"
+                                      :title (:comp-id tips)}}
+                   {:text "Topology" :attr {:class "tip above"
+                                      :title (str (:name tips) " " (:name-link tips))}}
+                   {:text "Executors" :attr {:class "tip above"
+                                      :title (:num-execs tips)}}
+                   {:text "Tasks" :attr {:class "tip above"
+                                  :title (:num-tasks tips)}}]
+                  [[(escape-html component)
+                    (topology-link (.get_id summ) (.get_name summ))
+                    (count summs)
+                    (sum-tasks summs)
+                    ]])]
+          spec
+          [[:h2 "Errors"]
+           (errors-table (get (.get_errors summ) component))
+           (mk-system-toggle-button include-sys?)])
+
+        (unauthorized-user-html user)))))
 
 (defn get-include-sys? [cookies]
   (let [sys? (get cookies "sys")
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
-(defroutes main-routes
-  (GET "/" [:as {cookies :cookies}]
-       (-> (main-page)
-           ui-template))
-  (GET "/topology/:id" [:as {cookies :cookies} id & m]
-       (let [include-sys? (get-include-sys? cookies)
-            id (url-decode id)]
-         (try
-           (-> (topology-page (url-decode id) (:window m) include-sys?)
-             (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)
-           (catch Exception e (resp/redirect "/")))))
-  (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
-       (let [include-sys? (get-include-sys? cookies)
-            id (url-decode id)
-            component (url-decode component)]
-         (-> (component-page id component (:window m) include-sys?)
-             (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)))
-  (POST "/topology/:id/activate" [id]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.activate nimbus name)
-        (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/deactivate" [id]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.deactivate nimbus name)
-        (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)
-            options (RebalanceOptions.)]
-        (.set_wait_secs options (Integer/parseInt wait-time))
-        (.rebalance nimbus name options)
-        (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/kill/:wait-time" [id wait-time]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)
-            options (KillOptions.)]
-        (.set_wait_secs options (Integer/parseInt wait-time))
-        (.killTopologyWithOpts nimbus name options)
-        (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/topology/" id)))
-  (route/resources "/")
-  (route/not-found "Page not found"))
+(def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+
+(if (ui-actions-enabled?)
+  (defroutes main-routes
+    (GET "/" [:as {servlet-request :servlet-request}]
+         (ui-template (main-page)
+                      (.getUserName http-creds-handler servlet-request)))
+    (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (.getUserName http-creds-handler servlet-request)]
+           (ui-template (topology-page (URLDecoder/decode id) (:window m) include-sys? user)
+                        user)))
+    (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
+                                               id component & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (.getUserName http-creds-handler servlet-request)]
+           (ui-template (component-page (URLDecoder/decode id) component (:window m) include-sys? user)
+                        user)))
+    (POST "/topology/:id/activate" [id]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
+              name (.get_name tplg)]
+          (.activate nimbus name)
+          (log-message "Activating topology '" name "'")))
+      (resp/redirect (str "/topology/" id)))
+    (POST "/topology/:id/deactivate" [id]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
+              name (.get_name tplg)]
+          (.deactivate nimbus name)
+          (log-message "Deactivating topology '" name "'")))
+      (resp/redirect (str "/topology/" id)))
+    (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
+              name (.get_name tplg)
+              options (RebalanceOptions.)]
+          (.set_wait_secs options (Integer/parseInt wait-time))
+          (.rebalance nimbus name options)
+          (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
+      (resp/redirect (str "/topology/" id)))
+    (POST "/topology/:id/kill/:wait-time" [id wait-time]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
+              name (.get_name tplg)
+              options (KillOptions.)]
+          (.set_wait_secs options (Integer/parseInt wait-time))
+          (.killTopologyWithOpts nimbus name options)
+          (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
+      (resp/redirect (str "/topology/" id)))
+    (route/resources "/")
+    (route/not-found "Page not found"))
+
+  (defroutes main-routes
+    (GET "/" [:as {servlet-request :servlet-request}]
+         (ui-template (main-page)
+                      (.getUserName http-creds-handler servlet-request)))
+    (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (.getUserName http-creds-handler servlet-request)]
+           (ui-template (topology-page (URLDecoder/decode id) (:window m) include-sys? user) user)))
+    (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
+                                               id component & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (.getUserName http-creds-handler servlet-request)]
+           (ui-template (component-page (URLDecoder/decode id) component (:window m) include-sys? user)
+                        user)))
+    (route/resources "/")
+    (route/not-found "Page not found")))
 
 (defn exception->html [ex]
   (concat
@@ -1082,8 +1147,9 @@
       (handler request)
       (catch Exception ex
         (-> (resp/response (ui-template (exception->html ex)))
-          (resp/status 500)
-          (resp/content-type "text/html"))
+            (resp/status 500)
+            (resp/content-type "text/html"))
+        (log-error ex)
         ))))
 
 (def app
@@ -1091,7 +1157,19 @@
                     (wrap-reload '[backtype.storm.ui.core])
                     catch-errors)))
 
-(defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
-                                       :join? false}))
+(defn start-server! []
+  (try
+    (let [conf *STORM-CONF*
+          header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
+          filters-confs [{:filter-class (conf UI-FILTER)
+                          :filter-params (conf UI-FILTER-PARAMS)}]]
+      (run-jetty app {:port (conf UI-PORT)
+                          :join? false
+                          :configurator (fn [server]
+                                          (doseq [connector (.getConnectors server)]
+                                            (.setHeaderBufferSize connector header-buffer-size))
+                                          (config-filter server app filters-confs))}))
+   (catch Exception ex
+     (log-error ex))))
 
 (defn -main [] (start-server!))

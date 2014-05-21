@@ -42,7 +42,7 @@ public class DistributedRPC {
 
   public interface Iface {
 
-    public String execute(String functionName, String funcArgs) throws DRPCExecutionException, org.apache.thrift.TException;
+    public String execute(String functionName, String funcArgs) throws DRPCExecutionException, AuthorizationException, org.apache.thrift.TException;
 
   }
 
@@ -72,7 +72,7 @@ public class DistributedRPC {
       super(iprot, oprot);
     }
 
-    public String execute(String functionName, String funcArgs) throws DRPCExecutionException, org.apache.thrift.TException
+    public String execute(String functionName, String funcArgs) throws DRPCExecutionException, AuthorizationException, org.apache.thrift.TException
     {
       send_execute(functionName, funcArgs);
       return recv_execute();
@@ -86,7 +86,7 @@ public class DistributedRPC {
       sendBase("execute", args);
     }
 
-    public String recv_execute() throws DRPCExecutionException, org.apache.thrift.TException
+    public String recv_execute() throws DRPCExecutionException, AuthorizationException, org.apache.thrift.TException
     {
       execute_result result = new execute_result();
       receiveBase(result, "execute");
@@ -95,6 +95,9 @@ public class DistributedRPC {
       }
       if (result.e != null) {
         throw result.e;
+      }
+      if (result.aze != null) {
+        throw result.aze;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "execute failed: unknown result");
     }
@@ -142,7 +145,7 @@ public class DistributedRPC {
         prot.writeMessageEnd();
       }
 
-      public String getResult() throws DRPCExecutionException, org.apache.thrift.TException {
+      public String getResult() throws DRPCExecutionException, AuthorizationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -184,6 +187,8 @@ public class DistributedRPC {
           result.success = iface.execute(args.functionName, args.funcArgs);
         } catch (DRPCExecutionException e) {
           result.e = e;
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -590,14 +595,17 @@ public class DistributedRPC {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
     private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private String success; // required
     private DRPCExecutionException e; // required
+    private AuthorizationException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      E((short)1, "e");
+      E((short)1, "e"),
+      AZE((short)2, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -616,6 +624,8 @@ public class DistributedRPC {
             return SUCCESS;
           case 1: // E
             return E;
+          case 2: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -664,6 +674,8 @@ public class DistributedRPC {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(execute_result.class, metaDataMap);
     }
@@ -673,11 +685,13 @@ public class DistributedRPC {
 
     public execute_result(
       String success,
-      DRPCExecutionException e)
+      DRPCExecutionException e,
+      AuthorizationException aze)
     {
       this();
       this.success = success;
       this.e = e;
+      this.aze = aze;
     }
 
     /**
@@ -690,6 +704,9 @@ public class DistributedRPC {
       if (other.is_set_e()) {
         this.e = new DRPCExecutionException(other.e);
       }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
     }
 
     public execute_result deepCopy() {
@@ -700,6 +717,7 @@ public class DistributedRPC {
     public void clear() {
       this.success = null;
       this.e = null;
+      this.aze = null;
     }
 
     public String get_success() {
@@ -748,6 +766,29 @@ public class DistributedRPC {
       }
     }
 
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -766,6 +807,14 @@ public class DistributedRPC {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
       }
     }
 
@@ -776,6 +825,9 @@ public class DistributedRPC {
 
       case E:
         return get_e();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -792,6 +844,8 @@ public class DistributedRPC {
         return is_set_success();
       case E:
         return is_set_e();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -827,6 +881,15 @@ public class DistributedRPC {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -843,6 +906,11 @@ public class DistributedRPC {
       builder.append(present_e);
       if (present_e)
         builder.append(e);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -871,6 +939,16 @@ public class DistributedRPC {
       }
       if (is_set_e()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -907,6 +985,14 @@ public class DistributedRPC {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 2: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -926,6 +1012,10 @@ public class DistributedRPC {
       } else if (this.is_set_e()) {
         oprot.writeFieldBegin(E_FIELD_DESC);
         this.e.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -950,6 +1040,14 @@ public class DistributedRPC {
         sb.append("null");
       } else {
         sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");

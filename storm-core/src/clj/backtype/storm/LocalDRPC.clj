@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.LocalDRPC
   (:require [backtype.storm.daemon [drpc :as drpc]])
-  (:use [backtype.storm util])
+  (:use [backtype.storm config util])
   (:import [backtype.storm.utils InprocMessaging ServiceRegistry])
   (:gen-class
    :init init
@@ -24,7 +24,7 @@
    :state state ))
 
 (defn -init []
-  (let [handler (drpc/service-handler)
+  (let [handler (drpc/service-handler (read-storm-config))
         id (ServiceRegistry/registerService handler)
         ]
     [[] {:service-id id :handler handler}]

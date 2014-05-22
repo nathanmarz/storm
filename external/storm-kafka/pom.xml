@@ -27,7 +27,7 @@
     </parent>
 
     <packaging>jar</packaging>
-	<artifactId>storm-kafka</artifactId>
+    <artifactId>storm-kafka</artifactId>
     <name>storm-kafka</name>
     <description>Storm Spouts for Apache Kafka</description>
     <properties>

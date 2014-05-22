@@ -15,6 +15,14 @@ OpaqueTridentKafkaSpout spout = new OpaqueTridentKafkaSpout(spoutConf);
 ```
 
 
+## Building storm-kafka for Scala 2.10
+
+By default storm-kafka is built against Scala 2.9.2 (see [pom.xml](pom.xml)).  You can build storm-kafka for Scala 2.10
+by activating the `Scala-2.10` maven profile:
+
+    $ mvn install -P Scala-2.10
+
+
 ## Committer Sponsors
 
  * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))

@@ -4,21 +4,16 @@ Storm Kafka
 Provides core storm and Trident spout implementations for consuming data from Apache Kafka 0.8.x.
 
 
-
-##Usage Example
+## Usage Example
 
 ```java
-        
-        TridentTopology topology = new TridentTopology();
-
-        BrokerHosts zk = new ZkHosts("localhost");
-
-        TridentKafkaConfig spoutConf = new TridentKafkaConfig(zk, "test-topic");
-        spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
-        OpaqueTridentKafkaSpout spout = new OpaqueTridentKafkaSpout(spoutConf);
-
-
+TridentTopology topology = new TridentTopology();
+BrokerHosts zk = new ZkHosts("localhost");
+TridentKafkaConfig spoutConf = new TridentKafkaConfig(zk, "test-topic");
+spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
+OpaqueTridentKafkaSpout spout = new OpaqueTridentKafkaSpout(spoutConf);
 ```
+
 
 ## Committer Sponsors
 

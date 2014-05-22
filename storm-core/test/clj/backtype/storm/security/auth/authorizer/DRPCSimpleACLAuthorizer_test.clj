@@ -1,4 +1,4 @@
-(ns backtype.storm.security.auth.authorizer.DRPCSimpleAclAuthorizer-test
+(ns backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer-test
   (:use [clojure test])
   (:import [org.mockito Mockito])
   (:import [backtype.storm Config])

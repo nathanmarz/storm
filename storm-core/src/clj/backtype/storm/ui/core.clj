@@ -19,7 +19,8 @@
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
   (:use [backtype.storm.ui helpers])
-  (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
+  (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
+                                              ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [trim]])
   (:import [backtype.storm.utils Utils])
@@ -128,6 +129,10 @@
     (include-js "/js/jquery.cookies.2.2.0.min.js")
     (include-js "/js/bootstrap-twipsy.js")
     (include-js "/js/script.js")
+    (include-js "/js/arbor.js")
+    (include-js "/js/arbor-tween.js")
+    (include-js "/js/arbor-graphics.js")
+    (include-js "/js/visualization.js")
     ]
    [:body
     [:h1 (link-to "/" "Storm UI")]
@@ -164,7 +169,7 @@
             {:text "Free slots" :attr {:class "tip above"
                                        :title (:num-slots tips)}}
             {:text "Total slots" :attr {:class "tip above"
-                                       :title (:num-slots tips)}}
+                                        :title (:num-slots tips)}}
             {:text  "Executors" :attr {:class "tip above"
                                        :title (:num-execs tips)}}
             {:text "Tasks" :attr {:class "tip left"
@@ -333,6 +338,13 @@
   (if include-sys?
     (fn [_] true)
     (fn [stream] (and (string? stream) (not (system-id? stream))))))
+
+(defn is-ack-stream [stream]
+  (let [acker-streams
+        [ACKER-INIT-STREAM-ID
+         ACKER-ACK-STREAM-ID
+         ACKER-FAIL-STREAM-ID]]
+    (every? #(not= %1 stream) acker-streams)))
 
 (defn pre-process [stream-summary include-sys?]
   (let [filter-fn (mk-include-sys-fn include-sys?)
@@ -553,6 +565,12 @@
        (map nil-to-zero)
        (apply max)))
 
+(defn spout-stats [summs include-sys?]
+  (let [stats-seq (get-filled-stats summs)]
+    (aggregate-spout-streams
+     (aggregate-spout-stats
+      stats-seq include-sys?))))
+
 (defn spout-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
    [{:text "Id" :attr {:class "tip right"
@@ -573,10 +591,7 @@
                            :title (:spout-failed tips)}}
     "Last error"]
    (for [[id summs] summ-map
-         :let [stats-seq (get-filled-stats summs)
-               stats (aggregate-spout-streams
-                      (aggregate-spout-stats
-                       stats-seq include-sys?))]]
+         :let [stats (spout-stats summs include-sys?)]]
      [(component-link top-id id)
       (count summs)
       (sum-tasks summs)
@@ -588,6 +603,12 @@
       (most-recent-error (get errors id))
       ]
      )))
+
+(defn bolt-stats [summs include-sys?]
+  (let [stats-seq (get-filled-stats summs)]
+    (aggregate-bolt-streams
+     (aggregate-bolt-stats
+      stats-seq include-sys?))))
 
 (defn bolt-comp-table [top-id summ-map errors window include-sys?]
   (sorted-table
@@ -615,10 +636,7 @@
                            :title (:bolt-failed tips)}}
     "Last error"]
    (for [[id summs] summ-map
-         :let [stats-seq (get-filled-stats summs)
-               stats (aggregate-bolt-streams
-                      (aggregate-bolt-stats
-                       stats-seq include-sys?))
+         :let [stats (bolt-stats summs include-sys?)
                ]]
      [(component-link top-id id)
       (count summs)
@@ -649,6 +667,124 @@
                          (StringEscapeUtils/escapeJavaScript name) "', '"
                          command "', " is-wait ", " default-wait ")")}])
 
+
+(defn sanitize-stream-name [name]
+  (let [sym-regex #"(?![A-Za-z_\-:\.])."]
+    (str
+     (if (re-find #"^[A-Za-z]" name)
+       (clojure.string/replace name sym-regex "_")
+       (clojure.string/replace (str \s name) sym-regex "_"))
+     (hash name))))
+
+(defn sanitize-transferred [transferred]
+  (into {}
+        (for [[time, stream-map] transferred]
+          [time, (into {} 
+                       (for [[stream, trans] stream-map]
+                         [(sanitize-stream-name stream), trans]))])))
+
+(defn visualization-data [spout-bolt spout-comp-summs bolt-comp-summs window storm-id]
+  (let [components (for [[id spec] spout-bolt]
+            [id 
+             (let [inputs (.get_inputs (.get_common spec))
+                   bolt-summs (get bolt-comp-summs id)
+                   spout-summs (get spout-comp-summs id)
+                   bolt-cap (if bolt-summs
+                              (compute-bolt-capacity bolt-summs)
+                              0)]
+               {
+                :type                (if bolt-summs
+                                       "bolt"
+                                       "spout")
+
+                :capacity            bolt-cap
+
+                :latency             (if bolt-summs
+                                       (get-in (bolt-stats bolt-summs true) [:process-latencies window])
+                                       (get-in (spout-stats spout-summs true) [:complete-latencies window]))
+
+                :transferred         (or
+                                      (get-in (spout-stats spout-summs true) [:transferred window]) 
+                                      (get-in (bolt-stats bolt-summs true) [:transferred window]))
+                :stats               (let [mapfn (fn [dat]
+                                                   (map (fn [^ExecutorSummary summ]
+                                                          {:host (.get_host summ)
+                                                           :port (.get_port summ)
+                                                           :uptime_secs (.get_uptime_secs summ)
+                                                           :transferred (if-let [stats (.get_stats summ)]
+                                                                          (sanitize-transferred (.get_transferred stats)))})
+                                                        dat))]
+                                       (if bolt-summs
+                                         (mapfn bolt-summs)
+                                         (mapfn spout-summs)))
+
+                :link                (url-format "/topology/%s/component/%s" storm-id id)
+
+                :inputs              (for [[global-stream-id group] inputs]
+                                       {:component (.get_componentId global-stream-id) 
+                                        :stream (.get_streamId global-stream-id)
+                                        :sani-stream (sanitize-stream-name (.get_streamId global-stream-id))
+                                        :grouping (clojure.core/name (thrift/grouping-type group))})})])]
+    (into {} (doall components))))
+
+
+(defn stream-boxes [datmap]
+  (let [filter-fn (mk-include-sys-fn true)
+        streams
+        (vec (doall (distinct
+                     (apply concat
+                            (for [[k v] datmap]
+                              (for [m (get v :inputs)]
+                                [(get m :stream) (get m :sani-stream)]))))))
+        boxes
+        (map (fn [[stream sani-stream]] 
+                  (html
+                   [:td
+                    [:input {:type "checkbox" :id sani-stream, :class "stream-box", :checked (is-ack-stream stream)}]
+                    stream]))
+                streams)]
+    (map (fn [row] 
+           [:tr row]) (partition 4 4 (repeat 4 "<td></td>") boxes))))
+    
+
+(defn mk-visualizations [spouts bolts spout-comp-summs bolt-comp-summs window id]
+  (let [mappd (visualization-data 
+               (merge (hashmap-to-persistent spouts) 
+                      (hashmap-to-persistent bolts)) 
+               spout-comp-summs 
+               bolt-comp-summs
+               window
+               id)
+        json-data (to-json  mappd)]
+    (concat
+     [[:input {:type :button :id "show-hide-visualization" :value "Show Visualization"}]]
+     [[:p
+       [:div {:id "visualization-container" :style "display:none;"}
+         (concat
+          [[:p [:table (stream-boxes mappd)]]]
+          [[:canvas {:id "topoGraph" :width 1024 :height 768 :style "border:1px solid #000000;"}]])]]])))
+  
+(defn mk-visualization-json [id window include-sys?]
+  (with-nimbus nimbus
+    (let [window (if window window ":all-time")
+          topology (.getTopology ^Nimbus$Client nimbus id)
+          spouts (.get_spouts topology)
+          bolts (.get_bolts topology)
+          summ (.getTopologyInfo ^Nimbus$Client nimbus id)
+          spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
+          bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
+          spout-comp-summs (group-by-comp spout-summs)
+          bolt-comp-summs (group-by-comp bolt-summs)
+          bolt-comp-summs (filter-key (mk-include-sys-fn include-sys?) bolt-comp-summs)
+          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))]
+      (to-json (visualization-data 
+                  (merge (hashmap-to-persistent spouts)
+                         (hashmap-to-persistent bolts))
+                  spout-comp-summs 
+                  bolt-comp-summs 
+                  window 
+                  id)))))
+
 (defn topology-page [id window include-sys?]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
@@ -664,6 +800,8 @@
           name (.get_name summ)
           status (.get_status summ)
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
+          spouts (.get_spouts topology)
+          bolts (.get_bolts topology)
           ]
       (concat
        [[:h2 "Topology summary"]]
@@ -681,6 +819,8 @@
        (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
        [[:h2 "Bolts (" window-hint ")"]]
        (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+       [[:h2 "Visualization"]]
+       (mk-visualizations spouts bolts spout-comp-summs bolt-comp-summs window id)
        [[:h2 "Topology Configuration"]]
        (configuration-table topology-conf)
        ))))
@@ -1023,6 +1163,11 @@
              (concat [(mk-system-toggle-button include-sys?)])
              ui-template)
            (catch Exception e (resp/redirect "/")))))
+  (GET "/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
+         (let [include-sys? (get-include-sys? cookies)]
+           {:status 200
+            :headers {"Content-Type" "application/json"}
+            :body (mk-visualization-json id (:window m) include-sys?)}))
   (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
        (let [include-sys? (get-include-sys? cookies)
             id (url-decode id)

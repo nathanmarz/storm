@@ -62,7 +62,7 @@ the [Maven installation instructions](http://maven.apache.org/download.cgi).
 
 If you are using the latest development version of Storm, e.g. by having cloned the Storm git repository,
 then you must first perform a local build of Storm itself.  Otherwise you will run into Maven errors such as
-`Could not resolve dependencies for project `org.apache.storm:storm-starter:<storm-version>-SNAPSHOT`.
+"Could not resolve dependencies for project `org.apache.storm:storm-starter:<storm-version>-SNAPSHOT`".
 
     # Must be run from the top-level directory of the Storm code repository
     $ mvn clean install -DskipTests=true

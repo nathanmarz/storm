@@ -31,6 +31,7 @@ code.
 
 ## storm-starter overview
 
+
 storm-starter contains a variety of examples of using Storm.  If this is your first time working with Storm, check out
 these topologies first:
 
@@ -57,6 +58,20 @@ Install [Maven](http://maven.apache.org/) (preferably version 3.x) by following
 the [Maven installation instructions](http://maven.apache.org/download.cgi).
 
 
+## Build and install Storm jars locally
+
+If you are using the latest development version of Storm, e.g. by having cloned the Storm git repository,
+then you must first perform a local build of Storm itself.  Otherwise you will run into Maven errors such as
+"Could not resolve dependencies for project `org.apache.storm:storm-starter:<storm-version>-SNAPSHOT`".
+
+    # Must be run from the top-level directory of the Storm code repository
+    $ mvn clean install -DskipTests=true
+
+This command will build Storm locally and install its jar files to your user's `$HOME/.m2/repository/`.  When you run
+the Maven command to build and run storm-starter (see below), Maven will then be able to find the corresponding version
+of Storm in this local Maven repository at `$HOME/.m2/repository`.
+
+
 ## Running topologies with Maven
 
 storm-starter topologies can be run with the maven-exec-plugin. For example, to
@@ -67,8 +82,8 @@ compile and run `WordCountTopology` in local mode, use the command:
 You can also run clojure topologies with Maven:
 
     $ mvn compile exec:java -Dstorm.topology=storm.starter.clj.word_count
-    
-In Windows parameter should be quoted, like this: 
+
+In Windows parameter should be quoted, like this:
 
     $ mvn compile exec:java "-Dstorm.topology=storm.starter.clj.word_count"
 

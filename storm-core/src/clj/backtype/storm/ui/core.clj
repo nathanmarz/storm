@@ -284,8 +284,8 @@
     (merge-with
      (fn [s1 s2]
        (merge-with + s1 s2))
-     (select-keys agg-bolt-stats [:emitted :transferred :acked :failed])
-     (select-keys agg-spout-stats [:emitted :transferred :acked :failed])
+     (select-keys agg-bolt-stats [:emitted :transferred :acked :failed :complete-latencies])
+     (select-keys agg-spout-stats [:emitted :transferred :acked :failed :complete-latencies])
      )))
 
 (defn stats-times [stats-map]

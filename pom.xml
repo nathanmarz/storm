@@ -132,6 +132,7 @@
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
+        <module>external/storm-hdfs</module>
     </modules>
 
     <scm>

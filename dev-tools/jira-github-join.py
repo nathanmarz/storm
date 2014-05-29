@@ -256,18 +256,26 @@ class GitHub:
 			authstr = base64.encodestring('%s:%s' % (options.gituser, gitpassword)).replace('\n', '')
 			self.headers["Authorization"] = "Basic "+authstr
 	
-	def openPulls(self, user, repo):
-		url = "https://api.github.com/repos/"+user+"/"+repo+"/pulls?state=open"
-		req = urllib2.Request(url,None,self.headers)
-		result = urllib2.urlopen(req)
-		contents = result.read()
-		if result.getcode() != 200:
-			raise Exception(result.getcode() + " != 200 "+ contents)
+	def pulls(self, user, repo, type="all"):
+		page=1
 		ret = []
-		for part in json.loads(contents):
-			ret.append(GitPullRequest(part, self))
-		return ret
-
+		while True:
+			url = "https://api.github.com/repos/"+user+"/"+repo+"/pulls?state="+type+"&page="+str(page)
+		
+			req = urllib2.Request(url,None,self.headers)
+			result = urllib2.urlopen(req)
+			contents = result.read()
+			if result.getcode() != 200:
+				raise Exception(result.getcode() + " != 200 "+ contents)
+			got = json.loads(contents)
+			for part in got:
+				ret.append(GitPullRequest(part, self))
+			if len(got) == 0:
+				return ret
+			page = page + 1
+			
+	def openPulls(self, user, repo):
+		return self.pulls(user, repo, "open")
 
 def main():
 	parser = OptionParser(usage="usage: %prog [options]")

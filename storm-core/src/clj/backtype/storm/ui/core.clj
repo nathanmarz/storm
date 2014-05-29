@@ -284,8 +284,8 @@
     (merge-with
      (fn [s1 s2]
        (merge-with + s1 s2))
-     (select-keys agg-bolt-stats [:emitted :transferred :acked :failed :complete-latencies])
-     (select-keys agg-spout-stats [:emitted :transferred :acked :failed :complete-latencies])
+     (select-keys agg-bolt-stats [:emitted :transferred :acked :failed])
+     (select-keys agg-spout-stats [:emitted :transferred :acked :failed])
      )))
 
 (defn stats-times [stats-map]
@@ -643,39 +643,39 @@
    })
 
 (defroutes main-routes
-  (GET "/api/cluster/configuration" []
+  (GET "/api/v1/cluster/configuration" []
        (cluster-configuration))
-  (GET "/api/cluster/summary" []
+  (GET "/api/v1/cluster/summary" []
        (json-response (cluster-summary)))
-  (GET "/api/supervisor/summary" []
+  (GET "/api/v1/supervisor/summary" []
        (json-response (supervisor-summary)))
-  (GET "/api/topology/summary" []
+  (GET "/api/v1/topology/summary" []
        (json-response (all-topologies-summary)))
-  (GET  "/api/topology/:id" [id & m]
+  (GET  "/api/v1/topology/:id" [id & m]
         (let [id (url-decode id)]
           (json-response (topology-page id (:window m) (check-include-sys? (:sys m))))))
-  (GET "/api/topology/:id/component/:component" [id component & m]
+  (GET "/api/v1/topology/:id/component/:component" [id component & m]
        (let [id (url-decode id)
              component (url-decode component)]
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m))))))
-  (POST "/api/topology/:id/activate" [id]
+  (POST "/api/v1/topology/:id/activate" [id]
     (with-nimbus nimbus
       (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/api/topology/" id)))
+    (resp/redirect (str "/api/v1/topology/" id)))
 
-  (POST "/api/topology/:id/deactivate" [id]
+  (POST "/api/v1/topology/:id/deactivate" [id]
     (with-nimbus nimbus
       (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
             name (.get_name tplg)]
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/api/topology/" id)))
-  (POST "/api/topology/:id/rebalance/:wait-time" [id wait-time]
+    (resp/redirect (str "/api/v1/topology/" id)))
+  (POST "/api/v1/topology/:id/rebalance/:wait-time" [id wait-time]
     (with-nimbus nimbus
       (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -684,8 +684,8 @@
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/topology/" id)))
-  (POST "/api/topology/:id/kill/:wait-time" [id wait-time]
+    (resp/redirect (str "/api/v1/topology/" id)))
+  (POST "/api/v1/topology/:id/kill/:wait-time" [id wait-time]
     (with-nimbus nimbus
       (let [id (url-decode id)
             tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -694,7 +694,7 @@
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/topology/" id)))
+    (resp/redirect (str "/api/v1/topology/" id)))
 
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))

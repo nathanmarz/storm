@@ -40,12 +40,12 @@ $(document).ready(function() {
     var supervisorSummary = $("#supervisor-summary");
     var config = $("#nimbus-configuration");
 
-    $.getJSON("/api/cluster/summary",function(response,status,jqXHR) {
+    $.getJSON("/api/v1/cluster/summary",function(response,status,jqXHR) {
         $.get("/templates/index-page-template.html", function(template) {
             clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
         });
     });
-    $.getJSON("/api/topology/summary",function(response,status,jqXHR) {
+    $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
       $.get("/templates/index-page-template.html", function(template) {
           topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
           if(response["topologies"].length > 0) {
@@ -53,7 +53,7 @@ $(document).ready(function() {
               }
       });
     });
-    $.getJSON("/api/supervisor/summary",function(response,status,jqXHR) {
+    $.getJSON("/api/v1/supervisor/summary",function(response,status,jqXHR) {
       $.get("/templates/index-page-template.html", function(template) {
           supervisorSummary.append(Mustache.render($(template).filter("#supervisor-summary-template").html(),response));
           if(response["supervisors"].length > 0) {
@@ -61,7 +61,7 @@ $(document).ready(function() {
           }
       });
     });
-    $.getJSON("/api/cluster/configuration",function(response,status,jqXHR) {
+    $.getJSON("/api/v1/cluster/configuration",function(response,status,jqXHR) {
       var formattedResponse = formatConfigData(response);
       $.get("/templates/index-page-template.html", function(template) {
           config.append(Mustache.render($(template).filter("#configuration-template").html(),formattedResponse));

@@ -37,7 +37,7 @@ $(document).ready(function() {
     var topologyId = $.url().param("id");
     var window = $.url().param("window");
     var sys = $.cookies.get("sys") || "false";
-    var url = "/api/topology/"+topologyId+"?sys="+sys;
+    var url = "/api/v1/topology/"+topologyId+"?sys="+sys;
     if(window) url += "&window="+window;
     renderToggleSys($("#toggle-switch"));
     $.ajaxSetup({

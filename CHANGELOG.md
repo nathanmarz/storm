@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-326: tasks send duplicate metrics
  * STORM-331: Update the Kafka dependency of storm-kafka to 0.8.1.1
  * STORM-308: Add support for config_value to {supervisor,nimbus,ui,drpc,logviewer} childopts
  * STORM-309: storm-starter Readme: windows documentation update

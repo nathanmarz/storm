@@ -32,7 +32,7 @@ HdfsBolt bolt = new HdfsBolt()
 
 ### Packaging a Topology
 When packaging your topology, it's important that you use the [maven-shade-plugin]() as opposed to the
-[maven-assempbly-plugin]().
+[maven-assembly-plugin]().
 
 The shade plugin provides facilities for merging JAR manifest entries, which the hadoop client leverages for URL scheme
 resolution.

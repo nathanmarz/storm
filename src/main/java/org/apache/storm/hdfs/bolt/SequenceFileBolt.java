@@ -138,7 +138,6 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
     }
 
     void closeOutputFile() throws IOException {
-        this.writer.hsync();
         this.writer.close();
     }
 

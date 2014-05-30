@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
-            <version>0.9.1-incubating</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

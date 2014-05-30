@@ -288,7 +288,7 @@
      (select-keys agg-spout-stats [:emitted :transferred :acked :failed :complete-latencies])
      )))
 
-(Defn stats-times [stats-map]
+(defn stats-times [stats-map]
   (sort-by #(Integer/parseInt %)
            (-> stats-map
                clojurify-structure

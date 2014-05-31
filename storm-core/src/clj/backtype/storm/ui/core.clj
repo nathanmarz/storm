@@ -331,7 +331,6 @@
        { "stormVersion" (read-storm-version)
          "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
          "supervisors" (count sups)
-         "topologies" ""
          "slotsTotal" total-slots
          "slotsUsed"  used-slots
          "slotsFree" free-slots

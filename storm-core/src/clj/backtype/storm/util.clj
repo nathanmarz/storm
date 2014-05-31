@@ -36,8 +36,7 @@
   (:require [clojure [set :as set]])
   (:require [clojure.java.io :as io])
   (:use [clojure walk])
-  (:use [backtype.storm log])
-  (:refer-clojure :exclude [some?]))
+  (:use [backtype.storm log]))
 
 (defn wrap-in-runtime
   "Wraps an exception in a RuntimeException if needed"

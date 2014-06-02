@@ -29,7 +29,7 @@
 <div id="topology-configuration">
 </div>
 <p id="toggle-switch" style="display: block;" class="js-only"></p>
-<div id="error">
+<div id="json-response-error">
 </div>
 </body>
 <script>
@@ -43,8 +43,8 @@ $(document).ready(function() {
     $.ajaxSetup({
         "error":function(jqXHR,textStatus,response) {
             var errorJson = jQuery.parseJSON(jqXHR.responseText);
-            $.get("/templates/error-template.html", function(template) {
-                $("#error").append(Mustache.render($(template).filter("#error-template").html(),errorJson));
+            $.get("/templates/json-error-template.html", function(template) {
+                $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),errorJson));
             });
         }
     });
@@ -73,7 +73,6 @@ $(document).ready(function() {
             }
             config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
             $("#topology-configuration-table").tablesorter({ sortList: [[0,0]], headers: {}});
-
         });
     });
  });

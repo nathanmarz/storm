@@ -137,16 +137,16 @@
 </table>
 </script>
 
-<script id="errors-template" type="text/html">
+<script id="component-errors-template" type="text/html">
 <h2>Errors</h2>
-<table class="zebra-striped" id="errors-table"><thead><tr><th>Time</th><th>Error</th></tr></thead>
+<table class="zebra-striped" id="component-errors-table"><thead><tr><th>Time</th><th>Error</th></tr></thead>
 <tbody>
-{{#errors}}
+{{#componentErrors}}
 <tr>
 <td>{{time}}</td>
 <td>{{error}}</td>
 </tr>
-{{/errors}}
+{{/componentErrors}}
 </tbody>
 </table>
 </script>

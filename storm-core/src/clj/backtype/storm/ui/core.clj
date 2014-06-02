@@ -515,12 +515,11 @@
   (let [errors (->> errors-list
                     (sort-by #(.get_error_time_secs ^ErrorInfo %))
                     reverse)]
-    {"errors"
+    {"componentErrors"
      (for [^ErrorInfo e errors]
-       [{"time" (date-str (.get_error_time_secs e))
+       {"time" (date-str (.get_error_time_secs e))
          "error" (.get_error e)
-         }])}
-     ))
+         })}))
 
 (defn spout-stats [window ^TopologyInfo topology-info component executors include-sys?]
   (let [window-hint (str " (" (window-hint window) ")")

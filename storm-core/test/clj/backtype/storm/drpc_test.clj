@@ -221,12 +221,12 @@
     (.shutdown drpc)
     ))
 
-(deftest test-drpc-timeout-cleanup
-  (is (thrown? DRPCExecutionException 
-               (let [queue (ConcurrentLinkedQueue.)
-                     delay-seconds 2]
-                 (stubbing [acquire-queue queue
-                            read-storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
-                           (let [drpc-handler (service-handler)]
+(deftest test-drpc-timeout-cleanup 
+  (let [queue (ConcurrentLinkedQueue.)
+        delay-seconds 2]
+    (stubbing [acquire-queue queue
+               read-storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
+              (let [drpc-handler (service-handler)]
+                (is (thrown? DRPCExecutionException 
                              (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))
 

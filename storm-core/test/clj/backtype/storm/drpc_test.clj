@@ -22,9 +22,11 @@
   (:import [backtype.storm LocalDRPC LocalCluster])
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated DRPCExecutionException])
-  (:use [backtype.storm bootstrap testing])
-  (:use [backtype.storm.daemon common])
+  (:import [java.util.concurrent ConcurrentLinkedQueue])
+  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm.daemon common drpc])
   (:use [backtype.storm clojure])
+  (:use [conjure core])
   )
 
 (bootstrap)
@@ -218,3 +220,13 @@
     (.shutdown cluster)
     (.shutdown drpc)
     ))
+
+(deftest test-drpc-timeout-cleanup
+  (is (thrown? DRPCExecutionException 
+               (let [queue (ConcurrentLinkedQueue.)
+                     delay-seconds 2]
+                 (stubbing [acquire-queue queue
+                            read-storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
+                           (let [drpc-handler (service-handler)]
+                             (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))
+

@@ -57,7 +57,6 @@
                         (doseq [[id start] @id->start]
                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                             (when-let [sem (@id->sem id)]
-                              (swap! id->result assoc id (DRPCExecutionException. "Request timed out"))
                               (.release sem))
                             (cleanup id)
                             ))
@@ -83,7 +82,9 @@
             (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
             (if (instance? DRPCExecutionException result)
               (throw result)
-              result
+              (if (nil? result)
+                (throw (DRPCExecutionException. "Request timed out"))
+                result)
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]

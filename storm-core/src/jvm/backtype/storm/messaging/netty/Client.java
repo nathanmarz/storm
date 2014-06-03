@@ -109,7 +109,7 @@ public class Client implements IConnection {
             @Override
             public void run() {
 
-                while(!closing) {
+                if(!closing) {
                     long flushCheckTime = flushCheckTimer.get();
                     long now = System.currentTimeMillis();
                     if (now > flushCheckTime) {

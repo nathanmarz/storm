@@ -118,6 +118,30 @@
       (advance-cluster-time cluster 5)
       (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0 2]))))
 
+(deftest test-custom-metric-with-multi-tasks
+  (with-simulated-time-local-cluster
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]}]
+    (let [feeder (feeder-spout ["field1"])
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec feeder)}
+                     {"2" (thrift/mk-bolt-spec {"1" :all} count-acks :p 1 :conf {TOPOLOGY-TASKS 2})})]
+      (submit-local-topology (:nimbus cluster) "metrics-tester" {} topology)
+
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 6)
+      (assert-buckets! "2" "my-custom-metric" [1])
+
+      (advance-cluster-time cluster 5)
+      (assert-buckets! "2" "my-custom-metric" [1 0])
+
+      (advance-cluster-time cluster 20)
+      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0])
+
+      (.feed feeder ["b"] 2)
+      (.feed feeder ["c"] 3)
+      (advance-cluster-time cluster 5)
+      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0 2]))))
 
 (deftest test-builtin-metrics-1
   (with-simulated-time-local-cluster

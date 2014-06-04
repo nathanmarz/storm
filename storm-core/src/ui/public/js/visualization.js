@@ -373,7 +373,7 @@ function show_visualization(sys) {
     var update_freq_ms = 10000;
     var update = function(should_rechoose){
         $.ajax({
-            url: document.URL.split('?')[0] + "/visualization",
+            url: "/api/v1/topology/"+$.url().param("id")+"/visualization",
             success: function(data, status, jqXHR) {
                 topology_data = data;
                 update_data(topology_data, sys);
@@ -401,13 +401,3 @@ function hide_visualization(sys) {
     $("#show-hide-visualization").unbind("click");
     $("#show-hide-visualization").click(function () { show_visualization(sys) });
 }
-
-$(document).ready(function() {
-
-    if($("#visualization-container"))
-    {
-        var sys = null;
-        $("#show-hide-visualization").click(function () { show_visualization(sys) });
-    
-    }
-})

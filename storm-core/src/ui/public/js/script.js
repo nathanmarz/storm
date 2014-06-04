@@ -71,7 +71,7 @@ function ensureInt(n) {
 function confirmAction(id, name, action, wait, defaultWait) {
     var opts = {
         type:'POST',
-        url:'/topology/' + id + '/' + action
+        url:'/api/v1/topology/' + id + '/' + action
     };
     if (wait) {
         var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +
@@ -91,7 +91,7 @@ function confirmAction(id, name, action, wait, defaultWait) {
     $.ajax(opts).always(function () {
         window.location.reload();
     }).fail(function () {
-        alert("Error while communicating with Nimbus.")
+        alert("Error while communicating with Nimbus.");
     });
 
     return false;
@@ -106,4 +106,49 @@ $(function () {
           delayIn: 1000
       });
     }
-})
+});
+
+function formatConfigData(data) {
+    var mustacheFormattedData = {'config':[]};
+    for (var prop in data) {
+       if(data.hasOwnProperty(prop)) {
+           mustacheFormattedData['config'].push({
+               'key': prop,
+               'value': data[prop]
+           });
+       }
+    }
+    return mustacheFormattedData;
+}
+
+
+function renderToggleSys(div) {
+    var sys = $.cookies.get("sys") || false;
+    if(sys) {
+       div.append("<span data-original-title=\"Use this to toggle inclusion of storm system components.\" class=\"tip right\"><input onclick=\"toggleSys()\" value=\"Hide System Stats\" type=\"button\"></span>");
+    } else {
+       div.append("<span class=\"tip right\" title=\"Use this to toggle inclusion of storm system components.\"><input onclick=\"toggleSys()\" value=\"Show System Stats\" type=\"button\"></span>");
+    }
+}
+
+function topologyActionJson(id,name,status,msgTimeout) {
+    var jsonData = {};
+    jsonData["id"] = id;
+    jsonData["name"] = name;
+    jsonData["msgTimeout"] = msgTimeout;
+    jsonData["activateStatus"] = (status === "ACTIVE") ? "disabled" : "enabled";
+    jsonData["deactivateStatus"] = (status === "ACTIVE") ? "enabled" : "disabled";
+    jsonData["rebalanceStatus"] = (status === "ACTIVE" || status === "INACTIVE" ) ? "enabled" : "disabled";
+    jsonData["killStatus"] = (status !== "KILLED") ? "enabled" : "disabled";
+    return jsonData;
+}
+
+function topologyActionButton(id,name,status,actionLabel,command,wait,defaultWait) {
+    var buttonData = {};
+    buttonData["buttonStatus"] = status ;
+    buttonData["actionLabel"] = actionLabel;
+    buttonData["command"] = command;
+    buttonData["isWait"] = wait;
+    buttonData["defaultWait"] = defaultWait;
+    return buttonData;
+}

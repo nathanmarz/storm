@@ -76,6 +76,7 @@ under the License.
 * P. Taylor Goetz ([@ptgoetz](https://github.com/ptgoetz))
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Robert Evans ([@revans2](https://github.com/revans2))
+* Michael G. Noll ([@miguno](https://github.com/miguno))
 
 ## Contributors
 

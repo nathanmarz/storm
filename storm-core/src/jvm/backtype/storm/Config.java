@@ -477,7 +477,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * control how many worker receiver threads we need per worker
      */
-    public static final String WORKER_RECEIVER_THREAD_COUNT = "worker.receiver.thread.count";
+    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
     public static final Object WORKER_RECEIVER_THREAD_COUNT_SCHEMA = Number.class;
     
     /**

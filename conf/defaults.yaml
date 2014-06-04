@@ -95,7 +95,7 @@ worker.childopts: "-Xmx768m"
 worker.heartbeat.frequency.secs: 1
 
 # control how many worker receiver threads we need per worker 
-worker.receiver.thread.count: 1
+topology.worker.receiver.thread.count: 1
 
 task.heartbeat.frequency.secs: 3
 task.refresh.poll.secs: 10

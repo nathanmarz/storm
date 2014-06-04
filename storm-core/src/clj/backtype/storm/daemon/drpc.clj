@@ -52,6 +52,7 @@
                          (swap! id->result dissoc id)
                          (swap! id->start dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
+        async-repeat-time (or (conf TIMEOUT-CHECK-SECS) TIMEOUT-CHECK-SECS)
         clear-thread (async-loop
                       (fn []
                         (doseq [[id start] @id->start]
@@ -60,7 +61,7 @@
                               (.release sem))
                             (cleanup id)
                             ))
-                        TIMEOUT-CHECK-SECS
+                        async-repeat-time
                         ))
         ]
     (reify DistributedRPC$Iface

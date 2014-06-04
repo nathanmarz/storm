@@ -223,9 +223,10 @@
 
 (deftest test-drpc-timeout-cleanup 
   (let [queue (ConcurrentLinkedQueue.)
-        delay-seconds 2]
+        delay-seconds 1]
     (stubbing [acquire-queue queue
-               read-storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
+               read-storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds
+                                  TIMEOUT-CHECK-SECS delay-seconds}]
               (let [drpc-handler (service-handler)]
                 (is (thrown? DRPCExecutionException 
                              (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))

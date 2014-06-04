@@ -280,14 +280,12 @@
        (map nil-to-zero)
        (apply max)))
 
-;; Watch These
 (defn spout-streams-stats [summs include-sys?]
   (let [stats-seq (get-filled-stats summs)]
     (aggregate-spout-streams
      (aggregate-spout-stats
       stats-seq include-sys?))))
 
-;; Watch These
 (defn bolt-streams-stats [summs include-sys?]
   (let [stats-seq (get-filled-stats summs)]
     (aggregate-bolt-streams
@@ -381,7 +379,7 @@
                                          (mapfn bolt-summs)
                                          (mapfn spout-summs)))
 
-                :link                (url-format "/topology/%s/component/%s" storm-id id)
+                :link                (url-format "/component.html?id=%s&topology_id=%s" id storm-id)
 
                 :inputs              (for [[global-stream-id group] inputs]
                                        {:component (.get_componentId global-stream-id) 

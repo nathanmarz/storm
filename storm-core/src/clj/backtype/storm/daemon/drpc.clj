@@ -29,7 +29,7 @@
 
 (bootstrap)
 
-(def TIMEOUT-CHECK-SECS 5)
+(defn timeout-check-secs [] 5)
 
 (defn acquire-queue [queues-atom function]
   (swap! queues-atom
@@ -52,7 +52,6 @@
                          (swap! id->result dissoc id)
                          (swap! id->start dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
-        async-repeat-time (or (conf TIMEOUT-CHECK-SECS) TIMEOUT-CHECK-SECS)
         clear-thread (async-loop
                       (fn []
                         (doseq [[id start] @id->start]
@@ -61,7 +60,7 @@
                               (.release sem))
                             (cleanup id)
                             ))
-                        async-repeat-time
+                        (timeout-check-secs)
                         ))
         ]
     (reify DistributedRPC$Iface

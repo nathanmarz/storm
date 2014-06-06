@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-313: Remove log-level-page from logviewer
  * STORM-205: Add REST API To Storm UI
  * STORM-326: tasks send duplicate metrics
  * STORM-331: Update the Kafka dependency of storm-kafka to 0.8.1.1

@@ -1,4 +1,5 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-63: remove timeout drpc request from its function's request queue
  * STORM-313: Remove log-level-page from logviewer
  * STORM-205: Add REST API To Storm UI
  * STORM-326: tasks send duplicate metrics

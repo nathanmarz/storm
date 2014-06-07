@@ -15,9 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.disruptor
   (:import [backtype.storm.utils DisruptorQueue])
-  (:import [com.lmax.disruptor MultiThreadedClaimStrategy SingleThreadedClaimStrategy
-              BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy
-              BusySpinWaitStrategy])
+  (:import [com.lmax.disruptor BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy BusySpinWaitStrategy])
+  (:import [com.lmax.disruptor.dsl ProducerType])
   (:require [clojure [string :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
@@ -25,16 +24,16 @@
   )
 
 (def CLAIM-STRATEGY
-  {:multi-threaded (fn [size] (MultiThreadedClaimStrategy. (int size)))
-   :single-threaded (fn [size] (SingleThreadedClaimStrategy. (int size)))
-    })
-    
+  {:multi-threaded (ProducerType/MULTI)
+   :single-threaded (ProducerType/SINGLE)
+   })
+
 (def WAIT-STRATEGY
   {:block (fn [] (BlockingWaitStrategy.))
    :yield (fn [] (YieldingWaitStrategy.))
    :sleep (fn [] (SleepingWaitStrategy.))
    :spin (fn [] (BusySpinWaitStrategy.))
-    })
+   })
 
 
 (defn- mk-wait-strategy [spec]
@@ -48,9 +47,10 @@
 ;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue, 
 ;; unblocking the consumer
 (defnk disruptor-queue [buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
-  (DisruptorQueue. ((CLAIM-STRATEGY claim-strategy) buffer-size)
-                   (mk-wait-strategy wait-strategy)
-                   ))
+  (DisruptorQueue. (CLAIM-STRATEGY claim-strategy)
+    buffer-size
+    (mk-wait-strategy wait-strategy)
+    ))
 
 (defn clojure-handler [afn]
   (reify com.lmax.disruptor.EventHandler

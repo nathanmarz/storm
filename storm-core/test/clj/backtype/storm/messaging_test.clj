@@ -85,7 +85,7 @@
                                                  :parallelism-hint 4)
                         })
             results (complete-topology cluster
-                                       topology)]
+                                       topology :kill-waiting 10)]
         
         ;; No error Tuple from Bolt TestEventOrderCheckBolt
         (is (empty? (read-tuples results "2"))))))

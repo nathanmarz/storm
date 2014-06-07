@@ -50,7 +50,7 @@ public class TransferDrainer {
       if (null != connection) { 
         ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(hostPort);
         Iterator<TaskMessage> iter = getBundleIterator(bundle);
-        if (null != iter) {
+        if (null != iter && iter.hasNext()) {
           connection.send(iter);
         }
       }

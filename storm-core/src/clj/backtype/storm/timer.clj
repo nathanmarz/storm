@@ -23,7 +23,7 @@
 ;; The timer defined in this file is very similar to java.util.Timer, except it integrates with
 ;; Storm's time simulation capabilities. This lets us test code that does asynchronous work on the timer thread
 
-(defnk mk-timer [:kill-fn (fn [& _] )]
+(defnk mk-timer [:kill-fn (fn [& _] ) :timer-name nil]
   (let [queue (PriorityQueue. 10
                               (reify Comparator
                                 (compare [this o1 o2]
@@ -35,6 +35,7 @@
         active (atom true)
         lock (Object.)
         notifier (Semaphore. 0)
+        thread-name (if timer-name timer-name "timer")
         timer-thread (Thread.
                       (fn []
                         (while @active
@@ -63,7 +64,7 @@
                                 (reset! active false)
                                 (throw t))
                               )))
-                        (.release notifier)))]
+                        (.release notifier)) thread-name)]
     (.setDaemon timer-thread true)
     (.setPriority timer-thread Thread/MAX_PRIORITY)
     (.start timer-thread)

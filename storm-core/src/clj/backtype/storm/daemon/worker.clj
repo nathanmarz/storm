@@ -18,8 +18,10 @@
   (:use [backtype.storm bootstrap])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
+  (:import [java.util ArrayList HashMap])
+  (:import [backtype.storm.utils TransferDrainer])
   (:import [backtype.storm.messaging TransportFactory])
-  (:import [backtype.storm.messaging IContext IConnection])
+  (:import [backtype.storm.messaging TaskMessage IContext IConnection])
   (:gen-class))
 
 (bootstrap)
@@ -109,25 +111,32 @@
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
         local-transfer (:transfer-local-fn worker)
-        ^DisruptorQueue transfer-queue (:transfer-queue worker)]
+        ^DisruptorQueue transfer-queue (:transfer-queue worker)
+        task->node+port (:cached-task->node+port worker)]
     (fn [^KryoTupleSerializer serializer tuple-batch]
       (let [local (ArrayList.)
-            remote (ArrayList.)]
+            remoteMap (HashMap.)]
         (fast-list-iter [[task tuple :as pair] tuple-batch]
           (if (local-tasks task)
             (.add local pair)
-            (.add remote pair)
-            ))
+            
+            ;;Using java objects directly to avoid performance issues in java code
+            (let [node+port (get @task->node+port task)]
+              (when (not (.get remoteMap node+port))
+                (.put remoteMap node+port (ArrayList.)))
+              (let [remote (.get remoteMap node+port)]
+                (.add remote (TaskMessage. task (.serialize serializer tuple)))
+                 ))))
+        
         (local-transfer local)
-        ;; not using map because the lazy seq shows up in perf profiles
-        (let [serialized-pairs (fast-list-for [[task ^TupleImpl tuple] remote] [task (.serialize serializer tuple)])]
-          (disruptor/publish transfer-queue serialized-pairs)
-          )))))
+        (disruptor/publish transfer-queue remoteMap)
+          ))))
 
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
        ;; TODO: this depends on the type of executor
-       (map (fn [e] [e (disruptor/disruptor-queue (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
+       (map (fn [e] [e (disruptor/disruptor-queue (str "receive-queue" e)
+                                                  (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))]))
        (into {})
        ))
@@ -158,18 +167,19 @@
   ;; actually just do it via interfaces. just need to make sure to hide setResource from tasks
   {})
 
-(defn mk-halting-timer []
+(defn mk-halting-timer [timer-name]
   (mk-timer :kill-fn (fn [t]
                        (log-error t "Error when processing event")
                        (halt-process! 20 "Error when processing an event")
-                       )))
+                       )
+            :timer-name timer-name))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
   (let [cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
-        transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
+        transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
         
@@ -195,11 +205,11 @@
       :storm-conf storm-conf
       :topology topology
       :system-topology (system-topology! storm-conf topology)
-      :heartbeat-timer (mk-halting-timer)
-      :refresh-connections-timer (mk-halting-timer)
-      :refresh-active-timer (mk-halting-timer)
-      :executor-heartbeat-timer (mk-halting-timer)
-      :user-timer (mk-halting-timer)
+      :heartbeat-timer (mk-halting-timer "heartbeat-timer")
+      :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
+      :refresh-active-timer (mk-halting-timer "refresh-active-timer")
+      :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
+      :user-timer (mk-halting-timer "user-timer")
       :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
       :component->stream->fields (component->stream->fields (:system-topology <>))
       :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
@@ -218,6 +228,7 @@
       :default-shared-resources (mk-default-resources <>)
       :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
+      :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
       :transfer-fn (mk-transfer-fn <>)
       )))
 
@@ -296,28 +307,19 @@
 ;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]
   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
-        drainer (ArrayList.)
+        drainer (TransferDrainer.)
         node+port->socket (:cached-node+port->socket worker)
         task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
         ]
     (disruptor/clojure-handler
       (fn [packets _ batch-end?]
-        (.addAll drainer packets)
+        (.add drainer packets)
+        
         (when batch-end?
           (read-locked endpoint-socket-lock
-            (let [node+port->socket @node+port->socket
-                  task->node+port @task->node+port]
-              ;; consider doing some automatic batching here (would need to not be serialized at this point to remove per-tuple overhead)
-              ;; try using multipart messages ... first sort the tuples by the target node (without changing the local ordering)
-            
-              (fast-list-iter [[task ser-tuple] drainer]
-                ;; TODO: consider write a batch of tuples here to every target worker  
-                ;; group by node+port, do multipart send              
-                (let [node-port (get task->node+port task)]
-                  (when node-port
-                    (.send ^IConnection (get node+port->socket node-port) task ser-tuple))
-                    ))))
+            (let [node+port->socket @node+port->socket]
+              (.send drainer node+port->socket)))
           (.clear drainer))))))
 
 (defn launch-receive-thread [worker]
@@ -325,6 +327,7 @@
   (msg-loader/launch-receive-thread!
     (:mq-context worker)
     (:storm-id worker)
+    (:receiver-thread-count worker)
     (:port worker)
     (:transfer-local-fn worker)
     (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))

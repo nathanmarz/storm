@@ -18,7 +18,8 @@
   (:use [backtype.storm log])
   (:import [backtype.storm.messaging IContext IConnection TaskMessage])
   (:import [java.util.concurrent LinkedBlockingQueue])
-  (:import [java.util Map])
+  (:import [java.util Map Iterator])
+  (:import [java.util Iterator ArrayList])
   (:gen-class))
 
 (defn add-queue! [queues-map lock storm-id port]
@@ -30,15 +31,24 @@
 
 (deftype LocalConnection [storm-id port queues-map lock queue]
   IConnection
-  (^TaskMessage recv [this ^int flags]
+  (^Iterator recv [this ^int flags ^int clientId]
     (when-not queue
       (throw (IllegalArgumentException. "Cannot receive on this socket")))
-    (if (= flags 1)
-      (.poll queue)
-      (.take queue)))
+    (let [ret (ArrayList.)
+          msg (if (= flags 1) (.poll queue) (.take queue))]
+      (if msg
+        (do 
+          (.add ret msg)
+          (.iterator ret))
+        nil)))
   (^void send [this ^int taskId ^bytes payload]
     (let [send-queue (add-queue! queues-map lock storm-id port)]
       (.put send-queue (TaskMessage. taskId payload))
+      ))
+  (^void send [this ^Iterator iter]
+    (let [send-queue (add-queue! queues-map lock storm-id port)]
+      (while (.hasNext iter) 
+         (.put send-queue (.next iter)))
       ))
   (^void close [this]
     ))

@@ -435,8 +435,7 @@
     ))
 
 ;; TODO: mock-sources needs to be able to mock out state spouts as well
-;; kill-waiting: seconds to wait before we kill the topology after all spout completed
-(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true :topology-name nil :kill-waiting 0]
+(defnk complete-topology [cluster-map topology :mock-sources {} :storm-conf {} :cleanup-state true :topology-name nil]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
@@ -471,11 +470,7 @@
     (let [storm-id (common/get-storm-id state storm-name)]
       (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
-      
-      ;; spout finished not necesary means the topology finished, If the topology requires more time, set the kill-waiting
-      ;; to bigger value    
-      (Thread/sleep (* 1000 kill-waiting))
-      
+
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
       (while-timeout TEST-TIMEOUT-MS (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))

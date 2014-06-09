@@ -32,6 +32,7 @@
   (get-data [this path watch?])
   (get-children [this path watch?])
   (mkdirs [this path acls])
+  (exists-node? [this path watch?])
   (close [this])
   (register [this callback])
   (unregister [this id])
@@ -110,6 +111,9 @@
      (mkdirs [this path acls]
              (zk/mkdirs zk path acls))
      
+     (exists-node? [this path watch?]
+             (zk/exists-node? zk path watch?))
+
      (close [this]
             (reset! active false)
             (.close zk))
@@ -388,14 +392,14 @@
 
       (errors [this storm-id component-id]
          (let [path (error-path storm-id component-id)
-               _ (mkdirs cluster-state path acls)
-               children (get-children cluster-state path false)
-               errors (dofor [c children]
-                             (let [data (-> (get-data cluster-state (str path "/" c) false)
-                                            maybe-deserialize)]
-                               (when data
-                                 (struct TaskError (:error data) (:time-secs data))
-                                 )))
+               errors (if (exists-node? cluster-state path false)
+                        (dofor [c (get-children cluster-state path false)]
+                          (let [data (-> (get-data cluster-state (str path "/" c) false)
+                                         maybe-deserialize)]
+                            (when data
+                              (struct TaskError (:error data) (:time-secs data))
+                              )))
+                        ())
                ]
            (->> (filter not-nil? errors)
                 (sort-by (comp - :time-secs)))))

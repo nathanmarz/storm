@@ -39,10 +39,12 @@ import backtype.storm.metric.api.IStatefulObject;
 public class DisruptorQueue implements IStatefulObject {
     private static final Object FLUSH_CACHE = new Object();
     private static final Object INTERRUPT = new Object();
+    private static final String PREFIX = "disruptor-";
 
     private final ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue<Object>();
     private final HashMap<String, Object> state = new HashMap<String, Object>(4);
 
+    private final String _queueName;
     private final RingBuffer<MutableObject> _buffer;
     private final Sequence _consumer;
     private final SequenceBarrier _barrier;
@@ -50,13 +52,19 @@ public class DisruptorQueue implements IStatefulObject {
     // TODO: consider having a threadlocal cache of this variable to speed up reads?
     volatile boolean consumerStartedFlag = false;
 
-    public DisruptorQueue(ProducerType producerType, int bufferSize, WaitStrategy wait) {
+    public DisruptorQueue(String queueName, ProducerType producerType, int bufferSize, WaitStrategy wait) {
         _buffer = RingBuffer.create(producerType, new ObjectEventFactory(), bufferSize, wait);
+        _queueName = PREFIX + queueName;
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.addGatingSequences(_consumer);
         consumerStartedFlag = producerType == ProducerType.SINGLE;
     }
+
+    public String getName() {
+        return _queueName;
+    }
+
 
     public void consumeBatch(EventHandler<Object> handler) {
         consumeBatchToCursor(_barrier.getCursor(), handler);

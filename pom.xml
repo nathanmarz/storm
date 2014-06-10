@@ -120,6 +120,33 @@
             </roles>
             <timezone>-8</timezone>
         </developer>
+        <developer>
+            <id>bobby</id>
+            <name>Robert Evans</name>
+            <email>evans@yahoo-inc.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
+        <developer>
+            <id>dagit</id>
+            <name>Derek Dagit</name>
+            <email>derekd@yahoo-inc.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
+        <developer>
+            <id>miguno</id>
+            <name>Michael G. Noll</name>
+            <email>michael@michael-noll.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
     </developers>
 
 

@@ -45,8 +45,9 @@
 ;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue,
 ;; unblocking the consumer
 (defnk disruptor-queue
-  [buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
-  (DisruptorQueue. ((CLAIM-STRATEGY claim-strategy) buffer-size)
+  [^String queue-name buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
+  (DisruptorQueue. queue-name
+                   ((CLAIM-STRATEGY claim-strategy) buffer-size)
                    (mk-wait-strategy wait-strategy)))
 
 (defn clojure-handler
@@ -88,14 +89,12 @@
 
 (defnk consume-loop*
   [^DisruptorQueue queue handler
-   :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
-   :thread-name nil]
+   :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))]
   (let [ret (async-loop
               (fn [] (consume-batch-when-available queue handler) 0)
               :kill-fn kill-fn
-              :thread-name thread-name)]
-    (consumer-started! queue)
-    ret))
+              :thread-name (.getName queue))]
+     (consumer-started! queue) ret))
 
 (defmacro consume-loop [queue & handler-args]
   `(let [handler# (handler ~@handler-args)]

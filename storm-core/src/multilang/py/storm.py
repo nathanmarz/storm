@@ -34,9 +34,11 @@ def readMsg():
     msg = ""
     while True:
         line = sys.stdin.readline()[0:-1]
-        if line == "end":
+	if not line:
+	    raise Exception('Read EOF from stdin')
+        if line[0:-1] == "end":
             break
-        msg = msg + line + "\n"
+        msg = msg + line
     return json_decode(msg[0:-1])
 
 MODE = None
@@ -179,6 +181,13 @@ class Bolt(object):
 class BasicBolt(object):
     def initialize(self, stormconf, context):
         pass
+
+    def redirect_stdout_to_stderr(self):
+        self.bakup_stdout = sys.stdout
+        sys.stdout = sys.stderr
+
+    def recover_stdout(self):
+        sys.stdout = self.bakup_stdout
 
     def process(self, tuple):
         pass

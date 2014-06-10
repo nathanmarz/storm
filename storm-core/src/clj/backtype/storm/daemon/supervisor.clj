@@ -474,7 +474,8 @@
                                   (substitute-worker-childopts s port))
           logfilename (str "worker-" port ".log")
           command (concat
-                    [(java-cmd) "-server"]
+                    (conf WORKER-CHILDCGROUP)
+		    [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts
                     [(str "-Djava.library.path=" jlp)

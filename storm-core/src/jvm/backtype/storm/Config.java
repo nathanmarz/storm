@@ -475,6 +475,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * The cgroup opts provided to workers launched by this supervisor.
+     */
+    public static final String WORKER_CHILDCGROUP = "worker.childcgroup";
+    public static final Object WORKER_CHILDCGROUP_SCHEMA = String.class;
+
+    /**
      * control how many worker receiver threads we need per worker
      */
     public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";

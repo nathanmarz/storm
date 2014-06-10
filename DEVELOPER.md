@@ -92,6 +92,14 @@ and
 [trivial issues](https://issues.apache.org/jira/secure/IssueNavigator.jspa?reset=true&jqlQuery=project+%3D+STORM+AND+resolution+%3D+Unresolved+AND+priority+%3D+Trivial+ORDER+BY+key+DESC&mode=hide))
 because they require learning about only an isolated portion of the codebase and are a relatively small amount of work.
 
+Please use idiomatic Clojure style, as explained in [this Clojure style guide][clj-SG]. Another useful reference is
+the [Clojure Library Coding Standards][clj-LCS]. Perhaps the most important is consistenly writing a clear docstring
+for functions, explaining the return value and arguments. As of this writing, the Storm codebase would benefit from
+various style improvements.
+
+[clj-SG]: https://github.com/bbatsov/clojure-style-guide
+[clj-LCS]: http://dev.clojure.org/display/community/Library+Coding+Standards
+
 Contributions to the Storm codebase should be sent as GitHub pull requests.  See section _Create a pull request_ below
 for details.  If there is any problem with the pull request we can iterate on it using the commenting features of
 GitHub.

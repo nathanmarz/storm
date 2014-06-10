@@ -300,12 +300,6 @@
       [(.getNodeId slot) (.getPort slot)]
       )))
 
-(defn- optimize-topology [topology]
-  ;; TODO: create new topology by collapsing bolts into CompoundSpout
-  ;; and CompoundBolt
-  ;; need to somehow maintain stream/component ids inside tuples
-  topology)
-
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
    (FileUtils/forceMkdir (File. stormroot))
@@ -946,9 +940,6 @@
                             topology)
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
-                topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
-                           (optimize-topology topology)
-                           topology)
                 storm-cluster-state (:storm-cluster-state nimbus)]
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)

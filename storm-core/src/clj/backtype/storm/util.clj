@@ -220,6 +220,9 @@
 (defn current-time-millis []
   (Time/currentTimeMillis))
 
+(defn secs-to-millis-long [secs]
+  (long (* (long 1000) secs)))
+
 (defn clojurify-structure [s]
   (prewalk (fn [x]
               (cond (instance? Map x) (into {} x)
@@ -395,9 +398,7 @@
     ))
 
 (defnk launch-process [command :environment {}]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
+  (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
     (doseq [[k v] environment]
       (.put process-env k v))
@@ -756,11 +757,14 @@
 
 (defn zip-contains-dir? [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target file-path-separator)) entries)
+    (some? #(.startsWith % (str target "/")) entries)
     ))
 
 (defn url-encode [s]
-  (java.net.URLEncoder/encode s))
+  (java.net.URLEncoder/encode s "UTF-8"))
+
+(defn url-decode [s]
+  (java.net.URLDecoder/decode s "UTF-8"))
 
 (defn join-maps [& maps]
   (let [all-keys (apply set/union (for [m maps] (-> m keys set)))]
@@ -884,3 +888,6 @@
                 (meta form))
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
+
+(defn hashmap-to-persistent [^HashMap m]
+  (zipmap (.keySet m) (.values m)))

@@ -20,29 +20,29 @@
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [org.slf4j LoggerFactory])
   (:import [ch.qos.logback.classic Logger])
-  (:import [org.apache.commons.logging LogFactory])
-  (:import [org.apache.commons.logging.impl Log4JLogger])
   (:import [ch.qos.logback.core FileAppender])
-  (:import [org.apache.log4j Level])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [clojure.string :as string])
   (:gen-class))
 
-(defn tail-file [path tail]
+(defn tail-file [path tail root-dir]
   (let [flen (.length (clojure.java.io/file path))
-        skip (- flen tail)]
-    (with-open [input (clojure.java.io/input-stream path)
-                output (java.io.ByteArrayOutputStream.)]
-      (if (> skip 0) (.skip input skip))
-      (let [buffer (make-array Byte/TYPE 1024)]
-        (loop []
-          (let [size (.read input buffer)]
-            (when (and (pos? size) (< (.size output) tail))
-              (do (.write output buffer 0 size)
-                  (recur))))))
-      (.toString output))
+        skip (- flen tail)
+        log-dir (.getCanonicalFile (File. root-dir))
+        log-file (File. path)]
+    (if (= log-dir (.getParentFile log-file))
+      (with-open [input (clojure.java.io/input-stream path)
+                  output (java.io.ByteArrayOutputStream.)]
+        (if (> skip 0) (.skip input skip))
+          (let [buffer (make-array Byte/TYPE 1024)]
+            (loop []
+              (let [size (.read input buffer)]
+                (when (and (pos? size) (< (.size output) tail))
+                  (do (.write output buffer 0 size)
+                      (recur))))))
+        (.toString output)) "File not found")
     ))
 
 (defn log-root-dir
@@ -61,18 +61,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
         tail (if tail
                (min 10485760 (Integer/parseInt tail))
                10240)
-        tail-string (tail-file path tail)]
+        tail-string (tail-file path tail root-dir)]
     (if grep
        (clojure.string/join "\n<br>"
          (filter #(.contains % grep) (.split tail-string "\n")))
        (.replaceAll tail-string "\n" "\n<br>"))))
-
-(defn log-level-page [name level]
-  (let [log (LogFactory/getLog name)]
-    (if level
-      (if (instance? Log4JLogger log)
-        (.setLevel (.getLogger log) (Level/toLevel level))))
-    (str "effective log level for " name " is " (.getLevel (.getLogger log)))))
 
 (defn log-template [body]
   (html4
@@ -92,8 +85,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defroutes log-routes
   (GET "/log" [:as req & m]
        (log-template (log-page (:file m) (:tail m) (:grep m) (:log-root req))))
-  (GET "/loglevel" [:as {cookies :cookies} & m]
-       (log-template (log-level-page (:name m) (:level m))))
   (route/resources "/")
   (route/not-found "Page not found"))
 

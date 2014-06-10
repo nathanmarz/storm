@@ -82,22 +82,25 @@ if not defined STORM_LOG_DIR (
   set STORM_LOG_DIR=%STORM_HOME%\logs
 )
 
-if not defined STORM_LOGFILE (
-  set STORM_LOGFILE=storm.log
-)
-
-if not defined STORM_ROOT_LOGGER (
-  set STORM_ROOT_LOGGER=INFO,console,DRFA
-)
-
 if not defined STORM_LOGBACK_CONFIGURATION_FILE (
-  set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_CONF_DIR%\logback.xml
+  set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_HOME%\logback\cluster.xml
+)
+%JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value java.library.path > temp.txt
+
+FOR /F "delims=" %%i in (temp.txt) do (
+    FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
+	 if %%a == VALUE: (
+	   set JAVA_LIBRARY_PATH=%%b
+	   goto :storm_opts)
+  )
 )
 
-set STORM_OPTS=-Dstorm.home=%STORM_HOME% -Djava.library.path=sbin
-set STORM_OPTS=%STORM_OPTS% -Dlogback.configurationFile=%STORM_LOGBACK_CONFIGURATION_FILE%
-set STORM_OPTS=%STORM_OPTS% -Dstorm.log.dir=%STORM_LOG_DIR%
-set STORM_OPTS=%STORM_OPTS% -Dstorm.root.logger=%STORM_ROOT_LOGGER%
+
+:storm_opts
+ set STORM_OPTS=-Dstorm.options= -Dstorm.home=%STORM_HOME% -Djava.library.path=%JAVA_LIBRARY_PATH%
+ set STORM_OPTS=%STORM_OPTS% -Dlogback.configurationFile=%STORM_LOGBACK_CONFIGURATION_FILE%
+ set STORM_OPTS=%STORM_OPTS% -Dstorm.log.dir=%STORM_LOG_DIR%
+ del /F temp.txt
 
 
 if not defined STORM_SERVER_OPTS (

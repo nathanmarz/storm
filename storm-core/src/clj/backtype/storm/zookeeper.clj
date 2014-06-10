@@ -14,14 +14,14 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.zookeeper
-  (:import [com.netflix.curator.retry RetryNTimes])
-  (:import [com.netflix.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
-  (:import [com.netflix.curator.framework CuratorFramework CuratorFrameworkFactory])
+  (:import [org.apache.curator.retry RetryNTimes])
+  (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
+  (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])
   (:import [org.apache.zookeeper.data Stat])
-  (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxn$Factory])
+  (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxnFactory])
   (:import [java.net InetSocketAddress BindException])
   (:import [java.io File])
   (:import [backtype.storm.utils Utils ZookeeperAuthInfo])
@@ -156,7 +156,7 @@
   (let [localfile (File. localdir)
         zk (ZooKeeperServer. localfile localfile 2000)
         [retport factory] (loop [retport (if port port 2000)]
-                            (if-let [factory-tmp (try-cause (NIOServerCnxn$Factory. (InetSocketAddress. retport))
+                            (if-let [factory-tmp (try-cause (doto (NIOServerCnxnFactory.) (.configure (InetSocketAddress. retport) 0))
                                               (catch BindException e
                                                 (when (> (inc retport) (if port port 65535))
                                                   (throw (RuntimeException. "No port is available to launch an inprocess zookeeper.")))))]

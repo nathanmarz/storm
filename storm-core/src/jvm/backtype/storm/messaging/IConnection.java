@@ -17,19 +17,30 @@
  */
 package backtype.storm.messaging;
 
+import java.util.Iterator;
+
 public interface IConnection {   
+    
     /**
-     * receive a message (consists taskId and payload)
+     * receive a batch message iterator (consists taskId and payload)
      * @param flags 0: block, 1: non-block
      * @return
      */
-    public TaskMessage recv(int flags);
+    public Iterator<TaskMessage> recv(int flags, int clientId);
+    
     /**
      * send a message with taskId and payload
      * @param taskId task ID
      * @param payload
      */
     public void send(int taskId,  byte[] payload);
+    
+    /**
+     * send batch messages
+     * @param msgs
+     */
+
+    public void send(Iterator<TaskMessage> msgs);
     
     /**
      * close this connection

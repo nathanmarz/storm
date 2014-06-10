@@ -43,7 +43,11 @@ public class OpaqueMap<T> implements MapState<T> {
         for(CachedBatchReadsMap.RetVal<OpaqueValue> retval: curr) {
             OpaqueValue val = retval.val;
             if(val!=null) {
-                ret.add((T) val.get(_currTx));
+                if(retval.cached) {
+                    ret.add((T) val.getCurr());
+                } else {
+                    ret.add((T) val.get(_currTx));
+                }
             } else {
                 ret.add(null);
             }

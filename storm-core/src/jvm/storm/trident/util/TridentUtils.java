@@ -108,11 +108,16 @@ public class TridentUtils {
         return parents.get(0);
     }
     
-    private static TSerializer ser = new TSerializer();
-    private static TDeserializer des = new TDeserializer();
+    private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
+    private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
     
     public static byte[] thriftSerialize(TBase t) {
         try {
+            TSerializer ser = threadSer.get();
+            if (ser == null) {
+                ser = new TSerializer();
+                threadSer.set(ser);
+            } 
             return ser.serialize(t);
         } catch (TException e) {
             throw new RuntimeException(e);
@@ -122,6 +127,11 @@ public class TridentUtils {
     public static <T> T thriftDeserialize(Class c, byte[] b) {
         try {
             T ret = (T) c.newInstance();
+            TDeserializer des = threadDes.get();
+            if (des == null) {
+                des = new TDeserializer();
+                threadDes.set(des);
+            }
             des.deserialize((TBase) ret, b);
             return ret;
         } catch (Exception e) {

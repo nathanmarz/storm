@@ -51,8 +51,11 @@ public class DisruptorQueue implements IStatefulObject {
     // TODO: consider having a threadlocal cache of this variable to speed up reads?
     volatile boolean consumerStartedFlag = false;
     ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
+    private static String PREFIX = "disruptor-";
+    private String _queueName = "";
     
-    public DisruptorQueue(ClaimStrategy claim, WaitStrategy wait) {
+    public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait) {
+         this._queueName = PREFIX + queueName;
         _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
@@ -60,6 +63,10 @@ public class DisruptorQueue implements IStatefulObject {
         if(claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
         }
+    }
+    
+    public String getName() {
+      return _queueName;
     }
     
     public void consumeBatch(EventHandler<Object> handler) {

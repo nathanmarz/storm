@@ -27,7 +27,7 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.9.2-incubating-SNAPSHOT</version>
+    <version>0.9.3-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
@@ -119,6 +119,33 @@
                 <role>Committer</role>
             </roles>
             <timezone>-8</timezone>
+        </developer>
+        <developer>
+            <id>bobby</id>
+            <name>Robert Evans</name>
+            <email>evans@yahoo-inc.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
+        <developer>
+            <id>dagit</id>
+            <name>Derek Dagit</name>
+            <email>derekd@yahoo-inc.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
+        <developer>
+            <id>miguno</id>
+            <name>Michael G. Noll</name>
+            <email>michael@michael-noll.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>+1</timezone>
         </developer>
     </developers>
 
@@ -558,7 +585,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>2.4.1</version>
+                    <version>2.5</version>
                 </plugin>
                 <plugin>
                     <groupId>com.theoryinpractise</groupId>

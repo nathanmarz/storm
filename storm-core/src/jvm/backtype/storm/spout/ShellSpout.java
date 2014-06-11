@@ -93,13 +93,9 @@ public class ShellSpout implements ISpout {
         querySubprocess();
     }
     
-    private void handleMetrics(Map action) {
+    private void handleMetrics(ShellMsg shellMsg) {
         //get metric name
-        Object nameObj = action.get("name");
-        if (nameObj == null || !(nameObj instanceof String) ) {
-            throw new RuntimeException("Receive Metrics name is null or is not String");
-        }
-        String name = (String) nameObj;
+        String name = shellMsg.getMetricName();
         if (name.isEmpty()) {
             throw new RuntimeException("Receive Metrics name is empty");
         }
@@ -115,7 +111,7 @@ public class ShellSpout implements ISpout {
         IShellMetric iShellMetric = (IShellMetric)iMetric;
         
         //call updateMetricFromRPC with params
-        Object paramsObj = action.get("params");
+        Object paramsObj = shellMsg.getMetricParams();
         try {
             iShellMetric.updateMetricFromRPC(paramsObj);
         } catch (RuntimeException re) {
@@ -151,7 +147,7 @@ public class ShellSpout implements ISpout {
                         _collector.emitDirect((int) task.longValue(), stream, tuple, messageId);
                     }
                 } else if (command.equals("metrics")) {
-                    handleMetrics(action);
+                    handleMetrics(shellMsg);
                 } else {
                     throw new RuntimeException("Unknown command received: " + command);
                 }

@@ -98,11 +98,10 @@ public class ShellBolt implements IBolt {
         }
         _rand = new Random();
         _collector = collector;
-<<<<<<< HEAD
+
         _context = context;
-=======
+
         _process = new ShellProcess(_command);
->>>>>>> upstream/master
 
         //subprocesses must send their pid first thing
         Number subpid = _process.launch(stormConf, context);
@@ -126,13 +125,9 @@ public class ShellBolt implements IBolt {
                             String msg = shellMsg.getMsg();
                             LOG.info("Shell msg: " + msg);
                         } else if (command.equals("emit")) {
-<<<<<<< HEAD
-                            handleEmit(action);
-                        } else if (command.equals("metrics")) {
-                            handleMetrics(action);
-=======
                             handleEmit(shellMsg);
->>>>>>> upstream/master
+                        } else if (command.equals("metrics")) {
+                            handleMetrics(shellMsg);
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
@@ -194,14 +189,8 @@ public class ShellBolt implements IBolt {
         _process.destroy();
         _inputs.clear();
     }
-<<<<<<< HEAD
-    
-    private void handleAck(Map action) {
-        String id = (String) action.get("id");
-=======
 
     private void handleAck(Object id) {
->>>>>>> upstream/master
         Tuple acked = _inputs.remove(id);
         if(acked==null) {
             throw new RuntimeException("Acked a non-existent or already acked/failed id: " + id);
@@ -245,13 +234,9 @@ public class ShellBolt implements IBolt {
         }
     }
     
-    private void handleMetrics(Map action) {
+    private void handleMetrics(ShellMsg shellMsg) {
         //get metric name
-        Object nameObj = action.get("name");
-        if (nameObj == null || !(nameObj instanceof String) ) {
-            throw new RuntimeException("Receive Metrics name is null or is not String");
-        }
-        String name = (String) nameObj;
+        String name = shellMsg.getMetricName();
         if (name.isEmpty()) {
             throw new RuntimeException("Receive Metrics name is empty");
         }
@@ -267,7 +252,7 @@ public class ShellBolt implements IBolt {
         IShellMetric iShellMetric = (IShellMetric)iMetric;
         
         //call updateMetricFromRPC with params
-        Object paramsObj = action.get("params");
+        Object paramsObj = shellMsg.getMetricParams();
         try {
             iShellMetric.updateMetricFromRPC(paramsObj);
         } catch (RuntimeException re) {

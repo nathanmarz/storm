@@ -118,6 +118,16 @@ public class JsonSerializer implements ISerializer {
                 shellMsg.addAnchor((String) o);
             }
         }
+       
+        Object nameObj = msg.get("name"); 
+        String metricName = null;
+        if (nameObj != null && nameObj instanceof String) {
+            metricName = (String) nameObj;
+        }
+        shellMsg.setMetricName(metricName);
+        
+        Object paramsObj = msg.get("params");
+        shellMsg.setMetricParams(paramsObj); 
 
         return shellMsg;
     }

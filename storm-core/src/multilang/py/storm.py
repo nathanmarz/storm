@@ -33,7 +33,7 @@ json_decode = lambda x: json.loads(x)
 def readMsg():
     msg = ""
     while True:
-        line = sys.stdin.readline()[0:-1]
+        line = sys.stdin.readline()
 	if not line:
 	    raise Exception('Read EOF from stdin')
         if line[0:-1] == "end":

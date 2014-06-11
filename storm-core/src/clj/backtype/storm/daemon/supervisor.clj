@@ -473,8 +473,10 @@
           topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
                                   (substitute-worker-childopts s port))
           logfilename (str "worker-" port ".log")
+          worker-childcgroup (when-let [s (conf WORKER-CHILDCGROUP)] 
+                                (.split s " "))
           command (concat
-                    (conf WORKER-CHILDCGROUP)
+                    worker-childcgroup
 		    [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts

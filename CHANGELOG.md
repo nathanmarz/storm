@@ -1,4 +1,6 @@
-## 0.9.2-incubating (unreleased)
+## 0.9.2-incubating
+ * STORM-335: add drpc test for removing timed out requests from queue
+ * STORM-69: Storm UI Visualizations for Topologies
  * STORM-297: Performance scaling with CPU
  * STORM-244: DRPC timeout can return null instead of throwing an exception
  * STORM-63: remove timeout drpc request from its function's request queue

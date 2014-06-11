@@ -10,6 +10,9 @@
 <script src="/js/purl.js" type="text/javascript"></script>
 <script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
+<script src="/js/visualization.js" type="text/javascript"></script>
+<script src="/js/arbor.js" type="text/javascript"></script>
+<script src="/js/arbor-graphics.js" type="text/javascript"></script>
 </head>
 <body>
 <h1><a href="/">Storm UI</a></h1>
@@ -25,6 +28,8 @@
 <div id="spout-stats">
 </div>
 <div id="bolt-stats">
+</div>
+<div id="topology-visualization">
 </div>
 <div id="topology-configuration">
 </div>
@@ -56,6 +61,7 @@ $(document).ready(function() {
         var boltStats = $("#bolt-stats");
         var config = $("#topology-configuration");
         var topologyActions = $("#topology-actions");
+        var topologyVisualization = $("#topology-visualization")
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"]);
         $.get("/templates/topology-page-template.html", function(template) {
@@ -71,6 +77,10 @@ $(document).ready(function() {
             if(response["bolts"].length > 0) {
                 $("#bolt-stats-table").tablesorter({sortList: [[0,0]], headers:{}});
             }
+
+            topologyVisualization.append(Mustache.render($(template).filter("#topology-visualization-template").html(), response));
+            $("#show-hide-visualization").click(function () { show_visualization(null) });
+
             config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
             $("#topology-configuration-table").tablesorter({ sortList: [[0,0]], headers: {}});
         });

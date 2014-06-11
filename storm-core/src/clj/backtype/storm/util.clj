@@ -956,3 +956,6 @@
       (clojurify-structure obj))
     (catch Exception ex
       (log-error ex))))
+
+(defn hashmap-to-persistent [^HashMap m]
+  (zipmap (.keySet m) (.values m)))

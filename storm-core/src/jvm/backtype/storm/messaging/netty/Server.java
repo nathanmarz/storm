@@ -31,35 +31,69 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 
 class Server implements IConnection {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
     Map storm_conf;
     int port;
-    private LinkedBlockingQueue<TaskMessage> message_queue;
+    
+    // Create multiple queues for incoming messages. The size equals the number of receiver threads.
+    // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
+    private LinkedBlockingQueue<ArrayList<TaskMessage>>[] message_queue;
+    
     volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     final ChannelFactory factory;
     final ServerBootstrap bootstrap;
-
+    
+    private int queueCount;
+    HashMap<Integer, Integer> taskToQueueId = null;
+    int roundRobinQueueId;
+	
+    boolean closing = false;
+    List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
+    
+    
     @SuppressWarnings("rawtypes")
     Server(Map storm_conf, int port) {
         this.storm_conf = storm_conf;
         this.port = port;
-        message_queue = new LinkedBlockingQueue<TaskMessage>();
-
+        
+        queueCount = Utils.getInt(storm_conf.get(Config.WORKER_RECEIVER_THREAD_COUNT), 1);
+        roundRobinQueueId = 0;
+        taskToQueueId = new HashMap<Integer, Integer>();
+    
+        message_queue = new LinkedBlockingQueue[queueCount];
+        for (int i = 0; i < queueCount; i++) {
+            message_queue[i] = new LinkedBlockingQueue<ArrayList<TaskMessage>>();
+        }
+        
         // Configure the server.
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS));
 
+        ThreadFactory bossFactory = new NettyRenameThreadFactory(name() + "-boss");
+        ThreadFactory workerFactory = new NettyRenameThreadFactory(name() + "-worker");
+        
         if (maxWorkers > 0) {
-            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool(), maxWorkers);
+            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
+                Executors.newCachedThreadPool(workerFactory), maxWorkers);
         } else {
-            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
+            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
+                Executors.newCachedThreadPool(workerFactory));
         }
+        
+        LOG.info("Create Netty Server " + name() + ", buffer_size: " + buffer_size + ", maxWorkers: " + maxWorkers);
+        
         bootstrap = new ServerBootstrap(factory);
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.receiveBufferSize", buffer_size);
@@ -72,36 +106,101 @@ class Server implements IConnection {
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);
     }
+    
+    private ArrayList<TaskMessage>[] groupMessages(List<TaskMessage> msgs) {
+      ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
+      
+      for (int i = 0; i < msgs.size(); i++) {
+        TaskMessage message = msgs.get(i);
+        int task = message.task();
+        
+        if (task == -1) {
+          closing = true;
+          return null;
+        }
+        
+        Integer queueId = getMessageQueueId(task);
+        
+        if (null == messageGroups[queueId]) {
+          messageGroups[queueId] = new ArrayList<TaskMessage>();
+        }
+        messageGroups[queueId].add(message);
+      }
+      return messageGroups;
+    }
+    
+    private Integer getMessageQueueId(int task) {
+      // try to construct the map from taskId -> queueId in round robin manner.
+      
+      Integer queueId = taskToQueueId.get(task);
+      if (null == queueId) {
+        synchronized(taskToQueueId) {
+          //assgin task to queue in round-robin manner
+          if (null == taskToQueueId.get(task)) {
+            queueId = roundRobinQueueId++;
+            
+            taskToQueueId.put(task, queueId);
+            if (roundRobinQueueId == queueCount) {
+              roundRobinQueueId = 0;
+            }
+          }
+        }
+      }
+      return queueId;
+    }
 
     /**
      * enqueue a received message 
      * @param message
      * @throws InterruptedException
      */
-    protected void enqueue(TaskMessage message) throws InterruptedException {
-        message_queue.put(message);
-        LOG.debug("message received with task: {}, payload size: {}", message.task(), message.message().length);
+    protected void enqueue(List<TaskMessage> msgs) throws InterruptedException {
+      
+      if (null == msgs || msgs.size() == 0 || closing) {
+        return;
+      }
+      
+      ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
+      
+      if (null == messageGroups || closing) {
+        return;
+      }
+      
+      for (int receiverId = 0; receiverId < messageGroups.length; receiverId++) {
+        ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
+        if (null != msgGroup) {
+          message_queue[receiverId].put(msgGroup);
+        }
+      }
     }
     
-    /**
-     * fetch a message from message queue synchronously (flags != 1) or asynchronously (flags==1)
-     */
-    public TaskMessage recv(int flags)  {
-        if ((flags & 0x01) == 0x01) { 
+    public Iterator<TaskMessage> recv(int flags, int receiverId)  {
+      if (closing) {
+        return closeMessage.iterator();
+      }
+      
+      ArrayList<TaskMessage> ret = null; 
+      int queueId = receiverId % queueCount;
+      if ((flags & 0x01) == 0x01) { 
             //non-blocking
-            return message_queue.poll();
+            ret = message_queue[queueId].poll();
         } else {
             try {
-                TaskMessage request = message_queue.take();
+                ArrayList<TaskMessage> request = message_queue[queueId].take();
                 LOG.debug("request to be processed: {}", request);
-                return request;
+                ret = request;
             } catch (InterruptedException e) {
                 LOG.info("exception within msg receiving", e);
-                return null;
+                ret = null;
             }
         }
+      
+      if (null != ret) {
+        return ret.iterator();
+      }
+      return null;
     }
-
+   
     /**
      * register a newly created channel
      * @param channel
@@ -132,5 +231,13 @@ class Server implements IConnection {
 
     public void send(int task, byte[] message) {
         throw new RuntimeException("Server connection should not send any messages");
+    }
+    
+    public void send(Iterator<TaskMessage> msgs) {
+      throw new RuntimeException("Server connection should not send any messages");
+    }
+	
+    public String name() {
+      return "Netty-server-localhost-" + port;
     }
 }

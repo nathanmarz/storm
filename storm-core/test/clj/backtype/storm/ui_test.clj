@@ -22,28 +22,28 @@
 
 (deftest test-authorized-ui-user
   (testing "allow cluster admin"
-    (let [conf {NIMBUS-ADMINS ["alice"]}]
+    (let [conf {UI-FILTER "something" NIMBUS-ADMINS ["alice"]}]
       (is (core/authorized-ui-user? "alice" conf {}))))
 
   (testing "ignore any cluster-set topology.users"
-    (let [conf {TOPOLOGY-USERS ["alice"]}]
+    (let [conf {UI-FILTER "something" TOPOLOGY-USERS ["alice"]}]
       (is (not (core/authorized-ui-user? "alice" conf {})))))
 
   (testing "allow cluster ui user"
-    (let [conf {UI-USERS ["alice"]}]
+    (let [conf {UI-FILTER "something" UI-USERS ["alice"]}]
       (is (core/authorized-ui-user? "alice" conf {}))))
 
   (testing "allow submitted topology user"
     (let [topo-conf {TOPOLOGY-USERS ["alice"]}]
-      (is (core/authorized-ui-user? "alice" {} topo-conf))))
+      (is (core/authorized-ui-user? "alice" {UI-FILTER "something"} topo-conf))))
 
   (testing "allow submitted ui user"
     (let [topo-conf {UI-USERS ["alice"]}]
-      (is (core/authorized-ui-user? "alice" {} topo-conf))))
+      (is (core/authorized-ui-user? "alice" {UI-FILTER "something"} topo-conf))))
 
   (testing "disallow user not in nimbus admin, topo user, or ui user"
-    (is (not (core/authorized-ui-user? "alice" {} {}))))
+    (is (not (core/authorized-ui-user? "alice" {UI-FILTER "something"} {}))))
 
   (testing "user cannot override nimbus admin"
     (let [topo-conf {NIMBUS-ADMINS ["alice"]}]
-      (is (not (core/authorized-ui-user? "alice" {} topo-conf))))))
+      (is (not (core/authorized-ui-user? "alice" {UI-FILTER "something"} topo-conf))))))

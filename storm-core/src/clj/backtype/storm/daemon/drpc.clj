@@ -34,7 +34,7 @@
 
 (bootstrap)
 
-(def TIMEOUT-CHECK-SECS 5)
+(defn timeout-check-secs [] 5)
 
 (defn acquire-queue [queues-atom function]
   (swap! queues-atom
@@ -65,23 +65,26 @@
         id->sem (atom {})
         id->result (atom {})
         id->start (atom {})
-        id->func (atom {})
+        id->function (atom {})
+        id->request (atom {})
         request-queues (atom {})
         cleanup (fn [id] (swap! id->sem dissoc id)
                          (swap! id->result dissoc id)
-                         (swap! id->start dissoc id)
-                         (swap! id->func dissoc id))
+                         (swap! id->function dissoc id)
+                         (swap! id->request dissoc id)
+                         (swap! id->start dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
         clear-thread (async-loop
                       (fn []
                         (doseq [[id start] @id->start]
                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                             (when-let [sem (@id->sem id)]
-                              (swap! id->result assoc id (DRPCExecutionException. "Request timed out"))
+                              (.remove (acquire-queue request-queues (@id->function id)) (@id->request id))
+                              (log-warn "Timeout DRPC request id: " id " start at " start)
                               (.release sem))
                             (cleanup id)
                             ))
-                        TIMEOUT-CHECK-SECS
+                        (timeout-check-secs)
                         ))
         ]
     (reify DistributedRPC$Iface
@@ -95,9 +98,11 @@
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
               ]
-          (swap! id->func assoc id function)
+          (swap! id->function assoc id function)
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
+          (swap! id->function assoc id function)
+          (swap! id->request assoc id req)
           (.add queue req)
           (log-debug "Waiting for DRPC result for " function " " args " at " (System/currentTimeMillis))
           (.acquire sem)
@@ -107,11 +112,13 @@
             (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
             (if (instance? DRPCExecutionException result)
               (throw result)
-              result
+              (if (nil? result)
+                (throw (DRPCExecutionException. "Request timed out"))
+                result)
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
-        (when-let [func (@id->func id)]
+        (when-let [func (@id->function id)]
           (check-authorization drpc-acl-handler
                                {DRPCAuthorizerBase/FUNCTION_NAME func}
                                "result")
@@ -122,7 +129,7 @@
               (.release sem)
               ))))
       (^void failRequest [this ^String id]
-        (when-let [func (@id->func id)]
+        (when-let [func (@id->function id)]
           (check-authorization drpc-acl-handler
                                {DRPCAuthorizerBase/FUNCTION_NAME func}
                                "failRequest")

@@ -17,28 +17,25 @@
  */
 package backtype.storm.messaging.netty;
 
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
+import java.net.ConnectException;
 
-class StormClientPipelineFactory implements ChannelPipelineFactory {
-    private Client client;
+import org.jboss.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    StormClientPipelineFactory(Client client) {
-        this.client = client;        
+public class StormClientErrorHandler extends SimpleChannelUpstreamHandler  {
+    private static final Logger LOG = LoggerFactory.getLogger(StormClientErrorHandler.class);
+    private String name;
+    
+    StormClientErrorHandler(String name) {
+        this.name = name;
     }
 
-    public ChannelPipeline getPipeline() throws Exception {
-        // Create a default pipeline implementation.
-        ChannelPipeline pipeline = Channels.pipeline();
-
-        // Decoder
-        pipeline.addLast("decoder", new MessageDecoder());
-        // Encoder
-        pipeline.addLast("encoder", new MessageEncoder());
-        // business logic.
-        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
-
-        return pipeline;
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
+        Throwable cause = event.getCause();
+        if (!(cause instanceof ConnectException)) {
+            LOG.info("Connection failed " + name, cause);
+        } 
     }
 }

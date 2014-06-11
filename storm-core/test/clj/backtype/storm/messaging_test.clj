@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.messaging-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestEventLogSpout TestEventOrderCheckBolt])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   )
@@ -56,3 +56,36 @@
         (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
                  (read-tuples results "2")))))))
 
+(extend-type TestEventLogSpout
+  CompletableSpout
+  (exhausted? [this]
+    (-> this .completed))
+  (cleanup [this]
+    (.cleanup this))
+  (startup [this]
+    ))
+
+;; Test Adding more receiver threads won't violate the message delivery order gurantee
+(deftest test-receiver-message-order 
+  (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 2
+                                        :daemon-conf {TOPOLOGY-WORKERS 2
+                                                      ;; Configure multiple receiver threads per worker 
+                                                      WORKER-RECEIVER-THREAD-COUNT 2
+                                                      STORM-LOCAL-MODE-ZMQ  true 
+                                                      STORM-MESSAGING-TRANSPORT 
+                                                      "backtype.storm.messaging.netty.Context"}]
+      (let [topology (thrift/mk-topology
+                       
+                       ;; TestEventLogSpout output(sourceId, eventId), eventId is Monotonically increasing
+                       {"1" (thrift/mk-spout-spec (TestEventLogSpout. 4000) :parallelism-hint 8)}
+                       
+                       ;; field grouping, message from same "source" task will be delivered to same bolt task
+                       ;; When received message order is not kept, Emit an error Tuple 
+                       {"2" (thrift/mk-bolt-spec {"1" ["source"]} (TestEventOrderCheckBolt.)
+                                                 :parallelism-hint 4)
+                        })
+            results (complete-topology cluster
+                                       topology)]
+        
+        ;; No error Tuple from Bolt TestEventOrderCheckBolt
+        (is (empty? (read-tuples results "2"))))))

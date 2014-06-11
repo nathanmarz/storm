@@ -1,4 +1,12 @@
 ## 0.9.2-incubating (unreleased)
+ * STORM-335: add drpc test for removing timed out requests from queue
+ * STORM-69: Storm UI Visualizations for Topologies
+ * STORM-297: Performance scaling with CPU
+ * STORM-244: DRPC timeout can return null instead of throwing an exception
+ * STORM-63: remove timeout drpc request from its function's request queue
+ * STORM-313: Remove log-level-page from logviewer
+ * STORM-205: Add REST API To Storm UI
+ * STORM-326: tasks send duplicate metrics
  * STORM-331: Update the Kafka dependency of storm-kafka to 0.8.1.1
  * STORM-308: Add support for config_value to {supervisor,nimbus,ui,drpc,logviewer} childopts
  * STORM-309: storm-starter Readme: windows documentation update

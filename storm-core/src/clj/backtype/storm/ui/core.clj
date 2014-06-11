@@ -780,43 +780,43 @@
        (let [id (url-decode id)
              component (url-decode component)]
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m))))))
-  (POST "/api/v1/topology/:id/activate" [id]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.activate nimbus name)
-        (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" id)))
+  ;(POST "/api/v1/topology/:id/activate" [id]
+  ;  (with-nimbus nimbus
+  ;    (let [id (url-decode id)
+  ;          tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+  ;          name (.get_name tplg)]
+  ;      (.activate nimbus name)
+  ;      (log-message "Activating topology '" name "'")))
+  ;  (resp/redirect (str "/api/v1/topology/" id)))
 
-  (POST "/api/v1/topology/:id/deactivate" [id]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.deactivate nimbus name)
-        (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" id)))
-  (POST "/api/v1/topology/:id/rebalance/:wait-time" [id wait-time]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)
-            options (RebalanceOptions.)]
-        (.set_wait_secs options (Integer/parseInt wait-time))
-        (.rebalance nimbus name options)
-        (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" id)))
-  (POST "/api/v1/topology/:id/kill/:wait-time" [id wait-time]
-    (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)
-            options (KillOptions.)]
-        (.set_wait_secs options (Integer/parseInt wait-time))
-        (.killTopologyWithOpts nimbus name options)
-        (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" id)))
+  ;(POST "/api/v1/topology/:id/deactivate" [id]
+  ;  (with-nimbus nimbus
+  ;    (let [id (url-decode id)
+  ;          tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+  ;          name (.get_name tplg)]
+  ;      (.deactivate nimbus name)
+  ;      (log-message "Deactivating topology '" name "'")))
+  ;  (resp/redirect (str "/api/v1/topology/" id)))
+  ;(POST "/api/v1/topology/:id/rebalance/:wait-time" [id wait-time]
+  ;  (with-nimbus nimbus
+  ;    (let [id (url-decode id)
+  ;          tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+  ;          name (.get_name tplg)
+  ;          options (RebalanceOptions.)]
+  ;      (.set_wait_secs options (Integer/parseInt wait-time))
+  ;      (.rebalance nimbus name options)
+  ;      (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
+  ;  (resp/redirect (str "/api/v1/topology/" id)))
+  ;(POST "/api/v1/topology/:id/kill/:wait-time" [id wait-time]
+  ;  (with-nimbus nimbus
+  ;    (let [id (url-decode id)
+  ;          tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+  ;          name (.get_name tplg)
+  ;          options (KillOptions.)]
+  ;      (.set_wait_secs options (Integer/parseInt wait-time))
+  ;      (.killTopologyWithOpts nimbus name options)
+  ;      (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
+  ;  (resp/redirect (str "/api/v1/topology/" id)))
 
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))

@@ -1,4 +1,5 @@
 ## 0.9.3-incubating (unreleased)
+ * STORM-66: send taskid on initial handshake
  * STORM-338: Move towards idiomatic Clojure style 
 
 ## 0.9.2-incubating

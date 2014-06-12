@@ -131,7 +131,7 @@
         
     (fn ([^Integer out-task-id ^String stream ^List values]
           (when debug?
-            (log-message "Emitting direct: " out-task-id "; " component-id " " stream " " values))
+            (log-message "Component[" component-id "] Type[EMIT] to Stream[" stream "] TupleId[" values "]"))
           (let [target-component (.getComponentId worker-context out-task-id)
                 component->grouping (get stream->component->grouper stream)
                 grouping (get component->grouping target-component)
@@ -149,7 +149,7 @@
             ))
         ([^String stream ^List values]
            (when debug?
-             (log-message "Emitting: " component-id " " stream " " values))
+             (log-message "Component[" component-id "] Type[EMIT] to Stream[" stream "] TupleId[" values "]"))
            (let [out-tasks (ArrayList.)]
              (fast-map-iter [[out-component grouper] (get stream->component->grouper stream)]
                (when (= :direct grouper)

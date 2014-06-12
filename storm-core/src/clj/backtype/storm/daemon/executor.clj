@@ -18,6 +18,7 @@
   (:use [backtype.storm bootstrap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
+  (:import [backtype.storm.tuple MessageId])
   (:import [backtype.storm.spout ISpoutWaitStrategy])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
@@ -389,12 +390,25 @@
   (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)
         task-ids (:task-ids executor-data)
         debug? (= true (-> executor-data :storm-conf (get TOPOLOGY-DEBUG)))
+        component-id (:component-id executor-data)
+        executor-id (:executor-id executor-data)
+        executor-type (:type executor-data)
         ]
     (disruptor/clojure-handler
       (fn [tuple-batch sequence-id end-of-batch?]
         (fast-list-iter [[task-id msg] tuple-batch]
-          (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
-            (when debug? (log-message "Processing received message " tuple))
+          (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))
+                tuple-streamid (.getSourceStreamId tuple)
+                tuple-source (.getSourceComponent tuple)
+                tuple-id (.getMessageId tuple)
+                tuple-values (.getValues tuple)
+                ]
+            (when debug? 
+              (if (= tuple-streamid "default")
+                (log-message "Component[" component-id "] Type[RECV] from Stream[" tuple-streamid "] Source[" tuple-source "] TupleId[" tuple-id "] TupleValue[" tuple-values "]")
+                (log-message "Component[" component-id "] Type[RECV] from Stream[" tuple-streamid "] Source[" tuple-source "] TupleId[" tuple-values "]")
+                )
+              )
             (if task-id
               (tuple-action-fn task-id tuple)
               ;; null task ids are broadcast tuples
@@ -421,6 +435,7 @@
         last-active (atom false)        
         spouts (ArrayList. (map :object (vals task-datas)))
         rand (Random. (Utils/secureRandomLong))
+        debug? (= true (-> executor-data :storm-conf (get TOPOLOGY-DEBUG)))
         
         pending (RotatingMap.
                  2 ;; microoptimize for performance of .size method
@@ -428,9 +443,12 @@
                    (expire [this msg-id [task-id spout-id tuple-info start-time-ms]]
                      (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                        (fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta)
+                       (when debug? 
+                         (log-message "Component[" component-id "] FAILED-TUPLE reason[EXPIRED] TupleId[" msg-id "] values[" tuple-info "]"))
                        ))))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
-                          (let [stream-id (.getSourceStreamId tuple)]
+                          (let [stream-id (.getSourceStreamId tuple)
+                                tuple-id (.getMessageId tuple)]
                             (condp = stream-id
                               Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
@@ -441,10 +459,18 @@
                                     (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
                                   (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                                     (condp = stream-id
-                                      ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
-                                                                         spout-id tuple-finished-info time-delta)
-                                      ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
-                                                                           spout-id tuple-finished-info time-delta)
+                                      ACKER-ACK-STREAM-ID (do 
+                                                            (ack-spout-msg executor-data (get task-datas task-id)
+                                                                            spout-id tuple-finished-info time-delta)
+                                                            (when debug?
+                                                              (log-message "Component[" component-id "] ACK-TUPLE reason[RECV] TupleId[" id "] values[" tuple-finished-info "]"))
+                                                            )
+                                      ACKER-FAIL-STREAM-ID (do 
+                                                             (fail-spout-msg executor-data (get task-datas task-id)
+                                                                              spout-id tuple-finished-info time-delta)
+                                                             (when debug?
+                                                              (log-message "Component[" component-id "] FAILED-TUPLE reason[RECV] TupleId[" id "] values[" tuple-finished-info "]"))
+                                                             )
                                       )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
@@ -493,6 +519,8 @@
                                                            (transfer-fn out-task
                                                                         out-tuple
                                                                         overflow-buffer)
+                                                           (when debug? 
+                                                             (log-message "Component[" component-id "] Type[EMIT] to Stream[" out-stream-id "] TupleId[" tuple-id "] values[" values "]"))
                                                            ))
                                          (if rooted?
                                            (do
@@ -598,6 +626,8 @@
         {:keys [storm-conf component-id worker-context transfer-fn report-error sampler
                 open-or-prepare-was-called?]} executor-data
         rand (Random. (Utils/secureRandomLong))
+        debug? (= true (-> executor-data :storm-conf (get TOPOLOGY-DEBUG)))
+
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           ;; synchronization needs to be done with a key provided by this bolt, otherwise:
                           ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
@@ -660,7 +690,13 @@
                                                     (tasks-fn task stream values)
                                                     (tasks-fn stream values))]
                                     (fast-list-iter [t out-tasks]
-                                                    (let [anchors-to-ids (HashMap.)]
+                                                    (let [anchors-to-ids (HashMap.)
+                                                          out-tuple (TupleImpl. worker-context
+                                                                               values
+                                                                               task-id
+                                                                               stream
+                                                                               (MessageId/makeId anchors-to-ids))
+                                                          ]
                                                       (fast-list-iter [^TupleImpl a anchors]
                                                                       (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
                                                                         (when (pos? (count root-ids))
@@ -669,12 +705,15 @@
                                                                             (fast-list-iter [root-id root-ids]
                                                                                             (put-xor! anchors-to-ids root-id edge-id))
                                                                             ))))
-                                                      (transfer-fn t
-                                                                   (TupleImpl. worker-context
-                                                                               values
-                                                                               task-id
-                                                                               stream
-                                                                               (MessageId/makeId anchors-to-ids)))))
+                                                      (transfer-fn t out-tuple)
+                                                      (when debug? 
+                                                        (if (= component-id "__acker")
+                                                          (log-message "Component[" component-id "] Type[EMIT] to Stream[" stream "] TupleId[" (.get values 0) "]")
+                                                          (log-message "Component[" component-id "] Type[EMIT] to Stream[" stream "] TupleId[" (.getMessageId out-tuple) "] values[" values "]")
+                                                          )
+                                                        
+                                                        )
+                                                      ))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (if (= component-id Constants/SYSTEM_COMPONENT_ID)

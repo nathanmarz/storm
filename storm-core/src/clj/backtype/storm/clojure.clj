@@ -13,6 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+
 (ns backtype.storm.clojure
   (:use [backtype.storm bootstrap util])
   (:import [backtype.storm StormSubmitter])
@@ -24,7 +25,6 @@
   (:import [backtype.storm.clojure ClojureBolt ClojureSpout])
   (:import [java.util List])
   (:require [backtype.storm [thrift :as thrift]]))
-
 
 (defn direct-stream [fields]
   (StreamInfo. fields true))
@@ -145,9 +145,9 @@
   (tuple-values [this collector ^String stream]
     (let [^TopologyContext context (:context collector)
           fields (..  context (getThisOutputFields stream) toList) ]
-      (vec (map (into 
-                  (empty this) (for [[k v] this] 
-                                   [(if (keyword? k) (name k) k) v])) 
+      (vec (map (into
+                  (empty this) (for [[k v] this]
+                                   [(if (keyword? k) (name k) k) v]))
                 fields))))
   java.util.List
   (tuple-values [this collector stream]
@@ -195,7 +195,7 @@
 (defn submit-remote-topology [name conf topology]
   (StormSubmitter/submitTopology name conf topology))
 
-(defn local-cluster []  
+(defn local-cluster []
   ;; do this to avoid a cyclic dependency of
   ;; LocalCluster -> testing -> nimbus -> bootstrap -> clojure -> LocalCluster
   (eval '(new backtype.storm.LocalCluster)))

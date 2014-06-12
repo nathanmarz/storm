@@ -13,9 +13,9 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+
 (ns backtype.storm.process-simulator
-  (:use [backtype.storm log util])
-  )
+  (:use [backtype.storm log util]))
 
 (def pid-counter (mk-counter))
 
@@ -26,23 +26,26 @@
 (defn register-process [pid shutdownable]
   (swap! process-map assoc pid shutdownable))
 
-(defn process-handle [pid]
+(defn process-handle
+  [pid]
   (@process-map pid))
 
-(defn all-processes []
+(defn all-processes
+  []
   (vals @process-map))
 
-(defn kill-process [pid]
-  (locking kill-lock ; in case cluster shuts down while supervisor is
-                     ; killing a task
+(defn kill-process
+  "Uses `locking` in case cluster shuts down while supervisor is
+  killing a task"
+  [pid]
+  (locking kill-lock
     (log-message "Killing process " pid)
     (let [shutdownable (process-handle pid)]
       (swap! process-map dissoc pid)
       (when shutdownable
-        (.shutdown shutdownable))
-      )))
+        (.shutdown shutdownable)))))
 
-(defn kill-all-processes []
+(defn kill-all-processes
+  []
   (doseq [pid (keys @process-map)]
-    (kill-process pid)
-    ))
+    (kill-process pid)))

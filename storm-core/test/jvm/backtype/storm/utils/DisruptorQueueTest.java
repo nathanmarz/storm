@@ -101,7 +101,6 @@ public class DisruptorQueueTest extends TestCase {
         }
         consumerThread.interrupt();
         consumerThread.join(TIMEOUT);
-        //consumerThread.stop();
     }
 
     private class Producer implements Runnable {

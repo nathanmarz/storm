@@ -3,6 +3,8 @@
  * STORM-338: Move towards idiomatic Clojure style 
 
 ## 0.9.2-incubating
+ * STORM-342: Contention in Disruptor Queue which may cause out of order or lost messages
+ * STORM-338: Move towards idiomatic Clojure style 
  * STORM-335: add drpc test for removing timed out requests from queue
  * STORM-69: Storm UI Visualizations for Topologies
  * STORM-297: Performance scaling with CPU

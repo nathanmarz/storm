@@ -1,3 +1,19 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
 <script id="cluster-summary-template" type="text/html">
 <table id="cluster-summary-table"><thead><tr><th><span class="tip right" title="The version of storm installed on the UI node. (Hopefully, this is the same on all storm nodes!)">Version</span></th><th><span class="tip right" title="The duration the current Nimbus instance has been running. (Note that the storm cluster may have been deployed and available for a much longer period than the current Nimbus process has been running.)">Nimbus uptime</span></th><th><span class="tip above" title="The number of nodes in the cluster currently.">Supervisors</span></th><th><span class="tip above" title="Slots are Workers (processes).">Used slots</span></th><th><span class="tip above" title="Slots are Workers (processes).">Free slots</span></th><th><span class="tip above" title="Slots are Workers (processes).">Total slots</span></th><th><span class="tip above" title="Executors are threads in a Worker process.">Executors</span></th><th><span class="tip left" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">Tasks</span></th></tr></thead>
 <tbody>

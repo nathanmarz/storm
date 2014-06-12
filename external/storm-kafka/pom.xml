@@ -15,8 +15,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -30,11 +29,6 @@
     <artifactId>storm-kafka</artifactId>
     <name>storm-kafka</name>
     <description>Storm Spouts for Apache Kafka</description>
-    <properties>
-        <scalaVersion>2.9.2</scalaVersion>
-        <kafkaArtifact>kafka_2.9.2</kafkaArtifact>
-        <envClassifier></envClassifier>
-    </properties>
     <build>
         <plugins>
 
@@ -48,11 +42,6 @@
             <artifactId>mockito-all</artifactId>
             <version>1.9.0</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scalaVersion}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -105,8 +94,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>${kafkaArtifact}</artifactId>
+            <artifactId>kafka_2.9.2</artifactId>
             <version>0.8.1.1</version>
+            <!-- use provided scope, so users can pull in whichever scala version they choose -->
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>
@@ -125,14 +116,4 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
-    <profiles>
-        <profile>
-            <id>Scala-2.10</id>
-            <properties>
-                <scalaVersion>2.10.3</scalaVersion>
-                <kafkaArtifact>kafka_2.10</kafkaArtifact>
-                <envClassifier>scala_2.10</envClassifier>
-            </properties>
-        </profile>
-    </profiles>
 </project>

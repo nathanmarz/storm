@@ -21,7 +21,11 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
+<<<<<<< HEAD
         <version>0.9.2-incubating-mt0000</version>
+=======
+        <version>0.9.3-incubating-SNAPSHOT</version>
+>>>>>>> upstream/master
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>

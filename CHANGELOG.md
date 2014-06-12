@@ -1,4 +1,4 @@
-## 0.9.2-incubating (unreleased)
+## 0.9.2-incubating
  * STORM-335: add drpc test for removing timed out requests from queue
  * STORM-69: Storm UI Visualizations for Topologies
  * STORM-297: Performance scaling with CPU

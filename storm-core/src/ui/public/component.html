@@ -12,6 +12,8 @@
 <script src="/js/script.js" type="text/javascript"></script>
 </head>
 <body>
+<div id="ui-user">
+</div>
 <h1><a href="/">Storm UI</a></h1>
 <div id="component-summary">
 </div>
@@ -47,6 +49,11 @@ $(document).ready(function() {
     });
 
     $.getJSON(url,function(response,status,jqXHR) {
+        var uiUser = $("#ui-user");
+        $.get("/templates/user-template.html", function(template) {
+            uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+        });
+
         var componentSummary = $("#component-summary");
         var componentStatsDetail = $("#component-stats-detail")
         var inputStats = $("#component-input-stats");

@@ -10,6 +10,8 @@
 <script src="/js/script.js" type="text/javascript"></script>
 </head>
 <body>
+<div id="ui-user">
+</div>
 <h1><a href="/">Storm UI</a></h1>
 <h2>Cluster Summary</h2>
 <div id="cluster-summary">
@@ -34,13 +36,17 @@ $(document).ready(function() {
             });
         }
     });
-    var template = $.get("/templates/index-page-template.html");
+    var uiUser = $("#ui-user");
     var clusterSummary = $("#cluster-summary");
     var topologySummary = $("#topology-summary");
     var supervisorSummary = $("#supervisor-summary");
     var config = $("#nimbus-configuration");
 
     $.getJSON("/api/v1/cluster/summary",function(response,status,jqXHR) {
+        $.get("/templates/user-template.html", function(template) {
+            uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+        });
+
         $.get("/templates/index-page-template.html", function(template) {
             clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
         });

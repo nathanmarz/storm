@@ -452,10 +452,10 @@
     (.getNimbusConf ^Nimbus$Client nimbus)))
 
 (defn cluster-summary
-  ([]
+  ([user]
      (with-nimbus nimbus
-        (cluster-summary (.getClusterInfo ^Nimbus$Client nimbus))))
-  ([^ClusterSummary summ]
+        (cluster-summary (.getClusterInfo ^Nimbus$Client nimbus) user)))
+  ([^ClusterSummary summ user]
      (let [sups (.get_supervisors summ)
         used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
         total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
@@ -466,7 +466,8 @@
         total-executors (->> (.get_topologies summ)
                              (map #(.get_num_executors ^TopologySummary %))
                              (reduce +))]
-       { "stormVersion" (read-storm-version)
+       { "user" user
+         "stormVersion" (read-storm-version)
          "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
          "supervisors" (count sups)
          "slotsTotal" total-slots
@@ -619,7 +620,8 @@
       (assert-authorized-ui-user user *STORM-CONF* topology-conf)
       (merge
        (topology-summary summ)
-       {"window" window
+       {"user" user
+        "window" window
         "windowHint" window-hint
         "msgTimeout" msg-timeout
         "topologyStats" (topology-stats id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
@@ -778,7 +780,8 @@
           errors (component-errors (get (.get_errors summ) component))]
       (assert-authorized-ui-user user *STORM-CONF* topology-conf)
       (merge
-       {"id" component
+        {"user" user
+         "id" component
          "name" (.get_name summ)
          "executors" (count summs)
          "tasks" (sum-tasks summs)
@@ -802,8 +805,9 @@
 (defroutes main-routes
   (GET "/api/v1/cluster/configuration" []
        (cluster-configuration))
-  (GET "/api/v1/cluster/summary" []
-       (json-response (cluster-summary)))
+  (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
+       (let [user (.getUserName http-creds-handler servlet-request)]
+         (json-response (cluster-summary user))))
   (GET "/api/v1/supervisor/summary" []
        (json-response (supervisor-summary)))
   (GET "/api/v1/topology/summary" []

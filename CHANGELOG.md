@@ -1,5 +1,5 @@
 ## 0.9.3-incubating (unreleased)
- * STORM-338 Move towards idiomatic Clojure style 
+ * STORM-338: Move towards idiomatic Clojure style 
 
 ## 0.9.2-incubating
  * STORM-335: add drpc test for removing timed out requests from queue

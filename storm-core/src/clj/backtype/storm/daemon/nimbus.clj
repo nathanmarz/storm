@@ -869,7 +869,8 @@
             (if orig-creds
               (let [new-creds (HashMap. orig-creds)]
                 (doseq [renewer renewers]
-                  (log-message "Renewing Creds For " id " with " renewer))
+                  (log-message "Renewing Creds For " id " with " renewer)
+		  (.renew renewer new-creds))
                 (when-not (= orig-creds new-creds)
                   (.set-credentials! storm-cluster-state id new-creds)
               )))))))))

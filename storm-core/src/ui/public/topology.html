@@ -36,13 +36,11 @@
 <h2>Topology summary</h2>
 <div id="topology-summary">
 </div>
-<!--
 <div id="topology-actions">
 <h2 class="js-only">Topology actions</h2>
 <p id="topology-actions" class="js-only">
 </p>
 </div>
--->
 <div id="topology-stats"></div>
 <div id="spout-stats">
 </div>
@@ -79,13 +77,13 @@ $(document).ready(function() {
         var spoutStats = $("#spout-stats");
         var boltStats = $("#bolt-stats");
         var config = $("#topology-configuration");
-        //var topologyActions = $("#topology-actions");
+        var topologyActions = $("#topology-actions");
         var topologyVisualization = $("#topology-visualization")
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"]);
         $.get("/templates/topology-page-template.html", function(template) {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
-            //topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
+            topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
             $("#topology-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
             spoutStats.append(Mustache.render($(template).filter("#spout-stats-template").html(),response));

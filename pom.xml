@@ -18,17 +18,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!--
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>10</version>
     </parent>
-    -->
+
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.9.2-incubating-mt0000</version>
+    <version>0.9.3-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
@@ -282,16 +281,11 @@
     </profiles>
 
     <distributionManagement>
-        <repository>
-            <id>nexus-releases</id>
-            <name>nexus-releases</name>
-            <url>http://nexus.sankuai.com:8081/nexus/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>nexus-snapshots</id>
-            <name>nexus-snapshots</name>
-            <url>http://nexus.sankuai.com:8081/nexus/content/repositories/snapshots</url>
-        </snapshotRepository>
+        <site>
+            <id>storm.maven.website</id>
+            <name>Storm Website</name>
+            <url>file:///tmp/site</url>
+        </site>
     </distributionManagement>
 
     <dependencyManagement>

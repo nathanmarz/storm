@@ -214,7 +214,7 @@ public class PartitionManager {
 
     public void commit() {
         long lastCompletedOffset = lastCompletedOffset();
-        if (lastCompletedOffset != lastCompletedOffset) {
+        if (_committedTo != lastCompletedOffset) {
             LOG.debug("Writing last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
             Map<Object, Object> data = (Map<Object, Object>) ImmutableMap.builder()
                     .put("topology", ImmutableMap.of("id", _topologyInstanceId,

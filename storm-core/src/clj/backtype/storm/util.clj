@@ -417,14 +417,6 @@
   [pid]
   (send-signal-to-process pid sig-term))
 
-(defn ensure-process-killed!
-  [pid]
-  ;; TODO: should probably do a ps ax of some sort to make sure it was killed
-  (try-cause
-    (kill-process-with-sig-term pid)
-    (catch ExecuteException e
-      (log-message "Error when trying to kill " pid ". Process is probably already dead."))))
-
 (defn add-shutdown-hook-with-force-kill-in-1-sec
   "adds the user supplied function as a shutdown hook for cleanup.
    Also adds a function that sleeps for a second and then sends kill -9 to process to avoid any zombie process in case

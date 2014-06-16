@@ -197,7 +197,7 @@
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
    :timer (mk-timer :kill-fn (fn [t]
                                (log-error t "Error when processing event")
-                               (halt-process! 20 "Error when processing an event")
+                               (exit-process! 20 "Error when processing an event")
                                ))
    })
 
@@ -543,7 +543,8 @@
 (defn -launch [supervisor]
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil supervisor)))
+    (let [supervisor (mk-supervisor conf nil supervisor)]
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

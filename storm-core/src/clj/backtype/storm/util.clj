@@ -312,10 +312,10 @@
   [& vals]
   (byte-array (map byte vals)))
 
-(defn halt-process!
+(defn exit-process!
   [val & msg]
   (log-message "Halting process: " msg)
-  (.halt (Runtime/getRuntime) val))
+  (.exit (Runtime/getRuntime) val))
 
 (defn sum
   [vals]
@@ -388,26 +388,57 @@
     (catch IOException e
       (log-message "Could not extract " dir " from " jarpath))))
 
-(defn ensure-process-killed! [pid]
-  ;; TODO: should probably do a ps ax of some sort to make sure it was killed
-  (try-cause
-    (exec-command! (str (if on-windows? "taskkill /f /pid " "kill -9 ") pid))
-    (catch ExecuteException e
-      (log-message "Error when trying to kill " pid ". Process is probably already dead."))))
-
-(defnk launch-process [command :environment {}]
-  (let [builder (ProcessBuilder. command)
-        process-env (.environment builder)]
-    (doseq [[k v] environment]
-      (.put process-env k v))
-    (.start builder)))
-
 (defn sleep-secs [secs]
   (when (pos? secs)
     (Time/sleep (* (long secs) 1000))))
 
 (defn sleep-until-secs [target-secs]
   (Time/sleepUntil (* (long target-secs) 1000)))
+
+(def ^:const sig-kill 9)
+
+(def ^:const sig-term 15)
+
+(defn send-signal-to-process
+  [pid signum]
+  (try-cause
+    (exec-command! (str (if on-windows?
+                          (if (== signum sig-kill) "taskkill /f /pid " "taskkill /pid ")
+                          (str "kill -" signum " "))
+                     pid))
+    (catch ExecuteException e
+      (log-message "Error when trying to kill " pid ". Process is probably already dead."))))
+
+(defn force-kill-process
+  [pid]
+  (send-signal-to-process pid sig-kill))
+
+(defn kill-process-with-sig-term
+  [pid]
+  (send-signal-to-process pid sig-term))
+
+(defn ensure-process-killed!
+  [pid]
+  ;; TODO: should probably do a ps ax of some sort to make sure it was killed
+  (try-cause
+    (kill-process-with-sig-term pid)
+    (catch ExecuteException e
+      (log-message "Error when trying to kill " pid ". Process is probably already dead."))))
+
+(defn add-shutdown-hook-with-force-kill-in-1-sec
+  "adds the user supplied function as a shutdown hook for cleanup.
+   Also adds a function that sleeps for a second and then sends kill -9 to process to avoid any zombie process in case
+   cleanup function hangs."
+  [func]
+  (.addShutdownHook (Runtime/getRuntime) (Thread. #((func)
+                                                     (sleep-secs 1)
+                                                     (force-kill-process (process-pid))))))
+(defnk launch-process [command :environment {}]
+  (let [builder (ProcessBuilder. command)
+        process-env (.environment builder)]
+    (doseq [[k v] environment]
+      (.put process-env k v))
+    (.start builder)))
 
 (defprotocol SmartThread
   (start [this])
@@ -418,7 +449,7 @@
 ;; afn returns amount of time to sleep
 (defnk async-loop [afn
                    :daemon false
-                   :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
+                   :kill-fn (fn [error] (exit-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
                    :factory? false
                    :start true

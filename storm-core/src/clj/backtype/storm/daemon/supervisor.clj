@@ -172,14 +172,13 @@
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
-      (kill-process-with-sig-term pid)
-      (try
-        (rmpath (worker-pid-path conf id pid))
-        (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
-      )
+      (kill-process-with-sig-term pid))
     (if-not (empty? pids) (sleep-secs 1)) ;; allow 1 second for execution of cleanup threads on worker.
     (doseq [pid pids]
-      (force-kill-process pid))
+      (force-kill-process pid)
+      (try
+        (rmpath (worker-pid-path conf id pid))
+        (catch Exception e))) ;; on windows, the supervisor may still holds the lock on the worker directory
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 

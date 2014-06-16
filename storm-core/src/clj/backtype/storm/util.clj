@@ -430,9 +430,10 @@
    Also adds a function that sleeps for a second and then sends kill -9 to process to avoid any zombie process in case
    cleanup function hangs."
   [func]
-  (.addShutdownHook (Runtime/getRuntime) (Thread. #((func)
-                                                     (sleep-secs 1)
-                                                     (force-kill-process (process-pid))))))
+  (.addShutdownHook (Runtime/getRuntime) (Thread. #(func)))
+  (.addShutdownHook (Runtime/getRuntime) (Thread. #((sleep-secs 1)
+                                                    (.halt (Runtime/getRuntime) 20)))))
+
 (defnk launch-process [command :environment {}]
   (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]

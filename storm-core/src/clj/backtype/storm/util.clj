@@ -511,7 +511,9 @@
 
 (defn add-to-classpath
   [classpath paths]
-  (str/join class-path-separator (cons classpath paths)))
+  (if (empty? paths)
+    classpath
+    (str/join class-path-separator (cons classpath paths))))
 
 (defn ^ReentrantReadWriteLock mk-rw-lock
   []

@@ -97,7 +97,7 @@ public class ShellSpout implements ISpout {
                     return;
                 } else if (command.equals("log")) {
                     String msg = shellMsg.getMsg();
-                    LOG.info("Shell msg: " + msg);
+                    LOG.info("Shell msg: " + msg + _process.getProcessInfoString());
                 } else if (command.equals("emit")) {
                     String stream = shellMsg.getStream();
                     Long task = shellMsg.getTask();
@@ -115,8 +115,9 @@ public class ShellSpout implements ISpout {
                     throw new RuntimeException("Unknown command received: " + command);
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+            throw new RuntimeException(processInfo, e);
         }
     }
 

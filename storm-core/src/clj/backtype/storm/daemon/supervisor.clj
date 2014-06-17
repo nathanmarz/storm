@@ -192,12 +192,23 @@
         (log-message log-prefix " interrupted.")))
       (.exitValue process)))
 
+(defn- rmr-as-user
+  "Launches a process owned by the given user that deletes the given path
+  recursively.  Throws RuntimeException if the directory is not removed."
+  [conf id user path]
+  (worker-launcher-and-wait conf
+                            user
+                            ["rmr" path]
+                            :log-prefix (str "rmr " id))
+  (if (exists-file? path)
+    (throw (RuntimeException. (str path " was not deleted")))))
+
 (defn try-cleanup-worker [conf id user]
   (try
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          (worker-launcher-and-wait conf user ["rmr" (worker-root conf id)] :log-prefix (str "rmr " id) )
+          (rmr-as-user conf id user (worker-root conf id))
           (do
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
@@ -228,7 +239,7 @@
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
         (ensure-process-killed! pid))
       (if as-user
-        (worker-launcher-and-wait conf user ["rmr" (worker-pid-path conf id pid)] :log-prefix (str "rmr for " pid))
+        (rmr-as-user conf id user (worker-pid-path conf id pid))
         (try
           (rmpath (worker-pid-path conf id pid))
           (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory

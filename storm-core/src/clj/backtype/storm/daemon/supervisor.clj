@@ -477,6 +477,9 @@
                              (substitute-worker-childopts s port))
           topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
                                   (substitute-worker-childopts s port))
+          topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
+                                        (merge env {"LD_LIBRARY_PATH" jlp})
+                                        {"LD_LIBRARY_PATH" jlp})
           logfilename (str "worker-" port ".log")
           command (concat
                     [(java-cmd) "-server"]
@@ -500,7 +503,7 @@
                          (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
                          (clojure.string/join " "))]
       (log-message "Launching worker with command: " shell-cmd)
-      (launch-process command :environment {"LD_LIBRARY_PATH" jlp})
+      (launch-process command :environment topology-worker-environment)
       ))
 
 ;; local implementation

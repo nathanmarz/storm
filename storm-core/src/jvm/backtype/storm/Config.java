@@ -688,6 +688,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_CLASSPATH_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * Topology-specific environment variables for the worker child process. 
+     * This is added to the existing environment (that of the supervisor)
+     */
+     public static final String TOPOLOGY_ENVIRONMENT="topology.environment";
+     public static final Object TOPOLOGY_ENVIRONMENT_SCHEMA = Map.class;
+
+    /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
      * the transactional topology. This id is used to store the state of the transactional
      * topology in Zookeeper.
@@ -855,6 +862,14 @@ public class Config extends HashMap<String, Object> {
 
     public void setClasspath(String cp) {
         setClasspath(this, cp);
+    }
+
+    public static void setEnvironment(Map conf, Map env) {
+        conf.put(Config.TOPOLOGY_ENVIRONMENT, env);
+    }
+
+    public void setEnvironment(Map env) {
+        setEnvironment(this, env);
     }
 
     public static void setDebug(Map conf, boolean isOn) {

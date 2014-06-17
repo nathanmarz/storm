@@ -679,6 +679,41 @@
     (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
 ))
 
+(deftest test-force-free-slot-in-bad-state
+  (let [supers (gen-supervisors 1)
+        topology1 (TopologyDetails. "topology1"
+                                    {TOPOLOGY-NAME "topology-name-1"
+                                     TOPOLOGY-SUBMITTER-USER "userC"}
+                                    (StormTopology.)
+                                    4
+                                    (mk-ed-map [["spout1" 0 5]
+                                                ["bolt1" 5 10]
+                                                ["bolt2" 10 15]
+                                                ["bolt3" 15 20]]))
+        existing-assignments {
+                               "topology1" (SchedulerAssignmentImpl. "topology1" {(ExecutorDetails. 0 5) (WorkerSlot. "super0" 1)
+                                                                                  (ExecutorDetails. 5 10) (WorkerSlot. "super0" 20)
+                                                                                  (ExecutorDetails. 10 15) (WorkerSlot. "super0" 1)
+                                                                                  (ExecutorDetails. 15 20) (WorkerSlot. "super0" 1)})
+                               }
+        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
+        node-map (Node/getAllNodesFrom cluster)
+        topologies (Topologies. (to-top-map [topology1]))
+        conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
+        scheduler (MultitenantScheduler.)]
+    (.assign (.get node-map "super0") "topology1" (list (ed 1)) cluster)
+    (.prepare scheduler conf)
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)]
+      (log-message "Executors are:" executors)
+      ;; 4 slots on 1 machine, all executors assigned
+      (is (= 4 (.size assigned-slots)))
+      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      )
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    ))
 
 (deftest test-multitenant-scheduler-bad-starting-state
   (let [supers (gen-supervisors 10)

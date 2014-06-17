@@ -163,8 +163,9 @@ public class Node {
    * @param ws the slot to free
    * @param cluster the cluster to update
    */
-  public void free(WorkerSlot ws, Cluster cluster) {
+  public void free(WorkerSlot ws, Cluster cluster, boolean forceFree) {
     if (_freeSlots.contains(ws)) return;
+    boolean wasFound = false;
     for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
       Set<WorkerSlot> slots = entry.getValue();
       if (slots.remove(ws)) {
@@ -172,11 +173,21 @@ public class Node {
         if (_isAlive) {
           _freeSlots.add(ws);
         }
-        return;
+        wasFound = true;
       }
     }
-    throw new IllegalArgumentException("Tried to free a slot that was not" +
-    		" part of this node " + _nodeId);
+    if(!wasFound)
+    {
+      if(forceFree)
+      {
+        LOG.info("Forcefully freeing the " + ws);
+        cluster.freeSlot(ws);
+        _freeSlots.add(ws);
+      } else {
+        throw new IllegalArgumentException("Tried to free a slot that was not" +
+              " part of this node " + _nodeId);
+      }
+    }
   }
    
   /**
@@ -301,7 +312,7 @@ public class Node {
         }
         if (node.assignInternal(ws, topId, true)) {
           LOG.warn("Bad scheduling state, "+ws+" assigned multiple workers, unassigning everything...");
-          node.free(ws, cluster);
+          node.free(ws, cluster, true);
         }
       }
     }

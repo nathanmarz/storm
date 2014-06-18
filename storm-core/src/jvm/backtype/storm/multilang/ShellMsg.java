@@ -42,6 +42,10 @@ public class ShellMsg {
     private List<Object> tuple;
     private boolean needTaskIds;
 
+    //metrics rpc 
+    private String metricName;
+    private Object metricParams;
+
     public String getCommand() {
         return command;
     }
@@ -118,5 +122,21 @@ public class ShellMsg {
 
     public void setNeedTaskIds(boolean needTaskIds) {
         this.needTaskIds = needTaskIds;
+    }
+
+    public void setMetricName(String metricName) {
+        this.metricName = metricName;
+    }
+
+    public String getMetricName() {
+        return this.metricName;
+    }
+
+    public void setMetricParams(Object metricParams) {
+        this.metricParams = metricParams;
+    }
+
+    public Object getMetricParams() {
+        return metricParams;
     }
 }

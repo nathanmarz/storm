@@ -18,8 +18,12 @@
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
-            TestAggregatesCounter TestConfBolt AckFailMapTracker])
+            TestAggregatesCounter TestConfBolt AckFailMapTracker PythonShellMetricsBolt PythonShellMetricsSpout])
+  (:import [backtype.storm.task ShellBolt])
+  (:import [backtype.storm.spout ShellSpout])
   (:import [backtype.storm.metric.api CountMetric IMetricsConsumer$DataPoint IMetricsConsumer$TaskInfo])
+  (:import [backtype.storm.metric.api.rpc CountShellMetric])
+  (:import [backtype.storm.utils Utils])
   
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
@@ -96,7 +100,10 @@
 (deftest test-custom-metric
   (with-simulated-time-local-cluster
     [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
-                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]}]
+                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                           "storm.zookeeper.connection.timeout" 30000
+                           "storm.zookeeper.session.timeout" 60000
+                           }]
     (let [feeder (feeder-spout ["field1"])
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec feeder)}
@@ -121,12 +128,15 @@
 (deftest test-custom-metric-with-multi-tasks
   (with-simulated-time-local-cluster
     [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
-                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]}]
+                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                           "storm.zookeeper.connection.timeout" 30000
+                           "storm.zookeeper.session.timeout" 60000
+                           }]
     (let [feeder (feeder-spout ["field1"])
           topology (thrift/mk-topology
                      {"1" (thrift/mk-spout-spec feeder)}
                      {"2" (thrift/mk-bolt-spec {"1" :all} count-acks :p 1 :conf {TOPOLOGY-TASKS 2})})]
-      (submit-local-topology (:nimbus cluster) "metrics-tester" {} topology)
+      (submit-local-topology (:nimbus cluster) "metrics-tester-with-multitasks" {} topology)
 
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 6)
@@ -142,6 +152,62 @@
       (.feed feeder ["c"] 3)
       (advance-cluster-time cluster 5)
       (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0 2]))))
+
+(defn mk-shell-bolt-with-metrics-spec
+  [inputs command & kwargs]
+  (let [command (into-array String command)]
+    (apply thrift/mk-bolt-spec inputs
+         (PythonShellMetricsBolt. command) kwargs)))
+
+(deftest test-custom-metric-with-multilang-py
+  (with-local-cluster 
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                       [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                       "storm.zookeeper.connection.timeout" 30000
+                       "storm.zookeeper.session.timeout" 60000
+                       }]
+    (let [feeder (feeder-spout ["field1"])
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec feeder)}
+                     {"2" (mk-shell-bolt-with-metrics-spec {"1" :global} ["python" "tester_bolt_metrics.py"])})]
+      (submit-local-topology (:nimbus cluster) "shell-metrics-tester" {} topology)
+
+      (.feed feeder ["a"] 1)
+      (Thread/sleep 6000)
+      (assert-buckets! "2" "my-custom-shell-metric" [1])
+            
+      (Thread/sleep 5000)
+      (assert-buckets! "2" "my-custom-shell-metric" [1 0])
+
+      (Thread/sleep 20000)
+      (assert-buckets! "2" "my-custom-shell-metric" [1 0 0 0 0 0])
+      
+      (.feed feeder ["b"] 2)
+      (.feed feeder ["c"] 3)               
+      (Thread/sleep 5000)
+      (assert-buckets! "2" "my-custom-shell-metric" [1 0 0 0 0 0 2])
+      )))
+
+(defn mk-shell-spout-with-metrics-spec
+  [command & kwargs]
+  (let [command (into-array String command)]
+    (apply thrift/mk-spout-spec (PythonShellMetricsSpout. command) kwargs)))
+
+(deftest test-custom-metric-with-spout-multilang-py
+  (with-local-cluster 
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                       [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                       "storm.zookeeper.connection.timeout" 30000
+                       "storm.zookeeper.session.timeout" 60000}]
+    (let [topology (thrift/mk-topology
+                     {"1" (mk-shell-spout-with-metrics-spec ["python" "tester_spout_metrics.py"])}
+                     {"2" (thrift/mk-bolt-spec {"1" :all} count-acks)})]
+      (submit-local-topology (:nimbus cluster) "shell-spout-metrics-tester" {} topology)
+
+      (Thread/sleep 7000)
+      (assert-buckets! "1" "my-custom-shellspout-metric" [2])
+      )))
+
 
 (deftest test-builtin-metrics-1
   (with-simulated-time-local-cluster

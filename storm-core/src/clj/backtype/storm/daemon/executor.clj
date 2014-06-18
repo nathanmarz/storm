@@ -178,7 +178,8 @@
       (swap! interval-errors inc)
 
       (when (<= @interval-errors max-per-interval)
-        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error)
+        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
+                              (local-hostname) (.getThisWorkerPort (:worker-context executor)) error)
         ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies

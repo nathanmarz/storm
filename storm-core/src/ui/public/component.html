@@ -77,6 +77,10 @@ $(document).ready(function() {
         var executorStats = $("#component-executor-stats");
         var componentErrors = $("#component-errors");
         $.get("/templates/component-page-template.html", function(template) {
+            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),response));
+            if(response["componentErrors"].length > 0) {
+            $("#component-errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+            }
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
@@ -98,10 +102,6 @@ $(document).ready(function() {
                 if(response["outputStats"].length > 0) {
                     $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
-            }
-            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),response));
-            if(response["componentErrors"].length > 0) {
-                $("#component-errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
             }
         });
     });

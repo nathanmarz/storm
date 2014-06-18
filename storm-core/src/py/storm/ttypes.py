@@ -1861,20 +1861,26 @@ class ErrorInfo:
   Attributes:
    - error
    - error_time_secs
+   - host
+   - port
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'error', None, None, ), # 1
     (2, TType.I32, 'error_time_secs', None, None, ), # 2
+    (3, TType.STRING, 'host', None, None, ), # 3
+    (4, TType.I32, 'port', None, None, ), # 4
   )
 
   def __hash__(self):
-    return 0 + hash(self.error) + hash(self.error_time_secs)
+    return 0 + hash(self.error) + hash(self.error_time_secs) + hash(self.host) + hash(self.port)
 
-  def __init__(self, error=None, error_time_secs=None,):
+  def __init__(self, error=None, error_time_secs=None, host=None, port=None,):
     self.error = error
     self.error_time_secs = error_time_secs
+    self.host = host
+    self.port = port
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1895,6 +1901,16 @@ class ErrorInfo:
           self.error_time_secs = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.host = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.port = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1912,6 +1928,14 @@ class ErrorInfo:
     if self.error_time_secs is not None:
       oprot.writeFieldBegin('error_time_secs', TType.I32, 2)
       oprot.writeI32(self.error_time_secs)
+      oprot.writeFieldEnd()
+    if self.host is not None:
+      oprot.writeFieldBegin('host', TType.STRING, 3)
+      oprot.writeString(self.host.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.port is not None:
+      oprot.writeFieldBegin('port', TType.I32, 4)
+      oprot.writeI32(self.port)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

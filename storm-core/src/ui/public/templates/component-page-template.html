@@ -32,7 +32,7 @@
 <tbody>
 {{#spoutSummary}}
 <tr>
-<td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</td>
+<td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</a></td>
 <td>{{transferred}}</td>
 <td>{{emitted}}</td>
 <td>{{completeLatency}}</td>
@@ -86,7 +86,7 @@
 <tbody>
 {{#boltStats}}
 <tr>
-<td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</td>
+<td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</a></td>
 <td>{{emitted}}</td>
 <td>{{transferred}}</td>
 <td>{{executeLatency}}</td>
@@ -97,6 +97,7 @@
 </tr>
 {{/boltStats}}
 </tbody>
+</table>
 </script>
 <script id="bolt-input-stats-template" type="text/html">
 <h2>Input stats ({{windowHint}})</h2>
@@ -153,14 +154,15 @@
 </tbody>
 </table>
 </script>
-
 <script id="component-errors-template" type="text/html">
 <h2>Errors</h2>
-<table class="zebra-striped" id="component-errors-table"><thead><tr><th>Time</th><th>Error</th></tr></thead>
+<table class="zebra-striped" id="component-errors-table"><thead><tr><th>Time</th><th>Error Host</th>th>Error Port</th><th>Error</th></tr></thead>
 <tbody>
 {{#componentErrors}}
 <tr>
 <td>{{time}}</td>
+<td>{{errorHost}}</td>
+<td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
 <td>{{error}}</td>
 </tr>
 {{/componentErrors}}

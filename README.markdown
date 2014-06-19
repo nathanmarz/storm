@@ -144,6 +144,7 @@ under the License.
 * thinker0 ([@thinker0](https://github.com/thinker0))
 * Troy Ding ([@troyding](https://github.com/troyding)) 
 * Aaron Zimmerman ([@aaronzimmerman](https://github.com/aaronzimmerman))
+* Albert Chu ([@chu11](https://github.com/chu11))
 
 ## Acknowledgements
 

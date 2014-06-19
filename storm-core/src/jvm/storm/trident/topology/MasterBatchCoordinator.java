@@ -76,6 +76,10 @@ public class MasterBatchCoordinator extends BaseRichSpout {
         _spouts = spouts;
     }
 
+    public List<String> getManagedSpoutIds(){
+        return _managedSpoutIds;
+    }
+
     @Override
     public void activate() {
         _active = true;

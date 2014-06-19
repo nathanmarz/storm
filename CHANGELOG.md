@@ -1,3 +1,6 @@
+## 0.9.3-incubating
+ * STORM-337: Expose managed spout ids publicly
+
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake
  * STORM-342: Contention in Disruptor Queue which may cause out of order or lost messages

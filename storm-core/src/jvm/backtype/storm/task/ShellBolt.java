@@ -244,7 +244,7 @@ public class ShellBolt implements IBolt {
         //get metric by name
         IMetric iMetric = _context.getRegisteredMetricByName(name);
         if (iMetric == null) {
-            throw new RuntimeException("Not find metric by name["+name+"] ");
+            throw new RuntimeException("Could not find metric by name["+name+"] ");
         }
         if ( !(iMetric instanceof IShellMetric)) {
             throw new RuntimeException("Metric["+name+"] is not IShellMetric, can not call by RPC");

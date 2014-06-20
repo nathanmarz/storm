@@ -857,7 +857,7 @@
 
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)
-       (map #(doto error-info (ErrorInfo. (:error %) (:time-secs %))
+       (map #(doto (ErrorInfo. (:error %) (:time-secs %))
                    (.set_host error-info (:host %))
                    (.set_port error-info (:port %))))))
 

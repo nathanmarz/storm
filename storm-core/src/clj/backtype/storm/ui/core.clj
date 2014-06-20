@@ -249,8 +249,7 @@
                    (sort-by #(.get_error_time_secs ^ErrorInfo %))
                    reverse
                    first)]
-    error
-  ))
+    error))
 
 (defn component-task-summs
   [^TopologyInfo summ topology id]
@@ -290,29 +289,30 @@
        (map nil-to-zero)
        (apply max)))
 
-(defn get-error-span [error]
+(defn get-error-span 
+  [error]
   (if (and error (< (time-delta (.get_error_time_secs ^ErrorInfo error))
                     (* 60 30)))
     {:class "red"}
-    {}
-    ))
+    {}))
 
-(defn get-error-data [error]
+(defn get-error-data 
+  [error]
   (if error
     (error-subset (.get_error ^ErrorInfo error))
-    ""
-    ))
-(defn get-error-port [error error-host top-id]
+    ""))
+
+(defn get-error-port
+  [error error-host top-id]
   (if error
     (.get_port ^ErrorInfo error)
-    ""
-    ))
+    ""))
 
-(defn get-error-host [error]
+(defn get-error-host
+  [error]
   (if error
     (.get_host ^ErrorInfo error)
-    ""
-    ))
+    ""))
 
 (defn spout-streams-stats
   [summs include-sys?]
@@ -550,8 +550,7 @@
                       stats-seq include-sys?))
               last-error (most-recent-error (get errors id))
               error-host (get-error-host last-error)
-              error-port (get-error-port last-error error-host top-id)
-              ]]
+              error-port (get-error-port last-error error-host top-id) ]]
     {"spoutId" id
      "executors" (count summs)
      "tasks" (sum-tasks summs)
@@ -563,8 +562,7 @@
      "errorHost" error-host
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port)
-     "lastError" (get-error-data last-error)
-      }))
+     "lastError" (get-error-data last-error) }))
 
 (defn bolt-comp [top-id summ-map errors window include-sys?]
   (for [[id summs] summ-map
@@ -574,8 +572,7 @@
                       stats-seq include-sys?))
               last-error (most-recent-error (get errors id))
               error-host (get-error-host last-error)
-              error-port (get-error-port last-error error-host top-id)
-              ]]
+              error-port (get-error-port last-error error-host top-id) ]]
     {"boltId" id
      "executors" (count summs)
      "tasks" (sum-tasks summs)
@@ -590,8 +587,7 @@
      "errorHost" error-host
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port)
-     "lastError" (get-error-data last-error)
-     }))
+     "lastError" (get-error-data last-error) }))
 
 (defn topology-summary [^TopologyInfo summ]
   (let [executors (.get_executors summ)

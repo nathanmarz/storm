@@ -858,8 +858,8 @@
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)
        (map #(doto (ErrorInfo. (:error %) (:time-secs %))
-                   (.set_host error-info (:host %))
-                   (.set_port error-info (:port %))))))
+                   (.set_host (:host %))
+                   (.set_port (:port %))))))
 
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))

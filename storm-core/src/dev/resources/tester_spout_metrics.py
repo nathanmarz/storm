@@ -32,16 +32,14 @@ class TesterSpout(storm.Spout):
         self.count = 0
 
     def nextTuple(self):
-        sleep(1)
-        storm.log("TesterSpout emit a tuple")
-        word = choice(words)
-        id = str(uuid4())
-        self.pending[id] = word
         if self.count < 2:
+            word = choice(words)
+            id = str(uuid4())
+            self.pending[id] = word
             storm.rpcMetrics("my-custom-shellspout-metric", 1)
-            storm.log("TesterSpout update my-custom-shellspout-metric")
             self.count = self.count + 1
-        storm.emit([word], id=id)
+            storm.log("TesterSpout update my-custom-shellspout-metric "+str(self.count))
+            storm.emit([word], id=id)
 
     def ack(self, id):
         del self.pending[id]

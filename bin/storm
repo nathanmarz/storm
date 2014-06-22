@@ -435,8 +435,8 @@ def print_usage(command=None):
     """Print one help message or list of available commands"""
     if command != None:
         if command in COMMANDS:
-            print((COMMANDS[command].__doc__ or 
-                  "No documentation provided for <%s>" % command))
+            print(COMMANDS[command].__doc__ or
+                  "No documentation provided for <%s>" % command)
         else:
            print("<%s> is not a valid command" % command)
     else:

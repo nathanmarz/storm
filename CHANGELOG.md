@@ -2,6 +2,7 @@
  * STORM-337: Expose managed spout ids publicly
  * STORM-320: Support STORM_CONF_DIR environment variable to support
  * STORM-360: Add node details for Error Topology and Component pages
+ * STORM-54: Per-Topology Classpath and Environment for Workers
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

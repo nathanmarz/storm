@@ -289,12 +289,11 @@
        (map nil-to-zero)
        (apply max)))
 
-(defn get-error-span 
+(defn is-error-recent? 
   [error]
-  (if (and error (< (time-delta (.get_error_time_secs ^ErrorInfo error))
-                    (* 60 30)))
-    {:class "red"}
-    {}))
+  (if error (< (time-delta (.get_error_time_secs ^ErrorInfo error))
+                    (* 60 30))
+    false))
 
 (defn get-error-data 
   [error]
@@ -562,6 +561,7 @@
      "errorHost" error-host
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port)
+     (if (is-error-recent? last-error) "isRecent" "isNotRecent") true
      "lastError" (get-error-data last-error) }))
 
 (defn bolt-comp [top-id summ-map errors window include-sys?]
@@ -587,6 +587,7 @@
      "errorHost" error-host
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port)
+     (if (is-error-recent? last-error) "isRecent" "isNotRecent") true
      "lastError" (get-error-data last-error) }))
 
 (defn topology-summary [^TopologyInfo summ]
@@ -692,6 +693,7 @@
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
         "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e))
+        (if (is-error-recent? e) "isRecent" "isNotRecent") true
         "error" (.get_error e)})}))
 
 (defn spout-stats

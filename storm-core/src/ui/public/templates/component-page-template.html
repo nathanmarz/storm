@@ -163,7 +163,11 @@
 <td>{{time}}</td>
 <td>{{errorHost}}</td>
 <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
-<td>{{error}}</td>
+<td>
+<span{{#isRecent}} class="red"{{/isRecent}}>
+{{error}}
+</span>
+</td>
 </tr>
 {{/componentErrors}}
 </tbody>

@@ -19,6 +19,8 @@ Table of Contents
         * <a href="#merge-pull-request">Merge a pull request or patch</a>
     * <a href="#building">Build the code and run the tests</a>
     * <a href="#packaging">Create a Storm distribution (packaging)</a>
+* <a href="#best-practices">Best practices</a>
+    * <a href="#best-practices-testing">Testing</a>
 * <a href="#tools">Tools</a>
     * <a href="#code-repositories">Source code repositories (git)</a>
     * <a href="#issue-tracking">Issue tracking (JIRA)</a>
@@ -260,6 +262,26 @@ You can verify whether the digital signatures match their corresponding files:
 
     # Example: Verify the signature of the `.tar.gz` binary.
     $ gpg --verify storm-dist/binary/target/apache-storm-<version>.tar.gz.asc
+
+
+<a name="best-practices"></a>
+
+# Best practices
+
+
+<a name="best-practices-testing"></a>
+
+## Testing
+
+Tests should never rely on timing in order to pass.  In Storm can properly test functionality that depends on time by
+simulating time, which means we do not have to worry about e.g. random delays failing our tests indeterministically.
+
+If you are testing topologies that do not do full tuple acking, then you should be testing using the "tracked
+topologies" utilities in `backtype.storm.testing.clj`.  For example,
+[test-acking](storm-core/test/clj/backtype/storm/integration_test.clj) (around line 213) tests the acking system in
+Storm using tracked topologies.  Here, the key is the `tracked-wait` function: it will only return when both that many
+tuples have been emitted by the spouts _and_ the topology is idle (i.e. no tuples have been emitted nor will be emitted
+without further input).  Note that you should not use tracked topologies for topologies that have tick tuples.
 
 
 <a name="tools"></a>

@@ -51,7 +51,13 @@ def init_storm_env():
 normclasspath = cygpath if sys.platform == 'cygwin' else identity
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 USER_CONF_DIR = os.path.expanduser("~/.storm")
-CLUSTER_CONF_DIR = STORM_DIR + "/conf"
+STORM_CONF_DIR = os.getenv('STORM_CONF_DIR', None)
+
+if STORM_CONF_DIR == None:
+    CLUSTER_CONF_DIR = STORM_DIR + "/conf"
+else:
+    CLUSTER_CONF_DIR = STORM_CONF_DIR
+
 if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 

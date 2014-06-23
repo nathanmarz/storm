@@ -319,7 +319,6 @@
        (map nil-to-zero)
        (apply max)))
 
-
 (defn get-error-span
   [error]
   (if (and error (< (time-delta (.get_error_time_secs ^ErrorInfo error))

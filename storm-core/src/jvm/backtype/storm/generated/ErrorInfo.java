@@ -43,14 +43,20 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
 
   private static final org.apache.thrift.protocol.TField ERROR_FIELD_DESC = new org.apache.thrift.protocol.TField("error", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField ERROR_TIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("error_time_secs", org.apache.thrift.protocol.TType.I32, (short)2);
+  private static final org.apache.thrift.protocol.TField HOST_FIELD_DESC = new org.apache.thrift.protocol.TField("host", org.apache.thrift.protocol.TType.STRING, (short)3);
+  private static final org.apache.thrift.protocol.TField PORT_FIELD_DESC = new org.apache.thrift.protocol.TField("port", org.apache.thrift.protocol.TType.I32, (short)4);
 
   private String error; // required
   private int error_time_secs; // required
+  private String host; // required
+  private int port; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ERROR((short)1, "error"),
-    ERROR_TIME_SECS((short)2, "error_time_secs");
+    ERROR_TIME_SECS((short)2, "error_time_secs"),
+    HOST((short)3, "host"),
+    PORT((short)4, "port");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -69,6 +75,10 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
           return ERROR;
         case 2: // ERROR_TIME_SECS
           return ERROR_TIME_SECS;
+        case 3: // HOST
+          return HOST;
+        case 4: // PORT
+          return PORT;
         default:
           return null;
       }
@@ -110,7 +120,8 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
 
   // isset id assignments
   private static final int __ERROR_TIME_SECS_ISSET_ID = 0;
-  private BitSet __isset_bit_vector = new BitSet(1);
+  private static final int __PORT_ISSET_ID = 1;
+  private BitSet __isset_bit_vector = new BitSet(2);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -118,6 +129,10 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     tmpMap.put(_Fields.ERROR, new org.apache.thrift.meta_data.FieldMetaData("error", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.ERROR_TIME_SECS, new org.apache.thrift.meta_data.FieldMetaData("error_time_secs", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.HOST, new org.apache.thrift.meta_data.FieldMetaData("host", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.PORT, new org.apache.thrift.meta_data.FieldMetaData("port", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ErrorInfo.class, metaDataMap);
@@ -146,6 +161,10 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
       this.error = other.error;
     }
     this.error_time_secs = other.error_time_secs;
+    if (other.is_set_host()) {
+      this.host = other.host;
+    }
+    this.port = other.port;
   }
 
   public ErrorInfo deepCopy() {
@@ -157,6 +176,9 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     this.error = null;
     set_error_time_secs_isSet(false);
     this.error_time_secs = 0;
+    this.host = null;
+    set_port_isSet(false);
+    this.port = 0;
   }
 
   public String get_error() {
@@ -204,6 +226,51 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     __isset_bit_vector.set(__ERROR_TIME_SECS_ISSET_ID, value);
   }
 
+  public String get_host() {
+    return this.host;
+  }
+
+  public void set_host(String host) {
+    this.host = host;
+  }
+
+  public void unset_host() {
+    this.host = null;
+  }
+
+  /** Returns true if field host is set (has been assigned a value) and false otherwise */
+  public boolean is_set_host() {
+    return this.host != null;
+  }
+
+  public void set_host_isSet(boolean value) {
+    if (!value) {
+      this.host = null;
+    }
+  }
+
+  public int get_port() {
+    return this.port;
+  }
+
+  public void set_port(int port) {
+    this.port = port;
+    set_port_isSet(true);
+  }
+
+  public void unset_port() {
+    __isset_bit_vector.clear(__PORT_ISSET_ID);
+  }
+
+  /** Returns true if field port is set (has been assigned a value) and false otherwise */
+  public boolean is_set_port() {
+    return __isset_bit_vector.get(__PORT_ISSET_ID);
+  }
+
+  public void set_port_isSet(boolean value) {
+    __isset_bit_vector.set(__PORT_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ERROR:
@@ -222,6 +289,22 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
       }
       break;
 
+    case HOST:
+      if (value == null) {
+        unset_host();
+      } else {
+        set_host((String)value);
+      }
+      break;
+
+    case PORT:
+      if (value == null) {
+        unset_port();
+      } else {
+        set_port((Integer)value);
+      }
+      break;
+
     }
   }
 
@@ -232,6 +315,12 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
 
     case ERROR_TIME_SECS:
       return Integer.valueOf(get_error_time_secs());
+
+    case HOST:
+      return get_host();
+
+    case PORT:
+      return Integer.valueOf(get_port());
 
     }
     throw new IllegalStateException();
@@ -248,6 +337,10 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
       return is_set_error();
     case ERROR_TIME_SECS:
       return is_set_error_time_secs();
+    case HOST:
+      return is_set_host();
+    case PORT:
+      return is_set_port();
     }
     throw new IllegalStateException();
   }
@@ -283,6 +376,24 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
         return false;
     }
 
+    boolean this_present_host = true && this.is_set_host();
+    boolean that_present_host = true && that.is_set_host();
+    if (this_present_host || that_present_host) {
+      if (!(this_present_host && that_present_host))
+        return false;
+      if (!this.host.equals(that.host))
+        return false;
+    }
+
+    boolean this_present_port = true && this.is_set_port();
+    boolean that_present_port = true && that.is_set_port();
+    if (this_present_port || that_present_port) {
+      if (!(this_present_port && that_present_port))
+        return false;
+      if (this.port != that.port)
+        return false;
+    }
+
     return true;
   }
 
@@ -299,6 +410,16 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     builder.append(present_error_time_secs);
     if (present_error_time_secs)
       builder.append(error_time_secs);
+
+    boolean present_host = true && (is_set_host());
+    builder.append(present_host);
+    if (present_host)
+      builder.append(host);
+
+    boolean present_port = true && (is_set_port());
+    builder.append(present_port);
+    if (present_port)
+      builder.append(port);
 
     return builder.toHashCode();
   }
@@ -327,6 +448,26 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     }
     if (is_set_error_time_secs()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.error_time_secs, typedOther.error_time_secs);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_host()).compareTo(typedOther.is_set_host());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_host()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.host, typedOther.host);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_port()).compareTo(typedOther.is_set_port());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_port()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.port, typedOther.port);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -363,6 +504,21 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 3: // HOST
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+            this.host = iprot.readString();
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 4: // PORT
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
+            this.port = iprot.readI32();
+            set_port_isSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -384,6 +540,18 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     oprot.writeFieldBegin(ERROR_TIME_SECS_FIELD_DESC);
     oprot.writeI32(this.error_time_secs);
     oprot.writeFieldEnd();
+    if (this.host != null) {
+      if (is_set_host()) {
+        oprot.writeFieldBegin(HOST_FIELD_DESC);
+        oprot.writeString(this.host);
+        oprot.writeFieldEnd();
+      }
+    }
+    if (is_set_port()) {
+      oprot.writeFieldBegin(PORT_FIELD_DESC);
+      oprot.writeI32(this.port);
+      oprot.writeFieldEnd();
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -404,6 +572,22 @@ public class ErrorInfo implements org.apache.thrift.TBase<ErrorInfo, ErrorInfo._
     sb.append("error_time_secs:");
     sb.append(this.error_time_secs);
     first = false;
+    if (is_set_host()) {
+      if (!first) sb.append(", ");
+      sb.append("host:");
+      if (this.host == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.host);
+      }
+      first = false;
+    }
+    if (is_set_port()) {
+      if (!first) sb.append(", ");
+      sb.append("port:");
+      sb.append(this.port);
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }

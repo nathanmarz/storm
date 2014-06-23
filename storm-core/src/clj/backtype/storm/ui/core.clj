@@ -249,9 +249,7 @@
                    (sort-by #(.get_error_time_secs ^ErrorInfo %))
                    reverse
                    first)]
-    (if error
-      (error-subset (.get_error ^ErrorInfo error))
-      "")))
+    error))
 
 (defn component-task-summs
   [^TopologyInfo summ topology id]
@@ -290,6 +288,31 @@
        (map compute-executor-capacity)
        (map nil-to-zero)
        (apply max)))
+
+(defn get-error-span 
+  [error]
+  (if (and error (< (time-delta (.get_error_time_secs ^ErrorInfo error))
+                    (* 60 30)))
+    {:class "red"}
+    {}))
+
+(defn get-error-data 
+  [error]
+  (if error
+    (error-subset (.get_error ^ErrorInfo error))
+    ""))
+
+(defn get-error-port
+  [error error-host top-id]
+  (if error
+    (.get_port ^ErrorInfo error)
+    ""))
+
+(defn get-error-host
+  [error]
+  (if error
+    (.get_host ^ErrorInfo error)
+    ""))
 
 (defn spout-streams-stats
   [summs include-sys?]
@@ -524,7 +547,10 @@
         :let [stats-seq (get-filled-stats summs)
               stats (aggregate-spout-streams
                      (aggregate-spout-stats
-                      stats-seq include-sys?))]]
+                      stats-seq include-sys?))
+              last-error (most-recent-error (get errors id))
+              error-host (get-error-host last-error)
+              error-port (get-error-port last-error error-host top-id) ]]
     {"spoutId" id
      "executors" (count summs)
      "tasks" (sum-tasks summs)
@@ -533,14 +559,20 @@
      "completeLatency" (float-str (get-in stats [:complete-latencies window]))
      "acked" (get-in stats [:acked window])
      "failed" (get-in stats [:failed window])
-     "lastError" (most-recent-error (get errors id))}))
+     "errorHost" error-host
+     "errorPort" error-port
+     "errorWorkerLogLink" (worker-log-link error-host error-port)
+     "lastError" (get-error-data last-error) }))
 
 (defn bolt-comp [top-id summ-map errors window include-sys?]
   (for [[id summs] summ-map
         :let [stats-seq (get-filled-stats summs)
               stats (aggregate-bolt-streams
                      (aggregate-bolt-stats
-                      stats-seq include-sys?))]]
+                      stats-seq include-sys?))
+              last-error (most-recent-error (get errors id))
+              error-host (get-error-host last-error)
+              error-port (get-error-port last-error error-host top-id) ]]
     {"boltId" id
      "executors" (count summs)
      "tasks" (sum-tasks summs)
@@ -552,7 +584,10 @@
      "processLatency" (float-str (get-in stats [:process-latencies window]))
      "acked" (get-in stats [:acked window])
      "failed" (get-in stats [:failed window])
-     "lastError" (most-recent-error (get errors id))}))
+     "errorHost" error-host
+     "errorPort" error-port
+     "errorWorkerLogLink" (worker-log-link error-host error-port)
+     "lastError" (get-error-data last-error) }))
 
 (defn topology-summary [^TopologyInfo summ]
   (let [executors (.get_executors summ)
@@ -647,13 +682,16 @@
      "workerLogLink" (worker-log-link (.get_host e) (.get_port e))}))
 
 (defn component-errors
-  [errors-list]
+  [errors-list topology-id]
   (let [errors (->> errors-list
                     (sort-by #(.get_error_time_secs ^ErrorInfo %))
                     reverse)]
     {"componentErrors"
      (for [^ErrorInfo e errors]
        {"time" (date-str (.get_error_time_secs e))
+        "errorHost" (.get_host e)
+        "errorPort"  (.get_port e)
+        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e))
         "error" (.get_error e)})}))
 
 (defn spout-stats
@@ -761,7 +799,7 @@
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-stats window summ component summs include-sys?)
                      (= type :bolt) (bolt-stats window summ component summs include-sys?))
-          errors (component-errors (get (.get_errors summ) component))]
+          errors (component-errors (get (.get_errors summ) component) topology-id)]
       (merge
        {"id" component
          "name" (.get_name summ)

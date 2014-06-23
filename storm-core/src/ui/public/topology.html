@@ -89,7 +89,9 @@ $(document).ready(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
-            $("#topology-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+            if(response["topologyStats"].length > 0) {
+                $("#topology-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+            }
             spoutStats.append(Mustache.render($(template).filter("#spout-stats-template").html(),response));
             if(response["spouts"].length > 0) {
                 $("#spout-stats-table").tablesorter({sortList: [[0,0]], headers:{}});

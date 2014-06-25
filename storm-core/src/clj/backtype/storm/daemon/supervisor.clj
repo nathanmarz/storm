@@ -445,12 +445,14 @@
         arch-resource-root (str resource-root File/separator os "-" arch)]
     (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
-(defn substitute-childopts [value worker-id storm-id port]
-  (let [replacement-map {"%ID%"          (str port)
+(defn substitute-childopts 
+  [value worker-id storm-id port]
+  (let [replacement-map {"%ID%"           (str port)
                           "%WORKER-ID%"   (str worker-id)
                           "%STORM-ID%"    (str storm-id)
                           "%WORKER-PORT%" (str port)}
-         sub-fn (fn [s] 
+         sub-fn (fn 
+                  [s] 
                   (reduce (fn [string entry]
                     (apply clojure.string/replace string entry))
                      s replacement-map))]

@@ -352,13 +352,15 @@
   ;; TODO just do reassign, and check that cleans up worker states after killing but doesn't get rid of downloaded code
   )
 
-(defn found? [sub-str input-str]
+(defn found? 
+  [sub-str input-str]
   (if (string? input-str)
     (.contains input-str sub-str)
     (some? #(.substring % sub-str) input-str)))
 
-(defn not-found? [sub-str input-str]
-    (complement (found? sub-str input-str)))
+(defn not-found? 
+  [sub-str input-str]
+  (complement (found? sub-str input-str)))
 
 (deftest test-substitute-childopts-happy-path
   (testing "worker-launcher replaces ids in childopts"

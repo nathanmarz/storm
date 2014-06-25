@@ -172,11 +172,13 @@
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
-      (ensure-process-killed! pid)
+      (kill-process-with-sig-term pid))
+    (if-not (empty? pids) (sleep-secs 1)) ;; allow 1 second for execution of cleanup threads on worker.
+    (doseq [pid pids]
+      (force-kill-process pid)
       (try
         (rmpath (worker-pid-path conf id pid))
-        (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
-      )
+        (catch Exception e))) ;; on windows, the supervisor may still holds the lock on the worker directory
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
@@ -197,7 +199,7 @@
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
    :timer (mk-timer :kill-fn (fn [t]
                                (log-error t "Error when processing event")
-                               (halt-process! 20 "Error when processing an event")
+                               (exit-process! 20 "Error when processing an event")
                                ))
    })
 
@@ -551,7 +553,8 @@
 (defn -launch [supervisor]
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil supervisor)))
+    (let [supervisor (mk-supervisor conf nil supervisor)]
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

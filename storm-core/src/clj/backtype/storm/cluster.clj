@@ -239,7 +239,7 @@
                          SUPERVISORS-ROOT (issue-callback! supervisors-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          ;; this should never happen
-                         (halt-process! 30 "Unknown callback for subtree " subtree args)))))]
+                         (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
       (mkdirs cluster-state p))
     (reify

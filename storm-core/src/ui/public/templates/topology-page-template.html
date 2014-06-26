@@ -125,9 +125,7 @@
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
-        <span{{#isRecent}} class="red"{{/isRecent}}>
-        {{lastError}}
-        </span>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
         {{/spouts}}
     </tbody>
@@ -155,9 +153,7 @@
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
-        <span{{#isRecent}} class="red"{{/isRecent}}>
-        {{lastError}}
-        </span>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
         {{/bolts}}
     </tbody>

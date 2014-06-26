@@ -164,9 +164,7 @@
 <td>{{errorHost}}</td>
 <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
 <td>
-<span{{#isRecent}} class="red"{{/isRecent}}>
-{{error}}
-</span>
+<span id="{{errorLapsedSecs}}" class="errorSpan">{{error}}</span>
 </td>
 </tr>
 {{/componentErrors}}

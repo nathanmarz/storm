@@ -78,8 +78,7 @@ This section describes the various actions which are undertaken within the proje
 
 | Actions | Description | Approval | Binding Votes | Minimum Length | Mailing List |
 |---------|-------------|----------|---------------|----------------|--------------|
-| Code Change | A change made to a codebase of the project and committed by a committer. This includes source code, documentation, website content, etc. | Two +1s from committers from committers other than the one who
-authored the patch, and no -1s. | Active committers | 2 days from initial patch |JIRA or Github pull ( with notification sent to dev@storm.incubator.apache.org) |
+| Code Change | A change made to a codebase of the project and committed by a committer. This includes source code, documentation, website content, etc. | Two +1s from committers from committers other than the one who authored the patch, and no -1s. | Active committers | 2 days from initial patch |JIRA or Github pull ( with notification sent to dev@storm.incubator.apache.org) |
 | Release Plan | Defines the timetable and actions for a release. The plan also nominates a Release Manager. | Lazy majority | Active committers | 3 days | dev@storm.incubator.apache.org |
 | Product Release | When a release of one of the project's products is ready, a vote is required to accept the release as an official release of the project. | Lazy Majority | Active PMC members | 3 days | dev@storm.incubator.apache.org |
 | Adoption of New Codebase | When the codebase for an existing, released product is to be replaced with an alternative codebase. If such a vote fails to gain approval, the existing code base will continue. This also covers the creation of new sub-projects and submodules within the project. | Lazy 2/3 majority | Active PMC members | 7 days | dev@storm.incubator.apache.org |

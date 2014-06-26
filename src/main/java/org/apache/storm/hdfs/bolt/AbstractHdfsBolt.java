@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.storm.hdfs.bolt.format.FileNameFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
+import org.apache.storm.hdfs.bolt.rotation.TimedRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
 import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.apache.storm.hdfs.common.security.HdfsSecurityUtil;
@@ -35,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
@@ -49,7 +52,8 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected int rotation = 0;
     protected String fsUrl;
     protected String configKey;
-    protected Object writeLock;
+    protected transient Object writeLock;
+    protected transient Timer rotationTimer; // only used for TimedRotationPolicy
 
     protected transient Configuration hdfsConfig;
 
@@ -103,6 +107,22 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
 
         } catch (Exception e){
             throw new RuntimeException("Error preparing HdfsBolt: " + e.getMessage(), e);
+        }
+
+        if(this.rotationPolicy instanceof TimedRotationPolicy){
+            long interval = ((TimedRotationPolicy)this.rotationPolicy).getInterval();
+            this.rotationTimer = new Timer(true);
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        rotateOutputFile();
+                    } catch(IOException e){
+                        LOG.warn("IOException during scheduled file rotation.", e);
+                    }
+                }
+            };
+            this.rotationTimer.scheduleAtFixedRate(task, interval, interval);
         }
     }
 

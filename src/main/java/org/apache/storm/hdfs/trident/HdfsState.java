@@ -16,6 +16,7 @@ import org.apache.storm.hdfs.trident.format.RecordFormat;
 import org.apache.storm.hdfs.trident.format.SequenceFormat;
 import org.apache.storm.hdfs.trident.rotation.FileRotationPolicy;
 
+import org.apache.storm.hdfs.trident.rotation.TimedRotationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.trident.operation.TridentCollector;
@@ -25,10 +26,7 @@ import storm.trident.tuple.TridentTuple;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class HdfsState implements State {
 
@@ -43,7 +41,8 @@ public class HdfsState implements State {
         protected int rotation = 0;
         protected transient Configuration hdfsConfig;
         protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
-        protected Object writeLock;
+        protected transient Object writeLock;
+        protected transient Timer rotationTimer;
 
         abstract void closeOutputFile() throws IOException;
 
@@ -94,6 +93,22 @@ public class HdfsState implements State {
 
             } catch (Exception e){
                 throw new RuntimeException("Error preparing HdfsState: " + e.getMessage(), e);
+            }
+
+            if(this.rotationPolicy instanceof TimedRotationPolicy){
+                long interval = ((TimedRotationPolicy)this.rotationPolicy).getInterval();
+                this.rotationTimer = new Timer(true);
+                TimerTask task = new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            rotateOutputFile();
+                        } catch(IOException e){
+                            LOG.warn("IOException during scheduled file rotation.", e);
+                        }
+                    }
+                };
+                this.rotationTimer.scheduleAtFixedRate(task, interval, interval);
             }
         }
 

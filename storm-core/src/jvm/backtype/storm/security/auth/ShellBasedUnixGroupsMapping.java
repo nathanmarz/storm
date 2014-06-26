@@ -1,0 +1,88 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package backtype.storm.security.auth;
+
+import java.io.IOException;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.StringTokenizer;
+import backtype.storm.utils.ShellUtils;
+import backtype.storm.utils.ShellUtils.ExitCodeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+public class ShellBasedUnixGroupsMapping implements
+                                             IGroupMappingServiceProvider {
+
+    public static Logger LOG = LoggerFactory.getLogger(ShellBasedUnixGroupsMapping.class);
+
+    /**
+     * Invoked once immediately after construction
+     * @param storm_conf Storm configuration
+     */
+    public void prepare(Map storm_conf) {}
+
+    /**
+     * Returns list of groups for a user
+     *
+     * @param user get groups for this user
+     * @return list of groups for a given user
+     */
+    @Override
+    public Set<String> getGroups(String user) throws IOException {
+        return getUnixGroups(user);
+    }
+
+    @Override
+    public void cacheGroupsRefresh() throws IOException {
+    }
+
+    @Override
+    public void cacheGroupsAdd(Set<String> groups) throws IOException {
+    }
+
+    /**
+     * Get the current user's group list from Unix by running the command 'groups'
+     * NOTE. For non-existing user it will return EMPTY list
+     * @param user user name
+     * @return the groups set that the <code>user</code> belongs to
+     * @throws IOException if encounter any error when running the command
+     */
+    private static Set<String> getUnixGroups(final String user) throws IOException {
+        String result = "";
+        try {
+            result = ShellUtils.execCommand(ShellUtils.getGroupsForUserCommand(user));
+        } catch (ExitCodeException e) {
+            // if we didn't get the group - just return empty list;
+            LOG.warn("got exception trying to get groups for user " + user, e);
+            return new HashSet<String>();
+        }
+
+        StringTokenizer tokenizer =
+            new StringTokenizer(result, ShellUtils.TOKEN_SEPARATOR_REGEX);
+        Set<String> groups = new HashSet<String>();
+        while (tokenizer.hasMoreTokens()) {
+            groups.add(tokenizer.nextToken());
+        }
+        return groups;
+    }
+
+}

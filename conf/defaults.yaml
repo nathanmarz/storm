@@ -38,6 +38,7 @@ storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
+storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedUnixGroupsMapping"
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 storm.nimbus.retry.times: 5
 storm.nimbus.retry.interval.millis: 2000
@@ -128,7 +129,7 @@ worker.childopts: "-Xmx768m"
 worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 
-# control how many worker receiver threads we need per worker 
+# control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
 
 task.heartbeat.frequency.secs: 3

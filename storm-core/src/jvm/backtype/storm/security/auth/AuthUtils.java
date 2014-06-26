@@ -37,21 +37,21 @@ import java.util.concurrent.ExecutorService;
 
 public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
-    public static final String LOGIN_CONTEXT_SERVER = "StormServer"; 
-    public static final String LOGIN_CONTEXT_CLIENT = "StormClient"; 
+    public static final String LOGIN_CONTEXT_SERVER = "StormServer";
+    public static final String LOGIN_CONTEXT_CLIENT = "StormClient";
     public static final String SERVICE = "storm_thrift_server";
 
     /**
-     * Construct a JAAS configuration object per storm configuration file 
-     * @param storm_conf Storm configuration 
+     * Construct a JAAS configuration object per storm configuration file
+     * @param storm_conf Storm configuration
      * @return JAAS configuration object
      */
     public static Configuration GetConfiguration(Map storm_conf) {
         Configuration login_conf = null;
 
-        //find login file configuration from Storm configuration  
+        //find login file configuration from Storm configuration
         String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
-        if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) { 
+        if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) {
             File config_file = new File(loginConfigurationFile);
             if (! config_file.canRead()) {
                 throw new RuntimeException("File " + loginConfigurationFile +
@@ -64,7 +64,7 @@ public class AuthUtils {
                 throw new RuntimeException(ex);
             }
         }
-        
+
         return login_conf;
     }
 
@@ -87,10 +87,28 @@ public class AuthUtils {
     }
 
     /**
+     * Construct a group mapping service provider plugin
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IGroupMappingServiceProvider GetGroupMappingServiceProviderPlugin(Map storm_conf) {
+        IGroupMappingServiceProvider gmsp = null;
+        try {
+            String gmsp_klassName = (String) storm_conf.get(Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN);
+            Class klass = Class.forName(gmsp_klassName);
+            gmsp = (IGroupMappingServiceProvider)klass.newInstance();
+            gmsp.prepare(storm_conf);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+        return gmsp;
+    }
+
+    /**
      * Get all of the configured Credential Renwer Plugins.
      * @param storm_conf the storm configuration to use.
      * @return the configured credential renewers.
-     */ 
+     */
     public static Collection<ICredentialsRenewer> GetCredentialRenewers(Map conf) {
         try {
             Set<ICredentialsRenewer> ret = new HashSet<ICredentialsRenewer>();
@@ -112,7 +130,7 @@ public class AuthUtils {
      * Get all of the configured AutoCredential Plugins.
      * @param storm_conf the storm configuration to use.
      * @return the configured auto credentials.
-     */ 
+     */
     public static Collection<IAutoCredentials> GetAutoCredentials(Map storm_conf) {
         try {
             Set<IAutoCredentials> autos = new HashSet<IAutoCredentials>();
@@ -137,7 +155,7 @@ public class AuthUtils {
      * @param autos the IAutoCredentials to call to populate the subject.
      * @param credentials the credentials to pull from
      * @return the populated subject.
-     */ 
+     */
     public static Subject populateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
         try {
             if (subject == null) {
@@ -154,10 +172,10 @@ public class AuthUtils {
 
     /**
      * Update a subject from credentials using the IAutoCredentials.
-     * @param subject the subject to update 
+     * @param subject the subject to update
      * @param autos the IAutoCredentials to call to update the subject.
      * @param credentials the credentials to pull from
-     */ 
+     */
     public static void updateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
         if (subject == null) {
             throw new RuntimeException("The subject cannot be null when updating a subject with credentials");
@@ -186,7 +204,7 @@ public class AuthUtils {
             transportPlugin.prepare(type, storm_conf, login_conf);
         } catch(Exception e) {
             throw new RuntimeException(e);
-        } 
+        }
         return transportPlugin;
     }
 
@@ -233,11 +251,10 @@ public class AuthUtils {
         }
 
         for(AppConfigurationEntry entry: configurationEntries) {
-            Object val = entry.getOptions().get(key); 
-            if (val != null) 
+            Object val = entry.getOptions().get(key);
+            if (val != null)
                 return (String)val;
         }
         return null;
     }
 }
-

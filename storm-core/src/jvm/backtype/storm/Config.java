@@ -158,6 +158,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_PRINCIPAL_TO_LOCAL_PLUGIN_SCHEMA = String.class;
 
     /**
+     * The plugin that will provide user groups service
+     */
+    public static final String STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN = "storm.group.mapping.service";
+    public static final Object STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN_SCHEMA = String.class;
+
+    /**
      * The default transport plug-in for Thrift client/server communication
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";

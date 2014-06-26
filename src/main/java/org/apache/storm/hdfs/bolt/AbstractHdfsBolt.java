@@ -42,7 +42,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
     private Path currentFile;
     protected OutputCollector collector;
-    protected FileSystem fs;
+    protected transient FileSystem fs;
     protected SyncPolicy syncPolicy;
     protected FileRotationPolicy rotationPolicy;
     protected FileNameFormat fileNameFormat;
@@ -50,7 +50,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected String fsUrl;
     protected String configKey;
 
-    protected Configuration hdfsConfig;
+    protected transient Configuration hdfsConfig;
 
     protected void rotateOutputFile() throws IOException {
         LOG.info("Rotating output file...");

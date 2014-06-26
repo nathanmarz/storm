@@ -41,7 +41,7 @@ import java.util.Map;
 public class HdfsBolt extends AbstractHdfsBolt{
     private static final Logger LOG = LoggerFactory.getLogger(HdfsBolt.class);
 
-    private FSDataOutputStream out;
+    private transient FSDataOutputStream out;
     private RecordFormat format;
     private long offset = 0;
 

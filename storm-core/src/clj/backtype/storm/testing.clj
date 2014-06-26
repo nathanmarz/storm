@@ -119,16 +119,18 @@
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024]
   (let [zk-tmp (local-temp-path)
-        [zk-port zk-handle] (zk/mk-inprocess-zookeeper zk-tmp)
+        [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
+                              (zk/mk-inprocess-zookeeper zk-tmp))
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
-                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50}
-                           daemon-conf
-                           {STORM-CLUSTER-MODE "local"
-                            STORM-ZOOKEEPER-PORT zk-port
-                            STORM-ZOOKEEPER-SERVERS ["localhost"]})
+                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
+                            STORM-CLUSTER-MODE "local"}
+                           (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
+                             {STORM-ZOOKEEPER-PORT zk-port
+                              STORM-ZOOKEEPER-SERVERS ["localhost"]})
+                           daemon-conf)
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
@@ -142,7 +144,7 @@
                      :state (mk-distributed-cluster-state daemon-conf)
                      :storm-cluster-state (mk-storm-cluster-state daemon-conf)
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
-                     :zookeeper zk-handle
+                     :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context}
         supervisor-confs (if (sequential? supervisors)
                            supervisors
@@ -173,9 +175,11 @@
     ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
   (psim/kill-all-processes)
-  (log-message "Shutting down in process zookeeper")
-  (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
-  (log-message "Done shutting down in process zookeeper")
+  (if (not-nil? (:zookeeper cluster-map))
+    (do
+      (log-message "Shutting down in process zookeeper")
+      (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
+      (log-message "Done shutting down in process zookeeper")))
   (doseq [t @(:tmp-dirs cluster-map)]
     (log-message "Deleting temporary path " t)
     (try

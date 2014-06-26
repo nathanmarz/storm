@@ -35,13 +35,33 @@
   (shutdown-all-workers [this])
   )
 
-(defn- assignments-snapshot [storm-cluster-state callback]
+(defn- assignments-snapshot [storm-cluster-state callback existing-assignment assignment-versions]
+  (log-message (str "Recalculating assignments with old: " assignment-versions))
   (let [storm-ids (.assignments storm-cluster-state callback)]
-     (->> (dofor [sid storm-ids] {sid (.assignment-info storm-cluster-state sid callback)})
-          (apply merge)
-          (filter-val not-nil?)
-          )))
+    (let [new-assignments 
+          (->>
+           (dofor [sid storm-ids] 
+                  (let [recorded-version (:version (get assignment-versions sid))]
+                    (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
+                      (do
+                        (log-message (str "Version: " assignment-version " || Recorded Version: " recorded-version))
+                        (if (= assignment-version recorded-version)
+                          (do
+                            (log-message "Using Existing assignment.")
+                            {sid (get assignment-versions sid)})
+                          (do
+                            (log-message "Getting new Assignments.")
+                            (let [assignments (.assignment-info-with-version storm-cluster-state sid callback)] 
+                              (log-message (str "Assignments: " assignments))
+                              {sid assignments}))))
+                      {sid nil})))
+           (apply merge)
+           (filter-val not-nil?))]
 
+      {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
+       :versions new-assignments})))
+            
+  
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -297,7 +317,13 @@
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
-          assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
+          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)
+          assignment-versions (.get local-state LS-ASSIGNMENT-VERSIONS)
+          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
+                                                                   storm-cluster-state sync-callback 
+                                                                   existing-assignment assignment-versions)
+          _ (log-message (str "Got Assignments: " assignments-snapshot
+                              " || And Versions: " (pr-str versions)))
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           all-assignment (read-assignments
@@ -305,8 +331,7 @@
                            (:assignment-id supervisor))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
-          assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
+          assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)
@@ -340,6 +365,9 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
+      (.put local-state
+            LS-ASSIGNMENT-VERSIONS
+            versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that

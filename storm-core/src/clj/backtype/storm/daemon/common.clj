@@ -61,6 +61,7 @@
 (def LS-ID "supervisor-id")
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
+(def LS-ASSIGNMENT-VERSIONS "local-assignment-versions")
 
 
 

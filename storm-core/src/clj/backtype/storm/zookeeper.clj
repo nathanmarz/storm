@@ -133,6 +133,31 @@
         nil )
       (catch Exception e (throw (wrap-in-runtime e))))))
 
+(defn get-data-with-version 
+  [^CuratorFramework zk ^String path watch?]
+  (let [stats (org.apache.zookeeper.data.Stat. )
+        path (normalize-path path)]
+    (try-cause
+     (if-let [data 
+              (if (exists-node? zk path watch?)
+                (if watch?
+                  (.. zk (getData) (watched) (storingStatIn stats) (forPath path))
+                  (.. zk (getData) (storingStatIn stats) (forPath path))))]
+       {:data data
+        :version (.getVersion stats)})
+     (catch KeeperException$NoNodeException e
+       ;; this is fine b/c we still have a watch from the successful exists call
+       nil ))))
+
+(defn get-version 
+[^CuratorFramework zk ^String path watch?]
+  (if-let [stats
+           (if watch?
+             (.. zk (checkExists) (watched) (forPath (normalize-path path)))
+             (.. zk (checkExists) (forPath (normalize-path path))))]
+    (.getVersion stats)
+    nil))
+
 (defn get-children
   [^CuratorFramework zk ^String path watch?]
   (try

@@ -41,6 +41,8 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -73,7 +75,7 @@ public class Utils {
     public static byte[] serialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(bos));
             oos.writeObject(obj);
             oos.close();
             return bos.toByteArray();
@@ -84,7 +86,7 @@ public class Utils {
 
     public static Object deserialize(byte[] serialized) {
         try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            GZIPInputStream bis = new GZIPInputStream(new ByteArrayInputStream(serialized));
             ObjectInputStream ois = new ObjectInputStream(bis);
             Object ret = ois.readObject();
             ois.close();

@@ -58,6 +58,7 @@
                                           (callback type path))))))]
     (reify
      ClusterState
+
      (register
        [this callback]
        (let [id (uuid)]
@@ -121,7 +122,6 @@
        [this]
        (reset! active false)
        (.close zk)))))
-
 
 (defprotocol StormClusterState
   (assignments [this callback])

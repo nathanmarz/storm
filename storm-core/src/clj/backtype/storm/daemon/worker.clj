@@ -245,8 +245,6 @@
     [node (Integer/valueOf port-str)]
     ))
 
-(def assignment-versions (atom {}))
-
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)
@@ -256,15 +254,10 @@
       ([]
         (this (fn [& ignored] (schedule (:refresh-connections-timer worker) 0 this))))
       ([callback]
-         (log-message "Refreshing Assignments")
          (let [version (.assignment-version storm-cluster-state storm-id callback)
-;               _ (log-message (str "Assignments are: " @assignment-versions))
                assignment (if (= version (:version (get @assignment-versions storm-id)))
-                            (do
-                              (log-message "Keeping old Assignments.")
-                              (:data (get @assignment-versions storm-id)))
+                            (:data (get @assignment-versions storm-id))
                             (let [new-assignment (.assignment-info-with-version storm-cluster-state storm-id callback)]
-                              (log-message "Getting new Assignments.")
                               (swap! assignment-versions assoc storm-id new-assignment)
                               (:data new-assignment)))
               my-assignment (-> assignment

@@ -1,11 +1,12 @@
 # Storm UI REST API
-Storm UI server provides a REST Api to access cluster, topology, component overview and metrics.
-This api returns json response. 
+Storm UI server provides a REST Api to access cluster, topology, component overview and metrics. 
+This api returns json response.  
+Please ignore undocumented elements in the json repsonse.
 
 ## Using the UI REST Api
 
 ### /api/v1/cluster/configuration (GET)
- returns cluster configuration. 
+ returns cluster configuration.  Below is a sample response but doesn't include all the config fileds.
 
 Sample Response:  
 ```json
@@ -35,16 +36,16 @@ returns cluster summary such as nimbus uptime,number of supervisors,slots etc..
 
 Response Fields:
 
-|Field  |Description|
-|---	|---	|
-|stormVersion| Storm version|
-|nimbusUptime| Shows how long the cluster is running|
-|supervisors|  Number of supervisors running|
-|slotsTotal| Total number of available worker slots|
-|slotsUsed| Number of worker slots used|
-|slotsFree| Number of worker slots available|
-|executorsTotal| Total number of executors|
-|tasksTotal| Total tasks|
+|Field  |Value|Description
+|---	|---	|---
+|stormVersion|String| Storm version|
+|nimbusUptime|String| Shows how long the cluster is running|
+|supervisors|Integer|  Number of supervisors running|
+|slotsTotal| Integer|Total number of available worker slots|
+|slotsUsed| Integer| Number of worker slots used|
+|slotsFree| Integer |Number of worker slots available|
+|executorsTotal| Integer |Total number of executors|
+|tasksTotal| Integer |Total tasks|
 
 Sample Response:  
 ```json
@@ -65,13 +66,13 @@ returns all supervisors summary
 
 Response Fields:
 
-|Field  |Description|
-|---	|---	|
-|id| Supervisor's id|
-|host| Supervisor's host name|
-|uptime|  Shows how long the supervisor is runninge|
-|slotsTotal| Total number of available worker slots for this supervisor|
-|slotsUsed| Number of worker slots used on this supervisor|
+|Field  |Value|Description|
+|---	|---	|---
+|id| String | Supervisor's id|
+|host| String| Supervisor's host name|
+|uptime| String| Shows how long the supervisor is running|
+|slotsTotal| Integer| Total number of available worker slots for this supervisor|
+|slotsUsed| Integer| Number of worker slots used on this supervisor|
 
 Sample Response:  
 ```json
@@ -93,14 +94,15 @@ Returns all topologies summary
 
 Response Fields:
 
-|Field  |Description|
-|---	|---	|
-|id| Topology Id|
-|name| Topology Name|
-|uptime|  Shows how long the topology is running|
-|tasksTotal| Total number of tasks for this topology|
-|workersTotal| Number of workers used for this topology|
-|executorsTotal| Number of executors used for this topology|
+|Field  |Value | Description|
+|---	|---	|---
+|id| String| Topology Id|
+|name| String| Topology Name|
+|status| String| Topology Status|
+|uptime| String|  Shows how long the topology is running|
+|tasksTotal| Integer |Total number of tasks for this topology|
+|workersTotal| Integer |Number of workers used for this topology|
+|executorsTotal| Integer |Number of executors used for this topology|
 
 Sample Response:  
 ```json
@@ -120,7 +122,7 @@ Sample Response:
 ```
  
 ### /api/v1/topology/:id (GET)
-  Returns details topology information. Subsititute id with topology id.
+  Returns topology information and stats. Subsititute id with topology id.
 
 Request Parameters:
   
@@ -133,42 +135,46 @@ Request Parameters:
 
 Response Fields:
 
-|Field  |Description|
-|---	|---	|
-|id| Topology Id|
-|name| Topology Name|
-|uptime|  Shows how long the topology is running|
-|tasksTotal| Total number of tasks for this topology|
-|workersTotal| Number of workers used for this topology|
-|executorsTotal| Number of executors used for this topology|
-|msgTimeout| |
-|windowHint| |
-|topologyStats.windowPretty| Duration passed in HH:MM:SS format|
-|topologyStats.window| User requested time window for metrics|
-|topologyStats.emitted| Number of messages emitted in given window|
-|topologyStats.trasferred| Number messages transferred in given window|
-|topologyStats.acked| Number of messages acked in given window|
-|topologyStats.failed| Number of messages failed in given window|
-|spouts| Array of all the spout components in the topology|
-|spouts.spoutId| Spout id|
-|spouts.executors| Number of executors for the spout|
-|spouts.completeLatency| Total latency for processing the message|
-|spouts.transferred| Total number of messages transferred|
-|spouts.tasks| Total number of tasks for the spout|
-|spouts.lastError| Shows the last error happened in a spout|
-|spouts.acked| Number of messages acked|
-|spouts.failed| Number of messages failed|
-|bolts| Array of bolt components in the topology|
-|bolts.boltId| Bolt id|
-|bolts.capacity| This value indicates number of mesages executed * average execute latency / time window|
-|bolts.processLatency| Bolt's average time to ack a message after it's received|
-|bolts.executeLatency| Average time for bolt's execute method |
-|bolts.executors| Number of executor tasks in the bolt component|
-|bolts.tasks| Number of instances of bolt|
-|bolts.acked| Number of tuples acked by the bolt|
-|bolts.failed| Number of tuples failed by the bolt|
-|bolts.lastError| Shows the last error occured in the bolt|
-|bolts.emitted| Number of tuples emitted|
+|Field  |Value |Description|
+|---	|---	|---
+|id| String| Topology Id|
+|name| String |Topology Name|
+|uptime| String |Shows how long the topology is running|
+|status| String |Shows Topology's current status|
+|tasksTotal| Integer |Total number of tasks for this topology|
+|workersTotal| Integer |Number of workers used for this topology|
+|executorsTotal| Integer |Number of executors used for this topology|
+|msgTimeout| Integer | Number of seconds a tuple has before the spout considers it failed |
+|windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
+|topologyStats| Array | Array of all the topology related stats per time window|
+|topologyStats.windowPretty| String |Duration passed in HH:MM:SS format|
+|topologyStats.window| String |User requested time window for metrics|
+|topologyStats.emitted| Long |Number of messages emitted in given window|
+|topologyStats.trasferred| Long |Number messages transferred in given window|
+|topologyStats.completeLatency| String (double value returned in String format) |Total latency for processing the message|
+|topologyStats.acked| Long |Number of messages acked in given window|
+|topologyStats.failed| Long |Number of messages failed in given window|
+|spouts| Array | Array of all the spout components in the topology|
+|spouts.spoutId| String |Spout id|
+|spouts.executors| Integer |Number of executors for the spout|
+|spouts.emitted| Long |Number of messages emitted in given window |
+|spouts.completeLatency| String (double value returned in String format) |Total latency for processing the message|
+|spouts.transferred| Long |Total number of messages  transferred in given window|
+|spouts.tasks| Integer |Total number of tasks for the spout|
+|spouts.lastError| String |Shows the last error happened in a spout|
+|spouts.acked| Long |Number of messages acked|
+|spouts.failed| Long |Number of messages failed|
+|bolts| Array | Array of bolt components in the topology|
+|bolts.boltId| String |Bolt id|
+|bolts.capacity| String (double value returned in String format) |This value indicates number of mesages executed * average execute latency / time window|
+|bolts.processLatency| String (double value returned in String format)  |Bolt's average time to ack a message after it's received|
+|bolts.executeLatency| String (double value returned in String format) |Average time for bolt's execute method |
+|bolts.executors| Integer |Number of executor tasks in the bolt component|
+|bolts.tasks| Integer |Number of instances of bolt|
+|bolts.acked| Long |Number of tuples acked by the bolt|
+|bolts.failed| Long |Number of tuples failed by the bolt|
+|bolts.lastError| String |Shows the last error occured in the bolt|
+|bolts.emitted| Long |Number of tuples emitted|
 
 
 
@@ -326,6 +332,33 @@ Returns detailed metrics and executor information
 |window    |String. Default value :all-time| window duration for metrics in ms|
 |sys       |String. Values 1 or 0. Default value 0| controls including sys stats part of the response|
 
+Response Fields:
+
+|Field  |Value |Description|
+|---	|---	|---
+|id   | String | Component's id|
+|name | String | Topology name|
+|componentType | String | component's type SPOUT or BOLT|
+|windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
+|executors| Integer |Number of executor tasks in the component|
+|componentErrors| Array of Strings | List of component errors|
+|topologyId| String | Topology's Id|
+|tasks| Integer |Number of instances of component|
+|window    |String. Default value "All Time" | window duration for metrics in seconds|
+|spoutSummary or boltStats| Array |Array of component stats. **Please note this element tag can be spoutSummary or boltStats depending on the componentType**|
+|spoutSummary.windowPretty| String |Duration passed in HH:MM:SS format|
+|spoutSummary.window| String | window duration for metrics in seconds|
+|spoutSummary.emitted| Long |Number of messages emitted in given window |
+|spoutSummary.completeLatency| String (double value returned in String format) |Total latency for processing the message|
+|spoutSummary.transferred| Long |Total number of messages  transferred in given window|
+|spoutSummary.acked| Long |Number of messages acked|
+|spoutSummary.failed| Long |Number of messages failed|
+|boltStats.windowPretty| String |Duration passed in HH:MM:SS format|
+|boltStats..window| String | window duration for metrics in seconds|
+|boltStats.transferred| Long |Total number of messages  transferred in given window|
+|boltStats.processLatency| String (double value returned in String format)  |Bolt's average time to ack a message after it's received|
+|boltStats.acked| Long |Number of messages acked|
+|boltStats.failed| Long |Number of messages failed|
 
 Examples:  
 ```no-highlight

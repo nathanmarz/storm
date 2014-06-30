@@ -115,7 +115,7 @@ public class ShellBolt implements IBolt {
                             handleError(shellMsg.getMsg());
                         } else if (command.equals("log")) {
                             String msg = shellMsg.getMsg();
-                            LOG.info("Shell msg: " + msg);
+                            LOG.info("Shell msg: " + msg + _process.getProcessInfoString());
                         } else if (command.equals("emit")) {
                             handleEmit(shellMsg);
                         }
@@ -170,7 +170,8 @@ public class ShellBolt implements IBolt {
 
             _pendingWrites.put(boltMsg);
         } catch(InterruptedException e) {
-            throw new RuntimeException("Error during multilang processing", e);
+            String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+            throw new RuntimeException("Error during multilang processing " + processInfo, e);
         }
     }
 
@@ -225,6 +226,8 @@ public class ShellBolt implements IBolt {
     }
 
     private void die(Throwable exception) {
-        _exception = exception;
+        String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+        _exception = new RuntimeException(processInfo, exception);
     }
+
 }

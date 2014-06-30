@@ -41,6 +41,8 @@ public class ShellProcess implements Serializable {
     private InputStream  processErrorStream;
     private String[]     command;
     public ISerializer   serializer;
+    public Number pid;
+    public String componentName;
 
     public ShellProcess(String[] command) {
         this.command = command;
@@ -52,14 +54,14 @@ public class ShellProcess implements Serializable {
 
         ShellLogger = Logger.getLogger(context.getThisComponentId());
 
+        this.componentName = context.getThisComponentId();
         this.serializer = getSerializer(conf);
 
-        Number pid;
         try {
             _subprocess = builder.start();
             processErrorStream = _subprocess.getErrorStream();
             serializer.initialize(_subprocess.getOutputStream(), _subprocess.getInputStream());
-            pid = serializer.connect(conf, context);
+            this.pid = serializer.connect(conf, context);
         } catch (IOException e) {
             throw new RuntimeException(
                     "Error when launching multilang subprocess\n"
@@ -67,7 +69,7 @@ public class ShellProcess implements Serializable {
         } catch (NoOutputException e) {
             throw new RuntimeException(e + getErrorsString() + "\n");
         }
-        return pid;
+        return this.pid;
     }
 
     private ISerializer getSerializer(Map conf) {
@@ -140,5 +142,41 @@ public class ShellProcess implements Serializable {
         } else {
             return "";
         }
+    }
+
+    /**
+     *
+     * @return pid, if the process has been launched, null otherwise.
+     */
+    public Number getPid() {
+        return this.pid;
+    }
+
+    /**
+     *
+     * @return the name of component.
+     */
+    public String getComponentName() {
+        return this.componentName;
+    }
+
+    /**
+     *
+     * @return exit code of the process if process is terminated, -1 if process is not started or terminated.
+     */
+    public int getExitCode() {
+        try {
+            return this._subprocess != null ? this._subprocess.exitValue() : -1;
+        } catch(IllegalThreadStateException e) {
+            return -1;
+        }
+    }
+
+    public String getProcessInfoString() {
+        return String.format(" pid:%s, name:%s ", pid, componentName);
+    }
+
+    public String getProcessTerminationInfoString() {
+        return String.format(" exitCode:%s, errorString:%s ", getExitCode(), getErrorsString());
     }
 }

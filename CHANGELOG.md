@@ -7,6 +7,7 @@
  * STORM-183: Replacing RunTime.halt() with RunTime.exit()
  * STORM-213: Decouple In-Process ZooKeeper from LocalCluster.
  * STORM-365: Add support for Python 3 to storm command.
+ * STORM-332: Enable Kryo serialization in storm-kafka
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

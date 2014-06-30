@@ -8,6 +8,7 @@
  * STORM-213: Decouple In-Process ZooKeeper from LocalCluster.
  * STORM-365: Add support for Python 3 to storm command.
  * STORM-332: Enable Kryo serialization in storm-kafka
+ * STORM-370: Add check for empty table before sorting dom in UI
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

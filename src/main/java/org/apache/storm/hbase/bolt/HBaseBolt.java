@@ -46,21 +46,13 @@ import java.util.Map;
  * Note: Each HBaseBolt defined in a topology is tied to a specific table.
  *
  */
-// TODO support more configuration options, for now we're defaulting to the hbase-*.xml files found on the classpath
-public class HBaseBolt  extends BaseRichBolt {
+public class HBaseBolt  extends AbstractHBaseBolt {
     private static final Logger LOG = LoggerFactory.getLogger(HBaseBolt.class);
 
-    private OutputCollector collector;
-
-    private transient HTable table;
-    private String tableName;
-    private HBaseMapper mapper;
     boolean writeToWAL = true;
-    private String configKey;
 
-    public HBaseBolt(String tableName, HBaseMapper mapper){
-        this.tableName = tableName;
-        this.mapper = mapper;
+    public HBaseBolt(String tableName, HBaseMapper mapper) {
+        super(tableName, mapper);
     }
 
     public HBaseBolt writeToWAL(boolean writeToWAL){
@@ -71,35 +63,6 @@ public class HBaseBolt  extends BaseRichBolt {
     public HBaseBolt withConfigKey(String configKey){
         this.configKey = configKey;
         return this;
-    }
-
-    @Override
-    public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
-        this.collector = collector;
-        final Configuration hbConfig = HBaseConfiguration.create();
-
-        Map<String, Object> conf = (Map<String, Object>)map.get(this.configKey);
-        if(conf == null){
-            throw new IllegalArgumentException("HBase configuration not found using key '" + this.configKey + "'");
-        }
-        if(conf.get("hbase.rootdir") == null){
-            LOG.warn("No 'hbase.rootdir' value found in configuration! Using HBase defaults.");
-        }
-        for(String key : conf.keySet()){
-            hbConfig.set(key, String.valueOf(map.get(key)));
-        }
-
-        try{
-            UserProvider provider = HBaseSecurityUtil.login(map, hbConfig);
-            this.table = provider.getCurrent().getUGI().doAs(new PrivilegedExceptionAction<HTable>() {
-                @Override
-                public HTable run() throws IOException {
-                    return new HTable(hbConfig, tableName);
-                }
-            });
-        } catch(Exception e){
-            throw new RuntimeException("HBase bolt preparation failed: " + e.getMessage(), e);
-        }
     }
 
     @Override

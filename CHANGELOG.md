@@ -9,6 +9,7 @@
  * STORM-365: Add support for Python 3 to storm command.
  * STORM-332: Enable Kryo serialization in storm-kafka
  * STORM-370: Add check for empty table before sorting dom in UI
+ * STORM-359: add logviewer paging and download
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

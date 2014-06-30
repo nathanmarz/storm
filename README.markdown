@@ -147,6 +147,7 @@ under the License.
 * Albert Chu ([@chu11](https://github.com/chu11))
 * Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
 * Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
+* Adrian Petrescu ([@apetresc](https://github.com/apetresc))
 
 ## Acknowledgements
 

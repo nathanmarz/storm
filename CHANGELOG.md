@@ -10,6 +10,7 @@
  * STORM-332: Enable Kryo serialization in storm-kafka
  * STORM-370: Add check for empty table before sorting dom in UI
  * STORM-359: add logviewer paging and download
+ * STORM-372: Typo in storm_env.ini
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

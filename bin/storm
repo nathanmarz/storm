@@ -391,12 +391,13 @@ def print_classpath():
     print get_classpath([])
 
 def monitor(*args):
-    """Syntax: [storm monitor]
+    """Syntax: [storm monitor [-i interval-secs] -t topology-name -m component-id [-s stream-id] [-w [emitted | transferred]]*]
 
-    Monitor given topologies' given components' or type of components' throughput interactively.
+    Monitor topology's throughput interactively.
+    One can specify poll-interval, topology's name, component-id, stream-id, watch-item[emitted | transferred]
     """
     exec_storm_class(
-        "backtype.storm.command.Monitor",
+        "backtype.storm.command.monitor",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])

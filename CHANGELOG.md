@@ -11,6 +11,7 @@
  * STORM-370: Add check for empty table before sorting dom in UI
  * STORM-359: add logviewer paging and download
  * STORM-372: Typo in storm_env.ini
+ * STORM-266: Adding shell process pid and name in the log message
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

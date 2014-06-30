@@ -26,6 +26,7 @@
 <script src="/js/purl.js" type="text/javascript"></script>
 <script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
+<script src="/js/moment.min.js" type="text/javascript"></script>
 </head>
 <body>
 <h1><a href="/">Storm UI</a></h1>
@@ -92,7 +93,7 @@ $(document).ready(function() {
                     $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
             }
-            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),response));
+            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),formatErrorTimeSecs(response)));
             if(response["componentErrors"].length > 0) {
                 $("#component-errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
             }

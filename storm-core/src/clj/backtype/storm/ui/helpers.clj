@@ -123,11 +123,6 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
        [(apply sort-table id args)])
      )))
 
-(defn date-str [secs]
-  (let [dt (from-long (* 1000 (long secs)))]
-    (unparse (:rfc822 formatters) dt)
-    ))
-
 (defn url-format [fmt & args]
   (String/format fmt 
     (to-array (map #(url-encode (str %)) args))))

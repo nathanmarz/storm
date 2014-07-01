@@ -211,6 +211,7 @@
                                (log-error t "Error when processing event")
                                (exit-process! 20 "Error when processing an event")
                                ))
+   :assignment-versions (atom {})
    })
 
 (defn sync-processes [supervisor]
@@ -307,7 +308,7 @@
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
-          assignment-versions (.get local-state LS-ASSIGNMENT-VERSIONS)
+          assignment-versions @(:assignment-versions supervisor)
           {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
                                                                    storm-cluster-state sync-callback 
                                                                    assignment-versions)
@@ -353,9 +354,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
-      (.put local-state
-            LS-ASSIGNMENT-VERSIONS
-            versions)
+      (swap! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that

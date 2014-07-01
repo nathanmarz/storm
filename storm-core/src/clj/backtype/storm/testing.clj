@@ -230,7 +230,10 @@
          (log-error t# "Error in cluster")
          (throw t#))
        (finally
-         (kill-local-storm-cluster ~cluster-sym)))))
+         (let [keep-waiting?# (atom true)]
+           (future (while @keep-waiting?# (simulate-wait ~cluster-sym)))
+           (kill-local-storm-cluster ~cluster-sym)
+           (reset! keep-waiting?# false))))))
 
 (defmacro with-simulated-time-local-cluster
   [& args]

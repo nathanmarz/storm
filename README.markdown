@@ -148,6 +148,7 @@ under the License.
 * Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
 * Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 * Adrian Petrescu ([@apetresc](https://github.com/apetresc))
+* DashengJu ([@dashengju](https://github.com/dashengju))
 
 ## Acknowledgements
 

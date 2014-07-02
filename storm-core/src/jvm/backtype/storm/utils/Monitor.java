@@ -18,6 +18,9 @@
 package backtype.storm.utils;
 
 import backtype.storm.generated.*;
+
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 public class Monitor {
@@ -56,6 +59,28 @@ public class Monitor {
         }
     }
 
+    private HashSet<String> getComponents(Nimbus.Client client, String topology) throws Exception{
+        HashSet<String> components = new HashSet<String>();
+        ClusterSummary clusterSummary = client.getClusterInfo();
+        TopologySummary topologySummary = null;
+        for (TopologySummary ts: clusterSummary.get_topologies()) {
+            if (topology.equals(ts.get_name())) {
+                topologySummary = ts;
+                break;
+            }
+        }
+        if (topologySummary == null) {
+            throw new IllegalArgumentException("topology: " + topology + " not found");
+        } else {
+            String id = topologySummary.get_id();
+            TopologyInfo info = client.getTopologyInfo(id);
+            for (ExecutorSummary es: info.get_executors()) {
+                components.add(es.get_component_id());
+            }
+        }
+        return components;
+    }
+
     public void metrics(Nimbus.Client client) throws Exception {
         if (_interval <= 0) {
             throw new IllegalArgumentException("poll interval must be positive");
@@ -66,7 +91,15 @@ public class Monitor {
         }
 
         if (_component == null || _component.isEmpty()) {
-            throw new IllegalArgumentException("component name must be something");
+            HashSet<String> components = getComponents(client, _topology);
+            System.out.println("Available components for " + _topology + " :");
+            System.out.println("------------------");
+            for (String comp : components) {
+                System.out.println(comp);
+            }
+            System.out.println("------------------");
+            System.out.println("Please use -m to specify one component");
+            return;
         }
 
         if (_stream == null || _stream.isEmpty()) {
@@ -76,7 +109,7 @@ public class Monitor {
         if ( !WATCH_TRANSFERRED.equals(_watch) && !WATCH_EMITTED.equals(_watch)) {
             throw new IllegalArgumentException("watch item must either be transferred or emitted");
         }
-        System.out.println("topology\tslots\texecutors\texecutorsWithMetrics\tcomponent\tstream\ttime-diff ms\t" + _watch + "\tthroughput (Kt/s)");
+        System.out.println("topology\tcomponent\tparallelism\tstream\ttime-diff ms\t" + _watch + "\tthroughput (Kt/s)");
 
         long pollMs = _interval * 1000;
 
@@ -97,63 +130,63 @@ public class Monitor {
     public void metrics(Nimbus.Client client, long now, MetricsState state) throws Exception {
         long totalStatted = 0;
 
-        boolean topologyFound = false;
-        boolean componentFound = false;
+        int componentParallelism = 0;
         boolean streamFound = false;
-        int slotsUsed = 0;
-        int executors = 0;
-        int executorsWithMetrics = 0;
-        ClusterSummary summary = client.getClusterInfo();
-        for (TopologySummary ts: summary.get_topologies()) {
+        ClusterSummary clusterSummary = client.getClusterInfo();
+        TopologySummary topologySummary = null;
+        for (TopologySummary ts: clusterSummary.get_topologies()) {
             if (_topology.equals(ts.get_name())) {
-                topologyFound = true;
-                slotsUsed = ts.get_num_workers();
-                String id = ts.get_id();
-                TopologyInfo info = client.getTopologyInfo(id);
-                for (ExecutorSummary es: info.get_executors()) {
-                    if (_component.equals(es.get_component_id())) {
-                        componentFound = true;
-                        executors ++;
-                        ExecutorStats stats = es.get_stats();
-                        if (stats != null) {
-                            Map<String,Map<String,Long>> statted =
-                                    WATCH_EMITTED.equals(_watch) ? stats.get_emitted() : stats.get_transferred();
-                            if ( statted != null) {
-                                Map<String, Long> e2 = statted.get(":all-time");
-                                if (e2 != null) {
-                                    Long stream = e2.get(_stream);
-                                    if (stream != null){
-                                        streamFound = true;
-                                        executorsWithMetrics ++;
-                                        totalStatted += stream;
-                                    }
+                topologySummary = ts;
+                break;
+            }
+        }
+        if (topologySummary == null) {
+            throw new IllegalArgumentException("topology: " + _topology + " not found");
+        } else {
+            String id = topologySummary.get_id();
+            TopologyInfo info = client.getTopologyInfo(id);
+            for (ExecutorSummary es: info.get_executors()) {
+                if (_component.equals(es.get_component_id())) {
+                    componentParallelism ++;
+                    ExecutorStats stats = es.get_stats();
+                    if (stats != null) {
+                        Map<String,Map<String,Long>> statted =
+                                WATCH_EMITTED.equals(_watch) ? stats.get_emitted() : stats.get_transferred();
+                        if ( statted != null) {
+                            Map<String, Long> e2 = statted.get(":all-time");
+                            if (e2 != null) {
+                                Long stream = e2.get(_stream);
+                                if (stream != null){
+                                    streamFound = true;
+                                    totalStatted += stream;
                                 }
                             }
                         }
                     }
-
-
                 }
             }
         }
 
-        if (!topologyFound) {
-            throw new IllegalArgumentException("topology: " + _topology + " not found");
-        }
-
-        if (!componentFound) {
-            throw new IllegalArgumentException("component: " + _component + " not fouond");
+        if (componentParallelism <= 0) {
+            HashSet<String> components = getComponents(client, _topology);
+            System.out.println("Available components for " + _topology + " :");
+            System.out.println("------------------");
+            for (String comp : components) {
+                System.out.println(comp);
+            }
+            System.out.println("------------------");
+            throw new IllegalArgumentException("component: " + _component + " not found");
         }
 
         if (!streamFound) {
-            throw new IllegalArgumentException("stream: " + _stream + " not fouond");
+            throw new IllegalArgumentException("stream: " + _stream + " not found");
         }
         long timeDelta = now - state.lastTime;
         long stattedDelta = totalStatted - state.lastStatted;
         state.lastTime = now;
         state.lastStatted = totalStatted;
         double throughput = (stattedDelta == 0 || timeDelta == 0) ? 0.0 : ((double)stattedDelta/(double)timeDelta);
-        System.out.println(_topology+"\t"+slotsUsed+"\t"+executors+"\t"+executorsWithMetrics+"\t"+_component+"\t"+_stream+"\t"+timeDelta+"\t"+stattedDelta+"\t"+throughput);
+        System.out.println(_topology+"\t"+_component+"\t"+componentParallelism+"\t"+_stream+"\t"+timeDelta+"\t"+stattedDelta+"\t"+throughput);
     }
 
     public void set_interval(int _interval) {

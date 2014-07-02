@@ -21,15 +21,14 @@
  )
 
 (defn -main [& args]
-  (let [[{interval :interval topology :topology component :component stream :stream watch :watch} [_] _]
+  (let [[{interval :interval component :component stream :stream watch :watch} [name] _]
         (cli args ["-i" "--interval" :default 4 :parse-fn #(Integer/parseInt %)]
-          ["-t" "--topology" :default nil]
           ["-m" "--component" :default nil]
           ["-s" "--stream" :default "default"]
           ["-w" "--watch" :default "emitted"])
         mon (Monitor.)]
     (if interval (.set_interval mon interval))
-    (if topology (.set_topology mon topology))
+    (if name (.set_topology mon name))
     (if component (.set_component mon component))
     (if stream (.set_stream mon stream))
     (if watch (.set_watch mon watch))

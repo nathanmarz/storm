@@ -15,26 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.hbase.trident.state;
+package org.apache.storm.hbase.trident;
 
-import backtype.storm.task.IMetricsContext;
-import storm.trident.state.State;
-import storm.trident.state.StateFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import storm.trident.operation.BaseFunction;
+import storm.trident.operation.TridentCollector;
+import storm.trident.tuple.TridentTuple;
 
-import java.util.Map;
+import java.util.Random;
 
-public class HBaseStateFactory implements StateFactory {
+public class PrintFunction extends BaseFunction {
 
-    private HBaseState.Options options;
+    private static final Logger LOG = LoggerFactory.getLogger(PrintFunction.class);
 
-    public HBaseStateFactory(HBaseState.Options options) {
-        this.options = options;
-    }
+    private static final Random RANDOM = new Random();
 
     @Override
-    public State makeState(Map map, IMetricsContext iMetricsContext, int partitionIndex, int numPartitions) {
-        HBaseState state = new HBaseState(map , partitionIndex, numPartitions, options);
-        state.prepare();
-        return state;
+    public void execute(TridentTuple tuple, TridentCollector tridentCollector) {
+        if(RANDOM.nextInt(1000) > 995) {
+            LOG.info(tuple.toString());
+        }
     }
 }

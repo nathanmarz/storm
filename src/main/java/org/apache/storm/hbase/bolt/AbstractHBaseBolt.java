@@ -19,26 +19,15 @@ package org.apache.storm.hbase.bolt;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Tuple;
 import org.apache.commons.lang.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
-import org.apache.storm.hbase.common.ColumnList;
-import org.apache.storm.hbase.security.HBaseSecurityUtil;
+import org.apache.storm.hbase.common.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
 // TODO support more configuration options, for now we're defaulting to the hbase-*.xml files found on the classpath
@@ -47,7 +36,7 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
 
     protected OutputCollector collector;
 
-    protected transient HTable table;
+    protected transient HBaseClient hBaseClient;
     protected String tableName;
     protected HBaseMapper mapper;
     protected String configKey;
@@ -75,16 +64,6 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
             hbConfig.set(key, String.valueOf(map.get(key)));
         }
 
-        try {
-            UserProvider provider = HBaseSecurityUtil.login(map, hbConfig);
-            this.table = provider.getCurrent().getUGI().doAs(new PrivilegedExceptionAction<HTable>() {
-                @Override
-                public HTable run() throws IOException {
-                    return new HTable(hbConfig, tableName);
-                }
-            });
-        } catch(Exception e) {
-            throw new RuntimeException("HBase bolt preparation failed: " + e.getMessage(), e);
-        }
+        this.hBaseClient = new HBaseClient(conf, hbConfig, tableName);
     }
 }

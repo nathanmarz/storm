@@ -20,8 +20,10 @@ package org.apache.storm.hbase.bolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.Validate;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
 import org.apache.storm.hbase.bolt.mapper.HBaseRowToStormValueMapper;
@@ -60,19 +62,10 @@ public class HBaseLookupBolt extends AbstractHBaseBolt {
     @Override
     public void execute(Tuple tuple) {
         byte[] rowKey = this.mapper.rowKey(tuple);
+        Get get = hBaseClient.constructGetRequests(rowKey, projectionCriteria);
+
         try {
-            Get get = new Get(rowKey);
-            if(projectionCriteria != null) {
-                for (byte[] columnFamily : projectionCriteria.getColumnFamilies()) {
-                    get.addFamily(columnFamily);
-                }
-
-                for (HBaseProjectionCriteria.ColumnMetaData columnMetaData : projectionCriteria.getColumns()) {
-                    get.addColumn(columnMetaData.getColumnFamily(), columnMetaData.getQualifier());
-                }
-            }
-
-            Result result = table.get(get);
+            Result result = hBaseClient.batchGet(Lists.newArrayList(get))[0];
             for(Values values : rowToTupleMapper.toValues(result)) {
                 this.collector.emit(values);
             }

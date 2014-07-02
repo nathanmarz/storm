@@ -23,16 +23,20 @@ import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Random;
 
 import static backtype.storm.utils.Utils.tuple;
 
 public class TotalWordCounter implements IBasicBolt {
 
     private BigInteger total = BigInteger.ZERO;
-
+    private static final Logger LOG = LoggerFactory.getLogger(TotalWordCounter.class);
+    private static final Random RANDOM = new Random();
     @SuppressWarnings("rawtypes")
     public void prepare(Map stormConf, TopologyContext context) {
     }
@@ -42,12 +46,16 @@ public class TotalWordCounter implements IBasicBolt {
      * The HBaseBolt will handle incrementing the counter.
      */
     public void execute(Tuple input, BasicOutputCollector collector) {
-        total.add(new BigInteger(input.getValues().get(1).toString()));
+        total = total.add(new BigInteger(input.getValues().get(1).toString()));
         collector.emit(tuple(total.toString()));
+        //prints the total with low probability.
+        if(RANDOM.nextInt(1000) > 995) {
+            LOG.info("Running total = " + total);
+        }
     }
 
     public void cleanup() {
-
+        LOG.info("Final total = " + total);
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {

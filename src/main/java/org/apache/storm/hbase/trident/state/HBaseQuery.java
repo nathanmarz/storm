@@ -17,24 +17,24 @@
  */
 package org.apache.storm.hbase.trident.state;
 
-import backtype.storm.task.IMetricsContext;
-import storm.trident.state.State;
-import storm.trident.state.StateFactory;
+import backtype.storm.tuple.Values;
+import storm.trident.operation.TridentCollector;
+import storm.trident.state.BaseQueryFunction;
+import storm.trident.tuple.TridentTuple;
 
-import java.util.Map;
+import java.util.List;
 
-public class HBaseStateFactory implements StateFactory {
+public class HBaseQuery extends BaseQueryFunction<HBaseState, List<Values>> {
 
-    private HBaseState.Options options;
-
-    public HBaseStateFactory(HBaseState.Options options) {
-        this.options = options;
+    @Override
+    public List<List<Values>> batchRetrieve(HBaseState hBaseState, List<TridentTuple> tridentTuples) {
+        return hBaseState.batchRetrieve(tridentTuples);
     }
 
     @Override
-    public State makeState(Map map, IMetricsContext iMetricsContext, int partitionIndex, int numPartitions) {
-        HBaseState state = new HBaseState(map , partitionIndex, numPartitions, options);
-        state.prepare();
-        return state;
+    public void execute(TridentTuple tuples, List<Values> values, TridentCollector tridentCollector) {
+        for (Values value : values) {
+            tridentCollector.emit(value);
+        }
     }
 }

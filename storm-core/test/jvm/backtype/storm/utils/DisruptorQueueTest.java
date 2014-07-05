@@ -17,15 +17,15 @@
  */
 package backtype.storm.utils;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
-import com.lmax.disruptor.MultiThreadedClaimStrategy;
+import com.lmax.disruptor.dsl.ProducerType;
+import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Test;
-import junit.framework.TestCase;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DisruptorQueueTest extends TestCase {
 
@@ -42,7 +42,7 @@ public class DisruptorQueueTest extends TestCase {
 
         Runnable producer = new Producer(queue, "2");
 
-        final Object [] result = new Object[1];
+        final Object[] result = new Object[1];
         Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
             private boolean head = true;
 
@@ -60,8 +60,8 @@ public class DisruptorQueueTest extends TestCase {
         Assert.assertEquals("We expect to receive first published message first, but received " + result[0],
                 "1", result[0]);
     }
-    
-    @Test 
+
+    @Test
     public void testConsumerHang() throws InterruptedException {
         final AtomicBoolean messageConsumed = new AtomicBoolean(false);
 
@@ -91,10 +91,10 @@ public class DisruptorQueueTest extends TestCase {
             producerThreads[i] = new Thread(producer);
             producerThreads[i].start();
         }
-        
+
         Thread consumerThread = new Thread(consumer);
         consumerThread.start();
-                
+
         for (int i = 0; i < PRODUCER_NUM; i++) {
             producerThreads[i].interrupt();
             producerThreads[i].join(TIMEOUT);
@@ -122,7 +122,7 @@ public class DisruptorQueueTest extends TestCase {
                 return;
             }
         }
-    };
+    }
 
     private class Consumer implements Runnable {
         private EventHandler handler;
@@ -144,10 +144,9 @@ public class DisruptorQueueTest extends TestCase {
                 //break
             }
         }
-    };
+    }
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
-        return new DisruptorQueue(name, new MultiThreadedClaimStrategy(
-                queueSize), new BlockingWaitStrategy());
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, new BlockingWaitStrategy());
     }
 }

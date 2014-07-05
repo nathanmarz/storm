@@ -45,8 +45,6 @@ public class DisruptorQueue implements IStatefulObject {
     private static final Object INTERRUPT = new Object();
     private static final String PREFIX = "disruptor-";
 
-    
-
     private final String _queueName;
     private final RingBuffer<MutableObject> _buffer;
     private final Sequence _consumer;
@@ -54,14 +52,13 @@ public class DisruptorQueue implements IStatefulObject {
 
     // TODO: consider having a threadlocal cache of this variable to speed up reads?
     volatile boolean consumerStartedFlag = false;
+
     private final HashMap<String, Object> state = new HashMap<String, Object>(4);
-    
     private final ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue<Object>();
-    
-    
     private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
     private final Lock readLock  = cacheLock.readLock();
     private final Lock writeLock = cacheLock.writeLock();
+
     public DisruptorQueue(String queueName, ProducerType producerType, int bufferSize, WaitStrategy wait) {
         this._queueName = PREFIX + queueName;
         _buffer = RingBuffer.create(producerType, new ObjectEventFactory(), bufferSize, wait);

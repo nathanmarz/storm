@@ -27,7 +27,11 @@ import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.ProducerType;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.HashMap;
 import backtype.storm.metric.api.IStatefulObject;
 
@@ -41,8 +45,7 @@ public class DisruptorQueue implements IStatefulObject {
     private static final Object INTERRUPT = new Object();
     private static final String PREFIX = "disruptor-";
 
-    private final ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue<Object>();
-    private final HashMap<String, Object> state = new HashMap<String, Object>(4);
+    
 
     private final String _queueName;
     private final RingBuffer<MutableObject> _buffer;
@@ -51,25 +54,40 @@ public class DisruptorQueue implements IStatefulObject {
 
     // TODO: consider having a threadlocal cache of this variable to speed up reads?
     volatile boolean consumerStartedFlag = false;
-
+    private final HashMap<String, Object> state = new HashMap<String, Object>(4);
+    
+    private final ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue<Object>();
+    
+    
+    private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
+    private final Lock readLock  = cacheLock.readLock();
+    private final Lock writeLock = cacheLock.writeLock();
     public DisruptorQueue(String queueName, ProducerType producerType, int bufferSize, WaitStrategy wait) {
+        this._queueName = PREFIX + queueName;
         _buffer = RingBuffer.create(producerType, new ObjectEventFactory(), bufferSize, wait);
-        _queueName = PREFIX + queueName;
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.addGatingSequences(_consumer);
-        consumerStartedFlag = producerType == ProducerType.SINGLE;
+        if(producerType == ProducerType.SINGLE) {
+            consumerStartedFlag = true;
+        } else {
+            // make sure we flush the pending messages in cache first
+            try {
+                publishDirect(FLUSH_CACHE, true);
+            } catch (InsufficientCapacityException e) {
+                throw new RuntimeException("This code should be unreachable!", e);
+            }
+        }
     }
-
+    
     public String getName() {
-        return _queueName;
+      return _queueName;
     }
-
-
+    
     public void consumeBatch(EventHandler<Object> handler) {
         consumeBatchToCursor(_barrier.getCursor(), handler);
     }
-
+    
     public void haltWithInterrupt() {
         publish(INTERRUPT);
     }
@@ -89,8 +107,8 @@ public class DisruptorQueue implements IStatefulObject {
             throw new RuntimeException(e);
         }
     }
-
-
+    
+    
     private void consumeBatchToCursor(long cursor, EventHandler<Object> handler) {
         for(long curr = _consumer.get() + 1; curr <= cursor; curr++) {
             try {
@@ -99,7 +117,7 @@ public class DisruptorQueue implements IStatefulObject {
                 mo.setObject(null);
                 if(o==FLUSH_CACHE) {
                     Object c = null;
-                    while(true) {
+                    while(true) {                        
                         c = _cache.poll();
                         if(c==null) break;
                         else handler.onEvent(c, curr, true);
@@ -133,33 +151,47 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     public void publish(Object obj, boolean block) throws InsufficientCapacityException {
-        if(consumerStartedFlag) {
-            final long id;
-            if(block) {
-                id = _buffer.next();
-            } else {
-                id = _buffer.tryNext(1);
+
+        boolean publishNow = consumerStartedFlag;
+
+        if (!publishNow) {
+            readLock.lock(); 
+            try {
+                publishNow = consumerStartedFlag;
+                if (!publishNow) {
+                    _cache.add(obj);
+                }
+            } finally {
+                readLock.unlock();
             }
-            final MutableObject m = _buffer.get(id);
-            m.setObject(obj);
-            _buffer.publish(id);
+        }
+        
+        if (publishNow) {
+            publishDirect(obj, block);
+        }
+    }
+    
+    private void publishDirect(Object obj, boolean block) throws InsufficientCapacityException {
+        final long id;
+        if(block) {
+            id = _buffer.next();
         } else {
-            _cache.add(obj);
-            if(consumerStartedFlag) flushCache();
+            id = _buffer.tryNext(1);
         }
+        final MutableObject m = _buffer.get(id);
+        m.setObject(obj);
+        _buffer.publish(id);
     }
-
+    
     public void consumerStarted() {
-        if(!consumerStartedFlag) {
-            consumerStartedFlag = true;
-            flushCache();
-        }
-    }
 
-    private void flushCache() {
-        publish(FLUSH_CACHE);
+        consumerStartedFlag = true;
+        
+        // Use writeLock to make sure all pending cache add opearation completed
+        writeLock.lock();
+        writeLock.unlock();
     }
-
+    
     public long  population() { return (writePos() - readPos()); }
     public long  capacity()   { return _buffer.getBufferSize(); }
     public long  writePos()   { return _buffer.getCursor(); }
@@ -182,6 +214,6 @@ public class DisruptorQueue implements IStatefulObject {
         @Override
         public MutableObject newInstance() {
             return new MutableObject();
-        }
+        }        
     }
 }

@@ -1,4 +1,24 @@
+## 0.9.3-incubating
+ * STORM-337: Expose managed spout ids publicly
+ * STORM-320: Support STORM_CONF_DIR environment variable to support
+ * STORM-360: Add node details for Error Topology and Component pages
+ * STORM-54: Per-Topology Classpath and Environment for Workers
+ * STORM-355: excluding outdated netty transitively included via curator
+ * STORM-183: Replacing RunTime.halt() with RunTime.exit()
+ * STORM-213: Decouple In-Process ZooKeeper from LocalCluster.
+ * STORM-365: Add support for Python 3 to storm command.
+ * STORM-332: Enable Kryo serialization in storm-kafka
+ * STORM-370: Add check for empty table before sorting dom in UI
+ * STORM-359: add logviewer paging and download
+ * STORM-372: Typo in storm_env.ini
+ * STORM-266: Adding shell process pid and name in the log message
+ * STORM-367: Storm UI REST api documentation.
+ * STORM-200: Proposal for Multilang's Metrics feature
+
 ## 0.9.2-incubating
+ * STORM-66: send taskid on initial handshake
+ * STORM-342: Contention in Disruptor Queue which may cause out of order or lost messages
+ * STORM-338: Move towards idiomatic Clojure style 
  * STORM-335: add drpc test for removing timed out requests from queue
  * STORM-69: Storm UI Visualizations for Topologies
  * STORM-297: Performance scaling with CPU

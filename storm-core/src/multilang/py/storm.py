@@ -136,6 +136,9 @@ def reportError(msg):
 def log(msg):
     sendMsgToParent({"command": "log", "msg": msg})
 
+def rpcMetrics(name, params):
+    sendMsgToParent({"command": "metrics", "name": name, "params": params})
+
 def initComponent():
     setupInfo = readMsg()
     sendpid(setupInfo['pidDir'])

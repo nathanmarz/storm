@@ -19,6 +19,8 @@ Table of Contents
         * <a href="#merge-pull-request">Merge a pull request or patch</a>
     * <a href="#building">Build the code and run the tests</a>
     * <a href="#packaging">Create a Storm distribution (packaging)</a>
+* <a href="#best-practices">Best practices</a>
+    * <a href="#best-practices-testing">Testing</a>
 * <a href="#tools">Tools</a>
     * <a href="#code-repositories">Source code repositories (git)</a>
     * <a href="#issue-tracking">Issue tracking (JIRA)</a>
@@ -91,6 +93,14 @@ You may want to start with beginner-friendly, easier issues
 and
 [trivial issues](https://issues.apache.org/jira/secure/IssueNavigator.jspa?reset=true&jqlQuery=project+%3D+STORM+AND+resolution+%3D+Unresolved+AND+priority+%3D+Trivial+ORDER+BY+key+DESC&mode=hide))
 because they require learning about only an isolated portion of the codebase and are a relatively small amount of work.
+
+Please use idiomatic Clojure style, as explained in [this Clojure style guide][clj-SG]. Another useful reference is
+the [Clojure Library Coding Standards][clj-LCS]. Perhaps the most important is consistenly writing a clear docstring
+for functions, explaining the return value and arguments. As of this writing, the Storm codebase would benefit from
+various style improvements.
+
+[clj-SG]: https://github.com/bbatsov/clojure-style-guide
+[clj-LCS]: http://dev.clojure.org/display/community/Library+Coding+Standards
 
 Contributions to the Storm codebase should be sent as GitHub pull requests.  See section _Create a pull request_ below
 for details.  If there is any problem with the pull request we can iterate on it using the commenting features of
@@ -252,6 +262,26 @@ You can verify whether the digital signatures match their corresponding files:
 
     # Example: Verify the signature of the `.tar.gz` binary.
     $ gpg --verify storm-dist/binary/target/apache-storm-<version>.tar.gz.asc
+
+
+<a name="best-practices"></a>
+
+# Best practices
+
+
+<a name="best-practices-testing"></a>
+
+## Testing
+
+Tests should never rely on timing in order to pass.  In Storm can properly test functionality that depends on time by
+simulating time, which means we do not have to worry about e.g. random delays failing our tests indeterministically.
+
+If you are testing topologies that do not do full tuple acking, then you should be testing using the "tracked
+topologies" utilities in `backtype.storm.testing.clj`.  For example,
+[test-acking](storm-core/test/clj/backtype/storm/integration_test.clj) (around line 213) tests the acking system in
+Storm using tracked topologies.  Here, the key is the `tracked-wait` function: it will only return when both that many
+tuples have been emitted by the spouts _and_ the topology is idle (i.e. no tuples have been emitted nor will be emitted
+without further input).  Note that you should not use tracked topologies for topologies that have tick tuples.
 
 
 <a name="tools"></a>

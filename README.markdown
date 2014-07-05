@@ -1,12 +1,12 @@
-Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](https://github.com/nathanmarz/storm/wiki/Powered-By), and is a lot of fun to use!
+Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](http://storm-project.net/documentation/Powered-By.html), and is a lot of fun to use!
 
-The [Rationale page](https://github.com/nathanmarz/storm/wiki/Rationale) on the wiki explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
+The [Rationale page](http://storm-project.net/documentation/Rationale.html) explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
 
 Storm has a website at [storm-project.net](http://storm-project.net). Follow [@stormprocessor](https://twitter.com/stormprocessor) on Twitter for updates on the project.
 
 ## Documentation
 
-Documentation and tutorials can be found on the [Storm wiki](http://github.com/nathanmarz/storm/wiki).
+Documentation and tutorials can be found on the [Storm website](http://storm-project.net/documentation/Home.html).
 
 Developers and contributors should also take a look at our [Developer documentation](DEVELOPER.md).
 
@@ -119,6 +119,36 @@ under the License.
 * Sean Melody ([@srmelody](https://github.com/srmelody))
 * Jake Donham ([@jaked](https://github.com/jaked))
 * Ankit Toshniwal ([@ankitoshniwal](https://github.com/ankitoshniwal))
+* Adam Lewis ([@supercargo](https://github.com/supercargo))
+* Alexander Yerenkow ([@yerenkow](https://github.com/yerenkow))
+* Brenden Matthews ([@brndnmtthws](https://github.com/brdnmtthws))
+* Bryan Baugher ([@bbaugher](https://github.com/bbaugher))
+* Danijel Schiavuzzi ([@dschiavu](https://github.com/dschiavu))
+* David James ([@xpe](https://github.com/xpe))
+* David Losada ([@tuxpiper](https://github.com/tuxpiper))
+* Francois Dang Ngoc ([@darthbear](https://github.com/darthbear))
+* Gangrui Li ([@davidlgr](https://github.com/davidlgr))
+* John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
+* Julien Nioche ([@jnioche](https://github.com/jnioche))
+* Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
+* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
+* Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
+* Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
+* Padma Priya Chitturi ([PadmaCh](https://issues.apache.org/jira/secure/ViewProfile.jspa?name=PadmaCh))
+* Prabeesh K ([@prabeesh](https://github.com/prabeesh))
+* Sean Zhong ([@clockfly](https://github.com/clockfly))
+* Sriharsha Chintalapani ([@harshach](https://github.com/harshach))
+* Srinivas Prasad Gumdelli ([@srinivasgumdelli](https://github.com/srinivasgumdelli))
+* Steven Phung ([@stphung](https://github.com/stphung))
+* Suresh Srinivas ([@sureshms](https://github.com/sureshms))
+* thinker0 ([@thinker0](https://github.com/thinker0))
+* Troy Ding ([@troyding](https://github.com/troyding)) 
+* Aaron Zimmerman ([@aaronzimmerman](https://github.com/aaronzimmerman))
+* Albert Chu ([@chu11](https://github.com/chu11))
+* Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
+* Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
+* Adrian Petrescu ([@apetresc](https://github.com/apetresc))
+* DashengJu ([@dashengju](https://github.com/dashengju))
 
 ## Acknowledgements
 

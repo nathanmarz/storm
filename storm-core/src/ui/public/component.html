@@ -1,4 +1,20 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
 <html><head>
 <title>Storm UI</title>
 <link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
@@ -57,22 +73,32 @@ $(document).ready(function() {
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
-                $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                if(response["spoutSummary"].length > 0) {
+                    $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                }
                 outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
-                $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                if(response["outputStats"].length > 0) {
+                    $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                }
                 executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
-                $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+                if(response["executorStats"].length > 0) {
+                    $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+                }
             } else {
                 componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
-                $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                if(response["boltStats"].length > 0) {
+                    $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                }
                 inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
                 if (response["inputStats"].length > 0) {
                     $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
                 outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
-                $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
-                executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
                 if(response["outputStats"].length > 0) {
+                    $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                }
+                executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
+                if(response["executorStats"].length > 0) {
                     $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
             }

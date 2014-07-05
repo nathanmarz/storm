@@ -149,5 +149,7 @@ topology.max.error.report.per.interval: 5
 topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
 topology.tuple.serializer: "backtype.storm.serialization.types.ListDelegateSerializer"
 topology.trident.batch.emit.interval.millis: 500
+topology.classpath: null
+topology.environment: null
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

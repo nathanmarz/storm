@@ -176,9 +176,16 @@
             <artifactId>conjure</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+        	<groupId>junit</groupId>
+        	<artifactId>junit</artifactId>
+        	<version>4.1</version>
+        	<scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <sourceDirectory>src/jvm</sourceDirectory>
+         <testSourceDirectory>test/jvm</testSourceDirectory>
         <resources>
             <resource>
                 <directory>../conf</directory>

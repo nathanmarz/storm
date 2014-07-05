@@ -206,16 +206,16 @@
   (with-inprocess-zookeeper zk-port
     (with-simulated-time
       (let [state (mk-storm-state zk-port)]
-        (.report-error state "a" "1" (RuntimeException.))
+        (.report-error state "a" "1"(local-hostname) 6700  (RuntimeException.))
         (validate-errors! state "a" "1" ["RuntimeException"])
-        (.report-error state "a" "1" (IllegalArgumentException.))
+        (.report-error state "a" "1" (local-hostname) 6700 (IllegalArgumentException.))
         (validate-errors! state "a" "1" ["RuntimeException" "IllegalArgumentException"])
         (doseq [i (range 10)]
-          (.report-error state "a" "2" (RuntimeException.))
+          (.report-error state "a" "2" (local-hostname) 6700 (RuntimeException.))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (repeat 10 "RuntimeException"))
         (doseq [i (range 5)]
-          (.report-error state "a" "2" (IllegalArgumentException.))
+          (.report-error state "a" "2" (local-hostname) 6700 (IllegalArgumentException.))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (concat (repeat 5 "IllegalArgumentException")
                                                 (repeat 5 "RuntimeException")

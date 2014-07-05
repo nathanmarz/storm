@@ -146,3 +146,8 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
+
+(defn ring-response-from-exception [ex]
+  {:headers {}
+   :status 400
+   :body (.getMessage ex)})

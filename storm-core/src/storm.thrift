@@ -158,6 +158,8 @@ struct ClusterSummary {
 struct ErrorInfo {
   1: required string error;
   2: required i32 error_time_secs;
+  3: optional string host;
+  4: optional i32 port;
 }
 
 struct BoltStats {

@@ -93,8 +93,33 @@ You can package a jar suitable for submitting to a Storm cluster with the comman
 
     $ mvn package
 
-This will package your code and all the non-Storm dependencies into a single "uberjar" at the path
+This will package your code and all the non-Storm dependencies into a single "uberjar" (or "fat jar") at the path
 `target/storm-starter-{version}-jar-with-dependencies.jar`.
+
+Example filename of the uberjar:
+
+    >>> target/storm-starter-0.9.3-incubating-SNAPSHOT-jar-with-dependencies.jar
+
+You can submit (run) a topology contained in this uberjar to Storm via the `storm` CLI tool:
+
+    # Example 1: Run the RollingTopWords in local mode (LocalCluster)
+    $ storm jar storm-starter-*-jar-with-dependencies.jar storm.starter.RollingTopWords
+
+    # Example 2: Run the RollingTopWords in remote/cluster mode,
+    #            under the name "production-topology"
+    $ storm jar storm-starter-*-jar-with-dependencies.jar storm.starter.RollingTopWords production-topology remote
+
+_Submitting a topology in local vs. remote mode:_
+It depends on the actual code of a topology how you can or even must tell Storm whether to run the topology locally (in
+an in-memory LocalCluster instance of Storm) or remotely (in a "real" Storm cluster).  In the case of
+[RollingTopWords](src/jvm/storm/starter/RollingTopWords.java), for instance, this can be done by passing command line
+arguments.
+Topologies other than `RollingTopWords` -- such as [ExclamationTopology](src/jvm/storm/starter/ExclamationTopology.java)
+-- may behave differently, e.g. by always submitting to a remote cluster (i.e. hardcoded in a way that you, as a user,
+cannot change without modifying the topology code), or by requiring a customized configuration file that the topology
+code will parse prior submitting the topology to Storm.  Similarly, further options such as the name of the topology may
+be user-configurable or be hardcoded into the topology code.  So make sure you understand how the topology of your
+choice is set up and configured!
 
 
 ## Running unit tests

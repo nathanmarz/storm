@@ -65,11 +65,8 @@ These are the types of approvals that can be sought. Different actions require d
 | Approval Type | Criteria |
 |---------------|----------|
 | Consensus Approval | Consensus approval requires 3 binding +1 votes and no binding vetoes. |
-|---------------|----------|
 | Lazy Consensus | Lazy consensus requires no -1 votes ('silence gives assent'). |
-|---------------|----------|
 | Lazy Majority | A lazy majority vote requires 3 binding +1 votes and more binding +1 votes than -1 votes. |
-|---------------|----------|
 | Lazy 2/3 Majority | Lazy 2/3 majority votes requires at least 3 votes and twice as many +1 votes as -1 votes. |
 
 ### Vetoes

@@ -1186,6 +1186,14 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
+
+    /**
+     * The path to use as the zookeeper dir when running a zookeeper server via
+     * "storm dev-zookeeper". This zookeeper instance is only intended for development;
+     * it is not a production grade zookeeper setup.
+     */
+    public static final String HDFS_NAMENODE_URL = "dev.zookeeper.path";
+    public static final Object HDFS_NAMENODE_URL_SCHEMA = ConfigValidation.StringsValidator;
     
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

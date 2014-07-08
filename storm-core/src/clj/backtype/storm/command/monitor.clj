@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.command.monitor
   (:use [clojure.tools.cli :only [cli]])
-  (:use [backtype.storm thrift config log])
+  (:use [backtype.storm.thrift :only [with-configured-nimbus-connection]])
   (:import [backtype.storm.utils Monitor])
   (:gen-class)
  )

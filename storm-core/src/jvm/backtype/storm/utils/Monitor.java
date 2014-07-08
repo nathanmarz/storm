@@ -34,28 +34,66 @@ public class Monitor {
     private String _watch;
 
     private static class MetricsState {
-        long lastStatted = 0;
-        long lastTime = 0;
+        private long lastTime = 0;
+        private long lastStatted = 0;
+
+        private MetricsState(long lastTime, long lastStatted) {
+            this.lastTime = lastTime;
+            this.lastStatted = lastStatted;
+        }
+
+        public long getLastStatted() {
+            return lastStatted;
+        }
+
+        public void setLastStatted(long lastStatted) {
+            this.lastStatted = lastStatted;
+        }
+
+        public long getLastTime() {
+            return lastTime;
+        }
+
+        public void setLastTime(long lastTime) {
+            this.lastTime = lastTime;
+        }
     }
 
     private static class Poller {
-        long startTime = 0;
-        long pollMs = 0;
+        private long startTime = 0;
+        private long pollMs = 0;
 
-        public long nextPoll() {
+        private Poller(long startTime, long pollMs) {
+            this.startTime = startTime;
+            this.pollMs = pollMs;
+        }
+
+        public long nextPoll() throws InterruptedException {
             long now = System.currentTimeMillis();
             long cycle = (now - startTime) / pollMs;
             long wakeupTime = startTime + (pollMs * (cycle + 1));
             long sleepTime = wakeupTime - now;
             if (sleepTime > 0) {
-                try {
-                    Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                Thread.sleep(sleepTime);
             }
             now = System.currentTimeMillis();
             return now;
+        }
+
+        public long getStartTime() {
+            return startTime;
+        }
+
+        public void setStartTime(long startTime) {
+            this.startTime = startTime;
+        }
+
+        public long getPollMs() {
+            return pollMs;
+        }
+
+        public void setPollMs(long pollMs) {
+            this.pollMs = pollMs;
         }
     }
 
@@ -112,18 +150,18 @@ public class Monitor {
         System.out.println("topology\tcomponent\tparallelism\tstream\ttime-diff ms\t" + _watch + "\tthroughput (Kt/s)");
 
         long pollMs = _interval * 1000;
-
-        MetricsState state = new MetricsState();
-        Poller poller = new Poller();
         long now = System.currentTimeMillis();
-        state.lastTime = now;
-        state.lastStatted = 0;
-        poller.startTime = now;
-        poller.pollMs = pollMs;
+        MetricsState state = new MetricsState(now, 0);
+        Poller poller = new Poller(now, pollMs);
 
         do {
             metrics(client, now, state);
-            now = poller.nextPoll();
+            try {
+                now = poller.nextPoll();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                break;
+            }
         } while (true);
     }
 
@@ -181,10 +219,10 @@ public class Monitor {
         if (!streamFound) {
             throw new IllegalArgumentException("stream: " + _stream + " not found");
         }
-        long timeDelta = now - state.lastTime;
-        long stattedDelta = totalStatted - state.lastStatted;
-        state.lastTime = now;
-        state.lastStatted = totalStatted;
+        long timeDelta = now - state.getLastTime();
+        long stattedDelta = totalStatted - state.getLastStatted();
+        state.setLastTime(now);
+        state.setLastStatted(totalStatted);
         double throughput = (stattedDelta == 0 || timeDelta == 0) ? 0.0 : ((double)stattedDelta/(double)timeDelta);
         System.out.println(_topology+"\t"+_component+"\t"+componentParallelism+"\t"+_stream+"\t"+timeDelta+"\t"+stattedDelta+"\t"+throughput);
     }

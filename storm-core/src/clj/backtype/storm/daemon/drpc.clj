@@ -208,10 +208,10 @@
           ;; invocations that will unblock those threads
           handler-server (when (> drpc-port 0)
                            (ThriftServer. conf
-                             (DistributedRPC$Processor. service-handler)
+                             (DistributedRPC$Processor. drpc-service-handler)
                              ThriftConnectionType/DRPC))
           invoke-server (ThriftServer. conf
-                          (DistributedRPCInvocations$Processor. service-handler)
+                          (DistributedRPCInvocations$Processor. drpc-service-handler)
                           ThriftConnectionType/DRPC_INVOCATIONS)
           http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)] 
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []

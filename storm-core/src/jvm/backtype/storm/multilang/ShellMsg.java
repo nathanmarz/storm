@@ -139,4 +139,20 @@ public class ShellMsg {
     public Object getMetricParams() {
         return metricParams;
     }
+
+    @Override
+    public String toString() {
+        return "ShellMsg{" +
+                "command='" + command + '\'' +
+                ", id=" + id +
+                ", anchors=" + anchors +
+                ", stream='" + stream + '\'' +
+                ", task=" + task +
+                ", msg='" + msg + '\'' +
+                ", tuple=" + tuple +
+                ", needTaskIds=" + needTaskIds +
+                ", metricName='" + metricName + '\'' +
+                ", metricParams=" + metricParams +
+                '}';
+    }
 }

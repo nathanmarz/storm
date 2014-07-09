@@ -67,14 +67,13 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         TTransportFactory serverTransportFactory = getServerTransportFactory();
         TServerSocket serverTransport = new TServerSocket(port);
         int numWorkerThreads = type.getNumThreads(storm_conf);
-        int maxBufferSize = type.getMaxBufferSize(storm_conf);
         Integer queueSize = type.getQueueSize(storm_conf);
 
         TThreadPoolServer.Args server_args = new TThreadPoolServer.Args(serverTransport).
                 processor(new TUGIWrapProcessor(processor)).
                 minWorkerThreads(numWorkerThreads).
                 maxWorkerThreads(numWorkerThreads).
-                protocolFactory(new TBinaryProtocol.Factory(false, true, maxBufferSize));
+                protocolFactory(new TBinaryProtocol.Factory(false, true));
 
         if (serverTransportFactory != null) {
             server_args.transportFactory(serverTransportFactory);

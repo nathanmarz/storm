@@ -1,4 +1,6 @@
-# Proposed Storm By-laws to be accepted once storm graduates to a TLP.
+# [DRAFT] Apache Storm Project Bylaws
+
+NOTE: This document is a work in progress and has not yet been formally adopted by the Storm (P)PMC. It is expected that a final version of this DRAFT be adopted once Storm has graduated to an Apache TLP. Until that time any guidelines listed below are subject to change.
 
 ## Roles and Responsibilities
 

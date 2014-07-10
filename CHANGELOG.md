@@ -14,6 +14,7 @@
  * STORM-266: Adding shell process pid and name in the log message
  * STORM-367: Storm UI REST api documentation.
  * STORM-200: Proposal for Multilang's Metrics feature
+ * STORM-351: multilang python process fall into endless loop
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

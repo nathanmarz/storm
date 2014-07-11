@@ -23,6 +23,8 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.Subject;
 import java.security.NoSuchAlgorithmException;
 import java.security.URIParameter;
+
+import backtype.storm.security.INimbusCredentialPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
@@ -99,6 +101,27 @@ public class AuthUtils {
                 for (String clazz : clazzes) {
                     ICredentialsRenewer inst = (ICredentialsRenewer)Class.forName(clazz).newInstance();
                     inst.prepare(conf);
+                    ret.add(inst);
+                }
+            }
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Get all the Nimbus Auto cred plugins that users want to use.
+     * @param topologyConf topologyConfiguration to use.
+     * @return nimbus auto credential plugins.
+     */
+    public static Collection<INimbusCredentialPlugin> getNimbusAutoCredPlugins(Map topologyConf) {
+        try {
+            Set<INimbusCredentialPlugin> ret = new HashSet<INimbusCredentialPlugin>();
+            Collection<String> clazzes = (Collection<String>)topologyConf.get(Config.NIMBUS_AUTO_CRED_PLUGINS);
+            if (clazzes != null) {
+                for (String clazz : clazzes) {
+                    INimbusCredentialPlugin inst = (INimbusCredentialPlugin)Class.forName(clazz).newInstance();
                     ret.add(inst);
                 }
             }

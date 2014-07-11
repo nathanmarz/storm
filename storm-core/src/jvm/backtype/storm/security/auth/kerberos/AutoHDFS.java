@@ -19,6 +19,7 @@
 package backtype.storm.security.auth.kerberos;
 
 import backtype.storm.Config;
+import backtype.storm.security.INimbusCredentialPlugin;
 import backtype.storm.security.auth.IAutoCredentials;
 import backtype.storm.security.auth.ICredentialsRenewer;
 import org.slf4j.Logger;
@@ -30,88 +31,28 @@ import java.io.*;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Automatically get HDFS delegation tokens and push it to user's topology. The class
  * assumes that HDFS configuration files are in your class path.
  */
-public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer {
+public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusCredentialPlugin {
     private static final Logger LOG = LoggerFactory.getLogger(AutoHDFS.class);
     public static final String HDFS_CREDENTIALS = "HDFS_CREDENTIALS";
-    private static final String CONF_KEYTAB_KEY = "keytab";
-    private static final String CONF_USER_KEY = "user";
-
-    private Map conf;
 
     public void prepare(Map conf) {
-        this.conf = conf;
+       LOG.debug("no op.");
     }
 
     @SuppressWarnings("unchecked")
-    private Object getConfiguration() {
-        try {
-            final String hdfsUser = (String) conf.get(Config.HDFS_USER);
-            final String hdfsUserKeyTab = (String) conf.get(Config.HDFS_USER_KEYTAB);
-
-            /**
-             *  Configuration configuration = new Configuration();
-             *  configuration.set(CONF_KEYTAB_KEY, hdfsUserKeyTab);
-             *  configuration.set(CONF_USER_KEY, hdfsUser);
-             */
-            Class configurationClass = Class.forName("org.apache.hadoop.conf.Configuration");
-            Object configuration = configurationClass.newInstance();
-
-            Method setMethod = configurationClass.getMethod("set", String.class, String.class);
-            setMethod.invoke(configuration, CONF_KEYTAB_KEY, hdfsUserKeyTab);
-            setMethod.invoke(configuration, CONF_USER_KEY, hdfsUser);
-            /**
-             * Following are the minimum set of configuration that needs to be set,  users should have hdfs-site.xml
-             * and core-site.xml in the class path which should set these configuration.
-             * setMethod.invoke(configuration, "hadoop.security.authentication", "KERBEROS");
-             * setMethod.invoke(configuration,"dfs.namenode.kerberos.principal",
-             *                                "hdfs/zookeeper.witzend.com@WITZEND.COM");
-             * setMethod.invoke(configuration, "hadoop.security.kerberos.ticket.cache.path", "/tmp/krb5cc_1002");
-             */
-
-            setMethod.invoke(configuration, "hadoop.security.authentication", "KERBEROS");
-            setMethod.invoke(configuration, "dfs.namenode.kerberos.principal","hdfs/zookeeper.witzend.com@WITZEND.COM");
-            setMethod.invoke(configuration, "hadoop.security.kerberos.ticket.cache.path", "/tmp/krb5cc_1002");
-
-            //UserGroupInformation.setConfiguration(configuration);
-            final Class ugiClass = Class.forName("org.apache.hadoop.security.UserGroupInformation");
-            Method setConfigurationMethod = ugiClass.getMethod("setConfiguration", configurationClass);
-            setConfigurationMethod.invoke(null, configuration);
-            return configuration;
-        }  catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void login(Object configuration) {
-        try {
-            Class configurationClass = Class.forName("org.apache.hadoop.conf.Configuration");
-            final Class securityUtilClass = Class.forName("org.apache.hadoop.security.SecurityUtil");
-            Method loginMethod = securityUtilClass.getMethod("login", configurationClass, String.class, String.class);
-            loginMethod.invoke(null, configuration, CONF_KEYTAB_KEY, CONF_USER_KEY);
-        } catch (Exception e) {
-           throw new RuntimeException("Failed to login to hdfs .", e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private byte[] getHDFSCredsWithDelegationToken() throws Exception {
+    private byte[] getHDFSCredsWithDelegationToken(Map conf) throws Exception {
 
         try {
             /**
              * What we want to do is following:
-             *  Configuration configuration = new Configuration();
-             *  configuration.set(CONF_KEYTAB_KEY, hdfsUserKeyTab);
-             *  configuration.set(CONF_USER_KEY, hdfsUser);
-             *  UserGroupInformation.setConfiguration(configuration);
              *  if(UserGroupInformation.isSecurityEnabled) {
-             *      SecurityUtil.login(configuration, CONF_KEYTAB_KEY, CONF_USER_KEY);
              *      FileSystem fs = FileSystem.get(nameNodeURI, configuration, topologySubmitterUser);
              *      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
              *      UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(topologySubmitterUser, ugi);
@@ -119,24 +60,32 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer {
              *      fs.addDelegationToken(hdfsUser, credential);
              * }
              * and then return the credential object as a bytearray.
+             *
+             * Following are the minimum set of configuration that needs to be set,  users should have hdfs-site.xml
+             * and core-site.xml in the class path which should set these configuration.
+             * configuration.set("hadoop.security.authentication", "KERBEROS");
+             * configuration.set("dfs.namenode.kerberos.principal",
+             *                                "hdfs/zookeeper.witzend.com@WITZEND.COM");
+             * configuration.set("hadoop.security.kerberos.ticket.cache.path", "/tmp/krb5cc_1002");
+             * anf the ticket cache must have the hdfs user's creds.
              */
-            Object configuration = getConfiguration();
+            Class configurationClass = Class.forName("org.apache.hadoop.conf.Configuration");
+            Object configuration = configurationClass.newInstance();
+
+            //UserGroupInformation.isSecurityEnabled
             final Class ugiClass = Class.forName("org.apache.hadoop.security.UserGroupInformation");
             final Method isSecurityEnabledMethod = ugiClass.getDeclaredMethod("isSecurityEnabled");
             boolean isSecurityEnabled = (Boolean)isSecurityEnabledMethod.invoke(null);
+
             if(isSecurityEnabled) {
-                login(configuration);
-
-                final URI nameNodeURI = URI.create((String) conf.get(Config.HDFS_NAMENODE_URL));
                 final String topologySubmitterUser = (String) conf.get(Config.TOPOLOGY_SUBMITTER_USER);
-                final String hdfsUser = (String) conf.get(Config.HDFS_USER);
-
-                Class configurationClass = Class.forName("org.apache.hadoop.conf.Configuration");
+                final String hdfsUser = (String) conf.get(Config.HDFS_PRINCIPAL);
 
                 //FileSystem fs = FileSystem.get(nameNodeURI, configuration, topologySubmitterUser);
                 Class fileSystemClass = Class.forName("org.apache.hadoop.fs.FileSystem");
+                Object defaultNameNodeURI = fileSystemClass.getMethod("getDefaultUri", configurationClass).invoke(null, configuration);
                 Method getMethod = fileSystemClass.getMethod("get", URI.class, configurationClass, String.class);
-                Object fileSystem = getMethod.invoke(null, nameNodeURI, configuration, topologySubmitterUser);
+                Object fileSystem = getMethod.invoke(null, defaultNameNodeURI, configuration, topologySubmitterUser);
 
                 //UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
                 Method getCurrentUserMethod = ugiClass.getMethod("getCurrentUser");
@@ -164,7 +113,6 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer {
                 out.flush();
                 out.close();
 
-                LOG.info(bao.toString());
                 return bao.toByteArray();
             } else {
                 throw new RuntimeException("Security is not enabled for HDFS");
@@ -175,12 +123,17 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer {
     }
 
     @Override
-    public void populateCredentials(Map<String, String> credentials) {
+    public void populateCredentials(Map<String, String> credentials, Map conf) {
         try {
-            credentials.put(HDFS_CREDENTIALS, DatatypeConverter.printBase64Binary( getHDFSCredsWithDelegationToken()));
+            credentials.put(HDFS_CREDENTIALS, DatatypeConverter.printBase64Binary( getHDFSCredsWithDelegationToken(conf)));
         } catch (Exception e) {
             LOG.warn("Could not populate HDFS credentials.", e);
         }
+    }
+
+    @Override
+    public void populateCredentials(Map<String, String> credentials) {
+        LOG.debug("populateCredentials is a noop, nimbus should populate the crdes.");
     }
 
     /**
@@ -235,63 +188,66 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void renew(Map<String,String> credentials) {
+    public void renew(Map<String, String> credentials, Map topologyConf) {
         Object credential = getHDFSCredential(credentials);
+        //maximum allowed expiration time until which tokens will keep renewing,
+        //currently set to 1 day.
+        final long MAX_ALLOWED_EXPIRATION_MILLIS = 24 * 60 * 60 * 1000;
+
         /**
          * We are trying to do the following :
          * List<Token> tokens = credential.getAllTokens();
          * for(Token token: tokens) {
-         *      token.renew(configuration);
+         *      long expiration = token.renew(configuration);
          * }
-         * TODO: Need to talk to HDFS guys to check what is recommended way to identify a token that is beyond
-         * renew cycle, once we can identified tokens are not renewable we can repopulate credentials by asking HDFS
-         * to issue new tokens. Until we have a better way any exception during renewal would result in attempt to
-         * get new delegation tokens.
          */
-        if (credential != null) {
-            try {
-                Object configuration = getConfiguration();
-
+        try {
+            if (credential != null) {
                 Class configurationClass = Class.forName("org.apache.hadoop.conf.Configuration");
+                Object configuration = configurationClass.newInstance();
+
                 Class credentialClass = Class.forName("org.apache.hadoop.security.Credentials");
                 Class tokenClass = Class.forName("org.apache.hadoop.security.token.Token");
 
-                Method renewMethod  = tokenClass.getMethod("renew", configurationClass);
+                Method renewMethod = tokenClass.getMethod("renew", configurationClass);
                 Method getAllTokensMethod = credentialClass.getMethod("getAllTokens");
 
                 Collection<?> tokens = (Collection<?>) getAllTokensMethod.invoke(credential);
 
-                for(Object token : tokens) {
-                    renewMethod.invoke(token, configuration);
+                for (Object token : tokens) {
+                    long expiration = (Long) renewMethod.invoke(token, configuration);
+                    if(expiration < MAX_ALLOWED_EXPIRATION_MILLIS) {
+                        LOG.debug("expiration {} is less then MAX_ALLOWED_EXPIRATION_MILLIS {}, getting new tokens",
+                                expiration, MAX_ALLOWED_EXPIRATION_MILLIS);
+                        populateCredentials(credentials, topologyConf);
+                    }
                 }
-            } catch(Exception e) {
-                LOG.warn("could not renew the credentials, one of the possible reason is tokens are beyond " +
-                        "renewal period so attempting to get new tokens.", e);
-                populateCredentials(credentials);
             }
+        } catch (Exception e) {
+            LOG.warn("could not renew the credentials, one of the possible reason is tokens are beyond " +
+                    "renewal period so attempting to get new tokens.", e);
+            populateCredentials(credentials);
         }
     }
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         Map conf = new java.util.HashMap();
-        conf.put(Config.HDFS_NAMENODE_URL, args[0]);
-        conf.put(Config.TOPOLOGY_SUBMITTER_USER, args[1]); //with realm e.g. storm@WITZEND.COM
-        conf.put(Config.HDFS_USER, args[2]); //with realm e.g. hdfs@WITZEND.COM
-        conf.put(Config.HDFS_USER_KEYTAB, args[3]);
+        conf.put(Config.TOPOLOGY_SUBMITTER_PRINCIPAL, args[0]); //with realm e.g. storm@WITZEND.COM
+        conf.put(Config.HDFS_PRINCIPAL, args[1]); //with realm e.g. hdfs@WITZEND.COM
 
         AutoHDFS autoHDFS = new AutoHDFS();
         autoHDFS.prepare(conf);
 
-        Map<String,String> creds = new java.util.HashMap<String,String>();
-        autoHDFS.populateCredentials(creds);
+        Map<String,String> creds  = new HashMap<String, String>();
+        autoHDFS.populateCredentials(creds, conf);
         LOG.info("Got HDFS credentials", AutoHDFS.getHDFSCredential(creds));
 
         Subject s = new Subject();
         autoHDFS.populateSubject(s, creds);
         LOG.info("Got a Subject "+ s);
 
-        autoHDFS.renew(creds);
+        autoHDFS.renew(creds, conf);
         LOG.info("renewed credentials", AutoHDFS.getHDFSCredential(creds));
     }
 }

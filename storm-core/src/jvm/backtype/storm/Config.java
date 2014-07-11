@@ -426,6 +426,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_CREDENTIAL_RENEWERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of plugins that nimbus should load during submit topology to populate
+     * credentials on user's behalf.
+     */
+    public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
+    public static final Object NIMBUS_AUTO_CRED_PLUGINS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Storm UI binds to this port.
      */
     public static final String UI_PORT = "ui.port";
@@ -1190,15 +1197,10 @@ public class Config extends HashMap<String, Object> {
     /**
      * HDFS information, used to get the delegation token on behalf of the topology
      * submitter user and renew the tokens. see {@link backtype.storm.security.auth.kerberos.AutoHDFS}
+     * kerberos principal name with realm should be provided.
      */
-    public static final String HDFS_NAMENODE_URL = "topology.hdfs.namenodeURI";
-    public static final Object HDFS_NAMENODE_URL_SCHEMA = String.class;
-
-    public static final Object HDFS_USER = "topology.hdfs.user";
-    public static final Object HDFS_USER_SCHEMA = String.class;
-
-    public static final Object HDFS_USER_KEYTAB = "topology.hdfs.userKeyTab";
-    public static final Object HDFS_USER_KEYTAB_SCHEMA = String.class;
+    public static final Object HDFS_PRINCIPAL = "topology.hdfs.user";
+    public static final Object HDFS_PRINCIPAL_SCHEMA = String.class;
 
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

@@ -15,27 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package backtype.storm.security;
 
-package backtype.storm.security.auth;
-
-import java.util.Collection;
 import java.util.Map;
 
 /**
- * Provides a way to renew credentials on behelf of a user.
+ * Nimbus auto credential plugin that will be called on nimbus host
+ * during submit topology option. User can specify a list of implementation using config key
+ * nimbus.autocredential.plugins.classes.
  */
-public interface ICredentialsRenewer {
-
-   /**
-    * Called when initializing the service.
-    * @param conf the storm cluster configuration.
-    */ 
-   public void prepare(Map conf);
+public interface INimbusCredentialPlugin {
 
     /**
-     * Renew any credentials that need to be renewed. (Update the credentials if needed)
-     * @param credentials the credentials that may have something to renew.
-     * @param topologyConf topology configuration.
-     */ 
-    public void renew(Map<String, String> credentials, Map topologyConf);
+     * Method that will be called on nimbus as part of submit topology. This plugin will be called
+     * at least once during the submit Topology action. It will be not be called during activate instead
+     * the credentials return by this method will be merged with the other credentials in the topology
+     * and stored in zookeeper.
+     * @param credentials credentials map where more credentials will be added.
+     * @param conf topology configuration
+     * @return
+     */
+    void populateCredentials(Map<String, String> credentials, Map conf);
 }

@@ -15,6 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor])
+  (:import [java.net URI])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -522,17 +523,19 @@
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
-            url (.getResource classloader RESOURCES-SUBDIR)
+            ;; Work-around for JDK-4466485
+            uri (if-let [url (.getResource classloader RESOURCES-SUBDIR)]
+                  (URI. (str url)))
             target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
             (cond
               resources-jar
               (do
                 (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
                 (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
-              url
+              uri
               (do
-                (log-message "Copying resources at " (str url) " to " target-dir)
-                (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
+                (log-message "Copying resources at " (.getPath uri) " to " target-dir)
+                (FileUtils/copyDirectory (File. (.getPath uri)) (File. target-dir))
                 ))
             )))
 

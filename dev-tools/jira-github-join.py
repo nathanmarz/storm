@@ -54,16 +54,22 @@ def main():
 	
 	now = datetime.utcnow()
 	print "Pull requests that need a JIRA:"
+	print "Pull URL\tPull Title\tPull Age\tPull Update Age"
 	for pull in pullWithoutJira:
 		print ("%s\t%s\t%s\t%s"%(pull.html_url(), pull.title(), daydiff(now, pull.created_at()), daydiff(now, pull.updated_at()))).encode("UTF-8")
 	
-	print "\nPull with bad JIRA:"
+	print "\nPull with bad or closed JIRA:"
+	print "Pull URL\tPull Title\tPull Age\tPull Update Age"
 	for pull in pullWithBadJira:
 		print ("%s\t%s\t%s\t%s"%(pull.html_url(), pull.title(), daydiff(now, pull.created_at()), daydiff(now, pull.updated_at()))).encode("UTF-8")
 	
-	print "\nOpen JIRA to Pull Requests and Votes:"
+	print "\nOpen JIRA to Pull Requests and Possible Votes, vote detection is very approximate:"
+	print "JIRA\tPull Requests\tJira Summary\tJIRA Age\tPull Age\tJIRA Update Age\tPull Update Age"
+	print "\tComment Vote\tComment Author\tPull URL\tComment Age"
 	for key, value in jira2Pulls.items():
-		print ("%s\t%s\t%s\t%s\t%s"%(key, mstr(value),openJiras[key].getSummary(), daydiff(now, openJiras[key].getCreated()), daydiff(now, value[0].created_at()))).encode("UTF-8")
+		print ("%s\t%s\t%s\t%s\t%s\t%s\t%s"%(key, mstr(value), openJiras[key].getSummary(),
+			 daydiff(now, openJiras[key].getCreated()), daydiff(now, value[0].created_at()),
+			 daydiff(now, openJiras[key].getUpdated()), daydiff(now, value[0].updated_at()))).encode("UTF-8")
 		for comment in openJiras[key].getComments():
 			#print comment.raw()
 			if comment.hasVote():

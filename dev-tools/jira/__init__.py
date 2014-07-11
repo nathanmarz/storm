@@ -160,6 +160,9 @@ class Jira:
 
 	def getCreated(self):
 		return jiratime(self.fields['created'])
+
+	def getUpdated(self):
+		return jiratime(self.fields['updated'])
 	
 	def getComments(self):
 		if self.comments == None:

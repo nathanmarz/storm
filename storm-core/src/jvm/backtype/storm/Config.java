@@ -1186,7 +1186,20 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
-    
+
+    /**
+     * HDFS information, used to get the delegation token on behalf of the topology
+     * submitter user and renew the tokens. see {@link backtype.storm.security.auth.kerberos.AutoHDFS}
+     */
+    public static final String HDFS_NAMENODE_URL = "topology.hdfs.namenodeURI";
+    public static final Object HDFS_NAMENODE_URL_SCHEMA = String.class;
+
+    public static final Object HDFS_USER = "topology.hdfs.user";
+    public static final Object HDFS_USER_SCHEMA = String.class;
+
+    public static final Object HDFS_USER_KEYTAB = "topology.hdfs.userKeyTab";
+    public static final Object HDFS_USER_KEYTAB_SCHEMA = String.class;
+
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);
     } 

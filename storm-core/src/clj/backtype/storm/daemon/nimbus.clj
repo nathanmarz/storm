@@ -950,7 +950,7 @@
                   (log-message "Renewing Creds For " id " with " renewer)
                   (.renew renewer new-creds topology-conf))
                 (when-not (= orig-creds new-creds)
-                  (.set-credentials! storm-cluster-state id new-creds)
+                  (.set-credentials! storm-cluster-state id new-creds topology-conf)
                   )))))))))
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
@@ -1049,8 +1049,8 @@
                 topology (normalize-topology total-storm-conf topology)
                 nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins total-storm-conf)
                 storm-cluster-state (:storm-cluster-state nimbus)]
-            (doseq [nimbus-autocred-plugin nimbus-autocred-plugins]
-              (.populateCredentials nimbus-autocred-plugin credentials total-storm-conf))
+            (when credentials (doseq [nimbus-autocred-plugin nimbus-autocred-plugins]
+              (.populateCredentials nimbus-autocred-plugin credentials total-storm-conf)))
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology

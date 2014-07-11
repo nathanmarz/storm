@@ -65,13 +65,41 @@
                 (.validateField validator "test" x)
                 (catch Exception e e)))))))
 
-(deftest test-topology-workers-is-number
+(deftest test-integer-validator
+   (let [validator ConfigValidation/IntegerValidator]
+        (.validateField validator "test" 1000)
+        (is (thrown-cause? java.lang.IllegalArgumentException
+           (.validateField validator "test" 1.34)))
+        (is (thrown-cause? java.lang.IllegalArgumentException
+           (.validateField validator "test" 9223372036854775807)))))
+
+(deftest test-integers-validator
+  (let [validator ConfigValidation/IntegersValidator]
+    (.validateField validator "test" [1000 0 -1000])
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [0 10 1.34])))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [-100 9223372036854775807])))))
+
+(deftest test-double-validator
+  (let [validator ConfigValidation/DoubleValidator]
+    (.validateField validator "test" 10)
+    ;; we can provide lenient way to convert int/long to double with losing precision
+    (.validateField validator "test" 2147483647)
+    (.validateField validator "test" 9223372036854775807)
+    (.validateField validator "test" 1.7976931348623157E308)))
+
+(deftest test-topology-workers-is-integer
   (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKERS)]
     (.validateField validator "test" 42)
-    ;; The float can be rounded down to an int.
-    (.validateField validator "test" 3.14159)
     (is (thrown-cause? java.lang.IllegalArgumentException
-      (.validateField validator "test" "42")))))
+      (.validateField validator "test" 3.14159)))))
+
+(deftest test-topology-stats-sample-rate-is-float
+  (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-STATS-SAMPLE-RATE)]
+    (.validateField validator "test" 0.5)
+    (.validateField validator "test" 10)
+    (.validateField validator "test" 1.7976931348623157E308)))
 
 (deftest test-isolation-scheduler-machines-is-map
   (let [validator (CONFIG-SCHEMA-MAP ISOLATION-SCHEDULER-MACHINES)]

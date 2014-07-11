@@ -17,6 +17,8 @@
  */
 package backtype.storm.security;
 
+import backtype.storm.daemon.Shutdownable;
+
 import java.util.Map;
 
 /**
@@ -24,7 +26,13 @@ import java.util.Map;
  * during submit topology option. User can specify a list of implementation using config key
  * nimbus.autocredential.plugins.classes.
  */
-public interface INimbusCredentialPlugin {
+public interface INimbusCredentialPlugin extends Shutdownable {
+
+    /**
+     * this method will be called when nimbus initializes.
+     * @param conf
+     */
+    void prepare(Map conf);
 
     /**
      * Method that will be called on nimbus as part of submit topology. This plugin will be called

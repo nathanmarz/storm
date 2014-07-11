@@ -17,10 +17,8 @@
  */
 package backtype.storm;
 
-import backtype.storm.ConfigValidation;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
-import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1196,11 +1194,19 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * HDFS information, used to get the delegation token on behalf of the topology
-     * submitter user and renew the tokens. see {@link backtype.storm.security.auth.kerberos.AutoHDFS}
+     * submitter user and renew the tokens. see {@link backtype.storm.security.auth.hadoop.AutoHDFS}
      * kerberos principal name with realm should be provided.
      */
-    public static final Object HDFS_PRINCIPAL = "topology.hdfs.user";
-    public static final Object HDFS_PRINCIPAL_SCHEMA = String.class;
+    public static final Object TOPOLOGY_HDFS_PRINCIPAL = "topology.hdfs.user";
+    public static final Object TOPOLOGY_HDFS_PRINCIPAL_SCHEMA = String.class;
+
+    /**
+     * The HDFS URI to be used by AutoHDFS.java to grab the delegation token on topology
+     * submitter user's behalf by the nimbus. If this is not provided the default URI provided
+     * in the hdfs configuration files will be used.
+     */
+    public static final Object TOPOLOGY_HDFS_URI = "topology.hdfs.uri";
+    public static final Object TOPOLOGY_HDFS_URI_SCHEMA = String.class;
 
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);

@@ -240,6 +240,7 @@
                                                     TOPOLOGY-ACKER-EXECUTORS 0
                                                     NIMBUS-CREDENTIAL-RENEW-FREQ-SECS 10
                                                     NIMBUS-CREDENTIAL-RENEWERS (list "backtype.storm.MockAutoCred")
+                                                    NIMBUS-AUTO-CRED-PLUGINS (list "backtype.storm.MockAutoCred")
                                                     }]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
@@ -251,7 +252,6 @@
                      {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
                       "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
           _ (submit-local-topology-with-opts nimbus topology-name {TOPOLOGY-WORKERS 4
-                                                               NIMBUS-AUTO-CRED-PLUGINS (list "backtype.storm.MockAutoCred")
                                                                TOPOLOGY-AUTO-CREDENTIALS (list "backtype.storm.MockAutoCred")
                                                                } topology submitOptions)
           credentials (getCredentials cluster topology-name)]

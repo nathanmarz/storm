@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package backtype.storm.security.auth.kerberos;
+package backtype.storm.security.auth.hadoop;
 
 import backtype.storm.Config;
 import backtype.storm.security.INimbusCredentialPlugin;
@@ -43,32 +43,31 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     public static final String HDFS_CREDENTIALS = "HDFS_CREDENTIALS";
 
     public void prepare(Map conf) {
-       LOG.debug("no op.");
+       //no op.
     }
 
     @SuppressWarnings("unchecked")
     private byte[] getHDFSCredsWithDelegationToken(Map conf) throws Exception {
 
         try {
-            /**
-             * What we want to do is following:
-             *  if(UserGroupInformation.isSecurityEnabled) {
-             *      FileSystem fs = FileSystem.get(nameNodeURI, configuration, topologySubmitterUser);
-             *      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-             *      UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(topologySubmitterUser, ugi);
-             *      Credentials credential= proxyUser.getCredentials();
-             *      fs.addDelegationToken(hdfsUser, credential);
-             * }
-             * and then return the credential object as a bytearray.
-             *
-             * Following are the minimum set of configuration that needs to be set,  users should have hdfs-site.xml
-             * and core-site.xml in the class path which should set these configuration.
-             * configuration.set("hadoop.security.authentication", "KERBEROS");
-             * configuration.set("dfs.namenode.kerberos.principal",
-             *                                "hdfs/zookeeper.witzend.com@WITZEND.COM");
-             * configuration.set("hadoop.security.kerberos.ticket.cache.path", "/tmp/krb5cc_1002");
-             * anf the ticket cache must have the hdfs user's creds.
-             */
+             // What we want to do is following:
+             //  if(UserGroupInformation.isSecurityEnabled) {
+             //      FileSystem fs = FileSystem.get(nameNodeURI, configuration, topologySubmitterUser);
+             //      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+             //      UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(topologySubmitterUser, ugi);
+             //      Credentials credential= proxyUser.getCredentials();
+             //      fs.addDelegationToken(hdfsUser, credential);
+             // }
+             // and then return the credential object as a bytearray.
+             //
+             // Following are the minimum set of configuration that needs to be set,  users should have hdfs-site.xml
+             // and core-site.xml in the class path which should set these configuration.
+             // configuration.set("hadoop.security.authentication", "KERBEROS");
+             // configuration.set("dfs.namenode.kerberos.principal",
+             //                                "hdfs/zookeeper.witzend.com@WITZEND.COM");
+             // configuration.set("hadoop.security.kerberos.ticket.cache.path", "/tmp/krb5cc_1002");
+             // and the ticket cache must have the hdfs user's creds.
+
             Class configurationClass = Class.forName("org.apache.hadoop.conf.Configuration");
             Object configuration = configurationClass.newInstance();
 
@@ -79,13 +78,15 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
 
             if(isSecurityEnabled) {
                 final String topologySubmitterUser = (String) conf.get(Config.TOPOLOGY_SUBMITTER_USER);
-                final String hdfsUser = (String) conf.get(Config.HDFS_PRINCIPAL);
+                final String hdfsUser = (String) conf.get(Config.TOPOLOGY_HDFS_PRINCIPAL);
 
                 //FileSystem fs = FileSystem.get(nameNodeURI, configuration, topologySubmitterUser);
                 Class fileSystemClass = Class.forName("org.apache.hadoop.fs.FileSystem");
-                Object defaultNameNodeURI = fileSystemClass.getMethod("getDefaultUri", configurationClass).invoke(null, configuration);
+
+                Object nameNodeURI = conf.containsKey(Config.TOPOLOGY_HDFS_URI) ? conf.get(Config.TOPOLOGY_HDFS_URI)
+                        : fileSystemClass.getMethod("getDefaultUri", configurationClass).invoke(null, configuration);
                 Method getMethod = fileSystemClass.getMethod("get", URI.class, configurationClass, String.class);
-                Object fileSystem = getMethod.invoke(null, defaultNameNodeURI, configuration, topologySubmitterUser);
+                Object fileSystem = getMethod.invoke(null, nameNodeURI, configuration, topologySubmitterUser);
 
                 //UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
                 Method getCurrentUserMethod = ugiClass.getMethod("getCurrentUser");
@@ -124,19 +125,21 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
 
     @Override
     public void populateCredentials(Map<String, String> credentials, Map conf) {
-        try {
-            credentials.put(HDFS_CREDENTIALS, DatatypeConverter.printBase64Binary( getHDFSCredsWithDelegationToken(conf)));
-        } catch (Exception e) {
-            LOG.warn("Could not populate HDFS credentials.", e);
+        if(conf.containsKey(Config.TOPOLOGY_HDFS_PRINCIPAL)) {
+            try {
+                credentials.put(HDFS_CREDENTIALS, DatatypeConverter.printBase64Binary(getHDFSCredsWithDelegationToken(conf)));
+            } catch (Exception e) {
+                LOG.warn("Could not populate HDFS credentials.", e);
+            }
         }
     }
 
     @Override
     public void populateCredentials(Map<String, String> credentials) {
-        LOG.debug("populateCredentials is a noop, nimbus should populate the crdes.");
+        //no op.
     }
 
-    /**
+    /*
      *
      * @param credentials map with creds.
      * @return instance of org.apache.hadoop.security.Credentials, if the Map has HDFS_CREDENTIALS.
@@ -234,7 +237,7 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     public static void main(String[] args) throws Exception {
         Map conf = new java.util.HashMap();
         conf.put(Config.TOPOLOGY_SUBMITTER_PRINCIPAL, args[0]); //with realm e.g. storm@WITZEND.COM
-        conf.put(Config.HDFS_PRINCIPAL, args[1]); //with realm e.g. hdfs@WITZEND.COM
+        conf.put(Config.TOPOLOGY_HDFS_PRINCIPAL, args[1]); //with realm e.g. hdfs@WITZEND.COM
 
         AutoHDFS autoHDFS = new AutoHDFS();
         autoHDFS.prepare(conf);
@@ -249,6 +252,11 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
 
         autoHDFS.renew(creds, conf);
         LOG.info("renewed credentials", AutoHDFS.getHDFSCredential(creds));
+    }
+
+    @Override
+    public void shutdown() {
+
     }
 }
 

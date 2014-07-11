@@ -111,17 +111,18 @@ public class AuthUtils {
     }
 
     /**
-     * Get all the Nimbus Auto cred plugins that users want to use.
-     * @param topologyConf topologyConfiguration to use.
+     * Get all the Nimbus Auto cred plugins.
+     * @param conf nimbus configuration to use.
      * @return nimbus auto credential plugins.
      */
-    public static Collection<INimbusCredentialPlugin> getNimbusAutoCredPlugins(Map topologyConf) {
+    public static Collection<INimbusCredentialPlugin> getNimbusAutoCredPlugins(Map conf) {
         try {
             Set<INimbusCredentialPlugin> ret = new HashSet<INimbusCredentialPlugin>();
-            Collection<String> clazzes = (Collection<String>)topologyConf.get(Config.NIMBUS_AUTO_CRED_PLUGINS);
+            Collection<String> clazzes = (Collection<String>)conf.get(Config.NIMBUS_AUTO_CRED_PLUGINS);
             if (clazzes != null) {
                 for (String clazz : clazzes) {
                     INimbusCredentialPlugin inst = (INimbusCredentialPlugin)Class.forName(clazz).newInstance();
+                    inst.prepare(conf);
                     ret.add(inst);
                 }
             }

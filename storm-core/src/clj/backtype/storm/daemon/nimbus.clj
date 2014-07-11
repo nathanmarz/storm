@@ -14,7 +14,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
-  (:import [java.nio ByteBuffer])
+  (:import [java.nio ByteBuffer]
+           [java.util Collections])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
@@ -86,6 +87,7 @@
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
+     :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
      }))
 
 (defn inbox [nimbus]
@@ -948,7 +950,7 @@
               (let [new-creds (HashMap. orig-creds)]
                 (doseq [renewer renewers]
                   (log-message "Renewing Creds For " id " with " renewer)
-                  (.renew renewer new-creds topology-conf))
+                  (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
                 (when-not (= orig-creds new-creds)
                   (.set-credentials! storm-cluster-state id new-creds topology-conf)
                   )))))))))
@@ -1047,10 +1049,10 @@
                                 (dissoc storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
-                nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins total-storm-conf)
+
                 storm-cluster-state (:storm-cluster-state nimbus)]
-            (when credentials (doseq [nimbus-autocred-plugin nimbus-autocred-plugins]
-              (.populateCredentials nimbus-autocred-plugin credentials total-storm-conf)))
+            (when credentials (doseq [nimbus-autocred-plugin (:nimbus-autocred-plugins nimbus)]
+              (.populateCredentials nimbus-autocred-plugin credentials (Collections/unmodifiableMap storm-conf))))
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology

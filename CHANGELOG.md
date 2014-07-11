@@ -15,6 +15,7 @@
  * STORM-367: Storm UI REST api documentation.
  * STORM-200: Proposal for Multilang's Metrics feature
  * STORM-351: multilang python process fall into endless loop
+ * STORM-375: Smarter downloading of assignments by supervisors and workers
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

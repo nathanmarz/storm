@@ -533,7 +533,7 @@
               url
               (do
                 (log-message "Copying resources at " (str url) " to " target-dir)
-                (if (.startsWith (str url) "jar:file:" )
+                (if (= (.getProtocol url) "jar" )
                     (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
                     (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir)))
                 )

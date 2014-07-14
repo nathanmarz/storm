@@ -113,6 +113,8 @@ Storm.prototype.handleNewTaskId = function(taskIds) {
  *
  * For bolt, the json must contain the required fields:
  * - tuple - the value to emit
+ * - anchorTupleId - the value of the anchor tuple (the input tuple that lead to this emit). Used to track the source
+ * tuple and return ack when all components successfully finished to process it.
  * and may contain the optional fields:
  * - stream (if empty - emit to default stream)
  *
@@ -148,6 +150,8 @@ Storm.prototype.emit = function(messageDetails, onTaskIds) {
  *
  * For bolt, the json must contain the required fields:
  * - tuple - the value to emit
+ * - anchorTupleId - the value of the anchor tuple (the input tuple that lead to this emit). Used to track the source
+ * tuple and return ack when all components successfully finished to process it.
  * - task - indicate the task to send the tuple to.
  * and may contain the optional fields:
  * - stream (if empty - emit to default stream)
@@ -211,7 +215,8 @@ BasicBolt.prototype.emitDirect = function(tup, stream, directTask) {
  * Emit message.
  * @param commandDetails json with the required fields:
  * - tuple - the value to emit
- * - anchors - list of ids this emit relates to (used for reliability purposes).
+ * - anchorTupleId - the value of the anchor tuple (the input tuple that lead to this emit). Used to track the source
+ * tuple and return ack when all components successfully finished to process it.
  * and the optional fields:
  * - stream (if empty - emit to default stream)
  * - task (pass only to emit to specific task)
@@ -219,16 +224,12 @@ BasicBolt.prototype.emitDirect = function(tup, stream, directTask) {
 BasicBolt.prototype.__emit = function(commandDetails) {
     var self = this;
 
-    var anchors = [];
-    if (this.anchorTuple !== null) {
-        anchors = [this.anchorTuple.id]
-    }
     var message = {
         command: "emit",
         tuple: commandDetails.tuple,
         stream: commandDetails.stream,
         task: commandDetails.task,
-        anchors: anchors
+        anchors: [commandDetails.anchorTupleId]
     };
 
     this.sendMsgToParent(message);
@@ -237,7 +238,6 @@ BasicBolt.prototype.__emit = function(commandDetails) {
 BasicBolt.prototype.handleNewCommand = function(command) {
     var self = this;
     var tup = new Tuple(command["id"], command["comp"], command["stream"], command["task"], command["tuple"]);
-    this.anchorTuple = tup;
     var callback = function(err) {
           if (!!err) {
               self.fail(tup, err);

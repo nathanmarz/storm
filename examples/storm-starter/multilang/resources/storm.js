@@ -17,12 +17,12 @@ Storm.prototype.sendMsgToParent = function(msg) {
 }
 
 Storm.prototype.sync = function() {
-    this.sendMsgToParent({'command':'sync'});
+    this.sendMsgToParent({"command":"sync"});
 }
 
-Storm.prototype.sendpid = function(heartbeatdir) {
+Storm.prototype.sendPid = function(heartbeatdir) {
     var pid = process.pid;
-    this.sendMsgToParent({'pid':pid})
+    this.sendMsgToParent({"pid": pid})
     fs.closeSync(fs.openSync(heartbeatdir + "/" + pid, "w"));
 }
 
@@ -33,7 +33,7 @@ Storm.prototype.log = function(msg) {
 Storm.prototype.initSetupInfo = function(setupInfo) {
     var self = this;
     var callback = function() {
-        self.sendpid(setupInfo['pidDir']);
+        self.sendPid(setupInfo['pidDir']);
     }
     this.initialize(setupInfo['conf'], setupInfo['context'], callback);
 }
@@ -44,7 +44,7 @@ Storm.prototype.startReadingInput = function() {
     process.stdin.on('readable', function() {
         var chunk = process.stdin.read();
 
-        if (!!chunk && chunk.length !== 0) {
+        if (chunk && chunk.length !== 0) {
           var lines = chunk.toString().split('\n');
           lines.forEach(function(line) {
               self.handleNewLine(line);
@@ -131,7 +131,7 @@ Storm.prototype.emit = function(messageDetails, onTaskIds) {
     //Every emit triggers a response - list of task ids to which the tuple was emitted. The task ids are accessible
     //through the callback (will be called when the response arrives). The callback is stored in a list until the
     //corresponding task id list arrives.
-    if (!!messageDetails.task) {
+    if (messageDetails.task) {
         throw new Error('Illegal input - task. To emit to specific task use emit direct!');
     }
 
@@ -207,10 +207,6 @@ function BasicBolt() {
 BasicBolt.prototype = Object.create(Storm.prototype);
 BasicBolt.prototype.constructor = BasicBolt;
 
-BasicBolt.prototype.emitDirect = function(tup, stream, directTask) {
-
-}
-
 /**
  * Emit message.
  * @param commandDetails json with the required fields:
@@ -239,7 +235,7 @@ BasicBolt.prototype.handleNewCommand = function(command) {
     var self = this;
     var tup = new Tuple(command["id"], command["comp"], command["stream"], command["task"], command["tuple"]);
     var callback = function(err) {
-          if (!!err) {
+          if (err) {
               self.fail(tup, err);
           }
           self.ack(tup);
@@ -248,7 +244,7 @@ BasicBolt.prototype.handleNewCommand = function(command) {
 }
 
 /**
- * Implement this method when creating a bolt. This is the main method the provides the logic of the bolt (what
+ * Implement this method when creating a bolt. This is the main method that provides the logic of the bolt (what
  * should it do?).
  * @param tuple the input of the bolt - what to process.
  * @param done call this method when done processing.

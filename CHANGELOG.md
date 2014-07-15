@@ -17,6 +17,7 @@
  * STORM-351: multilang python process fall into endless loop
  * STORM-375: Smarter downloading of assignments by supervisors and workers
  * STORM-328: More restrictive Config checks, strict range check within Utils.getInt()
+ * STORM-381: Replace broken jquery.tablesorter.min.js to latest
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

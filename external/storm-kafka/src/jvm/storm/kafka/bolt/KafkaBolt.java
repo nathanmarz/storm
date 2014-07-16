@@ -27,6 +27,8 @@ import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import storm.kafka.bolt.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.bolt.mapper.TupleToKafkaKeyAndMessageMapper;
 
 import java.util.Map;
 import java.util.Properties;
@@ -48,15 +50,23 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     public static final String TOPIC = "topic";
     public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
-    public static final String BOLT_KEY = "key";
-    public static final String BOLT_MESSAGE = "message";
-
     private Producer<K, V> producer;
     private OutputCollector collector;
     private String topic;
+    private TupleToKafkaKeyAndMessageMapper<K,V> mapper;
+
+    public KafkaBolt<K,V> withTupleToKafkaKeyAndMessageMapper(TupleToKafkaKeyAndMessageMapper<K,V> mapper) {
+        this.mapper = mapper;
+        return this;
+    }
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
+        //for backward compatibility.
+        if(mapper == null) {
+            this.mapper = new FieldNameBasedTupleToKafkaKeyAndMessageMapper<K,V>();
+        }
+
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
         properties.putAll(configMap);
@@ -69,11 +79,10 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     @Override
     public void execute(Tuple input) {
         K key = null;
-        if (input.contains(BOLT_KEY)) {
-            key = (K) input.getValueByField(BOLT_KEY);
-        }
-        V message = (V) input.getValueByField(BOLT_MESSAGE);
+        V message = null;
         try {
+            key = mapper.getKeyFromTuple(input);
+            message = mapper.getMessageFromTuple(input);
             producer.send(new KeyedMessage<K, V>(topic, key, message));
         } catch (Exception ex) {
             LOG.error("Could not send message with key '" + key + "' and value '" + message + "'", ex);

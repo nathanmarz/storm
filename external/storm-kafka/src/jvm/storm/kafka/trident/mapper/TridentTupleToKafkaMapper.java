@@ -15,23 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.kafka.bolt.mapper;
+package storm.kafka.trident.mapper;
 
 import backtype.storm.tuple.Tuple;
+import storm.trident.tuple.TridentTuple;
 
-public class FieldNameBasedTupleToKafkaKeyAndMessageMapper<K,V> implements TupleToKafkaKeyAndMessageMapper {
+import java.io.Serializable;
 
-    public static final String BOLT_KEY = "key";
-    public static final String BOLT_MESSAGE = "message";
-
-    @Override
-    public K getKeyFromTuple(Tuple tuple) {
-        //for backward compatibility, we return null when key is not present.
-        return tuple.contains(BOLT_KEY) ? (K) tuple.getValueByField(BOLT_KEY) : null;
-    }
-
-    @Override
-    public V getMessageFromTuple(Tuple tuple) {
-        return (V) tuple.getValueByField(BOLT_MESSAGE);
-    }
+public interface TridentTupleToKafkaMapper<K,V>  extends Serializable {
+    K getKeyFromTuple(TridentTuple tuple);
+    V getMessageFromTuple(TridentTuple tuple);
 }

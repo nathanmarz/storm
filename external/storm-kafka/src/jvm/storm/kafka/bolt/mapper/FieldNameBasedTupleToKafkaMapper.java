@@ -19,14 +19,19 @@ package storm.kafka.bolt.mapper;
 
 import backtype.storm.tuple.Tuple;
 
-import java.io.Serializable;
+public class FieldNameBasedTupleToKafkaMapper<K,V> implements TupleToKafkaMapper {
 
-/**
- * as the really verbose name suggests this interface mapps a storm tuple to kafka key and message.
- * @param <K> type of key.
- * @param <V> type of value.
- */
-public interface TupleToKafkaKeyAndMessageMapper<K,V> extends Serializable {
-    K getKeyFromTuple(Tuple tuple);
-    V getMessageFromTuple(Tuple tuple);
+    public static final String BOLT_KEY = "key";
+    public static final String BOLT_MESSAGE = "message";
+
+    @Override
+    public K getKeyFromTuple(Tuple tuple) {
+        //for backward compatibility, we return null when key is not present.
+        return tuple.contains(BOLT_KEY) ? (K) tuple.getValueByField(BOLT_KEY) : null;
+    }
+
+    @Override
+    public V getMessageFromTuple(Tuple tuple) {
+        return (V) tuple.getValueByField(BOLT_MESSAGE);
+    }
 }

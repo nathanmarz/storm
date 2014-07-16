@@ -18,17 +18,14 @@
 package storm.kafka.trident;
 
 import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.FailedException;
-import com.google.common.collect.Lists;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
-import storm.kafka.trident.mapper.TridentTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
 import storm.kafka.trident.selector.KafkaTopicSelector;
 import storm.trident.operation.TridentCollector;
 import storm.trident.state.State;
@@ -48,10 +45,10 @@ public class TridentKafkaState implements State {
     private Producer producer;
     private OutputCollector collector;
 
-    private TridentTupleToKafkaKeyAndMessageMapper mapper;
+    private TridentTupleToKafkaMapper mapper;
     private KafkaTopicSelector topicSelector;
 
-    public TridentKafkaState withTridentTupleToKafkaKeyAndMessageMapper(TridentTupleToKafkaKeyAndMessageMapper mapper) {
+    public TridentKafkaState withTridentTupleToKafkaMapper(TridentTupleToKafkaMapper mapper) {
         this.mapper = mapper;
         return this;
     }

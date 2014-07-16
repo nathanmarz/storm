@@ -51,7 +51,7 @@ storm.kafka.trident.TridentKafkaUpdater.
 
 You need to provide implementation of following 2 interfaces
 
-###TupleToKafkaKeyAndMessageMapper and TridentTupleToKafkaKeyAndMessageMapper
+###TupleToKafkaMapper and TridentTupleToKafkaMapper
 These interfaces have 2 methods defined:
 
 ```java
@@ -99,7 +99,7 @@ For the bolt :
         builder.setSpout("spout", spout, 5);
         KafkaBolt bolt = new KafkaBolt()
                 .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaKeyAndMessageMapper(new FieldNameBasedTupleToKafkaKeyAndMessageMapper());
+                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
         builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
         
         Config conf = new Config();
@@ -130,7 +130,7 @@ For Trident:
 
         TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
                 .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaKeyAndMessageMapper(new FieldNameBasedTupleToKafkaKeyAndMessageMapper("word", "count"));
+                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
         stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
 
         Config conf = new Config();

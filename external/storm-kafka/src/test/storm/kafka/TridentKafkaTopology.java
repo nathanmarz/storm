@@ -19,24 +19,16 @@ package storm.kafka;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
-import backtype.storm.StormSubmitter;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import storm.kafka.bolt.KafkaBolt;
-import storm.kafka.trident.GlobalPartitionInformation;
 import storm.kafka.trident.TridentKafkaState;
 import storm.kafka.trident.TridentKafkaStateFactory;
 import storm.kafka.trident.TridentKafkaUpdater;
-import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaMapper;
 import storm.kafka.trident.selector.DefaultTopicSelector;
 import storm.trident.Stream;
 import storm.trident.TridentTopology;
-import storm.trident.state.StateFactory;
 import storm.trident.testing.FixedBatchSpout;
 
 import java.util.HashMap;
@@ -61,7 +53,7 @@ public class TridentKafkaTopology {
 
         TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
                 .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaKeyAndMessageMapper(new FieldNameBasedTupleToKafkaKeyAndMessageMapper("word", "count"));
+                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
         stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
 
         return topology.build();

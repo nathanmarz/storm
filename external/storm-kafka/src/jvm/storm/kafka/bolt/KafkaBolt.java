@@ -27,8 +27,8 @@ import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.kafka.bolt.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
-import storm.kafka.bolt.mapper.TupleToKafkaKeyAndMessageMapper;
+import storm.kafka.bolt.mapper.FieldNameBasedTupleToKafkaMapper;
+import storm.kafka.bolt.mapper.TupleToKafkaMapper;
 import storm.kafka.bolt.selector.DefaultTopicSelector;
 import storm.kafka.bolt.selector.KafkaTopicSelector;
 
@@ -54,10 +54,10 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
     private Producer<K, V> producer;
     private OutputCollector collector;
-    private TupleToKafkaKeyAndMessageMapper<K,V> mapper;
+    private TupleToKafkaMapper<K,V> mapper;
     private KafkaTopicSelector topicSelector;
 
-    public KafkaBolt<K,V> withTupleToKafkaKeyAndMessageMapper(TupleToKafkaKeyAndMessageMapper<K,V> mapper) {
+    public KafkaBolt<K,V> withTupleToKafkaMapper(TupleToKafkaMapper<K,V> mapper) {
         this.mapper = mapper;
         return this;
     }
@@ -71,7 +71,7 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         //for backward compatibility.
         if(mapper == null) {
-            this.mapper = new FieldNameBasedTupleToKafkaKeyAndMessageMapper<K,V>();
+            this.mapper = new FieldNameBasedTupleToKafkaMapper<K,V>();
         }
 
         //for backward compatibility.

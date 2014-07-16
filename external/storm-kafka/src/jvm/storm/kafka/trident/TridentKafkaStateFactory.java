@@ -20,7 +20,7 @@ package storm.kafka.trident;
 import backtype.storm.task.IMetricsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.kafka.trident.mapper.TridentTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
 import storm.kafka.trident.selector.KafkaTopicSelector;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
@@ -31,11 +31,11 @@ public class TridentKafkaStateFactory implements StateFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(TridentKafkaStateFactory.class);
 
-    private TridentTupleToKafkaKeyAndMessageMapper mapper;
+    private TridentTupleToKafkaMapper mapper;
     private KafkaTopicSelector topicSelector;
 
 
-    public TridentKafkaStateFactory withTridentTupleToKafkaKeyAndMessageMapper(TridentTupleToKafkaKeyAndMessageMapper mapper) {
+    public TridentKafkaStateFactory withTridentTupleToKafkaMapper(TridentTupleToKafkaMapper mapper) {
         this.mapper = mapper;
         return this;
     }
@@ -50,7 +50,7 @@ public class TridentKafkaStateFactory implements StateFactory {
         LOG.info("makeState(partitonIndex={}, numpartitions={}", partitionIndex, numPartitions);
         TridentKafkaState state = new TridentKafkaState()
                 .withKafkaTopicSelector(this.topicSelector)
-                .withTridentTupleToKafkaKeyAndMessageMapper(this.mapper);
+                .withTridentTupleToKafkaMapper(this.mapper);
         state.prepare(conf);
         return state;
     }

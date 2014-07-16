@@ -17,17 +17,14 @@
  */
 package storm.kafka.trident.mapper;
 
-import backtype.storm.tuple.Tuple;
 import storm.trident.tuple.TridentTuple;
 
-import java.io.Serializable;
-
-public class FieldNameBasedTupleToKafkaKeyAndMessageMapper<K, V> implements TridentTupleToKafkaKeyAndMessageMapper {
+public class FieldNameBasedTupleToKafkaMapper<K, V> implements TridentTupleToKafkaMapper {
 
     public final String keyFieldName;
     public final String msgFieldName;
 
-    public FieldNameBasedTupleToKafkaKeyAndMessageMapper(String keyFieldName, String msgFieldName) {
+    public FieldNameBasedTupleToKafkaMapper(String keyFieldName, String msgFieldName) {
         this.keyFieldName = keyFieldName;
         this.msgFieldName = msgFieldName;
     }

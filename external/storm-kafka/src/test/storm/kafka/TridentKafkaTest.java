@@ -24,8 +24,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import storm.kafka.trident.TridentKafkaState;
-import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
-import storm.kafka.trident.mapper.TridentTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaMapper;
+import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
 import storm.kafka.trident.selector.DefaultTopicSelector;
 import storm.kafka.trident.selector.KafkaTopicSelector;
 import storm.trident.testing.MockTridentTuple;
@@ -40,7 +40,7 @@ public class TridentKafkaTest {
     private Config config;
     private KafkaConfig kafkaConfig;
     private SimpleConsumer simpleConsumer;
-    private TridentTupleToKafkaKeyAndMessageMapper mapper;
+    private TridentTupleToKafkaMapper mapper;
     private KafkaTopicSelector topicSelector;
 
     @Before
@@ -48,11 +48,11 @@ public class TridentKafkaTest {
         broker = new KafkaTestBroker();
         simpleConsumer = TestUtils.getKafkaConsumer(broker);
         config = TestUtils.getConfig(broker.getBrokerConnectionString());
-        mapper = new FieldNameBasedTupleToKafkaKeyAndMessageMapper("key", "message");
+        mapper = new FieldNameBasedTupleToKafkaMapper("key", "message");
         topicSelector = new DefaultTopicSelector(TestUtils.TOPIC);
         state = new TridentKafkaState()
                 .withKafkaTopicSelector(topicSelector)
-                .withTridentTupleToKafkaKeyAndMessageMapper(mapper);
+                .withTridentTupleToKafkaMapper(mapper);
         state.prepare(config);
     }
 

@@ -70,11 +70,11 @@ constructing and instance of FieldNameBasedTupleToKafkaKeyAndMessageMapper.
 This interface has only one method
 ```java
 public interface KafkaTopicSelector {
-    List<String> getTopics(Tuple/TridentTuple tuple);
+    String getTopics(Tuple/TridentTuple tuple);
 }
 ```
-The implementation of this interface should return topics to which the tuple's key/message mapping needs to be published 
-You can return an empty list but null is not acceptable. If you have one static topic name then you can use 
+The implementation of this interface should return topic to which the tuple's key/message mapping needs to be published 
+You can return a null and the message will be ignored. If you have one static topic name then you can use 
 DefaultTopicSelector.java and set the name of the topic in the constructor.
 
 ### Specifying kafka producer properties

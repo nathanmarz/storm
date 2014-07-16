@@ -229,16 +229,16 @@
                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
                        {}))
       ;; prevent them from launching by capturing them
-      (capture-changed-workers (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology))
-      (advance-cluster-time cluster 3)
-      (check-heartbeat cluster "sup" 3)
-      (advance-cluster-time cluster 3)
-      (check-heartbeat cluster "sup" 3)
-      (advance-cluster-time cluster 3)
-      (check-heartbeat cluster "sup" 3)
-      (advance-cluster-time cluster 20)
-      (check-heartbeat cluster "sup" 3)
-
+      (capture-changed-workers
+       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
+       (advance-cluster-time cluster 3)
+       (check-heartbeat cluster "sup" 3)
+       (advance-cluster-time cluster 3)
+       (check-heartbeat cluster "sup" 3)
+       (advance-cluster-time cluster 3)
+       (check-heartbeat cluster "sup" 3)
+       (advance-cluster-time cluster 20)
+       (check-heartbeat cluster "sup" 3))
       )))
 
 (deftest test-worker-launch-command

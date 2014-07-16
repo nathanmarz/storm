@@ -60,12 +60,12 @@ These interfaces have 2 methods defined:
 ```
 
 as the name suggests these methods are called to map a tuple to kafka key and kafka message. If you just want one field
-as key and one field as value then you can use the provided FieldNameBasedTupleToKafkaKeyAndMessageMapper.java 
+as key and one field as value then you can use the provided FieldNameBasedTupleToKafkaMapper.java 
 implementation. In the KafkaBolt, the implementation always looks for a field with field name "key" and "message" if you 
-use the default constructor to construct FieldNameBasedTupleToKafkaKeyAndMessageMapper for backward compatibility 
+use the default constructor to construct FieldNameBasedTupleToKafkaMapper for backward compatibility 
 reasons. Alternatively you could also specify a different key and message field by using the non default constructor.
 In the TridentKafkaState you must specify what is the field name for key and message as there is no default constructor.
-These should be specified while constructing and instance of FieldNameBasedTupleToKafkaKeyAndMessageMapper.
+These should be specified while constructing and instance of FieldNameBasedTupleToKafkaMapper.
 
 ###KafkaTopicSelector and trident KafkaTopicSelector
 This interface has only one method

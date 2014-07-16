@@ -63,7 +63,7 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     }
 
     public KafkaBolt<K,V> withTopicSelector(KafkaTopicSelector selector) {
-        this.topicSelector = topicSelector;
+        this.topicSelector = selector;
         return this;
     }
 

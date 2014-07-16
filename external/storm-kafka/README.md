@@ -78,7 +78,7 @@ You can return an empty list but null is not acceptable. If you have one static 
 DefaultTopicSelector.java and set the name of the topic in the constructor.
 
 ### Specifying kafka producer properties
-You can provide all the produce properties , see http://kafka.apache.org/07/configuration.html 
+You can provide all the produce properties , see http://kafka.apache.org/documentation.html#producerconfigs 
 section "Important configuration properties for the producer", in your storm topology config by setting the properties
 map with key kafka.broker.properties.
 

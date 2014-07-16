@@ -19,6 +19,8 @@ package storm.kafka.bolt.selector;
 
 import backtype.storm.tuple.Tuple;
 
-public interface KafkaTopicSelector {
+import java.io.Serializable;
+
+public interface KafkaTopicSelector extends Serializable {
     String getTopic(Tuple tuple);
 }

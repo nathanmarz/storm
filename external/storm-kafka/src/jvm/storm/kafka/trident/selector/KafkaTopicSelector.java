@@ -19,6 +19,8 @@ package storm.kafka.trident.selector;
 
 import storm.trident.tuple.TridentTuple;
 
-public interface KafkaTopicSelector {
+import java.io.Serializable;
+
+public interface KafkaTopicSelector extends Serializable {
     String getTopic(TridentTuple tuple);
 }

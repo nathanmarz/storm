@@ -19,8 +19,6 @@ package storm.kafka.bolt.selector;
 
 import backtype.storm.tuple.Tuple;
 
-import java.util.List;
-
 public interface KafkaTopicSelector {
-    List<String> getTopics(Tuple tuple);
+    String getTopic(Tuple tuple);
 }

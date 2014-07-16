@@ -91,14 +91,17 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     public void execute(Tuple input) {
         K key = null;
         V message = null;
+        String topic = null;
         try {
             key = mapper.getKeyFromTuple(input);
             message = mapper.getMessageFromTuple(input);
-            for(String topic : topicSelector.getTopics(input)) {
+            topic = topicSelector.getTopic(input);
+            if(topic != null ) {
                 producer.send(new KeyedMessage<K, V>(topic, key, message));
             }
         } catch (Exception ex) {
-            LOG.error("Could not send message with key '" + key + "' and value '" + message + "'", ex);
+            LOG.error("Could not send message with key = " + key
+                    + " and value = " + message + " to topic = " + topic, ex);
         } finally {
             collector.ack(input);
         }

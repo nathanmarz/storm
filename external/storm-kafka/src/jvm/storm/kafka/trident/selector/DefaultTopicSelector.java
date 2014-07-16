@@ -17,10 +17,7 @@
  */
 package storm.kafka.trident.selector;
 
-import com.google.common.collect.Lists;
 import storm.trident.tuple.TridentTuple;
-
-import java.util.List;
 
 public class DefaultTopicSelector implements KafkaTopicSelector {
 
@@ -31,7 +28,7 @@ public class DefaultTopicSelector implements KafkaTopicSelector {
     }
 
     @Override
-    public List<String> getTopics(TridentTuple tuple) {
-        return Lists.newArrayList(topicName);
+    public String getTopic(TridentTuple tuple) {
+        return topicName;
     }
 }

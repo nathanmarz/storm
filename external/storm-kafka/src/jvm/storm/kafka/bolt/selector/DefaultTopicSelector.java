@@ -18,9 +18,6 @@
 package storm.kafka.bolt.selector;
 
 import backtype.storm.tuple.Tuple;
-import com.google.common.collect.Lists;
-
-import java.util.List;
 
 public class DefaultTopicSelector implements KafkaTopicSelector {
 
@@ -31,7 +28,7 @@ public class DefaultTopicSelector implements KafkaTopicSelector {
     }
 
     @Override
-    public List<String> getTopics(Tuple tuple) {
-        return Lists.newArrayList(topicName);
+    public String getTopic(Tuple tuple) {
+        return topicName;
     }
 }

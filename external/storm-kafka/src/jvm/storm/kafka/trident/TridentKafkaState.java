@@ -79,14 +79,18 @@ public class TridentKafkaState implements State {
     }
 
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {
+        String topic = null;
         for (TridentTuple tuple : tuples) {
             try {
-                for(String topic : topicSelector.getTopics(tuple)) {
+                topic = topicSelector.getTopic(tuple);
+
+                if(topic != null) {
                     producer.send(new KeyedMessage(topic, mapper.getKeyFromTuple(tuple),
                             mapper.getMessageFromTuple(tuple)));
                 }
             } catch (Exception ex) {
-                String errorMsg = "Could not send message with key '" + mapper.getKeyFromTuple(tuple);
+                String errorMsg = "Could not send message with key = " + mapper.getKeyFromTuple(tuple)
+                        + " to topic = " + topic;
                 LOG.warn(errorMsg, ex);
                 throw new FailedException(errorMsg, ex);
             }

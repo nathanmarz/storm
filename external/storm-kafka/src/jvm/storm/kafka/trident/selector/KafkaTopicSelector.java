@@ -17,11 +17,8 @@
  */
 package storm.kafka.trident.selector;
 
-import backtype.storm.tuple.Tuple;
 import storm.trident.tuple.TridentTuple;
 
-import java.util.List;
-
 public interface KafkaTopicSelector {
-    List<String> getTopics(TridentTuple tuple);
+    String getTopic(TridentTuple tuple);
 }

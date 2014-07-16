@@ -22,8 +22,8 @@ Storm.prototype.sync = function() {
 
 Storm.prototype.sendPid = function(heartbeatdir) {
     var pid = process.pid;
-    this.sendMsgToParent({"pid": pid})
     fs.closeSync(fs.openSync(heartbeatdir + "/" + pid, "w"));
+    this.sendMsgToParent({"pid": pid})
 }
 
 Storm.prototype.log = function(msg) {

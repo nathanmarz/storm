@@ -1,5 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package storm.kafka.trident;
-
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -8,8 +24,12 @@ import com.google.common.collect.Lists;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
+import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.mapper.TridentTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.selector.KafkaTopicSelector;
 import storm.trident.operation.TridentCollector;
 import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
@@ -25,14 +45,21 @@ public class TridentKafkaState implements State {
     public static final String TOPIC = "topic";
     public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
-    public static final String KEY_FIELD = "keyFieldName";
-    public static final String MESSAGE_FIELD_NAME = "messageFieldName";
-
     private Producer producer;
     private OutputCollector collector;
-    private String topic;
-    private String keyField;
-    private String msgField;
+
+    private TridentTupleToKafkaKeyAndMessageMapper mapper;
+    private KafkaTopicSelector topicSelector;
+
+    public TridentKafkaState withTridentTupleToKafkaKeyAndMessageMapper(TridentTupleToKafkaKeyAndMessageMapper mapper) {
+        this.mapper = mapper;
+        return this;
+    }
+
+    public TridentKafkaState withKafkaTopicSelector(KafkaTopicSelector selector) {
+        this.topicSelector = selector;
+        return this;
+    }
 
     @Override
     public void beginCommit(Long txid) {
@@ -45,25 +72,24 @@ public class TridentKafkaState implements State {
     }
 
     public void prepare(Map stormConf) {
+        Validate.notNull(mapper, "mapper can not be null");
+        Validate.notNull(topicSelector, "topicSelector can not be null");
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
         properties.putAll(configMap);
         ProducerConfig config = new ProducerConfig(properties);
         producer = new Producer(config);
-        this.topic = (String) stormConf.get(TOPIC);
-        this.keyField = (String) stormConf.get(KEY_FIELD);
-        this.msgField = (String) stormConf.get(MESSAGE_FIELD_NAME);
     }
 
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {
         for (TridentTuple tuple : tuples) {
             try {
-                if( tuple.getValueByField(keyField) != null) {
-                    producer.send(new KeyedMessage(topic, tuple.getValueByField(keyField),
-                            tuple.getValueByField(msgField)));
+                for(String topic : topicSelector.getTopics(tuple)) {
+                    producer.send(new KeyedMessage(topic, mapper.getKeyFromTuple(tuple),
+                            mapper.getMessageFromTuple(tuple)));
                 }
             } catch (Exception ex) {
-                String errorMsg = "Could not send message with key '" + tuple.getValueByField(keyField);
+                String errorMsg = "Could not send message with key '" + mapper.getKeyFromTuple(tuple);
                 LOG.warn(errorMsg, ex);
                 throw new FailedException(errorMsg, ex);
             }

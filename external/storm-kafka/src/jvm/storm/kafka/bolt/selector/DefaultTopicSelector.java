@@ -15,17 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.kafka.trident;
+package storm.kafka.bolt.selector;
 
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
+import backtype.storm.tuple.Tuple;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
-public class TridentKafkaUpdater extends BaseStateUpdater<TridentKafkaState> {
+public class DefaultTopicSelector implements KafkaTopicSelector {
+
+    private final String topicName;
+
+    public DefaultTopicSelector(final String topicName) {
+        this.topicName = topicName;
+    }
+
     @Override
-    public void updateState(TridentKafkaState state, List<TridentTuple> tuples, TridentCollector collector) {
-        state.updateState(tuples, collector);
+    public List<String> getTopics(Tuple tuple) {
+        return Lists.newArrayList(topicName);
     }
 }

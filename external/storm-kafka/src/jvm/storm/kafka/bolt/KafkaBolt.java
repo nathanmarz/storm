@@ -29,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.bolt.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
 import storm.kafka.bolt.mapper.TupleToKafkaKeyAndMessageMapper;
+import storm.kafka.bolt.selector.DefaultTopicSelector;
+import storm.kafka.bolt.selector.KafkaTopicSelector;
 
 import java.util.Map;
 import java.util.Properties;
@@ -52,11 +54,16 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
     private Producer<K, V> producer;
     private OutputCollector collector;
-    private String topic;
     private TupleToKafkaKeyAndMessageMapper<K,V> mapper;
+    private KafkaTopicSelector topicSelector;
 
     public KafkaBolt<K,V> withTupleToKafkaKeyAndMessageMapper(TupleToKafkaKeyAndMessageMapper<K,V> mapper) {
         this.mapper = mapper;
+        return this;
+    }
+
+    public KafkaBolt<K,V> withTopicSelector(KafkaTopicSelector selector) {
+        this.topicSelector = topicSelector;
         return this;
     }
 
@@ -67,12 +74,16 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
             this.mapper = new FieldNameBasedTupleToKafkaKeyAndMessageMapper<K,V>();
         }
 
+        //for backward compatibility.
+        if(topicSelector == null) {
+            this.topicSelector = new DefaultTopicSelector((String) stormConf.get(TOPIC));
+        }
+
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
         properties.putAll(configMap);
         ProducerConfig config = new ProducerConfig(properties);
         producer = new Producer<K, V>(config);
-        this.topic = (String) stormConf.get(TOPIC);
         this.collector = collector;
     }
 
@@ -83,7 +94,9 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
         try {
             key = mapper.getKeyFromTuple(input);
             message = mapper.getMessageFromTuple(input);
-            producer.send(new KeyedMessage<K, V>(topic, key, message));
+            for(String topic : topicSelector.getTopics(input)) {
+                producer.send(new KeyedMessage<K, V>(topic, key, message));
+            }
         } catch (Exception ex) {
             LOG.error("Could not send message with key '" + key + "' and value '" + message + "'", ex);
         } finally {

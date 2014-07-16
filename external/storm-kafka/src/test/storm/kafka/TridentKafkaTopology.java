@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package storm.kafka;
 
 import backtype.storm.Config;
@@ -15,6 +32,8 @@ import storm.kafka.trident.GlobalPartitionInformation;
 import storm.kafka.trident.TridentKafkaState;
 import storm.kafka.trident.TridentKafkaStateFactory;
 import storm.kafka.trident.TridentKafkaUpdater;
+import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaKeyAndMessageMapper;
+import storm.kafka.trident.selector.DefaultTopicSelector;
 import storm.trident.Stream;
 import storm.trident.TridentTopology;
 import storm.trident.state.StateFactory;
@@ -39,7 +58,11 @@ public class TridentKafkaTopology {
 
         TridentTopology topology = new TridentTopology();
         Stream stream = topology.newStream("spout1", spout);
-        stream.partitionPersist(new TridentKafkaStateFactory(), fields, new TridentKafkaUpdater(), new Fields());
+
+        TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
+                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
+                .withTridentTupleToKafkaKeyAndMessageMapper(new FieldNameBasedTupleToKafkaKeyAndMessageMapper("word", "count"));
+        stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
 
         return topology.build();
     }
@@ -80,8 +103,6 @@ public class TridentKafkaTopology {
         props.put("serializer.class", "kafka.serializer.StringEncoder");
         conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
         conf.put(TridentKafkaState.TOPIC, "test");
-        conf.put(TridentKafkaState.KEY_FIELD, "word");
-        conf.put(TridentKafkaState.MESSAGE_FIELD_NAME, "count");
         return conf;
     }
 

@@ -98,6 +98,8 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
             topic = topicSelector.getTopic(input);
             if(topic != null ) {
                 producer.send(new KeyedMessage<K, V>(topic, key, message));
+            } else {
+                LOG.warn("skipping key = " + key + ", topic selector returned null.");
             }
         } catch (Exception ex) {
             LOG.error("Could not send message with key = " + key

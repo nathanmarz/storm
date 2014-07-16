@@ -38,8 +38,6 @@ import java.util.Properties;
 public class TridentKafkaState implements State {
     private static final Logger LOG = LoggerFactory.getLogger(TridentKafkaState.class);
 
-
-    public static final String TOPIC = "topic";
     public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
     private Producer producer;
@@ -87,6 +85,8 @@ public class TridentKafkaState implements State {
                 if(topic != null) {
                     producer.send(new KeyedMessage(topic, mapper.getKeyFromTuple(tuple),
                             mapper.getMessageFromTuple(tuple)));
+                } else {
+                    LOG.warn("skipping key = " + mapper.getKeyFromTuple(tuple) + ", topic selector returned null.");
                 }
             } catch (Exception ex) {
                 String errorMsg = "Could not send message with key = " + mapper.getKeyFromTuple(tuple)

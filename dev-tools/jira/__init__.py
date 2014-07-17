@@ -30,7 +30,7 @@ def jiratime(obj):
 		return None
 	return datetime.strptime(obj[0:19], "%Y-%m-%dT%H:%M:%S")
 
-githubUser = re.compile("Git[Hh]ub user (\w+)")
+githubUser = re.compile("Git[Hh]ub user ([\w-]+)")
 githubPull = re.compile("https://github.com/[^/\s]+/[^/\s]+/pull/[0-9]+")
 hasVote = re.compile("\s+([-+][01])\s*")
 isDiff = re.compile("--- End diff --")

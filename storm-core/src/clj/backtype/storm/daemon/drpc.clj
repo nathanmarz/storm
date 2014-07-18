@@ -158,10 +158,9 @@
                             (.protocolFactory (TBinaryProtocol$Factory.))
                             (.processor
                               (DistributedRPCInvocations$Processor. service-handler))))]
-
-      (.addShutdownHook
-        (Runtime/getRuntime)
-        (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
+      (add-shutdown-hook-with-force-kill-in-1-sec (fn []
+                                                    (.stop handler-server)
+                                                    (.stop invoke-server)))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (.serve handler-server))))

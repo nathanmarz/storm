@@ -119,16 +119,18 @@
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024]
   (let [zk-tmp (local-temp-path)
-        [zk-port zk-handle] (zk/mk-inprocess-zookeeper zk-tmp)
+        [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
+                              (zk/mk-inprocess-zookeeper zk-tmp))
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
-                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50}
-                           daemon-conf
-                           {STORM-CLUSTER-MODE "local"
-                            STORM-ZOOKEEPER-PORT zk-port
-                            STORM-ZOOKEEPER-SERVERS ["localhost"]})
+                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
+                            STORM-CLUSTER-MODE "local"}
+                           (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
+                             {STORM-ZOOKEEPER-PORT zk-port
+                              STORM-ZOOKEEPER-SERVERS ["localhost"]})
+                           daemon-conf)
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
@@ -142,7 +144,7 @@
                      :state (mk-distributed-cluster-state daemon-conf)
                      :storm-cluster-state (mk-storm-cluster-state daemon-conf)
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
-                     :zookeeper zk-handle
+                     :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context}
         supervisor-confs (if (sequential? supervisors)
                            supervisors
@@ -173,9 +175,11 @@
     ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
   (psim/kill-all-processes)
-  (log-message "Shutting down in process zookeeper")
-  (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
-  (log-message "Done shutting down in process zookeeper")
+  (if (not-nil? (:zookeeper cluster-map))
+    (do
+      (log-message "Shutting down in process zookeeper")
+      (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
+      (log-message "Done shutting down in process zookeeper")))
   (doseq [t @(:tmp-dirs cluster-map)]
     (log-message "Deleting temporary path " t)
     (try
@@ -194,7 +198,8 @@
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
-  [cluster-map]
+  ([cluster-map] (wait-until-cluster-waiting cluster-map TEST-TIMEOUT-MS))
+  ([cluster-map timeout-ms]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
         workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
@@ -203,12 +208,12 @@
                   supervisors
                   ; because a worker may already be dead
                   workers)]
-    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))
+    (while-timeout timeout-ms (not (every? (memfn waiting?) daemons))
                    (Thread/sleep 10)
                    ;;      (doseq [d daemons]
                    ;;        (if-not ((memfn waiting?) d)
                    ;;          (println d)))
-                   )))
+                   ))))
 
 (defn advance-cluster-time
   ([cluster-map secs increment-secs]
@@ -230,7 +235,10 @@
          (log-error t# "Error in cluster")
          (throw t#))
        (finally
-         (kill-local-storm-cluster ~cluster-sym)))))
+         (let [keep-waiting?# (atom true)]
+           (future (while @keep-waiting?# (simulate-wait ~cluster-sym)))
+           (kill-local-storm-cluster ~cluster-sym)
+           (reset! keep-waiting?# false))))))
 
 (defmacro with-simulated-time-local-cluster
   [& args]
@@ -447,7 +455,8 @@
    :mock-sources {}
    :storm-conf {}
    :cleanup-state true
-   :topology-name nil]
+   :topology-name nil
+   :timeout-ms TEST-TIMEOUT-MS]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
@@ -474,11 +483,11 @@
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
 
     (let [storm-id (common/get-storm-id state storm-name)]
-      (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
+      (while-timeout timeout-ms (not (every? exhausted? (spout-objects spouts)))
                      (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while-timeout TEST-TIMEOUT-MS (.assignment-info state storm-id nil)
+      (while-timeout timeout-ms (.assignment-info state storm-id nil)
                      (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -573,23 +582,25 @@
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."
   ([tracked-topology]
-   (tracked-wait tracked-topology 1))
+     (tracked-wait tracked-topology 1 TEST-TIMEOUT-MS))
   ([tracked-topology amt]
-   (let [target (+ amt @(:last-spout-emit tracked-topology))
-         track-id (-> tracked-topology :cluster ::track-id)
-         waiting? (fn []
-                    (or (not= target (global-amt track-id "spout-emitted"))
-                        (not= (global-amt track-id "transferred")
-                              (global-amt track-id "processed"))
-                        ))]
-     (while-timeout TEST-TIMEOUT-MS (waiting?)
-                    ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
-                    ;; (println "Processed: " (global-amt track-id "processed"))
-                    ;; (println "Transferred: " (global-amt track-id "transferred"))
-                    (Thread/sleep 500))
-     (reset! (:last-spout-emit tracked-topology) target))))
+     (tracked-wait tracked-topology amt TEST-TIMEOUT-MS))
+  ([tracked-topology amt timeout-ms]
+      (let [target (+ amt @(:last-spout-emit tracked-topology))
+            track-id (-> tracked-topology :cluster ::track-id)
+            waiting? (fn []
+                       (or (not= target (global-amt track-id "spout-emitted"))
+                           (not= (global-amt track-id "transferred")                                 
+                                 (global-amt track-id "processed"))
+                           ))]
+        (while-timeout TEST-TIMEOUT-MS (waiting?)
+                       ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
+                       ;; (println "Processed: " (global-amt track-id "processed"))
+                       ;; (println "Transferred: " (global-amt track-id "transferred"))
+                       (Thread/sleep 500))
+        (reset! (:last-spout-emit tracked-topology) target))))
 
-(defnk test-tuple
+(defnk test-tuple 
   [values
    :stream Utils/DEFAULT_STREAM_ID
    :component "component"

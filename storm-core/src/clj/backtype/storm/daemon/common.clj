@@ -104,7 +104,7 @@
         (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
-        (halt-process! 13 "Error on initialization")
+        (exit-process! 13 "Error on initialization")
         )))))
 
 (defn- validate-ids! [^StormTopology topology]

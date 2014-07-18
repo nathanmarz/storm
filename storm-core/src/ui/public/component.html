@@ -73,22 +73,32 @@ $(document).ready(function() {
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
-                $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                if(response["spoutSummary"].length > 0) {
+                    $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                }
                 outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
-                $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                if(response["outputStats"].length > 0) {
+                    $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                }
                 executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
-                $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+                if(response["executorStats"].length > 0) {
+                    $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+                }
             } else {
                 componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
-                $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                if(response["boltStats"].length > 0) {
+                    $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                }
                 inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
                 if (response["inputStats"].length > 0) {
                     $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
                 outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
-                $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
-                executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
                 if(response["outputStats"].length > 0) {
+                    $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                }
+                executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
+                if(response["executorStats"].length > 0) {
                     $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
             }

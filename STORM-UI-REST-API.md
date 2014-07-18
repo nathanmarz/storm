@@ -162,6 +162,8 @@ Response Fields:
 |spouts.transferred| Long |Total number of messages  transferred in given window|
 |spouts.tasks| Integer |Total number of tasks for the spout|
 |spouts.lastError| String |Shows the last error happened in a spout|
+|spouts.errorLapsedSecs| Integer | Number of seconds lapsed on nimbus since that last error happened in a spout|
+|spouts.errorWorkerLogLink| String | Link to the worker log that reported  the exception |
 |spouts.acked| Long |Number of messages acked|
 |spouts.failed| Long |Number of messages failed|
 |bolts| Array | Array of bolt components in the topology|
@@ -174,6 +176,8 @@ Response Fields:
 |bolts.acked| Long |Number of tuples acked by the bolt|
 |bolts.failed| Long |Number of tuples failed by the bolt|
 |bolts.lastError| String |Shows the last error occured in the bolt|
+|bolts.errorLapsedSecs| Integer |Number of seconds lapsed on nimbus since that last error happened in a bolt|
+|bolts.errorWorkerLogLink| String | Link to the worker log that reported  the exception |
 |bolts.emitted| Long |Number of tuples emitted|
 
 
@@ -246,6 +250,7 @@ Sample Response:
             "spoutId": "spout",
             "tasks": 5,
             "lastError": "",
+            "errorLapsedSecs": "",
             "failed": 0
         }
     ],
@@ -261,6 +266,7 @@ Sample Response:
             "processLatency": "0.043",
             "boltId": "count",
             "lastError": "",
+            "errorLapsedSecs": "",
             "capacity": "0.003",
             "failed": 0
         },
@@ -275,6 +281,7 @@ Sample Response:
             "processLatency": "2.112",
             "boltId": "split",
             "lastError": "",
+            "errorLapsedSecs": "",
             "capacity": "0.000",
             "failed": 0
         }
@@ -341,7 +348,13 @@ Response Fields:
 |componentType | String | component's type SPOUT or BOLT|
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
-|componentErrors| Array of Strings | List of component errors|
+|componentErrors| Array of Errors | List of component errors|
+|componentErrors.time| String | Date/time timezone for the error|
+|componentErrors.errorHost| String | host name for the error|
+|componentErrors.errorPort| String | port for the error|
+|componentErrors.error| String |Shows the error happened in a comopnent|
+|componentErrors.errorLapsedSecs| Integer | Number of seconds lapsed on nimbus since the error happened in a component |
+|componentErrors.errorWorkerLogLink| String | Link to the worker log that reported  the exception |
 |topologyId| String | Topology's Id|
 |tasks| Integer |Number of instances of component|
 |window    |String. Default value "All Time" | window duration for metrics in seconds|
@@ -375,7 +388,13 @@ Sample Response:
     "componentType": "spout",
     "windowHint": "10m 0s",
     "executors": 5,
-    "componentErrors": [],
+    "componentErrors":[{"time": "Fri, 18 Jul 2014 19:00:16 +0000",
+                        "errorHost": "10.11.1.70",
+                        "errorPort": 6701,
+                        "errorWorkerLogLink": "http://10.11.1.7:8000/log?file=worker-6701.log",
+                        "errorLapsedSecs": 16,
+                        "error": "java.lang.RuntimeException: java.lang.StringIndexOutOfBoundsException: Some Error\n\tat backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:128)\n\tat backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:99)\n\tat backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:80)\n\tat backtype...more.."
+    }],
     "topologyId": "WordCount3-1-1402960825",
     "tasks": 5,
     "window": "600",

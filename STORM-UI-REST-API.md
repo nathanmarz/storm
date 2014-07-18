@@ -162,22 +162,22 @@ Response Fields:
 |spouts.transferred| Long |Total number of messages  transferred in given window|
 |spouts.tasks| Integer |Total number of tasks for the spout|
 |spouts.lastError| String |Shows the last error happened in a spout|
-|spouts.errorLapsedSecs| Integer | Number of seconds lapsed on nimbus since that last error happened in a spout|
-|spouts.errorWorkerLogLink| String | Link to the worker log that reported  the exception |
+|spouts.errorLapsedSecs| Integer | Number of seconds elapsed since that last error happened in a spout|
+|spouts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |spouts.acked| Long |Number of messages acked|
 |spouts.failed| Long |Number of messages failed|
 |bolts| Array | Array of bolt components in the topology|
 |bolts.boltId| String |Bolt id|
-|bolts.capacity| String (double value returned in String format) |This value indicates number of mesages executed * average execute latency / time window|
+|bolts.capacity| String (double value returned in String format) |This value indicates number of messages executed * average execute latency / time window|
 |bolts.processLatency| String (double value returned in String format)  |Bolt's average time to ack a message after it's received|
 |bolts.executeLatency| String (double value returned in String format) |Average time for bolt's execute method |
 |bolts.executors| Integer |Number of executor tasks in the bolt component|
 |bolts.tasks| Integer |Number of instances of bolt|
 |bolts.acked| Long |Number of tuples acked by the bolt|
 |bolts.failed| Long |Number of tuples failed by the bolt|
-|bolts.lastError| String |Shows the last error occured in the bolt|
-|bolts.errorLapsedSecs| Integer |Number of seconds lapsed on nimbus since that last error happened in a bolt|
-|bolts.errorWorkerLogLink| String | Link to the worker log that reported  the exception |
+|bolts.lastError| String |Shows the last error occurred in the bolt|
+|bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
+|bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
 
 
@@ -352,9 +352,9 @@ Response Fields:
 |componentErrors.time| String | Date/time timezone for the error|
 |componentErrors.errorHost| String | host name for the error|
 |componentErrors.errorPort| String | port for the error|
-|componentErrors.error| String |Shows the error happened in a comopnent|
-|componentErrors.errorLapsedSecs| Integer | Number of seconds lapsed on nimbus since the error happened in a component |
-|componentErrors.errorWorkerLogLink| String | Link to the worker log that reported  the exception |
+|componentErrors.error| String |Shows the error happened in a component|
+|componentErrors.errorLapsedSecs| Integer | Number of seconds elapsed since the error happened in a component |
+|componentErrors.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |topologyId| String | Topology's Id|
 |tasks| Integer |Number of instances of component|
 |window    |String. Default value "All Time" | window duration for metrics in seconds|

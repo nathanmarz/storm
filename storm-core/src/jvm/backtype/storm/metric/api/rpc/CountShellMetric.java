@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,29 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-.js-only {
-    display: none;
-}
+package backtype.storm.metric.api.rpc;
 
-body {
-  color: #808080;
-  padding: 0.2em;
-}
+import backtype.storm.metric.api.CountMetric;
 
-table {
-  border-collapse: separate;
-}
-
-table th, table td {
-  line-height: 13.5px;
-  border-bottom: 1px solid #ddd;
-  border-top-style: none;
-}
-
-table th {
-  border-bottom-width: 2px;
-}
-
-.twipsy-inner {
-  font-size: 13px;
+public class CountShellMetric extends CountMetric implements IShellMetric {
+    /***
+     * @param
+     *  params should be null or long
+     *  if value is null, it will call incr()
+     *  if value is long, it will call incrBy((long)params)
+     * */
+    public void updateMetricFromRPC(Object value) {
+        if (value == null) {
+            incr();
+        } else if (value instanceof Long) {
+            incrBy((Long)value);
+        } else {
+            throw new RuntimeException("CountShellMetric updateMetricFromRPC params should be null or Long");
+        }
+    }
 }

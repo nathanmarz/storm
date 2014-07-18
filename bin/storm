@@ -424,6 +424,24 @@ def print_classpath():
     """
     print(get_classpath([]))
 
+def monitor(*args):
+    """Syntax: [storm monitor topology-name [-i interval-secs] [-m component-id] [-s stream-id] [-w [emitted | transferred]]]
+
+    Monitor given topology's throughput interactively.
+    One can specify poll-interval, component-id, stream-id, watch-item[emitted | transferred]
+    By default,
+        poll-interval is 4 seconds;
+        all component-ids will be list;
+        stream-id is 'default';
+        watch-item is 'emitted';
+    """
+    exec_storm_class(
+        "backtype.storm.command.monitor",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
+
 def print_commands():
     """Print all client commands and link to documentation"""
     print("Commands:\n\t" +  "\n\t".join(sorted(COMMANDS.keys())))
@@ -450,7 +468,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version}
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor}
 
 def parse_config(config_list):
     global CONFIG_OPTS

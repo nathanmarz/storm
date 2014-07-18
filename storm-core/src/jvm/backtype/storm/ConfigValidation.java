@@ -82,6 +82,76 @@ public class ConfigValidation {
     public static Object MapsValidator = FieldListValidatorFactory(Map.class);
 
     /**
+     * Validates a Integer.
+     */
+    public static Object IntegerValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            final long i;
+            if (o instanceof Number &&
+                    (i = ((Number)o).longValue()) == ((Number)o).doubleValue()) {
+                if (i <= Integer.MAX_VALUE && i >= Integer.MIN_VALUE) {
+                    return;
+                }
+            }
+
+            throw new IllegalArgumentException("Field " + name + " must be an Integer within type range.");
+        }
+    };
+
+    /**
+     * Validates is a list of Integers.
+     */
+    public static Object IntegersValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object field)
+                throws IllegalArgumentException {
+            if (field == null) {
+                // A null value is acceptable.
+                return;
+            }
+            if (field instanceof Iterable) {
+                for (Object o : (Iterable)field) {
+                    final long i;
+                    if (o instanceof Number &&
+                            ((i = ((Number)o).longValue()) == ((Number)o).doubleValue()) &&
+                            (i <= Integer.MAX_VALUE && i >= Integer.MIN_VALUE)) {
+                        // pass the test
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Each element of the list " + name + " must be an Integer within type range.");
+                    }
+                }
+                return;
+            }
+        }
+    };
+
+    /**
+     * Validates a Double.
+     */
+    public static Object DoubleValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+
+            // we can provide a lenient way to convert int/long to double with losing some precision
+            if (o instanceof Number) {
+                return;
+            }
+
+            throw new IllegalArgumentException("Field " + name + " must be an Double.");
+        }
+    };
+
+    /**
      * Validates a power of 2.
      */
     public static Object PowerOf2Validator = new FieldValidator() {

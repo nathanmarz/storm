@@ -198,7 +198,8 @@
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
-  [cluster-map]
+  ([cluster-map] (wait-until-cluster-waiting cluster-map TEST-TIMEOUT-MS))
+  ([cluster-map timeout-ms]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
         workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
@@ -207,12 +208,12 @@
                   supervisors
                   ; because a worker may already be dead
                   workers)]
-    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))
+    (while-timeout timeout-ms (not (every? (memfn waiting?) daemons))
                    (Thread/sleep 10)
                    ;;      (doseq [d daemons]
                    ;;        (if-not ((memfn waiting?) d)
                    ;;          (println d)))
-                   )))
+                   ))))
 
 (defn advance-cluster-time
   ([cluster-map secs increment-secs]
@@ -454,7 +455,8 @@
    :mock-sources {}
    :storm-conf {}
    :cleanup-state true
-   :topology-name nil]
+   :topology-name nil
+   :timeout-ms TEST-TIMEOUT-MS]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
@@ -481,11 +483,11 @@
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
 
     (let [storm-id (common/get-storm-id state storm-name)]
-      (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
+      (while-timeout timeout-ms (not (every? exhausted? (spout-objects spouts)))
                      (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while-timeout TEST-TIMEOUT-MS (.assignment-info state storm-id nil)
+      (while-timeout timeout-ms (.assignment-info state storm-id nil)
                      (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -580,23 +582,25 @@
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."
   ([tracked-topology]
-   (tracked-wait tracked-topology 1))
+     (tracked-wait tracked-topology 1 TEST-TIMEOUT-MS))
   ([tracked-topology amt]
-   (let [target (+ amt @(:last-spout-emit tracked-topology))
-         track-id (-> tracked-topology :cluster ::track-id)
-         waiting? (fn []
-                    (or (not= target (global-amt track-id "spout-emitted"))
-                        (not= (global-amt track-id "transferred")
-                              (global-amt track-id "processed"))
-                        ))]
-     (while-timeout TEST-TIMEOUT-MS (waiting?)
-                    ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
-                    ;; (println "Processed: " (global-amt track-id "processed"))
-                    ;; (println "Transferred: " (global-amt track-id "transferred"))
-                    (Thread/sleep 500))
-     (reset! (:last-spout-emit tracked-topology) target))))
+     (tracked-wait tracked-topology amt TEST-TIMEOUT-MS))
+  ([tracked-topology amt timeout-ms]
+      (let [target (+ amt @(:last-spout-emit tracked-topology))
+            track-id (-> tracked-topology :cluster ::track-id)
+            waiting? (fn []
+                       (or (not= target (global-amt track-id "spout-emitted"))
+                           (not= (global-amt track-id "transferred")                                 
+                                 (global-amt track-id "processed"))
+                           ))]
+        (while-timeout TEST-TIMEOUT-MS (waiting?)
+                       ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
+                       ;; (println "Processed: " (global-amt track-id "processed"))
+                       ;; (println "Transferred: " (global-amt track-id "transferred"))
+                       (Thread/sleep 500))
+        (reset! (:last-spout-emit tracked-topology) target))))
 
-(defnk test-tuple
+(defnk test-tuple 
   [values
    :stream Utils/DEFAULT_STREAM_ID
    :component "component"

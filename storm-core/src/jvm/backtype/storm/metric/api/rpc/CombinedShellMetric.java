@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,29 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-.js-only {
-    display: none;
-}
+package backtype.storm.metric.api.rpc;
 
-body {
-  color: #808080;
-  padding: 0.2em;
-}
+import backtype.storm.metric.api.CombinedMetric;
+import backtype.storm.metric.api.ICombiner;
 
-table {
-  border-collapse: separate;
-}
+public class CombinedShellMetric extends CombinedMetric implements IShellMetric {
+    public CombinedShellMetric(ICombiner combiner) {
+        super(combiner);
+    }
 
-table th, table td {
-  line-height: 13.5px;
-  border-bottom: 1px solid #ddd;
-  border-top-style: none;
-}
-
-table th {
-  border-bottom-width: 2px;
-}
-
-.twipsy-inner {
-  font-size: 13px;
+    public void updateMetricFromRPC(Object value) {
+        update(value);
+    }
 }

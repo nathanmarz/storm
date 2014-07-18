@@ -145,6 +145,13 @@ under the License.
 * Troy Ding ([@troyding](https://github.com/troyding)) 
 * Aaron Zimmerman ([@aaronzimmerman](https://github.com/aaronzimmerman))
 * Albert Chu ([@chu11](https://github.com/chu11))
+* Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
+* Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
+* Adrian Petrescu ([@apetresc](https://github.com/apetresc))
+* DashengJu ([@dashengju](https://github.com/dashengju))
+* Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
+* Li Jiahong ([@Gvain](https://github.com/Gvain))
+* Aaron Levin ([@aaronlevin](https://github.com/aaronlevin))
 
 ## Acknowledgements
 

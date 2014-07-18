@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,29 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-.js-only {
-    display: none;
-}
+package backtype.storm.metric.api.rpc;
 
-body {
-  color: #808080;
-  padding: 0.2em;
-}
+import backtype.storm.metric.api.IMetric;
 
-table {
-  border-collapse: separate;
-}
-
-table th, table td {
-  line-height: 13.5px;
-  border-bottom: 1px solid #ddd;
-  border-top-style: none;
-}
-
-table th {
-  border-bottom-width: 2px;
-}
-
-.twipsy-inner {
-  font-size: 13px;
+public interface IShellMetric extends IMetric {
+    /***
+     * @function
+     *     This interface is used by ShellBolt and ShellSpout through RPC call to update Metric 
+     * @param
+     *     value used to update metric, its's meaning change according implementation
+     *     Object can be any json support types: String, Long, Double, Boolean, Null, List, Map
+     * */
+    public void updateMetricFromRPC(Object value);
 }

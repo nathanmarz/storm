@@ -19,6 +19,9 @@ package backtype.storm.task;
 
 import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.rpc.IShellMetric;
+import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.ShellProcess;
 import backtype.storm.multilang.BoltMsg;
@@ -76,6 +79,8 @@ public class ShellBolt implements IBolt {
 
     private Thread _readerThread;
     private Thread _writerThread;
+    
+    private TopologyContext _context;
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -93,6 +98,9 @@ public class ShellBolt implements IBolt {
         }
         _rand = new Random();
         _collector = collector;
+
+        _context = context;
+
         _process = new ShellProcess(_command);
 
         //subprocesses must send their pid first thing
@@ -115,9 +123,11 @@ public class ShellBolt implements IBolt {
                             handleError(shellMsg.getMsg());
                         } else if (command.equals("log")) {
                             String msg = shellMsg.getMsg();
-                            LOG.info("Shell msg: " + msg);
+                            LOG.info("Shell msg: " + msg + _process.getProcessInfoString());
                         } else if (command.equals("emit")) {
                             handleEmit(shellMsg);
+                        } else if (command.equals("metrics")) {
+                            handleMetrics(shellMsg);
                         }
                     } catch (InterruptedException e) {
                     } catch (Throwable t) {
@@ -170,7 +180,8 @@ public class ShellBolt implements IBolt {
 
             _pendingWrites.put(boltMsg);
         } catch(InterruptedException e) {
-            throw new RuntimeException("Error during multilang processing", e);
+            String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+            throw new RuntimeException("Error during multilang processing " + processInfo, e);
         }
     }
 
@@ -223,8 +234,38 @@ public class ShellBolt implements IBolt {
                     shellMsg.getStream(), anchors, shellMsg.getTuple());
         }
     }
+    
+    private void handleMetrics(ShellMsg shellMsg) {
+        //get metric name
+        String name = shellMsg.getMetricName();
+        if (name.isEmpty()) {
+            throw new RuntimeException("Receive Metrics name is empty");
+        }
+        
+        //get metric by name
+        IMetric iMetric = _context.getRegisteredMetricByName(name);
+        if (iMetric == null) {
+            throw new RuntimeException("Could not find metric by name["+name+"] ");
+        }
+        if ( !(iMetric instanceof IShellMetric)) {
+            throw new RuntimeException("Metric["+name+"] is not IShellMetric, can not call by RPC");
+        }
+        IShellMetric iShellMetric = (IShellMetric)iMetric;
+        
+        //call updateMetricFromRPC with params
+        Object paramsObj = shellMsg.getMetricParams();
+        try {
+            iShellMetric.updateMetricFromRPC(paramsObj);
+        } catch (RuntimeException re) {
+            throw re;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }       
+    }
 
     private void die(Throwable exception) {
-        _exception = exception;
+        String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+        _exception = new RuntimeException(processInfo, exception);
     }
+
 }

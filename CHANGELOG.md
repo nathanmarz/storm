@@ -19,6 +19,7 @@
  * STORM-328: More restrictive Config checks, strict range check within Utils.getInt()
  * STORM-381: Replace broken jquery.tablesorter.min.js to latest
  * STORM-312: add storm monitor tools to monitor throughtput interactively
+ * STORM-354: Testing: allow users to pass TEST-TIMEOUT-MS as param for complete-topology
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

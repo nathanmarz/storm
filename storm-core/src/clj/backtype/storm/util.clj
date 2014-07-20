@@ -204,6 +204,8 @@
   []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
 
+(def memoized-local-hostname (memoize local-hostname))
+
 (letfn [(try-port [port]
                   (with-open [socket (java.net.ServerSocket. port)]
                     (.getLocalPort socket)))]

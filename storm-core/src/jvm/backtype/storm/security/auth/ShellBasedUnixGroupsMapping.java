@@ -23,7 +23,10 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.StringTokenizer;
+import backtype.storm.Config;
+import backtype.storm.utils.Utils;
 import backtype.storm.utils.ShellUtils;
+import backtype.storm.utils.TimeCacheMap;
 import backtype.storm.utils.ShellUtils.ExitCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,12 +36,17 @@ public class ShellBasedUnixGroupsMapping implements
                                              IGroupMappingServiceProvider {
 
     public static Logger LOG = LoggerFactory.getLogger(ShellBasedUnixGroupsMapping.class);
+    public TimeCacheMap<String, Set<String>> cachedGroups;
 
     /**
      * Invoked once immediately after construction
      * @param storm_conf Storm configuration
      */
-    public void prepare(Map storm_conf) {}
+    @Override
+    public void prepare(Map storm_conf) {
+        int timeout = Utils.getInt(storm_conf.get(Config.STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS));
+        cachedGroups = new TimeCacheMap<String, Set<String>>(timeout);
+    }
 
     /**
      * Returns list of groups for a user
@@ -48,15 +56,13 @@ public class ShellBasedUnixGroupsMapping implements
      */
     @Override
     public Set<String> getGroups(String user) throws IOException {
-        return getUnixGroups(user);
-    }
-
-    @Override
-    public void cacheGroupsRefresh() throws IOException {
-    }
-
-    @Override
-    public void cacheGroupsAdd(Set<String> groups) throws IOException {
+        if(cachedGroups.containsKey(user)) {
+            return cachedGroups.get(user);
+        }
+        Set<String> groups = getUnixGroups(user);
+        if(!groups.isEmpty())
+            cachedGroups.put(user,groups);
+        return groups;
     }
 
     /**

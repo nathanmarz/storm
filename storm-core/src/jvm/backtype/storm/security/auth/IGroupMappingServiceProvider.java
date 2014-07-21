@@ -39,16 +39,4 @@ public interface IGroupMappingServiceProvider {
      */
     public Set<String> getGroups(String user) throws IOException;
 
-    /**
-     * Refresh the cache of groups and user mapping
-     * @throws IOException
-     */
-    public void cacheGroupsRefresh() throws IOException;
-    /**
-     * Caches the group user information
-     * @param groups list of groups to add to cache
-     * @throws IOException
-     */
-    public void cacheGroupsAdd(Set<String> groups) throws IOException;
-
 }

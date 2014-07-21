@@ -20,6 +20,7 @@
  * STORM-381: Replace broken jquery.tablesorter.min.js to latest
  * STORM-312: add storm monitor tools to monitor throughtput interactively
  * STORM-354: Testing: allow users to pass TEST-TIMEOUT-MS as param for complete-topology
+ * STORM-254: one Spout/Bolt can register metric twice with same name in different timeBucket
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

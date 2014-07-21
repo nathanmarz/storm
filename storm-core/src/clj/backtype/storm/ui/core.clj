@@ -321,9 +321,8 @@
 
 (defn get-error-time
   [error]
-  (if error 
-     (time-delta (.get_error_time_secs ^ErrorInfo error))
-     ""))
+  (if error
+    (time-delta (.get_error_time_secs ^ErrorInfo error))))
 
 (defn get-error-data
   [error]

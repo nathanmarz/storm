@@ -250,7 +250,7 @@ Sample Response:
             "spoutId": "spout",
             "tasks": 5,
             "lastError": "",
-            "errorLapsedSecs": "",
+            "errorLapsedSecs": null
             "failed": 0
         }
     ],
@@ -266,7 +266,7 @@ Sample Response:
             "processLatency": "0.043",
             "boltId": "count",
             "lastError": "",
-            "errorLapsedSecs": "",
+            "errorLapsedSecs": null
             "capacity": "0.003",
             "failed": 0
         },
@@ -281,7 +281,7 @@ Sample Response:
             "processLatency": "2.112",
             "boltId": "split",
             "lastError": "",
-            "errorLapsedSecs": "",
+            "errorLapsedSecs": null
             "capacity": "0.000",
             "failed": 0
         }

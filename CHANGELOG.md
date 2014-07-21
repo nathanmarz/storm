@@ -22,6 +22,7 @@
  * STORM-354: Testing: allow users to pass TEST-TIMEOUT-MS as param for complete-topology
  * STORM-254: one Spout/Bolt can register metric twice with same name in different timeBucket
  * STORM-403: heartbeats-to-nimbus in supervisor-test failed due to uninten...
+ * STORM-402: FileNotFoundException when using storm with apache tika
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

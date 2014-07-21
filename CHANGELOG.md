@@ -21,6 +21,7 @@
  * STORM-312: add storm monitor tools to monitor throughtput interactively
  * STORM-354: Testing: allow users to pass TEST-TIMEOUT-MS as param for complete-topology
  * STORM-254: one Spout/Bolt can register metric twice with same name in different timeBucket
+ * STORM-403: heartbeats-to-nimbus in supervisor-test failed due to uninten...
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

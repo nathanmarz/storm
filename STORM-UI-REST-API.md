@@ -342,6 +342,8 @@ Response Fields:
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
 |componentErrors| Array of Strings | List of component errors|
+|componentErrors.time| Long | Timestamp when the exception occurred |
+|componentErrors.error| String | The stack trace of an exception info |
 |topologyId| String | Topology's Id|
 |tasks| Integer |Number of instances of component|
 |window    |String. Default value "All Time" | window duration for metrics in seconds|
@@ -375,7 +377,26 @@ Sample Response:
     "componentType": "spout",
     "windowHint": "10m 0s",
     "executors": 5,
-    "componentErrors": [],
+    "componentErrors": [
+    	{
+    		"time":1406006074000,
+    		"error":"java.lang.RuntimeException: java.lang.NullPointerException
+	at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:84)
+	at backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:55)
+	at backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:56)
+	at backtype.storm.disruptor$consume_loop_STAR_$fn__1597.invoke(disruptor.clj:67)
+	at backtype.storm.util$async_loop$fn__465.invoke(util.clj:377)
+	at clojure.lang.AFn.run(AFn.java:24)
+	at java.lang.Thread.run(Thread.java:662)
+Caused by: java.lang.NullPointerException
+	at backtype.storm.serialization.SerializationFactory$IdDictionary.getStreamName(SerializationFactory.java:137)
+	at backtype.storm.serialization.KryoTupleDeserializer.deserialize(KryoTupleDeserializer.java:34)
+	at backtype.storm.daemon.executor$mk_task_receiver$fn__3967.invoke(executor.clj:311)
+	at backtype.storm.disruptor$clojure_handler$reify__1585.onEvent(disruptor.clj:43)
+	at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:81)
+	... 6 more"
+    	}
+    ],
     "topologyId": "WordCount3-1-1402960825",
     "tasks": 5,
     "window": "600",

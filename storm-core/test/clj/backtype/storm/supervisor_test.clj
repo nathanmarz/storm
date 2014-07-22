@@ -358,9 +358,9 @@
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m"
-           expected-childopts ["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m"]
-           childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port)]
-      (is (= expected-childopts (vec childopts-with-ids))))))
+           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+           childopts-with-ids (seq (supervisor/substitute-childopts childopts worker-id storm-id port))]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-happy-path-list
   (testing "worker-launcher replaces ids in childopts"
@@ -368,9 +368,9 @@
            storm-id "s-01"
            port 9999
            childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m")
-           expected-childopts ["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m"]
-           childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port)]
-      (is (= expected-childopts (vec childopts-with-ids))))))
+           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+           childopts-with-ids (seq (supervisor/substitute-childopts childopts worker-id storm-id port))]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-storm-id-alone
   (testing "worker-launcher replaces ids in childopts"
@@ -378,9 +378,9 @@
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%STORM-ID%.log"
-           expected-childopts ["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-s-01.log"]
-           childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port)]
-      (is (= expected-childopts (vec childopts-with-ids))))))
+           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-s-01.log")
+           childopts-with-ids (seq (supervisor/substitute-childopts childopts worker-id storm-id port))]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-no-keys
   (testing "worker-launcher has no ids to replace in childopts"
@@ -388,9 +388,9 @@
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"
-           expected-childopts ["-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"]
-           childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port)]
-      (is (= expected-childopts (vec childopts-with-ids))))))
+           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log")
+           childopts-with-ids (seq (supervisor/substitute-childopts childopts worker-id storm-id port))]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-childopts
   (testing "worker-launcher has nil childopts"
@@ -408,7 +408,7 @@
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"
-           expected-childopts ["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01--9999.log"]
-           childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port)]
-      (is (= expected-childopts (vec childopts-with-ids))))))
+           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01--9999.log")
+           childopts-with-ids (seq (supervisor/substitute-childopts childopts worker-id storm-id port))]
+      (is (= expected-childopts childopts-with-ids)))))
 

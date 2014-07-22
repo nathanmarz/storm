@@ -473,11 +473,10 @@
                            (apply clojure.string/replace string entry))
                          % 
                          replacement-map)]
-    (if-not (nil? value)
-      (if (list? value)
-        (map sub-fn value)
-        (-> value sub-fn (.split " ")))
-      nil)))
+    (cond
+      (nil? value) nil
+      (list? value) (map sub-fn value)
+      :else  (-> value sub-fn (.split " ")))))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]

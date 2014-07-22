@@ -115,7 +115,8 @@ public class KafkaUtils {
                         }
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
                         long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
-                        if (latestTimeOffset == 0 || earliestTimeOffset == 0) {
+                        //if (latestTimeOffset == 0 || earliestTimeOffset == 0) {
+                        if (latestTimeOffset == 0) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }

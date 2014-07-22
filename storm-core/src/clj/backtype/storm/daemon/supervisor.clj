@@ -465,18 +465,18 @@
 (defn substitute-childopts 
   "Generates runtime childopts by replacing keys with storm-id, worker-id, port"
   [value worker-id storm-id port]
-  (let [replacement-map {"%ID%"           (str port)
-                          "%WORKER-ID%"   (str worker-id)
-                          "%STORM-ID%"    (str storm-id)
-                          "%WORKER-PORT%" (str port)}
-         sub-fn #(reduce (fn [string entry]
-                           (apply clojure.string/replace string entry))
-                         % 
-                         replacement-map)]
+  (let [replacement-map {"%ID%"          (str port)
+                         "%WORKER-ID%"   (str worker-id)
+                         "%STORM-ID%"    (str storm-id)
+                         "%WORKER-PORT%" (str port)}
+        sub-fn #(reduce (fn [string entry]
+                          (apply clojure.string/replace string entry))
+                        % 
+                        replacement-map)]
     (cond
       (nil? value) nil
       (list? value) (map sub-fn value)
-      :else  (-> value sub-fn (clojure.string/split #"\s+")))))
+      :else (-> value sub-fn (clojure.string/split #"\s+")))))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]

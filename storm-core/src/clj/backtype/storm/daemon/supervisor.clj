@@ -476,7 +476,7 @@
     (cond
       (nil? value) nil
       (list? value) (map sub-fn value)
-      :else  (-> value sub-fn (.split " ")))))
+      :else  (-> value sub-fn (clojure.string/split #"\s+")))))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]

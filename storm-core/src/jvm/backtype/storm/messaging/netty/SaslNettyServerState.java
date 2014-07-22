@@ -18,26 +18,14 @@
 package backtype.storm.messaging.netty;
 
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
+import org.jboss.netty.channel.ChannelLocal;
 
-public class MessageEncoder extends OneToOneEncoder {    
-    @Override
-    protected Object encode(ChannelHandlerContext ctx, Channel channel, Object obj) throws Exception {
-        if (obj instanceof ControlMessage) {
-            return ((ControlMessage)obj).buffer();
-        }
+final class SaslNettyServerState {
 
-        if (obj instanceof MessageBatch) {
-            return ((MessageBatch)obj).buffer();
-        } 
-        
-        if (obj instanceof SaslMessageToken) {
-        	return ((SaslMessageToken)obj).buffer();
-        }
-        
-        throw new RuntimeException("Unsupported encoding of object of class "+obj.getClass().getName());
-    }
-
+	public static final ChannelLocal<SaslNettyServer> getSaslNettyServer = new ChannelLocal<SaslNettyServer>() {
+		protected SaslNettyServer initialValue(Channel channel) {
+			return null;
+		}
+	};
 
 }

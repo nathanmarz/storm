@@ -21,6 +21,8 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
+import backtype.storm.Config;
+
 class StormClientPipelineFactory implements ChannelPipelineFactory {
     private Client client;
 
@@ -32,12 +34,24 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = Channels.pipeline();
 
-        // Decoder
-        pipeline.addLast("decoder", new MessageDecoder());
-        // Encoder
-        pipeline.addLast("encoder", new MessageEncoder());
-        // business logic.
-        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
+        boolean isNettyAuth = (Boolean) this.client.storm_conf.get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
+        if(isNettyAuth) {
+	        // Decoder
+	        pipeline.addLast("decoder", new MessageDecoder());
+	        // Encoder
+	        pipeline.addLast("encoder", new MessageEncoder());
+	        // Authenticate: Removed after authentication completes
+	        pipeline.addLast("saslClientHandler", new SaslStormClientHandler(client));
+	        // business logic.
+	        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
+        } else {
+        	// Decoder
+	        pipeline.addLast("decoder", new MessageDecoder());
+	        // Encoder
+	        pipeline.addLast("encoder", new MessageEncoder());
+	        // business logic.
+	        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
+        }
 
         return pipeline;
     }

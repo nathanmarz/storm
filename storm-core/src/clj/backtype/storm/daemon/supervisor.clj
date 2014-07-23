@@ -78,7 +78,7 @@
             assignments)
           (catch RuntimeException e
             (if (> @retries 2) (throw e) (swap! retries inc))
-            (log-warn (.getMessage e))
+            (log-warn (.getMessage e) ": retrying " @retries " of 3")
             existing-assignment))))
 
 (defn- read-storm-code-locations

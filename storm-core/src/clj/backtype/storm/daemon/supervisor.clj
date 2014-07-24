@@ -14,8 +14,9 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
-  (:import [backtype.storm.scheduler ISupervisor])
-  (:import [java.net URI])
+  (:import [backtype.storm.scheduler ISupervisor]
+           [java.net JarURLConnection]
+           [java.net URI])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -36,13 +37,23 @@
   (shutdown-all-workers [this])
   )
 
-(defn- assignments-snapshot [storm-cluster-state callback]
+(defn- assignments-snapshot [storm-cluster-state callback assignment-versions]
   (let [storm-ids (.assignments storm-cluster-state callback)]
-     (->> (dofor [sid storm-ids] {sid (.assignment-info storm-cluster-state sid callback)})
-          (apply merge)
-          (filter-val not-nil?)
-          )))
-
+    (let [new-assignments 
+          (->>
+           (dofor [sid storm-ids] 
+                  (let [recorded-version (:version (get assignment-versions sid))]
+                    (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
+                      (if (= assignment-version recorded-version)
+                        {sid (get assignment-versions sid)}
+                        {sid (.assignment-info-with-version storm-cluster-state sid callback)})
+                      {sid nil})))
+           (apply merge)
+           (filter-val not-nil?))]
+          
+      {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
+       :versions new-assignments})))
+  
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -202,6 +213,7 @@
                                (log-error t "Error when processing event")
                                (exit-process! 20 "Error when processing an event")
                                ))
+   :assignment-versions (atom {})
    })
 
 (defn sync-processes [supervisor]
@@ -298,7 +310,10 @@
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
-          assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
+          assignment-versions @(:assignment-versions supervisor)
+          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
+                                                                   storm-cluster-state sync-callback 
+                                                                   assignment-versions)
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           all-assignment (read-assignments
@@ -341,6 +356,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
+      (swap! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
@@ -523,20 +539,21 @@
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
-            ;; Work-around for JDK-4466485
-            uri (if-let [url (.getResource classloader RESOURCES-SUBDIR)]
-                  (URI. (str url)))
+            url (.getResource classloader RESOURCES-SUBDIR)
             target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
             (cond
               resources-jar
               (do
                 (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
                 (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
-              uri
+              url
               (do
-                (log-message "Copying resources at " (.getPath uri) " to " target-dir)
-                (FileUtils/copyDirectory (File. (.getPath uri)) (File. target-dir))
-                ))
+                (log-message "Copying resources at " (URI. (str url)) " to " target-dir)
+                (if (= (.getProtocol url) "jar" )
+                    (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
+                    (FileUtils/copyDirectory (File. (.getPath (URI. (str url)))) (File. target-dir)))
+                )
+              )
             )))
 
 (defmethod launch-worker

@@ -28,7 +28,8 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port]
+(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port assignment-versions]
+  (log-message "Reading Assignments.")
   (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
      (concat     
@@ -175,10 +176,11 @@
             :timer-name timer-name))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
-  (let [cluster-state (cluster/mk-distributed-cluster-state conf)
+  (let [assignment-versions (atom {})
+        cluster-state (cluster/mk-distributed-cluster-state conf)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
         storm-conf (read-supervisor-storm-conf conf storm-id)
-        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
+        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
         transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
@@ -230,6 +232,7 @@
       :transfer-local-fn (mk-transfer-local-fn <>)
       :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
       :transfer-fn (mk-transfer-fn <>)
+      :assignment-versions assignment-versions
       )))
 
 (defn- endpoint->string [[node port]]
@@ -249,7 +252,12 @@
       ([]
         (this (fn [& ignored] (schedule (:refresh-connections-timer worker) 0 this))))
       ([callback]
-        (let [assignment (.assignment-info storm-cluster-state storm-id callback)
+         (let [version (.assignment-version storm-cluster-state storm-id callback)
+               assignment (if (= version (:version (get @(:assignment-versions worker) storm-id)))
+                            (:data (get @(:assignment-versions worker) storm-id))
+                            (let [new-assignment (.assignment-info-with-version storm-cluster-state storm-id callback)]
+                              (swap! (:assignment-versions worker) assoc storm-id new-assignment)
+                              (:data new-assignment)))
               my-assignment (-> assignment
                                 :executor->node+port
                                 to-task->node+port

@@ -149,6 +149,12 @@ under the License.
 * Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 * Adrian Petrescu ([@apetresc](https://github.com/apetresc))
 * DashengJu ([@dashengju](https://github.com/dashengju))
+* Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
+* Li Jiahong ([@Gvain](https://github.com/Gvain))
+* Aaron Levin ([@aaronlevin](https://github.com/aaronlevin))
+* Masatake Iwasaki ([@iwasakims](https://github.com/iwasakims))
+* Milad Fatenejad ([@icksa](https://github.com/icksa))
+* Ryan Liu ([@shell0dh](https://github.com/shell0dh))
 
 ## Acknowledgements
 

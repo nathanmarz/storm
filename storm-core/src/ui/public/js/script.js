@@ -121,6 +121,15 @@ function formatConfigData(data) {
     return mustacheFormattedData;
 }
 
+function formatErrorTimeSecs(response){
+    var errors = response["componentErrors"];
+    for(var i = 0 ; i < errors.length ; i++){
+        var time = errors[i]['time'];
+        errors[i]['time'] = moment.utc(time).local().format("ddd, DD MMM YYYY HH:mm:ss Z");
+    }
+    return response;
+}
+
 
 function renderToggleSys(div) {
     var sys = $.cookies.get("sys") || false;

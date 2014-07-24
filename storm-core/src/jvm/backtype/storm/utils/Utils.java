@@ -305,7 +305,7 @@ public class Utils {
     public static Integer getInt(Object o) {
       Integer result = getInt(o, null);
       if (null == result) {
-        throw new IllegalArgumentException("Don't know how to convert null + to int");
+        throw new IllegalArgumentException("Don't know how to convert null to int");
       }
       return result;
     }
@@ -314,16 +314,19 @@ public class Utils {
       if (null == o) {
         return defaultValue;
       }
-      
-      if(o instanceof Long) {
-          return ((Long) o ).intValue();
-      } else if (o instanceof Integer) {
-          return (Integer) o;
-      } else if (o instanceof Short) {
-          return ((Short) o).intValue();
-      } else {
-          throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
+
+      if (o instanceof Integer ||
+          o instanceof Short ||
+          o instanceof Byte) {
+          return ((Number) o).intValue();
+      } else if (o instanceof Long) {
+          final long l = (Long) o;
+          if (l <= Integer.MAX_VALUE && l >= Integer.MIN_VALUE) {
+              return (int) l;
+          }
       }
+
+      throw new IllegalArgumentException("Don't know how to convert " + o + " to int");
     }
 
     public static boolean getBoolean(Object o, boolean defaultValue) {

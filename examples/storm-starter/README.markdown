@@ -74,6 +74,9 @@ of Storm in this local Maven repository at `$HOME/.m2/repository`.
 
 ## Running topologies with Maven
 
+Note: All following examples require that you run `cd examples/storm-starter`
+beforehand.
+
 storm-starter topologies can be run with the maven-exec-plugin. For example, to
 compile and run `WordCountTopology` in local mode, use the command:
 

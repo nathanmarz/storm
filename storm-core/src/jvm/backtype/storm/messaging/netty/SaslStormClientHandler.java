@@ -38,12 +38,12 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
 	long start_time;
 	/** Used for client or server's token to send or receive from each other. */
 	private byte[] token;
-	private String topologyUser;
+	private String topologyName;
 
 	public SaslStormClientHandler(Client client) throws IOException {
 		this.client = client;
 		start_time = System.currentTimeMillis();
-		loadTopologyToken();
+		getSASLCredentials();
 	}
 
 	@Override
@@ -62,7 +62,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
 			if (saslNettyClient == null) {
 				LOG.debug("Creating saslNettyClient now " + "for channel: "
 						+ channel);
-				saslNettyClient = new SaslNettyClient(topologyUser);
+				saslNettyClient = new SaslNettyClient(topologyName, token);
 				SaslNettyClientState.getSaslNettyClient.set(channel,
 						saslNettyClient);
 			}
@@ -143,17 +143,13 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
 		channel.write(saslResponse);
 	}
 
-	/**
-	 * Load Storm Topology Token.
-	 * 
-	 * @param conf
-	 *            Configuration
-	 * @throws IOException
-	 */
-	private void loadTopologyToken() throws IOException {
-		topologyUser = (String) this.client.storm_conf
+	private void getSASLCredentials() throws IOException {
+		topologyName = (String) this.client.storm_conf
 				.get(Config.TOPOLOGY_NAME);
-		LOG.debug("SASL credentials is the storm user name: " + topologyUser);
-		token = topologyUser.getBytes();
+		String secretKey = SaslUtils.getSecretKey(this.client.storm_conf);
+		if(secretKey!=null) {
+			token = secretKey.getBytes();	
+		}
+		LOG.debug("SASL credentials for storm topology "+topologyName+ " is "+secretKey);
 	}
 }

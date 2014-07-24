@@ -50,7 +50,7 @@ public class SaslNettyClient {
 	/**
 	 * Create a SaslNettyClient for authentication with servers.
 	 */
-	public SaslNettyClient(String topologyUser) {
+	public SaslNettyClient(String topologyName, byte[] token) {
 		try {
 			LOG.debug("SaslNettyClient: Creating SASL "
 					+ SaslUtils.AUTH_DIGEST_MD5
@@ -59,7 +59,7 @@ public class SaslNettyClient {
 			saslClient = Sasl.createSaslClient(
 					new String[] { SaslUtils.AUTH_DIGEST_MD5 }, null, null,
 					SaslUtils.DEFAULT_REALM, SaslUtils.getSaslProps(),
-					new SaslClientCallbackHandler(topologyUser));
+					new SaslClientCallbackHandler(topologyName, token));
 
 		} catch (IOException e) {
 			LOG.error("SaslNettyClient: Could not obtain topology token for Netty "
@@ -107,11 +107,10 @@ public class SaslNettyClient {
 		 * 
 		 * @param topologyToken
 		 */
-		public SaslClientCallbackHandler(String topologyToken) {
+		public SaslClientCallbackHandler(String topologyToken, byte[] token) {
 			this.userName = SaslUtils
 					.encodeIdentifier(topologyToken.getBytes());
-			this.userPassword = SaslUtils.encodePassword(topologyToken
-					.getBytes());
+			this.userPassword = SaslUtils.encodePassword(token);
 		}
 
 		/**

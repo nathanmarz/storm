@@ -35,14 +35,14 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 	Server server;
 	/** Used for client or server's token to send or receive from each other. */
 	private byte[] token;
-	private String topologyUser;
+	private String topologyName;
 
 	private static final Logger LOG = LoggerFactory
 			.getLogger(SaslStormServerHandler.class);
 
 	public SaslStormServerHandler(Server server) throws IOException {
 		this.server = server;
-		loadTopologyToken();
+		getSASLCredentials();
 	}
 
 	@Override
@@ -53,7 +53,6 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 			return;
 
 		Channel channel = ctx.getChannel();
-		LOG.debug("messageReceived: Got " + msg.getClass());
 
 		if (msg instanceof ControlMessage
 				&& ((ControlMessage) e.getMessage()) == ControlMessage.SASL_TOKEN_MESSAGE_REQUEST) {
@@ -66,7 +65,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 				LOG.debug("No saslNettyServer for " + channel
 						+ " yet; creating now, with topology token: ");
 				try {
-					saslNettyServer = new SaslNettyServer(topologyUser);
+					saslNettyServer = new SaslNettyServer(topologyName, token);
 				} catch (IOException ioe) {
 					LOG.error("Error occurred while creating saslNettyServer on server "
 							+ channel.getLocalAddress()
@@ -143,17 +142,14 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 		server.closeChannel(e.getChannel());
 	}
 
-	/**
-	 * Load Storm Topology Token.
-	 * 
-	 * @param conf
-	 *            Configuration
-	 * @throws IOException
-	 */
-	private void loadTopologyToken() throws IOException {
-		topologyUser = (String) this.server.storm_conf
+	private void getSASLCredentials() throws IOException {
+		topologyName = (String) this.server.storm_conf
 				.get(Config.TOPOLOGY_NAME);
-		LOG.debug("SASL credentials for the storm topology: " + topologyUser);
-		token = topologyUser.getBytes();
+		String secretKey = SaslUtils.getSecretKey(this.server.storm_conf);
+		if (secretKey != null) {
+			token = secretKey.getBytes();
+		}
+		LOG.debug("SASL credentials for storm topology " + topologyName
+				+ " is " + secretKey);
 	}
 }

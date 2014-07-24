@@ -25,6 +25,8 @@ import javax.security.sasl.Sasl;
 
 import org.apache.commons.codec.binary.Base64;
 
+import backtype.storm.Config;
+
 class SaslUtils {
 	public static final String AUTH_DIGEST_MD5 = "DIGEST-MD5";
 	public static final String DEFAULT_REALM = "default";
@@ -58,4 +60,16 @@ class SaslUtils {
 		return new String(Base64.encodeBase64(identifier),
 				Charset.defaultCharset());
 	}
+
+	static String getSecretKey(Map conf) {
+		if (conf == null || conf.isEmpty())
+			return null;
+
+		String secretPayLoad = (String) conf
+				.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
+
+		return secretPayLoad;
+	}
+	
+	
 }

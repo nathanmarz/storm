@@ -44,14 +44,14 @@ class SaslNettyServer {
 
 	private SaslServer saslServer;
 
-	SaslNettyServer(String topologyToken) throws IOException {
-		LOG.debug("SaslNettyServer: Topology token is: " + topologyToken
+	SaslNettyServer(String topologyName, byte[] token) throws IOException {
+		LOG.debug("SaslNettyServer: Topology token is: " + topologyName
 				+ " with authmethod " + SaslUtils.AUTH_DIGEST_MD5);
 
 		try {
 
 			SaslDigestCallbackHandler ch = new SaslNettyServer.SaslDigestCallbackHandler(
-					topologyToken);
+					topologyName, token);
 
 			saslServer = Sasl.createSaslServer(SaslUtils.AUTH_DIGEST_MD5, null,
 					SaslUtils.DEFAULT_REALM, SaslUtils.getSaslProps(), ch);
@@ -70,18 +70,18 @@ class SaslNettyServer {
 		return saslServer.getAuthorizationID();
 	}
 
-	
-
 	/** CallbackHandler for SASL DIGEST-MD5 mechanism */
 	public static class SaslDigestCallbackHandler implements CallbackHandler {
 
 		/** Used to authenticate the clients */
-		private String topologyToken;
+		private byte[] userPassword;
+		private String userName;
 
-		public SaslDigestCallbackHandler(String topologyToken) {
+		public SaslDigestCallbackHandler(String topologyName, byte[] token) {
 			LOG.debug("SaslDigestCallback: Creating SaslDigestCallback handler "
-					+ "with topology token: " + topologyToken);
-			this.topologyToken = topologyToken;
+					+ "with topology token: " + topologyName);
+			this.userName = topologyName;
+			this.userPassword = token;
 		}
 
 		@Override
@@ -105,19 +105,19 @@ class SaslNettyServer {
 							"handle: Unrecognized SASL DIGEST-MD5 Callback");
 				}
 			}
-			
-			if(nc!=null) {
-				LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
-						+ "username for client: " + topologyToken);
 
-				nc.setName(topologyToken);
+			if (nc != null) {
+				LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
+						+ "username for client: " + userName);
+
+				nc.setName(userName);
 			}
 
 			if (pc != null) {
-				char[] password = SaslUtils.encodePassword(topologyToken.getBytes());
+				char[] password = SaslUtils.encodePassword(userPassword);
 
 				LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
-						+ "password for client: " + topologyToken);
+						+ "password for client: " + userPassword);
 
 				pc.setPassword(password);
 			}
@@ -133,11 +133,8 @@ class SaslNettyServer {
 				}
 
 				if (ac.isAuthorized()) {
-					if (LOG.isDebugEnabled()) {
-						String username = topologyToken;
-						LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
-								+ "canonicalized client ID: " + username);
-					}
+					LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
+							+ "canonicalized client ID: " + userName);
 					ac.setAuthorizedID(authzid);
 				}
 			}

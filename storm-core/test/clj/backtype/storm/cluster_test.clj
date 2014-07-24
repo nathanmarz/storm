@@ -208,8 +208,9 @@
       (let [state (mk-storm-state zk-port)]
         (.report-error state "a" "1"(local-hostname) 6700  (RuntimeException.))
         (validate-errors! state "a" "1" ["RuntimeException"])
+        (advance-time-secs! 1)
         (.report-error state "a" "1" (local-hostname) 6700 (IllegalArgumentException.))
-        (validate-errors! state "a" "1" ["RuntimeException" "IllegalArgumentException"])
+        (validate-errors! state "a" "1" ["IllegalArgumentException" "RuntimeException"])
         (doseq [i (range 10)]
           (.report-error state "a" "2" (local-hostname) 6700 (RuntimeException.))
           (advance-time-secs! 2))

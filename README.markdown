@@ -156,6 +156,7 @@ under the License.
 * Milad Fatenejad ([@icksa](https://github.com/icksa))
 * Ryan Liu ([@shell0dh](https://github.com/shell0dh))
 * Dave Parfitt ([@metadave](https://github.com/metadave))
+* Jo Liss ([@joliss](https://github.com/joliss))
 
 ## Acknowledgements
 

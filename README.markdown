@@ -155,6 +155,7 @@ under the License.
 * Masatake Iwasaki ([@iwasakims](https://github.com/iwasakims))
 * Milad Fatenejad ([@icksa](https://github.com/icksa))
 * Ryan Liu ([@shell0dh](https://github.com/shell0dh))
+* Dave Parfitt ([@metadave](https://github.com/metadave))
 
 ## Acknowledgements
 

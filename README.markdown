@@ -157,6 +157,7 @@ under the License.
 * Ryan Liu ([@shell0dh](https://github.com/shell0dh))
 * Dave Parfitt ([@metadave](https://github.com/metadave))
 * Jo Liss ([@joliss](https://github.com/joliss))
+* averykhoo ([@averykhoo](https://github.com/averykhoo))
 
 ## Acknowledgements
 

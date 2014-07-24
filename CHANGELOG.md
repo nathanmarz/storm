@@ -25,6 +25,7 @@
  * STORM-402: FileNotFoundException when using storm with apache tika
  * STORM-364: The exception time display as default timezone.
  * STORM-420: Missing quotes in storm-starter python code
+ * STORM-399: Kafka Spout defaulting to latest offset when current offset is older then 100k
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

@@ -158,6 +158,7 @@ under the License.
 * Dave Parfitt ([@metadave](https://github.com/metadave))
 * Jo Liss ([@joliss](https://github.com/joliss))
 * averykhoo ([@averykhoo](https://github.com/averykhoo))
+* Curtis Allen ([@curtisallen](https://github.com/curtisallen))
 
 ## Acknowledgements
 

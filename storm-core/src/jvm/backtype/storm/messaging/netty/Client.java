@@ -207,6 +207,7 @@ public class Client implements IConnection {
         while (msgs.hasNext()) {
             if (!channel.isConnected()) {
                 connect();
+                channel = channelRef.get();
             }
             TaskMessage message = msgs.next();
             if (null == messageBatch) {
@@ -351,3 +352,4 @@ public class Client implements IConnection {
         });
     }
 }
+

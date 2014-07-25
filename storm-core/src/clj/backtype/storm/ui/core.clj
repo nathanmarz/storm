@@ -289,14 +289,14 @@
        (map nil-to-zero)
        (apply max)))
 
-(defn get-error-span 
+(defn get-error-span
   [error]
   (if (and error (< (time-delta (.get_error_time_secs ^ErrorInfo error))
                     (* 60 30)))
     {:class "red"}
     {}))
 
-(defn get-error-data 
+(defn get-error-data
   [error]
   (if error
     (error-subset (.get_error ^ErrorInfo error))
@@ -815,29 +815,37 @@
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
 
-(defn json-response [data & [status]]
-  {:status (or status 200)
-   :headers {"Content-Type" "application/json"}
-   :body (to-json data)})
+(defn wrap-json-in-callback [callback response]
+  (str callback "(" response ");"))
+
+(defnk json-response
+  [data callback :serialize-fn to-json :status 200]
+     {:status status
+      :headers (if (not-nil? callback) {"Content-Type" "application/javascript"}
+                {"Content-Type" "application/json"})
+      :body (if (not-nil? callback)
+              (wrap-json-in-callback callback (serialize-fn data))
+              (serialize-fn data))})
 
 (defroutes main-routes
-  (GET "/api/v1/cluster/configuration" []
-       (cluster-configuration))
-  (GET "/api/v1/cluster/summary" []
-       (json-response (cluster-summary)))
-  (GET "/api/v1/supervisor/summary" []
-       (json-response (supervisor-summary)))
-  (GET "/api/v1/topology/summary" []
-       (json-response (all-topologies-summary)))
+  (GET "/api/v1/cluster/configuration" [& m]
+       (json-response (cluster-configuration)
+                      (:callback m) :serialize-fn identity))
+  (GET "/api/v1/cluster/summary" [& m]
+       (json-response (cluster-summary) (:callback m)))
+  (GET "/api/v1/supervisor/summary" [& m]
+       (json-response (supervisor-summary) (:callback m)))
+  (GET "/api/v1/topology/summary" [& m]
+       (json-response (all-topologies-summary) (:callback m)))
   (GET  "/api/v1/topology/:id" [id & m]
         (let [id (url-decode id)]
-          (json-response (topology-page id (:window m) (check-include-sys? (:sys m))))))
+          (json-response (topology-page id (:window m) (check-include-sys? (:sys m))) (:callback m))))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
-       (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m)))))
+       (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/component/:component" [id component & m]
        (let [id (url-decode id)
              component (url-decode component)]
-         (json-response (component-page id component (:window m) (check-include-sys? (:sys m))))))
+         (json-response (component-page id component (:window m) (check-include-sys? (:sys m))) (:callback m))))
   (POST "/api/v1/topology/:id/activate" [id]
     (with-nimbus nimbus
       (let [id (url-decode id)
@@ -895,7 +903,7 @@
     (try
       (handler request)
       (catch Exception ex
-        (json-response (exception->json ex) 500)))))
+        (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
 
 (def app
   (handler/site (-> main-routes

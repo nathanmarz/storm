@@ -60,10 +60,11 @@
 
 (defn validate-launched-once [launched supervisor->ports storm-id]
   (let [counts (map count (vals launched))
-        launched-supervisor->ports (apply merge-with concat
-                                     (for [[s p] (keys launched)]
-                                       {s [p]}
-                                       ))]
+        launched-supervisor->ports (apply merge-with set/union
+                                          (for [[[s p] sids] launched
+                                                :when (some #(= % storm-id) sids)]
+                                            {s #{p}}))
+        supervisor->ports (map-val set supervisor->ports)]
     (is (every? (partial = 1) counts))
     (is (= launched-supervisor->ports supervisor->ports))
     ))
@@ -352,3 +353,59 @@
   ;; TODO just do reassign, and check that cleans up worker states after killing but doesn't get rid of downloaded code
   )
 
+(deftest test-retry-read-assignments
+  (with-simulated-time-local-cluster [cluster
+                                      :supervisors 0
+                                      :ports-per-supervisor 2
+                                      :daemon-conf {NIMBUS-REASSIGN false
+                                                    NIMBUS-MONITOR-FREQ-SECS 10
+                                                    TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
+                                                    TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+     (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
+     (bind topology1 (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
+                      {}))
+     (bind topology2 (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
+                      {}))
+     (bind state (:storm-cluster-state cluster))
+     (bind changed (capture-changed-workers
+                    (submit-mocked-assignment
+                     (:nimbus cluster)
+                     "topology1"
+                     {TOPOLOGY-WORKERS 2}
+                     topology1
+                     {1 "1"
+                      2 "1"}
+                     {[1] ["sup1" 1]
+                      [2] ["sup1" 2]
+                      })
+                    (submit-mocked-assignment
+                     (:nimbus cluster)
+                     "topology2"
+                     {TOPOLOGY-WORKERS 2}
+                     topology2
+                     {1 "1"
+                      2 "1"}
+                     {[1] ["sup1" 1]
+                      [2] ["sup1" 2]
+                      })
+                    (advance-cluster-time cluster 10)
+                    ))
+     (is (empty? (:launched changed)))
+     (bind options (RebalanceOptions.))
+     (.set_wait_secs options 0)
+     (bind changed (capture-changed-workers
+                    (.rebalance (:nimbus cluster) "topology2" options)
+                    (advance-cluster-time cluster 10)
+                    (heartbeat-workers cluster "sup1" [1 2 3 4])
+                    (advance-cluster-time cluster 10)
+                    ))
+     (validate-launched-once (:launched changed)
+                             {"sup1" [1 2]}
+                             (get-storm-id (:storm-cluster-state cluster) "topology1"))
+     (validate-launched-once (:launched changed)
+                             {"sup1" [3 4]}
+                             (get-storm-id (:storm-cluster-state cluster) "topology2"))
+     )))

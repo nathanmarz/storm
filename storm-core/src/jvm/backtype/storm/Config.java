@@ -97,6 +97,12 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_NETTY_FLUSH_CHECK_INTERVAL_MS = "storm.messaging.netty.flush.check.interval.ms";
     public static final Object STORM_NETTY_FLUSH_CHECK_INTERVAL_MS_SCHEMA = Number.class;
     
+    /**
+     * The type of compression, if any, that should be used for serialized objects stored in zookeeper and on disk.
+     * This is NOT used for compressing serialized tuples sent between topologies.
+     */
+    public static final String STORM_META_SERIALIZATION_COMPRESSION_TYPE = "storm.meta.serialization.compression.type";
+    public static final Object STORM_META_SERIALIZATION_COMPRESSION_TYPE_SCHEMA = String.class;
     
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.

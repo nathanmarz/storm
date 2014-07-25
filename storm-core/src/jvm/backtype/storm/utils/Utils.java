@@ -49,6 +49,8 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -61,6 +63,7 @@ import clojure.lang.IFn;
 import clojure.lang.RT;
 
 public class Utils {
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
 
     public static Object newInstance(String klass) {
@@ -71,11 +74,31 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
-    
+   
+    private static volatile Boolean shouldGzip = null;
+    private static boolean shouldGzip() {
+        if (shouldGzip == null) {
+            synchronized(Utils.class) {
+                Map conf = readStormConfig();
+                String type = (String)conf.get(Config.STORM_META_SERIALIZATION_COMPRESSION_TYPE);
+                shouldGzip = "gzip".equalsIgnoreCase(type);
+            }
+            if (shouldGzip) {
+                LOG.info("Will be using GZIP for metadata compression in the cluster");
+            }
+        }
+        return shouldGzip;
+    }
+ 
     public static byte[] serialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(bos));
+            ObjectOutputStream oos;
+            if (shouldGzip()) {
+                oos = new ObjectOutputStream(new GZIPOutputStream(bos));
+            } else {
+                oos = new ObjectOutputStream(bos);
+            }
             oos.writeObject(obj);
             oos.close();
             return bos.toByteArray();
@@ -86,8 +109,13 @@ public class Utils {
 
     public static Object deserialize(byte[] serialized) {
         try {
-            GZIPInputStream bis = new GZIPInputStream(new ByteArrayInputStream(serialized));
-            ObjectInputStream ois = new ObjectInputStream(bis);
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            ObjectInputStream ois;
+            if (shouldGzip()) {
+                ois = new ObjectInputStream(new GZIPInputStream(bis));
+            } else {
+                ois = new ObjectInputStream(bis);
+            }
             Object ret = ois.readObject();
             ois.close();
             return ret;

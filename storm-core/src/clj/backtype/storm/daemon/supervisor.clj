@@ -68,12 +68,19 @@
                [(Integer. port) (LocalAssignment. storm-id (doall executors))]
                ))))
 
-
 (defn- read-assignments
   "Returns map from port to struct containing :storm-id and :executors"
-  [assignments-snapshot assignment-id]
-  (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
-       (apply merge-with (fn [& ignored] (throw-runtime "Should not have multiple topologies assigned to one port")))))
+  ([assignments-snapshot assignment-id]
+     (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
+          (apply merge-with (fn [& ignored] (throw-runtime "Should not have multiple topologies assigned to one port")))))
+  ([assignments-snapshot assignment-id existing-assignment retries]
+     (try (let [assignments (read-assignments assignments-snapshot assignment-id)]
+            (reset! retries 0)
+            assignments)
+          (catch RuntimeException e
+            (if (> @retries 2) (throw e) (swap! retries inc))
+            (log-warn (.getMessage e) ": retrying " @retries " of 3")
+            existing-assignment))))
 
 (defn- read-storm-code-locations
   [assignments-snapshot]
@@ -213,6 +220,7 @@
                                (exit-process! 20 "Error when processing an event")
                                ))
    :assignment-versions (atom {})
+   :sync-retry (atom 0)
    })
 
 (defn sync-processes [supervisor]
@@ -315,13 +323,15 @@
                                                                    assignment-versions)
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-          all-assignment (read-assignments
-                           assignments-snapshot
-                           (:assignment-id supervisor))
+          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)
+          all-assignment (read-assignments assignments-snapshot
+                                           (:assignment-id supervisor)
+                                           existing-assignment
+                                           (:sync-retry supervisor))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
+          ]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)

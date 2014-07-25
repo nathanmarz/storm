@@ -60,10 +60,11 @@
 
 (defn validate-launched-once [launched supervisor->ports storm-id]
   (let [counts (map count (vals launched))
-        launched-supervisor->ports (apply merge-with concat
-                                     (for [[s p] (keys launched)]
-                                       {s [p]}
-                                       ))]
+        launched-supervisor->ports (apply merge-with set/union
+                                          (for [[[s p] sids] launched
+                                                :when (some #(= % storm-id) sids)]
+                                            {s #{p}}))
+        supervisor->ports (map-val set supervisor->ports)]
     (is (every? (partial = 1) counts))
     (is (= launched-supervisor->ports supervisor->ports))
     ))

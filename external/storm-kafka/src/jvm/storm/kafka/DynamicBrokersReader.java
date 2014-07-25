@@ -120,6 +120,8 @@ public class DynamicBrokersReader {
                 throw new RuntimeException("No leader found for partition " + partition);
             }
             return leader;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

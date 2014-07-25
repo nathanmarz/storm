@@ -31,6 +31,7 @@
  * STORM-321: Added a tool to see the current status of STORM JIRA and github pulls.
  * STORM-415: validate-launched-once in supervisor-test can not handle multiple topologies
  * STORM-155: Storm rebalancing code causes multiple topologies assigned to a single port
+ * STORM-419: Updated test so sort ordering is very explicit.
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

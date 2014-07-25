@@ -46,6 +46,24 @@ public class ShellMsg {
     private String metricName;
     private Object metricParams;
 
+    //logLevel
+    public enum ShellLogLevel {
+        TRACE, DEBUG, INFO, WARN, ERROR;
+
+        public static ShellLogLevel fromInt(int i) {
+            switch (i) {
+                case 0: return TRACE;
+                case 1: return DEBUG;
+                case 2: return INFO;
+                case 3: return WARN;
+                case 4: return ERROR;
+                default: return INFO;
+            }
+        }
+    }
+
+    private ShellLogLevel logLevel = ShellLogLevel.INFO;
+
     public String getCommand() {
         return command;
     }
@@ -138,5 +156,13 @@ public class ShellMsg {
 
     public Object getMetricParams() {
         return metricParams;
+    }
+
+    public ShellLogLevel getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(int logLevel) {
+        this.logLevel = ShellLogLevel.fromInt(logLevel);
     }
 }

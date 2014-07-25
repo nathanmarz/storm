@@ -27,6 +27,7 @@
  * STORM-420: Missing quotes in storm-starter python code
  * STORM-399: Kafka Spout defaulting to latest offset when current offset is older then 100k
  * STORM-421: Memoize local hostname lookup in executor
+ * STORM-414: support logging level to multilang protocol spout and bolt
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

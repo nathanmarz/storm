@@ -28,6 +28,7 @@
  * STORM-399: Kafka Spout defaulting to latest offset when current offset is older then 100k
  * STORM-421: Memoize local hostname lookup in executor
  * STORM-414: support logging level to multilang protocol spout and bolt
+ * STORM-321: Added a tool to see the current status of STORM JIRA and github pulls.
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

@@ -32,10 +32,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class ShellBasedUnixGroupsMapping implements
+public class ShellBasedGroupsMapping implements
                                              IGroupMappingServiceProvider {
 
-    public static Logger LOG = LoggerFactory.getLogger(ShellBasedUnixGroupsMapping.class);
+    public static Logger LOG = LoggerFactory.getLogger(ShellBasedGroupsMapping.class);
     public TimeCacheMap<String, Set<String>> cachedGroups;
 
     /**

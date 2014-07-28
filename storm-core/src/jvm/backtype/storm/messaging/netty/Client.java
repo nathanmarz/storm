@@ -62,7 +62,7 @@ public class Client implements IConnection {
     
     Map storm_conf;
 
-	MessageBatch messageBatch = null;
+    private MessageBatch messageBatch = null;
     private AtomicLong flushCheckTimer;
     private int flushCheckInterval;
     private ScheduledExecutorService scheduler;

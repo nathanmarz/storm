@@ -38,129 +38,129 @@ import org.slf4j.LoggerFactory;
  */
 public class SaslNettyClient {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(SaslNettyClient.class);
+    private static final Logger LOG = LoggerFactory
+            .getLogger(SaslNettyClient.class);
 
-	/**
-	 * Used to respond to server's counterpart, SaslServer with SASL tokens
-	 * represented as byte arrays.
-	 */
-	private SaslClient saslClient;
+    /**
+     * Used to respond to server's counterpart, SaslServer with SASL tokens
+     * represented as byte arrays.
+     */
+    private SaslClient saslClient;
 
-	/**
-	 * Create a SaslNettyClient for authentication with servers.
-	 */
-	public SaslNettyClient(String topologyName, byte[] token) {
-		try {
-			LOG.debug("SaslNettyClient: Creating SASL "
-					+ SaslUtils.AUTH_DIGEST_MD5
-					+ " client to authenticate to server ");
+    /**
+     * Create a SaslNettyClient for authentication with servers.
+     */
+    public SaslNettyClient(String topologyName, byte[] token) {
+        try {
+            LOG.debug("SaslNettyClient: Creating SASL "
+                    + SaslUtils.AUTH_DIGEST_MD5
+                    + " client to authenticate to server ");
 
-			saslClient = Sasl.createSaslClient(
-					new String[] { SaslUtils.AUTH_DIGEST_MD5 }, null, null,
-					SaslUtils.DEFAULT_REALM, SaslUtils.getSaslProps(),
-					new SaslClientCallbackHandler(topologyName, token));
+            saslClient = Sasl.createSaslClient(
+                    new String[] { SaslUtils.AUTH_DIGEST_MD5 }, null, null,
+                    SaslUtils.DEFAULT_REALM, SaslUtils.getSaslProps(),
+                    new SaslClientCallbackHandler(topologyName, token));
 
-		} catch (IOException e) {
-			LOG.error("SaslNettyClient: Could not obtain topology token for Netty "
-					+ "Client to use to authenticate with a Netty Server.");
-			saslClient = null;
-		}
-	}
+        } catch (IOException e) {
+            LOG.error("SaslNettyClient: Could not obtain topology token for Netty "
+                    + "Client to use to authenticate with a Netty Server.");
+            saslClient = null;
+        }
+    }
 
-	public boolean isComplete() {
-		return saslClient.isComplete();
-	}
+    public boolean isComplete() {
+        return saslClient.isComplete();
+    }
 
-	/**
-	 * Respond to server's SASL token.
-	 * 
-	 * @param saslTokenMessage
-	 *            contains server's SASL token
-	 * @return client's response SASL token
-	 */
-	public byte[] saslResponse(SaslMessageToken saslTokenMessage) {
-		try {
-			byte[] retval = saslClient.evaluateChallenge(saslTokenMessage
-					.getSaslToken());
-			return retval;
-		} catch (SaslException e) {
-			LOG.error(
-					"saslResponse: Failed to respond to SASL server's token:",
-					e);
-			return null;
-		}
-	}
+    /**
+     * Respond to server's SASL token.
+     * 
+     * @param saslTokenMessage
+     *            contains server's SASL token
+     * @return client's response SASL token
+     */
+    public byte[] saslResponse(SaslMessageToken saslTokenMessage) {
+        try {
+            byte[] retval = saslClient.evaluateChallenge(saslTokenMessage
+                    .getSaslToken());
+            return retval;
+        } catch (SaslException e) {
+            LOG.error(
+                    "saslResponse: Failed to respond to SASL server's token:",
+                    e);
+            return null;
+        }
+    }
 
-	/**
-	 * Implementation of javax.security.auth.callback.CallbackHandler that works
-	 * with Storm topology tokens.
-	 */
-	private static class SaslClientCallbackHandler implements CallbackHandler {
-		/** Generated username contained in TopologyToken */
-		private final String userName;
-		/** Generated password contained in TopologyToken */
-		private final char[] userPassword;
+    /**
+     * Implementation of javax.security.auth.callback.CallbackHandler that works
+     * with Storm topology tokens.
+     */
+    private static class SaslClientCallbackHandler implements CallbackHandler {
+        /** Generated username contained in TopologyToken */
+        private final String userName;
+        /** Generated password contained in TopologyToken */
+        private final char[] userPassword;
 
-		/**
-		 * Set private members using topology token.
-		 * 
-		 * @param topologyToken
-		 */
-		public SaslClientCallbackHandler(String topologyToken, byte[] token) {
-			this.userName = SaslUtils
-					.encodeIdentifier(topologyToken.getBytes());
-			this.userPassword = SaslUtils.encodePassword(token);
-		}
+        /**
+         * Set private members using topology token.
+         * 
+         * @param topologyToken
+         */
+        public SaslClientCallbackHandler(String topologyToken, byte[] token) {
+            this.userName = SaslUtils
+                    .encodeIdentifier(topologyToken.getBytes());
+            this.userPassword = SaslUtils.encodePassword(token);
+        }
 
-		/**
-		 * Implementation used to respond to SASL tokens from server.
-		 * 
-		 * @param callbacks
-		 *            objects that indicate what credential information the
-		 *            server's SaslServer requires from the client.
-		 * @throws UnsupportedCallbackException
-		 */
-		public void handle(Callback[] callbacks)
-				throws UnsupportedCallbackException {
-			NameCallback nc = null;
-			PasswordCallback pc = null;
-			RealmCallback rc = null;
-			for (Callback callback : callbacks) {
-				if (callback instanceof RealmChoiceCallback) {
-					continue;
-				} else if (callback instanceof NameCallback) {
-					nc = (NameCallback) callback;
-				} else if (callback instanceof PasswordCallback) {
-					pc = (PasswordCallback) callback;
-				} else if (callback instanceof RealmCallback) {
-					rc = (RealmCallback) callback;
-				} else {
-					throw new UnsupportedCallbackException(callback,
-							"handle: Unrecognized SASL client callback");
-				}
-			}
-			if (nc != null) {
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("handle: SASL client callback: setting username: "
-							+ userName);
-				}
-				nc.setName(userName);
-			}
-			if (pc != null) {
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("handle: SASL client callback: setting userPassword");
-				}
-				pc.setPassword(userPassword);
-			}
-			if (rc != null) {
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("handle: SASL client callback: setting realm: "
-							+ rc.getDefaultText());
-				}
-				rc.setText(rc.getDefaultText());
-			}
-		}
-	}
+        /**
+         * Implementation used to respond to SASL tokens from server.
+         * 
+         * @param callbacks
+         *            objects that indicate what credential information the
+         *            server's SaslServer requires from the client.
+         * @throws UnsupportedCallbackException
+         */
+        public void handle(Callback[] callbacks)
+                throws UnsupportedCallbackException {
+            NameCallback nc = null;
+            PasswordCallback pc = null;
+            RealmCallback rc = null;
+            for (Callback callback : callbacks) {
+                if (callback instanceof RealmChoiceCallback) {
+                    continue;
+                } else if (callback instanceof NameCallback) {
+                    nc = (NameCallback) callback;
+                } else if (callback instanceof PasswordCallback) {
+                    pc = (PasswordCallback) callback;
+                } else if (callback instanceof RealmCallback) {
+                    rc = (RealmCallback) callback;
+                } else {
+                    throw new UnsupportedCallbackException(callback,
+                            "handle: Unrecognized SASL client callback");
+                }
+            }
+            if (nc != null) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("handle: SASL client callback: setting username: "
+                            + userName);
+                }
+                nc.setName(userName);
+            }
+            if (pc != null) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("handle: SASL client callback: setting userPassword");
+                }
+                pc.setPassword(userPassword);
+            }
+            if (rc != null) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("handle: SASL client callback: setting realm: "
+                            + rc.getDefaultText());
+                }
+                rc.setText(rc.getDefaultText());
+            }
+        }
+    }
 
 }

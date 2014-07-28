@@ -28,48 +28,47 @@ import org.apache.commons.codec.binary.Base64;
 import backtype.storm.Config;
 
 class SaslUtils {
-	public static final String AUTH_DIGEST_MD5 = "DIGEST-MD5";
-	public static final String DEFAULT_REALM = "default";
+    public static final String AUTH_DIGEST_MD5 = "DIGEST-MD5";
+    public static final String DEFAULT_REALM = "default";
 
-	static Map<String, String> getSaslProps() {
-		Map<String, String> props = new HashMap<String, String>();
-		props.put(Sasl.POLICY_NOPLAINTEXT, "true");
-		return props;
-	}
+    static Map<String, String> getSaslProps() {
+        Map<String, String> props = new HashMap<String, String>();
+        props.put(Sasl.POLICY_NOPLAINTEXT, "true");
+        return props;
+    }
 
-	/**
-	 * Encode a password as a base64-encoded char[] array.
-	 * 
-	 * @param password
-	 *            as a byte array.
-	 * @return password as a char array.
-	 */
-	static char[] encodePassword(byte[] password) {
-		return new String(Base64.encodeBase64(password),
-				Charset.defaultCharset()).toCharArray();
-	}
+    /**
+     * Encode a password as a base64-encoded char[] array.
+     * 
+     * @param password
+     *            as a byte array.
+     * @return password as a char array.
+     */
+    static char[] encodePassword(byte[] password) {
+        return new String(Base64.encodeBase64(password),
+                Charset.defaultCharset()).toCharArray();
+    }
 
-	/**
-	 * Encode a identifier as a base64-encoded char[] array.
-	 * 
-	 * @param identifier
-	 *            as a byte array.
-	 * @return identifier as a char array.
-	 */
-	static String encodeIdentifier(byte[] identifier) {
-		return new String(Base64.encodeBase64(identifier),
-				Charset.defaultCharset());
-	}
+    /**
+     * Encode a identifier as a base64-encoded char[] array.
+     * 
+     * @param identifier
+     *            as a byte array.
+     * @return identifier as a char array.
+     */
+    static String encodeIdentifier(byte[] identifier) {
+        return new String(Base64.encodeBase64(identifier),
+                Charset.defaultCharset());
+    }
 
-	static String getSecretKey(Map conf) {
-		if (conf == null || conf.isEmpty())
-			return null;
+    static String getSecretKey(Map conf) {
+        if (conf == null || conf.isEmpty())
+            return null;
 
-		String secretPayLoad = (String) conf
-				.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
+        String secretPayLoad = (String) conf
+                .get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
 
-		return secretPayLoad;
-	}
-	
-	
+        return secretPayLoad;
+    }
+
 }

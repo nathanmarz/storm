@@ -27,31 +27,27 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
     private Client client;
 
     StormClientPipelineFactory(Client client) {
-        this.client = client;        
+        this.client = client;
     }
 
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = Channels.pipeline();
 
-        boolean isNettyAuth = (Boolean) this.client.storm_conf.get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
-        if(isNettyAuth) {
-	        // Decoder
-	        pipeline.addLast("decoder", new MessageDecoder());
-	        // Encoder
-	        pipeline.addLast("encoder", new MessageEncoder());
-	        // Authenticate: Removed after authentication completes
-	        pipeline.addLast("saslClientHandler", new SaslStormClientHandler(client));
-	        // business logic.
-	        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
-        } else {
-        	// Decoder
-	        pipeline.addLast("decoder", new MessageDecoder());
-	        // Encoder
-	        pipeline.addLast("encoder", new MessageEncoder());
-	        // business logic.
-	        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
+        // Decoder
+        pipeline.addLast("decoder", new MessageDecoder());
+        // Encoder
+        pipeline.addLast("encoder", new MessageEncoder());
+
+        boolean isNettyAuth = (Boolean) this.client.storm_conf
+                .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
+        if (isNettyAuth) {
+            // Authenticate: Removed after authentication completes
+            pipeline.addLast("saslClientHandler", new SaslStormClientHandler(
+                    client));
         }
+        // business logic.
+        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
 
         return pipeline;
     }

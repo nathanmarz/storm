@@ -22,41 +22,36 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
 import backtype.storm.Config;
-import backtype.storm.utils.Utils;
 
-
-class StormServerPipelineFactory implements  ChannelPipelineFactory {
+class StormServerPipelineFactory implements ChannelPipelineFactory {
     private Server server;
-    
+
     StormServerPipelineFactory(Server server) {
-        this.server = server;        
+        this.server = server;
     }
-    
+
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = Channels.pipeline();
 
-        boolean isNettyAuth = (Boolean) this.server.storm_conf.get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
-        if(isNettyAuth) {
-        	// Decoder
-            pipeline.addLast("decoder", new MessageDecoder());
-            // Encoder
-            pipeline.addLast("encoder", new MessageEncoder());
+        // Decoder
+        pipeline.addLast("decoder", new MessageDecoder());
+        // Encoder
+        pipeline.addLast("encoder", new MessageEncoder());
+
+        boolean isNettyAuth = (Boolean) this.server.storm_conf
+                .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
+        if (isNettyAuth) {
             // Authenticate: Removed after authentication completes
-            pipeline.addLast("saslServerHandler", new SaslStormServerHandler(server));
+            pipeline.addLast("saslServerHandler", new SaslStormServerHandler(
+                    server));
             // Authorize
-            pipeline.addLast("authorizeServerHandler", new SaslStormServerAuthorizeHandler());
-            // business logic.
-            pipeline.addLast("handler", new StormServerHandler(server));
-        } else {
-        	// Decoder
-            pipeline.addLast("decoder", new MessageDecoder());
-            // Encoder
-            pipeline.addLast("encoder", new MessageEncoder());
-            // business logic.
-            pipeline.addLast("handler", new StormServerHandler(server));
+            pipeline.addLast("authorizeServerHandler",
+                    new SaslStormServerAuthorizeHandler());
         }
-        
+        // business logic.
+        pipeline.addLast("handler", new StormServerHandler(server));
+
         return pipeline;
     }
 }

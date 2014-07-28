@@ -36,8 +36,7 @@ storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
-#gzip is the another supported option
-storm.meta.serialization.compression.type: "none"
+storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"

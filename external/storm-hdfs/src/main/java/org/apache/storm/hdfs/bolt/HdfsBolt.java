@@ -41,7 +41,7 @@ import java.util.Map;
 public class HdfsBolt extends AbstractHdfsBolt{
     private static final Logger LOG = LoggerFactory.getLogger(HdfsBolt.class);
 
-    private FSDataOutputStream out;
+    private transient FSDataOutputStream out;
     private RecordFormat format;
     private long offset = 0;
 
@@ -90,22 +90,24 @@ public class HdfsBolt extends AbstractHdfsBolt{
     public void execute(Tuple tuple) {
         try {
             byte[] bytes = this.format.format(tuple);
-            out.write(bytes);
-            this.offset += bytes.length;
+            synchronized (this.writeLock) {
+                out.write(bytes);
+                this.offset += bytes.length;
 
-            if(this.syncPolicy.mark(tuple, this.offset)){
-                if(this.out instanceof HdfsDataOutputStream){
-                    ((HdfsDataOutputStream)this.out).hsync(EnumSet.of(SyncFlag.UPDATE_LENGTH));
-                } else {
-                    this.out.hsync();
+                if (this.syncPolicy.mark(tuple, this.offset)) {
+                    if (this.out instanceof HdfsDataOutputStream) {
+                        ((HdfsDataOutputStream) this.out).hsync(EnumSet.of(SyncFlag.UPDATE_LENGTH));
+                    } else {
+                        this.out.hsync();
+                    }
+                    this.syncPolicy.reset();
                 }
-                this.syncPolicy.reset();
             }
 
             this.collector.ack(tuple);
 
             if(this.rotationPolicy.mark(tuple, this.offset)){
-                rotateOutputFile();
+                rotateOutputFile(); // synchronized
                 this.offset = 0;
                 this.rotationPolicy.reset();
             }

@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.storm.hdfs.bolt.format.FileNameFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
+import org.apache.storm.hdfs.bolt.rotation.TimedRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
 import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.apache.storm.hdfs.common.security.HdfsSecurityUtil;
@@ -35,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
@@ -42,28 +45,32 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
     private Path currentFile;
     protected OutputCollector collector;
-    protected FileSystem fs;
+    protected transient FileSystem fs;
     protected SyncPolicy syncPolicy;
     protected FileRotationPolicy rotationPolicy;
     protected FileNameFormat fileNameFormat;
     protected int rotation = 0;
     protected String fsUrl;
     protected String configKey;
+    protected transient Object writeLock;
+    protected transient Timer rotationTimer; // only used for TimedRotationPolicy
 
-    protected Configuration hdfsConfig;
+    protected transient Configuration hdfsConfig;
 
     protected void rotateOutputFile() throws IOException {
         LOG.info("Rotating output file...");
         long start = System.currentTimeMillis();
-        closeOutputFile();
-        this.rotation++;
+        synchronized (this.writeLock) {
+            closeOutputFile();
+            this.rotation++;
 
-        Path newFile = createOutputFile();
-        LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
-        for(RotationAction action : this.rotationActions){
-            action.execute(this.fs, this.currentFile);
+            Path newFile = createOutputFile();
+            LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
+            for (RotationAction action : this.rotationActions) {
+                action.execute(this.fs, this.currentFile);
+            }
+            this.currentFile = newFile;
         }
-        this.currentFile = newFile;
         long time = System.currentTimeMillis() - start;
         LOG.info("File rotation took {} ms.", time);
     }
@@ -75,6 +82,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
      * @param collector
      */
     public final void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector){
+        this.writeLock = new Object();
         if (this.syncPolicy == null) throw new IllegalStateException("SyncPolicy must be specified.");
         if (this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
         if (this.fsUrl == null) {
@@ -99,6 +107,22 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
 
         } catch (Exception e){
             throw new RuntimeException("Error preparing HdfsBolt: " + e.getMessage(), e);
+        }
+
+        if(this.rotationPolicy instanceof TimedRotationPolicy){
+            long interval = ((TimedRotationPolicy)this.rotationPolicy).getInterval();
+            this.rotationTimer = new Timer(true);
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        rotateOutputFile();
+                    } catch(IOException e){
+                        LOG.warn("IOException during scheduled file rotation.", e);
+                    }
+                }
+            };
+            this.rotationTimer.scheduleAtFixedRate(task, interval, interval);
         }
     }
 

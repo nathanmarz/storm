@@ -29,8 +29,8 @@ import java.util.Map;
  * with secured HDFS.
  */
 public class HdfsSecurityUtil {
-    public static final String STORM_KEYTAB_FILE_KEY = "storm.keytab.file";
-    public static final String STORM_USER_NAME_KEY = "storm.kerberos.principal";
+    public static final String STORM_KEYTAB_FILE_KEY = "hdfs.keytab.file";
+    public static final String STORM_USER_NAME_KEY = "hdfs.kerberos.principal";
 
     public static void login(Map conf, Configuration hdfsConfig) throws IOException {
         if (UserGroupInformation.isSecurityEnabled()) {

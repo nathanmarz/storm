@@ -37,6 +37,7 @@ import org.apache.storm.hdfs.bolt.format.RecordFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
 import org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy;
 import org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy.Units;
+import org.apache.storm.hdfs.bolt.rotation.TimedRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
 import org.apache.storm.hdfs.common.rotation.MoveFileAction;
@@ -64,7 +65,7 @@ public class HdfsFileTopology {
         SyncPolicy syncPolicy = new CountSyncPolicy(1000);
 
         // rotate files when they reach 5MB
-        FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
+        FileRotationPolicy rotationPolicy = new TimedRotationPolicy(1.0f, TimedRotationPolicy.TimeUnit.MINUTES);
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
                 .withPath("/foo/")
@@ -98,7 +99,7 @@ public class HdfsFileTopology {
         builder.setBolt(BOLT_ID, bolt, 4)
                 .shuffleGrouping(SENTENCE_SPOUT_ID);
 
-        if (args.length == 1) {
+        if (args.length == 2) {
             LocalCluster cluster = new LocalCluster();
 
             cluster.submitTopology(TOPOLOGY_NAME, config, builder.createTopology());
@@ -106,7 +107,7 @@ public class HdfsFileTopology {
             cluster.killTopology(TOPOLOGY_NAME);
             cluster.shutdown();
             System.exit(0);
-        } else if (args.length == 2) {
+        } else if (args.length == 3) {
             StormSubmitter.submitTopology(args[0], config, builder.createTopology());
         } else{
             System.out.println("Usage: HdfsFileTopology [topology name] <yaml config file>");

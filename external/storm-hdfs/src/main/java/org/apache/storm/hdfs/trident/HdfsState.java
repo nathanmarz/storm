@@ -16,6 +16,7 @@ import org.apache.storm.hdfs.trident.format.RecordFormat;
 import org.apache.storm.hdfs.trident.format.SequenceFormat;
 import org.apache.storm.hdfs.trident.rotation.FileRotationPolicy;
 
+import org.apache.storm.hdfs.trident.rotation.TimedRotationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.trident.operation.TridentCollector;
@@ -25,10 +26,7 @@ import storm.trident.tuple.TridentTuple;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class HdfsState implements State {
 
@@ -36,13 +34,15 @@ public class HdfsState implements State {
 
         protected String fsUrl;
         protected String configKey;
-        protected FileSystem fs;
+        protected transient FileSystem fs;
         private Path currentFile;
         protected FileRotationPolicy rotationPolicy;
         protected FileNameFormat fileNameFormat;
         protected int rotation = 0;
-        protected Configuration hdfsConfig;
+        protected transient Configuration hdfsConfig;
         protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
+        protected transient Object writeLock;
+        protected transient Timer rotationTimer;
 
         abstract void closeOutputFile() throws IOException;
 
@@ -55,15 +55,17 @@ public class HdfsState implements State {
         protected void rotateOutputFile() throws IOException {
             LOG.info("Rotating output file...");
             long start = System.currentTimeMillis();
-            closeOutputFile();
-            this.rotation++;
+            synchronized (this.writeLock) {
+                closeOutputFile();
+                this.rotation++;
 
-            Path newFile = createOutputFile();
-            LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
-            for(RotationAction action : this.rotationActions){
-                action.execute(this.fs, this.currentFile);
+                Path newFile = createOutputFile();
+                LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
+                for (RotationAction action : this.rotationActions) {
+                    action.execute(this.fs, this.currentFile);
+                }
+                this.currentFile = newFile;
             }
-            this.currentFile = newFile;
             long time = System.currentTimeMillis() - start;
             LOG.info("File rotation took {} ms.", time);
 
@@ -71,6 +73,7 @@ public class HdfsState implements State {
         }
 
         void prepare(Map conf, int partitionIndex, int numPartitions){
+            this.writeLock = new Object();
             if (this.rotationPolicy == null) throw new IllegalStateException("RotationPolicy must be specified.");
             if (this.fsUrl == null) {
                 throw new IllegalStateException("File system URL must be specified.");
@@ -91,13 +94,29 @@ public class HdfsState implements State {
             } catch (Exception e){
                 throw new RuntimeException("Error preparing HdfsState: " + e.getMessage(), e);
             }
+
+            if(this.rotationPolicy instanceof TimedRotationPolicy){
+                long interval = ((TimedRotationPolicy)this.rotationPolicy).getInterval();
+                this.rotationTimer = new Timer(true);
+                TimerTask task = new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            rotateOutputFile();
+                        } catch(IOException e){
+                            LOG.warn("IOException during scheduled file rotation.", e);
+                        }
+                    }
+                };
+                this.rotationTimer.scheduleAtFixedRate(task, interval, interval);
+            }
         }
 
     }
 
     public static class HdfsFileOptions extends Options {
 
-        private FSDataOutputStream out;
+        private transient FSDataOutputStream out;
         protected RecordFormat format;
         private long offset = 0;
 
@@ -152,23 +171,25 @@ public class HdfsState implements State {
         @Override
         public void execute(List<TridentTuple> tuples) throws IOException {
             boolean rotated = false;
-            for(TridentTuple tuple : tuples){
-                byte[] bytes = this.format.format(tuple);
-                out.write(bytes);
-                this.offset += bytes.length;
+            synchronized (this.writeLock) {
+                for (TridentTuple tuple : tuples) {
+                    byte[] bytes = this.format.format(tuple);
+                    out.write(bytes);
+                    this.offset += bytes.length;
 
-                if(this.rotationPolicy.mark(tuple, this.offset)){
-                    rotateOutputFile();
-                    this.offset = 0;
-                    this.rotationPolicy.reset();
-                    rotated = true;
+                    if (this.rotationPolicy.mark(tuple, this.offset)) {
+                        rotateOutputFile();
+                        this.offset = 0;
+                        this.rotationPolicy.reset();
+                        rotated = true;
+                    }
                 }
-            }
-            if(!rotated){
-                if(this.out instanceof HdfsDataOutputStream){
-                    ((HdfsDataOutputStream)this.out).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
-                } else {
-                    this.out.hsync();
+                if (!rotated) {
+                    if (this.out instanceof HdfsDataOutputStream) {
+                        ((HdfsDataOutputStream) this.out).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
+                    } else {
+                        this.out.hsync();
+                    }
                 }
             }
         }
@@ -177,7 +198,7 @@ public class HdfsState implements State {
     public static class SequenceFileOptions extends Options {
         private SequenceFormat format;
         private SequenceFile.CompressionType compressionType = SequenceFile.CompressionType.RECORD;
-        private SequenceFile.Writer writer;
+        private transient SequenceFile.Writer writer;
         private String compressionCodec = "default";
         private transient CompressionCodecFactory codecFactory;
 
@@ -250,9 +271,12 @@ public class HdfsState implements State {
 
         @Override
         public void execute(List<TridentTuple> tuples) throws IOException {
+            long offset;
             for(TridentTuple tuple : tuples) {
-                this.writer.append(this.format.key(tuple), this.format.value(tuple));
-                long offset = this.writer.getLength();
+                synchronized (this.writeLock) {
+                    this.writer.append(this.format.key(tuple), this.format.value(tuple));
+                    offset = this.writer.getLength();
+                }
 
                 if (this.rotationPolicy.mark(tuple, offset)) {
                     rotateOutputFile();

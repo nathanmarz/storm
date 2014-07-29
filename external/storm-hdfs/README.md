@@ -340,3 +340,4 @@ under the License.
 ## Committer Sponsors
 
  * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))
+ * Bobby Evans ([bobby@apache.org](mailto:bobby@apache.org))

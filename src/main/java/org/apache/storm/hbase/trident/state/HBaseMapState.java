@@ -86,7 +86,6 @@ public class HBaseMapState<T> implements IBackingMap<T> {
         public String tableName;
         public String columnFamily;
         public String qualifier;
-
     }
 
 

@@ -251,6 +251,10 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
                                                "greater than or equal to 1 second.");
         }
         
+        if (getRegisteredMetricByName(name) != null) {
+            throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
+        }
+
         Map m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {
             m1.put(timeBucketSizeInSecs, new HashMap());
@@ -271,6 +275,30 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         return metric;
     }
 
+    /**
+     * Get component's metric from registered metrics by name.
+     * Notice: Normally, one component can only register one metric name once.
+     *         But now registerMetric has a bug(https://issues.apache.org/jira/browse/STORM-254) 
+     *         cause the same metric name can register twice.
+     *         So we just return the first metric we meet.
+     */
+    public IMetric getRegisteredMetricByName(String name) {
+        IMetric metric = null;
+
+        for (Map<Integer, Map<String, IMetric>> taskIdToNameToMetric: _registeredMetrics.values()) {
+            Map<String, IMetric> nameToMetric = taskIdToNameToMetric.get(_taskId);
+            if (nameToMetric != null) {
+                metric = nameToMetric.get(name);
+                if (metric != null) {
+                    //we just return the first metric we meet
+                    break;  
+                }
+            }
+        } 
+        
+        return metric;
+    }   
+ 
     /*
      * Convinience method for registering ReducedMetric.
      */

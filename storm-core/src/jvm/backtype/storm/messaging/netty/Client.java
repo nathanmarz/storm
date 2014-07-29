@@ -132,12 +132,12 @@ public class Client implements IConnection {
      */
     private synchronized void connect() {
         try {
-            if (channelRef.get() != null) {
+
+            Channel channel = channelRef.get();
+            if (channel != null && channel.isConnected()) {
                 return;
             }
             
-            Channel channel = null;
-
             int tried = 0;
             while (tried <= max_retries) {
 
@@ -205,6 +205,10 @@ public class Client implements IConnection {
         }
 
         while (msgs.hasNext()) {
+            if (!channel.isConnected()) {
+                connect();
+                channel = channelRef.get();
+            }
             TaskMessage message = msgs.next();
             if (null == messageBatch) {
                 messageBatch = new MessageBatch(messageBatchSize);
@@ -348,3 +352,4 @@ public class Client implements IConnection {
         });
     }
 }
+

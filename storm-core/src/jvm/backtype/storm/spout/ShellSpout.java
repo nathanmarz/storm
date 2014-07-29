@@ -18,6 +18,8 @@
 package backtype.storm.spout;
 
 import backtype.storm.generated.ShellComponent;
+import backtype.storm.metric.api.IMetric;
+import backtype.storm.metric.api.rpc.IShellMetric;
 import backtype.storm.multilang.ShellMsg;
 import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
@@ -25,6 +27,7 @@ import backtype.storm.utils.ShellProcess;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +38,9 @@ public class ShellSpout implements ISpout {
     private SpoutOutputCollector _collector;
     private String[] _command;
     private ShellProcess _process;
+    
+    private TopologyContext _context;
+    
     private SpoutMsg _spoutMsg;
 
     public ShellSpout(ShellComponent component) {
@@ -48,6 +54,7 @@ public class ShellSpout implements ISpout {
     public void open(Map stormConf, TopologyContext context,
                      SpoutOutputCollector collector) {
         _collector = collector;
+        _context = context;
 
         _process = new ShellProcess(_command);
 
@@ -85,6 +92,34 @@ public class ShellSpout implements ISpout {
         _spoutMsg.setId(msgId);
         querySubprocess();
     }
+    
+    private void handleMetrics(ShellMsg shellMsg) {
+        //get metric name
+        String name = shellMsg.getMetricName();
+        if (name.isEmpty()) {
+            throw new RuntimeException("Receive Metrics name is empty");
+        }
+        
+        //get metric by name
+        IMetric iMetric = _context.getRegisteredMetricByName(name);
+        if (iMetric == null) {
+            throw new RuntimeException("Could not find metric by name["+name+"] ");
+        }
+        if ( !(iMetric instanceof IShellMetric)) {
+            throw new RuntimeException("Metric["+name+"] is not IShellMetric, can not call by RPC");
+        }
+        IShellMetric iShellMetric = (IShellMetric)iMetric;
+        
+        //call updateMetricFromRPC with params
+        Object paramsObj = shellMsg.getMetricParams();
+        try {
+            iShellMetric.updateMetricFromRPC(paramsObj);
+        } catch (RuntimeException re) {
+            throw re;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }       
+    }
 
     private void querySubprocess() {
         try {
@@ -96,8 +131,7 @@ public class ShellSpout implements ISpout {
                 if (command.equals("sync")) {
                     return;
                 } else if (command.equals("log")) {
-                    String msg = shellMsg.getMsg();
-                    LOG.info("Shell msg: " + msg);
+                    handleLog(shellMsg);
                 } else if (command.equals("emit")) {
                     String stream = shellMsg.getStream();
                     Long task = shellMsg.getTask();
@@ -111,12 +145,42 @@ public class ShellSpout implements ISpout {
                     } else {
                         _collector.emitDirect((int) task.longValue(), stream, tuple, messageId);
                     }
+                } else if (command.equals("metrics")) {
+                    handleMetrics(shellMsg);
                 } else {
                     throw new RuntimeException("Unknown command received: " + command);
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+            throw new RuntimeException(processInfo, e);
+        }
+    }
+
+    private void handleLog(ShellMsg shellMsg) {
+        String msg = shellMsg.getMsg();
+        msg = "ShellLog " + _process.getProcessInfoString() + " " + msg;
+        ShellMsg.ShellLogLevel logLevel = shellMsg.getLogLevel();
+
+        switch (logLevel) {
+            case TRACE:
+                LOG.trace(msg);
+                break;
+            case DEBUG:
+                LOG.debug(msg);
+                break;
+            case INFO:
+                LOG.info(msg);
+                break;
+            case WARN:
+                LOG.warn(msg);
+                break;
+            case ERROR:
+                LOG.error(msg);
+                break;
+            default:
+                LOG.info(msg);
+                break;
         }
     }
 

@@ -214,9 +214,9 @@
                           (DistributedRPCInvocations$Processor. drpc-service-handler)
                           ThriftConnectionType/DRPC_INVOCATIONS)
           http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)] 
-      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
-                                                        (if handler-server (.stop handler-server))
-                                                        (.stop invoke-server))))
+      (add-shutdown-hook-with-force-kill-in-1-sec (fn []
+                                                    (if handler-server (.stop handler-server))
+                                                    (.stop invoke-server)))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (when (> drpc-http-port 0)

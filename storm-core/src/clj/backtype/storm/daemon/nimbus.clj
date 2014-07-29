@@ -81,7 +81,7 @@
      :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
-                                 (halt-process! 20 "Error when processing an event")
+                                 (exit-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
@@ -1304,10 +1304,11 @@
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
   (let [service-handler (service-handler conf nimbus)
-        ;;TODO need to honor NIMBUS-THRIFT-MAX-BUFFER-SIZE for different transports
         server (ThriftServer. conf (Nimbus$Processor. service-handler) 
                               ThriftConnectionType/NIMBUS)]
-    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
+    (add-shutdown-hook-with-force-kill-in-1-sec (fn []
+                                                  (.shutdown service-handler)
+                                                  (.stop server)))
     (log-message "Starting Nimbus server...")
     (.serve server)
     service-handler))

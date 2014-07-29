@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException])
-  (:import [backtype.storm.scheduler ISupervisor])
+  (:import [backtype.storm.scheduler ISupervisor]
+           [java.net JarURLConnection])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -39,13 +40,23 @@
   (shutdown-all-workers [this])
   )
 
-(defn- assignments-snapshot [storm-cluster-state callback]
+(defn- assignments-snapshot [storm-cluster-state callback assignment-versions]
   (let [storm-ids (.assignments storm-cluster-state callback)]
-     (->> (dofor [sid storm-ids] {sid (.assignment-info storm-cluster-state sid callback)})
-          (apply merge)
-          (filter-val not-nil?)
-          )))
-
+    (let [new-assignments 
+          (->>
+           (dofor [sid storm-ids] 
+                  (let [recorded-version (:version (get assignment-versions sid))]
+                    (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
+                      (if (= assignment-version recorded-version)
+                        {sid (get assignment-versions sid)}
+                        {sid (.assignment-info-with-version storm-cluster-state sid callback)})
+                      {sid nil})))
+           (apply merge)
+           (filter-val not-nil?))]
+          
+      {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
+       :versions new-assignments})))
+  
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -61,12 +72,19 @@
                [(Integer. port) (LocalAssignment. storm-id (doall executors))]
                ))))
 
-
 (defn- read-assignments
   "Returns map from port to struct containing :storm-id and :executors"
-  [assignments-snapshot assignment-id]
-  (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
-       (apply merge-with (fn [& params] (throw-runtime (str "Should not have multiple topologies assigned to one port " params))))))
+  ([assignments-snapshot assignment-id]
+     (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
+          (apply merge-with (fn [& ignored] (throw-runtime "Should not have multiple topologies assigned to one port")))))
+  ([assignments-snapshot assignment-id existing-assignment retries]
+     (try (let [assignments (read-assignments assignments-snapshot assignment-id)]
+            (reset! retries 0)
+            assignments)
+          (catch RuntimeException e
+            (if (> @retries 2) (throw e) (swap! retries inc))
+            (log-warn (.getMessage e) ": retrying " @retries " of 3")
+            existing-assignment))))
 
 (defn- read-storm-code-locations
   [assignments-snapshot]
@@ -236,14 +254,18 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
-        (ensure-process-killed! pid))
+        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -15 " pid))
+        (kill-process-with-sig-term pid)))
+    (if-not (empty? pids) (sleep-secs 1)) ;; allow 1 second for execution of cleanup threads on worker.
+    (doseq [pid pids]
       (if as-user
-        (rmr-as-user conf id user (worker-pid-path conf id pid))
+        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
+        (force-kill-process pid))
+      (if as-user
+        (rmr-as-user conf id user (worker-pid-path conf id pid)) 
         (try
           (rmpath (worker-pid-path conf id pid))
-          (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
-      ))
+          (catch Exception e)))) ;; on windows, the supervisor may still holds the lock on the worker directory
     (try-cleanup-worker conf id user))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
@@ -271,8 +293,10 @@
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
    :timer (mk-timer :kill-fn (fn [t]
                                (log-error t "Error when processing event")
-                               (halt-process! 20 "Error when processing an event")
+                               (exit-process! 20 "Error when processing an event")
                                ))
+   :assignment-versions (atom {})
+   :sync-retry (atom 0)
    })
 
 (defn sync-processes [supervisor]
@@ -370,16 +394,21 @@
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
-          assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
+          assignment-versions @(:assignment-versions supervisor)
+          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
+                                                                   storm-cluster-state sync-callback 
+                                                                   assignment-versions)
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-          all-assignment (read-assignments
-                           assignments-snapshot
-                           (:assignment-id supervisor))
+          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)
+          all-assignment (read-assignments assignments-snapshot
+                                           (:assignment-id supervisor)
+                                           existing-assignment
+                                           (:sync-retry supervisor))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)]
+          ]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)
@@ -413,6 +442,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
+      (swap! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
@@ -582,14 +612,23 @@
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
-          classpath (add-to-classpath (current-classpath) [stormjar])
+          topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
+                           [cp]
+                           [])
+          classpath (-> (current-classpath)
+                        (add-to-classpath [stormjar])
+                        (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename (logs-filename storm-id port)
-
-          worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
-          topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
+          worker-childopts (when-let [s (conf WORKER-CHILDOPTS)]
+                             (substitute-childopts s worker-id storm-id port))
+          topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
+                                  (substitute-childopts s worker-id storm-id port))
+          topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
+                                        (merge env {"LD_LIBRARY_PATH" jlp})
+                                        {"LD_LIBRARY_PATH" jlp})
           command (concat
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -609,7 +648,6 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))]
-
       (log-message "Launching worker with command: " (shell-cmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
@@ -620,8 +658,8 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})] :log-prefix log-prefix :exit-code-callback callback))
-          (launch-process command :environment {"LD_LIBRARY_PATH" jlp} :log-prefix log-prefix :exit-code-callback callback)
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback))
+          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback)
       ))))
 
 ;; local implementation
@@ -648,8 +686,11 @@
               url
               (do
                 (log-message "Copying resources at " (str url) " to " target-dir)
-                (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
-                ))
+                (if (= (.getProtocol url) "jar" )
+                    (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
+                    (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir)))
+                )
+              )
             )))
 
 (defmethod launch-worker
@@ -670,7 +711,8 @@
 (defn -launch [supervisor]
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil supervisor)))
+    (let [supervisor (mk-supervisor conf nil supervisor)]
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

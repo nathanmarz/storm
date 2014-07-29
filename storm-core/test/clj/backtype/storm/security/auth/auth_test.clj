@@ -26,7 +26,7 @@
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.utils NimbusClient])
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
-  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
+  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping 
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
@@ -277,6 +277,15 @@
   (is (= true (.permit authorizer (ReqContext. admin-user) "getTopologyInfo" {TOPOLOGY-USERS ["user-a"]})))
   (is (= false (.permit authorizer (ReqContext. supervisor-user) "getTopologyInfo" {TOPOLOGY-USERS ["user-a"]})))
 ))
+
+(deftest shell-based-groups-mapping-test
+  (let [cluster-conf (merge (read-storm-config))
+        groups (ShellBasedGroupsMapping. )
+        user-name (System/getProperty "user.name")]
+    (.prepare groups cluster-conf)
+    (>= 0 (.size (.getGroups groups user-name)))
+    (>= 0 (.size (.getGroups groups "userDoesNotExist")))
+    (>= 0 (.size (.getGroups groups nil)))))
 
 (deftest simple-acl-same-user-auth-test
   (let [cluster-conf (merge (read-storm-config)

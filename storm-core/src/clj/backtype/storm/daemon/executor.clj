@@ -179,7 +179,7 @@
 
       (when (<= @interval-errors max-per-interval)
         (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
-                              (local-hostname) (.getThisWorkerPort (:worker-context executor)) error)
+                              (memoized-local-hostname) (.getThisWorkerPort (:worker-context executor)) error)
         ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies
@@ -284,7 +284,7 @@
         task-id (:task-id task-data)
         name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
         task-info (IMetricsConsumer$TaskInfo.
-                    (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+                    (memoized-local-hostname)
                     (.getThisWorkerPort worker-context)
                     (:component-id executor-data)
                     task-id

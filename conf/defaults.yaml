@@ -38,6 +38,7 @@ storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
+storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 storm.nimbus.retry.times: 5
 storm.nimbus.retry.interval.millis: 2000
@@ -128,7 +129,7 @@ worker.childopts: "-Xmx768m"
 worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 
-# control how many worker receiver threads we need per worker 
+# control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
 
 task.heartbeat.frequency.secs: 3
@@ -143,7 +144,8 @@ zmq.hwm: 0
 storm.messaging.netty.server_worker_threads: 1
 storm.messaging.netty.client_worker_threads: 1
 storm.messaging.netty.buffer_size: 5242880 #5MB buffer
-storm.messaging.netty.max_retries: 30
+# Since nimbus.task.launch.secs and supervisor.worker.start.timeout.secs are 120, other workers should also wait at least that long before giving up on connecting to the other worker.
+storm.messaging.netty.max_retries: 300
 storm.messaging.netty.max_wait_ms: 1000
 storm.messaging.netty.min_wait_ms: 100
 
@@ -155,6 +157,9 @@ storm.messaging.netty.flush.check.interval.ms: 10
 
 # By default, the Netty SASL authentication is set to false.  Users can override and set it true for a specific topology.
 storm.messaging.netty.authentication: false
+
+# default number of seconds group mapping service will cache user group
+storm.group.mapping.service.cache.duration.secs: 120
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
@@ -188,5 +193,7 @@ topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
 topology.tuple.serializer: "backtype.storm.serialization.types.ListDelegateSerializer"
 topology.trident.batch.emit.interval.millis: 500
 topology.testing.always.try.serialize: false
+topology.classpath: null
+topology.environment: null
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

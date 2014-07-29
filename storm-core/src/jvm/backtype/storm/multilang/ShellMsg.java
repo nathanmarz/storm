@@ -42,6 +42,28 @@ public class ShellMsg {
     private List<Object> tuple;
     private boolean needTaskIds;
 
+    //metrics rpc 
+    private String metricName;
+    private Object metricParams;
+
+    //logLevel
+    public enum ShellLogLevel {
+        TRACE, DEBUG, INFO, WARN, ERROR;
+
+        public static ShellLogLevel fromInt(int i) {
+            switch (i) {
+                case 0: return TRACE;
+                case 1: return DEBUG;
+                case 2: return INFO;
+                case 3: return WARN;
+                case 4: return ERROR;
+                default: return INFO;
+            }
+        }
+    }
+
+    private ShellLogLevel logLevel = ShellLogLevel.INFO;
+
     public String getCommand() {
         return command;
     }
@@ -118,5 +140,29 @@ public class ShellMsg {
 
     public void setNeedTaskIds(boolean needTaskIds) {
         this.needTaskIds = needTaskIds;
+    }
+
+    public void setMetricName(String metricName) {
+        this.metricName = metricName;
+    }
+
+    public String getMetricName() {
+        return this.metricName;
+    }
+
+    public void setMetricParams(Object metricParams) {
+        this.metricParams = metricParams;
+    }
+
+    public Object getMetricParams() {
+        return metricParams;
+    }
+
+    public ShellLogLevel getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(int logLevel) {
+        this.logLevel = ShellLogLevel.fromInt(logLevel);
     }
 }

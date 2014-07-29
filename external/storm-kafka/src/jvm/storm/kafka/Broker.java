@@ -22,9 +22,14 @@ import com.google.common.base.Objects;
 import java.io.Serializable;
 
 public class Broker implements Serializable, Comparable<Broker> {
-    public final String host;
-    public final int port;
+    public String host;
+    public int port;
 
+    // for kryo compatibility
+    private Broker() {
+	
+    }
+    
     public Broker(String host, int port) {
         this.host = host;
         this.port = port;

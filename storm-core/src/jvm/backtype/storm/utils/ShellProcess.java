@@ -173,7 +173,7 @@ public class ShellProcess implements Serializable {
     }
 
     public String getProcessInfoString() {
-        return String.format(" pid:%s, name:%s ", pid, componentName);
+        return String.format("pid:%s, name:%s", pid, componentName);
     }
 
     public String getProcessTerminationInfoString() {

@@ -87,7 +87,7 @@ def emit(*args, **kwargs):
     return readTaskIds()
 
 def emitDirect(task, *args, **kwargs):
-    kwargs[directTask] = task
+    kwargs['directTask'] = task
     __emit(*args, **kwargs)
 
 def __emit(*args, **kwargs):

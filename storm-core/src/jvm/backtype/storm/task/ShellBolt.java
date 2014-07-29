@@ -122,8 +122,7 @@ public class ShellBolt implements IBolt {
                         } else if (command.equals("error")) {
                             handleError(shellMsg.getMsg());
                         } else if (command.equals("log")) {
-                            String msg = shellMsg.getMsg();
-                            LOG.info("Shell msg: " + msg + _process.getProcessInfoString());
+                            handleLog(shellMsg);
                         } else if (command.equals("emit")) {
                             handleEmit(shellMsg);
                         } else if (command.equals("metrics")) {
@@ -234,7 +233,34 @@ public class ShellBolt implements IBolt {
                     shellMsg.getStream(), anchors, shellMsg.getTuple());
         }
     }
-    
+
+    private void handleLog(ShellMsg shellMsg) {
+        String msg = shellMsg.getMsg();
+        msg = "ShellLog " + _process.getProcessInfoString() + " " + msg;
+        ShellMsg.ShellLogLevel logLevel = shellMsg.getLogLevel();
+
+        switch (logLevel) {
+            case TRACE:
+                LOG.trace(msg);
+                break;
+            case DEBUG:
+                LOG.debug(msg);
+                break;
+            case INFO:
+                LOG.info(msg);
+                break;
+            case WARN:
+                LOG.warn(msg);
+                break;
+            case ERROR:
+                LOG.error(msg);
+                break;
+            default:
+                LOG.info(msg);
+                break;
+        }
+    }
+
     private void handleMetrics(ShellMsg shellMsg) {
         //get metric name
         String name = shellMsg.getMetricName();

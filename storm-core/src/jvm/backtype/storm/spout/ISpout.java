@@ -28,7 +28,7 @@ import java.io.Serializable;
  * based on a tuple emitted by the spout. When Storm detects that every tuple in
  * that DAG has been successfully processed, it will send an ack message to the Spout.
  *
- * <p>If a tuple fails to be fully process within the configured timeout for the
+ * <p>If a tuple fails to be fully processed within the configured timeout for the
  * topology (see {@link backtype.storm.Config}), Storm will send a fail message to the spout
  * for the message.</p>
  *

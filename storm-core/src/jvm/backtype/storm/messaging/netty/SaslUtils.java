@@ -24,6 +24,7 @@ import java.util.Map;
 import javax.security.sasl.Sasl;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.Charsets;
 
 import backtype.storm.Config;
 
@@ -45,8 +46,8 @@ class SaslUtils {
      * @return password as a char array.
      */
     static char[] encodePassword(byte[] password) {
-        return new String(Base64.encodeBase64(password),
-                Charset.defaultCharset()).toCharArray();
+        return new String(Base64.encodeBase64(password), Charsets.UTF_8)
+                .toCharArray();
     }
 
     /**
@@ -57,8 +58,7 @@ class SaslUtils {
      * @return identifier as a char array.
      */
     static String encodeIdentifier(byte[] identifier) {
-        return new String(Base64.encodeBase64(identifier),
-                Charset.defaultCharset());
+        return new String(Base64.encodeBase64(identifier), Charsets.UTF_8);
     }
 
     static String getSecretKey(Map conf) {

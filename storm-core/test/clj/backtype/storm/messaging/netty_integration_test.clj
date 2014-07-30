@@ -25,7 +25,7 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4 :supervisor-slot-port-min 6710
                                       :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
                                                     STORM-MESSAGING-TRANSPORT  "backtype.storm.messaging.netty.Context"
-                                                    STORM_MESSAGING_NETTY_AUTHENTICATION false
+                                                    STORM-MESSAGING-NETTY-AUTHENTICATION false
                                                     STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
                                                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                                                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 

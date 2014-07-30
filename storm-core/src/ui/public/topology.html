@@ -102,6 +102,16 @@ $(document).ready(function() {
 
             config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
             $("#topology-configuration-table").tablesorter({ sortList: [[0,0]], headers: {}});
+
+            var errorCells = document.getElementsByClassName("errorSpan");
+            for (i =0; i < errorCells.length; i++) 
+            {
+              var timeLapsedInSecs = errorCells[i].id;
+              if (parseInt(timeLapsedInSecs) < 1800) { 
+                errorCells[i].style.color = "#9d261d";
+                errorCells[i].style.borderBottomColor = "#9d261d";
+              }
+            }
         });
     });
  });

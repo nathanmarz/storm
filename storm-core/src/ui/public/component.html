@@ -114,6 +114,16 @@ $(document).ready(function() {
             if(response["componentErrors"].length > 0) {
                 $("#component-errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
             }
+
+            var errorCells = document.getElementsByClassName("errorSpan");
+            for (i =0; i < errorCells.length; i++)
+            {
+              var timeLapsedInSecs = errorCells[i].id;
+              if (parseInt(timeLapsedInSecs) < 1800) {
+                errorCells[i].style.color = "#9d261d";
+                errorCells[i].style.borderBottomColor = "#9d261d";
+              }
+            }
         });
     });
 });

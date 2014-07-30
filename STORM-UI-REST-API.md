@@ -162,18 +162,22 @@ Response Fields:
 |spouts.transferred| Long |Total number of messages  transferred in given window|
 |spouts.tasks| Integer |Total number of tasks for the spout|
 |spouts.lastError| String |Shows the last error happened in a spout|
+|spouts.errorLapsedSecs| Integer | Number of seconds elapsed since that last error happened in a spout|
+|spouts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |spouts.acked| Long |Number of messages acked|
 |spouts.failed| Long |Number of messages failed|
 |bolts| Array | Array of bolt components in the topology|
 |bolts.boltId| String |Bolt id|
-|bolts.capacity| String (double value returned in String format) |This value indicates number of mesages executed * average execute latency / time window|
+|bolts.capacity| String (double value returned in String format) |This value indicates number of messages executed * average execute latency / time window|
 |bolts.processLatency| String (double value returned in String format)  |Bolt's average time to ack a message after it's received|
 |bolts.executeLatency| String (double value returned in String format) |Average time for bolt's execute method |
 |bolts.executors| Integer |Number of executor tasks in the bolt component|
 |bolts.tasks| Integer |Number of instances of bolt|
 |bolts.acked| Long |Number of tuples acked by the bolt|
 |bolts.failed| Long |Number of tuples failed by the bolt|
-|bolts.lastError| String |Shows the last error occured in the bolt|
+|bolts.lastError| String |Shows the last error occurred in the bolt|
+|bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
+|bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
 
 
@@ -246,6 +250,7 @@ Sample Response:
             "spoutId": "spout",
             "tasks": 5,
             "lastError": "",
+            "errorLapsedSecs": null
             "failed": 0
         }
     ],
@@ -261,6 +266,7 @@ Sample Response:
             "processLatency": "0.043",
             "boltId": "count",
             "lastError": "",
+            "errorLapsedSecs": null
             "capacity": "0.003",
             "failed": 0
         },
@@ -275,6 +281,7 @@ Sample Response:
             "processLatency": "2.112",
             "boltId": "split",
             "lastError": "",
+            "errorLapsedSecs": null
             "capacity": "0.000",
             "failed": 0
         }
@@ -341,9 +348,13 @@ Response Fields:
 |componentType | String | component's type SPOUT or BOLT|
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
-|componentErrors| Array of Strings | List of component errors|
+|componentErrors| Array of Errors | List of component errors|
 |componentErrors.time| Long | Timestamp when the exception occurred |
-|componentErrors.error| String | The stack trace of an exception info |
+|componentErrors.errorHost| String | host name for the error|
+|componentErrors.errorPort| String | port for the error|
+|componentErrors.error| String |Shows the error happened in a component|
+|componentErrors.errorLapsedSecs| Integer | Number of seconds elapsed since the error happened in a component |
+|componentErrors.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |topologyId| String | Topology's Id|
 |tasks| Integer |Number of instances of component|
 |window    |String. Default value "All Time" | window duration for metrics in seconds|
@@ -377,26 +388,13 @@ Sample Response:
     "componentType": "spout",
     "windowHint": "10m 0s",
     "executors": 5,
-    "componentErrors": [
-    	{
-    		"time":1406006074000,
-    		"error":"java.lang.RuntimeException: java.lang.NullPointerException
-	at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:84)
-	at backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:55)
-	at backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:56)
-	at backtype.storm.disruptor$consume_loop_STAR_$fn__1597.invoke(disruptor.clj:67)
-	at backtype.storm.util$async_loop$fn__465.invoke(util.clj:377)
-	at clojure.lang.AFn.run(AFn.java:24)
-	at java.lang.Thread.run(Thread.java:662)
-Caused by: java.lang.NullPointerException
-	at backtype.storm.serialization.SerializationFactory$IdDictionary.getStreamName(SerializationFactory.java:137)
-	at backtype.storm.serialization.KryoTupleDeserializer.deserialize(KryoTupleDeserializer.java:34)
-	at backtype.storm.daemon.executor$mk_task_receiver$fn__3967.invoke(executor.clj:311)
-	at backtype.storm.disruptor$clojure_handler$reify__1585.onEvent(disruptor.clj:43)
-	at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:81)
-	... 6 more"
-    	}
-    ],
+    "componentErrors":[{"time": 1406006074000,
+                        "errorHost": "10.11.1.70",
+                        "errorPort": 6701,
+                        "errorWorkerLogLink": "http://10.11.1.7:8000/log?file=worker-6701.log",
+                        "errorLapsedSecs": 16,
+                        "error": "java.lang.RuntimeException: java.lang.StringIndexOutOfBoundsException: Some Error\n\tat backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:128)\n\tat backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:99)\n\tat backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:80)\n\tat backtype...more.."
+    }],
     "topologyId": "WordCount3-1-1402960825",
     "tasks": 5,
     "window": "600",

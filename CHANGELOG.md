@@ -20,6 +20,19 @@
  * STORM-381: Replace broken jquery.tablesorter.min.js to latest
  * STORM-312: add storm monitor tools to monitor throughtput interactively
  * STORM-354: Testing: allow users to pass TEST-TIMEOUT-MS as param for complete-topology
+ * STORM-254: one Spout/Bolt can register metric twice with same name in different timeBucket
+ * STORM-403: heartbeats-to-nimbus in supervisor-test failed due to uninten...
+ * STORM-402: FileNotFoundException when using storm with apache tika
+ * STORM-364: The exception time display as default timezone.
+ * STORM-420: Missing quotes in storm-starter python code
+ * STORM-399: Kafka Spout defaulting to latest offset when current offset is older then 100k
+ * STORM-421: Memoize local hostname lookup in executor
+ * STORM-414: support logging level to multilang protocol spout and bolt
+ * STORM-321: Added a tool to see the current status of STORM JIRA and github pulls.
+ * STORM-415: validate-launched-once in supervisor-test can not handle multiple topologies
+ * STORM-155: Storm rebalancing code causes multiple topologies assigned to a single port
+ * STORM-419: Updated test so sort ordering is very explicit.
+ * STORM-406: Fix for reconnect logic in netty client.
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

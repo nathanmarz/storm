@@ -251,6 +251,10 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
                                                "greater than or equal to 1 second.");
         }
         
+        if (getRegisteredMetricByName(name) != null) {
+            throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
+        }
+
         Map m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {
             m1.put(timeBucketSizeInSecs, new HashMap());

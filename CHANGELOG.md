@@ -33,6 +33,7 @@
  * STORM-155: Storm rebalancing code causes multiple topologies assigned to a single port
  * STORM-419: Updated test so sort ordering is very explicit.
  * STORM-406: Fix for reconnect logic in netty client.
+ * STORM-366: Add color span to most recent error and fix ui templates.
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

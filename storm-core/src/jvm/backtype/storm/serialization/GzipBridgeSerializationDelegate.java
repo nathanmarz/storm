@@ -56,25 +56,13 @@ public class GzipBridgeSerializationDelegate implements SerializationDelegate {
     }
 
     /**
-     * Looks ahead to see if the GZIP magic constant is heading the input stream
+     * Looks ahead to see if the GZIP magic constant is heading {@code bytes}
      */
     private boolean isGzipped(byte[] bytes) {
-        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        PushbackInputStream pis = new PushbackInputStream(bis, 2);
-
-        byte[] header = new byte[2];
-        try {
-            pis.read(header);
-            // Push those two bytes back into the stream
-            pis.unread(header);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
         // Split up GZIP_MAGIC into readable bytes
         byte magicFirst = (byte) GZIPInputStream.GZIP_MAGIC;
         byte magicSecond =(byte) (GZIPInputStream.GZIP_MAGIC >> 8);
 
-        return (header[0] == magicFirst) && (header[1] == magicSecond);
+        return (bytes[0] == magicFirst) && (bytes[1] == magicSecond);
     }
 }

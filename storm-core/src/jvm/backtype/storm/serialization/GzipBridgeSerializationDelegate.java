@@ -17,10 +17,6 @@
  */
 package backtype.storm.serialization;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PushbackInputStream;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -55,14 +51,14 @@ public class GzipBridgeSerializationDelegate implements SerializationDelegate {
         }
     }
 
+    // Split up GZIP_MAGIC into readable bytes
+    private static final byte magicFirst = (byte) GZIPInputStream.GZIP_MAGIC;
+    private static final byte magicSecond =(byte) (GZIPInputStream.GZIP_MAGIC >> 8);
+
     /**
      * Looks ahead to see if the GZIP magic constant is heading {@code bytes}
      */
     private boolean isGzipped(byte[] bytes) {
-        // Split up GZIP_MAGIC into readable bytes
-        byte magicFirst = (byte) GZIPInputStream.GZIP_MAGIC;
-        byte magicSecond =(byte) (GZIPInputStream.GZIP_MAGIC >> 8);
-
-        return (bytes[0] == magicFirst) && (bytes[1] == magicSecond);
+        return (bytes.length > 1) && (bytes[0] == magicFirst) && (bytes[1] == magicSecond);
     }
 }

@@ -16,17 +16,17 @@
 
 (ns backtype.storm.disruptor
   (:import [backtype.storm.utils DisruptorQueue])
-  (:import [com.lmax.disruptor MultiThreadedClaimStrategy SingleThreadedClaimStrategy
-            BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy
+  (:import [com.lmax.disruptor BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy 
             BusySpinWaitStrategy])
+  (:import [com.lmax.disruptor.dsl ProducerType])
   (:require [clojure [string :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
   (:use [backtype.storm util log]))
 
 (def CLAIM-STRATEGY
-  {:multi-threaded (fn [size] (MultiThreadedClaimStrategy. (int size)))
-   :single-threaded (fn [size] (SingleThreadedClaimStrategy. (int size)))})
+  {:multi-threaded (ProducerType/MULTI)
+   :single-threaded (ProducerType/SINGLE)})
 
 (def WAIT-STRATEGY
   {:block (fn [] (BlockingWaitStrategy.))
@@ -47,7 +47,8 @@
 (defnk disruptor-queue
   [^String queue-name buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
   (DisruptorQueue. queue-name
-                   ((CLAIM-STRATEGY claim-strategy) buffer-size)
+                   (CLAIM-STRATEGY claim-strategy)
+                   buffer-size
                    (mk-wait-strategy wait-strategy)))
 
 (defn clojure-handler

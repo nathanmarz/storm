@@ -194,7 +194,7 @@
         <snakeyaml.version>1.11</snakeyaml.version>
         <httpclient.version>4.3.3</httpclient.version>
         <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
-        <disruptor.version>2.10.1</disruptor.version>
+        <disruptor.version>3.2.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>13.0</guava.version>
         <logback-classic.version>1.0.6</logback-classic.version>
@@ -417,7 +417,7 @@
                 <version>${clojure.tools.cli.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.googlecode.disruptor</groupId>
+                <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
             </dependency>

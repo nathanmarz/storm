@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor]
-           [java.net JarURLConnection])
+           [java.net JarURLConnection]
+           [java.net URI])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -557,10 +558,10 @@
                 (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
               url
               (do
-                (log-message "Copying resources at " (str url) " to " target-dir)
+                (log-message "Copying resources at " (URI. (str url)) " to " target-dir)
                 (if (= (.getProtocol url) "jar" )
                     (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
-                    (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir)))
+                    (FileUtils/copyDirectory (File. (.getPath (URI. (str url)))) (File. target-dir)))
                 )
               )
             )))

@@ -52,13 +52,14 @@ public class GzipBridgeSerializationDelegate implements SerializationDelegate {
     }
 
     // Split up GZIP_MAGIC into readable bytes
-    private static final byte magicFirst = (byte) GZIPInputStream.GZIP_MAGIC;
-    private static final byte magicSecond =(byte) (GZIPInputStream.GZIP_MAGIC >> 8);
+    private static final byte GZIP_MAGIC_FIRST_BYTE = (byte) GZIPInputStream.GZIP_MAGIC;
+    private static final byte GZIP_MAGIC_SECOND_BYTE = (byte) (GZIPInputStream.GZIP_MAGIC >> 8);
 
     /**
      * Looks ahead to see if the GZIP magic constant is heading {@code bytes}
      */
     private boolean isGzipped(byte[] bytes) {
-        return (bytes.length > 1) && (bytes[0] == magicFirst) && (bytes[1] == magicSecond);
+        return (bytes.length > 1) && (bytes[0] == GZIP_MAGIC_FIRST_BYTE)
+               && (bytes[1] == GZIP_MAGIC_SECOND_BYTE);
     }
 }

@@ -86,10 +86,8 @@ Storm.prototype.handleNewMessage = function(msg) {
         this.initSetupInfo(parsedMsg);
         this.isFirstMessage = false;
     } else if (this.isTaskIds(parsedMsg)) {
-        this.log('New task ids received.');
         this.handleNewTaskId(parsedMsg);
     } else {
-        this.log('New command received.');
         this.handleNewCommand(parsedMsg);
     }
 }
@@ -107,12 +105,6 @@ Storm.prototype.handleNewTaskId = function(taskIds) {
     }
 }
 
-Storm.prototype.createDefaultEmitCallback = function(tupleId) {
-    var self = this;
-    return function(taskIds) {
-        self.log('Tuple ' + tupleId + ' sent to task ids - ' + JSON.stringify(taskIds));
-    };
-}
 
 
 /**

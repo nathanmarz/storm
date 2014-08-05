@@ -3,17 +3,19 @@
  * Implements the storm multilang protocol for nodejs.
  */
 
+
 var fs = require('fs');
 
 function Storm() {
-    this.lines = [];
+    this.messageParts = [];
     this.taskIdsCallbacks = [];
     this.isFirstMessage = true;
+    this.separator = '\nend\n';
 }
 
 Storm.prototype.sendMsgToParent = function(msg) {
-    var str = JSON.stringify(msg) + '\nend\n';
-    process.stdout.write(str);
+    var str = JSON.stringify(msg);
+    process.stdout.write(str + this.separator);
 }
 
 Storm.prototype.sync = function() {
@@ -40,40 +42,45 @@ Storm.prototype.initSetupInfo = function(setupInfo) {
 
 Storm.prototype.startReadingInput = function() {
     var self = this;
-
     process.stdin.on('readable', function() {
         var chunk = process.stdin.read();
+        var messages = self.handleNewChunk(chunk);
+        messages.forEach(function(message) {
+            self.handleNewMessage(message);
+        })
 
-        if (chunk && chunk.length !== 0) {
-          var lines = chunk.toString().split('\n');
-          lines.forEach(function(line) {
-              self.handleNewLine(line);
-          })
-        }
     });
 }
 
-Storm.prototype.handleNewLine = function(line) {
-    if (line === 'end') {
-        var msg = this.collectMessageLines();
-        this.cleanLines();
-        this.handleNewMessage(msg);
-    } else {
-        this.storeLine(line);
+/**
+ * receives a new string chunk and returns a list of new messages with the separator removed
+ * stores state in this.messageParts
+ * @param chunk
+ */
+Storm.prototype.handleNewChunk = function(chunk) {
+    var messages = [];
+    if (chunk && chunk.length !== 0) {
+        //"{}".split("\nend\n")           ==> ['{}']
+        //"\nend\n".split("\nend\n")      ==> [''  , '']
+        //"{}\nend\n".split("\nend\n")    ==> ['{}', '']
+        //"\nend\n{}".split("\nend\n")    ==> [''  , '{}']
+        // "{}\nend\n{}".split("\nend\n") ==> ['{}', '{}' ]
+        var newMessageParts = chunk.split(this.separator);
+        while (newMessageParts.length > 0) {
+            var messagePart = newMessageParts.shift();
+            this.messageParts.push(messagePart);
+            var anotherMessageAhead = newMessageParts.length > 0;
+            if  (anotherMessageAhead) {
+                var message = this.messageParts.join('');
+                this.messageParts = [];
+                if (message.length > 0) {
+                    messages.push(message);
+                }
+            }
+        }
     }
-}
-
-Storm.prototype.collectMessageLines = function() {
-    return this.lines.join('\n');
-}
-
-Storm.prototype.cleanLines = function() {
-    this.lines = [];
-}
-
-Storm.prototype.storeLine = function(line) {
-    this.lines.push(line);
-}
+    return messages;
+ }
 
 Storm.prototype.isTaskIds = function(msg) {
     return (msg instanceof Array);
@@ -183,6 +190,8 @@ Storm.prototype.initialize = function(conf, context, done) {
 }
 
 Storm.prototype.run = function() {
+    process.stdout.setEncoding('utf8');
+    process.stdin.setEncoding('utf8');
     this.startReadingInput();
 }
 

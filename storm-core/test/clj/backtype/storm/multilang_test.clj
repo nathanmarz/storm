@@ -62,3 +62,7 @@
 (deftest test-ruby
 (test-multilang "ruby" "rb")
 )
+
+(deftest test-node
+(test-multilang "node" "js")
+)

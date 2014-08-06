@@ -1,7 +1,3 @@
-/**
- * Created by anya on 8/6/14.
- */
-
 var storm = require('./storm');
 var BasicBolt = storm.BasicBolt;
 

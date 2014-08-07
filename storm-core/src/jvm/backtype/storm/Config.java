@@ -19,7 +19,6 @@ package backtype.storm;
 
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
-import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -440,6 +439,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String NIMBUS_CREDENTIAL_RENEWERS = "nimbus.credential.renewers.classes";
     public static final Object NIMBUS_CREDENTIAL_RENEWERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of plugins that nimbus should load during submit topology to populate
+     * credentials on user's behalf.
+     */
+    public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
+    public static final Object NIMBUS_AUTO_CRED_PLUGINS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * Storm UI binds to this port.
@@ -1215,6 +1221,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
+
+    /**
+     * HDFS information, used to get the delegation token on behalf of the topology
+     * submitter user and renew the tokens. see {@link backtype.storm.security.auth.hadoop.AutoHDFS}
+     * kerberos principal name with realm should be provided.
+     */
+    public static final Object TOPOLOGY_HDFS_PRINCIPAL = "topology.hdfs.user";
+    public static final Object TOPOLOGY_HDFS_PRINCIPAL_SCHEMA = String.class;
+
+    /**
+     * The HDFS URI to be used by AutoHDFS.java to grab the delegation token on topology
+     * submitter user's behalf by the nimbus. If this is not provided the default URI provided
+     * in the hdfs configuration files will be used.
+     */
+    public static final Object TOPOLOGY_HDFS_URI = "topology.hdfs.uri";
+    public static final Object TOPOLOGY_HDFS_URI_SCHEMA = String.class;
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

@@ -35,6 +35,7 @@ public interface ICredentialsRenewer {
     /**
      * Renew any credentials that need to be renewed. (Update the credentials if needed)
      * @param credentials the credentials that may have something to renew.
+     * @param topologyConf topology configuration.
      */ 
-    public void renew(Map<String, String> credentials);
+    public void renew(Map<String, String> credentials, Map topologyConf);
 }

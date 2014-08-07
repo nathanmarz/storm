@@ -13,6 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+
 (ns backtype.storm.LocalDRPC
   (:require [backtype.storm.daemon [drpc :as drpc]])
   (:use [backtype.storm util])
@@ -45,9 +46,9 @@
 (defn -failRequest [this id]
   (.failRequest (:handler (. this state)) id)
   )
-  
+
 (defn -getServiceId [this]
-  (:service-id (. this state)))  
+  (:service-id (. this state)))
 
 (defn -shutdown [this]
   (ServiceRegistry/unregisterService (:service-id (. this state)))

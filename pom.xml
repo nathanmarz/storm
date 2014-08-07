@@ -27,7 +27,7 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.9.2-incubating-SNAPSHOT</version>
+    <version>0.9.3-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
@@ -114,11 +114,38 @@
         <developer>
             <id>jjackson</id>
             <name>Jason Jackson</name>
-            <email>jason@cvk.ca</email>
+            <email>jasonjckn@gmail.com</email>
             <roles>
                 <role>Committer</role>
             </roles>
             <timezone>-8</timezone>
+        </developer>
+        <developer>
+            <id>bobby</id>
+            <name>Robert Evans</name>
+            <email>evans@yahoo-inc.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
+        <developer>
+            <id>dagit</id>
+            <name>Derek Dagit</name>
+            <email>derekd@yahoo-inc.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
+        <developer>
+            <id>miguno</id>
+            <name>Michael G. Noll</name>
+            <email>michael@michael-noll.com</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>+1</timezone>
         </developer>
     </developers>
 
@@ -130,6 +157,8 @@
     <modules>
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-core</module>
+        <module>examples/storm-starter</module>
+        <module>external/storm-kafka</module>
     </modules>
 
     <scm>
@@ -146,25 +175,26 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <test.extra.args>-Djava.net.preferIPv4Stack=true</test.extra.args>
 
         <!-- dependency versions -->
-        <clojure.version>1.4.0</clojure.version>
+        <clojure.version>1.5.1</clojure.version>
         <compojure.version>1.1.3</compojure.version>
         <hiccup.version>0.3.6</hiccup.version>
-        <commons-io.verson>1.4</commons-io.verson>
+        <commons-io.version>2.4</commons-io.version>
         <commons-lang.version>2.5</commons-lang.version>
         <commons-exec.version>1.1</commons-exec.version>
         <clj-time.version>0.4.1</clj-time.version>
-        <curator.version>1.0.1</curator.version>
+        <curator.version>2.4.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
         <ring.version>0.3.11</ring.version>
         <clojure.tools.logging.version>0.2.3</clojure.tools.logging.version>
         <clojure.math.numeric-tower.version>0.0.1</clojure.math.numeric-tower.version>
-        <carbonite.version>1.3.2</carbonite.version>
+        <carbonite.version>1.4.0</carbonite.version>
         <snakeyaml.version>1.11</snakeyaml.version>
-        <httpclient.version>4.1.1</httpclient.version>
-        <clojure.tools.cli.version>0.2.2</clojure.tools.cli.version>
-        <disruptor.version>2.10.1</disruptor.version>
+        <httpclient.version>4.3.3</httpclient.version>
+        <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
+        <disruptor.version>3.2.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>13.0</guava.version>
         <logback-classic.version>1.0.6</logback-classic.version>
@@ -174,7 +204,8 @@
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>
         <reply.version>0.3.0</reply.version>
-
+        <conjure.version>2.1.3</conjure.version>
+        <zookeeper.version>3.4.5</zookeeper.version>
 
     </properties>
 
@@ -267,7 +298,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>${commons-io.verson}</version>
+                <version>${commons-io.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -285,13 +316,48 @@
                 <version>${clj-time.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.netflix.curator</groupId>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zookeeper.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jmx</groupId>
+                        <artifactId>jmxri</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jdmk</groupId>
+                        <artifactId>jmxtools</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.jms</groupId>
+                        <artifactId>jms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
                 <version>${curator.version}</version>
                 <exclusions>
                     <exclusion>
-                        <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jboss.netty</groupId>
+                        <artifactId>netty</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -351,7 +417,7 @@
                 <version>${clojure.tools.cli.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.googlecode.disruptor</groupId>
+                <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
             </dependency>
@@ -411,12 +477,24 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.clojars.runa</groupId>
+                <artifactId>conjure</artifactId>
+                <version>${conjure.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.thrift</groupId>
                 <artifactId>libthrift</artifactId>
                 <version>0.7.0</version>
                 <scope>compile</scope>
             </dependency>
-
+			<!-- used by examples/storm-starter -->
+		    <dependency>
+		      <groupId>junit</groupId>
+		      <artifactId>junit</artifactId>
+		      <version>3.8.1</version>
+		      <scope>test</scope>
+		    </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -491,7 +569,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>2.4.1</version>
+                    <version>2.5</version>
                 </plugin>
                 <plugin>
                     <groupId>com.theoryinpractise</groupId>
@@ -628,7 +706,11 @@
                         <exclude>**/*.iml</exclude>
 
                         <!-- exclude CHANGELOG, VERSION, AND TODO files -->
-                        <exclude>CHANGELOG.md</exclude>
+                        <exclude>**/CHANGELOG.md</exclude>
+                        <exclude>**/README.md</exclude>
+                        <exclude>**/README.markdown</exclude>
+                        <exclude>**/DEVELOPER.md</exclude>
+                        <exclude>SECURITY.md</exclude>
                         <exclude>VERSION</exclude>
                         <exclude>TODO</exclude>
                         <!-- thrift-generated code -->
@@ -638,6 +720,11 @@
                         <exclude>**/src/ui/public/js/jquery-1.6.2.min.js</exclude>
                         <exclude>**/src/ui/public/js/jquery.cookies.2.2.0.min.js</exclude>
                         <exclude>**/src/ui/public/js/jquery.tablesorter.min.js</exclude>
+                        <exclude>**/src/ui/public/js/arbor.js</exclude>
+                        <exclude>**/src/ui/public/js/arbor-graphics.js</exclude>
+                        <exclude>**/src/ui/public/js/arbor-tween.js</exclude>
+                        <exclude>**/src/ui/public/js/jquery.mustache.js</exclude>
+                        <exclude>**/src/ui/public/js/purl.js</exclude>
 
                         <!-- generated by shade plugin -->
                         <exclude>**/dependency-reduced-pom.xml</exclude>

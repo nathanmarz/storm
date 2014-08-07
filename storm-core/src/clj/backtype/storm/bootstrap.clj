@@ -13,9 +13,11 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+
 (ns backtype.storm.bootstrap)
 
-(defmacro bootstrap []
+(defmacro bootstrap
+  []
   '(do
      (import (quote [backtype.storm Constants]))
      (import (quote [backtype.storm.testing FeederSpout TestPlannerBolt TestPlannerSpout
@@ -32,7 +34,7 @@
      (import (quote [backtype.storm.task IBolt IOutputCollector
                      OutputCollector TopologyContext ShellBolt
                      GeneralTopologyContext WorkerTopologyContext]))
-     (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs 
+     (import (quote [backtype.storm.coordination CoordinatedBolt CoordinatedBolt$SourceArgs
                      IBatchBolt BatchBoltExecutor]))
      (import (quote [backtype.storm.drpc KeyedFairBolt]))
      (import (quote [backtype.storm.daemon Shutdownable]))
@@ -58,5 +60,4 @@
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
      (import (quote [java.io File FileOutputStream FileInputStream]))
      (import (quote [java.util Collection List Random Map HashMap Collections ArrayList LinkedList]))
-     (import (quote [org.apache.commons.io FileUtils]))
-     ))
+     (import (quote [org.apache.commons.io FileUtils]))))

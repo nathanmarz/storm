@@ -183,7 +183,7 @@
                       "3" (thrift/mk-bolt-spec {"1" :global} (TestPlannerBolt.) :parallelism-hint 8)
                       "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
                      )
-          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       ;; 3 should be assigned once (if it were optimized, we'd have
@@ -193,7 +193,7 @@
       (is (= 4 (count (task-info "2"))))
       (is (= 1 (count (task-info "3"))))
       (is (= 4 (storm-num-workers state "mystorm")))
-      (submit-local-topology nimbus "storm2" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20} topology2)
+      (submit-local-topology nimbus "storm2" {TOPOLOGY-WORKERS 20} topology2)
       (check-consistency cluster "storm2")
       (is (= 2 (count (.assignments state nil))))
       (let [task-info (storm-component->task-info cluster "storm2")]
@@ -240,13 +240,13 @@
                       {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 5)
                        "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))}))
           
-      (submit-local-topology nimbus "noniso" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+      (submit-local-topology nimbus "noniso" {TOPOLOGY-WORKERS 4} topology)
       (advance-cluster-time cluster 1)
       (is (= 4 (topology-num-nodes state "noniso")))
       (is (= 4 (storm-num-workers state "noniso")))
 
-      (submit-local-topology nimbus "tester1" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 6} topology)
-      (submit-local-topology nimbus "tester2" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 6} topology)
+      (submit-local-topology nimbus "tester1" {TOPOLOGY-WORKERS 6} topology)
+      (submit-local-topology nimbus "tester2" {TOPOLOGY-WORKERS 6} topology)
       (advance-cluster-time cluster 1)
     
       (bind task-info-tester1 (storm-component->task-info cluster "tester1"))
@@ -284,7 +284,7 @@
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 0})}
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
-          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       (is (= 0 (count (task-info "1"))))
@@ -300,7 +300,7 @@
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 5})}
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :parallelism-hint 3)})
-          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 4} topology)
+          _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
           task-info (storm-component->task-info cluster "mystorm")
           executor-info (->> (storm-component->executor-info cluster "mystorm")
                              (map-val #(map executor-id->tasks %)))]
@@ -325,7 +325,7 @@
                       "3" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 2)
                       "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
                      )
-          _ (submit-local-topology nimbus "test" {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 7} topology)
+          _ (submit-local-topology nimbus "test" {TOPOLOGY-WORKERS 7} topology)
           task-info (storm-component->task-info cluster "test")]
       (check-consistency cluster "test")
       (is (= 21 (count (task-info "1"))))

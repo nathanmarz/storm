@@ -104,7 +104,7 @@
         (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
-        (halt-process! 13 "Error on initialization")
+        (exit-process! 13 "Error on initialization")
         )))))
 
 (defn- validate-ids! [^StormTopology topology]
@@ -244,13 +244,15 @@
        (second)
        (reverse)))
 
-(defn number-duplicates [coll]
+(defn number-duplicates
   "(number-duplicates [\"a\", \"b\", \"a\"]) => [\"a\", \"b\", \"a#2\"]"
+  [coll]
   (map-occurrences (fn [x occurences] (if (>= occurences 2) (str x "#" occurences) x)) coll))
 
-(defn metrics-consumer-register-ids [storm-conf]
+(defn metrics-consumer-register-ids
   "Generates a list of component ids for each metrics consumer
    e.g. [\"__metrics_org.mycompany.MyMetricsConsumer\", ..] "
+  [storm-conf]
   (->> (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER)         
        (map #(get % "class"))
        (number-duplicates)

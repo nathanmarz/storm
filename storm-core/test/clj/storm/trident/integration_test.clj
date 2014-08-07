@@ -192,7 +192,7 @@
         (bind topo (TridentTopology.))
         (bind drpc-stream (-> topo (.newDRPCStream "tester" drpc)
                                    (.each (fields "args") (Split.) (fields "word"))
-                                   (.shuffle)
+                                   (.localOrShuffle)
                                    (.shuffle)
                                    (.aggregate (CountAsAggregator.) (fields "count"))
                                    ))

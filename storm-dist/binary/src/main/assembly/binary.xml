@@ -52,11 +52,42 @@
             </includes>
             <excludes/>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../examples</directory>
+            <outputDirectory>examples</outputDirectory>
+            <excludes>
+                <exclude>**/target/**</exclude>
+            </excludes>
+        </fileSet>
+
+        <!-- EXTERNAL -->
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-kafka/target</directory>
+            <outputDirectory>external/storm-kafka</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-kafka</directory>
+            <outputDirectory>external/storm-kafka</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
 
 
     </fileSets>
 
     <files>
+        <!-- EXAMPLES -->
+        <file>
+            <source>${project.basedir}/../../examples/storm-starter/target/storm-starter-${project.version}-jar-with-dependencies.jar</source>
+            <outputDirectory>/examples/storm-starter/</outputDirectory>
+            <destName>storm-starter-topologies-${project.version}.jar</destName>
+        </file>
+
+
         <!--
             $STORM_HOME/conf
         -->
@@ -64,6 +95,11 @@
             <source>${project.basedir}/../../conf/storm.yaml.example</source>
             <outputDirectory>/conf</outputDirectory>
             <destName>storm.yaml</destName>
+        </file>
+        <file>
+            <source>${project.basedir}/../../conf/storm_env.ini</source>
+            <outputDirectory>/conf</outputDirectory>
+            <destName>storm_env.ini</destName>
         </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>
@@ -99,6 +135,11 @@
 
         <file>
             <source>${project.basedir}/../../CHANGELOG.md</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+
+        <file>
+            <source>${project.basedir}/../../SECURITY.md</source>
             <outputDirectory>/</outputDirectory>
         </file>
     </files>

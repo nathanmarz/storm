@@ -1,11 +1,11 @@
 Apache Storm
-Copyright 2013 The Apache Software Foundation
+Copyright 2014 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 This product includes software developed by Yahoo! Inc. (www.yahoo.com)
-Copyright © 2012-2013 Yahoo! Inc.  All rights reserved.
+Copyright (c) 2012-2014 Yahoo! Inc.
 
 YAML support provided by snakeyaml (http://code.google.com/p/snakeyaml/).
 Copyright (c) 2008-2010 Andrey Somov

@@ -26,55 +26,26 @@ import java.util.ArrayList;
 
 class MessageBatch {
     private int buffer_size;
-    private ArrayList<Object> msgs;
+    private ArrayList<TaskMessage> msgs;
     private int encoded_length;
 
     MessageBatch(int buffer_size) {
         this.buffer_size = buffer_size;
-        msgs = new ArrayList<Object>();
+        msgs = new ArrayList<TaskMessage>();
         encoded_length = ControlMessage.EOB_MESSAGE.encodeLength();
     }
 
-    void add(Object obj) {
+    void add(TaskMessage obj) {
         if (obj == null)
             throw new RuntimeException("null object forbidded in message batch");
 
-        if (obj instanceof TaskMessage) {
-            TaskMessage msg = (TaskMessage)obj;
-            msgs.add(msg);
-            encoded_length += msgEncodeLength(msg);
-            return;
-        }
-
-        if (obj instanceof ControlMessage) {
-            ControlMessage msg = (ControlMessage)obj;
-            msgs.add(msg);
-            encoded_length += msg.encodeLength();
-            return;
-        }
-
-        throw new RuntimeException("Unsuppoted object type "+obj.getClass().getName());
+        TaskMessage msg = (TaskMessage)obj;
+        msgs.add(msg);
+        encoded_length += msgEncodeLength(msg);
     }
 
-    void remove(Object obj) {
-        if (obj == null) return;
 
-        if (obj instanceof TaskMessage) {
-            TaskMessage msg = (TaskMessage)obj;
-            msgs.remove(msg);
-            encoded_length -= msgEncodeLength(msg);
-            return;
-        }
-
-        if (obj instanceof ControlMessage) {
-            ControlMessage msg = (ControlMessage)obj;
-            msgs.remove(msg);
-            encoded_length -= msg.encodeLength();
-            return;
-        }
-    }
-
-    Object get(int index) {
+    TaskMessage get(int index) {
         return msgs.get(index);
     }
 
@@ -129,12 +100,9 @@ class MessageBatch {
     ChannelBuffer buffer() throws Exception {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.directBuffer(encoded_length));
         
-        for (Object msg : msgs) 
-            if (msg instanceof TaskMessage)
-                writeTaskMessage(bout, (TaskMessage)msg);
-            else
-                ((ControlMessage)msg).write(bout);
-        
+        for (TaskMessage msg : msgs)
+            writeTaskMessage(bout, msg);
+
         //add a END_OF_BATCH indicator
         ControlMessage.EOB_MESSAGE.write(bout);
 

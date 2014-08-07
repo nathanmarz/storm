@@ -36,14 +36,18 @@ public class Time {
     private static AtomicLong simulatedCurrTimeMs; //should this be a thread local that's allowed to keep advancing?
     
     public static void startSimulating() {
-        simulating.set(true);
-        simulatedCurrTimeMs = new AtomicLong(0);
-        threadSleepTimes = new ConcurrentHashMap<Thread, AtomicLong>();
+        synchronized(sleepTimesLock) {
+            simulating.set(true);
+            simulatedCurrTimeMs = new AtomicLong(0);
+            threadSleepTimes = new ConcurrentHashMap<Thread, AtomicLong>();
+        }
     }
     
     public static void stopSimulating() {
-        simulating.set(false);             
-        threadSleepTimes = null;  
+        synchronized(sleepTimesLock) {
+            simulating.set(false);             
+            threadSleepTimes = null;  
+        }
     }
     
     public static boolean isSimulating() {
@@ -61,7 +65,9 @@ public class Time {
                 }
             } finally {
                 synchronized(sleepTimesLock) {
-                    threadSleepTimes.remove(Thread.currentThread());
+                    if (simulating.get()) {
+                        threadSleepTimes.remove(Thread.currentThread());
+                    }
                 }
             }
         } else {

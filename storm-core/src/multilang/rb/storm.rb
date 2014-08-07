@@ -124,8 +124,28 @@ module Storm
       send_msg_to_parent :command => :error, :msg => msg.to_s
     end
 
-    def log(msg)
-      send_msg_to_parent :command => :log, :msg => msg.to_s
+    def log(msg, level=2)
+      send_msg_to_parent :command => :log, :msg => msg.to_s, :level => level
+    end
+
+    def logTrace(msg)
+      log(msg, 0)
+    end
+
+    def logDebug(msg)
+      log(msg, 1)
+    end
+
+    def logInfo(msg)
+      log(msg, 2)
+    end
+
+    def logWarn(msg)
+      log(msg, 3)
+    end
+
+    def logError(msg)
+      log(msg, 4)
     end
 
     def handshake

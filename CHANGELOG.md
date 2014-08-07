@@ -37,6 +37,7 @@
  * STORM-369: topology summary page displays wrong order.
  * STORM-350: LMAX Disruptor 3.2.1
  * STORM-239: Allow supervisor to operate in paths with spaces in them
+ * STORM-87: fail fast on ShellBolt exception
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

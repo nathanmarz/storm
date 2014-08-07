@@ -165,4 +165,21 @@ public class ShellMsg {
     public void setLogLevel(int logLevel) {
         this.logLevel = ShellLogLevel.fromInt(logLevel);
     }
+
+    @Override
+    public String toString() {
+        return "ShellMsg{" +
+                "command='" + command + '\'' +
+                ", id=" + id +
+                ", anchors=" + anchors +
+                ", stream='" + stream + '\'' +
+                ", task=" + task +
+                ", msg='" + msg + '\'' +
+                ", tuple=" + tuple +
+                ", needTaskIds=" + needTaskIds +
+                ", metricName='" + metricName + '\'' +
+                ", metricParams=" + metricParams +
+                ", logLevel=" + logLevel +
+                '}';
+    }
 }

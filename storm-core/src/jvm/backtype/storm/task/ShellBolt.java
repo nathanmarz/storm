@@ -115,6 +115,9 @@ public class ShellBolt implements IBolt {
                         ShellMsg shellMsg = _process.readShellMsg();
 
                         String command = shellMsg.getCommand();
+                        if (command == null) {
+                            throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
+                        }
                         if(command.equals("ack")) {
                             handleAck(shellMsg.getId());
                         } else if (command.equals("fail")) {

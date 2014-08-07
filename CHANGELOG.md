@@ -38,6 +38,7 @@
  * STORM-350: LMAX Disruptor 3.2.1
  * STORM-239: Allow supervisor to operate in paths with spaces in them
  * STORM-87: fail fast on ShellBolt exception
+ * STORM-417: Storm UI lost table sort style when tablesorter was updated
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

@@ -21,7 +21,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.2-incubating-SNAPSHOT</version>
+        <version>0.9.3-incubating-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
@@ -41,25 +41,25 @@
     <build>
         <finalName>apache-storm-${project.version}</finalName>
         <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <executions>
-                <execution>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>single</goal>
-                    </goals>
-                </execution>
-            </executions>
-            <configuration>
-                <attach>true</attach>
-                <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
-                <descriptors>
-                    <descriptor>${project.basedir}/src/main/assembly/source.xml</descriptor>
-                </descriptors>
-            </configuration>
-        </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <attach>true</attach>
+                    <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+                    <descriptors>
+                        <descriptor>${project.basedir}/src/main/assembly/source.xml</descriptor>
+                    </descriptors>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>

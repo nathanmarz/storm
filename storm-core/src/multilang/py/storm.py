@@ -33,10 +33,12 @@ json_decode = lambda x: json.loads(x)
 def readMsg():
     msg = ""
     while True:
-        line = sys.stdin.readline()[0:-1]
-        if line == "end":
+        line = sys.stdin.readline()
+        if not line:
+            raise Exception('Read EOF from stdin')
+        if line[0:-1] == "end":
             break
-        msg = msg + line + "\n"
+        msg = msg + line
     return json_decode(msg[0:-1])
 
 MODE = None
@@ -133,8 +135,26 @@ def fail(tup):
 def reportError(msg):
     sendMsgToParent({"command": "error", "msg": msg})
 
-def log(msg):
-    sendMsgToParent({"command": "log", "msg": msg})
+def log(msg, level=2):
+    sendMsgToParent({"command": "log", "msg": msg, "level":level})
+
+def logTrace(msg):
+    log(msg, 0)
+
+def logDebug(msg):
+    log(msg, 1)
+
+def logInfo(msg):
+    log(msg, 2)
+
+def logWarn(msg):
+    log(msg, 3)
+
+def logError(msg):
+    log(msg, 4)
+
+def rpcMetrics(name, params):
+    sendMsgToParent({"command": "metrics", "name": name, "params": params})
 
 def initComponent():
     setupInfo = readMsg()

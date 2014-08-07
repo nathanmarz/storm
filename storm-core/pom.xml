@@ -20,7 +20,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.2-incubating-SNAPSHOT</version>
+        <version>0.9.3-incubating-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-core</artifactId>
@@ -109,8 +109,18 @@
 
 
         <dependency>
-            <groupId>com.netflix.curator</groupId>
+            <groupId>org.apache.curator</groupId>
             <artifactId>curator-framework</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
@@ -132,7 +142,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.googlecode.disruptor</groupId>
+            <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>
@@ -161,13 +171,38 @@
             <artifactId>mockito-all</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.clojars.runa</groupId>
+            <artifactId>conjure</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+        	<groupId>junit</groupId>
+        	<artifactId>junit</artifactId>
+        	<version>4.1</version>
+        	<scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <sourceDirectory>src/jvm</sourceDirectory>
+         <testSourceDirectory>test/jvm</testSourceDirectory>
         <resources>
             <resource>
                 <directory>../conf</directory>
             </resource>
+            <resource>
+                <directory>../</directory>
+                <targetPath>META-INF</targetPath>
+                <includes>
+                    <!--
+                    storm-core doesn't package jquery, etc. so the stock
+                    apache LICENSE file is okay. We do want our version
+                    of the NOTICE file, however
+                    -->
+                    <include>NOTICE</include>
+                </includes>
+            </resource>
+
         </resources>
         <testResources>
             <testResource>
@@ -190,6 +225,10 @@
                         <testSourceDirectory>test/clj</testSourceDirectory>
                     </testSourceDirectories>
                     <warnOnReflection>false</warnOnReflection>
+                    <copyDeclaredNamespaceOnly>true</copyDeclaredNamespaceOnly>
+                    <copiedNamespaces>
+                        <copiedNamespace>none</copiedNamespace>
+                    </copiedNamespaces>
                 </configuration>
                 <executions>
                     <execution>
@@ -205,6 +244,9 @@
                         <goals>
                             <goal>test-with-junit</goal>
                         </goals>
+                        <configuration>
+                            <vmargs>${test.extra.args}</vmargs>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -237,7 +279,7 @@
                     <artifactSet>
                         <includes>
                             <include>org.apache.thrift:*</include>
-                            <include>odg.apache.storm:*</include>
+                            <include>org.apache.storm:*</include>
                         </includes>
                     </artifactSet>
 
@@ -250,7 +292,15 @@
                     <transformers>
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
                     </transformers>
-                    <filters />
+                    <filters>
+                        <filter>
+                            <artifact>org.apache.thrift:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <dependencies>
                     <dependency>

@@ -16,7 +16,7 @@
 (ns backtype.storm.utils-test
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient Utils])
-  (:import [com.netflix.curator.retry ExponentialBackoffRetry])
+  (:import [org.apache.curator.retry ExponentialBackoffRetry])
   (:import [org.apache.thrift.transport TTransportException])
   (:use [backtype.storm config util])
   (:use [clojure test])
@@ -62,3 +62,14 @@
     ))
   )
 )
+
+(deftest test-secs-to-millis-long
+  (is (= 0 (secs-to-millis-long 0)))
+  (is (= 2 (secs-to-millis-long 0.002)))
+  (is (= 500 (secs-to-millis-long 0.5)))
+  (is (= 1000 (secs-to-millis-long 1)))
+  (is (= 1080 (secs-to-millis-long 1.08)))
+  (is (= 10000 (secs-to-millis-long 10)))
+  (is (= 10100 (secs-to-millis-long 10.1)))
+)
+

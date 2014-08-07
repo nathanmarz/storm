@@ -17,7 +17,7 @@
   (:use compojure.core)
   (:use [hiccup core page-helpers])
   (:use [clojure [string :only [join]]])
-  (:use [backtype.storm.util :only [uuid defnk]])
+  (:use [backtype.storm.util :only [uuid defnk url-encode]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:require [compojure.route :as route]
@@ -123,14 +123,9 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
        [(apply sort-table id args)])
      )))
 
-(defn date-str [secs]
-  (let [dt (from-long (* 1000 (long secs)))]
-    (unparse (:rfc822 formatters) dt)
-    ))
-
 (defn url-format [fmt & args]
   (String/format fmt 
-    (to-array (map #(java.net.URLEncoder/encode (str %)) args))))
+    (to-array (map #(url-encode (str %)) args))))
 
 (defn to-tasks [^ExecutorInfo e]
   (let [start (.get_task_start e)
@@ -147,3 +142,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
 
+(defn ring-response-from-exception [ex]
+  {:headers {}
+   :status 400
+   :body (.getMessage ex)})

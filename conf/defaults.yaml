@@ -94,6 +94,9 @@ supervisor.enable: true
 worker.childopts: "-Xmx768m"
 worker.heartbeat.frequency.secs: 1
 
+# control how many worker receiver threads we need per worker 
+topology.worker.receiver.thread.count: 1
+
 task.heartbeat.frequency.secs: 3
 task.refresh.poll.secs: 10
 
@@ -105,19 +108,26 @@ zmq.hwm: 0
 storm.messaging.netty.server_worker_threads: 1
 storm.messaging.netty.client_worker_threads: 1
 storm.messaging.netty.buffer_size: 5242880 #5MB buffer
-storm.messaging.netty.max_retries: 30
+# Since nimbus.task.launch.secs and supervisor.worker.start.timeout.secs are 120, other workers should also wait at least that long before giving up on connecting to the other worker.
+storm.messaging.netty.max_retries: 300
 storm.messaging.netty.max_wait_ms: 1000
 storm.messaging.netty.min_wait_ms: 100
+
+# If the Netty messaging layer is busy(netty internal buffer not writable), the Netty client will try to batch message as more as possible up to the size of storm.messaging.netty.transfer.batch.size bytes, otherwise it will try to flush message as soon as possible to reduce latency.
+storm.messaging.netty.transfer.batch.size: 262144
+
+# We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
+storm.messaging.netty.flush.check.interval.ms: 10
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
 topology.debug: false
-topology.optimize: true
 topology.workers: 1
 topology.acker.executors: null
 topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
+topology.multilang.serializer: "backtype.storm.multilang.JsonSerializer"
 topology.skip.missing.kryo.registrations: false
 topology.max.task.parallelism: null
 topology.max.spout.pending: null
@@ -140,5 +150,7 @@ topology.max.error.report.per.interval: 5
 topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
 topology.tuple.serializer: "backtype.storm.serialization.types.ListDelegateSerializer"
 topology.trident.batch.emit.interval.millis: 500
+topology.classpath: null
+topology.environment: null
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

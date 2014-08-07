@@ -18,8 +18,12 @@
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
-            TestAggregatesCounter TestConfBolt AckFailMapTracker])
+            TestAggregatesCounter TestConfBolt AckFailMapTracker PythonShellMetricsBolt PythonShellMetricsSpout])
+  (:import [backtype.storm.task ShellBolt])
+  (:import [backtype.storm.spout ShellSpout])
   (:import [backtype.storm.metric.api CountMetric IMetricsConsumer$DataPoint IMetricsConsumer$TaskInfo])
+  (:import [backtype.storm.metric.api.rpc CountShellMetric])
+  (:import [backtype.storm.utils Utils])
   
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
@@ -66,15 +70,17 @@
 
 (def metrics-data backtype.storm.metric.testing/buffer)
 
-(defn wait-for-atleast-N-buckets! [N comp-id metric-name]
-  (while
+(defn wait-for-atleast-N-buckets! [N comp-id metric-name cluster]
+  (while-timeout TEST-TIMEOUT-MS
       (let [taskid->buckets (-> @metrics-data (get comp-id) (get metric-name))]
         (or
          (and (not= N 0) (nil? taskid->buckets))
          (not-every? #(<= N %) (map (comp count second) taskid->buckets))))
-;;    (println "Waiting for at least" N "timebuckets to appear in FakeMetricsConsumer for component id" comp-id
-;;             "and metric name" metric-name)
-    (Thread/sleep 10)))
+      ;;(log-message "Waiting for at least " N " timebuckets to appear in FakeMetricsConsumer for component id " comp-id " and metric name " metric-name " metrics " (-> @metrics-data (get comp-id) (get metric-name)))
+    (if cluster
+      (advance-cluster-time cluster 1)
+      (Thread/sleep 10))))
+    
 
 (defn lookup-bucket-by-comp-id-&-metric-name! [comp-id metric-name]
   (-> @metrics-data
@@ -84,10 +90,10 @@
       (second)
       (or [])))
 
-(defmacro assert-buckets! [comp-id metric-name expected]
+(defmacro assert-buckets! [comp-id metric-name expected cluster]
   `(do
      (let [N# (count ~expected)]
-       (wait-for-atleast-N-buckets! N# ~comp-id ~metric-name)
+       (wait-for-atleast-N-buckets! N# ~comp-id ~metric-name ~cluster)
        (is (= ~expected (subvec (lookup-bucket-by-comp-id-&-metric-name! ~comp-id ~metric-name) 0 N#))))))
 
 (defmacro assert-metric-data-exists! [comp-id metric-name]
@@ -96,7 +102,10 @@
 (deftest test-custom-metric
   (with-simulated-time-local-cluster
     [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
-                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]}]
+                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                           "storm.zookeeper.connection.timeout" 30000
+                           "storm.zookeeper.session.timeout" 60000
+                           }]
     (let [feeder (feeder-spout ["field1"])
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec feeder)}
@@ -105,18 +114,101 @@
 
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 6)
-      (assert-buckets! "2" "my-custom-metric" [1])
+      (assert-buckets! "2" "my-custom-metric" [1] cluster)
             
       (advance-cluster-time cluster 5)
-      (assert-buckets! "2" "my-custom-metric" [1 0])
+      (assert-buckets! "2" "my-custom-metric" [1 0] cluster)
 
       (advance-cluster-time cluster 20)
-      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0])
+      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0] cluster)
       
       (.feed feeder ["b"] 2)
       (.feed feeder ["c"] 3)               
       (advance-cluster-time cluster 5)
-      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0 2]))))
+      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0 2] cluster))))
+
+(deftest test-custom-metric-with-multi-tasks
+  (with-simulated-time-local-cluster
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                           [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                           "storm.zookeeper.connection.timeout" 30000
+                           "storm.zookeeper.session.timeout" 60000
+                           }]
+    (let [feeder (feeder-spout ["field1"])
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec feeder)}
+                     {"2" (thrift/mk-bolt-spec {"1" :all} count-acks :p 1 :conf {TOPOLOGY-TASKS 2})})]
+      (submit-local-topology (:nimbus cluster) "metrics-tester-with-multitasks" {} topology)
+
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 6)
+      (assert-buckets! "2" "my-custom-metric" [1] cluster)
+
+      (advance-cluster-time cluster 5)
+      (assert-buckets! "2" "my-custom-metric" [1 0] cluster)
+
+      (advance-cluster-time cluster 20)
+      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0] cluster)
+
+      (.feed feeder ["b"] 2)
+      (.feed feeder ["c"] 3)
+      (advance-cluster-time cluster 5)
+      (assert-buckets! "2" "my-custom-metric" [1 0 0 0 0 0 2] cluster))))
+
+(defn mk-shell-bolt-with-metrics-spec
+  [inputs command & kwargs]
+  (let [command (into-array String command)]
+    (apply thrift/mk-bolt-spec inputs
+         (PythonShellMetricsBolt. command) kwargs)))
+
+(deftest test-custom-metric-with-multilang-py
+  (with-simulated-time-local-cluster 
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                       [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                       "storm.zookeeper.connection.timeout" 30000
+                       "storm.zookeeper.session.timeout" 60000
+                       }]
+    (let [feeder (feeder-spout ["field1"])
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec feeder)}
+                     {"2" (mk-shell-bolt-with-metrics-spec {"1" :global} ["python" "tester_bolt_metrics.py"])})]
+      (submit-local-topology (:nimbus cluster) "shell-metrics-tester" {} topology)
+
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 6)
+      (assert-buckets! "2" "my-custom-shell-metric" [1] cluster)
+            
+      (advance-cluster-time cluster 5)
+      (assert-buckets! "2" "my-custom-shell-metric" [1 0] cluster)
+
+      (advance-cluster-time cluster 20)
+      (assert-buckets! "2" "my-custom-shell-metric" [1 0 0 0 0 0] cluster)
+      
+      (.feed feeder ["b"] 2)
+      (.feed feeder ["c"] 3)               
+      (advance-cluster-time cluster 5)
+      (assert-buckets! "2" "my-custom-shell-metric" [1 0 0 0 0 0 2] cluster)
+      )))
+
+(defn mk-shell-spout-with-metrics-spec
+  [command & kwargs]
+  (let [command (into-array String command)]
+    (apply thrift/mk-spout-spec (PythonShellMetricsSpout. command) kwargs)))
+
+(deftest test-custom-metric-with-spout-multilang-py
+  (with-simulated-time-local-cluster 
+    [cluster :daemon-conf {TOPOLOGY-METRICS-CONSUMER-REGISTER
+                       [{"class" "clojure.storm.metric.testing.FakeMetricConsumer"}]
+                       "storm.zookeeper.connection.timeout" 30000
+                       "storm.zookeeper.session.timeout" 60000}]
+    (let [topology (thrift/mk-topology
+                     {"1" (mk-shell-spout-with-metrics-spec ["python" "tester_spout_metrics.py"])}
+                     {"2" (thrift/mk-bolt-spec {"1" :all} count-acks)})]
+      (submit-local-topology (:nimbus cluster) "shell-spout-metrics-tester" {} topology)
+
+      (advance-cluster-time cluster 7)
+      (assert-buckets! "1" "my-custom-shellspout-metric" [2] cluster)
+      )))
 
 
 (deftest test-builtin-metrics-1
@@ -133,27 +225,27 @@
       
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 61)
-      (assert-buckets! "myspout" "__ack-count/default" [1])
-      (assert-buckets! "myspout" "__emit-count/default" [1])
-      (assert-buckets! "myspout" "__transfer-count/default" [1])            
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1])
+      (assert-buckets! "myspout" "__ack-count/default" [1] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1] cluster)            
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1] cluster)
 
       (advance-cluster-time cluster 120)
-      (assert-buckets! "myspout" "__ack-count/default" [1 0 0])
-      (assert-buckets! "myspout" "__emit-count/default" [1 0 0])
-      (assert-buckets! "myspout" "__transfer-count/default" [1 0 0])
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 0 0])
+      (assert-buckets! "myspout" "__ack-count/default" [1 0 0] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1 0 0] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1 0 0] cluster)
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 0 0] cluster)
 
       (.feed feeder ["b"] 1)
       (.feed feeder ["c"] 1)
       (advance-cluster-time cluster 60)
-      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 2])
-      (assert-buckets! "myspout" "__emit-count/default" [1 0 0 2])
-      (assert-buckets! "myspout" "__transfer-count/default" [1 0 0 2])      
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 2])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 0 0 2]))))
+      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 2] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1 0 0 2] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1 0 0 2] cluster)      
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 2] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 0 0 2] cluster))))
 
 
 (deftest test-builtin-metrics-2
@@ -176,36 +268,36 @@
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 6)
       (assert-acked tracker 1)
-      (assert-buckets! "myspout" "__fail-count/default" [])
-      (assert-buckets! "myspout" "__ack-count/default" [1])
-      (assert-buckets! "myspout" "__emit-count/default" [1])
-      (assert-buckets! "myspout" "__transfer-count/default" [1])            
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1])     
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1])
+      (assert-buckets! "myspout" "__fail-count/default" [] cluster)
+      (assert-buckets! "myspout" "__ack-count/default" [1] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1] cluster)            
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1] cluster)     
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1] cluster)
 
       (.feed feeder ["b"] 2)      
       (advance-cluster-time cluster 5)
-      (assert-buckets! "myspout" "__fail-count/default" [])
-      (assert-buckets! "myspout" "__ack-count/default" [1 0])
-      (assert-buckets! "myspout" "__emit-count/default" [1 1])
-      (assert-buckets! "myspout" "__transfer-count/default" [1 1])                  
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1])
+      (assert-buckets! "myspout" "__fail-count/default" [] cluster)
+      (assert-buckets! "myspout" "__ack-count/default" [1 0] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1 1] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1 1] cluster)                  
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1] cluster)
 
       (advance-cluster-time cluster 15)      
-      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 0 0])
-      (assert-buckets! "myspout" "__emit-count/default" [1 1 0 0 0])
-      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0])
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 0 0])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0])
+      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 0 0] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1 1 0 0 0] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0] cluster)
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 0 0] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0] cluster)
       
       (.feed feeder ["c"] 3)            
       (advance-cluster-time cluster 15)      
-      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 0 0 1 0 0])
-      (assert-buckets! "myspout" "__emit-count/default" [1 1 0 0 0 1 0 0])
-      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0 1 0 0])
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 0 0 1 0 0])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0 1 0 0]))))
+      (assert-buckets! "myspout" "__ack-count/default" [1 0 0 0 0 1 0 0] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [1 1 0 0 0 1 0 0] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [1 1 0 0 0 1 0 0] cluster)
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [1 0 0 0 0 1 0 0] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [1 1 0 0 0 1 0 0] cluster))))
 
 (deftest test-builtin-metrics-3
   (with-simulated-time-local-cluster
@@ -229,21 +321,21 @@
       (.feed feeder ["c"] 3)
       (advance-cluster-time cluster 9)
       (assert-acked tracker 1 3)
-      (assert-buckets! "myspout" "__ack-count/default" [2])
-      (assert-buckets! "myspout" "__emit-count/default" [3])
-      (assert-buckets! "myspout" "__transfer-count/default" [3])
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [2])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [3])
+      (assert-buckets! "myspout" "__ack-count/default" [2] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [3] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [3] cluster)
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [2] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [3] cluster)
       
       (is (not (.isFailed tracker 2)))
       (advance-cluster-time cluster 30)
       (assert-failed tracker 2)
-      (assert-buckets! "myspout" "__fail-count/default" [1])
-      (assert-buckets! "myspout" "__ack-count/default" [2 0 0 0])
-      (assert-buckets! "myspout" "__emit-count/default" [3 0 0 0])
-      (assert-buckets! "myspout" "__transfer-count/default" [3 0 0 0])
-      (assert-buckets! "mybolt" "__ack-count/myspout:default" [2 0 0 0])
-      (assert-buckets! "mybolt" "__execute-count/myspout:default" [3 0 0 0]))))
+      (assert-buckets! "myspout" "__fail-count/default" [1] cluster)
+      (assert-buckets! "myspout" "__ack-count/default" [2 0 0 0] cluster)
+      (assert-buckets! "myspout" "__emit-count/default" [3 0 0 0] cluster)
+      (assert-buckets! "myspout" "__transfer-count/default" [3 0 0 0] cluster)
+      (assert-buckets! "mybolt" "__ack-count/myspout:default" [2 0 0 0] cluster)
+      (assert-buckets! "mybolt" "__execute-count/myspout:default" [3 0 0 0] cluster))))
 
 (deftest test-system-bolt
   (with-simulated-time-local-cluster
@@ -258,12 +350,12 @@
 
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 70)
-      (assert-buckets! "__system" "newWorkerEvent" [1])
+      (assert-buckets! "__system" "newWorkerEvent" [1] cluster)
       (assert-metric-data-exists! "__system" "uptimeSecs")
       (assert-metric-data-exists! "__system" "startTimeSecs")
 
       (advance-cluster-time cluster 180)
-      (assert-buckets! "__system" "newWorkerEvent" [1 0 0 0])
+      (assert-buckets! "__system" "newWorkerEvent" [1 0 0 0] cluster)
       )))
 
 

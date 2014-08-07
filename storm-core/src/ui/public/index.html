@@ -1,0 +1,89 @@
+<html><head>
+    <!--
+     Licensed to the Apache Software Foundation (ASF) under one or more
+     contributor license agreements.  See the NOTICE file distributed with
+     this work for additional information regarding copyright ownership.
+     The ASF licenses this file to You under the Apache License, Version 2.0
+     (the "License"); you may not use this file except in compliance with
+     the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+    -->
+<title>Storm UI</title>
+<link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
+<link href="/css/style.css" rel="stylesheet" type="text/css">
+<script src="/js/jquery-1.6.2.min.js" type="text/javascript"></script>
+<script src="/js/jquery.tablesorter.min.js" type="text/javascript"></script>
+<script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
+<script src="/js/jquery.mustache.js" type="text/javascript"></script>
+<script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
+</head>
+<body>
+<h1><a href="/">Storm UI</a></h1>
+<h2>Cluster Summary</h2>
+<div id="cluster-summary">
+</div>
+<h2>Topology summary</h2>
+<div id="topology-summary">
+</div>
+<h2>Supervisor summary</h2>
+<div id="supervisor-summary">
+</div>
+<h2>Nimbus Configuration</h2>
+<div id="nimbus-configuration"></div>
+<div id="json-response-error"></div>
+</body>
+<script>
+$(document).ready(function() {
+    $.ajaxSetup({
+        "error":function(jqXHR,textStatus,response) {
+            var errorJson = jQuery.parseJSON(jqXHR.responseText);
+            $.get("/templates/json-error-template.html", function(template) {
+                $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),errorJson));
+            });
+        }
+    });
+    var template = $.get("/templates/index-page-template.html");
+    var clusterSummary = $("#cluster-summary");
+    var topologySummary = $("#topology-summary");
+    var supervisorSummary = $("#supervisor-summary");
+    var config = $("#nimbus-configuration");
+
+    $.getJSON("/api/v1/cluster/summary",function(response,status,jqXHR) {
+        $.get("/templates/index-page-template.html", function(template) {
+            clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
+        });
+    });
+    $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
+          if(response["topologies"].length > 0) {
+              $("#topology-summary-table").tablesorter({ sortList: [[0,0]], headers: {3: { sorter: "stormtimestr"}}});
+              }
+      });
+    });
+    $.getJSON("/api/v1/supervisor/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          supervisorSummary.append(Mustache.render($(template).filter("#supervisor-summary-template").html(),response));
+          if(response["supervisors"].length > 0) {
+              $("#supervisor-summary-table").tablesorter({ sortList: [[0,0]], headers: {3: { sorter: "stormtimestr"}}});
+          }
+      });
+    });
+    $.getJSON("/api/v1/cluster/configuration",function(response,status,jqXHR) {
+      var formattedResponse = formatConfigData(response);
+      $.get("/templates/index-page-template.html", function(template) {
+          config.append(Mustache.render($(template).filter("#configuration-template").html(),formattedResponse));
+          $("#nimbus-configuration-table").tablesorter({ sortList: [[0,0]], headers: {}});
+      });
+    });
+  });
+</script>
+</html>

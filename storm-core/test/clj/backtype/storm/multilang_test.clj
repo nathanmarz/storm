@@ -30,7 +30,7 @@
 ;;                       )]
 ;;       (submit-local-topology nimbus
 ;;                           "test"
-;;                           {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
+;;                           {TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
 ;;                           topology)
 ;;       (Thread/sleep 10000)
 ;;       (.killTopology nimbus "test")
@@ -45,7 +45,7 @@
                     {"2" (thrift/mk-shell-bolt-spec {"1" :shuffle} "ruby" "tester_bolt.rb" ["word"] :parallelism-hint 1)})]
       (submit-local-topology nimbus
                              "test"
-                             {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
+                             {TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
                              topology)
       (Thread/sleep 10000)
       (.killTopology nimbus "test")
@@ -61,7 +61,7 @@
                       )]
       (submit-local-topology nimbus
                           "test"
-                          {TOPOLOGY-OPTIMIZE false TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
+                          {TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
                           topology)
       (Thread/sleep 10000)
       (.killTopology nimbus "test")

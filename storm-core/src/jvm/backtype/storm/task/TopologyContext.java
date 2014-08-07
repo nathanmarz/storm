@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
+import org.json.simple.JSONValue;
 
 /**
  * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
@@ -217,6 +218,16 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     public Collection<ITaskHook> getHooks() {
         return _hooks;
     }
+    
+    @Override
+    public String toJSONString() {
+        Map obj = new HashMap();
+        obj.put("task->component", this.getTaskToComponent());
+        obj.put("taskid", this.getThisTaskId());
+        // TODO: jsonify StormTopology
+        // at the minimum should send source info
+        return JSONValue.toJSONString(obj);
+    }
 
     /*
      * Register a IMetric instance. 
@@ -230,7 +241,20 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " + 
                                        "IBolt::prepare() or ISpout::open() method.");
         }
+
+        if (metric == null) {
+            throw new IllegalArgumentException("Cannot register a null metric");
+        }
+
+        if (timeBucketSizeInSecs <= 0) {
+            throw new IllegalArgumentException("TopologyContext.registerMetric can only be called with timeBucketSizeInSecs " +
+                                               "greater than or equal to 1 second.");
+        }
         
+        if (getRegisteredMetricByName(name) != null) {
+            throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
+        }
+
         Map m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {
             m1.put(timeBucketSizeInSecs, new HashMap());
@@ -251,6 +275,30 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         return metric;
     }
 
+    /**
+     * Get component's metric from registered metrics by name.
+     * Notice: Normally, one component can only register one metric name once.
+     *         But now registerMetric has a bug(https://issues.apache.org/jira/browse/STORM-254) 
+     *         cause the same metric name can register twice.
+     *         So we just return the first metric we meet.
+     */
+    public IMetric getRegisteredMetricByName(String name) {
+        IMetric metric = null;
+
+        for (Map<Integer, Map<String, IMetric>> taskIdToNameToMetric: _registeredMetrics.values()) {
+            Map<String, IMetric> nameToMetric = taskIdToNameToMetric.get(_taskId);
+            if (nameToMetric != null) {
+                metric = nameToMetric.get(name);
+                if (metric != null) {
+                    //we just return the first metric we meet
+                    break;  
+                }
+            }
+        } 
+        
+        return metric;
+    }   
+ 
     /*
      * Convinience method for registering ReducedMetric.
      */

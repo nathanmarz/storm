@@ -13,11 +13,12 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+
 (ns backtype.storm.tuple
-  (:use [backtype.storm bootstrap])
-  )
+  (:use [backtype.storm bootstrap]))
 
 (bootstrap)
 
-(defn list-hash-code [^List alist]
+(defn list-hash-code
+  [^List alist]
   (.hashCode alist))

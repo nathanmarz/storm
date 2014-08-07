@@ -7,7 +7,7 @@
 var fs = require('fs');
 
 function Storm() {
-    this.messageParts = [];
+    this.messagePart = "";
     this.taskIdsCallbacks = [];
     this.isFirstMessage = true;
     this.separator = '\nend\n';
@@ -54,10 +54,11 @@ Storm.prototype.startReadingInput = function() {
 
 /**
  * receives a new string chunk and returns a list of new messages with the separator removed
- * stores state in this.messageParts
+ * stores state in this.messagePart
  * @param chunk
  */
 Storm.prototype.handleNewChunk = function(chunk) {
+    //invariant: this.messagePart has no separator otherwise we would have parsed it already
     var messages = [];
     if (chunk && chunk.length !== 0) {
         //"{}".split("\nend\n")           ==> ['{}']
@@ -65,17 +66,16 @@ Storm.prototype.handleNewChunk = function(chunk) {
         //"{}\nend\n".split("\nend\n")    ==> ['{}', '']
         //"\nend\n{}".split("\nend\n")    ==> [''  , '{}']
         // "{}\nend\n{}".split("\nend\n") ==> ['{}', '{}' ]
-        var newMessageParts = chunk.split(this.separator);
+        this.messagePart = this.messagePart + chunk;
+        var newMessageParts = this.messagePart.split(this.separator);
         while (newMessageParts.length > 0) {
-            var messagePart = newMessageParts.shift();
-            this.messageParts.push(messagePart);
+            var potentialMessage = newMessageParts.shift();
             var anotherMessageAhead = newMessageParts.length > 0;
-            if  (anotherMessageAhead) {
-                var message = this.messageParts.join('');
-                this.messageParts = [];
-                if (message.length > 0) {
-                    messages.push(message);
-                }
+            if  (!anotherMessageAhead) {
+                this.messagePart = potentialMessage;
+            }
+            else if (potentialMessage.length > 0) {
+                messages.push(potentialMessage);
             }
         }
     }

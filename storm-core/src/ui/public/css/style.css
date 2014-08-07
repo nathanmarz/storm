@@ -41,3 +41,70 @@ table th {
 .twipsy-inner {
   font-size: 13px;
 }
+
+/*
+ * Duplicate styles for table sorter
+ */
+
+tablesorter-header {
+  display: block;
+}
+
+table .tablesorter-header {
+  cursor: pointer;
+}
+table .tablesorter-header:after {
+  content: "";
+  float: right;
+  margin-top: 7px;
+  border-width: 0 4px 4px;
+  border-style: solid;
+  border-color: #000 transparent;
+  visibility: hidden;
+}
+table .tablesorter-headerAsc, table .tablesorter-headerDesc {
+  background-color: rgba(141, 192, 219, 0.25);
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+}
+table .tablesorter-header:hover:after {
+  visibility: visible;
+}
+table .tablesorter-headerDesc:after, table .tablesorter-headerDesc:hover:after {
+  visibility: visible;
+  filter: alpha(opacity=60);
+  -khtml-opacity: 0.6;
+  -moz-opacity: 0.6;
+  opacity: 0.6;
+}
+table .tablesorter-headerAsc:after {
+  border-bottom: none;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #000;
+  visibility: visible;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  filter: alpha(opacity=60);
+  -khtml-opacity: 0.6;
+  -moz-opacity: 0.6;
+  opacity: 0.6;
+}
+table .tablesorter-headerAsc.blue, table .tablesorter-headerDesc.blue {
+  background-color: #ade6fe;
+}
+table .tablesorter-headerAsc.green, table .tablesorter-headerDesc.green {
+  background-color: #cdeacd;
+}
+table .tablesorter-headerAsc.red, table .tablesorter-headerDesc.red {
+  background-color: #f4c8c5;
+}
+table .tablesorter-headerAsc.yellow, table .tablesorter-headerDesc.yellow {
+  background-color: #fff6d9;
+}
+table .tablesorter-headerAsc.orange, table .tablesorter-headerDesc.orange {
+  background-color: #fee9cc;
+}
+table .tablesorter-headerAsc.purple, table .tablesorter-headerDesc.purple {
+  background-color: #e2d5f0;
+}

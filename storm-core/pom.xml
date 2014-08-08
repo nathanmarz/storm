@@ -53,6 +53,12 @@
         <dependency>
             <groupId>ring</groupId>
             <artifactId>ring-jetty-adapter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.clojure</groupId>

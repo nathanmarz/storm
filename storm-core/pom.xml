@@ -339,6 +339,12 @@
                                 <exclude>META-INF/README.txt</exclude>
                             </excludes>
                         </filter>
+                        <filter>
+                            <artifact>org.apache.zookeeper:zookeeper</artifact>
+                            <excludes>
+                                <exclude>LICENSE.txt</exclude>
+                            </excludes>
+                        </filter>
                     </filters>
                 </configuration>
                 <dependencies>

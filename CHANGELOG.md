@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-405: Add kafka trident state so messages can be sent to kafka topic
  * STORM-211: Add module for HDFS integration
  * STORM-337: Expose managed spout ids publicly
  * STORM-320: Support STORM_CONF_DIR environment variable to support

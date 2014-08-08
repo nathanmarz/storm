@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-279: cluster.xml doesn't take in STORM_LOG_DIR values.
  * STORM-380: Kafka spout: throw RuntimeException if a leader cannot be found for a partition
  * STORM-435: Improve storm-kafka documentation
  * STORM-405: Add kafka trident state so messages can be sent to kafka topic

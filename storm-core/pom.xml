@@ -279,7 +279,11 @@
                     <artifactSet>
                         <includes>
                             <include>org.apache.thrift:*</include>
-                            <include>org.apache.storm:*</include>
+                            <include>io.netty:netty</include>
+                            <include>com.google.guava:guava</include>
+                            <include>org.apache.httpcomponents:http*</include>
+                            <include>org.apache.zookeeper:zookeeper</include>
+                            <include>org.apache.curator:*</include>
                         </includes>
                     </artifactSet>
 
@@ -287,6 +291,26 @@
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
                             <shadedPattern>org.apache.thrift7</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.jboss.netty</pattern>
+                            <shadedPattern>org.apache.storm.netty</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.google.common</pattern>
+                            <shadedPattern>org.apache.storm.guava</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.http</pattern>
+                            <shadedPattern>org.apache.storm.http</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.zookeeper</pattern>
+                            <shadedPattern>org.apache.storm.zookeeper</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.curator</pattern>
+                            <shadedPattern>org.apache.storm.curator</shadedPattern>
                         </relocation>
                     </relocations>
                     <transformers>
@@ -298,6 +322,21 @@
                             <excludes>
                                 <exclude>META-INF/LICENSE.txt</exclude>
                                 <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>io.netty:netty</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>commons-httpclient:commons-httpclient</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                                <exclude>META-INF/README.txt</exclude>
                             </excludes>
                         </filter>
                     </filters>

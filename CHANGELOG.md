@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-211: Add module for HDFS integration
  * STORM-337: Expose managed spout ids publicly
  * STORM-320: Support STORM_CONF_DIR environment variable to support
  * STORM-360: Add node details for Error Topology and Component pages

@@ -189,6 +189,8 @@ public class ShellBolt implements IBolt {
 
     public void cleanup() {
         _running = false;
+        _writerThread.interrupt();
+        _readerThread.interrupt();
         _process.destroy();
         _inputs.clear();
     }
@@ -293,11 +295,13 @@ public class ShellBolt implements IBolt {
     }
 
     private void die(Throwable exception) {
-        String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
-        _exception = new RuntimeException(processInfo, exception);
-        LOG.error("Halting process: ShellBolt died.", exception);
-        _collector.reportError(exception);
-        System.exit(11);
+        if (_running) { //Don't exit if running tests
+            String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+            _exception = new RuntimeException(processInfo, exception);
+            LOG.error("Halting process: ShellBolt died.", exception);
+            _collector.reportError(exception);
+            System.exit(11);
+        }
     }
 
 }

@@ -46,6 +46,7 @@ public class Client implements IConnection {
     private final int max_retries;
     private final int base_sleep_ms;
     private final int max_sleep_ms;
+    private final StormBoundedExponentialBackoffRetry retryPolicy;
     private AtomicReference<Channel> channelRef;
     private final ClientBootstrap bootstrap;
     private InetSocketAddress remote_addr;
@@ -79,6 +80,7 @@ public class Client implements IConnection {
         max_retries = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         base_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
+        retryPolicy = new StormBoundedExponentialBackoffRetry(base_sleep_ms, max_sleep_ms, max_retries);
 
         this.messageBatchSize = Utils.getInt(storm_conf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
         
@@ -140,7 +142,6 @@ public class Client implements IConnection {
             }
 
             int tried = 0;
-            StormBoundedExponentialBackoffRetry retryPolicy = new StormBoundedExponentialBackoffRetry(base_sleep_ms, max_sleep_ms, max_retries);
             while (tried <= max_retries) {
 
                 LOG.info("Reconnect started for {}... [{}]", name(), tried);

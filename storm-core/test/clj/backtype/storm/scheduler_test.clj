@@ -262,10 +262,6 @@
     ))
 
 (deftest test-sort-slots
-  ;; test supervisor1 and supervisor2 has the same free slot
-  (is (= '(["supervisor1" 6700] ["supervisor2" 6700]
-           ["supervisor1" 6701] ["supervisor2" 6701])
-         (sort-slots [["supervisor1" 6700] ["supervisor1" 6701] ["supervisor2" 6700] ["supervisor2" 6701]])))
   ;; test supervisor2 has more free slots
   (is (= '(["supervisor2" 6700] ["supervisor1" 6700]
            ["supervisor2" 6701] ["supervisor1" 6701]
@@ -275,12 +271,12 @@
                       ])))
   ;; test supervisor3 has more free slots
   (is (= '(["supervisor3" 6700] ["supervisor2" 6700] ["supervisor1" 6700]
-           ["supervisor3" 6701] ["supervisor2" 6701] ["supervisor1" 6701]
+           ["supervisor3" 6703] ["supervisor2" 6701] ["supervisor1" 6701]
            ["supervisor3" 6702] ["supervisor2" 6702]
-           ["supervisor3" 6703])
+           ["supervisor3" 6701])
          (sort-slots [["supervisor1" 6700] ["supervisor1" 6701]
                       ["supervisor2" 6700] ["supervisor2" 6701] ["supervisor2" 6702]
-                      ["supervisor3" 6700] ["supervisor3" 6701] ["supervisor3" 6702] ["supervisor3" 6703]
+                      ["supervisor3" 6700] ["supervisor3" 6703] ["supervisor3" 6702] ["supervisor3" 6701]
                       ])))
     )
 

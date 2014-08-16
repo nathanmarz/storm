@@ -161,6 +161,8 @@ under the License.
 * Curtis Allen ([@curtisallen](https://github.com/curtisallen))
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
+* Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
+
 
 ## Acknowledgements
 

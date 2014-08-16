@@ -351,7 +351,6 @@
 ;; deducable from cluster state (by searching through assignments)
 ;; what about if there's inconsistency in assignments? -> but nimbus
 ;; should guarantee this consistency
-;; TODO: consider doing worker heartbeating rather than task heartbeating to reduce the load on zookeeper
 (defserverfn mk-worker [conf shared-mq-context storm-id assignment-id port worker-id]
   (log-message "Launching worker for " storm-id " on " assignment-id ":" port " with id " worker-id
                " and conf " conf)

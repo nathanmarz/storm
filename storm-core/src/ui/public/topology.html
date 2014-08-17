@@ -52,6 +52,8 @@
 <p id="toggle-switch" style="display: block;" class="js-only"></p>
 <div id="json-response-error">
 </div>
+<div id="anti-forgery-token" class="anti-forgery-token">
+</div>
 </body>
 <script>
 $(document).ready(function() {
@@ -74,6 +76,11 @@ $(document).ready(function() {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+        });
+
+        var antiForgeryToken = $("#anti-forgery-token");
+        $.get("/templates/anti-forgery-template.html", function(template) {
+            antiForgeryToken.append(Mustache.render($(template).filter("#anti-forgery-template").html(),response));
         });
 
         var topologySummary = $("#topology-summary");

@@ -71,7 +71,8 @@ function ensureInt(n) {
 function confirmAction(id, name, action, wait, defaultWait) {
     var opts = {
         type:'POST',
-        url:'/api/v1/topology/' + id + '/' + action
+        url:'/api/v1/topology/' + id + '/' + action,
+        headers: { 'x-csrf-token': $.trim($('#anti-forgery-token').text()) }
     };
     if (wait) {
         var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +

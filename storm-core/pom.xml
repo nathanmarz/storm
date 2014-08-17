@@ -60,6 +60,11 @@
             <artifactId>ring-jetty-adapter</artifactId>
         </dependency>
         <dependency>
+            <groupId>ring</groupId>
+            <artifactId>ring-anti-forgery</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>tools.logging</artifactId>
         </dependency>
@@ -96,7 +101,7 @@
             <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
- 
+
         <!--java-->
         <dependency>
             <groupId>commons-io</groupId>

@@ -46,6 +46,7 @@
  * STORM-417: Storm UI lost table sort style when tablesorter was updated
  * STORM-396: Replace NullPointerException with IllegalArgumentExeption
  * STORM-451: Latest storm does not build due to a pom.xml error in storm-hdfs pom.xml
+ * STORM-453: migrated to curator 2.5.0
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

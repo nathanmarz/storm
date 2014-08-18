@@ -162,6 +162,7 @@ under the License.
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
+* Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
 
 
 ## Acknowledgements

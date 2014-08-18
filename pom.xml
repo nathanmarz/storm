@@ -197,10 +197,10 @@
         <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
         <disruptor.version>3.2.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
-        <guava.version>14.0.1</guava.version>
+        <guava.version>16.0.1</guava.version>
         <logback-classic.version>1.0.6</logback-classic.version>
         <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
-        <netty.version>3.7.0.Final</netty.version>
+        <netty.version>3.9.0.Final</netty.version>
         <clojure.tools.nrepl.version>0.2.3</clojure.tools.nrepl.version>
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>

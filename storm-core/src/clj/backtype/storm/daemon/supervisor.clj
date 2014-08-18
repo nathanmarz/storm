@@ -16,7 +16,8 @@
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [backtype.storm.scheduler ISupervisor]
-           [java.net JarURLConnection])
+           [java.net JarURLConnection]
+           [java.net URI])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -608,6 +609,7 @@
     (let [conf (:conf supervisor)
           run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
+          storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home "/logs"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
@@ -637,6 +639,7 @@
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
+                     (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlogback.configurationFile=" storm-home "/logback/cluster.xml")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
@@ -685,10 +688,10 @@
                 (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
               url
               (do
-                (log-message "Copying resources at " (str url) " to " target-dir)
+                (log-message "Copying resources at " (URI. (str url)) " to " target-dir)
                 (if (= (.getProtocol url) "jar" )
                     (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
-                    (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir)))
+                    (FileUtils/copyDirectory (File. (.getPath (URI. (str url)))) (File. target-dir)))
                 )
               )
             )))

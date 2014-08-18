@@ -166,7 +166,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.googlecode.disruptor</groupId>
+            <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>

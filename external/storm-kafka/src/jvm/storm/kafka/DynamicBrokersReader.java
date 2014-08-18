@@ -116,7 +116,12 @@ public class DynamicBrokersReader {
             byte[] hostPortData = _curator.getData().forPath(topicBrokersPath + "/" + partition + "/state");
             Map<Object, Object> value = (Map<Object, Object>) JSONValue.parse(new String(hostPortData, "UTF-8"));
             Integer leader = ((Number) value.get("leader")).intValue();
+            if (leader == -1) {
+                throw new RuntimeException("No leader found for partition " + partition);
+            }
             return leader;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

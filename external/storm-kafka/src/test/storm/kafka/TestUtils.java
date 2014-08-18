@@ -17,9 +17,24 @@
  */
 package storm.kafka;
 
+import backtype.storm.Config;
+import backtype.storm.utils.Utils;
+import kafka.api.OffsetRequest;
+import kafka.javaapi.consumer.SimpleConsumer;
+import kafka.javaapi.message.ByteBufferMessageSet;
+import kafka.message.Message;
+import kafka.message.MessageAndOffset;
+import storm.kafka.bolt.KafkaBolt;
 import storm.kafka.trident.GlobalPartitionInformation;
 
+import java.nio.ByteBuffer;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+
 public class TestUtils {
+
+    public static final String TOPIC = "test";
 
     public static GlobalPartitionInformation buildPartitionInfo(int numPartitions) {
         return buildPartitionInfo(numPartitions, 9092);
@@ -34,4 +49,51 @@ public class TestUtils {
         return globalPartitionInformation;
     }
 
+    public static SimpleConsumer getKafkaConsumer(KafkaTestBroker broker) {
+        BrokerHosts brokerHosts = getBrokerHosts(broker);
+        KafkaConfig kafkaConfig = new KafkaConfig(brokerHosts, TOPIC);
+        SimpleConsumer simpleConsumer = new SimpleConsumer("localhost", broker.getPort(), 60000, 1024, "testClient");
+        return simpleConsumer;
+    }
+
+    public static KafkaConfig getKafkaConfig(KafkaTestBroker broker) {
+        BrokerHosts brokerHosts = getBrokerHosts(broker);
+        KafkaConfig kafkaConfig = new KafkaConfig(brokerHosts, TOPIC);
+        return kafkaConfig;
+    }
+
+    private static BrokerHosts getBrokerHosts(KafkaTestBroker broker) {
+        GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation();
+        globalPartitionInformation.addPartition(0, Broker.fromString(broker.getBrokerConnectionString()));
+        return new StaticHosts(globalPartitionInformation);
+    }
+
+    public static Config getConfig(String brokerConnectionString) {
+        Config config = new Config();
+        Properties props = new Properties();
+        props.put("metadata.broker.list", brokerConnectionString);
+        props.put("request.required.acks", "1");
+        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        config.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
+        config.put(KafkaBolt.TOPIC, TOPIC);
+
+        return config;
+    }
+
+    public static boolean verifyMessage(String key, String message, KafkaTestBroker broker, SimpleConsumer simpleConsumer) {
+        long lastMessageOffset = KafkaUtils.getOffset(simpleConsumer, TestUtils.TOPIC, 0, OffsetRequest.LatestTime()) - 1;
+        ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(TestUtils.getKafkaConfig(broker), simpleConsumer,
+                new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), lastMessageOffset);
+        MessageAndOffset messageAndOffset = messageAndOffsets.iterator().next();
+        Message kafkaMessage = messageAndOffset.message();
+        ByteBuffer messageKeyBuffer = kafkaMessage.key();
+        String keyString = null;
+        String messageString = new String(Utils.toByteArray(kafkaMessage.payload()));
+        if (messageKeyBuffer != null) {
+            keyString = new String(Utils.toByteArray(messageKeyBuffer));
+        }
+        assertEquals(key, keyString);
+        assertEquals(message, messageString);
+        return true;
+    }
 }

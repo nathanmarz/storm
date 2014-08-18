@@ -128,6 +128,9 @@ public class ShellSpout implements ISpout {
             while (true) {
                 ShellMsg shellMsg = _process.readShellMsg();
                 String command = shellMsg.getCommand();
+                if (command == null) {
+                    throw new IllegalArgumentException("Command not found in spout message: " + shellMsg);
+                }
                 if (command.equals("sync")) {
                     return;
                 } else if (command.equals("log")) {

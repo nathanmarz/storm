@@ -379,6 +379,7 @@
                                 " '-Djava.library.path='"
                                 " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
                                 " '-Dstorm.home='"
+                                " '-Dstorm.log.dir=/logs'"
                                 " '-Dlogback.configurationFile=/logback/cluster.xml'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"

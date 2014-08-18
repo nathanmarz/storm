@@ -21,7 +21,6 @@ import java.util.Map;
 
 /**
  * Allow {@link backtype.storm.utils.Utils} to delegate meta serialization.
- * @author danehammer
  */
 public interface SerializationDelegate {
 

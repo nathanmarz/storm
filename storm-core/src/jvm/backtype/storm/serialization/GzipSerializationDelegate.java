@@ -28,7 +28,6 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Note, this assumes it's deserializing a gzip byte stream, and will err if it encounters any other serialization.
- * @author danehammer
  */
 public class GzipSerializationDelegate implements SerializationDelegate {
 

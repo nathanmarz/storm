@@ -21,6 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.rpc.IShellMetric;
+import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.ShellProcess;
@@ -257,6 +258,7 @@ public class ShellBolt implements IBolt {
                 break;
             case ERROR:
                 LOG.error(msg);
+                _collector.reportError(new ReportedFailedException(msg));
                 break;
             default:
                 LOG.info(msg);

@@ -48,6 +48,7 @@
  * STORM-451: Latest storm does not build due to a pom.xml error in storm-hdfs pom.xml
  * STORM-453: migrated to curator 2.5.0
  * STORM-458: sample spout uses incorrect name when connecting bolt
+ * STORM-455: Report error-level messages from ShellBolt children
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

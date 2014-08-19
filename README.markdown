@@ -166,6 +166,7 @@ under the License.
 * Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
 * wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
 * Marc Beitchman ([@mbeitchman](https://github.com/mbeitchman))
+* Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
 
 ## Acknowledgements
 

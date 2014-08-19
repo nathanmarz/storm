@@ -165,6 +165,7 @@ under the License.
 * Sean T Allen ([@SeanTAllen](https://github.com/SeanTAllen))
 * Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
 * wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
+* Marc Beitchman ([@mbeitchman](https://github.com/mbeitchman))
 
 ## Acknowledgements
 

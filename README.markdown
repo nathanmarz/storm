@@ -164,7 +164,7 @@ under the License.
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
 * Sean T Allen ([@SeanTAllen](https://github.com/SeanTAllen))
 * Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
-
+* wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
 
 ## Acknowledgements
 

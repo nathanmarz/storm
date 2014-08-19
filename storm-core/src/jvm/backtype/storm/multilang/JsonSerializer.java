@@ -147,8 +147,11 @@ public class JsonSerializer implements ISerializer {
         shellMsg.setMetricParams(paramsObj);
 
         if (command.equals("log")) {
-            long logLevel = (Long)msg.get("level");
-            shellMsg.setLogLevel((int)logLevel);
+            Object logLevelObj = msg.get("level");
+            if (logLevelObj != null && logLevelObj instanceof Long) {
+                long logLevel = (Long)logLevelObj;
+                shellMsg.setLogLevel((int)logLevel);
+            }
         }
 
         return shellMsg;

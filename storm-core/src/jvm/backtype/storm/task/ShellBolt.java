@@ -295,13 +295,12 @@ public class ShellBolt implements IBolt {
     }
 
     private void die(Throwable exception) {
-        if (_running) { //Don't exit if running tests
-            String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
-            _exception = new RuntimeException(processInfo, exception);
-            LOG.error("Halting process: ShellBolt died.", exception);
-            _collector.reportError(exception);
+        String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+        _exception = new RuntimeException(processInfo, exception);
+        LOG.error("Halting process: ShellBolt died.", exception);
+        _collector.reportError(exception);
+        if (_running || (exception instanceof Error)) { //don't exit if not running, unless it is an Error
             System.exit(11);
         }
     }
-
 }

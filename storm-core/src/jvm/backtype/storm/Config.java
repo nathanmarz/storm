@@ -921,24 +921,36 @@ public class Config extends HashMap<String, Object> {
         registerSerialization(this, klass, serializerClass);
     }
     
-    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
+    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint) {
         HashMap m = new HashMap();
         m.put("class", klass.getCanonicalName());
         m.put("parallelism.hint", parallelismHint);
         m.put("argument", argument);
 
-        List l = (List)this.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
-        if(l == null) { l = new ArrayList(); }
+        List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
+        if (l == null) { l = new ArrayList(); }
         l.add(m);
-        this.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+        conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+    }
+
+    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
+       registerMetricsConsumer(this, klass, argument, parallelismHint);
+    }
+
+    public static void registerMetricsConsumer(Map conf, Class klass, long parallelismHint) {
+        registerMetricsConsumer(conf, klass, null, parallelismHint);
     }
 
     public void registerMetricsConsumer(Class klass, long parallelismHint) {
-        registerMetricsConsumer(klass, null, parallelismHint);
+        registerMetricsConsumer(this, klass, parallelismHint);
+    }
+
+    public static void registerMetricsConsumer(Map conf, Class klass) {
+        registerMetricsConsumer(conf, klass, null, 1L);
     }
 
     public void registerMetricsConsumer(Class klass) {
-        registerMetricsConsumer(klass, null, 1L);
+        registerMetricsConsumer(this, klass);
     }
 
     public static void registerDecorator(Map conf, Class<? extends IKryoDecorator> klass) {

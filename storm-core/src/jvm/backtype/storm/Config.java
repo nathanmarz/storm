@@ -467,11 +467,11 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_MONITOR_FREQUENCY_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
-     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%STORM-ID%"
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%"
      * and "%WORKER-PORT%" substrings are replaced with:
      * %ID%          -> port (for backward compatibility),
      * %WORKER-ID%   -> worker-id, 
-     * %STORM-ID%    -> topology-id,
+     * %TOPOLOGY-ID%    -> topology-id,
      * %WORKER-PORT% -> port.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";

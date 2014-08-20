@@ -474,11 +474,11 @@
     (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
 (defn substitute-childopts 
-  "Generates runtime childopts by replacing keys with storm-id, worker-id, port"
-  [value worker-id storm-id port]
+  "Generates runtime childopts by replacing keys with topology-id, worker-id, port"
+  [value worker-id topology-id port]
   (let [replacement-map {"%ID%"          (str port)
                          "%WORKER-ID%"   (str worker-id)
-                         "%STORM-ID%"    (str storm-id)
+                         "%TOPOLOGY-ID%"    (str topology-id)
                          "%WORKER-PORT%" (str port)}
         sub-fn #(reduce (fn [string entry]
                           (apply clojure.string/replace string entry))

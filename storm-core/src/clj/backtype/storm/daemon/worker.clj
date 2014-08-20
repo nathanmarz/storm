@@ -15,16 +15,24 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm config log util timer])
   (:require [backtype.storm.daemon [executor :as executor]])
+  (:require [backtype.storm [disruptor :as disruptor] [cluster :as cluster]])
+  (:require [clojure.set :as set])
+  (:require [backtype.storm.messaging.loader :as msg-loader])
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
-  (:import [backtype.storm.utils TransferDrainer])
+  (:import [backtype.storm.utils TransferDrainer ThriftTopologyUtils])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection])
+  (:import [backtype.storm.daemon.common WorkerHeartbeat])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:import [backtype.storm.serialization KryoTupleSerializer])
+  (:import [backtype.storm.generated StormTopology])
+  (:import [backtype.storm.tuple Fields])
+  (:import [backtype.storm.task WorkerTopologyContext])
+  (:import [backtype.storm Constants])
   (:gen-class))
-
-(bootstrap)
 
 (defmulti mk-suicide-fn cluster-mode)
 

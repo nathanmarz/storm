@@ -15,9 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.tuple
-  (:use [backtype.storm bootstrap]))
-
-(bootstrap)
+  (:import [java.util List]))
 
 (defn list-hash-code
   [^List alist]

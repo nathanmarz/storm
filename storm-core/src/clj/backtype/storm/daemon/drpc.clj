@@ -29,10 +29,8 @@
             ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
-  (:use [backtype.storm bootstrap config log])
+  (:use [backtype.storm config log util])
   (:gen-class))
-
-(bootstrap)
 
 (defn timeout-check-secs [] 5)
 

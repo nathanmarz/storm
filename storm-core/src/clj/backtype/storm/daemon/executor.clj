@@ -15,19 +15,27 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm util config log timer stats])
+  (:import [java.util List Random HashMap ArrayList LinkedList Map])
   (:import [backtype.storm.hooks ITaskHook])
-  (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.spout ISpoutWaitStrategy])
+  (:import [backtype.storm.tuple Tuple Fields TupleImpl MessageId])
+  (:import [backtype.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
-  (:import [backtype.storm Config])
-  (:require [backtype.storm [tuple :as tuple]])
+  (:import [backtype.storm Config Constants])
+  (:import [backtype.storm.grouping CustomStreamGrouping])
+  (:import [backtype.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
+  (:import [backtype.storm.generated GlobalStreamId])
+  (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time])
+  (:import [com.lmax.disruptor InsufficientCapacityException])
+  (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
+             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [backtype.storm.daemon [task :as task]])
-  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
-
-(bootstrap)
+  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
+  (:require [clojure.set :as set]))
 
 (defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)

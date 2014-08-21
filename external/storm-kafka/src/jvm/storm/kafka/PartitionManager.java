@@ -188,10 +188,9 @@ public class PartitionManager {
     public void ack(Long offset) {
         if (!_pending.isEmpty() && _pending.first() < offset - _spoutConfig.maxOffsetBehind) {
             // Too many things pending!
-            _pending.headSet(offset).clear();
-        } else {
-            _pending.remove(offset);
+            _pending.headSet(offset - _spoutConfig.maxOffsetBehind).clear();
         }
+        _pending.remove(offset);
         numberAcked++;
     }
 

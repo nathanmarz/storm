@@ -27,6 +27,9 @@ public class SpoutConfig extends KafkaConfig implements Serializable {
     public String zkRoot = null;
     public String id = null;
     public long stateUpdateIntervalMs = 2000;
+    public long retryInitialDelayMs = 10 * 1000;
+    public double retryDelayMultiplier = 1.5;
+    public long retryMaxDelayMs = 5 * 60 * 1000;
 
     public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id) {
         super(hosts, topic);

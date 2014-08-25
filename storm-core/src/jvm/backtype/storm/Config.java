@@ -96,6 +96,12 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_NETTY_FLUSH_CHECK_INTERVAL_MS = "storm.messaging.netty.flush.check.interval.ms";
     public static final Object STORM_NETTY_FLUSH_CHECK_INTERVAL_MS_SCHEMA = ConfigValidation.IntegerValidator;
     
+    /**
+     * The delegate for serializing metadata, should be used for serialized objects stored in zookeeper and on disk.
+     * This is NOT used for compressing serialized tuples sent between topologies.
+     */
+    public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
+    public static final Object STORM_META_SERIALIZATION_DELEGATE_SCHEMA = String.class;
     
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.

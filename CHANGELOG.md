@@ -50,6 +50,7 @@
  * STORM-458: sample spout uses incorrect name when connecting bolt
  * STORM-455: Report error-level messages from ShellBolt children
  * STORM-443: multilang log's loglevel protocol can cause hang
+ * STORM-449: Updated ShellBolt to not exit when shutting down.
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

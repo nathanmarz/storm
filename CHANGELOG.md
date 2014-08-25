@@ -59,6 +59,7 @@
  * STORM-373: Provide Additional String substitutions for *.worker.childopts
  * STORM-274: Add support for command remoteconfvalue in storm.cmd
  * STORM-132: sort supervisor by free slot in desending order
+ * STORM-472: Improve error message for non-completeable testing spouts
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

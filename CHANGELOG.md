@@ -51,6 +51,7 @@
  * STORM-455: Report error-level messages from ShellBolt children
  * STORM-443: multilang log's loglevel protocol can cause hang
  * STORM-449: Updated ShellBolt to not exit when shutting down.
+ * STORM-464: Simulated time advanced after test cluster exits causes intermittent test failures
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

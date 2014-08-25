@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +45,11 @@ public class JsonSerializer implements ISerializer {
 
     public void initialize(OutputStream processIn, InputStream processOut) {
         this.processIn = new DataOutputStream(processIn);
-        this.processOut = new BufferedReader(new InputStreamReader(processOut));
+        try {
+            this.processOut = new BufferedReader(new InputStreamReader(processOut, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Number connect(Map conf, TopologyContext context)

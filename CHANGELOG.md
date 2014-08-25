@@ -53,6 +53,7 @@
  * STORM-449: Updated ShellBolt to not exit when shutting down.
  * STORM-464: Simulated time advanced after test cluster exits causes intermittent test failures
  * STORM-463: added static version of metrics helpers for Config
+ * STORM-376: Add compression to serialization
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

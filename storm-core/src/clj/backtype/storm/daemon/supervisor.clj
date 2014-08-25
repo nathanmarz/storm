@@ -474,11 +474,21 @@
         arch-resource-root (str resource-root File/separator os "-" arch)]
     (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
-(defn- substitute-worker-childopts [value port]
-  (let [sub-fn (fn [s] (.replaceAll s "%ID%" (str port)))]
-    (if (list? value)
-      (map sub-fn value)
-      (-> value sub-fn (.split " ")))))
+(defn substitute-childopts 
+  "Generates runtime childopts by replacing keys with topology-id, worker-id, port"
+  [value worker-id topology-id port]
+  (let [replacement-map {"%ID%"          (str port)
+                         "%WORKER-ID%"   (str worker-id)
+                         "%TOPOLOGY-ID%"    (str topology-id)
+                         "%WORKER-PORT%" (str port)}
+        sub-fn #(reduce (fn [string entry]
+                          (apply clojure.string/replace string entry))
+                        % 
+                        replacement-map)]
+    (cond
+      (nil? value) nil
+      (list? value) (map sub-fn value)
+      :else (-> value sub-fn (clojure.string/split #"\s+")))))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]
@@ -504,9 +514,9 @@
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
           worker-childopts (when-let [s (conf WORKER-CHILDOPTS)]
-                             (substitute-worker-childopts s port))
+                             (substitute-childopts s worker-id storm-id port))
           topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
-                                  (substitute-worker-childopts s port))
+                                  (substitute-childopts s worker-id storm-id port))
           topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})

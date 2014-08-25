@@ -56,6 +56,7 @@
  * STORM-376: Add compression to serialization
  * STORM-437: Enforce utf-8 when multilang reads from stdin
  * STORM-361: Add JSON-P support to Storm UI API
+ * STORM-373: Provide Additional String substitutions for *.worker.childopts
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

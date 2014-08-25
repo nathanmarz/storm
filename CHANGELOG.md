@@ -58,6 +58,7 @@
  * STORM-361: Add JSON-P support to Storm UI API
  * STORM-373: Provide Additional String substitutions for *.worker.childopts
  * STORM-274: Add support for command remoteconfvalue in storm.cmd
+ * STORM-132: sort supervisor by free slot in desending order
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

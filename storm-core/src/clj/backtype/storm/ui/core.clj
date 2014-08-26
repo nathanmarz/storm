@@ -689,7 +689,7 @@
         "configuration" topology-conf
         "visualizationTable" (stream-boxes visualizer-data)
         "uiActionsEnabled" (ui-actions-enabled?)
-        "anti-forgery-token" *anti-forgery-token*}))))
+        "antiForgeryToken" *anti-forgery-token*}))))
 
 (defn spout-output-stats
   [stream-summary window]

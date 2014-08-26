@@ -202,6 +202,9 @@ public class KafkaUtils {
     public static Iterable<List<Object>> generateTuples(KafkaConfig kafkaConfig, Message msg) {
         Iterable<List<Object>> tups;
         ByteBuffer payload = msg.payload();
+        if (payload == null) {
+            return null;
+        }
         ByteBuffer key = msg.key();
         if (key != null && kafkaConfig.scheme instanceof KeyValueSchemeAsMultiScheme) {
             tups = ((KeyValueSchemeAsMultiScheme) kafkaConfig.scheme).deserializeKeyAndValue(Utils.toByteArray(key), Utils.toByteArray(payload));

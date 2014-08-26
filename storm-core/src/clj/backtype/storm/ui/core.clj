@@ -424,7 +424,7 @@
                          (if bolt-summs
                            (mapfn bolt-summs)
                            (mapfn spout-summs)))
-                :link (url-format "/component.html?id=%s&topology_id=%s" (url-encode id) (url-encode storm-id))
+                :link (url-format "/component.html?id=%s&topology_id=%s" id storm-id)
                 :inputs (for [[global-stream-id group] inputs]
                           {:component (.get_componentId global-stream-id)
                            :stream (.get_streamId global-stream-id)

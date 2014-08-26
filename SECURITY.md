@@ -54,7 +54,26 @@ must have it set to the actual port that they are going to bind to.
 
 The servlet filters are prefered because it allows indavidual topologies to
 specificy who is and who is not allowed to access the pages associated with
-them.
+them.  
+
+Storm UI can be configured to use AuthenticationFilter from hadoop-auth.
+```yaml
+ui.filter: "org.apache.hadoop.security.authentication.server.AuthenticationFilter"
+ui.filter.params:
+   "type": "kerberos"
+   "kerberos.principal": "HTTP/nimbus.witzend.com"
+   "kerberos.keytab": "/vagrant/keytabs/http.keytab"
+   "kerberos.name.rules": "RULE:[2:$1@$0]([jt]t@.*EXAMPLE.COM)s/.*/$MAPRED_USER/ RULE:[2:$1@$0]([nd]n@.*EXAMPLE.COM)s/.*/$HDFS_USER/DEFAULT"
+```
+make sure to create a prinicpal 'HTTP/{hostname}' (here hostname should be the one where UI daemon runs
+
+Once configured users needs to do kinit before accessing UI.
+Ex:
+curl  -i --negotiate -u:anyUser  -b ~/cookiejar.txt -c ~/cookiejar.txt  http://storm-ui-hostname:8080/api/v1/cluster/summary
+
+1) Firefox: Goto about:config and search for network.negotiate-auth.trusted-uris double-click to  add value "http://storm-ui-hostname:8080"
+2) Google-chrome:  start from command line with: google-chrome --auth-server-whitelist="*storm-ui-hostname" --auth-negotiate-delegate-whitelist="*storm-ui-hostname"   
+3) IE:  Configure trusted websites to include "storm-ui-hostname" and allow negotiation for that website 
 
 ## Authentication (Kerberos)
 
@@ -347,7 +366,3 @@ The Logviewer deamon now is also responsible for cleaning up old log files for d
 
 ### DRPC
 Hopefully more on this soon
-
-
-
-  

@@ -64,6 +64,11 @@
             <artifactId>ring-anti-forgery</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>tools.logging</artifactId>
@@ -167,7 +172,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.googlecode.disruptor</groupId>
+            <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>
@@ -200,6 +205,69 @@
             <groupId>org.clojars.runa</groupId>
             <artifactId>conjure</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-auth</artifactId>
+	  <version>2.4.0</version>
+          <exclusions>
+             <exclusion>
+               <groupId>junit</groupId>
+               <artifactId>junit</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.mockito</groupId>
+               <artifactId>mockito-all</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.mortbay.jetty</groupId>
+               <artifactId>jetty-util</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.mortbay.jetty</groupId>
+               <artifactId>jetty</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>javax.servlet</groupId>
+               <artifactId>servlet-api</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-api</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>commons-codec</groupId>
+               <artifactId>commons-codec</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>log4j</groupId>
+               <artifactId>log4j</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-log4j12</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.apache.hadoop</groupId>
+               <artifactId>hadoop-minikdc</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.apache.directory.server</groupId>
+               <artifactId>apacheds-kerberos-codec</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>log4j</groupId>
+               <artifactId>log4j</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-log4j12</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.apache.httpcomponents</groupId>
+               <artifactId>httpclient</artifactId>
+             </exclusion>
+          </exclusions>
         </dependency>
         <dependency>
         	<groupId>junit</groupId>

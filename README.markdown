@@ -160,6 +160,9 @@ under the License.
 * averykhoo ([@averykhoo](https://github.com/averykhoo))
 * Curtis Allen ([@curtisallen](https://github.com/curtisallen))
 * Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal)) 
+* Boris Aksenov ([@miofthena](https://github.com/miofthena))
+* Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
+* Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
 
 ## Acknowledgements
 

@@ -115,6 +115,9 @@ public class ShellBolt implements IBolt {
                         ShellMsg shellMsg = _process.readShellMsg();
 
                         String command = shellMsg.getCommand();
+                        if (command == null) {
+                            throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
+                        }
                         if(command.equals("ack")) {
                             handleAck(shellMsg.getId());
                         } else if (command.equals("fail")) {
@@ -292,6 +295,9 @@ public class ShellBolt implements IBolt {
     private void die(Throwable exception) {
         String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
         _exception = new RuntimeException(processInfo, exception);
+        LOG.error("Halting process: ShellBolt died.", exception);
+        _collector.reportError(exception);
+        System.exit(11);
     }
 
 }

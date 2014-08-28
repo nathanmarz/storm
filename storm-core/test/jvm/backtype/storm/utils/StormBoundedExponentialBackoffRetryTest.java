@@ -43,6 +43,14 @@ public class StormBoundedExponentialBackoffRetryTest extends TestCase {
     }
 
     @Test
+    public void testExponentialSleepSmallMaxRetries() throws Exception {
+        int baseSleepMs = 1000;
+        int maxSleepMs = 5000;
+        int maxRetries = 10;
+        validateSleepTimes(baseSleepMs, maxSleepMs, maxRetries);
+    }
+
+    @Test
     public void testExponentialSleepZeroMaxTries() throws Exception {
         int baseSleepMs = 10;
         int maxSleepMs = 100;

@@ -50,7 +50,11 @@ public class StormBoundedExponentialBackoffRetry extends BoundedExponentialBacko
             LOG.warn("Misconfiguration: the baseSleepTimeMs [" + baseSleepTimeMs + "] can't be greater than " +
                     "the maxSleepTimeMs [" + maxSleepTimeMs + "].");
         }
-        this.stepSize = Math.max(1, (maxSleepTimeMs - (1 << expRetriesThreshold)) / (maxRetries - expRetriesThreshold));
+        if( maxRetries > 0 && maxRetries > expRetriesThreshold ) {
+            this.stepSize = Math.max(1, (maxSleepTimeMs - (1 << expRetriesThreshold)) / (maxRetries - expRetriesThreshold));
+        } else {
+            this.stepSize = 1;
+	}
         this.linearBaseSleepMs = super.getBaseSleepTimeMs() + (1 << expRetriesThreshold);
     }
 

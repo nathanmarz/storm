@@ -160,7 +160,6 @@
 </script>
 
 <script id="topology-actions-template" type="text/html">
-  {{#uiActionsEnabled}}
   <h2>Topology actions</h2>
   <p id="topology-actions">
     <input {{activateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate">
@@ -168,5 +167,4 @@
     <input {{rebalanceStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance">
     <input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
   </p>
-  {{/uiActionsEnabled}}
 </script>

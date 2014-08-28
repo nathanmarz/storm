@@ -397,6 +397,11 @@
 	      <version>${jetty.version}</version>
             </dependency>
             <dependency>
+	      <groupId>org.eclipse.jetty</groupId>
+	      <artifactId>jetty-servlets</artifactId>
+	      <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.clojure</groupId>
                 <artifactId>tools.logging</artifactId>
                 <version>${clojure.tools.logging.version}</version>

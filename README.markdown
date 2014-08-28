@@ -163,6 +163,13 @@ under the License.
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
+* Sean T Allen ([@SeanTAllen](https://github.com/SeanTAllen))
+* Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
+* wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
+* Marc Beitchman ([@mbeitchman](https://github.com/mbeitchman))
+* Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
+* Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
+* Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 
 ## Acknowledgements
 

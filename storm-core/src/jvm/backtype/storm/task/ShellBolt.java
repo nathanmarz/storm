@@ -21,6 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.rpc.IShellMetric;
+import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.ShellProcess;
@@ -189,6 +190,8 @@ public class ShellBolt implements IBolt {
 
     public void cleanup() {
         _running = false;
+        _writerThread.interrupt();
+        _readerThread.interrupt();
         _process.destroy();
         _inputs.clear();
     }
@@ -257,6 +260,7 @@ public class ShellBolt implements IBolt {
                 break;
             case ERROR:
                 LOG.error(msg);
+                _collector.reportError(new ReportedFailedException(msg));
                 break;
             default:
                 LOG.info(msg);
@@ -297,7 +301,8 @@ public class ShellBolt implements IBolt {
         _exception = new RuntimeException(processInfo, exception);
         LOG.error("Halting process: ShellBolt died.", exception);
         _collector.reportError(exception);
-        System.exit(11);
+        if (_running || (exception instanceof Error)) { //don't exit if not running, unless it is an Error
+            System.exit(11);
+        }
     }
-
 }

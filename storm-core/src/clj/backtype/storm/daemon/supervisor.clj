@@ -578,23 +578,21 @@
         arch-resource-root (str resource-root File/separator os "-" arch)]
     (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
-(defn substitute-childopts
-  [childopts worker-id storm-id port]
-  (
-    let [replacement-map {"%ID%"          (str port)
-                          "%WORKER-ID%"   (str worker-id)
-                          "%STORM-ID%"    (str storm-id)
-                          "%WORKER-PORT%" (str port)}
-         sub-fn (fn [s] 
-                  (reduce (fn [string entry]
-                    (apply clojure.string/replace string entry))
-                     s replacement-map))]
-    (if-not (nil? childopts)
-      (if (sequential? childopts)
-        (map sub-fn childopts)
-        (-> childopts sub-fn (.split " ")))
-      nil)
-    ))
+(defn substitute-childopts 
+  "Generates runtime childopts by replacing keys with topology-id, worker-id, port"
+  [value worker-id topology-id port]
+  (let [replacement-map {"%ID%"          (str port)
+                         "%WORKER-ID%"   (str worker-id)
+                         "%TOPOLOGY-ID%"    (str topology-id)
+                         "%WORKER-PORT%" (str port)}
+        sub-fn #(reduce (fn [string entry]
+                          (apply clojure.string/replace string entry))
+                        % 
+                        replacement-map)]
+    (cond
+      (nil? value) nil
+      (list? value) (map sub-fn value)
+      :else (-> value sub-fn (clojure.string/split #"\s+")))))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]

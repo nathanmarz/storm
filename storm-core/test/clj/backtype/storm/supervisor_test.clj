@@ -518,89 +518,65 @@
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))
 
-(deftest test-substitute-childopts-happy-path
+(deftest test-substitute-childopts-happy-path-string
   (testing "worker-launcher replaces ids in childopts"
-    (let [ worker-id "w-01"
-           storm-id "s-01"
-           port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"
-           ]
-      (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
-      (is (not-found? "%WORKER-ID%" childopts-with-ids))
-      (is (found? "w-01" childopts-with-ids))
-      (is (not-found? "%STORM-ID%" childopts-with-ids))
-      (is (found? "s-01" childopts-with-ids))
-      (is (not-found? "%WORKER-PORT%" childopts-with-ids))
-      (is (found? "-9999." childopts-with-ids))
-      (is (not-found? "%ID%" childopts-with-ids))
-      (is (found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
-    )))
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
 
-(deftest test-substitute-childopts-storm-id-alone
+(deftest test-substitute-childopts-happy-path-list
   (testing "worker-launcher replaces ids in childopts"
-    (let [ worker-id "w-01"
-           storm-id "s-01"
-           port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%STORM-ID%.log"]
-           (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
-           (is (not-found? "%WORKER-ID%" childopts-with-ids))
-           (is (not-found? "w-01" childopts-with-ids))
-           (is (not-found? "%STORM-ID%" childopts-with-ids))
-           (is (found? "s-01" childopts-with-ids))
-           (is (not-found? "%WORKER-PORT%" childopts-with-ids))
-           (is (not-found? "-9999." childopts-with-ids))
-           (is (not-found? "%ID%" childopts-with-ids))
-           (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))     )))
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m")
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-topology-id-alone
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%TOPOLOGY-ID%.log"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-s-01.log")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-no-keys
   (testing "worker-launcher has no ids to replace in childopts"
-    (let [ worker-id "w-01"
-           storm-id "s-01"
-           port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"]
-           (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
-           (is (not-found? "%WORKER-ID%" childopts-with-ids))
-           (is (not-found? "w-01" childopts-with-ids))
-           (is (not-found? "%STORM-ID%" childopts-with-ids))
-           (is (not-found? "s-01" childopts-with-ids))
-           (is (not-found? "%WORKER-PORT%" childopts-with-ids))
-           (is (not-found? "-9999." childopts-with-ids))
-           (is (not-found? "%ID%" childopts-with-ids))
-           (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))    )))
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-childopts
   (testing "worker-launcher has nil childopts"
-    (let [ worker-id "w-01"
-           storm-id "s-01"
-           port 9999
-           childopts nil]
-           (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
-           (is (not-found? "%WORKER-ID%" childopts-with-ids))
-           (is (not-found? "w-01" childopts-with-ids))
-           (is (not-found? "%STORM-ID%" childopts-with-ids))
-           (is (not-found? "s-01" childopts-with-ids))
-           (is (not-found? "%WORKER-PORT%" childopts-with-ids))
-           (is (not-found? "-9999." childopts-with-ids))
-           (is (not-found? "%ID%" childopts-with-ids))
-           (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
-    )))
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts nil
+          expected-childopts nil
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-ids
   (testing "worker-launcher has nil ids"
-    (let [ worker-id nil
-           storm-id "s-01"
-           port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"]
-      (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
-      (is (not-found? "%WORKER-ID%" childopts-with-ids))
-      (is (not-found? "w-01" childopts-with-ids))
-      (is (not-found? "%STORM-ID%" childopts-with-ids))
-      (is (found? "s-01" childopts-with-ids))
-      (is (not-found? "%WORKER-PORT%" childopts-with-ids))
-      (is (found? "-9999." childopts-with-ids))
-      (is (not-found? "%ID%" childopts-with-ids))
-      (is (found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
-      )))
+    (let [worker-id nil
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01--9999.log")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-retry-read-assignments
   (with-simulated-time-local-cluster [cluster

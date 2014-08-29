@@ -852,41 +852,49 @@
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
 
-(defn json-response [data & [status]]
-  {:status (or status 200)
-   :headers {"Content-Type" "application/json"}
-   :body (to-json data)})
+(defn wrap-json-in-callback [callback response]
+  (str callback "(" response ");"))
+
+(defnk json-response
+  [data callback :serialize-fn to-json :status 200]
+     {:status status
+      :headers (if (not-nil? callback) {"Content-Type" "application/javascript"}
+                {"Content-Type" "application/json"})
+      :body (if (not-nil? callback)
+              (wrap-json-in-callback callback (serialize-fn data))
+              (serialize-fn data))})
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defroutes main-routes
-  (GET "/api/v1/cluster/configuration" []
-       (cluster-configuration))
-  (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
+  (GET "/api/v1/cluster/configuration" [& m]
+       (json-response (cluster-configuration)
+                      (:callback m) :serialize-fn identity))
+  (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getClusterInfo")
-         (json-response (cluster-summary user))))
-  (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]}]
+         (json-response (cluster-summary user) (:callback m))))
+  (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
        (assert-authorized-user servlet-request "getClusterInfo")
-       (json-response (supervisor-summary)))
-  (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]}]
+       (json-response (supervisor-summary) (:callback m)))
+  (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
        (assert-authorized-user servlet-request "getClusterInfo")
-       (json-response (all-topologies-summary)))
+       (json-response (all-topologies-summary) (:callback m)))
   (GET  "/api/v1/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
         (let [id (url-decode id)
               user (.getUserName http-creds-handler servlet-request)]
           (assert-authorized-user servlet-request "getTopology" (topology-config id))
-          (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user))))
+          (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
         (let [id (url-decode id)]
           (assert-authorized-user servlet-request "getTopology" (topology-config id))
-          (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))))))
+          (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m))))
   (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request]} id component & m]
        (let [id (url-decode id)
              component (url-decode component)
              user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getTopology" (topology-config id))
-         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user))))
+         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
     (with-nimbus nimbus
       (let [id (url-decode id)
@@ -947,7 +955,7 @@
     (try
       (handler request)
       (catch Exception ex
-        (json-response (exception->json ex) 500)))))
+        (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
 
 
 (def csrf-error-response

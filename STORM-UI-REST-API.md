@@ -1,7 +1,8 @@
 # Storm UI REST API
 Storm UI server provides a REST Api to access cluster, topology, component overview and metrics. 
 This api returns json response.  
-Please ignore undocumented elements in the json response.
+REST API supports JSONP. User can pass callback query param to wrap json in the callback function.
+Please ignore undocumented elements in the json repsonse.
 
 ## Using the UI REST Api
 

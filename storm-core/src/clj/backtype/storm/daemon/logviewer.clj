@@ -348,15 +348,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             :filter-params (or (conf UI-FILTER-PARAMS) {})}]
                           [])
           filters-confs (concat filters-confs
-                          [{:filter-class "org.mortbay.servlet.GzipFilter"
+                          [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])]
       (run-jetty middle 
                         {:port (int (conf LOGVIEWER-PORT))
                          :join? false
                          :configurator (fn [server]
-                                         (doseq [connector (.getConnectors server)]
-                                           (.setHeaderBufferSize connector header-buffer-size))
                                          (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))

@@ -39,10 +39,10 @@ public class PrintSampleStream {
         
         TopologyBuilder builder = new TopologyBuilder();
         
-        builder.setSpout("spoutId", new TwitterSampleSpout(consumerKey, consumerSecret,
+        builder.setSpout("twitter", new TwitterSampleSpout(consumerKey, consumerSecret,
                                 accessToken, accessTokenSecret, keyWords));
         builder.setBolt("print", new PrinterBolt())
-                .shuffleGrouping("spout");
+                .shuffleGrouping("twitter");
                 
                 
         Config conf = new Config();

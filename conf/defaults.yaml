@@ -47,6 +47,7 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
+storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"

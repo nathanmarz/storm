@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-447: shade/relocate packages of dependencies that are common causes of dependency conflicts
  * STORM-279: cluster.xml doesn't take in STORM_LOG_DIR values.
  * STORM-380: Kafka spout: throw RuntimeException if a leader cannot be found for a partition
  * STORM-435: Improve storm-kafka documentation

@@ -2,6 +2,7 @@
   (:use [clojure test])
   (:import [javax.security.auth Subject])
   (:import [javax.servlet.http HttpServletRequest])
+  (:import [backtype.storm.security.auth SingleUserPrincipal])
   (:import [org.mockito Mockito])
   (:import [backtype.storm.security.auth DefaultHttpCredentialsPlugin
             ReqContext SingleUserPrincipal])
@@ -31,10 +32,9 @@
            thenReturn princ)
         (is (.equals exp-name (.getUserName handler req)))))))
 
-(deftest test-populate-req-context-noop-on-null-user
+(deftest test-populate-req-context-on-null-user
   (let [req (Mockito/mock HttpServletRequest)
         handler (doto (DefaultHttpCredentialsPlugin.) (.prepare {}))
-        expected-subj (Subject.)
-        context (ReqContext. expected-subj)]
-    (is (.equals expected-subj
-                 (-> handler (.populateContext context req) (.subject))))))
+        subj (Subject. false (set [(SingleUserPrincipal. "test")]) (set []) (set []))
+        context (ReqContext. subj)]
+    (is (= 0 (-> handler (.populateContext context req) (.subject) (.getPrincipals) (.size))))))

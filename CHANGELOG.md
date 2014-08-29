@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-341: fix assignment sorting
  * STORM-476: external/storm-kafka: avoid NPE on null message payloads
  * STORM-424: fix error message related to kafka offsets
  * STORM-454: correct documentation in STORM-UI-REST-API.md

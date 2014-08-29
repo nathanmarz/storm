@@ -1,4 +1,6 @@
 ## 0.9.3-incubating
+ * STORM-476: external/storm-kafka: avoid NPE on null message payloads
+ * STORM-424: fix error message related to kafka offsets
  * STORM-454: correct documentation in STORM-UI-REST-API.md
  * STORM-474: Reformat UI HTML code
  * STORM-447: shade/relocate packages of dependencies that are common causes of dependency conflicts

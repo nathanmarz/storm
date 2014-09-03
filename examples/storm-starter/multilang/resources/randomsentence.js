@@ -54,9 +54,10 @@ RandomSentenceSpout.prototype.ack = function(id, done) {
 }
 
 RandomSentenceSpout.prototype.fail = function(id, done) {
+    var self = this;
     this.log('Received fail for - ' + id + '. Retrying.');
     this.emit({tuple: this.pending[id], id:id}, function(taskIds) {
-        self.log(this.pending[id] + ' sent to task ids - ' + taskIds);
+        self.log(self.pending[id] + ' sent to task ids - ' + taskIds);
     });
     done();
 }

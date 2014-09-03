@@ -235,10 +235,11 @@
          (log-error t# "Error in cluster")
          (throw t#))
        (finally
-         (let [keep-waiting?# (atom true)]
-           (future (while @keep-waiting?# (simulate-wait ~cluster-sym)))
+         (let [keep-waiting?# (atom true)
+               f# (future (while @keep-waiting?# (simulate-wait ~cluster-sym)))]
            (kill-local-storm-cluster ~cluster-sym)
-           (reset! keep-waiting?# false))))))
+           (reset! keep-waiting?# false)
+            @f#)))))
 
 (defmacro with-simulated-time-local-cluster
   [& args]
@@ -475,7 +476,7 @@
         (.set_spout_object spout-spec (serialize-component-object spout))))
     (doseq [spout (spout-objects spouts)]
       (when-not (extends? CompletableSpout (.getClass spout))
-        (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))))
+        (throw (RuntimeException. (str "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be); failed by " spout)))))
 
     (doseq [spout (spout-objects spouts)]
       (startup spout))

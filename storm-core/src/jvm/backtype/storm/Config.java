@@ -96,6 +96,12 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_NETTY_FLUSH_CHECK_INTERVAL_MS = "storm.messaging.netty.flush.check.interval.ms";
     public static final Object STORM_NETTY_FLUSH_CHECK_INTERVAL_MS_SCHEMA = ConfigValidation.IntegerValidator;
     
+    /**
+     * The delegate for serializing metadata, should be used for serialized objects stored in zookeeper and on disk.
+     * This is NOT used for compressing serialized tuples sent between topologies.
+     */
+    public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
+    public static final Object STORM_META_SERIALIZATION_DELEGATE_SCHEMA = String.class;
     
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
@@ -467,8 +473,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_MONITOR_FREQUENCY_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
-     * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
-     * with an identifier for this worker.
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%"
+     * and "%WORKER-PORT%" substrings are replaced with:
+     * %ID%          -> port (for backward compatibility),
+     * %WORKER-ID%   -> worker-id, 
+     * %TOPOLOGY-ID%    -> topology-id,
+     * %WORKER-PORT% -> port.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
@@ -921,24 +931,36 @@ public class Config extends HashMap<String, Object> {
         registerSerialization(this, klass, serializerClass);
     }
     
-    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
+    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint) {
         HashMap m = new HashMap();
         m.put("class", klass.getCanonicalName());
         m.put("parallelism.hint", parallelismHint);
         m.put("argument", argument);
 
-        List l = (List)this.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
-        if(l == null) { l = new ArrayList(); }
+        List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
+        if (l == null) { l = new ArrayList(); }
         l.add(m);
-        this.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+        conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+    }
+
+    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
+       registerMetricsConsumer(this, klass, argument, parallelismHint);
+    }
+
+    public static void registerMetricsConsumer(Map conf, Class klass, long parallelismHint) {
+        registerMetricsConsumer(conf, klass, null, parallelismHint);
     }
 
     public void registerMetricsConsumer(Class klass, long parallelismHint) {
-        registerMetricsConsumer(klass, null, parallelismHint);
+        registerMetricsConsumer(this, klass, parallelismHint);
+    }
+
+    public static void registerMetricsConsumer(Map conf, Class klass) {
+        registerMetricsConsumer(conf, klass, null, 1L);
     }
 
     public void registerMetricsConsumer(Class klass) {
-        registerMetricsConsumer(klass, null, 1L);
+        registerMetricsConsumer(this, klass);
     }
 
     public static void registerDecorator(Map conf, Class<? extends IKryoDecorator> klass) {

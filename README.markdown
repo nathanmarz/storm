@@ -167,6 +167,8 @@ under the License.
 * wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
 * Marc Beitchman ([@mbeitchman](https://github.com/mbeitchman))
 * Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
+* Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
+* Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 
 ## Acknowledgements
 

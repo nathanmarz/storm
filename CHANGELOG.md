@@ -1,4 +1,12 @@
 ## 0.9.3-incubating
+ * STORM-330: Implement storm exponential backoff stategy for netty client and curator
+ * STORM-461: exit-process! does not always exit the process, but throws an exception
+ * STORM-341: fix assignment sorting
+ * STORM-476: external/storm-kafka: avoid NPE on null message payloads
+ * STORM-424: fix error message related to kafka offsets
+ * STORM-454: correct documentation in STORM-UI-REST-API.md
+ * STORM-474: Reformat UI HTML code
+ * STORM-447: shade/relocate packages of dependencies that are common causes of dependency conflicts
  * STORM-279: cluster.xml doesn't take in STORM_LOG_DIR values.
  * STORM-380: Kafka spout: throw RuntimeException if a leader cannot be found for a partition
  * STORM-435: Improve storm-kafka documentation
@@ -50,6 +58,18 @@
  * STORM-458: sample spout uses incorrect name when connecting bolt
  * STORM-455: Report error-level messages from ShellBolt children
  * STORM-443: multilang log's loglevel protocol can cause hang
+ * STORM-449: Updated ShellBolt to not exit when shutting down.
+ * STORM-464: Simulated time advanced after test cluster exits causes intermittent test failures
+ * STORM-463: added static version of metrics helpers for Config
+ * STORM-376: Add compression to serialization
+ * STORM-437: Enforce utf-8 when multilang reads from stdin
+ * STORM-361: Add JSON-P support to Storm UI API
+ * STORM-373: Provide Additional String substitutions for *.worker.childopts
+ * STORM-274: Add support for command remoteconfvalue in storm.cmd
+ * STORM-132: sort supervisor by free slot in desending order
+ * STORM-472: Improve error message for non-completeable testing spouts
+ * STORM-401: handle InterruptedIOException properly.
+ * STORM-461: exit-process! does not always exit the process, but throws an exception instead
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

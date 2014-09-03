@@ -354,6 +354,66 @@
   ;; TODO just do reassign, and check that cleans up worker states after killing but doesn't get rid of downloaded code
   )
 
+(deftest test-substitute-childopts-happy-path-string
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-happy-path-list
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m")
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-topology-id-alone
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%TOPOLOGY-ID%.log"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-s-01.log")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-no-keys
+  (testing "worker-launcher has no ids to replace in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-nil-childopts
+  (testing "worker-launcher has nil childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts nil
+          expected-childopts nil
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-nil-ids
+  (testing "worker-launcher has nil ids"
+    (let [worker-id nil
+          topology-id "s-01"
+          port 9999
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01--9999.log")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
 (deftest test-retry-read-assignments
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0

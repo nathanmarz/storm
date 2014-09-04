@@ -23,7 +23,9 @@
   (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
-  (:import [org.eclipse.jetty.server.ssl SslSocketConnector]
+  (:import [org.eclipse.jetty.server Server]
+           [org.eclipse.jetty.server.nio SelectChannelConnector]
+           [org.eclipse.jetty.server.ssl SslSocketConnector]
            [org.eclipse.jetty.servlet ServletHolder FilterMapping])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
@@ -184,3 +186,26 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   {:headers {}
    :status 400
    :body (.getMessage ex)})
+
+;; Modified from ring.adapter.jetty 1.3.0
+(defn- jetty-create-server
+  "Construct a Jetty Server instance."
+  [options]
+  (let [connector (doto (SelectChannelConnector.)
+                    (.setPort (options :port 80))
+                    (.setHost (options :host))
+                    (.setMaxIdleTime (options :max-idle-time 200000)))
+        server    (doto (Server.)
+                    (.addConnector connector)
+                    (.setSendDateHeader true))]
+    server))
+
+(defn storm-run-jetty
+  "Modified version of run-jetty
+  Assumes configurator sets handler."
+  [config]
+  {:pre [(:configurator config)]}
+  (let [#^Server s (jetty-create-server (dissoc config :configurator))
+        configurator (:configurator config)]
+    (configurator s)
+    (.start s)))

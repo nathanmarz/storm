@@ -133,7 +133,6 @@
             <outputDirectory>/logback</outputDirectory>
         </file>
 
-
         <file>
             <source>${project.basedir}/LICENSE</source>
             <outputDirectory>/</outputDirectory>

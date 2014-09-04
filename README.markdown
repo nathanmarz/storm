@@ -169,6 +169,7 @@ under the License.
 * Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
 * Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
+* Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
 
 ## Acknowledgements
 

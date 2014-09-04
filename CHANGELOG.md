@@ -70,6 +70,7 @@
  * STORM-472: Improve error message for non-completeable testing spouts
  * STORM-401: handle InterruptedIOException properly.
  * STORM-461: exit-process! does not always exit the process, but throws an exception instead
+ * STORM-475: Storm UI pages do not use UTF-8
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

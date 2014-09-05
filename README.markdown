@@ -170,6 +170,7 @@ under the License.
 * Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 * Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
+* Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
 
 ## Acknowledgements
 

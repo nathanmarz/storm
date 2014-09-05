@@ -716,57 +716,116 @@
     ))
 
 (deftest test-multitenant-scheduler-bad-starting-state
-  (let [supers (gen-supervisors 10)
-       topology1 (TopologyDetails. "topology1" 
-                   {TOPOLOGY-NAME "topology-name-1"
-                    TOPOLOGY-SUBMITTER-USER "userC"}
-                   (StormTopology.)
-                   4
-                   (mk-ed-map [["spout1" 0 5]
-                               ["bolt1" 5 10]
-                               ["bolt2" 10 15]
-                               ["bolt3" 15 20]]))
-       topology2 (TopologyDetails. "topology2"
-                    {TOPOLOGY-NAME "topology-name-2"
-                     TOPOLOGY-ISOLATED-MACHINES 2
-                     TOPOLOGY-SUBMITTER-USER "userA"}
-                    (StormTopology.)
-                    4
-                    (mk-ed-map [["spout11" 0 5]
-                                ["bolt12" 5 6]
-                                ["bolt13" 6 7]
-                                ["bolt14" 7 10]]))
-       topology3 (TopologyDetails. "topology3"
-                    {TOPOLOGY-NAME "topology-name-3"
-                     TOPOLOGY-ISOLATED-MACHINES 5
-                     TOPOLOGY-SUBMITTER-USER "userB"}
-                    (StormTopology.)
-                    10
-                    (mk-ed-map [["spout21" 0 10]
-                                ["bolt22" 10 20]
-                                ["bolt23" 20 30]
-                                ["bolt24" 30 40]]))
-       existing-assignments {
-         "topology2" (SchedulerAssignmentImpl. "topology2" {(ExecutorDetails. 0 5) (WorkerSlot. "super1" 1)})
-         "topology3" (SchedulerAssignmentImpl. "topology3" {(ExecutorDetails. 0 10) (WorkerSlot. "super1" 1)})
-       }
-       cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
-       topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
-       conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
-       scheduler (MultitenantScheduler.)]
-    (.prepare scheduler conf)
-    (.schedule scheduler topologies cluster)
-    (let [assignment (.getAssignmentById cluster "topology1")
-          assigned-slots (.getSlots assignment)
-          executors (.getExecutors assignment)]
-      ;; 4 slots on 1 machine, all executors assigned
-      (is (= 4 (.size assigned-slots)))
-      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
-      (is (= 20 (.size executors)))
-    )
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
-    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
-    (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
-))
+  (testing "Assiging same worker slot to different topologies is bad state"
+    (let [supers (gen-supervisors 5)
+          topology1 (TopologyDetails. "topology1"
+                      {TOPOLOGY-NAME "topology-name-1"
+                       TOPOLOGY-SUBMITTER-USER "userC"}
+                      (StormTopology.)
+                      1
+                      (mk-ed-map [["spout1" 0 1]]))
+          topology2 (TopologyDetails. "topology2"
+                      {TOPOLOGY-NAME "topology-name-2"
+                       TOPOLOGY-ISOLATED-MACHINES 2
+                       TOPOLOGY-SUBMITTER-USER "userA"}
+                      (StormTopology.)
+                      1
+                      (mk-ed-map [["spout11" 1 2]]))
+          topology3 (TopologyDetails. "topology3"
+                      {TOPOLOGY-NAME "topology-name-3"
+                       TOPOLOGY-ISOLATED-MACHINES 1
+                       TOPOLOGY-SUBMITTER-USER "userB"}
+                      (StormTopology.)
+                      1
+                      (mk-ed-map [["spout21" 2 3]]))
+          worker-slot-with-multiple-assignments (WorkerSlot. "super1" 1)
+          existing-assignments {"topology2" (SchedulerAssignmentImpl. "topology2" {(ExecutorDetails. 1 1) worker-slot-with-multiple-assignments})
+                                "topology3" (SchedulerAssignmentImpl. "topology3" {(ExecutorDetails. 2 2) worker-slot-with-multiple-assignments})}
+          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
+          topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+          conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 2 "userB" 1}}
+          scheduler (MultitenantScheduler.)]
+      (.prepare scheduler conf)
+      (.schedule scheduler topologies cluster)
+      (let [assignment (.getAssignmentById cluster "topology1")
+            assigned-slots (.getSlots assignment)
+            executors (.getExecutors assignment)]
+        (is (= 1 (.size assigned-slots))))
+      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+      (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
+      (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology3"))))))
 
+(deftest test-existing-assignment-slot-not-found-in-supervisor
+  (testing "Scheduler should handle discrepancy when a live supervisor heartbeat does not report slot,
+          but worker heartbeat says its running on that slot"
+    (let [supers (gen-supervisors 1)
+          port-not-reported-by-supervisor 6
+          topology1 (TopologyDetails. "topology1"
+                      {TOPOLOGY-NAME "topology-name-1"
+                       TOPOLOGY-SUBMITTER-USER "userA"}
+                      (StormTopology.)
+                      1
+                      (mk-ed-map [["spout11" 0 1]]))
+          existing-assignments {"topology1"
+                                (SchedulerAssignmentImpl. "topology1"
+                                  {(ExecutorDetails. 0 0) (WorkerSlot. "super0" port-not-reported-by-supervisor)})}
+          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
+          topologies (Topologies. (to-top-map [topology1]))
+          conf {}
+          scheduler (MultitenantScheduler.)]
+      (.prepare scheduler conf)
+      (.schedule scheduler topologies cluster)
+      (let [assignment (.getAssignmentById cluster "topology1")
+            assigned-slots (.getSlots assignment)
+            executors (.getExecutors assignment)]
+        (is (= 1 (.size assigned-slots))))
+      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1"))))))
 
+(deftest test-existing-assignment-slot-on-dead-supervisor
+  (testing "Dead supervisor could have slot with duplicate assignments or slot never reported by supervisor"
+    (let [supers (gen-supervisors 1)
+          dead-supervisor "super1"
+          port-not-reported-by-supervisor 6
+          topology1 (TopologyDetails. "topology1"
+                      {TOPOLOGY-NAME "topology-name-1"
+                       TOPOLOGY-SUBMITTER-USER "userA"}
+                      (StormTopology.)
+                      2
+                      (mk-ed-map [["spout11" 0 1]
+                                  ["bolt12" 1 2]]))
+          topology2 (TopologyDetails. "topology2"
+                      {TOPOLOGY-NAME "topology-name-2"
+                       TOPOLOGY-SUBMITTER-USER "userA"}
+                      (StormTopology.)
+                      2
+                      (mk-ed-map [["spout21" 4 5]
+                                  ["bolt22" 5 6]]))
+          worker-slot-with-multiple-assignments (WorkerSlot. dead-supervisor 1)
+          existing-assignments {"topology1"
+                                (SchedulerAssignmentImpl. "topology1"
+                                  {(ExecutorDetails. 0 0) worker-slot-with-multiple-assignments
+                                   (ExecutorDetails. 1 1) (WorkerSlot. dead-supervisor 3)})
+                                "topology2"
+                                (SchedulerAssignmentImpl. "topology2"
+                                  {(ExecutorDetails. 4 4) worker-slot-with-multiple-assignments
+                                   (ExecutorDetails. 5 5) (WorkerSlot. dead-supervisor port-not-reported-by-supervisor)})}
+          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
+          topologies (Topologies. (to-top-map [topology1 topology2]))
+          conf {}
+          scheduler (MultitenantScheduler.)]
+      (.prepare scheduler conf)
+      (.schedule scheduler topologies cluster)
+      (let [assignment (.getAssignmentById cluster "topology1")
+            assigned-slots (.getSlots assignment)
+            executors (.getExecutors assignment)]
+        (is (= 2 (.size assigned-slots)))
+        (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+        (is (= 2 (.size executors))))
+      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+      (let [assignment (.getAssignmentById cluster "topology2")
+            assigned-slots (.getSlots assignment)
+            executors (.getExecutors assignment)]
+        (is (= 2 (.size assigned-slots)))
+        (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+        (is (= 2 (.size executors))))
+      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2"))))))

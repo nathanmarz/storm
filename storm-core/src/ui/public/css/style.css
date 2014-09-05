@@ -25,7 +25,7 @@
 }
 
 .anti-forgery-token {
-visibility:hidden;
+    visibility:hidden;
 }
 
 body {

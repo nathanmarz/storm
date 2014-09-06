@@ -77,6 +77,7 @@ under the License.
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Robert Evans ([@revans2](https://github.com/revans2))
 * Michael G. Noll ([@miguno](https://github.com/miguno))
+* Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 
 ## Contributors
 
@@ -130,7 +131,6 @@ under the License.
 * Gangrui Li ([@davidlgr](https://github.com/davidlgr))
 * John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
 * Julien Nioche ([@jnioche](https://github.com/jnioche))
-* Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 * Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
 * Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
@@ -169,6 +169,8 @@ under the License.
 * Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
 * Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
+* Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
+* Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
 
 ## Acknowledgements
 

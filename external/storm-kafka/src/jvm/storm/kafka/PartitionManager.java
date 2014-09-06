@@ -44,7 +44,8 @@ public class PartitionManager {
     private final CountMetric _fetchAPIMessageCount;
     Long _emittedToOffset;
     SortedSet<Long> _pending = new TreeSet<Long>();
-    SortedSet<Long> failed = new TreeSet<Long>();
+    private SortedSet<Long> failed = new TreeSet<Long>();
+    private Map<Long,MessageRetryRecord> retryRecords = new HashMap<Long,MessageRetryRecord>();
     Long _committedTo;
     LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
     Partition _partition;
@@ -144,14 +145,30 @@ public class PartitionManager {
         }
     }
 
+    /**
+     * Fetch the failed messages ready for retry.  If there are no failed messages, or none are ready for retry, then it
+     * returns an empty List (i.e., not null).
+     */
+    private SortedSet<Long> failedMsgsReadyForRetry() {
+        SortedSet<Long> ready = new TreeSet<Long>();
+        for (Long offset : this.failed) {
+            if (this.retryRecords.get(offset).isReadyForRetry()) {
+                ready.add(offset);
+            }
+        }
+        return ready;
+    }
+
+
     private void fill() {
         long start = System.nanoTime();
         long offset;
-        final boolean had_failed = !failed.isEmpty();
+        final SortedSet<Long> failedReady = failedMsgsReadyForRetry();
 
         // Are there failed tuples? If so, fetch those first.
+        final boolean had_failed = !failedReady.isEmpty();
         if (had_failed) {
-            offset = failed.first();
+            offset = failedReady.first();
         } else {
             offset = _emittedToOffset;
         }
@@ -171,7 +188,7 @@ public class PartitionManager {
                     // Skip any old offsets.
                     continue;
                 }
-                if (!had_failed || failed.contains(cur_offset)) {
+                if (!had_failed || failedReady.contains(cur_offset)) {
                     numMessages += 1;
                     _pending.add(cur_offset);
                     _waitingToEmit.add(new MessageAndRealOffset(msg.message(), cur_offset));
@@ -191,6 +208,7 @@ public class PartitionManager {
             _pending.headSet(offset - _spoutConfig.maxOffsetBehind).clear();
         }
         _pending.remove(offset);
+        retryRecords.remove(offset);
         numberAcked++;
     }
 
@@ -204,6 +222,8 @@ public class PartitionManager {
         } else {
             LOG.debug("failing at offset=" + offset + " with _pending.size()=" + _pending.size() + " pending and _emittedToOffset=" + _emittedToOffset);
             failed.add(offset);
+            MessageRetryRecord retryRecord = retryRecords.get(offset);
+            retryRecords.put(offset, retryRecord == null ? new MessageRetryRecord() : retryRecord.retryAgainRecord());
             numberFailed++;
             if (numberAcked == 0 && numberFailed > _spoutConfig.maxOffsetBehind) {
                 throw new RuntimeException("Too many tuple failures");
@@ -259,6 +279,44 @@ public class PartitionManager {
         public KafkaMessageId(Partition partition, long offset) {
             this.partition = partition;
             this.offset = offset;
+        }
+    }
+
+    /**
+     * A MessageRetryRecord holds the data of how many times a message has
+     * failed and been retried, and when the last failure occurred.  It can
+     * determine whether it is ready to be retried by employing an exponential
+     * back-off calculation using config values stored in SpoutConfig:
+     * <ul>
+     *  <li>retryInitialDelayMs - time to delay before the first retry</li>
+     *  <li>retryDelayMultiplier - multiplier by which to increase the delay for each subsequent retry</li>
+     *  <li>retryMaxDelayMs - maximum retry delay (once this delay time is reached, subsequent retries will
+     *                        delay for this amount of time every time)
+     *  </li>
+     * </ul>
+     */
+    class MessageRetryRecord {
+        private final long failTimeUTC;
+        private final int attemptsAlreadyPerformed;
+
+        private MessageRetryRecord(int attemptsAlreadyPerformed) {
+            this.failTimeUTC = new Date().getTime();
+            this.attemptsAlreadyPerformed = attemptsAlreadyPerformed;
+        }
+
+        public MessageRetryRecord() {
+            this(1);
+        }
+
+        public MessageRetryRecord retryAgainRecord() {
+            return new MessageRetryRecord(this.attemptsAlreadyPerformed + 1);
+        }
+
+        public boolean isReadyForRetry() {
+            double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, this.attemptsAlreadyPerformed - 1);
+            long delayThisRetryMs = (long) (_spoutConfig.retryInitialDelayMs * delayMultiplier);
+            delayThisRetryMs = Math.min(delayThisRetryMs, _spoutConfig.retryMaxDelayMs);
+            return new Date().getTime() - this.failTimeUTC > delayThisRetryMs;
         }
     }
 }

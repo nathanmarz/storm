@@ -141,9 +141,8 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id,name,status,msgTimeout, uiActionsEnabled) {
+function topologyActionJson(id,name,status,msgTimeout) {
     var jsonData = {};
-    jsonData["uiActionsEnabled"] = uiActionsEnabled;
     jsonData["id"] = id;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;

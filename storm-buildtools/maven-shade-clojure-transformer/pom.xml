@@ -20,12 +20,12 @@
 
     <parent>
         <artifactId>storm</artifactId>
-        <groupId>org.apache.storm</groupId>
+        <groupId>com.hbo.hurley</groupId>
         <version>0.9.3-incubating-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <groupId>org.apache.storm</groupId>
+    <groupId>com.hbo.hurley</groupId>
     <artifactId>maven-shade-clojure-transformer</artifactId>
 
     <dependencies>

@@ -20,11 +20,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>storm</artifactId>
-        <groupId>org.apache.storm</groupId>
+        <groupId>com.hbo.hurley</groupId>
         <version>0.9.3-incubating-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
-    <groupId>org.apache.storm</groupId>
+    <groupId>com.hbo.hurley</groupId>
     <artifactId>apache-storm-source</artifactId>
     <packaging>pom</packaging>
     <name>Storm Source Distribution</name>
@@ -32,7 +32,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.storm</groupId>
+            <groupId>com.hbo.hurley</groupId>
             <artifactId>storm-core</artifactId>
             <version>${project.version}</version>
         </dependency>

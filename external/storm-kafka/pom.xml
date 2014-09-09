@@ -20,14 +20,13 @@
 
     <parent>
         <artifactId>storm</artifactId>
-        <groupId>org.apache.storm</groupId>
+        <groupId>com.hbo.hurley</groupId>
         <version>0.9.3-incubating-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <packaging>jar</packaging>
-    <groupId>com.hbo.hurley</groupId>
-    <artifactId>storm-kafka-hurley</artifactId>
+    <artifactId>storm-kafka</artifactId>
     <name>storm-kafka-hurley</name>
     <description>Storm Spouts for Apache Kafka</description>
     <build>
@@ -123,7 +122,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.storm</groupId>
+            <groupId>com.hbo.hurley</groupId>
             <artifactId>storm-core</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>

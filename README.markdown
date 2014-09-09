@@ -173,6 +173,7 @@ under the License.
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 * Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
 * Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
+* Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
 
 ## Acknowledgements
 

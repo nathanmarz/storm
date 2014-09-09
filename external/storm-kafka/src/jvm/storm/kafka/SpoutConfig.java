@@ -32,7 +32,7 @@ public class SpoutConfig extends KafkaConfig implements Serializable {
     // appropriately to prevent resubmitting the message while still retrying
     public long retryInitialDelayMs = 0;
     public double retryDelayMultiplier = 1.0;
-    public long retryMaxDelayMs = 60 * 1000;
+    public long retryDelayMaxMs = 60 * 1000;
 
     public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id) {
         super(hosts, topic);

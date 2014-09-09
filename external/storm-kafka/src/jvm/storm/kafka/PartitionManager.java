@@ -290,7 +290,7 @@ public class PartitionManager {
      * <ul>
      *  <li>retryInitialDelayMs - time to delay before the first retry</li>
      *  <li>retryDelayMultiplier - multiplier by which to increase the delay for each subsequent retry</li>
-     *  <li>retryMaxDelayMs - maximum retry delay (once this delay time is reached, subsequent retries will
+     *  <li>retryDelayMaxMs - maximum retry delay (once this delay time is reached, subsequent retries will
      *                        delay for this amount of time every time)
      *  </li>
      * </ul>
@@ -315,7 +315,7 @@ public class PartitionManager {
         public boolean isReadyForRetry() {
             double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, this.attemptsAlreadyPerformed - 1);
             long delayThisRetryMs = (long) (_spoutConfig.retryInitialDelayMs * delayMultiplier);
-            delayThisRetryMs = Math.min(delayThisRetryMs, _spoutConfig.retryMaxDelayMs);
+            delayThisRetryMs = Math.min(delayThisRetryMs, _spoutConfig.retryDelayMaxMs);
             return new Date().getTime() - this.failTimeUTC > delayThisRetryMs;
         }
     }

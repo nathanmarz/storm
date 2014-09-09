@@ -35,10 +35,13 @@ RandomSentenceSpout.prototype.nextTuple = function(done) {
     var tup = [sentence];
     var id = this.createNextTupleId();
     this.pending[id] = tup;
-    this.emit({tuple: tup, id: id}, function(taskIds) {
-        self.log(tup + ' sent to task ids - ' + taskIds);
-    });
-    done();
+    //This timeout can be removed if TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS is configured to 100
+    setTimeout(function() {
+        self.emit({tuple: tup, id: id}, function(taskIds) {
+            self.log(tup + ' sent to task ids - ' + taskIds);
+        });
+        done();
+    },100);
 }
 
 RandomSentenceSpout.prototype.createNextTupleId = function() {

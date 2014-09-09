@@ -223,7 +223,9 @@ public class PartitionManager {
             LOG.debug("failing at offset=" + offset + " with _pending.size()=" + _pending.size() + " pending and _emittedToOffset=" + _emittedToOffset);
             failed.add(offset);
             MessageRetryRecord retryRecord = retryRecords.get(offset);
-            retryRecords.put(offset, retryRecord == null ? new MessageRetryRecord() : retryRecord.retryAgainRecord());
+            retryRecords.put(offset, retryRecord == null
+                                     ? new MessageRetryRecord()
+                                     : retryRecord.createNextRetryRecord());
             numberFailed++;
             if (numberAcked == 0 && numberFailed > _spoutConfig.maxOffsetBehind) {
                 throw new RuntimeException("Too many tuple failures");
@@ -296,27 +298,30 @@ public class PartitionManager {
      * </ul>
      */
     class MessageRetryRecord {
-        private final long failTimeUTC;
-        private final int attemptsAlreadyPerformed;
-
-        private MessageRetryRecord(int attemptsAlreadyPerformed) {
-            this.failTimeUTC = new Date().getTime();
-            this.attemptsAlreadyPerformed = attemptsAlreadyPerformed;
-        }
+        private final int retryNum;
+        private final long retryTimeUTC;
 
         public MessageRetryRecord() {
             this(1);
         }
 
-        public MessageRetryRecord retryAgainRecord() {
-            return new MessageRetryRecord(this.attemptsAlreadyPerformed + 1);
+        private MessageRetryRecord(int retryNum) {
+            this.retryNum = retryNum;
+            this.retryTimeUTC = new Date().getTime() + calculateRetryDelay(this.retryNum);
+        }
+
+        public MessageRetryRecord createNextRetryRecord() {
+            return new MessageRetryRecord(this.retryNum + 1);
+        }
+
+        private long calculateRetryDelay(int retryNum) {
+            double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, retryNum - 1);
+            long delayThisRetryMs = (long) (_spoutConfig.retryInitialDelayMs * delayMultiplier);
+            return Math.min(delayThisRetryMs, _spoutConfig.retryDelayMaxMs);
         }
 
         public boolean isReadyForRetry() {
-            double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, this.attemptsAlreadyPerformed - 1);
-            long delayThisRetryMs = (long) (_spoutConfig.retryInitialDelayMs * delayMultiplier);
-            delayThisRetryMs = Math.min(delayThisRetryMs, _spoutConfig.retryDelayMaxMs);
-            return new Date().getTime() - this.failTimeUTC > delayThisRetryMs;
+            return new Date().getTime() > this.retryTimeUTC;
         }
     }
 }

@@ -307,15 +307,15 @@ public class PartitionManager {
 
         private MessageRetryRecord(int retryNum) {
             this.retryNum = retryNum;
-            this.retryTimeUTC = new Date().getTime() + calculateRetryDelay(this.retryNum);
+            this.retryTimeUTC = new Date().getTime() + calculateRetryDelay();
         }
 
         public MessageRetryRecord createNextRetryRecord() {
             return new MessageRetryRecord(this.retryNum + 1);
         }
 
-        private long calculateRetryDelay(int retryNum) {
-            double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, retryNum - 1);
+        private long calculateRetryDelay() {
+            double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, this.retryNum - 1);
             long delayThisRetryMs = (long) (_spoutConfig.retryInitialDelayMs * delayMultiplier);
             return Math.min(delayThisRetryMs, _spoutConfig.retryDelayMaxMs);
         }

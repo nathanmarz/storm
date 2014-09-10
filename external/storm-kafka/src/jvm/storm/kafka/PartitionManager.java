@@ -307,7 +307,7 @@ public class PartitionManager {
 
         private MessageRetryRecord(int retryNum) {
             this.retryNum = retryNum;
-            this.retryTimeUTC = new Date().getTime() + calculateRetryDelay();
+            this.retryTimeUTC = System.currentTimeMillis() + calculateRetryDelay();
         }
 
         public MessageRetryRecord createNextRetryRecord() {
@@ -321,7 +321,7 @@ public class PartitionManager {
         }
 
         public boolean isReadyForRetry() {
-            return new Date().getTime() > this.retryTimeUTC;
+            return System.currentTimeMillis() > this.retryTimeUTC;
         }
     }
 }

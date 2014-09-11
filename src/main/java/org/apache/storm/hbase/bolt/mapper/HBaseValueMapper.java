@@ -24,7 +24,7 @@ import org.apache.hadoop.hbase.client.Result;
 import java.io.Serializable;
 import java.util.List;
 
-public interface HBaseRowToStormValueMapper extends Serializable {
+public interface HBaseValueMapper extends Serializable {
     /**
      *
      * @param result HBase lookup result instance.

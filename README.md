@@ -1,6 +1,6 @@
 #Storm HBase
 
-Storm/Trident integration for [Apache HBase]()
+Storm/Trident integration for [Apache HBase](https://hbase.apache.org)
 
 ## Usage
 The main API for interacting with HBase is the `org.apache.storm.hbase.bolt.mapper.HBaseMapper`
@@ -63,11 +63,11 @@ HBaseBolt hbase = new HBaseBolt("WordCount", mapper);
 
 The `HBaseBolt` will delegate to the `mapper` instance to figure out how to persist tuple data to HBase.
 
-###HBaseRowToStormValueMapper
+###HBaseValueMapper
 This class allows you to transform the HBase lookup result into storm Values that will be emitted by the `HBaseLookupBolt`.
 
 ```java
-public interface HBaseRowToStormValueMapper extends Serializable {
+public interface HBaseValueMapper extends Serializable {
     public List<Values> toTuples(Result result) throws Exception;
     void declareOutputFields(OutputFieldsDeclarer declarer);
 }

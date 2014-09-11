@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
-import org.apache.storm.hbase.bolt.mapper.HBaseRowToStormValueMapper;
+import org.apache.storm.hbase.bolt.mapper.HBaseValueMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,11 +39,11 @@ import org.slf4j.LoggerFactory;
 public class HBaseLookupBolt extends AbstractHBaseBolt {
     private static final Logger LOG = LoggerFactory.getLogger(HBaseLookupBolt.class);
 
-    private HBaseRowToStormValueMapper rowToTupleMapper;
+    private HBaseValueMapper rowToTupleMapper;
 
     private HBaseProjectionCriteria projectionCriteria;
 
-    public HBaseLookupBolt(String tableName, HBaseMapper mapper, HBaseRowToStormValueMapper rowToTupleMapper){
+    public HBaseLookupBolt(String tableName, HBaseMapper mapper, HBaseValueMapper rowToTupleMapper){
         super(tableName, mapper);
         Validate.notNull(rowToTupleMapper, "rowToTupleMapper can not be null");
         this.rowToTupleMapper = rowToTupleMapper;

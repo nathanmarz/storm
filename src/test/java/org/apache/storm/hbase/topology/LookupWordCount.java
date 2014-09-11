@@ -51,7 +51,7 @@ public class LookupWordCount {
         HBaseProjectionCriteria projectionCriteria = new HBaseProjectionCriteria();
         projectionCriteria.addColumn(new HBaseProjectionCriteria.ColumnMetaData("cf", "count"));
 
-        WordCountRowToStormValueMapper rowToTupleMapper = new WordCountRowToStormValueMapper();
+        WordCountValueMapper rowToTupleMapper = new WordCountValueMapper();
 
         HBaseLookupBolt hBaseLookupBolt = new HBaseLookupBolt("WordCount", mapper, rowToTupleMapper)
                 .withConfigKey("hbase.conf")

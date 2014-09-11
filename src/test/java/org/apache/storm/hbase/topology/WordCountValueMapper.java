@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.storm.hbase.bolt.mapper.HBaseRowToStormValueMapper;
+import org.apache.storm.hbase.bolt.mapper.HBaseValueMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +48,7 @@ import java.util.List;
  * </pre>
  *
  */
-public class WordCountRowToStormValueMapper implements HBaseRowToStormValueMapper {
+public class WordCountValueMapper implements HBaseValueMapper {
 
     @Override
     public List<Values> toValues(Result result) throws Exception {

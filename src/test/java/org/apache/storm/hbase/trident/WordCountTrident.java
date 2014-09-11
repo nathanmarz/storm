@@ -25,8 +25,8 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
-import org.apache.storm.hbase.bolt.mapper.HBaseRowToStormValueMapper;
-import org.apache.storm.hbase.topology.WordCountRowToStormValueMapper;
+import org.apache.storm.hbase.bolt.mapper.HBaseValueMapper;
+import org.apache.storm.hbase.topology.WordCountValueMapper;
 import org.apache.storm.hbase.trident.mapper.SimpleTridentHBaseMapper;
 import org.apache.storm.hbase.trident.mapper.TridentHBaseMapper;
 import org.apache.storm.hbase.trident.state.HBaseQuery;
@@ -56,7 +56,7 @@ public class WordCountTrident {
                 .withCounterFields(new Fields("count"))
                 .withRowKeyField("word");
 
-        HBaseRowToStormValueMapper rowToStormValueMapper = new WordCountRowToStormValueMapper();
+        HBaseValueMapper rowToStormValueMapper = new WordCountValueMapper();
 
         HBaseProjectionCriteria projectionCriteria = new HBaseProjectionCriteria();
         projectionCriteria.addColumn(new HBaseProjectionCriteria.ColumnMetaData("cf", "count"));

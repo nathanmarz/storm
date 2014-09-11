@@ -24,7 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
-import org.apache.storm.hbase.bolt.mapper.HBaseRowToStormValueMapper;
+import org.apache.storm.hbase.bolt.mapper.HBaseValueMapper;
 import org.apache.storm.hbase.common.ColumnList;
 import org.apache.storm.hbase.common.HBaseClient;
 import org.apache.storm.hbase.trident.mapper.TridentHBaseMapper;
@@ -59,7 +59,7 @@ public class HBaseState implements State {
         private TridentHBaseMapper mapper;
         private Durability durability = Durability.SKIP_WAL;
         private HBaseProjectionCriteria projectionCriteria;
-        private HBaseRowToStormValueMapper rowToStormValueMapper;
+        private HBaseValueMapper rowToStormValueMapper;
         private String configKey;
         private String tableName;
 
@@ -83,7 +83,7 @@ public class HBaseState implements State {
             return this;
         }
 
-        public Options withRowToStormValueMapper(HBaseRowToStormValueMapper rowToStormValueMapper) {
+        public Options withRowToStormValueMapper(HBaseValueMapper rowToStormValueMapper) {
             this.rowToStormValueMapper = rowToStormValueMapper;
             return this;
         }

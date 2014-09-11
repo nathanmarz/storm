@@ -19,12 +19,12 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
       <artifactId>storm</artifactId>
-      <groupId>org.apache.storm</groupId>
+      <groupId>com.hbo.hurley</groupId>
       <version>0.9.3-incubating-SNAPSHOT</version>
       <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <groupId>org.apache.storm</groupId>
+  <groupId>com.hbo.hurley</groupId>
   <artifactId>storm-starter</artifactId>
   <packaging>jar</packaging>
 
@@ -66,7 +66,7 @@
      <version>3.0.3</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.storm</groupId>
+      <groupId>com.hbo.hurley</groupId>
       <artifactId>storm-core</artifactId>
       <version>${project.version}</version>
       <!-- keep storm out of the jar-with-dependencies -->

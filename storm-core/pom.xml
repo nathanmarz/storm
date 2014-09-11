@@ -19,10 +19,10 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>storm</artifactId>
-        <groupId>org.apache.storm</groupId>
+        <groupId>com.hbo.hurley</groupId>
         <version>0.9.3-incubating-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.storm</groupId>
+    <groupId>com.hbo.hurley</groupId>
     <artifactId>storm-core</artifactId>
     <packaging>jar</packaging>
     <name>Storm Core</name>
@@ -355,7 +355,7 @@
                 </configuration>
                 <dependencies>
                     <dependency>
-                        <groupId>org.apache.storm</groupId>
+                        <groupId>com.hbo.hurley</groupId>
                         <artifactId>maven-shade-clojure-transformer</artifactId>
                         <version>${project.version}</version>
                     </dependency>

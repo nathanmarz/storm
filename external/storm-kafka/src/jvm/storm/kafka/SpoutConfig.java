@@ -28,6 +28,12 @@ public class SpoutConfig extends KafkaConfig implements Serializable {
     public String id = null;
     public long stateUpdateIntervalMs = 2000;
 
+    // Exponential back-off retry settings - note: be sure to set backtype.storm.Config.MESSAGE_TIMEOUT_SECS
+    // appropriately to prevent resubmitting the message while still retrying
+    public long retryInitialDelayMs = 0;
+    public double retryDelayMultiplier = 1.0;
+    public long retryDelayMaxMs = 60 * 1000;
+
     public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id) {
         super(hosts, topic);
         this.zkRoot = zkRoot;

@@ -48,7 +48,7 @@ The following code create a `SimpleHBaseMapper` instance that:
 4. Writes values to the `cf` column family.
 
 ```java
-SimpleHBaseMapper mapper = new SimpleHBaseMapper()
+SimpleHBaseMapper mapper = new SimpleHBaseMapper() 
         .withRowKeyField("word")
         .withColumnFields(new Fields("word"))
         .withCounterFields(new Fields("count"))
@@ -63,7 +63,56 @@ HBaseBolt hbase = new HBaseBolt("WordCount", mapper);
 
 The `HBaseBolt` will delegate to the `mapper` instance to figure out how to persist tuple data to HBase.
 
+###HBaseRowToStormValueMapper
+This class allows you to transform the HBase lookup result into storm Values that will be emitted by the `HBaseLookupBolt`.
 
+```java
+public interface HBaseRowToStormValueMapper extends Serializable {
+    public List<Values> toTuples(Result result) throws Exception;
+    void declareOutputFields(OutputFieldsDeclarer declarer);
+}
+```
+
+The `toTuples` method takes in a HBase `Result` instance and expects a List of `Values` instant. 
+Each of the value returned by this function will be emitted by the `HBaseLookupBolt`.
+
+The `declareOutputFields` should be used to declare the outputFields of the `HBaseLookupBolt`.
+
+There is an example implementation in `src/test/java` directory.
+###HBaseProjectionCriteria
+This class allows you to specify the projection criteria for your HBase Get function. This is optional parameter
+for the lookupBolt and if you do not specify this instance all the columns will be returned by `HBaseLookupBolt`.
+
+```java
+public class HBaseProjectionCriteria implements Serializable {
+    public HBaseProjectionCriteria addColumnFamily(String columnFamily);
+    public HBaseProjectionCriteria addColumn(ColumnMetaData column);
+```    
+`addColumnFamily` takes in columnFamily. Setting this parameter means all columns for this family will be included
+ in the projection.
+ 
+`addColumn` takes in a columnMetaData instance. Setting this parameter means only this column from the column familty 
+ will be part of your projection.
+The following code creates a projectionCriteria which specifies a projection criteria that:
+
+1. includes count column from column family cf.
+2. includes all columns from column family cf2.
+
+```java
+HBaseProjectionCriteria projectionCriteria = new HBaseProjectionCriteria()
+    .addColumn(new HBaseProjectionCriteria.ColumnMetaData("cf", "count"))
+    .addColumnFamily("cf2");
+```
+
+###HBaseLookupBolt
+To use the `HBaseLookupBolt`, Construct it with the name of the table to write to, an implementation of `HBaseMapper` 
+and an implementation of `HBaseRowToStormValueMapper`. You can optionally specify a `HBaseProjectionCriteria`. 
+
+The `HBaseLookupBolt` will use the mapper to get rowKey to lookup for. It will use the `HBaseProjectionCriteria` to 
+figure out which columns to include in the result and it will leverage the `HBaseRowToStormValueMapper` to get the 
+values to be emitted by the bolt.
+
+You can look at an example topology LookupWordCount.java under `src/test/java`.
 ## Example: Persistent Word Count
 A runnable example can be found in the `src/test/java` directory.
 

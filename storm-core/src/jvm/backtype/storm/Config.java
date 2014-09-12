@@ -859,6 +859,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object DEV_ZOOKEEPER_PATH_SCHEMA = String.class;
 
     /**
+     * Who knows may be java doc.
+     */
+    public static final String NIMBUS_LEADER_ELECTOR_CLASS = "nimbus.leaderElector.class";
+    public static final Object NIMBUS_LEADER_ELECTOR_CLASS_SCHEMA = String.class;
+
+    /**
      * A map from topology name to the number of machines that should be dedicated for that topology. Set storm.scheduler
      * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
      */

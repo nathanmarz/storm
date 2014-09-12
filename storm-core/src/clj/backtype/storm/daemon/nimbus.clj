@@ -24,7 +24,7 @@
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm bootstrap util zookeeper])
   (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
   (:gen-class
@@ -59,6 +59,22 @@
     scheduler
     ))
 
+;;Probably no need to allow for custom Leader election implementation.
+(defn mk-leader-elector [conf]
+  (if (conf NIMBUS-LEADER-ELECTOR-CLASS)
+    (do (log-message "Using custom Leade elector: " (conf NIMBUS-LEADER-ELECTOR-CLASS))
+      (-> (conf NIMBUS-LEADER-ELECTOR-CLASS) new-instance))
+    (zk-leader-elector conf)))
+
+(defnk is-leader [nimbus :throw-exception true]
+  (let [leader-elector (:leader-elector nimbus)]
+    (if (.isLeader leader-elector) true
+      ;TODO change to RedirectException once thrift model is updated,
+      ;we are still trying to agree on a design so may have to write a request forwareder instead of throwing exception.
+      (if throw-exception
+        (let [leader-address (.getLeaderAddress leader-elector)]
+          (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
+
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
@@ -76,6 +92,7 @@
                                  (exit-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
+     :leader-elector (mk-leader-elector conf)
      }))
 
 (defn inbox [nimbus]
@@ -181,7 +198,8 @@
   ([nimbus storm-id event]
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
-     (locking (:submit-lock nimbus)
+    (is-leader nimbus)
+    (locking (:submit-lock nimbus)
        (let [system-events #{:startup}
              [event & event-args] (if (keyword? event) [event] event)
              status (topology-status nimbus storm-id)]
@@ -212,8 +230,7 @@
                               {:type new-status}
                               new-status)]
              (when new-status
-               (set-topology-status! nimbus storm-id new-status)))))
-       )))
+               (set-topology-status! nimbus storm-id new-status))))))))
 
 (defn transition-name! [nimbus storm-name event & args]
   (let [storm-id (get-storm-id (:storm-cluster-state nimbus) storm-name)]
@@ -256,8 +273,8 @@
 (defn- assigned-slots
   "Returns a map from node-id to a set of ports"
   [storm-cluster-state]
-  (let [assignments (.assignments storm-cluster-state nil)
-        ]
+
+  (let [assignments (.assignments storm-cluster-state nil)]
     (defaulted
       (apply merge-with set/union
              (for [a assignments
@@ -642,7 +659,8 @@
 ;; only keep existing slots that satisfy one of those slots. for rest, reassign them across remaining slots
 ;; edge case for slots with no executor timeout but with supervisor timeout... just treat these as valid slots that can be reassigned to. worst comes to worse the executor will timeout and won't assign here next time around
 (defnk mk-assignments [nimbus :scratch-topology-id nil]
-  (let [conf (:conf nimbus)
+  (if (is-leader nimbus :throw-exception false)
+    (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus) 
         ;; read all the topologies
@@ -710,8 +728,8 @@
               [topology-id (map to-worker-slot (newly-added-slots existing-assignment assignment))] 
               )))
           (into {})
-          (.assignSlots inimbus topologies))
-    ))
+          (.assignSlots inimbus topologies)))
+    (log-message "not a leader, skipping assignments")))
 
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
   {:pre [(#{:active :inactive} topology-initial-status)]}                
@@ -720,7 +738,6 @@
         storm-conf (read-storm-conf conf storm-id)
         topology (system-topology! storm-conf (read-storm-topology conf storm-id))
         num-executors (->> (all-components topology) (map-val num-start-executors))]
-    (log-message "Activating " storm-name ": " storm-id)
     (.activate-storm! storm-cluster-state
                       storm-id
                       (StormBase. storm-name
@@ -818,19 +835,21 @@
             TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})))
 
 (defn do-cleanup [nimbus]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        conf (:conf nimbus)
-        submit-lock (:submit-lock nimbus)]
-    (let [to-cleanup-ids (locking submit-lock
-                           (cleanup-storm-ids conf storm-cluster-state))]
-      (when-not (empty? to-cleanup-ids)
-        (doseq [id to-cleanup-ids]
-          (log-message "Cleaning up " id)
-          (.teardown-heartbeats! storm-cluster-state id)
-          (.teardown-topology-errors! storm-cluster-state id)
-          (rmr (master-stormdist-root conf id))
-          (swap! (:heartbeats-cache nimbus) dissoc id))
-        ))))
+  (if (is-leader nimbus :throw-exception false)
+    (let [storm-cluster-state (:storm-cluster-state nimbus)
+          conf (:conf nimbus)
+          submit-lock (:submit-lock nimbus)]
+      (let [to-cleanup-ids (locking submit-lock
+                             (cleanup-storm-ids conf storm-cluster-state))]
+        (when-not (empty? to-cleanup-ids)
+          (doseq [id to-cleanup-ids]
+            (log-message "Cleaning up " id)
+            (.teardown-heartbeats! storm-cluster-state id)
+            (.teardown-topology-errors! storm-cluster-state id)
+            (rmr (master-stormdist-root conf id))
+            (swap! (:heartbeats-cache nimbus) dissoc id))
+          )))
+    (log-message "not a leader, skipping cleanup")))
 
 (defn- file-older-than? [now seconds file]
   (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
@@ -848,14 +867,16 @@
         ))))
 
 (defn cleanup-corrupt-topologies! [nimbus]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        code-ids (set (code-ids (:conf nimbus)))
-        active-topologies (set (.active-storms storm-cluster-state))
-        corrupt-topologies (set/difference active-topologies code-ids)]
-    (doseq [corrupt corrupt-topologies]
-      (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
-      (.remove-storm! storm-cluster-state corrupt)
-      )))
+  (if (is-leader nimbus :throw-exception false)
+    (let [storm-cluster-state (:storm-cluster-state nimbus)
+          code-ids (set (code-ids (:conf nimbus)))
+          active-topologies (set (.active-storms storm-cluster-state))
+          corrupt-topologies (set/difference active-topologies code-ids)]
+      (doseq [corrupt corrupt-topologies]
+        (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
+        (.remove-storm! storm-cluster-state corrupt)
+        )))
+  (log-message "not a leader, skillping cleanup-corrupt-topologies"))
 
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)
@@ -897,9 +918,11 @@
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf inimbus)]
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
+    (.addToLeaderLockQueue (:leader-elector nimbus))
     (cleanup-corrupt-topologies! nimbus)
-    (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
-      (transition! nimbus storm-id :startup))
+    (when (is-leader nimbus :throw-exception false)
+      (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
+        (transition! nimbus storm-id :startup)))
     (schedule-recurring (:timer nimbus)
                         0
                         (conf NIMBUS-MONITOR-FREQ-SECS)
@@ -921,6 +944,7 @@
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
          ^SubmitOptions submitOptions]
         (try
+          (is-leader nimbus)
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
           (check-storm-active! nimbus storm-name false)
@@ -993,6 +1017,7 @@
           ))
 
       (activate [this storm-name]
+        (log-message (str "activate " (.isLeader (:leader-elector nimbus))))
         (transition-name! nimbus storm-name :activate true)
         )
 
@@ -1141,6 +1166,7 @@
         (.disconnect (:storm-cluster-state nimbus))
         (.cleanup (:downloaders nimbus))
         (.cleanup (:uploaders nimbus))
+        (.close (:leader-elector nimbus))
         (log-message "Shut down master")
         )
       DaemonCommon

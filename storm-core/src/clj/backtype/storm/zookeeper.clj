@@ -18,13 +18,16 @@
   (:import [org.apache.curator.retry RetryNTimes])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
+  (:import [org.apache.curator.framework.recipes.leader LeaderLatch Participant])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])
   (:import [org.apache.zookeeper.data Stat])
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxnFactory])
-  (:import [java.net InetSocketAddress BindException])
+  (:import [java.net InetSocketAddress BindException InetAddress])
+  (:import [backtype.storm.nimbus ILeaderElector])
   (:import [java.io File])
+  (:import [java.util List Map])
   (:import [backtype.storm.utils Utils ZookeeperAuthInfo])
   (:use [backtype.storm util log config]))
 
@@ -210,3 +213,39 @@
 (defn shutdown-inprocess-zookeeper
   [handle]
   (.shutdown handle))
+
+(defn- to-InetSocketAddress [^Participant participant]
+  (let
+    [id (.getId participant)
+     server (first (.split id ":"))
+     port (Integer/parseInt (last (.split id ":")))]
+    (InetSocketAddress. server port)))
+
+(defn zk-leader-elector
+  "Zookeeper Implementation of ILeaderElector."
+  [conf]
+  (let [zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
+        leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
+        id (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
+        leader-latch (LeaderLatch. zk leader-lock-path id)]
+    (reify ILeaderElector
+      (prepare [this conf]
+        (log-message "no-op for zookeeper implementation"))
+      (^void addToLeaderLockQueue [this]
+        (.start leader-latch)
+        (log-message "Queued up for leader lock."))
+      (^void removeFromLeaderLockQueue [this]
+        (.close leader-latch)
+        (log-message "Removed from leader lock queue."))
+      (^boolean isLeader [this]
+        (.hasLeadership leader-latch))
+      (^InetSocketAddress getLeaderAddress [this]
+        (to-InetSocketAddress (.getLeader leader-latch)))
+      (^List getAllNimbusAddresses [this]
+        (let [participants (.getParticipants leader-latch)]
+          (map (fn [^Participant participant]
+                 (to-InetSocketAddress participant))
+            participants)))
+      (^void close[this]
+        (log-message "closing zookeeper connection of leader elector.")
+        (.close zk)))))

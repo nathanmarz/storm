@@ -876,7 +876,7 @@
         (log-message "Corrupt topology " corrupt " has state on zookeeper but doesn't have a local dir on Nimbus. Cleaning up...")
         (.remove-storm! storm-cluster-state corrupt)
         )))
-  (log-message "not a leader, skillping cleanup-corrupt-topologies"))
+  (log-message "not a leader, skipping cleanup-corrupt-topologies"))
 
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)

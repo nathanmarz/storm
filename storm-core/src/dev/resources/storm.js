@@ -246,6 +246,7 @@ BasicBolt.prototype.handleNewCommand = function(command) {
     var callback = function(err) {
           if (err) {
               self.fail(tup, err);
+              return;
           }
           self.ack(tup);
       }

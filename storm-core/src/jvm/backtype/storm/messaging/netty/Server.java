@@ -56,7 +56,7 @@ class Server implements IConnection {
     final ServerBootstrap bootstrap;
     
     private int queueCount;
-    HashMap<Integer, Integer> taskToQueueId = null;
+    private volatile HashMap<Integer, Integer> taskToQueueId = null;
     int roundRobinQueueId;
 	
     boolean closing = false;
@@ -131,18 +131,18 @@ class Server implements IConnection {
     
     private Integer getMessageQueueId(int task) {
       // try to construct the map from taskId -> queueId in round robin manner.
-      
       Integer queueId = taskToQueueId.get(task);
       if (null == queueId) {
-        synchronized(taskToQueueId) {
-          //assgin task to queue in round-robin manner
-          if (null == taskToQueueId.get(task)) {
+        synchronized (this) {
+          queueId = taskToQueueId.get(task);
+          if (queueId == null) {
             queueId = roundRobinQueueId++;
-            
-            taskToQueueId.put(task, queueId);
             if (roundRobinQueueId == queueCount) {
               roundRobinQueueId = 0;
             }
+            HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
+            newRef.put(task, queueId);
+            taskToQueueId = newRef;
           }
         }
       }

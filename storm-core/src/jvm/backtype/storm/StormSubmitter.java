@@ -71,6 +71,22 @@ public class StormSubmitter {
     }    
 
     /**
+     * Submits a topology to run on the cluster. A topology runs forever or until 
+     * explicitly killed.
+     *
+     * @param name the name of the storm.
+     * @param stormConf the topology-specific configuration. See {@link Config}. 
+     * @param topology the processing to execute.
+     * @param opts to manipulate the starting of the topology.
+     * @throws AlreadyAliveException if a topology with this name is already running
+     * @throws InvalidTopologyException if an invalid topology was submitted
+     */
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
+            throws AlreadyAliveException, InvalidTopologyException {
+        submitTopology(name, stormConf, topology, opts, null);
+    }
+
+    /**
      * Submits a topology to run on the cluster. A topology runs forever or until
      * explicitly killed.
      *

@@ -293,7 +293,7 @@ def repl():
     on the classpath. Useful for debugging.
     """
     cppaths = [CLUSTER_CONF_DIR]
-    exec_storm_class("clojure.lang.Repl", jvmtype="-client", extrajars=cppaths)
+    exec_storm_class("clojure.main", jvmtype="-client", extrajars=cppaths)
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]

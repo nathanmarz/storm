@@ -73,6 +73,7 @@
  * STORM-475: Storm UI pages do not use UTF-8
  * STORM-336: Logback version should be upgraded
  * STORM-386: nodejs multilang protocol implementation and examples
+ * STORM-500: Add Spinner when UI is loading stats from nimbus
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

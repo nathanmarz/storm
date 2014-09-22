@@ -31,7 +31,7 @@ def main():
 	jrepo = JiraRepo("https://issues.apache.org/jira/rest/api/2")
 	github = GitHub(options)
 	
-	openPullRequests = github.openPulls("apache","incubator-storm")
+	openPullRequests = github.openPulls("apache","storm")
 	stormJiraNumber = re.compile("STORM-[0-9]+")
 	openJiras = jrepo.openJiras("STORM")
 	

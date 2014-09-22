@@ -78,6 +78,7 @@ under the License.
 * Robert Evans ([@revans2](https://github.com/revans2))
 * Michael G. Noll ([@miguno](https://github.com/miguno))
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
+* Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 
 ## Contributors
 

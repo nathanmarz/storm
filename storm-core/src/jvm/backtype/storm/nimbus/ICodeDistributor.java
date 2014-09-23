@@ -2,7 +2,7 @@ package backtype.storm.nimbus;
 
 
 import java.io.File;
-import java.io.OutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +15,7 @@ public interface ICodeDistributor {
      * Prepare this code distributor.
      * @param conf
      */
-    void prepare(Map conf);
+    void prepare(Map conf) throws Exception;
 
     /**
      * This API will perform the actual upload of the code to the distribution implementation.
@@ -26,7 +26,7 @@ public interface ICodeDistributor {
      * @param topologyId the topologyId for which the meta file needs to be created.
      * @return metaFile
      */
-    File upload(Path dirPath, String topologyId);
+    File upload(String dirPath, String topologyId) throws IOException, InterruptedException, Exception;
 
     /**
      * Returns the file object with downloaded meta file.
@@ -42,7 +42,7 @@ public interface ICodeDistributor {
      * @param metafile
      * @return
      */
-    List<File> download(String topologyid, File metafile);
+    List<File> download(String topologyid, File metafile) throws Exception;
 
     /**
      * Performs the cleanup.

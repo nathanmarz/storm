@@ -663,7 +663,7 @@
       (bind slot-executors (slot-assignments cluster storm-id))
       (check-executor-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 3)
-      
+
       (is (thrown? InvalidTopologyException
                    (.rebalance (:nimbus cluster) "test"
                      (doto (RebalanceOptions.)
@@ -693,7 +693,7 @@
                         (slot-assignments cluster storm-id)
                         distribution)))
       (checker [2 2 2])
-      
+
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
                     (.set_num_workers 6)
@@ -702,7 +702,7 @@
       (checker [2 2 2])
       (advance-cluster-time cluster 3)
       (checker [1 1 1 1 1 1])
-      
+
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
                     (.set_num_executors {"1" 1})
@@ -720,11 +720,11 @@
       (advance-cluster-time cluster 32)
       (checker [2 2 2 2])
       (check-consistency cluster "test")
-      
+
       (bind executor-info (->> (storm-component->executor-info cluster "test")
                                (map-val #(map executor-id->tasks %))))
       (check-distribution (executor-info "1") [2 2 2 2 1 1 1 1])
-      
+
       )))
 
 (deftest test-submit-invalid

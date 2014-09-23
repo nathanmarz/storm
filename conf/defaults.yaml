@@ -38,6 +38,11 @@ storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
 
+### bittorrent configuration
+bittorrent.port: 6969
+bittorrent.max.upload.rate: 0.0
+bittorrent.max.download.rate: 0.0
+
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
@@ -90,6 +95,7 @@ supervisor.monitor.frequency.secs: 3
 #how frequently the supervisor heartbeats to the cluster state (for nimbus)
 supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
+supervisor.bittorrent.seed.duration: 0
 
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"

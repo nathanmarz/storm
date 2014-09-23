@@ -16,7 +16,9 @@
 (ns backtype.storm.daemon.supervisor
   (:import [backtype.storm.scheduler ISupervisor]
            [java.net JarURLConnection]
-           [java.net URI])
+           [java.net URI]
+           [java.io File]
+           [backtype.storm.torrent BitTorrentCodeDistributor])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -27,6 +29,7 @@
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
+(defmulti mk-bt-tracker cluster-mode)
 
 ;; used as part of a map from port to this
 (defrecord LocalAssignment [storm-id executors])
@@ -222,6 +225,7 @@
                                ))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
+   :bt-tracker (mk-bt-tracker conf)
    })
 
 (defn sync-processes [supervisor]
@@ -261,7 +265,10 @@
          ". State: " state
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)
+        (if (:bt-tracker supervisor)
+          (.cleanup (:bt-tracker supervisor) id))
         ))
+
     (doseq [id (vals new-worker-ids)]
       (local-mkdirs (worker-pids-root conf id)))
     (.put local-state LS-APPROVED-WORKERS
@@ -350,7 +357,7 @@
              storm-id
              " from "
              master-code-dir)
-          (download-storm-code conf storm-id master-code-dir)
+          (download-storm-code conf storm-id master-code-dir supervisor)
           (log-message "Finished downloading code for storm id "
              storm-id
              " from "
@@ -454,18 +461,21 @@
 ;; distributed implementation
 
 (defmethod download-storm-code
-    :distributed [conf storm-id master-code-dir]
+    :distributed [conf storm-id master-code-dir supervisor]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/forceMkdir (File. tmproot))
-      
-      (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
-      (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
-      (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+      (FileUtils/forceMkdir (File. (supervisor-stormdist-root conf)))
+      (Utils/downloadFromMaster conf (master-stormtorrent-path master-code-dir storm-id) (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))
+      (if (:bt-tracker supervisor)
+        (.download (:bt-tracker supervisor) storm-id (File. (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))))
+      (extract-dir-from-jar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id) RESOURCES-SUBDIR (supervisor-stormdist-root conf))
       ))
+
+(defmethod mk-bt-tracker :distributed [conf]
+  (let [code-distributor (BitTorrentCodeDistributor.)]
+    (.prepare code-distributor conf)
+    code-distributor))
 
 (defn jlp [stormroot conf]
   (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
@@ -505,7 +515,7 @@
           storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home "/logs"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
-          stormjar (supervisor-stormjar-path stormroot)
+          stormjar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
@@ -556,7 +566,7 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir]
+  :local [conf storm-id master-code-dir supervisor]
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
       (let [classloader (.getContextClassLoader (Thread/currentThread))
@@ -577,6 +587,8 @@
                 )
               )
             )))
+
+(defmethod mk-bt-tracker :local [conf] nil)
 
 (defmethod launch-worker
     :local [supervisor storm-id port worker-id]

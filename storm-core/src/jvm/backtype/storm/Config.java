@@ -859,7 +859,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object DEV_ZOOKEEPER_PATH_SCHEMA = String.class;
 
     /**
-     * Who knows may be java doc.
+     * The class that implements {@code ILeaderElector}.
      */
     public static final String NIMBUS_LEADER_ELECTOR_CLASS = "nimbus.leaderElector.class";
     public static final Object NIMBUS_LEADER_ELECTOR_CLASS_SCHEMA = String.class;
@@ -870,6 +870,32 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
     public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Map.class;
+
+    /**
+     * Which port the BitTorrent tracker should bind to.
+     */
+    public static final String BITTORRENT_PORT = "bittorrent.port";
+    public static final Object BITTORRENT_PORT_SCHEMA = Number.class;
+
+    /**
+     * Max upload rate for topology torrents in kB/sec. 0.0 == unlimited.
+     */
+    public static final String BITTORRENT_MAX_UPLOAD_RATE = "bittorrent.max.upload.rate";
+    public static final Object BITTORRENT_MAX_UPLOAD_RATE_SCHEMA = Number.class;
+
+    /**
+     * Max download rate for topology torrents in kB/sec. 0.0 == unlimited.
+     */
+    public static final String BITTORRENT_MAX_DOWNLOAD_RATE = "bittorrent.max.download.rate";
+    public static final Object BITTORRENT_MAX_DOWNLOAD_RATE_SCHEMA = Number.class;
+
+    /**
+     * Time in seconds that a supervisor should seed after completing a topology torrent download.
+     * A value of 0 will disable seeding (download only). A value of -1 indicates that the supervisor
+     * should seed indefinitely (until the topology is killed).
+     */
+    public static final String SUPERVISOR_BITTORRENT_SEED_DURATION = "supervisor.bittorrent.seed.duration";
+    public static final Object SUPERVISOR_BITTORRENT_SEED_DURATION_SCHEMA = Number.class;
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

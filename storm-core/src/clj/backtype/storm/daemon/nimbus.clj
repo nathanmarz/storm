@@ -21,6 +21,7 @@
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
+  (:import [backtype.storm.torrent BitTorrentCodeDistributor])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -59,6 +60,8 @@
     scheduler
     ))
 
+(defmulti mk-bt-tracker cluster-mode)
+
 ;;Probably no need to allow for custom Leader election implementation.
 (defn mk-leader-elector [conf]
   (if (conf NIMBUS-LEADER-ELECTOR-CLASS)
@@ -93,6 +96,7 @@
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :leader-elector (mk-leader-elector conf)
+     :bt-tracker (mk-bt-tracker conf)
      }))
 
 (defn inbox [nimbus]
@@ -317,13 +321,14 @@
       [(.getNodeId slot) (.getPort slot)]
       )))
 
-(defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
+(defn- setup-storm-code [nimbus conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
    (FileUtils/forceMkdir (File. stormroot))
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
+   (if (:bt-tracker nimbus) (.upload (:bt-tracker nimbus) stormroot storm-id))
    ))
 
 (defn- read-storm-topology [conf storm-id]
@@ -844,6 +849,7 @@
         (when-not (empty? to-cleanup-ids)
           (doseq [id to-cleanup-ids]
             (log-message "Cleaning up " id)
+            (if (:bt-tracker nimbus) (.cleanup (:bt-tracker nimbus) id))
             (.teardown-heartbeats! storm-cluster-state id)
             (.teardown-topology-errors! storm-cluster-state id)
             (rmr (master-stormdist-root conf id))
@@ -974,7 +980,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
-              (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
+              (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
@@ -1167,11 +1173,21 @@
         (.cleanup (:downloaders nimbus))
         (.cleanup (:uploaders nimbus))
         (.close (:leader-elector nimbus))
+        (log-message (:bt-tracker nimbus))
+        (if (:bt-tracker nimbus) (.close (:bt-tracker nimbus)))
         (log-message "Shut down master")
         )
       DaemonCommon
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
+
+(defmethod mk-bt-tracker :distributed [conf]
+  (let [code-distributor (BitTorrentCodeDistributor.)]
+    (.prepare code-distributor conf)
+    code-distributor))
+
+(defmethod mk-bt-tracker :local [conf]
+  nil)
 
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)

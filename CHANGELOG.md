@@ -74,6 +74,7 @@
  * STORM-336: Logback version should be upgraded
  * STORM-386: nodejs multilang protocol implementation and examples
  * STORM-500: Add Spinner when UI is loading stats from nimbus
+ * STORM-498: make ZK connection timeout configurable in Kafka spout
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

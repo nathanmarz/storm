@@ -33,12 +33,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.security.Principal;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.Iterator;
 
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.login.LoginContext;
+import javax.security.auth.DestroyFailedException;
 import javax.security.auth.RefreshFailedException;
 import javax.security.auth.Subject;
 import javax.xml.bind.DatatypeConverter;
@@ -152,10 +154,22 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
     private void populateSubjectWithTGT(Subject subject, Map<String, String> credentials) {
         KerberosTicket tgt = getTGT(credentials);
         if (tgt != null) {
-            KerberosTicket oldTGT = getTGT(subject);
-            subject.getPrivateCredentials().add(tgt);
-            if (oldTGT != null && !oldTGT.equals(tgt)) {
-                subject.getPrivateCredentials().remove(oldTGT);
+            Set<Object> creds = subject.getPrivateCredentials();
+            synchronized(creds) {
+                Iterator<Object> iterator = creds.iterator();
+                while (iterator.hasNext()) {
+                    Object o = iterator.next();
+                    if (o instanceof KerberosTicket) {
+                        KerberosTicket t = (KerberosTicket)o;
+                        iterator.remove();
+                        try {
+                            t.destroy();
+                        } catch (DestroyFailedException  e) {
+                            LOG.warn("Failed to destory ticket ", e);
+                        }
+                    }
+                }
+                creds.add(tgt);
             }
             subject.getPrincipals().add(tgt.getClient());
             kerbTicket.set(tgt);

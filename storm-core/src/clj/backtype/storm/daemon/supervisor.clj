@@ -638,7 +638,7 @@
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dstorm.log.dir=" storm-log-dir)
-                     (str "-Dlogback.configurationFile=" storm-home "/logback/cluster.xml")
+                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)

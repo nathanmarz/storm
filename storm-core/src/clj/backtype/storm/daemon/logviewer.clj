@@ -124,18 +124,17 @@
 (defn cleanup-fn! [log-root-dir]
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000) log-root-dir)
-        owner->files (get-dead-worker-files-and-owners *STORM-CONF*
-                                                       now-secs
-                                                       old-log-files
-                                                       log-root-dir)]
+        dead-worker-files (get-dead-worker-files-and-owners *STORM-CONF* now-secs old-log-files log-root-dir)]
     (log-debug "log cleanup: now(" now-secs
-               ") old log files (" (mapcat #(.getName %) old-log-files)
-               ") dead worker files (" (mapcat #(for [{f :files} %
-                                                      :when f]
-                                                  (.getName f))
-                                               owner->files)
+               ") old log files (" (->> old-log-files
+                                        (map #(.getName %))
+                                        (string/join ","))
+               ") dead worker files (" (->> dead-worker-files
+                                            (mapcat (fn [{l :files}] l))
+                                            (map #(.getName %))
+                                            (string/join ","))
                ")")
-    (dofor [{:keys [owner files]} owner->files
+    (dofor [{:keys [owner files]} dead-worker-files
             file files]
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)

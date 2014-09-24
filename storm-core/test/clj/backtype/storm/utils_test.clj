@@ -25,7 +25,7 @@
 (deftest test-new-curator-uses-exponential-backoff
   (let [expected_interval 2400
         expected_retries 10
-        expected_ceiling (/ expected_interval 2)
+        expected_ceiling 3000
         conf (merge (clojurify-structure (Utils/readDefaultConfig))
           {Config/STORM_ZOOKEEPER_RETRY_INTERVAL expected_interval
            Config/STORM_ZOOKEEPER_RETRY_TIMES expected_retries
@@ -38,7 +38,6 @@
     (is (.isAssignableFrom ExponentialBackoffRetry (.getClass retry)))
     (is (= (.getBaseSleepTimeMs retry) expected_interval))
     (is (= (.getN retry) expected_retries))
-    (is (= (.getMaxRetryInterval retry) expected_ceiling))
     (is (= (.getSleepTimeMs retry 10 0) expected_ceiling))
   )
 )

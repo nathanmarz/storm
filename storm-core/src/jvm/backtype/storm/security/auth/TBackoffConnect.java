@@ -24,20 +24,20 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import backtype.storm.utils.Utils.BoundedExponentialBackoffRetry;
+import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
 
 public class TBackoffConnect {
     private static final Logger LOG = LoggerFactory.getLogger(TBackoffConnect.class);
     private int _completedRetries = 0;
     private int _retryTimes;
-    private BoundedExponentialBackoffRetry waitGrabber;
+    private StormBoundedExponentialBackoffRetry waitGrabber;
 
     public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling) {
 
         _retryTimes = retryTimes;
-        waitGrabber = new BoundedExponentialBackoffRetry(retryInterval,
-                                                         retryTimes,
-                                                         retryIntervalCeiling);
+        waitGrabber = new StormBoundedExponentialBackoffRetry(retryInterval,
+                                                              retryIntervalCeiling,
+                                                              retryTimes);
     }
 
     public TTransport doConnectWithRetry(ITransportPlugin transportPlugin, TTransport underlyingTransport, String host) throws IOException {

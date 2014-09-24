@@ -1,4 +1,12 @@
 ## 0.9.3-incubating
+ * STORM-330: Implement storm exponential backoff stategy for netty client and curator
+ * STORM-461: exit-process! does not always exit the process, but throws an exception
+ * STORM-341: fix assignment sorting
+ * STORM-476: external/storm-kafka: avoid NPE on null message payloads
+ * STORM-424: fix error message related to kafka offsets
+ * STORM-454: correct documentation in STORM-UI-REST-API.md
+ * STORM-474: Reformat UI HTML code
+ * STORM-447: shade/relocate packages of dependencies that are common causes of dependency conflicts
  * STORM-279: cluster.xml doesn't take in STORM_LOG_DIR values.
  * STORM-380: Kafka spout: throw RuntimeException if a leader cannot be found for a partition
  * STORM-435: Improve storm-kafka documentation
@@ -61,6 +69,12 @@
  * STORM-132: sort supervisor by free slot in desending order
  * STORM-472: Improve error message for non-completeable testing spouts
  * STORM-401: handle InterruptedIOException properly.
+ * STORM-461: exit-process! does not always exit the process, but throws an exception instead
+ * STORM-475: Storm UI pages do not use UTF-8
+ * STORM-336: Logback version should be upgraded
+ * STORM-386: nodejs multilang protocol implementation and examples
+ * STORM-500: Add Spinner when UI is loading stats from nimbus
+ * STORM-501: Missing StormSubmitter API
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

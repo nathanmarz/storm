@@ -97,7 +97,7 @@ $(document).ready(function() {
         var topologyActions = $("#topology-actions");
         var topologyVisualization = $("#topology-visualization")
         var formattedConfig = formatConfigData(response["configuration"]);
-        var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"], response["uiActionsEnabled"]);
+        var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"]);
         $.get("/templates/topology-page-template.html", function(template) {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));

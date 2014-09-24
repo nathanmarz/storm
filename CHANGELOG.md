@@ -75,6 +75,7 @@
  * STORM-386: nodejs multilang protocol implementation and examples
  * STORM-500: Add Spinner when UI is loading stats from nimbus
  * STORM-501: Missing StormSubmitter API
+ * STORM-493: Workers inherit storm.conf.file/storm.options properties of their supervisor
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

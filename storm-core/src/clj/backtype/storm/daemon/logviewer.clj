@@ -125,15 +125,12 @@
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000) log-root-dir)
         dead-worker-files (get-dead-worker-files-and-owners *STORM-CONF* now-secs old-log-files log-root-dir)]
-    (log-debug "log cleanup: now(" now-secs
-               ") old log files (" (->> old-log-files
-                                        (map #(.getName %))
-                                        (string/join ","))
-               ") dead worker files (" (->> dead-worker-files
-                                            (mapcat (fn [{l :files}] l))
-                                            (map #(.getName %))
-                                            (string/join ","))
-               ")")
+    (log-debug "log cleanup: now=" now-secs
+               " old log files " (pr-str (map #(.getName %) old-log-files))
+               " dead worker files " (->> dead-worker-files
+                                          (mapcat (fn [{l :files}] l))
+                                          (map #(.getName %))
+                                          (pr-str)))
     (dofor [{:keys [owner files]} dead-worker-files
             file files]
       (let [path (.getCanonicalPath file)]

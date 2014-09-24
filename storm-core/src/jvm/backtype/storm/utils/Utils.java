@@ -46,7 +46,6 @@ import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -344,29 +343,6 @@ public class Utils {
         return newCurator(conf, servers, port, root, null);
     }
 
-    public static class BoundedExponentialBackoffRetry extends ExponentialBackoffRetry {
-
-        protected final int maxRetryInterval;
-
-        public BoundedExponentialBackoffRetry(int baseSleepTimeMs, 
-                int maxRetries, int maxSleepTimeMs) {
-            super(baseSleepTimeMs, maxRetries);
-            this.maxRetryInterval = maxSleepTimeMs;
-        }
-
-        public int getMaxRetryInterval() {
-            return this.maxRetryInterval;
-        }
-
-        @Override
-        public int getSleepTimeMs(int count, long elapsedMs)
-        {
-            return Math.min(maxRetryInterval,
-                    super.getSleepTimeMs(count, elapsedMs));
-        }
-
-    }
-
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
         List<String> serverPorts = new ArrayList<String>();
         for(String zkServer: (List<String>) servers) {
@@ -377,10 +353,10 @@ public class Utils {
                 .connectString(zkStr)
                 .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
                 .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                .retryPolicy(new BoundedExponentialBackoffRetry(
+                .retryPolicy(new StormBoundedExponentialBackoffRetry(
                             Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
         if(auth!=null && auth.scheme!=null) {
             builder = builder.authorization(auth.scheme, auth.payload);
         }

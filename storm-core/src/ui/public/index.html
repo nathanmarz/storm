@@ -15,6 +15,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
     -->
+<meta charset="UTF-8">
 <title>Storm UI</title>
 <link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
 <link href="/css/style.css" rel="stylesheet" type="text/css">
@@ -23,6 +24,7 @@
 <script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
 <script src="/js/jquery.mustache.js" type="text/javascript"></script>
 <script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
+<script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
 </head>
 <body>
@@ -41,6 +43,10 @@
 <div id="json-response-error"></div>
 </body>
 <script>
+$(document).ajaxStop($.unblockUI);
+$(document).ajaxStart(function(){
+    $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading summary...</h3>'});
+});
 $(document).ready(function() {
     $.ajaxSetup({
         "error":function(jqXHR,textStatus,response) {

@@ -226,7 +226,7 @@ To pull in a merge request you should generally follow the command line instruct
 
 The following commands must be run from the top-level directory.
 
-    # Build the code and run the tests
+    # Build the code and run the tests (requires nodejs, python and ruby installed) 
     $ mvn clean install
 
     # Build the code but skip the tests

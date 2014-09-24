@@ -130,7 +130,7 @@ Request Parameters:
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|window    |String. Default value :all-time| Window duration for metrics in ms|
+|window    |String. Default value :all-time| Window duration for metrics in seconds|
 |sys       |String. Values 1 or 0. Default value 0| Controls including sys stats part of the response|
 
 
@@ -337,7 +337,7 @@ Returns detailed metrics and executor information
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 |component |String (required)| Component Id |
-|window    |String. Default value :all-time| window duration for metrics in ms|
+|window    |String. Default value :all-time| window duration for metrics in seconds|
 |sys       |String. Values 1 or 0. Default value 0| controls including sys stats part of the response|
 
 Response Fields:

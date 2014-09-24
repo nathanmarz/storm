@@ -172,6 +172,7 @@ under the License.
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 * Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
 * Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
+* Dane Hammer ([@danehammer](https://github.com/danehammer))
 
 ## Acknowledgements
 

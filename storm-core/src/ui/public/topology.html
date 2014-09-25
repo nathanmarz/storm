@@ -59,7 +59,9 @@
 <script>
 $(document).ajaxStop($.unblockUI);
 $(document).ajaxStart(function(){
-    $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading topology summary...</h3>'});
+    if ($("#topology-visualization").children().size() == 0) {
+        $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading topology summary...</h3>'});
+    }
 });
 $(document).ready(function() {
     var topologyId = $.url().param("id");

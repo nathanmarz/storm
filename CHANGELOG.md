@@ -76,6 +76,7 @@
  * STORM-500: Add Spinner when UI is loading stats from nimbus
  * STORM-501: Missing StormSubmitter API
  * STORM-493: Workers inherit storm.conf.file/storm.options properties of their supervisor
+ * STORM-498: make ZK connection timeout configurable in Kafka spout
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

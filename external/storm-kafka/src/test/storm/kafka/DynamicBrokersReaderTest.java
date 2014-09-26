@@ -50,6 +50,7 @@ public class DynamicBrokersReaderTest {
         String connectionString = server.getConnectString();
         Map conf = new HashMap();
         conf.put(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT, 1000);
+        conf.put(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT, 1000);
         conf.put(Config.STORM_ZOOKEEPER_RETRY_TIMES, 4);
         conf.put(Config.STORM_ZOOKEEPER_RETRY_INTERVAL, 5);
         ExponentialBackoffRetry retryPolicy = new ExponentialBackoffRetry(1000, 3);

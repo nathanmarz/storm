@@ -77,6 +77,7 @@
  * STORM-501: Missing StormSubmitter API
  * STORM-493: Workers inherit storm.conf.file/storm.options properties of their supervisor
  * STORM-498: make ZK connection timeout configurable in Kafka spout
+ * STORM-508: Update DEVELOPER.md now that Storm has graduated from Incubator
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

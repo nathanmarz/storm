@@ -39,14 +39,16 @@ import org.slf4j.LoggerFactory;
 import backtype.storm.Config;
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
+import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
 import backtype.storm.utils.Utils;
 
 public class Client implements IConnection {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final String PREFIX = "Netty-Client-";
     private final int max_retries;
-    private final long base_sleep_ms;
-    private final long max_sleep_ms;
+    private final int base_sleep_ms;
+    private final int max_sleep_ms;
+    private final StormBoundedExponentialBackoffRetry retryPolicy;
     private AtomicReference<Channel> channelRef;
     private final ClientBootstrap bootstrap;
     private InetSocketAddress remote_addr;
@@ -80,9 +82,10 @@ public class Client implements IConnection {
 
         // Configure
         buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
-        max_retries = Math.min(30, Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES)));
+        max_retries = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         base_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
+        retryPolicy = new StormBoundedExponentialBackoffRetry(base_sleep_ms, max_sleep_ms, max_retries);
 
         this.messageBatchSize = Utils.getInt(storm_conf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
         
@@ -142,7 +145,7 @@ public class Client implements IConnection {
             if (channel != null && channel.isConnected()) {
                 return;
             }
-            
+
             int tried = 0;
             while (tried <= max_retries) {
 
@@ -160,7 +163,7 @@ public class Client implements IConnection {
                     channel = current;
                     break;
                 }
-                Thread.sleep(getSleepTimeMs(tried));
+                Thread.sleep(retryPolicy.getSleepTimeMs(tried, 0));
                 tried++;  
             }
             if (null != channel) {
@@ -173,20 +176,6 @@ public class Client implements IConnection {
         } catch (InterruptedException e) {
             throw new RuntimeException("connection failed " + name(), e);
         }
-    }
-
-    /**
-     * # of milliseconds to wait per exponential back-off policy
-     */
-    private long getSleepTimeMs(int retries) {
-        if (retries > 30) {
-           return max_sleep_ms;
-        }
-        int backoff = 1 << retries;
-        long sleepMs = base_sleep_ms * Math.max(1, random.nextInt(backoff));
-        if ( sleepMs > max_sleep_ms )
-            sleepMs = max_sleep_ms;
-        return sleepMs;
     }
 
     /**

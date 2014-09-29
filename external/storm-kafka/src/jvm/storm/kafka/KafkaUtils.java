@@ -115,7 +115,7 @@ public class KafkaUtils {
                         }
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
                         long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
-                        if (latestTimeOffset == 0 || earliestTimeOffset == 0) {
+                        if (latestTimeOffset == 0) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
@@ -202,6 +202,9 @@ public class KafkaUtils {
     public static Iterable<List<Object>> generateTuples(KafkaConfig kafkaConfig, Message msg) {
         Iterable<List<Object>> tups;
         ByteBuffer payload = msg.payload();
+        if (payload == null) {
+            return null;
+        }
         ByteBuffer key = msg.key();
         if (key != null && kafkaConfig.scheme instanceof KeyValueSchemeAsMultiScheme) {
             tups = ((KeyValueSchemeAsMultiScheme) kafkaConfig.scheme).deserializeKeyAndValue(Utils.toByteArray(key), Utils.toByteArray(payload));

@@ -284,8 +284,8 @@
         user-name (System/getProperty "user.name")]
     (.prepare groups cluster-conf)
     (>= 0 (.size (.getGroups groups user-name)))
-    (>= 0 (.size (.getGroups groups "userDoesNotExist")))
-    (>= 0 (.size (.getGroups groups nil)))))
+    (= 0 (.size (.getGroups groups "userDoesNotExist")))
+    (= 0 (.size (.getGroups groups nil)))))
 
 (deftest simple-acl-same-user-auth-test
   (let [cluster-conf (merge (read-storm-config)

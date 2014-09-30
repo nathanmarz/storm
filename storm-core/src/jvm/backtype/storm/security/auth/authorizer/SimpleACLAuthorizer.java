@@ -115,11 +115,9 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             }
 
             if(_groupMappingProvider != null && topoGroups.size() > 0) {
-                System.out.println("hello in if");
                 try {
                     Set<String> userGroups = _groupMappingProvider.getGroups(user);
                     for (String tgroup : topoGroups) {
-                        System.out.println("tgroup "+tgroup);
                         if(userGroups.contains(tgroup))
                             return true;
                     }

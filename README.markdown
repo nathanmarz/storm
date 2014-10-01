@@ -174,6 +174,7 @@ under the License.
 * Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
 * Dane Hammer ([@danehammer](https://github.com/danehammer))
 * Christophe Carre' ([@chrisz](https://github.com/chrisz))
+* Anya Tchernishov ([@anyatch](https://github.com/anyatch))
 
 ## Acknowledgements
 

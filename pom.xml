@@ -160,6 +160,7 @@
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
+        <module>external/storm-hbase</module>
     </modules>
 
     <scm>

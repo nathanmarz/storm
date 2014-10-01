@@ -20,7 +20,7 @@
 
     <parent>
         <artifactId>storm</artifactId>
-        <groupId>com.hbo.hurley</groupId>
+        <groupId>org.apache.storm</groupId>
         <version>0.9.3-incubating-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
@@ -37,7 +37,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.hbo.hurley</groupId>
+            <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>

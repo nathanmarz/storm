@@ -1,5 +1,3 @@
-This is a forked version of incubator-storm maintained by [HBOCodeLabs](https://github.com/HBOCodeLabs).  The main apache project is [here](https://github.com/apache/incubator-storm).  In order to make changes take effect within HBO Hurley, you need to run "mvn deploy" in the root project folder from the branch that you want to be exported.
-
 Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](http://storm-project.net/documentation/Powered-By.html), and is a lot of fun to use!
 
 The [Rationale page](http://storm-project.net/documentation/Rationale.html) explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.

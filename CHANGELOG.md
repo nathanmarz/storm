@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-504: Class used by `repl` command is deprecated.
  * STORM-330: Implement storm exponential backoff stategy for netty client and curator
  * STORM-461: exit-process! does not always exit the process, but throws an exception
  * STORM-341: fix assignment sorting

@@ -211,3 +211,5 @@ under the License.
 ## Committer Sponsors
 
  * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))
+ * Sriharsha Chintalapani ([sriharsha@apache.org](mailto:sriharsha@apache.org))
+ 

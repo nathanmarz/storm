@@ -1,4 +1,5 @@
 ## 0.9.3-incubating
+ * STORM-210: Add storm-hbase module
  * STORM-507: Topology visualization should not block ui
  * STORM-504: Class used by `repl` command is deprecated.
  * STORM-330: Implement storm exponential backoff stategy for netty client and curator

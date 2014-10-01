@@ -25,7 +25,7 @@
     </parent>
 
 
-    <groupId>org.apache.storm</groupId>
+    <groupId>com.hbo.hurley</groupId>
     <artifactId>storm</artifactId>
     <version>0.9.3-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -287,6 +287,16 @@
             <name>Storm Website</name>
             <url>file:///tmp/site</url>
         </site>
+        <repository>
+            <id>archiva.internal</id>
+            <name>Hurley Maven Repository</name>
+            <url>http://maven.hurley.hbo.com:8000/repository/internal/</url>
+        </repository>
+        <snapshotRepository>
+            <id>archiva.snapshots</id>
+            <name>Hurley Maven Snapshot Repository</name>
+            <url>http://maven.hurley.hbo.com:8000/repository/snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <dependencyManagement>
@@ -516,6 +526,16 @@
                 <enabled>true</enabled>
             </releases>
             <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>hurley</id>
+            <url>http://maven.hurley.hbo.com:8000/repository/snapshots/</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
                 <enabled>false</enabled>
             </snapshots>
             <id>central</id>
@@ -534,7 +554,6 @@
     </repositories>
 
     <build>
-
         <pluginManagement>
             <plugins>
                 <plugin>

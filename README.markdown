@@ -1,3 +1,5 @@
+This is a forked version of incubator-storm maintained by [HBOCodeLabs](https://github.com/HBOCodeLabs).  The main apache project is [here](https://github.com/apache/incubator-storm).
+
 Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](http://storm-project.net/documentation/Powered-By.html), and is a lot of fun to use!
 
 The [Rationale page](http://storm-project.net/documentation/Rationale.html) explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
@@ -78,6 +80,7 @@ under the License.
 * Robert Evans ([@revans2](https://github.com/revans2))
 * Michael G. Noll ([@miguno](https://github.com/miguno))
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
+* Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 
 ## Contributors
 
@@ -171,6 +174,8 @@ under the License.
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 * Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
 * Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
+* Dane Hammer ([@danehammer](https://github.com/danehammer))
+* Christophe Carre' ([@chrisz](https://github.com/chrisz))
 * Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
 
 ## Acknowledgements

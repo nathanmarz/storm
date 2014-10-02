@@ -37,7 +37,6 @@ public class ValuePointer {
             throw new IllegalArgumentException("Fields order must be same length as pointers map");
         }
         ValuePointer[] ret = new ValuePointer[pointers.size()];
-        List<String> flist = fieldsOrder.toList();
         for(int i=0; i<fieldsOrder.size(); i++) {
             ret[i] = pointers.get(fieldsOrder.get(i));
         }

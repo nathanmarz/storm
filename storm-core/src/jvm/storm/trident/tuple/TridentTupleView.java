@@ -29,13 +29,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 
 //extends abstractlist so that it can be emitted directly as Storm tuples
 public class TridentTupleView extends AbstractList<Object> implements TridentTuple {
     ValuePointer[] _index;
     Map<String, ValuePointer> _fieldIndex;
     IPersistentVector _delegates;
-    
+
     public static class ProjectionFactory implements Factory {
         Map<String, ValuePointer> _fieldIndex;
         ValuePointer[] _index;
@@ -199,12 +200,22 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
     }
     
     public static TridentTupleView EMPTY_TUPLE = new TridentTupleView(null, new ValuePointer[0], new HashMap());
-    
+
     // index and fieldIndex are precomputed, delegates built up over many operations using persistent data structures
     public TridentTupleView(IPersistentVector delegates, ValuePointer[] index, Map<String, ValuePointer> fieldIndex) {
         _delegates = delegates;
         _index = index;
         _fieldIndex = fieldIndex;
+    }
+
+    public static TridentTuple createFreshTuple(Fields fields, List<Object> values) {
+        FreshOutputFactory factory = new FreshOutputFactory(fields);
+        return factory.create(values);
+    }
+
+    public static TridentTuple createFreshTuple(Fields fields, Object... values) {
+        FreshOutputFactory factory = new FreshOutputFactory(fields);
+        return factory.create(Arrays.asList(values));
     }
 
     @Override
@@ -215,6 +226,26 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
     @Override
     public int size() {
         return _index.length;
+    }
+
+    @Override
+    public boolean contains(String field) {
+        return getFields().contains(field);
+    }
+
+    @Override
+    public Fields getFields() {
+        return new Fields(indexToFieldsList(_index));
+    }
+
+    @Override
+    public int fieldIndex(String field) {
+        return getFields().fieldIndex(field);
+    }
+
+    @Override
+    public List<Object> select(Fields selector) {
+        return getFields().select(selector, getValues());
     }
 
     @Override

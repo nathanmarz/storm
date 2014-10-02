@@ -467,6 +467,7 @@ def print_usage(command=None):
 def unknown_command(*args):
     print("Unknown command: [storm %s]" % ' '.join(sys.argv[1:]))
     print_usage()
+    sys.exit(254)
 
 COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "logviewer": logviewer,
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,

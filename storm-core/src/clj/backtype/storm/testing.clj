@@ -594,7 +594,7 @@
                            (not= (global-amt track-id "transferred")                                 
                                  (global-amt track-id "processed"))
                            ))]
-        (while-timeout TEST-TIMEOUT-MS (waiting?)
+        (while-timeout timeout-ms (waiting?)
                        ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
                        ;; (println "Processed: " (global-amt track-id "processed"))
                        ;; (println "Transferred: " (global-amt track-id "transferred"))

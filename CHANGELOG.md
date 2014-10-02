@@ -82,6 +82,7 @@
  * STORM-498: make ZK connection timeout configurable in Kafka spout
  * STORM-428: extracted ITuple interface
  * STORM-508: Update DEVELOPER.md now that Storm has graduated from Incubator
+ * STORM-514: Update storm-starter README now that Storm has graduated from Incubator
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

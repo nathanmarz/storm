@@ -187,7 +187,9 @@
       ;; on windows, the host process still holds lock on the logfile
       (catch Exception e (log-message (.getMessage e)))) ))
 
-(def TEST-TIMEOUT-MS 5000)
+(defn default-test-timeout-ms []
+  (let [timeout-ms (System/getProperty "STORM_TEST_TIMEOUT_MS")]
+    (if (not-nil? timeout-ms) (Long/parseLong timeout-ms) 5000)))
 
 (defmacro while-timeout [timeout-ms condition & body]
   `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
@@ -198,7 +200,7 @@
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
-  ([cluster-map] (wait-until-cluster-waiting cluster-map TEST-TIMEOUT-MS))
+  ([cluster-map] (wait-until-cluster-waiting cluster-map (default-test-timeout-ms)))
   ([cluster-map timeout-ms]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
@@ -457,7 +459,7 @@
    :storm-conf {}
    :cleanup-state true
    :topology-name nil
-   :timeout-ms TEST-TIMEOUT-MS]
+   :timeout-ms (default-test-timeout-ms)]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
@@ -583,9 +585,9 @@
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."
   ([tracked-topology]
-     (tracked-wait tracked-topology 1 TEST-TIMEOUT-MS))
+     (tracked-wait tracked-topology 1 (default-test-timeout-ms)))
   ([tracked-topology amt]
-     (tracked-wait tracked-topology amt TEST-TIMEOUT-MS))
+     (tracked-wait tracked-topology amt (default-test-timeout-ms)))
   ([tracked-topology amt timeout-ms]
       (let [target (+ amt @(:last-spout-emit tracked-topology))
             track-id (-> tracked-topology :cluster ::track-id)

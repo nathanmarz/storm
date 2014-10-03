@@ -71,7 +71,7 @@
 (def metrics-data backtype.storm.metric.testing/buffer)
 
 (defn wait-for-atleast-N-buckets! [N comp-id metric-name cluster]
-  (while-timeout (default-test-timeout-ms)
+  (while-timeout TEST-TIMEOUT-MS
       (let [taskid->buckets (-> @metrics-data (get comp-id) (get metric-name))]
         (or
          (and (not= N 0) (nil? taskid->buckets))

@@ -18,6 +18,8 @@
 package backtype.storm.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
@@ -30,25 +32,35 @@ import java.io.IOException;
  * Every read/write hits disk.
  */
 public class LocalState {
+    public static Logger LOG = LoggerFactory.getLogger(LocalState.class);
+
     private VersionedStore _vs;
     
     public LocalState(String backingDir) throws IOException {
         _vs = new VersionedStore(backingDir);
     }
-    
+
     public synchronized Map<Object, Object> snapshot() throws IOException {
         int attempts = 0;
+        Map<Object, Object> result = new HashMap<Object, Object>();
         while(true) {
             String latestPath = _vs.mostRecentVersionPath();
-            if(latestPath==null) return new HashMap<Object, Object>();
-            try {
-                return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
-            } catch(IOException e) {
-                attempts++;
-                if(attempts >= 10) {
-                    throw e;
+            if(latestPath != null) {
+                try {
+                    byte[] serialized = FileUtils.readFileToByteArray(new File(latestPath));
+                    if (serialized.length == 0) {
+                        LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
+                    } else {
+                        result = (Map<Object, Object>) Utils.deserialize(serialized);
+                    }
+                } catch (IOException e) {
+                    attempts++;
+                    if (attempts >= 10) {
+                        throw e;
+                    }
                 }
             }
+            return result;
         }
     }
     

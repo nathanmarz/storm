@@ -78,6 +78,7 @@ under the License.
 * Robert Evans ([@revans2](https://github.com/revans2))
 * Michael G. Noll ([@miguno](https://github.com/miguno))
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
+* Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 
 ## Contributors
 
@@ -171,6 +172,9 @@ under the License.
 * Dave Golombek ([@dgolombek](https://github.com/dgolombek))
 * Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
 * Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
+* Dane Hammer ([@danehammer](https://github.com/danehammer))
+* Christophe Carre' ([@chrisz](https://github.com/chrisz))
+* Anya Tchernishov ([@anyatch](https://github.com/anyatch))
 
 ## Acknowledgements
 

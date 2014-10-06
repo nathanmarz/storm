@@ -42,28 +42,32 @@ public class LocalState {
 
     public synchronized Map<Object, Object> snapshot() throws IOException {
         int attempts = 0;
-        Map<Object, Object> result = new HashMap<Object, Object>();
         while(true) {
-            String latestPath = _vs.mostRecentVersionPath();
-            if(latestPath != null) {
-                try {
-                    byte[] serialized = FileUtils.readFileToByteArray(new File(latestPath));
-                    if (serialized.length == 0) {
-                        LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
-                    } else {
-                        result = (Map<Object, Object>) Utils.deserialize(serialized);
-                    }
-                } catch (IOException e) {
-                    attempts++;
-                    if (attempts >= 10) {
-                        throw e;
-                    }
+            try {
+                return deserializeLatestVersion();
+            } catch (IOException e) {
+                attempts++;
+                if (attempts >= 10) {
+                    throw e;
                 }
             }
-            return result;
         }
     }
-    
+
+    private Map<Object, Object> deserializeLatestVersion() throws IOException {
+        String latestPath = _vs.mostRecentVersionPath();
+        Map<Object, Object> result = new HashMap<Object, Object>();
+        if (latestPath != null) {
+            byte[] serialized = FileUtils.readFileToByteArray(new File(latestPath));
+            if (serialized.length == 0) {
+                LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
+            } else {
+                result = (Map<Object, Object>) Utils.deserialize(serialized);
+            }
+        }
+        return result;
+    }
+
     public Object get(Object key) throws IOException {
         return snapshot().get(key);
     }

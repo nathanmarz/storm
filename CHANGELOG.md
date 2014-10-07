@@ -1,4 +1,5 @@
 ## 0.9.3
+ * STORM-490: fix build under Windows
  * STORM-439: Replace purl.js qith jquery URL plugin
  * STORM-499: Document and clean up shaded dependncy resolution with maven
  * STORM-210: Add storm-hbase module

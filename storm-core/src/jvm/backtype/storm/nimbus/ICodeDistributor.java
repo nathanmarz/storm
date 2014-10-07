@@ -26,15 +26,7 @@ public interface ICodeDistributor {
      * @param topologyId the topologyId for which the meta file needs to be created.
      * @return metaFile
      */
-    File upload(String dirPath, String topologyId) throws IOException, InterruptedException, Exception;
-
-    /**
-     * Returns the file object with downloaded meta file.
-     * @param topologyId
-     * @return
-     */
-    File downloadMetaFile(String topologyId);
-
+    File upload(String dirPath, String topologyId) throws Exception;
 
     /**
      * Given the topologyId and metafile, download the actual code and return the downloaded file's list.
@@ -45,10 +37,17 @@ public interface ICodeDistributor {
     List<File> download(String topologyid, File metafile) throws Exception;
 
     /**
+     * returns number of nodes to which the code is already replicated for the topology.
+     * @param topologyId
+     * @return
+     */
+    short getReplicationCount(String topologyId) throws Exception;
+
+    /**
      * Performs the cleanup.
      * @param topologyid
      */
-    void cleanup(String topologyid);
+    void cleanup(String topologyid) throws IOException;
 
     /**
      * Close this distributor.

@@ -2,6 +2,7 @@ package backtype.storm.torrent;
 
 import backtype.storm.Config;
 import backtype.storm.nimbus.ICodeDistributor;
+import com.google.common.primitives.Shorts;
 import com.turn.ttorrent.client.Client;
 import com.turn.ttorrent.client.SharedTorrent;
 import com.turn.ttorrent.common.Torrent;
@@ -17,10 +18,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class BitTorrentCodeDistributor implements ICodeDistributor {
     private static final Logger LOG = LoggerFactory.getLogger(NimbusTracker.class);
@@ -79,12 +77,6 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
     }
 
     @Override
-    public File downloadMetaFile(String topologyId) {
-        //TODO: needs to download from nimbus I guess, or we could outsource that task.
-        return null;
-    }
-
-    @Override
     public List<File> download(String topologyId, File torrentFile) throws Exception {
         LOG.info("Initiating BitTorrent download.");
         InetAddress netAddr = InetAddress.getLocalHost();
@@ -100,7 +92,7 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         this.clients.put(topologyId, client);
         rebalanceRates();
         client.share(this.seedDuration);
-        if(this.seedDuration == 0){
+        if(this.seedDuration == 0) {
             client.waitForCompletion();
         } else {
             LOG.info("Waiting for seeding to begin...");
@@ -118,6 +110,19 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
     }
 
     @Override
+    public short getReplicationCount(String topologyId) {
+        Collection<TrackedTorrent> trackedTorrents = tracker.getTrackedTorrents();
+        for(TrackedTorrent trackedTorrent: trackedTorrents) {
+            //TODO this needs to be actual name and not topologyId
+            if(trackedTorrent.getName().equals(topologyId)) {
+                return Shorts.checkedCast(trackedTorrent.seeders());
+            }
+        }
+        LOG.warn("No torrent found in tracker for topologyId = " + topologyId);
+        return 0;
+    }
+
+    @Override
     public void cleanup(String topologyId) {
         LOG.info("Stop seeding/tracking for topology {}", topologyId);
         Client client = this.clients.remove(topologyId);
@@ -131,7 +136,7 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
 
     @Override
     public void close(Map conf) {
-        //no op.
+        //TODO should we delete all .torrent files?
     }
 
     private synchronized void rebalanceRates(){

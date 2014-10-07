@@ -1,4 +1,8 @@
-## 0.9.3-incubating
+## 0.9.3
+ * STORM-488: Exit with 254 error code if storm CLI is run with unknown command
+ * STORM-506: Do not count bolt acks & fails in total stats
+ * STORM-490: fix build under Windows
+ * STORM-439: Replace purl.js qith jquery URL plugin
  * STORM-499: Document and clean up shaded dependncy resolution with maven
  * STORM-210: Add storm-hbase module
  * STORM-507: Topology visualization should not block ui

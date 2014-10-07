@@ -341,10 +341,11 @@
         (merge-with + s1 s2))
       (select-keys
         agg-bolt-stats
-        [:emitted :transferred :acked :failed :complete-latencies])
-      (select-keys
-        agg-spout-stats
-        [:emitted :transferred :acked :failed :complete-latencies]))))
+        ;; Include only keys that will be used.  We want to count acked and
+        ;; failed only for the "tuple trees," so we do not include those keys
+        ;; from the bolt executors.
+        [:emitted :transferred])
+      agg-spout-stats)))
 
 (defn stats-times
   [stats-map]

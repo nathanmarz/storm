@@ -469,7 +469,7 @@
       (Utils/downloadFromMaster conf (master-stormtorrent-path master-code-dir storm-id) (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))
       (if (:bt-tracker supervisor)
         (.download (:bt-tracker supervisor) storm-id (File. (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))))
-      (extract-dir-from-jar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id) RESOURCES-SUBDIR (supervisor-stormdist-root conf))
+      (extract-dir-from-jar (supervisor-stormjar-path stormroot) RESOURCES-SUBDIR (supervisor-stormdist-root conf))
       ))
 
 (defmethod mk-bt-tracker :distributed [conf]
@@ -515,7 +515,7 @@
           storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home file-path-separator "logs"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
-          stormjar (supervisor-stormjar-path (supervisor-stormdist-root conf) storm-id)
+          stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]

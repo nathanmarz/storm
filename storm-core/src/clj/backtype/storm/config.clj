@@ -181,8 +181,8 @@
   ([conf storm-id]
    (str (supervisor-stormdist-root conf) file-path-separator (url-encode storm-id))))
 
-(defn supervisor-stormjar-path [stormroot storm-id]
-  (str stormroot file-path-separator storm-id file-path-separator "stormjar.jar"))
+(defn supervisor-stormjar-path [stormroot]
+  (str stormroot file-path-separator "stormjar.jar"))
 
 (defn supervisor-stormtorrent-path [stormroot storm-id]
   (str stormroot file-path-separator storm-id ".torrent"))

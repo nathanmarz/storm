@@ -47,11 +47,11 @@ public class ShellSpout implements ISpout {
     
     private SpoutMsg _spoutMsg;
 
-	private int workerTimeoutMills;
-	private Timer heartBeatTimer;
-	private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
+    private int workerTimeoutMills;
+    private Timer heartBeatTimer;
+    private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
 
-	public ShellSpout(ShellComponent component) {
+    public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
 
@@ -64,18 +64,18 @@ public class ShellSpout implements ISpout {
         _collector = collector;
         _context = context;
 
-		workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+        workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
 
         _process = new ShellProcess(_command);
 
         Number subpid = _process.launch(stormConf, context);
         LOG.info("Launched subprocess with pid " + subpid);
 
-		heartBeatTimer = new Timer(context.getThisTaskId() + "-heartbeatTimer", true);
+        heartBeatTimer = new Timer(context.getThisTaskId() + "-heartbeatTimer", true);
     }
 
     public void close() {
-		heartBeatTimer.cancel();
+        heartBeatTimer.cancel();
         _process.destroy();
     }
 
@@ -145,9 +145,9 @@ public class ShellSpout implements ISpout {
                     throw new IllegalArgumentException("Command not found in spout message: " + shellMsg);
                 }
 
-				setHeartbeat();
+                setHeartbeat();
 
-				if (command.equals("sync")) {
+                if (command.equals("sync")) {
                     return;
                 } else if (command.equals("log")) {
                     handleLog(shellMsg);
@@ -176,7 +176,7 @@ public class ShellSpout implements ISpout {
         }
     }
 
-	private void handleLog(ShellMsg shellMsg) {
+    private void handleLog(ShellMsg shellMsg) {
         String msg = shellMsg.getMsg();
         msg = "ShellLog " + _process.getProcessInfoString() + " " + msg;
         ShellMsg.ShellLogLevel logLevel = shellMsg.getLogLevel();
@@ -205,52 +205,52 @@ public class ShellSpout implements ISpout {
 
     @Override
     public void activate() {
-		LOG.info("Start checking heartbeat...");
-		// prevent timer to check heartbeat based on last thing before activate
-		setHeartbeat();
-		heartBeatTimer.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1000, 1 * 1000);
+        LOG.info("Start checking heartbeat...");
+        // prevent timer to check heartbeat based on last thing before activate
+        setHeartbeat();
+        heartBeatTimer.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1000, 1 * 1000);
     }
 
     @Override
     public void deactivate() {
-		heartBeatTimer.cancel();
+        heartBeatTimer.cancel();
     }
 
-	private void setHeartbeat() {
-		lastHeartbeatTimestamp.set(System.currentTimeMillis());
-	}
+    private void setHeartbeat() {
+        lastHeartbeatTimestamp.set(System.currentTimeMillis());
+    }
 
-	private long getLastHeartbeat() {
-		return lastHeartbeatTimestamp.get();
-	}
+    private long getLastHeartbeat() {
+        return lastHeartbeatTimestamp.get();
+    }
 
-	private void die(Throwable exception) {
-		heartBeatTimer.cancel();
+    private void die(Throwable exception) {
+        heartBeatTimer.cancel();
 
-		LOG.error("Halting process: ShellSpout died.", exception);
-		_collector.reportError(exception);
-		System.exit(11);
-	}
+        LOG.error("Halting process: ShellSpout died.", exception);
+        _collector.reportError(exception);
+        System.exit(11);
+    }
 
-	private class SpoutHeartbeatTimerTask extends TimerTask {
-		private ShellSpout spout;
+    private class SpoutHeartbeatTimerTask extends TimerTask {
+        private ShellSpout spout;
 
-		public SpoutHeartbeatTimerTask(ShellSpout spout) {
-			this.spout = spout;
-		}
+        public SpoutHeartbeatTimerTask(ShellSpout spout) {
+            this.spout = spout;
+        }
 
-		@Override
-		public void run() {
-			long currentTimeMillis = System.currentTimeMillis();
-			long lastHeartbeat = getLastHeartbeat();
+        @Override
+        public void run() {
+            long currentTimeMillis = System.currentTimeMillis();
+            long lastHeartbeat = getLastHeartbeat();
 
-			LOG.debug("current time : " + currentTimeMillis + ", last heartbeat : " + lastHeartbeat
-					+ ", worker timeout (ms) : " + workerTimeoutMills);
+            LOG.debug("current time : " + currentTimeMillis + ", last heartbeat : " + lastHeartbeat
+                    + ", worker timeout (ms) : " + workerTimeoutMills);
 
-			if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {
-				spout.die(new RuntimeException("subprocess heartbeat timeout"));
-			}
-		}
-	}
+            if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {
+                spout.die(new RuntimeException("subprocess heartbeat timeout"));
+            }
+        }
+    }
 
 }

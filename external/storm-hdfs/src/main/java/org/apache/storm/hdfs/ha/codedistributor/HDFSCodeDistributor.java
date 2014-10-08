@@ -1,12 +1,12 @@
 package org.apache.storm.hdfs.ha.codedistributor;
 
 import backtype.storm.nimbus.ICodeDistributor;
-import backtype.storm.torrent.NimbusTracker;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +17,9 @@ import java.util.Map;
 import static java.lang.System.lineSeparator;
 
 public class HDFSCodeDistributor implements ICodeDistributor {
-    private static final Logger LOG = LoggerFactory.getLogger(NimbusTracker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HDFSCodeDistributor.class);
 
+    //TODO should we move this Config.java?
     private final static String HDFS_STORM_DIR = "hdfs.storm.dir";
 
     private FileSystem fs;
@@ -29,9 +30,9 @@ public class HDFSCodeDistributor implements ICodeDistributor {
         //TODO need to handle secure HDFS, also this assumes the hdfs-site.xml, core-site.xml and yarn-site.xml is
         //part of the classPath , document the assumption in README.md
 
-        Validate.notNull(conf.get("hdfs.storm.dir"), "you must specify hdfs.storm.dir");
+        Validate.notNull(conf.get(HDFS_STORM_DIR), "you must specify " + HDFS_STORM_DIR);
         this.fs = FileSystem.get(new Configuration());
-        this.stormDir = new Path(String.valueOf(conf.get("hdfs.storm.dir")));
+        this.stormDir = new Path(String.valueOf(conf.get(HDFS_STORM_DIR)));
         if(!this.fs.exists(stormDir)) {
             this.fs.mkdirs(this.stormDir);
         }

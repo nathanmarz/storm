@@ -8,7 +8,6 @@ import com.turn.ttorrent.client.SharedTorrent;
 import com.turn.ttorrent.common.Torrent;
 import com.turn.ttorrent.tracker.TrackedTorrent;
 import com.turn.ttorrent.tracker.Tracker;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,11 +16,14 @@ import java.io.FileOutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class BitTorrentCodeDistributor implements ICodeDistributor {
-    private static final Logger LOG = LoggerFactory.getLogger(NimbusTracker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BitTorrentCodeDistributor.class);
     private Tracker tracker;
     private String hostName;
     private InetAddress host;
@@ -62,7 +64,7 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         files.add(new File(destDir, "stormcode.ser"));
 
         Torrent torrent = Torrent.create(destDir, files, uri, "storm-nimbus");
-        File torrentFile = new File(destDir, topologyId + ".torrent");
+        File torrentFile = new File(destDir, "storm-code-distributor.meta");
         torrent.save(new FileOutputStream(torrentFile));
         LOG.info("Saved torrent: {}" + torrentFile.getAbsolutePath());
         this.tracker.announce(new TrackedTorrent(torrent));
@@ -105,6 +107,21 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         }
         LOG.info("BitTorrent download complete.");
 
+        /**
+         * TODO: This should not be needed. currently the bittorrent library uses the torrent name (which is topologyId)
+         * as the folder name and downloads all the files under that folder. so we need to either download
+         * the torrent files under /storm-local/supervisor or nimbus/stormdist/ to ensure storm-dist becomes the parent
+         * of all torrent files and the actual code will be downloaded under stormdist/topologyId or we have to keep
+         * 2 copies aorund. IDeally we should be able to specify that the downloaded files must be downloaded under
+         * given folder only and no extra folder needs to be created.
+         */
+
+
+        File srcDir = Paths.get(destDir.getPath(), topologyId).toFile();
+        for(File file : srcDir.listFiles()) {
+            Files.copy(file.toPath(), destDir.toPath().resolve(file.getName()));
+        }
+
         //TODO: change this to actually return downloaded files.
         return new ArrayList<File>();
     }
@@ -132,6 +149,8 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
             this.tracker.remove(torrent);
         }
         rebalanceRates();
+
+        //TODO: ensure supervisor and nimbus will blow the stormroot/topologyId folder completely.
     }
 
     @Override

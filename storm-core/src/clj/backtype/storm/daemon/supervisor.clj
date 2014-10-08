@@ -464,12 +464,14 @@
     :distributed [conf storm-id master-code-dir supervisor]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
-          stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/forceMkdir (File. (supervisor-stormdist-root conf)))
-      (Utils/downloadFromMaster conf (master-stormtorrent-path master-code-dir storm-id) (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))
+          stormroot (supervisor-stormdist-root conf storm-id)
+          master-meta-file-path (master-storm-metafile-path master-code-dir)
+          supervisor-meta-file-path (supervisor-storm-metafile-path stormroot)]
+      (FileUtils/forceMkdir (File. stormroot))
+      (Utils/downloadFromMaster conf master-meta-file-path supervisor-meta-file-path)
       (if (:bt-tracker supervisor)
-        (.download (:bt-tracker supervisor) storm-id (File. (supervisor-stormtorrent-path (supervisor-stormdist-root conf) storm-id))))
-      (extract-dir-from-jar (supervisor-stormjar-path stormroot) RESOURCES-SUBDIR (supervisor-stormdist-root conf))
+        (.download (:bt-tracker supervisor) storm-id (File. supervisor-meta-file-path)))
+      (extract-dir-from-jar (supervisor-stormjar-path stormroot) RESOURCES-SUBDIR stormroot)
       ))
 
 (defmethod mk-bt-tracker :distributed [conf]

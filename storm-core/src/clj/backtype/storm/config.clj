@@ -140,8 +140,8 @@
   ([conf storm-id]
    (str (master-stormdist-root conf) file-path-separator storm-id)))
 
-(defn master-stormtorrent-path [stormroot storm-id]
-  (str stormroot file-path-separator storm-id ".torrent"))
+(defn master-storm-metafile-path [stormroot ]
+  (str stormroot file-path-separator "storm-code-distributor.meta"))
 
 (defn master-stormjar-path
   [stormroot]
@@ -184,8 +184,8 @@
 (defn supervisor-stormjar-path [stormroot]
   (str stormroot file-path-separator "stormjar.jar"))
 
-(defn supervisor-stormtorrent-path [stormroot storm-id]
-  (str stormroot file-path-separator storm-id ".torrent"))
+(defn supervisor-storm-metafile-path [stormroot]
+  (str stormroot file-path-separator "storm-code-distributor.meta"))
 
 (defn supervisor-stormcode-path
   [stormroot]

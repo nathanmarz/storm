@@ -18,23 +18,26 @@
 package backtype.storm.task;
 
 import backtype.storm.Config;
+import backtype.storm.Constants;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.rpc.IShellMetric;
 import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
 import backtype.storm.utils.ShellProcess;
 import backtype.storm.multilang.BoltMsg;
 import backtype.storm.multilang.ShellMsg;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static java.util.concurrent.TimeUnit.SECONDS;
-import java.util.Map;
-import java.util.Random;
+
+import clojure.lang.RT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +69,8 @@ import org.slf4j.LoggerFactory;
  * </pre>
  */
 public class ShellBolt implements IBolt {
-    public static Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
+	public static final String HEARTBEAT_STREAM_ID = "__heartbeat";
+	public static Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
     Process _subprocess;
     OutputCollector _collector;
     Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
@@ -83,7 +87,11 @@ public class ShellBolt implements IBolt {
     
     private TopologyContext _context;
 
-    public ShellBolt(ShellComponent component) {
+	private int workerTimeoutMills;
+	private Timer heartBeatTimer;
+	private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
+
+	public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
 
@@ -102,6 +110,8 @@ public class ShellBolt implements IBolt {
 
         _context = context;
 
+		workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+
         _process = new ShellProcess(_command);
 
         //subprocesses must send their pid first thing
@@ -109,61 +119,18 @@ public class ShellBolt implements IBolt {
         LOG.info("Launched subprocess with pid " + subpid);
 
         // reader
-        _readerThread = new Thread(new Runnable() {
-            public void run() {
-                while (_running) {
-                    try {
-                        ShellMsg shellMsg = _process.readShellMsg();
-
-                        String command = shellMsg.getCommand();
-                        if (command == null) {
-                            throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
-                        }
-                        if(command.equals("ack")) {
-                            handleAck(shellMsg.getId());
-                        } else if (command.equals("fail")) {
-                            handleFail(shellMsg.getId());
-                        } else if (command.equals("error")) {
-                            handleError(shellMsg.getMsg());
-                        } else if (command.equals("log")) {
-                            handleLog(shellMsg);
-                        } else if (command.equals("emit")) {
-                            handleEmit(shellMsg);
-                        } else if (command.equals("metrics")) {
-                            handleMetrics(shellMsg);
-                        }
-                    } catch (InterruptedException e) {
-                    } catch (Throwable t) {
-                        die(t);
-                    }
-                }
-            }
-        });
-
+        _readerThread = new Thread(new BoltReaderRunnable());
         _readerThread.start();
 
-        _writerThread = new Thread(new Runnable() {
-            public void run() {
-                while (_running) {
-                    try {
-                        Object write = _pendingWrites.poll(1, SECONDS);
-                        if (write instanceof BoltMsg) {
-                            _process.writeBoltMsg((BoltMsg)write);
-                        } else if (write instanceof List<?>) {
-                            _process.writeTaskIds((List<Integer>)write);
-                        } else if (write != null) {
-                            throw new RuntimeException("Unknown class type to write: " + write.getClass().getName());
-                        }
-                    } catch (InterruptedException e) {
-                    } catch (Throwable t) {
-                        die(t);
-                    }
-                }
-            }
-        });
-
+        _writerThread = new Thread(new BoltWriterRunnable());
         _writerThread.start();
-    }
+
+		heartBeatTimer = new Timer(context.getThisTaskId() + "-heartbeatTimer", true);
+		heartBeatTimer.scheduleAtFixedRate(new BoltHeartbeatTimerTask(this), 1000, 1 * 1000);
+
+		LOG.info("Start checking heartbeat...");
+		setHeartbeat();
+	}
 
     public void execute(Tuple input) {
         if (_exception != null) {
@@ -174,12 +141,7 @@ public class ShellBolt implements IBolt {
         String genId = Long.toString(_rand.nextLong());
         _inputs.put(genId, input);
         try {
-            BoltMsg boltMsg = new BoltMsg();
-            boltMsg.setId(genId);
-            boltMsg.setComp(input.getSourceComponent());
-            boltMsg.setStream(input.getSourceStreamId());
-            boltMsg.setTask(input.getSourceTask());
-            boltMsg.setTuple(input.getValues());
+			BoltMsg boltMsg = createBoltMessage(input, genId);
 
             _pendingWrites.put(boltMsg);
         } catch(InterruptedException e) {
@@ -188,8 +150,19 @@ public class ShellBolt implements IBolt {
         }
     }
 
-    public void cleanup() {
+	private BoltMsg createBoltMessage(Tuple input, String genId) {
+		BoltMsg boltMsg = new BoltMsg();
+		boltMsg.setId(genId);
+		boltMsg.setComp(input.getSourceComponent());
+		boltMsg.setStream(input.getSourceStreamId());
+		boltMsg.setTask(input.getSourceTask());
+		boltMsg.setTuple(input.getValues());
+		return boltMsg;
+	}
+
+	public void cleanup() {
         _running = false;
+		heartBeatTimer.cancel();
         _writerThread.interrupt();
         _readerThread.interrupt();
         _process.destroy();
@@ -197,6 +170,9 @@ public class ShellBolt implements IBolt {
     }
 
     private void handleAck(Object id) {
+		// FIXME : debug, should be removed
+		LOG.debug("Ack... id : " + id);
+
         Tuple acked = _inputs.remove(id);
         if(acked==null) {
             throw new RuntimeException("Acked a non-existent or already acked/failed id: " + id);
@@ -296,7 +272,15 @@ public class ShellBolt implements IBolt {
         }       
     }
 
-    private void die(Throwable exception) {
+	private void setHeartbeat() {
+		lastHeartbeatTimestamp.set(System.currentTimeMillis());
+	}
+
+	private long getLastHeartbeat() {
+		return lastHeartbeatTimestamp.get();
+	}
+
+	private void die(Throwable exception) {
         String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
         _exception = new RuntimeException(processInfo, exception);
         LOG.error("Halting process: ShellBolt died.", exception);
@@ -305,4 +289,95 @@ public class ShellBolt implements IBolt {
             System.exit(11);
         }
     }
+
+	private class BoltHeartbeatTimerTask extends TimerTask {
+		private ShellBolt bolt;
+
+		public BoltHeartbeatTimerTask(ShellBolt bolt) {
+			this.bolt = bolt;
+		}
+
+		@Override
+		public void run() {
+			long currentTimeMillis = System.currentTimeMillis();
+			long lastHeartbeat = getLastHeartbeat();
+
+			LOG.debug("BOLT - current time : " + currentTimeMillis + ", last heartbeat : " + lastHeartbeat
+					+ ", worker timeout (ms) : " + workerTimeoutMills);
+
+			if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {
+				bolt.die(new RuntimeException("subprocess heartbeat timeout"));
+			}
+
+			String genId = Long.toString(_rand.nextLong());
+			try {
+				_pendingWrites.put(createHeartbeatBoltMessage(genId));
+			} catch(InterruptedException e) {
+				String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
+				bolt.die(new RuntimeException("Error during multilang processing " + processInfo, e));
+			}
+		}
+
+		private BoltMsg createHeartbeatBoltMessage(String genId) {
+			BoltMsg msg = new BoltMsg();
+			msg.setId(genId);
+			msg.setTask(Constants.SYSTEM_TASK_ID);
+			msg.setStream(HEARTBEAT_STREAM_ID);
+			msg.setTuple(new ArrayList<Object>());
+			return msg;
+		}
+	}
+
+	private class BoltReaderRunnable implements Runnable {
+		public void run() {
+			while (_running) {
+				try {
+					ShellMsg shellMsg = _process.readShellMsg();
+
+					String command = shellMsg.getCommand();
+					if (command == null) {
+						throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
+					}
+					if (command.equals("sync")) {
+						setHeartbeat();
+					} else if(command.equals("ack")) {
+						handleAck(shellMsg.getId());
+					} else if (command.equals("fail")) {
+						handleFail(shellMsg.getId());
+					} else if (command.equals("error")) {
+						handleError(shellMsg.getMsg());
+					} else if (command.equals("log")) {
+						handleLog(shellMsg);
+					} else if (command.equals("emit")) {
+						handleEmit(shellMsg);
+					} else if (command.equals("metrics")) {
+						handleMetrics(shellMsg);
+					}
+				} catch (InterruptedException e) {
+				} catch (Throwable t) {
+					die(t);
+				}
+			}
+		}
+	}
+
+	private class BoltWriterRunnable implements Runnable {
+		public void run() {
+			while (_running) {
+				try {
+					Object write = _pendingWrites.poll(1, SECONDS);
+					if (write instanceof BoltMsg) {
+						_process.writeBoltMsg((BoltMsg) write);
+					} else if (write instanceof List<?>) {
+						_process.writeTaskIds((List<Integer>)write);
+					} else if (write != null) {
+						throw new RuntimeException("Unknown class type to write: " + write.getClass().getName());
+					}
+				} catch (InterruptedException e) {
+				} catch (Throwable t) {
+					die(t);
+				}
+			}
+		}
+	}
 }

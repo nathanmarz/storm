@@ -243,6 +243,12 @@ BasicBolt.prototype.__emit = function(commandDetails) {
 BasicBolt.prototype.handleNewCommand = function(command) {
     var self = this;
     var tup = new Tuple(command["id"], command["comp"], command["stream"], command["task"], command["tuple"]);
+
+    if (tup.task == -1 && tup.stream == "__heartbeat") {
+        self.sync();
+        return;
+    }
+
     var callback = function(err) {
           if (err) {
               self.fail(tup, err);

@@ -169,6 +169,10 @@ module Storm
     def self.from_hash(hash)
       Tuple.new(*hash.values_at("id", "comp", "stream", "task", "tuple"))
     end
+
+    def is_heartbeat
+      task == -1 and stream == '__heartbeat'
+    end
   end
 
   class Bolt
@@ -183,7 +187,12 @@ module Storm
       prepare(*handshake)
       begin
         while true
-          process Tuple.from_hash(read_command)
+          tuple = Tuple.from_hash(read_command)
+          if tuple.is_heartbeat
+            sync
+          else
+            process tuple
+          end
         end
       rescue Exception => e
         reportError 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')

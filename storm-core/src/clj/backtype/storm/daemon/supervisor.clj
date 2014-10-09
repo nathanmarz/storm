@@ -17,8 +17,7 @@
   (:import [backtype.storm.scheduler ISupervisor]
            [java.net JarURLConnection]
            [java.net URI]
-           [java.io File]
-           [backtype.storm.torrent BitTorrentCodeDistributor])
+           [java.io File])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
@@ -475,7 +474,7 @@
       ))
 
 (defmethod mk-bt-tracker :distributed [conf]
-  (let [code-distributor (BitTorrentCodeDistributor.)]
+  (let [code-distributor (new-instance (conf STORM-CODE-DISTRIBUTOR-CLASS))]
     (.prepare code-distributor conf)
     code-distributor))
 

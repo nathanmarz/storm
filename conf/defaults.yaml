@@ -37,6 +37,7 @@ storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
+storm.codedistributor.class: "backtype.storm.torrent.BitTorrentCodeDistributor"
 
 ### bittorrent configuration
 bittorrent.port: 6969

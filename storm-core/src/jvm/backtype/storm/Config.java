@@ -872,6 +872,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object ISOLATION_SCHEDULER_MACHINES_SCHEMA = Map.class;
 
     /**
+     * Which implementation of {@link backtype.storm.nimbus.ICodeDistributor} should be used by storm for code
+     * distribution.
+     */
+    public static final String STORM_CODE_DISTRIBUTOR_CLASS = "storm.codedistributor.class";
+    public static final Object STORM_CODE_DISTRIBUTOR_CLASS_SCHEMA = String.class;
+
+    /**
      * Which port the BitTorrent tracker should bind to.
      */
     public static final String BITTORRENT_PORT = "bittorrent.port";

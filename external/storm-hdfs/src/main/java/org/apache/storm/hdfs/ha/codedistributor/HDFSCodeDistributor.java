@@ -14,8 +14,6 @@ import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-import static java.lang.System.lineSeparator;
-
 public class HDFSCodeDistributor implements ICodeDistributor {
     private static final Logger LOG = LoggerFactory.getLogger(HDFSCodeDistributor.class);
 
@@ -42,20 +40,18 @@ public class HDFSCodeDistributor implements ICodeDistributor {
     public File upload(String dirPath, String topologyId) throws Exception {
         File localStormDir = new File(dirPath);
         LOG.info("Copying the storm code from directory: {} to {}{}{}", localStormDir.getAbsolutePath(),
-                stormDir.toString(), lineSeparator().toString(), topologyId);
+                stormDir.toString(), Path.SEPARATOR , topologyId);
 
         File[] files = localStormDir.listFiles();
 
-        Path hdfsDestPath = new Path(stormDir, new Path(topologyId)); //TODO this might be wrong, we want stormDir/topologyId as destination path
+        Path hdfsDestPath = new Path(stormDir, new Path(topologyId));
         fs.mkdirs(hdfsDestPath);
 
         for(File file : files) {
             fs.copyFromLocalFile(new Path(file.getAbsolutePath()), hdfsDestPath);
         }
 
-        //TODO : should not be .torrent , its misleading, but right now the download meta file is still part of supervisor and nimbus.
-        // Once we have downloadMetaFile as part of ICodeDistributor, this should change.
-        File file = new File(dirPath, topologyId +".torrent");
+        File file = new File(dirPath, "storm-code-distributor.meta");
 
         RemoteIterator<LocatedFileStatus> hdfsFileIterator = fs.listFiles(hdfsDestPath, false);
 

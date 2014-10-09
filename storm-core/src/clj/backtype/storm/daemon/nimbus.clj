@@ -21,7 +21,6 @@
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [backtype.storm.torrent BitTorrentCodeDistributor])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -1182,7 +1181,7 @@
         (timer-waiting? (:timer nimbus))))))
 
 (defmethod mk-bt-tracker :distributed [conf]
-  (let [code-distributor (BitTorrentCodeDistributor.)]
+  (let [code-distributor (new-instance (conf STORM-CODE-DISTRIBUTOR-CLASS))]
     (.prepare code-distributor conf)
     code-distributor))
 

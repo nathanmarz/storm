@@ -106,7 +106,7 @@ $(document).ready(function() {
                 }
                 executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
                 if(response["executorStats"].length > 0) {
-                    $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                    $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: { 1: { sorter: "stormtimestr"}}});
                 }
             }
             componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),formatErrorTimeSecs(response)));

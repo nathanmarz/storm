@@ -121,7 +121,6 @@ use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependen
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
             <version>0.8.1.1</version>
-            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>

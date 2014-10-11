@@ -33,6 +33,8 @@ import backtype.storm.multilang.ShellMsg;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -88,7 +90,7 @@ public class ShellBolt implements IBolt {
     private TopologyContext _context;
 
     private int workerTimeoutMills;
-    private Timer heartBeatTimer;
+    private ScheduledThreadPoolExecutor heartBeatExecutor;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
 
     public ShellBolt(ShellComponent component) {
@@ -125,8 +127,8 @@ public class ShellBolt implements IBolt {
         _writerThread = new Thread(new BoltWriterRunnable());
         _writerThread.start();
 
-        heartBeatTimer = new Timer(context.getThisTaskId() + "-heartbeatTimer", true);
-        heartBeatTimer.scheduleAtFixedRate(new BoltHeartbeatTimerTask(this), 1000, 1 * 1000);
+        heartBeatExecutor = new ScheduledThreadPoolExecutor(5);
+        heartBeatExecutor.scheduleAtFixedRate(new BoltHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
 
         LOG.info("Start checking heartbeat...");
         setHeartbeat();
@@ -162,7 +164,7 @@ public class ShellBolt implements IBolt {
 
     public void cleanup() {
         _running = false;
-        heartBeatTimer.cancel();
+        heartBeatExecutor.shutdownNow();
         _writerThread.interrupt();
         _readerThread.interrupt();
         _process.destroy();
@@ -299,7 +301,7 @@ public class ShellBolt implements IBolt {
             long currentTimeMillis = System.currentTimeMillis();
             long lastHeartbeat = getLastHeartbeat();
 
-            LOG.debug("BOLT - current time : {}, last heartbeat : {}, worker timeout (ms) : ",
+            LOG.debug("BOLT - current time : {}, last heartbeat : {}, worker timeout (ms) : {}",
                     currentTimeMillis, lastHeartbeat, workerTimeoutMills);
 
             if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {

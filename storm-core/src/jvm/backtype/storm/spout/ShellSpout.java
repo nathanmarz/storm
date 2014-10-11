@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import clojure.lang.RT;
@@ -48,7 +50,7 @@ public class ShellSpout implements ISpout {
     private SpoutMsg _spoutMsg;
 
     private int workerTimeoutMills;
-    private Timer heartBeatTimer;
+    private ScheduledThreadPoolExecutor heartBeatExecutor;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
 
     public ShellSpout(ShellComponent component) {
@@ -71,11 +73,11 @@ public class ShellSpout implements ISpout {
         Number subpid = _process.launch(stormConf, context);
         LOG.info("Launched subprocess with pid " + subpid);
 
-        heartBeatTimer = new Timer(context.getThisTaskId() + "-heartbeatTimer", true);
+        heartBeatExecutor = new ScheduledThreadPoolExecutor(5);
     }
 
     public void close() {
-        heartBeatTimer.cancel();
+        heartBeatExecutor.shutdownNow();
         _process.destroy();
     }
 
@@ -208,12 +210,12 @@ public class ShellSpout implements ISpout {
         LOG.info("Start checking heartbeat...");
         // prevent timer to check heartbeat based on last thing before activate
         setHeartbeat();
-        heartBeatTimer.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1000, 1 * 1000);
+        heartBeatExecutor.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
     }
 
     @Override
     public void deactivate() {
-        heartBeatTimer.cancel();
+        heartBeatExecutor.shutdownNow();
     }
 
     private void setHeartbeat() {
@@ -225,7 +227,7 @@ public class ShellSpout implements ISpout {
     }
 
     private void die(Throwable exception) {
-        heartBeatTimer.cancel();
+        heartBeatExecutor.shutdownNow();
 
         LOG.error("Halting process: ShellSpout died.", exception);
         _collector.reportError(exception);
@@ -245,7 +247,7 @@ public class ShellSpout implements ISpout {
             long currentTimeMillis = System.currentTimeMillis();
             long lastHeartbeat = getLastHeartbeat();
 
-            LOG.debug("current time : {}, last heartbeat : {}, worker timeout (ms) : ",
+            LOG.debug("current time : {}, last heartbeat : {}, worker timeout (ms) : {}",
                     currentTimeMillis, lastHeartbeat, workerTimeoutMills);
 
             if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {

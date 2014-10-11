@@ -171,8 +171,8 @@ class Tuple(object):
 
     def __repr__(self):
         return '<%s%s>' % (
-                self.__class__.__name__,
-                ''.join(' %s=%r' % (k, self.__dict__[k]) for k in sorted(self.__dict__.keys())))
+            self.__class__.__name__,
+            ''.join(' %s=%r' % (k, self.__dict__[k]) for k in sorted(self.__dict__.keys())))
 
     def is_heartbeat_tuple(self):
         return self.task == -1 and self.stream == "__heartbeat"

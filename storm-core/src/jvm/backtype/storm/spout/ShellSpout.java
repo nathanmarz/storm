@@ -244,8 +244,8 @@ public class ShellSpout implements ISpout {
             long currentTimeMillis = System.currentTimeMillis();
             long lastHeartbeat = getLastHeartbeat();
 
-            LOG.debug("current time : " + currentTimeMillis + ", last heartbeat : " + lastHeartbeat
-                    + ", worker timeout (ms) : " + workerTimeoutMills);
+            LOG.debug("current time : {}, last heartbeat : {}, worker timeout (ms) : ",
+                    currentTimeMillis, lastHeartbeat, workerTimeoutMills);
 
             if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {
                 spout.die(new RuntimeException("subprocess heartbeat timeout"));

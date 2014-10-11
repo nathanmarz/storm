@@ -229,6 +229,7 @@ public class ShellSpout implements ISpout {
 
         LOG.error("Halting process: ShellSpout died.", exception);
         _collector.reportError(exception);
+        _process.destroy();
         System.exit(11);
     }
 

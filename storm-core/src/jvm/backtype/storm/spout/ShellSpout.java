@@ -27,13 +27,14 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
 import java.util.Map;
 import java.util.List;
-import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import clojure.lang.RT;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,7 @@ public class ShellSpout implements ISpout {
     private SpoutMsg _spoutMsg;
 
     private int workerTimeoutMills;
-    private ScheduledThreadPoolExecutor heartBeatExecutor;
+    private ScheduledExecutorService heartBeatExecutorService;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
 
     public ShellSpout(ShellComponent component) {
@@ -73,11 +74,11 @@ public class ShellSpout implements ISpout {
         Number subpid = _process.launch(stormConf, context);
         LOG.info("Launched subprocess with pid " + subpid);
 
-        heartBeatExecutor = new ScheduledThreadPoolExecutor(5);
+        heartBeatExecutorService = MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
     }
 
     public void close() {
-        heartBeatExecutor.shutdownNow();
+        heartBeatExecutorService.shutdownNow();
         _process.destroy();
     }
 
@@ -210,12 +211,12 @@ public class ShellSpout implements ISpout {
         LOG.info("Start checking heartbeat...");
         // prevent timer to check heartbeat based on last thing before activate
         setHeartbeat();
-        heartBeatExecutor.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
+        heartBeatExecutorService.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
     }
 
     @Override
     public void deactivate() {
-        heartBeatExecutor.shutdownNow();
+        heartBeatExecutorService.shutdownNow();
     }
 
     private void setHeartbeat() {
@@ -227,7 +228,7 @@ public class ShellSpout implements ISpout {
     }
 
     private void die(Throwable exception) {
-        heartBeatExecutor.shutdownNow();
+        heartBeatExecutorService.shutdownNow();
 
         LOG.error("Halting process: ShellSpout died.", exception);
         _collector.reportError(exception);

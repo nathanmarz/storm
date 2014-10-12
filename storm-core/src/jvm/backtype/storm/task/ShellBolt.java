@@ -22,26 +22,21 @@ import backtype.storm.Constants;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.rpc.IShellMetric;
-import backtype.storm.topology.ReportedFailedException;
-import backtype.storm.tuple.MessageId;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
-import backtype.storm.utils.ShellProcess;
 import backtype.storm.multilang.BoltMsg;
 import backtype.storm.multilang.ShellMsg;
+import backtype.storm.topology.ReportedFailedException;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.ShellProcess;
+import clojure.lang.RT;
+import com.google.common.util.concurrent.MoreExecutors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import clojure.lang.RT;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A bolt that shells out to another process to process tuples. ShellBolt
@@ -90,7 +85,7 @@ public class ShellBolt implements IBolt {
     private TopologyContext _context;
 
     private int workerTimeoutMills;
-    private ScheduledThreadPoolExecutor heartBeatExecutor;
+    private ScheduledExecutorService heartBeatExecutorService;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
 
     public ShellBolt(ShellComponent component) {
@@ -127,8 +122,8 @@ public class ShellBolt implements IBolt {
         _writerThread = new Thread(new BoltWriterRunnable());
         _writerThread.start();
 
-        heartBeatExecutor = new ScheduledThreadPoolExecutor(5);
-        heartBeatExecutor.scheduleAtFixedRate(new BoltHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
+        heartBeatExecutorService = MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
+        heartBeatExecutorService.scheduleAtFixedRate(new BoltHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
 
         LOG.info("Start checking heartbeat...");
         setHeartbeat();
@@ -164,7 +159,7 @@ public class ShellBolt implements IBolt {
 
     public void cleanup() {
         _running = false;
-        heartBeatExecutor.shutdownNow();
+        heartBeatExecutorService.shutdownNow();
         _writerThread.interrupt();
         _readerThread.interrupt();
         _process.destroy();

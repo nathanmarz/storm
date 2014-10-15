@@ -413,13 +413,11 @@ For Arbor Tween (storm-core/src/ui/public/js/arbor-tween.js)
 
 -----------------------------------------------------------------------
 
-For Purl (storm-core/src/ui/public/js/purl.js)
+For Jquery url plugin (storm-core/src/ui/public/js/url.min.js)
 
-Purl (A JavaScript URL parser) v2.3.1
-Developed and maintanined by Mark Perkins, mark@allmarkedup.com
-Source repository: https://github.com/allmarkedup/jQuery-URL-Parser
-Licensed under an MIT-style license. See https://github.com/allmarkedup/jQuery-URL-Parser/blob/master/LICENSE for details.
-
+Jquery Url (A Jquery plugin for URL parser) v1.8.6
+Source repository: https://github.com/websanova/js-url
+Licensed under an MIT-style license. Seehttps://github.com/websanova/js-url#license for details.
 
 -----------------------------------------------------------------------
 

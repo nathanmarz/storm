@@ -18,7 +18,7 @@
 package storm.kafka;
 
 import backtype.storm.Config;
-import com.google.common.collect.Lists;
+import backtype.storm.tuple.Fields;
 import kafka.javaapi.consumer.SimpleConsumer;
 import org.junit.After;
 import org.junit.Before;
@@ -28,8 +28,8 @@ import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaMapper;
 import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
 import storm.kafka.trident.selector.DefaultTopicSelector;
 import storm.kafka.trident.selector.KafkaTopicSelector;
-import storm.trident.testing.MockTridentTuple;
 import storm.trident.tuple.TridentTuple;
+import storm.trident.tuple.TridentTupleView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +38,6 @@ public class TridentKafkaTest {
     private KafkaTestBroker broker;
     private TridentKafkaState state;
     private Config config;
-    private KafkaConfig kafkaConfig;
     private SimpleConsumer simpleConsumer;
     private TridentTupleToKafkaMapper mapper;
     private KafkaTopicSelector topicSelector;
@@ -73,10 +72,8 @@ public class TridentKafkaTest {
 
     private List<TridentTuple> generateTupleBatch(String key, String message, int batchsize) {
         List<TridentTuple> batch = new ArrayList<TridentTuple>();
-        List<String> values = Lists.newArrayList(key, message);
-        List<String> fields = Lists.newArrayList("key", "message");
         for(int i =0 ; i < batchsize; i++) {
-            batch.add(new MockTridentTuple(fields, values));
+            batch.add(TridentTupleView.createFreshTuple(new Fields("key", "message"), key, message));
         }
         return batch;
     }

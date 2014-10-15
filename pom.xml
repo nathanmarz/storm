@@ -27,11 +27,11 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.9.3-incubating-SNAPSHOT</version>
+    <version>0.9.3-rc2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
-    <url>http://storm.incubator.apache.org</url>
+    <url>http://storm.apache.org</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -42,17 +42,17 @@
     <mailingLists>
         <mailingList>
             <name>Storm user mailing list</name>
-            <subscribe>user-subscribe@storm.incubator.apache.org</subscribe>
-            <unsubscribe>user-unsubscribe@storm.incubator.apache.org</unsubscribe>
-            <post>user@storm.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-storm-user/</archive>
+            <subscribe>user-subscribe@storm.apache.org</subscribe>
+            <unsubscribe>user-unsubscribe@storm.apache.org</unsubscribe>
+            <post>user@storm.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/storm-user/</archive>
         </mailingList>
         <mailingList>
             <name>Storm developer mailing list</name>
-            <subscribe>dev-subscribe@storm.incubator.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@storm.incubator.apache.org</unsubscribe>
-            <post>dev@storm.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-storm-dev/</archive>
+            <subscribe>dev-subscribe@storm.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@storm.apache.org</unsubscribe>
+            <post>dev@storm.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/storm-dev/</archive>
         </mailingList>
     </mailingLists>
 
@@ -160,13 +160,14 @@
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
+        <module>external/storm-hbase</module>
     </modules>
 
     <scm>
-        <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-storm.git</connection>
-        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-storm.git</developerConnection>
+        <connection>scm:git:https://git-wip-us.apache.org/repos/asf/storm.git</connection>
+        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/storm.git</developerConnection>
         <tag>HEAD</tag>
-        <url>https://git-wip-us.apache.org/repos/asf/incubator-storm</url>
+        <url>https://git-wip-us.apache.org/repos/asf/storm</url>
     </scm>
 
     <issueManagement>

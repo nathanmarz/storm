@@ -1,4 +1,13 @@
-## 0.9.3-incubating
+## 0.9.3-rc1
+ * STORM-519: add tuple as an input param to HBaseValueMapper 
+ * STORM-488: Exit with 254 error code if storm CLI is run with unknown command
+ * STORM-506: Do not count bolt acks & fails in total stats
+ * STORM-490: fix build under Windows
+ * STORM-439: Replace purl.js qith jquery URL plugin
+ * STORM-499: Document and clean up shaded dependncy resolution with maven
+ * STORM-210: Add storm-hbase module
+ * STORM-507: Topology visualization should not block ui
+ * STORM-504: Class used by `repl` command is deprecated.
  * STORM-330: Implement storm exponential backoff stategy for netty client and curator
  * STORM-461: exit-process! does not always exit the process, but throws an exception
  * STORM-341: fix assignment sorting
@@ -75,6 +84,11 @@
  * STORM-386: nodejs multilang protocol implementation and examples
  * STORM-500: Add Spinner when UI is loading stats from nimbus
  * STORM-501: Missing StormSubmitter API
+ * STORM-493: Workers inherit storm.conf.file/storm.options properties of their supervisor
+ * STORM-498: make ZK connection timeout configurable in Kafka spout
+ * STORM-428: extracted ITuple interface
+ * STORM-508: Update DEVELOPER.md now that Storm has graduated from Incubator
+ * STORM-514: Update storm-starter README now that Storm has graduated from Incubator
 
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake

@@ -141,9 +141,10 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id,name,status,msgTimeout) {
+function topologyActionJson(id, encodedId, name,status,msgTimeout) {
     var jsonData = {};
     jsonData["id"] = id;
+    jsonData["encodedId"] = encodedId;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;
     jsonData["activateStatus"] = (status === "ACTIVE") ? "disabled" : "enabled";

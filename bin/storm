@@ -305,7 +305,7 @@ def repl():
     on the classpath. Useful for debugging.
     """
     cppaths = [CLUSTER_CONF_DIR]
-    exec_storm_class("clojure.lang.Repl", jvmtype="-client", extrajars=cppaths)
+    exec_storm_class("clojure.main", jvmtype="-client", extrajars=cppaths)
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
@@ -479,6 +479,7 @@ def print_usage(command=None):
 def unknown_command(*args):
     print("Unknown command: [storm %s]" % ' '.join(sys.argv[1:]))
     print_usage()
+    sys.exit(254)
 
 COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "logviewer": logviewer,
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,

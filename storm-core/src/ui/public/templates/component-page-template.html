@@ -44,7 +44,7 @@
     <tbody>
       <tr>
         <td>{{id}}</td>
-        <td><a href="/topology.html?id={{topologyId}}">{{name}}</a></td>
+        <td><a href="/topology.html?id={{encodedTopologyId}}">{{name}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
     </tbody>
@@ -90,7 +90,7 @@
     <tbody>
       {{#spoutSummary}}
       <tr>
-        <td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</a></td>
+        <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
         <td>{{transferred}}</td>
         <td>{{emitted}}</td>
         <td>{{completeLatency}}</td>
@@ -271,7 +271,7 @@
     <tbody>
       {{#boltStats}}
       <tr>
-        <td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</a></td>
+        <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{executeLatency}}</td>

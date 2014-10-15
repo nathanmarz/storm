@@ -120,7 +120,7 @@
     <tbody>
       {{#topologyStats}}
       <tr>
-        <td><a href="/topology.html?id={{id}}&window={{window}}">{{windowPretty}}</td>
+        <td><a href="/topology.html?id={{encodedId}}&window={{window}}">{{windowPretty}}</td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{completeLatency}}</td>
@@ -231,7 +231,7 @@
     <tbody>
       {{#spouts}}
       <tr>
-        <td><a href="/component.html?id={{spoutId}}&topology_id={{id}}">{{spoutId}}</a></td>
+        <td><a href="/component.html?id={{encodedSpoutId}}&topology_id={{encodedId}}">{{spoutId}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
         <td>{{emitted}}</td>
@@ -317,7 +317,7 @@
     <tbody>
       {{#bolts}}
       <tr>
-        <td><a href="/component.html?id={{boltId}}&topology_id={{id}}">{{boltId}}</a></td>
+        <td><a href="/component.html?id={{encodedBoltId}}&topology_id={{encodedId}}">{{boltId}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
         <td>{{emitted}}</td>

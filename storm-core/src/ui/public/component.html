@@ -24,7 +24,7 @@
 <script src="/js/jquery.tablesorter.min.js" type="text/javascript"></script>
 <script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
 <script src="/js/jquery.mustache.js" type="text/javascript"></script>
-<script src="/js/purl.js" type="text/javascript"></script>
+<script src="/js/url.min.js" type="text/javascript"></script>
 <script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
 <script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
@@ -55,9 +55,9 @@ $(document).ajaxStart(function(){
     $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading component summary...</h3>'});
 });
 $(document).ready(function() {
-    var componentId = $.url().param("id");
-    var topologyId = $.url().param("topology_id");
-    var window = $.url().param("window");
+    var componentId = $.url("?id");
+    var topologyId = $.url("?topology_id");
+    var window = $.url("?window");
     var sys = $.cookies.get("sys") || "false";
     var url = "/api/v1/topology/"+topologyId+"/component/"+componentId+"?sys="+sys;
     if(window) url += "&window="+window;

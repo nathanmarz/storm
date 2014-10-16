@@ -199,7 +199,8 @@
   goto :eof
 
 :version
-  type %STORM_HOME%\RELEASE
+  set CLASS=backtype.storm.utils.VersionInfo
+  set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
 :make_command_arguments

@@ -361,6 +361,29 @@
                     </dependency>
                 </dependencies>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <inherited>false</inherited>
+                <executions>
+                   <execution>
+                      <id>Version Calculation</id>
+                      <phase>generate-sources</phase>
+                      <goals>
+                          <goal>exec</goal>
+                      </goals>
+                      <configuration>
+                         <executable>sh</executable>
+                           <arguments>
+                              <argument>${basedir}/src/saveVersion.sh</argument>
+                              <argument>${project.version}</argument>
+                              <argument>${basedir}/src/jvm</argument>
+                           </arguments>
+                     </configuration>
+                  </execution>
+               </executions>
+          </plugin>
 
         </plugins>
     </build>

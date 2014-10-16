@@ -52,15 +52,9 @@
        (map #(.get_stats ^ExecutorSummary %))
        (filter not-nil?)))
 
-(defn read-storm-version
+(def read-storm-version
   "Returns a string containing the Storm version or 'Unknown'."
-  []
-  (let [storm-home (System/getProperty "storm.home")
-        release-path (format "%s/RELEASE" storm-home)
-        release-file (File. release-path)]
-    (if (and (.exists release-file) (.isFile release-file))
-      (trim (slurp release-path))
-      "Unknown")))
+  (str VersionInfo/getVersion)) 
 
 (defn component-type
   "Returns the component type (either :bolt or :spout) for a given

@@ -415,11 +415,11 @@ def version():
   
   Prints the version number of this Storm release.  
   """
-  releasefile = STORM_DIR + "/RELEASE"
-  if os.path.exists(releasefile):
-    print(open(releasefile).readline().strip())
-  else:
-    print("Unknown")
+  cppaths = [CLUSTER_CONF_DIR]
+  exec_storm_class(
+       "backtype.storm.utils.VersionInfo",
+       jvmtype=" ",
+       extrajars=[CLUSTER_CONF_DIR])
 
 def print_classpath():
     """Syntax: [storm classpath]

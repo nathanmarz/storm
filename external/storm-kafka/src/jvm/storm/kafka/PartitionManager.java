@@ -161,7 +161,7 @@ public class PartitionManager {
         try {
             msgs = KafkaUtils.fetchMessages(_spoutConfig, _consumer, _partition, offset);
         } catch (UpdateOffsetException e) {
-            offset = e.startOffset;
+            _emittedToOffset = e.startOffset;
         }
         long end = System.nanoTime();
         long millis = (end - start) / 1000000;

@@ -307,6 +307,10 @@
                             <shadedPattern>org.apache.storm.guava</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>com.google.thirdparty</pattern>
+                            <shadedPattern>org.apache.storm.guava.thirdparty</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.apache.http</pattern>
                             <shadedPattern>org.apache.storm.http</shadedPattern>
                         </relocation>

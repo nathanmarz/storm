@@ -74,6 +74,40 @@
   </tbody>
 </table>
 </script>
+
+<script id="nimbus-summary-template" type="text/html">
+    <table class="zebra-striped" id="nimbus-summary-table">
+        <thead>
+        <tr>
+            <th>
+                    <span class="tip right" title="nimbus host name.">
+                        Host
+                    </span>
+            </th>
+            <th>
+        <span class="tip above" title="Nimbus Thrift port number.">
+          Port
+        </span>
+            </th>
+            <th>
+        <span class="tip above" title="True if this host is leader, false otherwise.">
+          IsLeader
+        </span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#nimbuses}}
+        <tr>
+            <td>{{host}}</td>
+            <td>{{port}}</td>
+            <td>{{isLeader}}</td>
+        </tr>
+        {{/nimbuses}}
+        </tbody>
+    </table>
+</script>
+
 <script id="topology-summary-template" type="text/html">
   <table class="zebra-striped" id="topology-summary-table">
     <thead>

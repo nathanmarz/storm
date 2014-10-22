@@ -17,25 +17,40 @@
  */
 package backtype.storm.utils;
 
-import backtype.storm.Config;
-import backtype.storm.security.auth.ThriftClient;
 import backtype.storm.generated.Nimbus;
-import java.util.Map;
+import backtype.storm.nimbus.ILeaderElector;
+import backtype.storm.nimbus.NimbusInfo;
+import backtype.storm.security.auth.ThriftClient;
+import clojure.lang.IFn;
+import clojure.lang.PersistentArrayMap;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.Map;
 
 public class NimbusClient extends ThriftClient {
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 
     public static NimbusClient getConfiguredClient(Map conf) {
+        ILeaderElector zkLeaderElector = null;
         try {
-            String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
-            int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
+            IFn zkLeaderElectorFn = Utils.loadClojureFn("backtype.storm.zookeeper", "zk-leader-elector");
+            zkLeaderElector = (ILeaderElector) zkLeaderElectorFn.invoke(PersistentArrayMap.create(conf));
+            NimbusInfo leaderInfo = zkLeaderElector.getLeader();
+            String nimbusHost = leaderInfo.getHost();
+            int nimbusPort = leaderInfo.getPort();
             return new NimbusClient(conf, nimbusHost, nimbusPort);
         } catch (TTransportException ex) {
             throw new RuntimeException(ex);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(zkLeaderElector != null) {
+                zkLeaderElector.close();
+            }
         }
     }
 

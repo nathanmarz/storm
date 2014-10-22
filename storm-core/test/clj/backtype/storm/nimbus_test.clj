@@ -20,8 +20,7 @@
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler INimbus])
   (:use [backtype.storm bootstrap testing zookeeper])
-  (:import [backtype.storm.nimbus ILeaderElector])
-  (:import [java.net InetSocketAddress])
+  (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
   (:use [backtype.storm.daemon common])
   (:use [conjure core])
   )
@@ -753,13 +752,13 @@
       )))
 
 (defnk mock-leader-elector [:is-leader true :leader-name "test-host" :leader-port 9999]
-  (let [leader-address (InetSocketAddress. leader-name leader-port)]
+  (let [leader-address (NimbusInfo. leader-name leader-port true)]
     (reify ILeaderElector
       (prepare [this conf] true)
       (isLeader [this] is-leader)
       (addToLeaderLockQueue [this] true)
-      (getLeaderAddress [this] leader-address)
-      (getAllNimbusAddresses [this] `(leader-address))
+      (getLeader [this] leader-address)
+      (getAllNimbuses [this] `(leader-address))
       (close [this] true))))
 
 (deftest test-cleans-corrupt

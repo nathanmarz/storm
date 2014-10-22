@@ -2,14 +2,16 @@ package backtype.storm.nimbus;
 
 import org.apache.curator.framework.CuratorFramework;
 
+import java.io.Closeable;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
 /**
  * The interface for leader election.
  */
-public interface ILeaderElector {
+public interface ILeaderElector extends Closeable {
 
     /**
      * Method guaranteed to be called as part of initialization of leader elector instance.
@@ -21,13 +23,13 @@ public interface ILeaderElector {
      * queue up for leadership lock. The call returns immediately and the caller must
      * check isLeader() to perform any leadership action.
      */
-    void addToLeaderLockQueue() throws Exception;
+    void addToLeaderLockQueue();
 
     /**
      * Removes the caller from the leader lock queue. If the caller is leader
      * also releases the lock.
      */
-    void removeFromLeaderLockQueue() throws Exception;
+    void removeFromLeaderLockQueue();
 
     /**
      *
@@ -37,20 +39,20 @@ public interface ILeaderElector {
 
     /**
      *
-     * @return the current leader's address , may return null if no
+     * @return the current leader's address , may return null if no one has the lock.
      */
-    InetSocketAddress getLeaderAddress() throws Exception;
+    NimbusInfo getLeader();
 
     /**
      *
      * @return list of current nimbus addresses, includes leader.
      */
-    List<InetSocketAddress> getAllNimbusAddresses() throws Exception;
+    List<NimbusInfo> getAllNimbuses();
 
     /**
      * Method called to allow for cleanup. once close this object can not be reused.
      */
-    void close() throws Exception;
-
+    @Override
+    void close();
 }
 

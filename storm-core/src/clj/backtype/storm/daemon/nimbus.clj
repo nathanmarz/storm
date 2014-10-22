@@ -74,7 +74,7 @@
       ;TODO change to RedirectException once thrift model is updated,
       ;we are still trying to agree on a design so may have to write a request forwareder instead of throwing exception.
       (if throw-exception
-        (let [leader-address (.getLeaderAddress leader-elector)]
+        (let [leader-address (.getLeader leader-elector)]
           (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
 
 (defn nimbus-data [conf inimbus]

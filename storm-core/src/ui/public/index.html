@@ -32,6 +32,9 @@
 <h2>Cluster Summary</h2>
 <div id="cluster-summary">
 </div>
+<h2>Nimbus Summary</h2>
+<div id="nimbus-summary">
+</div>
 <h2>Topology summary</h2>
 <div id="topology-summary">
 </div>
@@ -58,6 +61,7 @@ $(document).ready(function() {
     });
     var template = $.get("/templates/index-page-template.html");
     var clusterSummary = $("#cluster-summary");
+    var nimbusSummary = $("#nimbus-summary");
     var topologySummary = $("#topology-summary");
     var supervisorSummary = $("#supervisor-summary");
     var config = $("#nimbus-configuration");
@@ -66,6 +70,14 @@ $(document).ready(function() {
         $.get("/templates/index-page-template.html", function(template) {
             clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
         });
+    });
+    $.getJSON("/api/v1/nimbus/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          nimbusSummary.append(Mustache.render($(template).filter("#nimbus-summary-template").html(),response));
+          if(response["nimbuses"].length > 0) {
+              $("#nimbus-summary-table").tablesorter({ sortList: [[0,0]], headers: {3: { sorter: "stormtimestr"}}});
+          }
+      });
     });
     $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
       $.get("/templates/index-page-template.html", function(template) {

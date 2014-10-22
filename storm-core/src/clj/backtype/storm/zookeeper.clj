@@ -15,7 +15,9 @@
 ;; limitations under the License.
 
 (ns backtype.storm.zookeeper
-  (:import [org.apache.curator.retry RetryNTimes])
+  (:import [org.apache.curator.retry RetryNTimes]
+           [backtype.storm.nimbus ZKLeaderElector]
+           [backtype.storm Config])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
   (:import [org.apache.curator.framework.recipes.leader LeaderLatch Participant])
@@ -25,7 +27,7 @@
   (:import [org.apache.zookeeper.data Stat])
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxnFactory])
   (:import [java.net InetSocketAddress BindException InetAddress])
-  (:import [backtype.storm.nimbus ILeaderElector])
+  (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
   (:import [java.io File])
   (:import [java.util List Map])
   (:import [backtype.storm.utils Utils ZookeeperAuthInfo])
@@ -214,17 +216,19 @@
   [handle]
   (.shutdown handle))
 
-(defn- to-InetSocketAddress [^Participant participant]
+(defn- to-NimbusInfo [^Participant participant]
   (let
     [id (.getId participant)
      server (first (.split id ":"))
-     port (Integer/parseInt (last (.split id ":")))]
-    (InetSocketAddress. server port)))
+     port (Integer/parseInt (last (.split id ":")))
+     is-leader (.isLeader participant)]
+    (NimbusInfo. server port is-leader)))
 
 (defn zk-leader-elector
   "Zookeeper Implementation of ILeaderElector."
   [conf]
-  (let [zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
+  (let [servers (conf STORM-ZOOKEEPER-SERVERS)
+        zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
         leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
         id (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
         leader-latch (LeaderLatch. zk leader-lock-path id)]
@@ -239,13 +243,21 @@
         (log-message "Removed from leader lock queue."))
       (^boolean isLeader [this]
         (.hasLeadership leader-latch))
-      (^InetSocketAddress getLeaderAddress [this]
-        (to-InetSocketAddress (.getLeader leader-latch)))
-      (^List getAllNimbusAddresses [this]
+      (^NimbusInfo getLeader [this]
+        (to-NimbusInfo (.getLeader leader-latch)))
+      (^List getAllNimbuses [this]
         (let [participants (.getParticipants leader-latch)]
           (map (fn [^Participant participant]
-                 (to-InetSocketAddress participant))
+                 (to-NimbusInfo participant))
             participants)))
       (^void close[this]
         (log-message "closing zookeeper connection of leader elector.")
         (.close zk)))))
+
+(gen-class
+  :name backtype.storm.ZKLeaderElectorFactory
+  :impl-ns backtype.storm.zookeeper
+  :methods [[makeZkLeaderElector [backtype.storm.Config] backtype.storm.nimbus.ILeaderElector]])
+
+(defn -makeZkLeaderElector [conf]
+  (zk-leader-elector conf))

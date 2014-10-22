@@ -18,7 +18,7 @@
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log])
+  (:use [backtype.storm config util log zookeeper])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
                                               ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID system-id?]]])
@@ -36,15 +36,21 @@
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
   (:import [org.apache.commons.lang StringEscapeUtils])
+  (:import [backtype.storm.nimbus NimbusInfo])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
 (defmacro with-nimbus
   [nimbus-sym & body]
-  `(thrift/with-nimbus-connection
-     [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
-     ~@body))
+  `(let [leader-elector# (zk-leader-elector *STORM-CONF*)
+    leader-nimbus# (.getLeader leader-elector#)
+    host# (.getHost leader-nimbus#)
+    port# (.getPort leader-nimbus#)
+    no-op# (.close leader-elector#)]
+  (thrift/with-nimbus-connection
+     [~nimbus-sym host# port#]
+     ~@body)))
 
 (defn get-filled-stats
   [summs]
@@ -496,6 +502,20 @@
         "executorsTotal" total-executors
         "tasksTotal" total-tasks})))
 
+(defn nimbus-summary
+  ([]
+    (let [leader-elector (zk-leader-elector *STORM-CONF*)
+          nimbus-hosts (.getAllNimbuses leader-elector)
+          no-op (.close leader-elector)]
+      (nimbus-summary nimbus-hosts)))
+  ([nimbuses]
+    {"nimbuses"
+     (for [^NimbusInfo n nimbuses]
+       {
+        "host" (.getHost n)
+        "port"  (.getPort n)
+        "isLeader" (.isLeader n)})}))
+
 (defn supervisor-summary
   ([]
    (with-nimbus nimbus
@@ -845,6 +865,8 @@
                       (:callback m) :serialize-fn identity))
   (GET "/api/v1/cluster/summary" [& m]
        (json-response (cluster-summary) (:callback m)))
+  (GET "/api/v1/nimbus/summary" [& m]
+    (json-response (nimbus-summary) (:callback m)))
   (GET "/api/v1/supervisor/summary" [& m]
        (json-response (supervisor-summary) (:callback m)))
   (GET "/api/v1/topology/summary" [& m]

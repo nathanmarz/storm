@@ -119,7 +119,6 @@
 (defn launch-server [server-port login-cfg aznClass transportPluginClass] 
   (let [conf1 (merge (read-storm-config)
                     {NIMBUS-AUTHORIZER aznClass 
-                     NIMBUS-HOST "localhost"
                      NIMBUS-THRIFT-PORT server-port
                      STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
         conf (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)
@@ -174,10 +173,9 @@
                   "backtype.storm.security.auth.SimpleTransportPlugin"]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
-                               Config/NIMBUS_HOST "localhost"
                                Config/NIMBUS_THRIFT_PORT a-port
                                Config/NIMBUS_TASK_TIMEOUT_SECS nimbus-timeout})
-            client (NimbusClient/getConfiguredClient storm-conf)
+            client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
             nimbus_client (.getClient client)]
         (testing "(Negative authorization) Authorization plugin should reject client request"
           (is (thrown? TTransportException

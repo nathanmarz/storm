@@ -46,8 +46,7 @@
   (let [storm-conf (merge (read-storm-config)
                      {STORM-THRIFT-TRANSPORT-PLUGIN
                        "backtype.storm.security.auth.SimpleTransportPlugin"
-                      Config/NIMBUS_HOST ""
-                      Config/NIMBUS_THRIFT_PORT 65535
+                      Config/NIMBUS_THRIFT_PORT ""
                      })]
     (is (thrown? RuntimeException
       (NimbusClient/getConfiguredClient storm-conf)))

@@ -45,7 +45,6 @@ bittorrent.max.upload.rate: 0.0
 bittorrent.max.download.rate: 0.0
 
 ### nimbus.* configs are for the master
-nimbus.host: "localhost"
 nimbus.thrift.port: 6627
 nimbus.thrift.max_buffer_size: 1048576
 nimbus.childopts: "-Xmx1024m"

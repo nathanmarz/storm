@@ -227,12 +227,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_ID_SCHEMA = String.class;
 
     /**
-     * The host that the master server is running on.
-     */
-    public static final String NIMBUS_HOST = "nimbus.host";
-    public static final Object NIMBUS_HOST_SCHEMA = String.class;
-
-    /**
      * Which port the Thrift interface of Nimbus should run on. Clients should
      * connect to this port to upload jars and submit topologies.
      */

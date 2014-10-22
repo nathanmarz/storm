@@ -218,7 +218,9 @@
 
 (defn- to-NimbusInfo [^Participant participant]
   (let
-    [id (.getId participant)
+    [id (if (clojure.string/blank? (.getId participant))
+          (throw (RuntimeException. "No nimbus leader participant host found, have you started your nimbus hosts?"))
+          (.getId participant))
      server (first (.split id ":"))
      port (Integer/parseInt (last (.split id ":")))
      is-leader (.isLeader participant)]

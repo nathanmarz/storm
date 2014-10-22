@@ -1,4 +1,5 @@
-## 0.9.3
+## 0.9.3-rc1
+ * STORM-519: add tuple as an input param to HBaseValueMapper 
  * STORM-488: Exit with 254 error code if storm CLI is run with unknown command
  * STORM-506: Do not count bolt acks & fails in total stats
  * STORM-490: fix build under Windows

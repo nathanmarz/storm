@@ -149,8 +149,10 @@ public class HBaseState implements State {
 
         try {
             Result[] results = hBaseClient.batchGet(gets);
-            for(Result result : results) {
-                List<Values> values = options.rowToStormValueMapper.toValues(result);
+            for(int i = 0; i < results.length; i++) {
+                Result result = results[i];
+                TridentTuple tuple = tridentTuples.get(i);
+                List<Values> values = options.rowToStormValueMapper.toValues(tuple, result);
                 batchRetrieveResult.add(values);
             }
         } catch (Exception e) {

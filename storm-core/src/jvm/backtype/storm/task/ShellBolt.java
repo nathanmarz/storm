@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -87,6 +88,7 @@ public class ShellBolt implements IBolt {
     private int workerTimeoutMills;
     private ScheduledExecutorService heartBeatExecutorService;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
+    private AtomicBoolean sendHeartbeatFlag = new AtomicBoolean(false);
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -303,23 +305,10 @@ public class ShellBolt implements IBolt {
                 bolt.die(new RuntimeException("subprocess heartbeat timeout"));
             }
 
-            String genId = Long.toString(_rand.nextLong());
-            try {
-                _pendingWrites.put(createHeartbeatBoltMessage(genId));
-            } catch(InterruptedException e) {
-                String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
-                bolt.die(new RuntimeException("Error during multilang processing " + processInfo, e));
-            }
+            sendHeartbeatFlag.compareAndSet(false, true);
         }
 
-        private BoltMsg createHeartbeatBoltMessage(String genId) {
-            BoltMsg msg = new BoltMsg();
-            msg.setId(genId);
-            msg.setTask(Constants.SYSTEM_TASK_ID);
-            msg.setStream(HEARTBEAT_STREAM_ID);
-            msg.setTuple(new ArrayList<Object>());
-            return msg;
-        }
+
     }
 
     private class BoltReaderRunnable implements Runnable {
@@ -359,6 +348,14 @@ public class ShellBolt implements IBolt {
         public void run() {
             while (_running) {
                 try {
+                    if (sendHeartbeatFlag.get()) {
+                        LOG.debug("BOLT - sending heartbeat request to subprocess");
+
+                        String genId = Long.toString(_rand.nextLong());
+                        _process.writeBoltMsg(createHeartbeatBoltMessage(genId));
+                        sendHeartbeatFlag.compareAndSet(true, false);
+                    }
+
                     Object write = _pendingWrites.poll(1, SECONDS);
                     if (write instanceof BoltMsg) {
                         _process.writeBoltMsg((BoltMsg) write);
@@ -372,6 +369,15 @@ public class ShellBolt implements IBolt {
                     die(t);
                 }
             }
+        }
+
+        private BoltMsg createHeartbeatBoltMessage(String genId) {
+            BoltMsg msg = new BoltMsg();
+            msg.setId(genId);
+            msg.setTask(Constants.SYSTEM_TASK_ID);
+            msg.setStream(HEARTBEAT_STREAM_ID);
+            msg.setTuple(new ArrayList<Object>());
+            return msg;
         }
     }
 }

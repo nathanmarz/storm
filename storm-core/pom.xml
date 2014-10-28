@@ -20,7 +20,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.3-SNAPSHOT</version>
+        <version>0.9.3-rc2-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-core</artifactId>
@@ -305,6 +305,10 @@
                         <relocation>
                             <pattern>com.google.common</pattern>
                             <shadedPattern>org.apache.storm.guava</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.google.thirdparty</pattern>
+                            <shadedPattern>org.apache.storm.guava.thirdparty</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.apache.http</pattern>

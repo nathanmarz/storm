@@ -20,6 +20,7 @@ package org.apache.storm.hbase.topology;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Values;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -51,7 +52,7 @@ import java.util.List;
 public class WordCountValueMapper implements HBaseValueMapper {
 
     @Override
-    public List<Values> toValues(Result result) throws Exception {
+    public List<Values> toValues(ITuple tuple, Result result) throws Exception {
         List<Values> values = new ArrayList<Values>();
         Cell[] cells = result.rawCells();
         for(Cell cell : cells) {

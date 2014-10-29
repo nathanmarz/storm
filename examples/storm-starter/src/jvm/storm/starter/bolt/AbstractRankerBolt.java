@@ -26,7 +26,6 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import org.apache.log4j.Logger;
 import storm.starter.tools.Rankings;
-import storm.starter.util.TupleHelpers;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -78,7 +77,7 @@ public abstract class AbstractRankerBolt extends BaseBasicBolt {
    */
   @Override
   public final void execute(Tuple tuple, BasicOutputCollector collector) {
-    if (TupleHelpers.isTickTuple(tuple)) {
+    if (tuple.isTick()) {
       getLogger().debug("Received tick tuple, triggering emit of current rankings");
       emitRankings(collector);
     }

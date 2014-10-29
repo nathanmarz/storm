@@ -153,6 +153,7 @@ public class Client implements IConnection {
                 if (!future.isSuccess()) {
                     if (null != current) {
                         current.close();
+                        channel = null;
                     }
                 } else {
                     channel = current;

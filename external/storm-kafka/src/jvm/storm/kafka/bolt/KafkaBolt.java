@@ -90,6 +90,7 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     @Override
     public void execute(Tuple input) {
         if (input.isTick()) {
+          collector.ack(input);
           return; // Do not try to send ticks to Kafka
         }
 

@@ -215,8 +215,6 @@
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                    ;critical for this test
-                    ;                    STORM-NETTY-MESSAGE-BATCH-SIZE 1
                     }
         context (TransportFactory/makeContext storm-conf)
         client (.connect context nil "localhost" port)

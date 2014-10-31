@@ -142,6 +142,7 @@ public class Client implements IConnection {
             }
 
             int tried = 0;
+            channel = null;
             while (tried <= max_retries) {
 
                 LOG.info("Reconnect started for {}... [{}]", name(), tried);
@@ -153,7 +154,6 @@ public class Client implements IConnection {
                 if (!future.isSuccess()) {
                     if (null != current) {
                         current.close();
-                        channel = null;
                     }
                 } else {
                     channel = current;

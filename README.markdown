@@ -79,6 +79,7 @@ under the License.
 * Michael G. Noll ([@miguno](https://github.com/miguno))
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Sriharsha Chintalapani([@harshach](https://github.com/harshach))
+* Sean Zhong ([@clockfly] (http://github.com/clockfly))
 
 ## Contributors
 

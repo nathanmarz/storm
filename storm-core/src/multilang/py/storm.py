@@ -219,8 +219,12 @@ class BasicBolt(object):
                     sync()
                 else:
                     ANCHOR_TUPLE = tup
-                    self.process(tup)
-                    ack(tup)
+                    try:
+                        self.process(tup)
+                        ack(tup)
+                    except Exception, e:
+                        reportError(traceback.format_exc(e))
+                        fail(tup)
         except Exception, e:
             reportError(traceback.format_exc(e))
 

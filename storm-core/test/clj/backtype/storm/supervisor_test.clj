@@ -247,7 +247,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-cp "/base:/stormjar.jar"
+          mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
           exp-args-fn (fn [opts topo-opts classpath]
                        (concat [(supervisor/java-cmd) "-server"]
                                opts
@@ -257,8 +257,8 @@
                                 "-Dstorm.home="
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
-                                "-Dstorm.log.dir=/logs"
-                                "-Dlogback.configurationFile=/logback/cluster.xml"
+                                (str "-Dstorm.log.dir=" file-path-separator "logs")
+                                (str "-Dlogback.configurationFile=" file-path-separator "logback" file-path-separator "cluster.xml")
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -308,14 +308,14 @@
                                                 [0]
                                                 exp-args))))
       (testing "testing topology.classpath is added to classpath"
-        (let [topo-cp "/any/path"
+        (let [topo-cp (str file-path-separator "any" file-path-separator "path")
               exp-args (exp-args-fn [] [] (add-to-classpath mock-cp [topo-cp]))
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
                      launch-process nil
-                     current-classpath "/base"]
+                     current-classpath (str file-path-separator "base")]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
@@ -331,7 +331,7 @@
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
                      launch-process nil
-                     current-classpath "/base"]
+                     current-classpath (str file-path-separator "base")]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port

@@ -33,9 +33,9 @@ of this class you need to first construct an instance of GlobalPartitionInformat
     Broker brokerForPartition1 = new Broker("localhost", 9092);//localhost:9092 but we specified the port explicitly
     Broker brokerForPartition2 = new Broker("localhost:9092");//localhost:9092 specified as one string.
     GlobalPartitionInformation partitionInfo = new GlobalPartitionInformation();
-    partitionInfo.add(0, brokerForPartition0)//mapping form partition 0 to brokerForPartition0
-    partitionInfo.add(1, brokerForPartition1)//mapping form partition 1 to brokerForPartition1
-    partitionInfo.add(2, brokerForPartition2)//mapping form partition 2 to brokerForPartition2
+    partitionInfo.addPartition(0, brokerForPartition0);//mapping form partition 0 to brokerForPartition0
+    partitionInfo.addPartition(1, brokerForPartition1);//mapping form partition 1 to brokerForPartition1
+    partitionInfo.addPartition(2, brokerForPartition2);//mapping form partition 2 to brokerForPartition2
     StaticHosts hosts = new StaticHosts(partitionInfo);
 ```
 
@@ -121,7 +121,6 @@ use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependen
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
             <version>0.8.1.1</version>
-            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>

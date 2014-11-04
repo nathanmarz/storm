@@ -155,45 +155,42 @@ public class KafkaUtils {
         }
     }
 
-    public static ByteBufferMessageSet fetchMessages(KafkaConfig config, SimpleConsumer consumer, Partition partition, long offset) {
+    public static ByteBufferMessageSet fetchMessages(KafkaConfig config, SimpleConsumer consumer, Partition partition, long offset) throws UpdateOffsetException {
         ByteBufferMessageSet msgs = null;
         String topic = config.topic;
         int partitionId = partition.partition;
-        for (int errors = 0; errors < 2 && msgs == null; errors++) {
-            FetchRequestBuilder builder = new FetchRequestBuilder();
-            FetchRequest fetchRequest = builder.addFetch(topic, partitionId, offset, config.fetchSizeBytes).
-                    clientId(config.clientId).maxWait(config.fetchMaxWait).build();
-            FetchResponse fetchResponse;
-            try {
-                fetchResponse = consumer.fetch(fetchRequest);
-            } catch (Exception e) {
-                if (e instanceof ConnectException ||
-                        e instanceof SocketTimeoutException ||
-                        e instanceof IOException ||
-                        e instanceof UnresolvedAddressException
-                        ) {
-                    LOG.warn("Network error when fetching messages:", e);
-                    throw new FailedFetchException(e);
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (fetchResponse.hasError()) {
-                KafkaError error = KafkaError.getError(fetchResponse.errorCode(topic, partitionId));
-                if (error.equals(KafkaError.OFFSET_OUT_OF_RANGE) && config.useStartOffsetTimeIfOffsetOutOfRange && errors == 0) {
-                    long startOffset = getOffset(consumer, topic, partitionId, config.startOffsetTime);
-                    LOG.warn("Got fetch request with offset out of range: [" + offset + "]; " +
-                            "retrying with default start offset time from configuration. " +
-                            "configured start offset time: [" + config.startOffsetTime + "] offset: [" + startOffset + "]");
-                    offset = startOffset;
-                } else {
-                    String message = "Error fetching data from [" + partition + "] for topic [" + topic + "]: [" + error + "]";
-                    LOG.error(message);
-                    throw new FailedFetchException(message);
-                }
+        FetchRequestBuilder builder = new FetchRequestBuilder();
+        FetchRequest fetchRequest = builder.addFetch(topic, partitionId, offset, config.fetchSizeBytes).
+                clientId(config.clientId).maxWait(config.fetchMaxWait).build();
+        FetchResponse fetchResponse;
+        try {
+            fetchResponse = consumer.fetch(fetchRequest);
+        } catch (Exception e) {
+            if (e instanceof ConnectException ||
+                    e instanceof SocketTimeoutException ||
+                    e instanceof IOException ||
+                    e instanceof UnresolvedAddressException
+                    ) {
+                LOG.warn("Network error when fetching messages:", e);
+                throw new FailedFetchException(e);
             } else {
-                msgs = fetchResponse.messageSet(topic, partitionId);
+                throw new RuntimeException(e);
             }
+        }
+        if (fetchResponse.hasError()) {
+            KafkaError error = KafkaError.getError(fetchResponse.errorCode(topic, partitionId));
+            if (error.equals(KafkaError.OFFSET_OUT_OF_RANGE) && config.useStartOffsetTimeIfOffsetOutOfRange) {
+                LOG.warn("Got fetch request with offset out of range: [" + offset + "]; " +
+                        "retrying with default start offset time from configuration. " +
+                        "configured start offset time: [" + config.startOffsetTime + "]");
+                throw new UpdateOffsetException();
+            } else {
+                String message = "Error fetching data from [" + partition + "] for topic [" + topic + "]: [" + error + "]";
+                LOG.error(message);
+                throw new FailedFetchException(message);
+            }
+        } else {
+            msgs = fetchResponse.messageSet(topic, partitionId);
         }
         return msgs;
     }

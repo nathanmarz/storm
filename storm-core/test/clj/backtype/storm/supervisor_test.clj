@@ -255,6 +255,8 @@
                                ["-Djava.library.path="
                                 (str "-Dlogfile.name=worker-" mock-port ".log")
                                 "-Dstorm.home="
+                                "-Dstorm.conf.file="
+                                "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
                                 (str "-Dlogback.configurationFile=" file-path-separator "logback" file-path-separator "cluster.xml")
                                 (str "-Dstorm.id=" mock-storm-id)

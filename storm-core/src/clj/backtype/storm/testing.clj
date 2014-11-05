@@ -187,9 +187,7 @@
       ;; on windows, the host process still holds lock on the logfile
       (catch Exception e (log-message (.getMessage e)))) ))
 
-(def TEST-TIMEOUT-MS
-  (let [timeout (System/getProperty "STORM_TEST_TIMEOUT_MS")]
-    (parse-int (if timeout timeout "5000"))))
+(def TEST-TIMEOUT-MS 5000)
 
 (defmacro while-timeout [timeout-ms condition & body]
   `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
@@ -596,7 +594,7 @@
                            (not= (global-amt track-id "transferred")                                 
                                  (global-amt track-id "processed"))
                            ))]
-        (while-timeout timeout-ms (waiting?)
+        (while-timeout TEST-TIMEOUT-MS (waiting?)
                        ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
                        ;; (println "Processed: " (global-amt track-id "processed"))
                        ;; (println "Transferred: " (global-amt track-id "transferred"))

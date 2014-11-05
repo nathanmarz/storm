@@ -15,8 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.messaging.netty-unit-test
   (:use [clojure test])
-  (:import [backtype.storm.messaging TransportFactory TaskMessage])
-  (:import [java.util.concurrent ExecutionException])
+  (:import [backtype.storm.messaging TransportFactory])
   (:use [backtype.storm bootstrap testing util]))
 
 (bootstrap)

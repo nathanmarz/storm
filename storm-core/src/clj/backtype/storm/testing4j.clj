@@ -44,6 +44,7 @@
              ^:static [mkTrackedTopology [backtype.storm.ILocalCluster backtype.storm.generated.StormTopology] backtype.storm.testing.TrackedTopology]
              ^:static [trackedWait [backtype.storm.testing.TrackedTopology] void]
              ^:static [trackedWait [backtype.storm.testing.TrackedTopology Integer] void]
+             ^:static [trackedWait [backtype.storm.testing.TrackedTopology Integer Integer] void]
              ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer Integer] void]
              ^:static [advanceClusterTime [backtype.storm.ILocalCluster Integer] void]
              ^:static [multiseteq [java.util.Collection java.util.Collection] boolean]
@@ -123,6 +124,8 @@
       (TrackedTopology.)))
 
 (defn -trackedWait
+  ([^TrackedTopology trackedTopology ^Integer amt ^Integer timeout-ms]
+   (tracked-wait trackedTopology amt timeout-ms))
   ([^TrackedTopology trackedTopology ^Integer amt]
    (tracked-wait trackedTopology amt))
   ([^TrackedTopology trackedTopology]

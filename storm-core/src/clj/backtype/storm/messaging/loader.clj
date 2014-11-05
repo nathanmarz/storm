@@ -65,11 +65,12 @@
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
   (let [max-buffer-size (int max-buffer-size)
+        local-hostname (memoized-local-hostname)
         socket (.bind ^IContext context storm-id port)
         thread-count (if receiver-thread-count receiver-thread-count 1)
         vthreads (mk-receive-threads context storm-id port transfer-local-fn daemon kill-fn priority socket max-buffer-size thread-count)]
     (fn []
-      (let [kill-socket (.connect ^IContext context storm-id "localhost" port)]
+      (let [kill-socket (.connect ^IContext context storm-id local-hostname port)]
         (log-message "Shutting down receiving-thread: [" storm-id ", " port "]")
         (.send ^IConnection kill-socket
                   -1 (byte-array []))

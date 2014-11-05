@@ -142,6 +142,7 @@ public class Client implements IConnection {
             }
 
             int tried = 0;
+            //setting channel to null to make sure we throw an exception when reconnection fails
             channel = null;
             while (tried <= max_retries) {
 

@@ -206,6 +206,12 @@
 
 (def memoized-local-hostname (memoize local-hostname))
 
+;; checks conf for STORM-LOCAL-HOSTNAME.
+;; when unconfigured, falls back to (memoized) guess by `local-hostname`.
+(defn hostname
+  [conf]
+  (conf STORM-LOCAL-HOSTNAME (memoized-local-hostname)))
+
 (letfn [(try-port [port]
                   (with-open [socket (java.net.ServerSocket. port)]
                     (.getLocalPort socket)))]

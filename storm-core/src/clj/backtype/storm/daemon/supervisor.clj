@@ -212,9 +212,7 @@
    :local-state (supervisor-state conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)
-   :my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
-                  (conf STORM-LOCAL-HOSTNAME)
-                  (local-hostname))
+   :my-hostname (hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
    :timer (mk-timer :kill-fn (fn [t]
                                (log-error t "Error when processing event")

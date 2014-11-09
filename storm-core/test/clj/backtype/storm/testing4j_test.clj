@@ -157,6 +157,38 @@
            (it/assert-failed tracker 2)
            ))))))
 
+(deftest test-disable-tuple-timeout
+  (let [daemon-conf (doto (Config.)
+                      (.put TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false))
+        mk-cluster-param (doto (MkClusterParam.)
+                           (.setDaemonConf daemon-conf))]
+    (Testing/withSimulatedTimeLocalCluster
+      mk-cluster-param
+      (reify TestJob
+        (^void run [this ^ILocalCluster cluster]
+          (let [feeder (feeder-spout ["field1"])
+                tracker (AckFailMapTracker.)
+                _ (.setAckFailDelegate feeder tracker)
+                topology (thrift/mk-topology
+                           {"1" (thrift/mk-spout-spec feeder)}
+                           {"2" (thrift/mk-bolt-spec {"1" :global} it/ack-every-other)})
+                storm-conf (doto (Config.)
+                             (.put TOPOLOGY-MESSAGE-TIMEOUT-SECS 10)
+                             (.put TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false))]
+            (.submitTopology cluster
+              "disable-timeout-tester"
+              storm-conf
+              topology)
+            (.feed feeder ["a"] 1)
+            (.feed feeder ["b"] 2)
+            (.feed feeder ["c"] 3)
+            (Testing/advanceClusterTime cluster (int 9))
+            (it/assert-acked tracker 1 3)
+            (is (not (.isFailed tracker 2)))
+            (Testing/advanceClusterTime cluster (int 12))
+            (is (not (.isFailed tracker 2)))
+            ))))))
+
 (deftest test-test-tuple
   (letlocals
    ;; test the one-param signature

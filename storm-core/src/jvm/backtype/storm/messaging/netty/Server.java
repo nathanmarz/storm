@@ -79,6 +79,7 @@ class Server implements IConnection {
         
         // Configure the server.
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
+        int backlog = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BACKLOG), 500);
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS));
 
         ThreadFactory bossFactory = new NettyRenameThreadFactory(name() + "-boss");
@@ -98,6 +99,7 @@ class Server implements IConnection {
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.receiveBufferSize", buffer_size);
         bootstrap.setOption("child.keepAlive", true);
+        bootstrap.setOption("backlog", backlog);
 
         // Set up the pipeline factory.
         bootstrap.setPipelineFactory(new StormServerPipelineFactory(this));

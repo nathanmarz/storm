@@ -30,7 +30,7 @@
     </triggeringPolicy>
 
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
+      <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZ} %c{1} [%p] %m%n</pattern>
     </encoder>
  </appender>
 
@@ -47,7 +47,7 @@
     </triggeringPolicy>
 
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
+      <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZ} %c{1} [%p] %m%n</pattern>
     </encoder>
   </appender>
 

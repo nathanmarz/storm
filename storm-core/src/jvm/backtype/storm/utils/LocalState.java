@@ -18,6 +18,8 @@
 package backtype.storm.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
@@ -32,29 +34,42 @@ import org.slf4j.LoggerFactory;
  */
 public class LocalState {
     public static Logger LOG = LoggerFactory.getLogger(LocalState.class);
+
     private VersionedStore _vs;
     
     public LocalState(String backingDir) throws IOException {
         LOG.debug("New Local State for {}", backingDir);
         _vs = new VersionedStore(backingDir);
     }
-    
+
     public synchronized Map<Object, Object> snapshot() throws IOException {
         int attempts = 0;
         while(true) {
-            String latestPath = _vs.mostRecentVersionPath();
-            if(latestPath==null) return new HashMap<Object, Object>();
             try {
-                return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
-            } catch(IOException e) {
+                return deserializeLatestVersion();
+            } catch (IOException e) {
                 attempts++;
-                if(attempts >= 10) {
+                if (attempts >= 10) {
                     throw e;
                 }
             }
         }
     }
-    
+
+    private Map<Object, Object> deserializeLatestVersion() throws IOException {
+        String latestPath = _vs.mostRecentVersionPath();
+        Map<Object, Object> result = new HashMap<Object, Object>();
+        if (latestPath != null) {
+            byte[] serialized = FileUtils.readFileToByteArray(new File(latestPath));
+            if (serialized.length == 0) {
+                LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
+            } else {
+                result = (Map<Object, Object>) Utils.deserialize(serialized);
+            }
+        }
+        return result;
+    }
+
     public Object get(Object key) throws IOException {
         return snapshot().get(key);
     }

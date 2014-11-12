@@ -210,8 +210,12 @@ class BasicBolt(object):
             while True:
                 tup = readTuple()
                 ANCHOR_TUPLE = tup
-                self.process(tup)
-                ack(tup)
+                try:
+                    self.process(tup)
+                    ack(tup)
+                except Exception, e:
+                    reportError(traceback.format_exc(e))
+                    fail(tup)
         except Exception, e:
             reportError(traceback.format_exc(e))
 

@@ -261,6 +261,8 @@
                                ["-Djava.library.path="
                                 (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
                                 "-Dstorm.home="
+                                "-Dstorm.conf.file="
+                                "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
                                 (str "-Dlogback.configurationFile=" file-path-separator "logback" file-path-separator "worker.xml")
                                 (str "-Dstorm.id=" mock-storm-id)
@@ -379,6 +381,8 @@
                                 " '-Djava.library.path='"
                                 " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
                                 " '-Dstorm.home='"
+                                " '-Dstorm.conf.file='"
+                                " '-Dstorm.options='"
                                 " '-Dstorm.log.dir=/logs'"
                                 " '-Dlogback.configurationFile=/logback/worker.xml'"
                                 " '-Dstorm.id=" mock-storm-id "'"

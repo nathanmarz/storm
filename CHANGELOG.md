@@ -1,3 +1,10 @@
+## 0.9.3-rc2
+ * STORM-492: Test timeout should be configurable
+ * STORM-540: Change default time format in logs to ISO8601 in order to include timezone
+ * STORM-511: Storm-Kafka spout keeps sending fetch requests with invalid offset
+ * STORM-538: Guava com.google.thirdparty.publicsuffix is not shaded
+ * STORM-497: don't modify the netty server taskToQueueId mapping while the someone could be reading it.
+
 ## 0.9.3-rc1
  * STORM-519: add tuple as an input param to HBaseValueMapper 
  * STORM-488: Exit with 254 error code if storm CLI is run with unknown command

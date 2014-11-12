@@ -125,7 +125,7 @@
 
 (defn -trackedWait
   ([^TrackedTopology trackedTopology ^Integer amt ^Integer timeout-ms]
-    (tracked-wait trackedTopology amt timeout-ms))
+   (tracked-wait trackedTopology amt timeout-ms))
   ([^TrackedTopology trackedTopology ^Integer amt]
    (tracked-wait trackedTopology amt))
   ([^TrackedTopology trackedTopology]

@@ -230,7 +230,8 @@ The following commands must be run from the top-level directory.
     $ mvn clean install
 
     # Build the code and run the tests, with specifying default test timeout (in millisecond)
-    $ mvn clean install -DSTORM_TEST_TIMEOUT_MS=10000
+    $ export STORM_TEST_TIMEOUT_MS=10000
+    $ mvn clean install
 
     # Build the code but skip the tests
     $ mvn clean install -DskipTests=true

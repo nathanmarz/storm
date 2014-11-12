@@ -1,4 +1,5 @@
 ## 0.9.3-rc2
+ * STORM-492: Test timeout should be configurable
  * STORM-540: Change default time format in logs to ISO8601 in order to include timezone
  * STORM-511: Storm-Kafka spout keeps sending fetch requests with invalid offset
  * STORM-538: Guava com.google.thirdparty.publicsuffix is not shaded

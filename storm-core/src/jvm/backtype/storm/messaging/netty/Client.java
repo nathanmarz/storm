@@ -17,18 +17,6 @@
  */
 package backtype.storm.messaging.netty;
 
-import backtype.storm.Config;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
-import backtype.storm.utils.Utils;
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -39,6 +27,20 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import backtype.storm.Config;
+import backtype.storm.messaging.IConnection;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
+import backtype.storm.utils.Utils;
 
 public class Client implements IConnection {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
@@ -59,8 +61,10 @@ public class Client implements IConnection {
     private int messageBatchSize;
     
     private AtomicLong pendings;
+    
+    Map storm_conf;
 
-    MessageBatch messageBatch = null;
+    private MessageBatch messageBatch = null;
     private AtomicLong flushCheckTimer;
     private int flushCheckInterval;
     private ScheduledExecutorService scheduler;
@@ -68,6 +72,7 @@ public class Client implements IConnection {
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, ChannelFactory factory, 
             ScheduledExecutorService scheduler, String host, int port) {
+    	this.storm_conf = storm_conf;
         this.factory = factory;
         this.scheduler = scheduler;
         channelRef = new AtomicReference<Channel>(null);

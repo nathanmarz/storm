@@ -142,6 +142,10 @@
             <outputDirectory>/logback</outputDirectory>
         </file>
 
+        <file>
+            <source>${project.basedir}/../../logback/worker.xml</source>
+            <outputDirectory>/logback</outputDirectory>
+        </file>
 
         <file>
             <source>${project.basedir}/LICENSE</source>

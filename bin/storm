@@ -213,6 +213,18 @@ def kill(*args):
         jvmtype="-client", 
         extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
+
+def upload_credentials(*args):
+    """Syntax: [storm upload_credentials topology-name [credkey credvalue]*]
+
+    Uploads a new set of credentials to a running topology
+    """
+    exec_storm_class(
+        "backtype.storm.command.upload_credentials", 
+        args=args, 
+        jvmtype="-client", 
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
 def activate(*args):
     """Syntax: [storm activate topology-name]
 
@@ -473,7 +485,8 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor}
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
+            "upload-credentials": upload_credentials}
 
 def parse_config(config_list):
     global CONFIG_OPTS

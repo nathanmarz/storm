@@ -35,6 +35,10 @@ public class Cluster {
      * key: topologyId, value: topology's current assignments.
      */
     private Map<String, SchedulerAssignmentImpl> assignments;
+    /**
+     * key topologyId, Value: scheduler's status.
+     */  
+    private Map<String, String> status;
 
     /**
      * a map from hostname to supervisor id.
@@ -50,6 +54,7 @@ public class Cluster {
         this.supervisors.putAll(supervisors);
         this.assignments = new HashMap<String, SchedulerAssignmentImpl>(assignments.size());
         this.assignments.putAll(assignments);
+        this.status = new HashMap<String, String>();
         this.hostToId = new HashMap<String, List<String>>();
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
@@ -431,5 +436,13 @@ public class Cluster {
      */
     public Map<String, SupervisorDetails> getSupervisors() {
         return this.supervisors;
+    }
+
+    public void setStatus(String topologyId, String status) {
+        this.status.put(topologyId, status);
+    }
+
+    public Map<String, String> getStatusMap() {
+        return this.status;
     }
 }

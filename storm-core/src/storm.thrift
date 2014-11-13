@@ -127,6 +127,10 @@ exception NotAliveException {
   1: required string msg;
 }
 
+exception AuthorizationException {
+  1: required string msg;
+}
+
 exception InvalidTopologyException {
   1: required string msg;
 }
@@ -139,6 +143,8 @@ struct TopologySummary {
   5: required i32 num_workers;
   6: required i32 uptime_secs;
   7: required string status;
+513: optional string sched_status;
+514: optional string owner;
 }
 
 struct SupervisorSummary {
@@ -210,6 +216,8 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+513: optional string sched_status;
+514: optional string owner;
 }
 
 struct KillOptions {
@@ -222,42 +230,48 @@ struct RebalanceOptions {
   3: optional map<string, i32> num_executors;
 }
 
+struct Credentials {
+  1: required map<string,string> creds;
+}
+
 enum TopologyInitialStatus {
     ACTIVE = 1,
     INACTIVE = 2
 }
 struct SubmitOptions {
   1: required TopologyInitialStatus initial_status;
+  2: optional Credentials creds;
 }
 
 service Nimbus {
-  void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
-  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
-  void killTopology(1: string name) throws (1: NotAliveException e);
-  void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
-  void activate(1: string name) throws (1: NotAliveException e);
-  void deactivate(1: string name) throws (1: NotAliveException e);
-  void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite);
+  void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+  void killTopology(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+  void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 
-  string beginFileUpload();
-  void uploadChunk(1: string location, 2: binary chunk);
-  void finishFileUpload(1: string location);
+  string beginFileUpload() throws (1: AuthorizationException aze);
+  void uploadChunk(1: string location, 2: binary chunk) throws (1: AuthorizationException aze);
+  void finishFileUpload(1: string location) throws (1: AuthorizationException aze);
   
-  string beginFileDownload(1: string file);
+  string beginFileDownload(1: string file) throws (1: AuthorizationException aze);
   //can stop downloading chunks when receive 0-length byte array back
-  binary downloadChunk(1: string id);
+  binary downloadChunk(1: string id) throws (1: AuthorizationException aze);
 
   // returns json
-  string getNimbusConf();
+  string getNimbusConf() throws (1: AuthorizationException aze);
   // stats functions
-  ClusterSummary getClusterInfo();
-  TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e);
+  ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
+  TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
-  string getTopologyConf(1: string id) throws (1: NotAliveException e);
-  StormTopology getTopology(1: string id) throws (1: NotAliveException e);
-  StormTopology getUserTopology(1: string id) throws (1: NotAliveException e);
+  string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
 }
 
 struct DRPCRequest {
@@ -270,11 +284,11 @@ exception DRPCExecutionException {
 }
 
 service DistributedRPC {
-  string execute(1: string functionName, 2: string funcArgs) throws (1: DRPCExecutionException e);
+  string execute(1: string functionName, 2: string funcArgs) throws (1: DRPCExecutionException e, 2: AuthorizationException aze);
 }
 
 service DistributedRPCInvocations {
-  void result(1: string id, 2: string result);
-  DRPCRequest fetchRequest(1: string functionName);
-  void failRequest(1: string id);  
+  void result(1: string id, 2: string result) throws (1: AuthorizationException aze);
+  DRPCRequest fetchRequest(1: string functionName) throws (1: AuthorizationException aze);
+  void failRequest(1: string id) throws (1: AuthorizationException aze);  
 }

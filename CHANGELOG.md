@@ -5,6 +5,7 @@
  * STORM-511: Storm-Kafka spout keeps sending fetch requests with invalid offset
  * STORM-538: Guava com.google.thirdparty.publicsuffix is not shaded
  * STORM-497: don't modify the netty server taskToQueueId mapping while the someone could be reading it.
+ * STORM-537: A worker reconnects infinitely to another dead worker (Sergey Tryuber)
 
 ## 0.9.3-rc1
  * STORM-519: add tuple as an input param to HBaseValueMapper 

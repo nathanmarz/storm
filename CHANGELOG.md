@@ -1,4 +1,5 @@
 ## 0.9.3-rc2
+ * STORM-549: "topology.enable.message.timeouts" does nothing
  * STORM-546: Local hostname configuration ignored by executor
  * STORM-492: Test timeout should be configurable
  * STORM-540: Change default time format in logs to ISO8601 in order to include timezone

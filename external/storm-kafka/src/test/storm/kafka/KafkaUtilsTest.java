@@ -137,6 +137,7 @@ public class KafkaUtilsTest {
     @Test
     public void generateTuplesWithKeyAndKeyValueScheme() {
         config.scheme = new KeyValueSchemeAsMultiScheme(new StringKeyValueScheme());
+        config.useStartOffsetTimeIfOffsetOutOfRange = false;
         String value = "value";
         String key = "key";
         createTopicAndSendMessage(key, value);

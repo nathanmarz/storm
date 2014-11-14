@@ -50,6 +50,7 @@ public class DigestSaslTransportPlugin extends SaslTransportPlugin {
         return factory;
     }
 
+    @Override
     public TTransport connect(TTransport transport, String serverHost) throws TTransportException, IOException {
         ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
         TSaslClientTransport wrapper_transport = new TSaslClientTransport(DIGEST, 

@@ -1,4 +1,5 @@
 ## 0.9.3-rc2
+ * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor
  * STORM-555: Storm json response should set charset to UTF-8
  * STORM-513: check heartbeat from multilang subprocess
  * STORM-549: "topology.enable.message.timeouts" does nothing

@@ -364,7 +364,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
-      (swap! (:assignment-versions supervisor) versions)
+      (reset! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that

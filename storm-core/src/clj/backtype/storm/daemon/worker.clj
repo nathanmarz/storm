@@ -202,12 +202,15 @@
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
                                (into {}))
 
-        topology (read-supervisor-topology conf storm-id)]
+        topology (read-supervisor-topology conf storm-id)
+        mq-context  (if mq-context
+                      mq-context
+                      (TransportFactory/makeContext storm-conf))]
+
     (recursive-map
       :conf conf
-      :mq-context (if mq-context
-                      mq-context
-                      (TransportFactory/makeContext storm-conf))
+      :mq-context mq-context
+      :receiver (.bind ^IContext mq-context storm-id port)
       :storm-id storm-id
       :assignment-id assignment-id
       :port port
@@ -348,6 +351,7 @@
   (log-message "Launching receive-thread for " (:assignment-id worker) ":" (:port worker))
   (msg-loader/launch-receive-thread!
     (:mq-context worker)
+    (:receiver worker)
     (:storm-id worker)
     (:receiver-thread-count worker)
     (:port worker)

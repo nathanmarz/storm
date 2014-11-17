@@ -1,3 +1,6 @@
+## 0.10.0
+ * STORM-533: Add in client and server IConnection metrics.
+
 ## 0.9.3-rc2
  * STORM-513: check heartbeat from multilang subprocess
  * STORM-549: "topology.enable.message.timeouts" does nothing

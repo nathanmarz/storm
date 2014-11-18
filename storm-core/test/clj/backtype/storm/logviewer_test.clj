@@ -165,28 +165,45 @@
 (deftest test-authorized-log-user
   (testing "allow cluster admin"
     (let [conf {NIMBUS-ADMINS ["alice"]}]
-      (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
-        (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))))
+      (stubbing [logviewer/get-log-user-group-whitelist [[] []]
+                 logviewer/user-groups []]
+        (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf))
+        (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
+        (verify-first-call-args-for logviewer/user-groups "alice"))))
 
   (testing "ignore any cluster-set topology.users"
     (let [conf {TOPOLOGY-USERS ["alice"]}]
-      (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
-        (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" conf))))))
+      (stubbing [logviewer/get-log-user-group-whitelist [[] []]
+                 logviewer/user-groups []]
+        (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))
+        (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
+        (verify-first-call-args-for logviewer/user-groups "alice"))))
 
   (testing "allow cluster logs user"
     (let [conf {LOGS-USERS ["alice"]}]
-      (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
-        (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))))
+      (stubbing [logviewer/get-log-user-group-whitelist [[] []]
+                 logviewer/user-groups []]
+        (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf))
+        (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
+        (verify-first-call-args-for logviewer/user-groups "alice"))))
 
   (testing "allow whitelisted topology user"
-    (stubbing [logviewer/get-log-user-group-whitelist [["alice"] []]]
-      (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))
+    (stubbing [logviewer/get-log-user-group-whitelist [["alice"] []]
+               logviewer/user-groups []]
+      (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))
+      (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
+      (verify-first-call-args-for logviewer/user-groups "alice")))
 
   (testing "allow whitelisted topology group"
     (stubbing [logviewer/get-log-user-group-whitelist [[] ["alice-group"]]
                logviewer/user-groups ["alice-group"]]
-      (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))
+      (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))
+      (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
+      (verify-first-call-args-for logviewer/user-groups "alice")))
 
   (testing "disallow user not in nimbus admin, topo user, logs user, or whitelist"
-    (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
-      (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))))
+    (stubbing [logviewer/get-log-user-group-whitelist [[] []]
+               logviewer/user-groups []]
+      (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" {})))
+      (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
+      (verify-first-call-args-for logviewer/user-groups "alice"))))

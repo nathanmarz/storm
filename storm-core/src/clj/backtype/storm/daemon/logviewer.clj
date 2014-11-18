@@ -192,7 +192,7 @@
 (defn authorized-log-user? [user fname conf]
   (if (or (blank? user) (blank? fname))
     nil
-    (let [groups (user-groups fname)
+    (let [groups (user-groups user)
           [user-wl group-wl] (get-log-user-group-whitelist fname)
           logs-users (concat (conf LOGS-USERS)
                              (conf NIMBUS-ADMINS)

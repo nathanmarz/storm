@@ -1,4 +1,6 @@
 ## 0.9.3-rc2
+ * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor
+ * STORM-555: Storm json response should set charset to UTF-8
  * STORM-513: check heartbeat from multilang subprocess
  * STORM-549: "topology.enable.message.timeouts" does nothing
  * STORM-546: Local hostname configuration ignored by executor
@@ -68,7 +70,6 @@
  * STORM-406: Fix for reconnect logic in netty client.
  * STORM-366: Add color span to most recent error and fix ui templates.
  * STORM-369: topology summary page displays wrong order.
- * STORM-350: LMAX Disruptor 3.2.1
  * STORM-239: Allow supervisor to operate in paths with spaces in them
  * STORM-87: fail fast on ShellBolt exception
  * STORM-417: Storm UI lost table sort style when tablesorter was updated

@@ -182,7 +182,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.lmax</groupId>
+            <groupId>com.googlecode.disruptor</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>

@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.logviewer
   (:use compojure.core)
-  (:use [clojure.set :only [difference]])
+  (:use [clojure.set :only [difference intersection]])
   (:use [clojure.string :only [blank?]])
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log timer])
@@ -175,19 +175,32 @@
                 (recur)))))
       (.toString output)))))
 
-(defn get-log-user-whitelist [fname]
+(defn get-log-user-group-whitelist [fname]
   (let [wl-file (get-log-metadata-file fname)
-        m (clojure-from-yaml-file wl-file)]
-    (if-let [whitelist (.get m LOGS-USERS)] whitelist [])))
+        m (clojure-from-yaml-file wl-file)
+        user-wl (.get m LOGS-USERS)
+        user-wl (if user-wl user-wl [])
+        group-wl (.get m LOGS-GROUPS)
+        group-wl (if group-wl group-wl [])]
+    [user-wl group-wl]))
+
+(def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
+(defn user-groups
+  [user]
+  (if (blank? user) [] (.getGroups igroup-mapper user)))
 
 (defn authorized-log-user? [user fname conf]
   (if (or (blank? user) (blank? fname))
     nil
-    (let [whitelist (get-log-user-whitelist fname)
+    (let [groups (user-groups fname)
+          [user-wl group-wl] (get-log-user-group-whitelist fname)
           logs-users (concat (conf LOGS-USERS)
                              (conf NIMBUS-ADMINS)
-                             whitelist)]
-       (some #(= % user) logs-users))))
+                             user-wl)
+          logs-groups (concat (conf LOGS-GROUPS)
+                              group-wl)]
+       (or (some #(= % user) logs-users)
+           (< 0 (.size (intersection (set groups) (set group-wl))))))))
 
 (defn log-root-dir
   "Given an appender name, as configured, get the parent directory of the appender's log file.

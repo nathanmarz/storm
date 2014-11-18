@@ -165,23 +165,28 @@
 (deftest test-authorized-log-user
   (testing "allow cluster admin"
     (let [conf {NIMBUS-ADMINS ["alice"]}]
-      (stubbing [logviewer/get-log-user-whitelist []]
+      (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
         (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))))
 
   (testing "ignore any cluster-set topology.users"
     (let [conf {TOPOLOGY-USERS ["alice"]}]
-      (stubbing [logviewer/get-log-user-whitelist []]
+      (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
         (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" conf))))))
 
   (testing "allow cluster logs user"
     (let [conf {LOGS-USERS ["alice"]}]
-      (stubbing [logviewer/get-log-user-whitelist []]
+      (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
         (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))))
 
   (testing "allow whitelisted topology user"
-    (stubbing [logviewer/get-log-user-whitelist ["alice"]]
+    (stubbing [logviewer/get-log-user-group-whitelist [["alice"] []]]
+      (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))
+
+  (testing "allow whitelisted topology group"
+    (stubbing [logviewer/get-log-user-group-whitelist [[] ["alice-group"]]
+               logviewer/user-groups ["alice-group"]]
       (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))
 
   (testing "disallow user not in nimbus admin, topo user, logs user, or whitelist"
-    (stubbing [logviewer/get-log-user-whitelist []]
+    (stubbing [logviewer/get-log-user-group-whitelist [[] []]]
       (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))))

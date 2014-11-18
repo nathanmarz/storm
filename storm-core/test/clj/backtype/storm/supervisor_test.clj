@@ -494,12 +494,14 @@
           exp-storm-id "0123456789"
           exp-port 4242
           exp-logs-users ["bob" "charlie" "daryl"]
+          exp-logs-groups []
           storm-conf {TOPOLOGY-SUBMITTER-USER "alice"
                       TOPOLOGY-USERS ["charlie" "bob"]
                       LOGS-USERS ["daryl"]}
           exp-data {TOPOLOGY-SUBMITTER-USER exp-owner
                     "worker-id" exp-worker-id
-                    LOGS-USERS exp-logs-users}
+                    LOGS-USERS exp-logs-users
+                    LOGS-GROUPS exp-logs-groups}
           conf {}]
       (mocking [supervisor/write-log-metadata-to-yaml-file!]
         (supervisor/write-log-metadata! storm-conf exp-owner exp-worker-id

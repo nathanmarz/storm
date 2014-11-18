@@ -563,6 +563,10 @@
 (defn write-log-metadata! [storm-conf user worker-id storm-id port conf]
   (let [data {TOPOLOGY-SUBMITTER-USER user
               "worker-id" worker-id
+              LOGS-GROUPS (sort (distinct (remove nil?
+                                           (concat
+                                             (storm-conf LOGS-GROUPS)
+                                             (storm-conf TOPOLOGY-GROUPS)))))
               LOGS-USERS (sort (distinct (remove nil?
                                            (concat
                                              (storm-conf LOGS-USERS)

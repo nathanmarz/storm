@@ -46,12 +46,12 @@ The second thing needed for constructing a kafkaSpout is an instance of KafkaCon
     public KafkaConfig(BrokerHosts hosts, String topic, String clientId)
 ```
 
-The BorkerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
+The BrokerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
 The optional ClientId is used as a part of the zookeeper path where the spout's current consumption offset is stored.
 
 There are 2 extensions of KafkaConfig currently in use.
 
-Spoutconfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
+SpoutConfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
 as root to store your consumer's offset. The id should uniquely identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);

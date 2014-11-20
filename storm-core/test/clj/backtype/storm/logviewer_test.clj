@@ -171,10 +171,11 @@
         (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
         (verify-first-call-args-for logviewer/user-groups "alice"))))
 
-  (testing "ignore any cluster-set topology.users"
-    (let [conf {TOPOLOGY-USERS ["alice"]}]
+  (testing "ignore any cluster-set topology.users topology.groups"
+    (let [conf {TOPOLOGY-USERS ["alice"]
+                TOPOLOGY-GROUPS ["alice-group"]}]
       (stubbing [logviewer/get-log-user-group-whitelist [[] []]
-                 logviewer/user-groups []]
+                 logviewer/user-groups ["alice-group"]]
         (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))
         (verify-first-call-args-for logviewer/get-log-user-group-whitelist "non-blank-fname")
         (verify-first-call-args-for logviewer/user-groups "alice"))))

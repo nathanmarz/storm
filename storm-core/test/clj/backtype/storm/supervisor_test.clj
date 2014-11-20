@@ -494,9 +494,11 @@
           exp-storm-id "0123456789"
           exp-port 4242
           exp-logs-users ["bob" "charlie" "daryl"]
-          exp-logs-groups []
+          exp-logs-groups ["read-only-group" "special-group"]
           storm-conf {TOPOLOGY-SUBMITTER-USER "alice"
                       TOPOLOGY-USERS ["charlie" "bob"]
+                      TOPOLOGY-GROUPS ["special-group"]
+                      LOGS-GROUPS ["read-only-group"]
                       LOGS-USERS ["daryl"]}
           exp-data {TOPOLOGY-SUBMITTER-USER exp-owner
                     "worker-id" exp-worker-id

@@ -23,7 +23,6 @@ import backtype.storm.metric.api.CountMetric;
 import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.utils.Utils;
 import com.google.common.collect.ImmutableMap;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
@@ -38,13 +37,6 @@ import java.util.*;
 
 public class PartitionManager {
     public static final Logger LOG = LoggerFactory.getLogger(PartitionManager.class);
-    private static final String TIMES_UP_MSG =
-            "Retry logic in your topology is taking longer to complete than is allowed by your"
-            +" Storm Config setting TOPOLOGY_MESSAGE_TIMEOUT_SECS (%s seconds).  (i.e., you have"
-            +" called OutputCollector.fail() too many times for this message).  KafkaSpout has"
-            +" aborted next retry attempt (retry %s) for the Kafka message at offset %s since it"
-            +" would occur after this timeout.";
-    private static final long TIMEOUT_RESET_VALUE = -1L;
 
     private final CombinedMetric _fetchAPILatencyMax;
     private final ReducedMetric _fetchAPILatencyMean;
@@ -53,10 +45,9 @@ public class PartitionManager {
     Long _emittedToOffset;
     // _pending key = Kafka offset, value = time at which the message was first submitted to the topology
     private SortedMap<Long,Long> _pending = new TreeMap<Long,Long>();
-    private SortedSet<Long> failed = new TreeSet<Long>();
+    private final FailedMsgRetryManager _failedMsgRetryManager;
 
     // retryRecords key = Kafka offset, value = retry info for the given message
-    private Map<Long,MessageRetryRecord> retryRecords = new HashMap<Long,MessageRetryRecord>();
     Long _committedTo;
     LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
     Partition _partition;
@@ -76,6 +67,10 @@ public class PartitionManager {
         _state = state;
         _stormConf = stormConf;
         numberAcked = numberFailed = 0;
+
+        _failedMsgRetryManager = new ExponentialBackoffMsgRetryManager(_spoutConfig.retryInitialDelayMs,
+                                                                           _spoutConfig.retryDelayMultiplier,
+                                                                           _spoutConfig.retryDelayMaxMs);
 
         String jsonTopologyId = null;
         Long jsonOffset = null;
@@ -156,31 +151,15 @@ public class PartitionManager {
         }
     }
 
-    /**
-     * Fetch the failed messages ready for retry.  If there are no failed messages, or none are ready for retry, then it
-     * returns an empty List (i.e., not null).
-     */
-    private SortedSet<Long> failedMsgsReadyForRetry() {
-        SortedSet<Long> ready = new TreeSet<Long>();
-        for (Long offset : this.failed) {
-            if (this.retryRecords.get(offset).isReadyForRetry()) {
-                ready.add(offset);
-            }
-        }
-        return ready;
-    }
-
 
     private void fill() {
         long start = System.nanoTime();
-        long offset;
-        final SortedSet<Long> failedReady = failedMsgsReadyForRetry();
+        Long offset;
 
         // Are there failed tuples? If so, fetch those first.
-        final boolean had_failed = !failedReady.isEmpty();
-        if (had_failed) {
-            offset = failedReady.first();
-        } else {
+        offset = this._failedMsgRetryManager.nextFailedMessageToRetry();
+        final boolean processingNewTuples = (offset == null);
+        if (processingNewTuples) {
             offset = _emittedToOffset;
         }
 
@@ -199,15 +178,15 @@ public class PartitionManager {
                     // Skip any old offsets.
                     continue;
                 }
-                if (!had_failed || failedReady.contains(cur_offset)) {
+                if (processingNewTuples || this._failedMsgRetryManager.shouldRetryMsg(cur_offset)) {
                     numMessages += 1;
                     if (!_pending.containsKey(cur_offset)) {
                         _pending.put(cur_offset, System.currentTimeMillis());
                     }
                     _waitingToEmit.add(new MessageAndRealOffset(msg.message(), cur_offset));
                     _emittedToOffset = Math.max(msg.nextOffset(), _emittedToOffset);
-                    if (had_failed) {
-                        failed.remove(cur_offset);
+                    if (_failedMsgRetryManager.shouldRetryMsg(cur_offset)) {
+                        this._failedMsgRetryManager.retryStarted(cur_offset);
                     }
                 }
             }
@@ -221,7 +200,7 @@ public class PartitionManager {
             _pending.headMap(offset - _spoutConfig.maxOffsetBehind).clear();
         }
         _pending.remove(offset);
-        retryRecords.remove(offset);
+        this._failedMsgRetryManager.acked(offset);
         numberAcked++;
     }
 
@@ -239,18 +218,7 @@ public class PartitionManager {
                 throw new RuntimeException("Too many tuple failures");
             }
 
-            try {
-                MessageRetryRecord retryRecord = retryRecords.get(offset);
-                retryRecord = retryRecord == null
-                              ? new MessageRetryRecord(offset)
-                              : retryRecord.createNextRetryRecord();
-
-                retryRecords.put(offset, retryRecord);
-                failed.add(offset);
-
-            } catch (MessageRetryRecord.AvailableRetryTimeExceededException e) {
-                LOG.error("cannot retry", e);
-            }
+            this._failedMsgRetryManager.failed(offset);
         }
     }
 
@@ -302,92 +270,6 @@ public class PartitionManager {
         public KafkaMessageId(Partition partition, long offset) {
             this.partition = partition;
             this.offset = offset;
-        }
-    }
-
-    /**
-     * A MessageRetryRecord holds the data of how many times a message has
-     * failed and been retried, and when the last failure occurred.  It can
-     * determine whether it is ready to be retried by employing an exponential
-     * back-off calculation using config values stored in SpoutConfig:
-     * <ul>
-     *  <li>retryInitialDelayMs - time to delay before the first retry</li>
-     *  <li>retryDelayMultiplier - multiplier by which to increase the delay for each subsequent retry</li>
-     *  <li>retryDelayMaxMs - maximum retry delay (once this delay time is reached, subsequent retries will
-     *                        delay for this amount of time every time)
-     *  </li>
-     * </ul>
-     */
-    class MessageRetryRecord {
-        private final long offset;
-        private final int retryNum;
-        private final long retryTimeUTC;
-
-        public MessageRetryRecord(long offset) throws AvailableRetryTimeExceededException {
-            this(offset, 1);
-        }
-
-        private MessageRetryRecord(long offset, int retryNum) throws AvailableRetryTimeExceededException {
-            this.offset = offset;
-            this.retryNum = retryNum;
-            this.retryTimeUTC = System.currentTimeMillis() + calculateRetryDelay();
-            validateRetryTime();
-        }
-
-        /**
-         * Create a MessageRetryRecord for the next retry that should occur after this one.
-         * @return MessageRetryRecord with the next retry time, or null to indicate that another
-         *         retry should not be performed.  The latter case can happen if we are about to
-         *         run into the backtype.storm.Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS in the Storm
-         *         configuration.
-         */
-        public MessageRetryRecord createNextRetryRecord() throws AvailableRetryTimeExceededException {
-            return new MessageRetryRecord(this.offset, this.retryNum + 1);
-        }
-
-        private void validateRetryTime() throws AvailableRetryTimeExceededException {
-            long stormStartTime = PartitionManager.this._pending.get(this.offset);
-
-            if (stormStartTime == TIMEOUT_RESET_VALUE) {
-                // This is a resubmission from the Storm framework after Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS
-                // has elapsed.  Restart my timer.
-                PartitionManager.this._pending.put(this.offset, System.currentTimeMillis());
-
-            } else {
-                int timeoutSeconds = Utils.getInt(_stormConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
-                if (this.retryTimeUTC - stormStartTime > timeoutSeconds * 1000) {
-
-                    // Prepare for when the Storm framework calls fail()
-                    _pending.put(this.offset, TIMEOUT_RESET_VALUE);
-
-                    throw new AvailableRetryTimeExceededException(String.format(TIMES_UP_MSG,
-                                                                                timeoutSeconds,
-                                                                                this.retryNum,
-                                                                                this.offset));
-
-                } else {
-                    LOG.warn(String.format("allowing another retry: start=%s, retryTime=%s, timeoutSeconds=%s",
-                                           (stormStartTime / 1000) % 1000,
-                                           (this.retryTimeUTC / 1000) % 1000,
-                                           timeoutSeconds));
-                }
-            }
-        }
-
-        private long calculateRetryDelay() {
-            double delayMultiplier = Math.pow(_spoutConfig.retryDelayMultiplier, this.retryNum - 1);
-            long delayThisRetryMs = (long) (_spoutConfig.retryInitialDelayMs * delayMultiplier);
-            return Math.min(delayThisRetryMs, _spoutConfig.retryDelayMaxMs);
-        }
-
-        public boolean isReadyForRetry() {
-            return System.currentTimeMillis() > this.retryTimeUTC;
-        }
-
-        class AvailableRetryTimeExceededException extends Exception {
-            public AvailableRetryTimeExceededException(String msg) {
-                super(msg);
-            }
         }
     }
 }

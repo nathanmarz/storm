@@ -20,7 +20,12 @@ package storm.trident.topology.state;
 
 import backtype.storm.Config;
 import backtype.storm.utils.Utils;
+import backtype.storm.utils.ZookeeperAuthInfo;
+
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.ProtectACLCreateModePathAndBytesable;
+import org.apache.curator.framework.api.PathAndBytesable;
+
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,10 +33,14 @@ import java.util.List;
 import java.util.Map;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
 import org.json.simple.JSONValue;
 
 public class TransactionalState {
     CuratorFramework _curator;
+    List<ACL> _zkAcls = null;
     
     public static TransactionalState newUserState(Map conf, String id) {
         return new TransactionalState(conf, id, "user");
@@ -44,24 +53,53 @@ public class TransactionalState {
     protected TransactionalState(Map conf, String id, String subroot) {
         try {
             conf = new HashMap(conf);
-            String rootDir = conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT) + "/" + id + "/" + subroot;
+            String transactionalRoot = (String)conf.get(Config.TRANSACTIONAL_ZOOKEEPER_ROOT);
+            String rootDir = transactionalRoot + "/" + id + "/" + subroot;
             List<String> servers = (List<String>) getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Config.STORM_ZOOKEEPER_SERVERS);
             Object port = getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_PORT, Config.STORM_ZOOKEEPER_PORT);
-            CuratorFramework initter = Utils.newCuratorStarted(conf, servers, port);
+            ZookeeperAuthInfo auth = new ZookeeperAuthInfo(conf);
+            CuratorFramework initter = Utils.newCuratorStarted(conf, servers, port, auth);
+            _zkAcls = Utils.getWorkerACL(conf);
             try {
-                initter.create().creatingParentsIfNeeded().forPath(rootDir);
-            } catch(KeeperException.NodeExistsException e)  {
-                
+                TransactionalState.createNode(initter, transactionalRoot, null, null, null);
+            } catch (KeeperException.NodeExistsException e) {
             }
-            
+            try {
+                TransactionalState.createNode(initter, rootDir, null, _zkAcls, null);
+            } catch (KeeperException.NodeExistsException e) {
+            }
             initter.close();
                                     
-            _curator = Utils.newCuratorStarted(conf, servers, port, rootDir);
+            _curator = Utils.newCuratorStarted(conf, servers, port, rootDir, auth);
         } catch (Exception e) {
            throw new RuntimeException(e);
         }
     }
+
+    protected static String forPath(PathAndBytesable<String> builder, 
+            String path, byte[] data) throws Exception {
+        return (data == null) 
+            ? builder.forPath(path) 
+            : builder.forPath(path, data);
+    }
+
+    protected static void createNode(CuratorFramework curator, String path,
+            byte[] data, List<ACL> acls, CreateMode mode) throws Exception {
+        ProtectACLCreateModePathAndBytesable<String> builder =
+            curator.create().creatingParentsIfNeeded();
     
+        if (acls == null) {
+            if (mode == null ) {
+                TransactionalState.forPath(builder, path, data);
+            } else {
+                TransactionalState.forPath(builder.withMode(mode), path, data);
+            }
+            return;
+        }
+
+        TransactionalState.forPath(builder.withACL(acls), path, data);
+    }
+
     public void setData(String path, Object obj) {
         path = "/" + path;
         byte[] ser;
@@ -74,10 +112,8 @@ public class TransactionalState {
             if(_curator.checkExists().forPath(path)!=null) {
                 _curator.setData().forPath(path, ser);
             } else {
-                _curator.create()
-                        .creatingParentsIfNeeded()
-                        .withMode(CreateMode.PERSISTENT)
-                        .forPath(path, ser);
+                TransactionalState.createNode(_curator, path, ser, _zkAcls,
+                        CreateMode.PERSISTENT);
             }
         } catch(Exception e) {
             throw new RuntimeException(e);

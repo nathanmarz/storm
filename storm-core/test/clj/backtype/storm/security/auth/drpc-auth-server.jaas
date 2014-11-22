@@ -1,0 +1,6 @@
+StormServer {
+       org.apache.zookeeper.server.auth.DigestLoginModule required
+       user_alice="poorpasswordforalice"
+       user_bob="poorpasswordforbob"
+       user_charlie="poorpasswordforcharlie";
+};

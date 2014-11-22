@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.builtin-metrics
-  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric MeanReducer StateMetric])
+  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric MeanReducer StateMetric IMetric IStatefulObject])
   (:import [backtype.storm Config])
   (:use [backtype.storm.stats :only [stats-rate]]))
 
@@ -50,7 +50,24 @@
   (doseq [[kw imetric] builtin-metrics]
     (.registerMetric topology-context (str "__" (name kw)) imetric
                      (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
-          
+
+(defn register-iconnection-server-metric [server storm-conf topology-context]
+  (if (instance? IStatefulObject server)
+    (.registerMetric topology-context "__recv-iconnection" (StateMetric. server)
+                     (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
+
+(defn register-iconnection-client-metrics [node+port->socket-ref storm-conf topology-context]
+  (.registerMetric topology-context "__send-iconnection"
+    (reify IMetric
+      (^Object getValueAndReset [this]
+        (into {}
+          (map
+            (fn [[node+port ^IStatefulObject connection]] [node+port (.getState connection)])
+            (filter 
+              (fn [[node+port connection]] (instance? IStatefulObject connection))
+              @node+port->socket-ref)))))
+    (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS))))
+ 
 (defn register-queue-metrics [queues storm-conf topology-context]
   (doseq [[qname q] queues]
     (.registerMetric topology-context (str "__" (name qname)) (StateMetric. q)

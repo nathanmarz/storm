@@ -206,7 +206,19 @@
 
 For jQuery 1.6.2 (storm-core/src/ui/public/js/jquery-1.6.2.min.js)
 
-Copyright (c) 2009 John Resig, http://jquery.com/
+jQuery JavaScript Library v1.6.2
+http://jquery.com/
+
+Copyright 2011, John Resig
+Dual licensed under the MIT or GPL Version 2 licenses.
+http://jquery.org/license
+
+Includes Sizzle.js
+http://sizzlejs.com/
+Copyright 2011, The Dojo Foundation
+Released under the MIT, BSD, and GPL Licenses.
+
+MIT license selected:
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -371,16 +383,6 @@ For Arbor Tween (storm-core/src/ui/public/js/arbor-tween.js)
 
 -----------------------------------------------------------------------
 
-For Purl (storm-core/src/ui/public/js/purl.js)
-
-Purl (A JavaScript URL parser) v2.3.1
-Developed and maintanined by Mark Perkins, mark@allmarkedup.com
-Source repository: https://github.com/allmarkedup/jQuery-URL-Parser
-Licensed under an MIT-style license. See https://github.com/allmarkedup/jQuery-URL-Parser/blob/master/LICENSE for details.
-
-
------------------------------------------------------------------------
-
 For mustache.js (storm-core/src/ui/public/js/jquery.mustache.js)
 
 The MIT License
@@ -433,7 +435,17 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
+
 -----------------------------------------------------------------------
+
+For Jquery url plugin (storm-core/src/ui/public/js/url.min.js)
+
+Jquery Url (A Jquery plugin for URL parser) v1.8.6
+Source repository: https://github.com/websanova/js-url
+Licensed under an MIT-style license. Seehttps://github.com/websanova/js-url#license for details.
+
+-----------------------------------------------------------------------
+
 
 For jquery.blockUI.min.js (storm-core/src/ui/public/js/jquery.blockUI.min.js)
 

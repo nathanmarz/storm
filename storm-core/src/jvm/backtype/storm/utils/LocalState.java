@@ -18,40 +18,58 @@
 package backtype.storm.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.IOException;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple, durable, atomic K/V database. *Very inefficient*, should only be used for occasional reads/writes.
  * Every read/write hits disk.
  */
 public class LocalState {
+    public static Logger LOG = LoggerFactory.getLogger(LocalState.class);
+
     private VersionedStore _vs;
     
     public LocalState(String backingDir) throws IOException {
+        LOG.debug("New Local State for {}", backingDir);
         _vs = new VersionedStore(backingDir);
     }
-    
+
     public synchronized Map<Object, Object> snapshot() throws IOException {
         int attempts = 0;
         while(true) {
-            String latestPath = _vs.mostRecentVersionPath();
-            if(latestPath==null) return new HashMap<Object, Object>();
             try {
-                return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
-            } catch(IOException e) {
+                return deserializeLatestVersion();
+            } catch (IOException e) {
                 attempts++;
-                if(attempts >= 10) {
+                if (attempts >= 10) {
                     throw e;
                 }
             }
         }
     }
-    
+
+    private Map<Object, Object> deserializeLatestVersion() throws IOException {
+        String latestPath = _vs.mostRecentVersionPath();
+        Map<Object, Object> result = new HashMap<Object, Object>();
+        if (latestPath != null) {
+            byte[] serialized = FileUtils.readFileToByteArray(new File(latestPath));
+            if (serialized.length == 0) {
+                LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
+            } else {
+                result = (Map<Object, Object>) Utils.deserialize(serialized);
+            }
+        }
+        return result;
+    }
+
     public Object get(Object key) throws IOException {
         return snapshot().get(key);
     }
@@ -83,7 +101,13 @@ public class LocalState {
     private void persist(Map<Object, Object> val, boolean cleanup) throws IOException {
         byte[] toWrite = Utils.serialize(val);
         String newPath = _vs.createVersion();
-        FileUtils.writeByteArrayToFile(new File(newPath), toWrite);
+        File file = new File(newPath);
+        FileUtils.writeByteArrayToFile(file, toWrite);
+        if (toWrite.length != file.length()) {
+            throw new IOException("Tried to serialize " + toWrite.length + 
+                    " bytes to " + file.getCanonicalPath() + ", but " +
+                    file.length() + " bytes were written.");
+        }
         _vs.succeedVersion(newPath);
         if(cleanup) _vs.cleanup(4);
     }

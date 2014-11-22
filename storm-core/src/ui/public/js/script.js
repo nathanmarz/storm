@@ -71,7 +71,8 @@ function ensureInt(n) {
 function confirmAction(id, name, action, wait, defaultWait) {
     var opts = {
         type:'POST',
-        url:'/api/v1/topology/' + id + '/' + action
+        url:'/api/v1/topology/' + id + '/' + action,
+        headers: { 'x-csrf-token': $.trim($('#anti-forgery-token').text()) }
     };
     if (wait) {
         var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +
@@ -140,9 +141,10 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id,name,status,msgTimeout) {
+function topologyActionJson(id, encodedId, name,status,msgTimeout) {
     var jsonData = {};
     jsonData["id"] = id;
+    jsonData["encodedId"] = encodedId;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;
     jsonData["activateStatus"] = (status === "ACTIVE") ? "disabled" : "enabled";

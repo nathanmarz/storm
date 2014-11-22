@@ -66,7 +66,7 @@ public class HBaseLookupBolt extends AbstractHBaseBolt {
 
         try {
             Result result = hBaseClient.batchGet(Lists.newArrayList(get))[0];
-            for(Values values : rowToTupleMapper.toValues(result)) {
+            for(Values values : rowToTupleMapper.toValues(tuple, result)) {
                 this.collector.emit(values);
             }
             this.collector.ack(tuple);

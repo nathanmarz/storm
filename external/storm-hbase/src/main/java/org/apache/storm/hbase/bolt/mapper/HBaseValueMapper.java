@@ -18,6 +18,7 @@
 package org.apache.storm.hbase.bolt.mapper;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Values;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -27,11 +28,12 @@ import java.util.List;
 public interface HBaseValueMapper extends Serializable {
     /**
      *
+     * @param input tuple.
      * @param result HBase lookup result instance.
      * @return list of values that should be emitted by the lookup bolt.
      * @throws Exception
      */
-    public List<Values> toValues(Result result) throws Exception;
+    public List<Values> toValues(ITuple input, Result result) throws Exception;
 
     /**
      * declares the output fields for the lookup bolt.

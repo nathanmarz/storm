@@ -17,6 +17,7 @@
  */
 package backtype.storm.utils;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -48,9 +49,12 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
+import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -58,6 +62,8 @@ import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.AuthorizationException;
+
 import clojure.lang.IFn;
 import clojure.lang.RT;
 
@@ -249,7 +255,7 @@ public class Utils {
         return ret;
     }
 
-    public static void downloadFromMaster(Map conf, String file, String localFile) throws IOException, TException {
+    public static void downloadFromMaster(Map conf, String file, String localFile) throws AuthorizationException, IOException, TException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
         String id = client.getClient().beginFileDownload(file);
         WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
@@ -317,6 +323,8 @@ public class Utils {
           if (l <= Integer.MAX_VALUE && l >= Integer.MIN_VALUE) {
               return (int) l;
           }
+      } else if (o instanceof String) {
+          return Integer.parseInt((String) o);
       }
 
       throw new IllegalArgumentException("Don't know how to convert " + o + " to int");
@@ -338,7 +346,6 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
-    
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
         return newCurator(conf, servers, port, root, null);
     }
@@ -349,32 +356,40 @@ public class Utils {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root;
-        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
-                .connectString(zkStr)
-                .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                .retryPolicy(new StormBoundedExponentialBackoffRetry(
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
-        if(auth!=null && auth.scheme!=null) {
-            builder = builder.authorization(auth.scheme, auth.payload);
-        }
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder();
+
+        setupBuilder(builder, zkStr, conf, auth);
+        
         return builder.build();
     }
 
-    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port) {
-        return newCurator(conf, servers, port, "");
+    protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
+    {
+        builder.connectString(zkStr)
+            .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+            .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+            .retryPolicy(new StormBoundedExponentialBackoffRetry(
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
+
+        if(auth!=null && auth.scheme!=null && auth.payload!=null) {
+            builder = builder.authorization(auth.scheme, auth.payload);
+        }
     }
 
-    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root) {
-        CuratorFramework ret = newCurator(conf, servers, port, root);
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
+        return newCurator(conf, servers, port, "", auth);
+    }
+
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
+        CuratorFramework ret = newCurator(conf, servers, port, root, auth);
         ret.start();
         return ret;
     }
-    
-    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port) {
-        CuratorFramework ret = newCurator(conf, servers, port);
+
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
+        CuratorFramework ret = newCurator(conf, servers, port, auth);
         ret.start();
         return ret;
     }    
@@ -412,6 +427,18 @@ public class Utils {
         return ret;
     }
 
+    public static void readAndLogStream(String prefix, InputStream in) {
+        try {
+            BufferedReader r = new BufferedReader(new InputStreamReader(in));
+            String line = null;
+            while ((line = r.readLine())!= null) {
+                LOG.info("{}:{}", prefix, line);
+            }
+        } catch (IOException e) {
+            LOG.warn("Error whiel trying to log stream", e);
+        }
+    }
+
     public static boolean exceptionCauseIsInstanceOf(Class klass, Throwable throwable) {
         Throwable t = throwable;
         while(t != null) {
@@ -422,6 +449,69 @@ public class Utils {
         }
         return false;
     }
+
+    /**
+     * Is the cluster configured to interact with ZooKeeper in a secure way?
+     * This only works when called from within Nimbus or a Supervisor process.
+     * @param conf the storm configuration, not the topology configuration
+     * @return true if it is configured else false.
+     */
+    public static boolean isZkAuthenticationConfiguredStormServer(Map conf) {
+        return null != System.getProperty("java.security.auth.login.config")
+            || (conf != null
+                && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
+                && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty());
+    }
+
+    /**
+     * Is the topology configured to have ZooKeeper authentication.
+     * @param conf the topology configuration
+     * @return true if ZK is configured else false
+     */
+    public static boolean isZkAuthenticationConfiguredTopology(Map conf) {
+        return (conf != null
+                && conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME) != null
+                && ! ((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
+    }
+
+    public static List<ACL> getWorkerACL(Map conf) {
+        //This is a work around to an issue with ZK where a sasl super user is not super unless there is an open SASL ACL so we are trying to give the correct perms
+        if (!isZkAuthenticationConfiguredTopology(conf)) {
+            return null;
+        }
+        String stormZKUser = (String)conf.get(Config.STORM_ZOOKEEPER_SUPERACL);
+        if (stormZKUser == null) {
+           throw new IllegalArgumentException("Authentication is enabled but "+Config.STORM_ZOOKEEPER_SUPERACL+" is not set");
+        }
+        String[] split = stormZKUser.split(":",2);
+        if (split.length != 2) {
+          throw new IllegalArgumentException(Config.STORM_ZOOKEEPER_SUPERACL+" does not appear to be in the form scheme:acl, i.e. sasl:storm-user");
+        }
+        ArrayList<ACL> ret = new ArrayList<ACL>(ZooDefs.Ids.CREATOR_ALL_ACL);
+        ret.add(new ACL(ZooDefs.Perms.ALL, new Id(split[0], split[1])));
+        return ret;
+    }
+
+   public static String threadDump() {
+       final StringBuilder dump = new StringBuilder();
+       final java.lang.management.ThreadMXBean threadMXBean =  java.lang.management.ManagementFactory.getThreadMXBean();
+       final java.lang.management.ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 100);
+       for (java.lang.management.ThreadInfo threadInfo : threadInfos) {
+           dump.append('"');
+           dump.append(threadInfo.getThreadName());
+           dump.append("\" ");
+           final Thread.State state = threadInfo.getThreadState();
+           dump.append("\n   java.lang.Thread.State: ");
+           dump.append(state);
+           final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
+           for (final StackTraceElement stackTraceElement : stackTraceElements) {
+               dump.append("\n        at ");
+               dump.append(stackTraceElement);
+           }
+           dump.append("\n\n");
+       }
+       return dump.toString();
+   }
 
     // Assumes caller is synchronizing
     private static SerializationDelegate getSerializationDelegate(Map stormConf) {

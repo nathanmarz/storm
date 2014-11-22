@@ -15,12 +15,15 @@
 ;; limitations under the License.
 (ns backtype.storm.nimbus-test
   (:use [clojure test])
+  (:require [backtype.storm [util :as util]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler INimbus])
-  (:use [backtype.storm bootstrap testing])
+  (:import [backtype.storm.generated Credentials])
+  (:use [backtype.storm bootstrap testing MockAutoCred])
   (:use [backtype.storm.daemon common])
+  (:require [conjure.core])
+  (:use [conjure core])
   )
 
 (bootstrap)
@@ -31,6 +34,10 @@
     (-> (.getUserTopology nimbus storm-id)
         (storm-task-info (from-json (.getTopologyConf nimbus storm-id)))
         reverse-map)))
+
+(defn getCredentials [cluster storm-name]
+  (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)]
+    (.credentials (:storm-cluster-state cluster) storm-id nil)))
 
 (defn storm-component->executor-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
@@ -159,6 +166,8 @@
       (is (not-nil? ((:executor->start-time-secs assignment) e))))
     ))
 
+ 	
+
 (deftest test-bogusId
   (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
@@ -167,6 +176,7 @@
        (is (thrown? NotAliveException (.getTopology nimbus "bogus-id")))
        (is (thrown? NotAliveException (.getUserTopology nimbus "bogus-id")))
        (is (thrown? NotAliveException (.getTopologyInfo nimbus "bogus-id")))
+       (is (thrown? NotAliveException (.uploadNewCredentials nimbus "bogus-id" (Credentials.))))
       )))
 
 (deftest test-assignment
@@ -221,6 +231,37 @@
       (getHostName [this supervisors node-id]
         node-id
       ))))
+
+
+(deftest test-auto-credentials
+  (with-simulated-time-local-cluster [cluster :supervisors 6
+                                      :ports-per-supervisor 3
+                                      :daemon-conf {SUPERVISOR-ENABLE false
+                                                    TOPOLOGY-ACKER-EXECUTORS 0
+                                                    NIMBUS-CREDENTIAL-RENEW-FREQ-SECS 10
+                                                    NIMBUS-CREDENTIAL-RENEWERS (list "backtype.storm.MockAutoCred")
+                                                    NIMBUS-AUTO-CRED-PLUGINS (list "backtype.storm.MockAutoCred")
+                                                    }]
+    (let [state (:storm-cluster-state cluster)
+          nimbus (:nimbus cluster)
+          topology-name "test-auto-cred-storm"
+          submitOptions (SubmitOptions. TopologyInitialStatus/INACTIVE)
+          - (.set_creds submitOptions (Credentials. (HashMap.)))
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
+                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
+                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
+          _ (submit-local-topology-with-opts nimbus topology-name {TOPOLOGY-WORKERS 4
+                                                               TOPOLOGY-AUTO-CREDENTIALS (list "backtype.storm.MockAutoCred")
+                                                               } topology submitOptions)
+          credentials (getCredentials cluster topology-name)]
+      ; check that the credentials have nimbus auto generated cred
+      (is (= (.get credentials nimbus-cred-key) nimbus-cred-val))
+      ;advance cluster time so the renewers can execute
+      (advance-cluster-time cluster 20)
+      ;check that renewed credentials replace the original credential.
+      (is (= (.get (getCredentials cluster topology-name) nimbus-cred-key) nimbus-cred-renew-val))
+      (is (= (.get (getCredentials cluster topology-name) gateway-cred-key) gateway-cred-renew-val)))))
 
 (deftest test-isolated-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 6
@@ -724,10 +765,77 @@
       
       )))
 
+
+(defn check-for-collisions [state]
+ (log-message "Checking for collision")
+ (let [assignments (.assignments state nil)]
+   (log-message "Assignemts: " assignments)
+   (let [id->node->ports (into {} (for [id assignments
+                                                :let [executor->node+port (:executor->node+port (.assignment-info state id nil))
+                                                      node+ports (set (.values executor->node+port))
+                                                      node->ports (apply merge-with (fn [a b] (distinct (concat a b))) (for [[node port] node+ports] {node [port]}))]]
+                                                {id node->ports}))
+         _ (log-message "id->node->ports: " id->node->ports)
+         all-nodes (apply merge-with (fn [a b] 
+                                        (let [ret (concat a b)]
+                                              (log-message "Can we combine " (pr-str a) " and " (pr-str b) " without collisions? " (apply distinct? ret) " => " (pr-str ret)) 
+                                              (is (apply distinct? ret))
+                                              (distinct ret)))
+                          (.values id->node->ports))]
+)))
+
+(deftest test-rebalance-constrained-cluster
+  (with-simulated-time-local-cluster [cluster :supervisors 1 :ports-per-supervisor 4
+    :daemon-conf {SUPERVISOR-ENABLE false
+                  NIMBUS-MONITOR-FREQ-SECS 10
+                  TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+      (bind topology (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind topology2 (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind topology3 (thrift/mk-topology
+                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                        {}))
+      (bind state (:storm-cluster-state cluster))
+      (submit-local-topology (:nimbus cluster)
+                             "test"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology)
+      (submit-local-topology (:nimbus cluster)
+                             "test2"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology2)
+      (submit-local-topology (:nimbus cluster)
+                             "test3"
+                             {TOPOLOGY-WORKERS 3
+                              TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology3)
+
+      (advance-cluster-time cluster 31)
+
+      (check-for-collisions state)
+      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.)
+                    (.set_num_workers 4)
+                    (.set_wait_secs 0)
+                    ))
+
+      (advance-cluster-time cluster 11)
+      (check-for-collisions state)
+
+      (advance-cluster-time cluster 30)
+      (check-for-collisions state)
+      )))
+
+
 (deftest test-submit-invalid
   (with-simulated-time-local-cluster [cluster
     :daemon-conf {SUPERVISOR-ENABLE false
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  NIMBUS-EXECUTORS-PER-TOPOLOGY 8
+                  NIMBUS-SLOTS-PER-TOPOLOGY 8}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 0 :conf {TOPOLOGY-TASKS 1})}
@@ -747,7 +855,31 @@
                                "test/aaa"
                                {}
                                topology)))
-      )))
+      (bind topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
+                                                 :parallelism-hint 16
+                                                 :conf {TOPOLOGY-TASKS 16})}
+                      {}))
+      (bind state (:storm-cluster-state cluster))
+      (is (thrown? InvalidTopologyException
+                   (submit-local-topology (:nimbus cluster)
+                                          "test"
+                                          {TOPOLOGY-WORKERS 3} 
+                                          topology)))
+      (bind topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
+                                                 :parallelism-hint 5
+                                                 :conf {TOPOLOGY-TASKS 5})}
+                      {}))
+      (is (thrown? InvalidTopologyException
+                   (submit-local-topology (:nimbus cluster)
+                                          "test"
+                                          {TOPOLOGY-WORKERS 16}
+                                          topology)))
+      (is (nil? (submit-local-topology (:nimbus cluster)
+                                       "test"
+                                       {TOPOLOGY-WORKERS 8}
+                                       topology))))))
 
 (deftest test-cleans-corrupt
   (with-inprocess-zookeeper zk-port
@@ -775,13 +907,13 @@
        (.disconnect cluster-state)
        ))))
 
-(deftest test-no-overlapping-slots
-  ;; test that same node+port never appears across 2 assignments
-  )
+;(deftest test-no-overlapping-slots
+;  ;; test that same node+port never appears across 2 assignments
+;  )
 
-(deftest test-stateless
-  ;; test that nimbus can die and restart without any problems
-  )
+;(deftest test-stateless
+;  ;; test that nimbus can die and restart without any problems
+;  )
 
 (deftest test-clean-inbox
   "Tests that the inbox correctly cleans jar files."
@@ -816,11 +948,228 @@
        (assert-files-in-dir [])
        ))))
 
+(deftest test-nimbus-iface-submitTopologyWithOpts-checks-authorization
+  (with-local-cluster [cluster 
+                       :daemon-conf {NIMBUS-AUTHORIZER 
+                          "backtype.storm.security.auth.authorizer.DenyAuthorizer"}]
+    (let [
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology {} {})
+         ]
+      (is (thrown? AuthorizationException
+          (submit-local-topology-with-opts nimbus "mystorm" {} topology 
+            (SubmitOptions. TopologyInitialStatus/INACTIVE))
+        ))
+    )
+  )
+)
+
+(deftest test-nimbus-iface-methods-check-authorization
+  (with-local-cluster [cluster 
+                       :daemon-conf {NIMBUS-AUTHORIZER 
+                          "backtype.storm.security.auth.authorizer.DenyAuthorizer"}]
+    (let [
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology {} {})
+         ]
+      ; Fake good authorization as part of setup.
+      (mocking [nimbus/check-authorization!]
+          (submit-local-topology-with-opts nimbus "test" {} topology 
+              (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      )
+      (stubbing [nimbus/storm-active? true]
+        (is (thrown? AuthorizationException
+          (.rebalance nimbus "test" (RebalanceOptions.))
+          ))
+      )
+      (is (thrown? AuthorizationException
+        (.activate nimbus "test")
+        ))
+      (is (thrown? AuthorizationException
+        (.deactivate nimbus "test")
+        ))
+    )
+  )
+)
+
+(deftest test-nimbus-check-authorization-params
+  (with-local-cluster [cluster
+                       :daemon-conf {NIMBUS-AUTHORIZER "backtype.storm.security.auth.authorizer.NoopAuthorizer"}]
+    (let [nimbus (:nimbus cluster)
+          topology-name "test-nimbus-check-autho-params"
+          topology (thrift/mk-topology {} {})]
+
+      (submit-local-topology-with-opts nimbus topology-name {} topology
+          (SubmitOptions. TopologyInitialStatus/INACTIVE))
+
+      (let [expected-name topology-name
+            expected-conf {TOPOLOGY-NAME expected-name
+                           :foo :bar}]
+
+        (testing "getTopologyConf calls check-authorization! with the correct parameters."
+          (let [expected-operation "getTopologyConf"]
+            (stubbing [nimbus/check-authorization! nil
+                       nimbus/try-read-storm-conf expected-conf
+                       util/to-json nil]
+              (try
+                (.getTopologyConf nimbus "fake-id")
+                (catch NotAliveException e)
+                (finally
+                  (verify-first-call-args-for-indices
+                    nimbus/check-authorization!
+                      [1 2 3] expected-name expected-conf expected-operation)
+                  (verify-first-call-args-for util/to-json expected-conf))))))
+
+        (testing "getTopology calls check-authorization! with the correct parameters."
+          (let [expected-operation "getTopology"]
+            (stubbing [nimbus/check-authorization! nil
+                       nimbus/try-read-storm-conf expected-conf
+                       nimbus/try-read-storm-topology nil
+                       system-topology! nil]
+              (try
+                (.getTopology nimbus "fake-id")
+                (catch NotAliveException e)
+                (finally
+                  (verify-first-call-args-for-indices
+                    nimbus/check-authorization!
+                      [1 2 3] expected-name expected-conf expected-operation)
+                  (verify-first-call-args-for-indices
+                    system-topology! [0] expected-conf))))))
+
+        (testing "getUserTopology calls check-authorization with the correct parameters."
+          (let [expected-operation "getUserTopology"]
+            (stubbing [nimbus/check-authorization! nil
+                       nimbus/try-read-storm-conf expected-conf
+                       nimbus/try-read-storm-topology nil]
+              (try
+                (.getUserTopology nimbus "fake-id")
+                (catch NotAliveException e)
+                (finally
+                  (verify-first-call-args-for-indices
+                    nimbus/check-authorization!
+                      [1 2 3] expected-name expected-conf expected-operation)
+                  (verify-first-call-args-for-indices
+                    nimbus/try-read-storm-topology [0] expected-conf))))))))))
+
+(deftest test-nimbus-iface-getTopology-methods-throw-correctly
+  (with-local-cluster [cluster]
+    (let [
+          nimbus (:nimbus cluster)
+          id "bogus ID"
+         ]
+      (is (thrown? NotAliveException (.getTopology nimbus id)))
+      (try
+        (.getTopology nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+
+      (is (thrown? NotAliveException (.getTopologyConf nimbus id)))
+      (try (.getTopologyConf nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+
+      (is (thrown? NotAliveException (.getTopologyInfo nimbus id)))
+      (try (.getTopologyInfo nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+
+      (is (thrown? NotAliveException (.getUserTopology nimbus id)))
+      (try (.getUserTopology nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+    )
+  )
+)
+
+(deftest test-nimbus-iface-getClusterInfo-filters-topos-without-bases
+  (with-local-cluster [cluster]
+    (let [
+          nimbus (:nimbus cluster)
+          bogus-secs 42
+          bogus-type "bogusType"
+          bogus-bases {
+                 "1" nil
+                 "2" {:launch-time-secs bogus-secs
+                        :storm-name "id2-name"
+                        :status {:type bogus-type}}
+                 "3" nil
+                 "4" {:launch-time-secs bogus-secs
+                        :storm-name "id4-name"
+                        :status {:type bogus-type}}
+                }
+        ]
+      (stubbing [topology-bases bogus-bases]
+        (let [topos (.get_topologies (.getClusterInfo nimbus))]
+          ; The number of topologies in the summary is correct.
+          (is (= (count 
+            (filter (fn [b] (second b)) bogus-bases)) (count topos)))
+          ; Each topology present has a valid name.
+          (is (empty?
+            (filter (fn [t] (or (nil? t) (nil? (.get_name t)))) topos)))
+          ; The topologies are those with valid bases.
+          (is (empty?
+            (filter (fn [t] 
+              (or 
+                (nil? t) 
+                (not (number? (read-string (.get_id t))))
+                (odd? (read-string (.get_id t)))
+              )) topos)))
+        )
+      )
+    )
+  )
+)
+
+(deftest test-defserverfn-numbus-iface-instance
+  (test-nimbus-iface-submitTopologyWithOpts-checks-authorization)
+  (test-nimbus-iface-methods-check-authorization)
+  (test-nimbus-iface-getTopology-methods-throw-correctly)
+  (test-nimbus-iface-getClusterInfo-filters-topos-without-bases)
+)
+
+(deftest test-nimbus-data-acls
+  (testing "nimbus-data uses correct ACLs"
+    (let [scheme "digest"
+          digest "storm:thisisapoorpassword"
+          auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
+                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
+          expected-acls nimbus/NIMBUS-ZK-ACLS
+          fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
+      (stubbing [mk-authorization-handler nil
+                 cluster/mk-storm-cluster-state nil
+                 nimbus/file-cache-map nil
+                 uptime-computer nil
+                 new-instance nil
+                 mk-timer nil
+                 nimbus/mk-scheduler nil]
+        (nimbus/nimbus-data auth-conf fake-inimbus)
+        (verify-call-times-for cluster/mk-storm-cluster-state 1)
+        (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+                                            expected-acls)))))
+
+(deftest test-file-bogus-download
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+    (let [nimbus (:nimbus cluster)]
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus nil)))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "")))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "/bogus-path/foo")))
+      )))
+
 (deftest test-validate-topo-config-on-submit
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology {} {})
-          bad-config {"topology.workers" "3"}]
-      (is (thrown-cause? InvalidTopologyException
-        (submit-local-topology-with-opts nimbus "test" bad-config topology
-                                         (SubmitOptions.)))))))
+          bad-config {"topology.isolate.machines" "2"}]
+      ; Fake good authorization as part of setup.
+      (mocking [nimbus/check-authorization!]
+        (is (thrown-cause? InvalidTopologyException
+          (submit-local-topology-with-opts nimbus "test" bad-config topology
+                                           (SubmitOptions.))))))))

@@ -392,7 +392,7 @@ function show_visualization(sys) {
     var update = function(should_rechoose) {
       if(should_update) {
         $.ajax({
-            url: "/api/v1/topology/" + $.url().param("id") + "/visualization",
+            url: "/api/v1/topology/"+$.url("?id")+"/visualization",
             success: function (data, status, jqXHR) {
                 topology_data = data;
                 update_data(topology_data, sys);

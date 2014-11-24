@@ -92,17 +92,6 @@
       )]
    ])
 
-(defnk sort-table [id :sort-list "[[0,0]]" :time-cols []]
-  (let [strs (for [c time-cols] (format "%s: { sorter: 'stormtimestr'}" c))
-        sorters (join ", " strs)]
-    [:script
-     (format  "$(document).ready(function() {
-$(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: {%s}}); });
-});"
-              id
-              sort-list
-              sorters)]))
-
 (defn float-str [n]
   (if n
     (format "%.3f" (float n))
@@ -120,16 +109,6 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
               ))
        (apply merge-with merge)
        ))
-
-(defn sorted-table [headers data & args]
-  (let [id (uuid)]
-    (concat
-     [(table {:class "zebra-striped" :id id}
-             headers
-             data)]
-     (if-not (empty? data)
-       [(apply sort-table id args)])
-     )))
 
 (defn url-format [fmt & args]
   (String/format fmt

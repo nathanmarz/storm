@@ -15,38 +15,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-$.tablesorter.addParser({
-    id:'stormtimestr',
-    is:function (s) {
-        return false;
-    },
-    format:function (s) {
-        if (s.search('All time') != -1) {
-            return 1000000000;
-        }
-        var total = 0;
-        $.each(s.split(' '), function (i, v) {
-            var amt = parseInt(v);
-            if (v.search('ms') != -1) {
-                total += amt;
-            } else if (v.search('s') != -1) {
-                total += amt * 1000;
-            } else if (v.search('m') != -1) {
-                total += amt * 1000 * 60;
-            } else if (v.search('h') != -1) {
-                total += amt * 1000 * 60 * 60;
-            } else if (v.search('d') != -1) {
-                total += amt * 1000 * 60 * 60 * 24;
-            }
-        });
-        return total;
-    },
-    type:'numeric'
-});
-
 $(function () {
     $(".js-only").show();
 });
+
+//Add in custom sorting for some data types
+$.extend( $.fn.dataTableExt.oSort, {
+  "time-str-pre": function (raw) {
+    var s = $(raw).text();
+    if (s == "") {
+      s = raw;
+    }
+    if (s.search('All time') != -1) {
+      return 1000000000;
+    }
+    var total = 0;
+    $.each(s.split(' '), function (i, v) {
+       var amt = parseInt(v);
+       if (v.search('ms') != -1) {
+         total += amt;
+       } else if (v.search('s') != -1) {
+         total += amt * 1000;
+       } else if (v.search('m') != -1) {
+         total += amt * 1000 * 60;
+       } else if (v.search('h') != -1) {
+         total += amt * 1000 * 60 * 60;
+       } else if (v.search('d') != -1) {
+         total += amt * 1000 * 60 * 60 * 24;
+       }
+     });
+     return total;
+   },
+   "time-str-asc": function ( a, b ) {
+      return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+    },
+    "time-str-desc": function ( a, b ) {
+      return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+    }
+});
+
+function dtAutoPage(selector, conf) {
+  if ($(selector.concat(" tr")).length <= 20) {
+    $.extend(conf, {paging: false});
+  }
+  return $(selector).DataTable(conf);
+}
 
 function toggleSys() {
     var sys = $.cookies.get('sys') || false;
@@ -101,7 +114,7 @@ function confirmAction(id, name, action, wait, defaultWait) {
 $(function () {
     var placements = ['above', 'below', 'left', 'right'];
     for (var i in placements) {
-      $('.tip.'+placements[i]).twipsy({
+      $('.tip.'+placements[i]).tooltip({
           live: true,
           placement: placements[i],
           delayIn: 1000
@@ -135,9 +148,9 @@ function formatErrorTimeSecs(response){
 function renderToggleSys(div) {
     var sys = $.cookies.get("sys") || false;
     if(sys) {
-       div.append("<span data-original-title=\"Use this to toggle inclusion of storm system components.\" class=\"tip right\"><input onclick=\"toggleSys()\" value=\"Hide System Stats\" type=\"button\"></span>");
+       div.append("<span data-original-title=\"Use this to toggle inclusion of storm system components.\" class=\"tip right\"><input onclick=\"toggleSys()\" value=\"Hide System Stats\" type=\"button\" class=\"btn btn-default\"></span>");
     } else {
-       div.append("<span class=\"tip right\" title=\"Use this to toggle inclusion of storm system components.\"><input onclick=\"toggleSys()\" value=\"Show System Stats\" type=\"button\"></span>");
+       div.append("<span class=\"tip right\" title=\"Use this to toggle inclusion of storm system components.\"><input onclick=\"toggleSys()\" value=\"Show System Stats\" type=\"button\" class=\"btn btn-default\"></span>");
     }
 }
 

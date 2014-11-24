@@ -216,38 +216,38 @@ Note that if anything goes wrong, this will throw an Error and exit."
       (throw
        (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
 
+(defnk to-btn-link
+  "Create a link that is formatted like a button"
+  [url text :enabled true]
+  [:a {:href (java.net.URI. url) 
+       :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
+
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
                      (min (max 0 (- file-size length)) (+ start length))
                      (+ start length))]
-    [[:div.pagination
-      [:ul
-        (concat
-          [[(if (< prev-start start) (keyword "li") (keyword "li.disabled"))
-            (link-to (url "/log"
+    [[:div
+      (concat
+          [(to-btn-link (url "/log"
                           {:file fname
-                             :start (max 0 (- start length))
-                             :length length})
-                     "Prev")]]
-          [[:li (link-to
-                  (url "/log"
-                       {:file fname
-                        :start 0
-                        :length length})
-                  "First")]]
-          [[:li (link-to
-                  (url "/log"
-                       {:file fname
-                        :length length})
-                  "Last")]]
-          [[(if (> next-start start) (keyword "li.next") (keyword "li.next.disabled"))
-            (link-to (url "/log"
+                           :start (max 0 (- start length))
+                           :length length})
+                          "Prev" :enabled (< prev-start start))]
+          [(to-btn-link (url "/log"
+                           {:file fname
+                            :start 0
+                            :length length}) "First")]
+          [(to-btn-link (url "/log"
+                           {:file fname
+                            :length length})
+                        "Last")]
+          [(to-btn-link (url "/log"
                           {:file fname
                            :start (min (max 0 (- file-size length))
                                        (+ start length))
                            :length length})
-                     "Next")]])]]]))
+                        "Next" :enabled (> next-start start))])]])) 
 
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
@@ -301,7 +301,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (html4
      [:head
       [:title (str (escape-html fname) " - Storm Log Viewer")]
-      (include-css "/css/bootstrap-1.4.0.css")
+      (include-css "/css/bootstrap-3.3.1.min.css")
+      (include-css "/css/jquery.dataTables.1.10.4.min.css")
       (include-css "/css/style.css")
       ]
      [:body

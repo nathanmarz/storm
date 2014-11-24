@@ -15,7 +15,7 @@
  limitations under the License.
 -->
 <script id="topology-summary-template" type="text/html">
-  <table id="topology-summary-table">
+  <table id="topology-summary-table" class="table col-md-12">
     <thead>
       <tr>
         <th>
@@ -82,7 +82,7 @@
 </script>
 <script id="topology-stats-template" type="text/html">
   <h2>Topology stats</h2>
-  <table class="zebra-striped" id="topology-stats-table">
+  <table class="table table-striped col-md-12" id="topology-stats-table">
     <thead>
       <tr>
         <th>
@@ -133,11 +133,11 @@
 </script>
 <script id="topology-visualization-template" type="text/html">
   <h2>Topology Visualization</h2>
-  <input type="button" id="show-hide-visualization" value="Show Visualization"/>
+  <input type="button" id="show-hide-visualization" value="Show Visualization" class="btn btn-default"/>
   <p>
     <div id="visualization-container" style="display:none;">
       <p>
-        <table class="zebra-striped">
+        <table class="table table-striped">
           <thead>
             <tr>
               <th class="header" colspan=4>
@@ -164,7 +164,7 @@
 
 <script id="topology-configuration-template" type="text/html">
   <h2>Topology Configuration</h2>
-  <table class="zebra-striped" id="topology-configuration-table"><thead><tr><th>Key</th><th>Value</th></tr></thead>
+  <table class="table table-striped col-md-12" id="topology-configuration-table"><thead><tr><th>Key</th><th>Value</th></tr></thead>
     <tbody>
       {{#config}}
       <tr>
@@ -177,7 +177,7 @@
 </script>
 <script id="spout-stats-template" type="text/html">
   <h2>Spouts ({{windowHint}})</h2>
-  <table class="zebra-striped" id="spout-stats-table">
+  <table class="table table-striped col-md-12" id="spout-stats-table">
     <thead>
       <tr>
         <th class="header headerSortDown">
@@ -250,7 +250,7 @@
 </script>
 <script id="bolt-stats-template" type="text/html">
   <h2>Bolts ({{windowHint}})</h2>
-  <table class="zebra-striped" id="bolt-stats-table"><thead>
+  <table class="table table-striped col-md-12" id="bolt-stats-table"><thead>
       <tr>
         <th class="header headerSortDown">
           <span class="tip right" title="The ID assigned to a the Component by the Topology. Click on the name to view the Component's page.">
@@ -340,9 +340,9 @@
 <script id="topology-actions-template" type="text/html">
   <h2>Topology actions</h2>
   <p id="topology-actions">
-    <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate">
-    <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate">
-    <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance">
-    <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
+    <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate" class="btn btn-default">
+    <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate" class="btn btn-default">
+    <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance" class="btn btn-default">
+    <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill" class="btn btn-default">
   </p>
 </script>

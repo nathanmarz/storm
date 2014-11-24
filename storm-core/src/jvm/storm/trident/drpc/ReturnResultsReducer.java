@@ -20,6 +20,7 @@ package storm.trident.drpc;
 import backtype.storm.Config;
 import backtype.storm.drpc.DRPCInvocationsClient;
 import backtype.storm.generated.DistributedRPCInvocations;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.json.simple.JSONValue;
 import storm.trident.drpc.ReturnResultsReducer.ReturnResultsState;
 import storm.trident.operation.MultiReducer;
@@ -47,12 +49,13 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
         }
     }
     boolean local;
-
+    Map conf;
     Map<List, DRPCInvocationsClient> _clients = new HashMap<List, DRPCInvocationsClient>();
     
     
     @Override
     public void prepare(Map conf, TridentMultiReducerContext context) {
+        this.conf = conf;
         local = conf.get(Config.STORM_CLUSTER_MODE).equals("local");
     }
 
@@ -89,7 +92,11 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
                 }};
 
                 if(!_clients.containsKey(server)) {
-                    _clients.put(server, new DRPCInvocationsClient(host, port));
+                    try {
+                        _clients.put(server, new DRPCInvocationsClient(conf, host, port));
+                    } catch (TTransportException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
                 client = _clients.get(server);
             }
@@ -98,6 +105,8 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
                 client.result(id, result);
             } catch(TException e) {
                 collector.reportError(e);
+            } catch (AuthorizationException aze) {
+                collector.reportError(aze);                
             }
         }
     }

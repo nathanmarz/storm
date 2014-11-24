@@ -32,15 +32,27 @@ storm.zookeeper.connection.timeout: 15000
 storm.zookeeper.retry.times: 5
 storm.zookeeper.retry.interval: 1000
 storm.zookeeper.retry.intervalceiling.millis: 30000
+storm.zookeeper.auth.user: null
+storm.zookeeper.auth.password: null
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
+storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
+storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
+storm.nimbus.retry.times: 5
+storm.nimbus.retry.interval.millis: 2000
+storm.nimbus.retry.intervalceiling.millis: 60000
+storm.auth.simple-white-list.users: []
+storm.auth.simple-acl.users: []
+storm.auth.simple-acl.users.commands: []
+storm.auth.simple-acl.admins: []
 storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
+nimbus.thrift.threads: 64
 nimbus.thrift.max_buffer_size: 1048576
 nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
@@ -52,22 +64,40 @@ nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
+nimbus.credential.renewers.freq.secs: 600
 
 ### ui.* configs are for the master
 ui.port: 8080
 ui.childopts: "-Xmx768m"
+ui.actions.enabled: true
+ui.filter: null
+ui.filter.params: null
+ui.users: null
+ui.header.buffer.bytes: 4096
+ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
+logviewer.cleanup.age.mins: 10080
 logviewer.appender.name: "A1"
 
+logs.users: null
 
 drpc.port: 3772
 drpc.worker.threads: 64
+drpc.max_buffer_size: 1048576
 drpc.queue.size: 128
 drpc.invocations.port: 3773
+drpc.invocations.threads: 64
 drpc.request.timeout.secs: 600
 drpc.childopts: "-Xmx768m"
+drpc.http.port: 3774
+drpc.https.port: -1
+drpc.https.keystore.password: ""
+drpc.https.keystore.type: "JKS"
+drpc.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
+drpc.authorizer.acl.filename: "drpc-auth-acl.yaml"
+drpc.authorizer.acl.strict: false
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null
@@ -81,6 +111,7 @@ supervisor.slots.ports:
     - 6702
     - 6703
 supervisor.childopts: "-Xmx256m"
+supervisor.run.worker.as.user: false
 #how long supervisor will wait to ensure that a worker process is started
 supervisor.worker.start.timeout.secs: 120
 #how long between heartbeats until supervisor considers that worker dead and tries to restart it
@@ -90,16 +121,21 @@ supervisor.monitor.frequency.secs: 3
 #how frequently the supervisor heartbeats to the cluster state (for nimbus)
 supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
+supervisor.supervisors: []
+supervisor.supervisors.commands: []
+
 
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"
+worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 
-# control how many worker receiver threads we need per worker 
+# control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
 
 task.heartbeat.frequency.secs: 3
 task.refresh.poll.secs: 10
+task.credentials.poll.secs: 30
 
 zmq.threads: 1
 zmq.linger.millis: 5000
@@ -119,6 +155,12 @@ storm.messaging.netty.transfer.batch.size: 262144
 
 # We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
 storm.messaging.netty.flush.check.interval.ms: 10
+
+# By default, the Netty SASL authentication is set to false.  Users can override and set it true for a specific topology.
+storm.messaging.netty.authentication: false
+
+# default number of seconds group mapping service will cache user group
+storm.group.mapping.service.cache.duration.secs: 120
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
@@ -151,6 +193,7 @@ topology.max.error.report.per.interval: 5
 topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
 topology.tuple.serializer: "backtype.storm.serialization.types.ListDelegateSerializer"
 topology.trident.batch.emit.interval.millis: 500
+topology.testing.always.try.serialize: false
 topology.classpath: null
 topology.environment: null
 

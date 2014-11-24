@@ -31,6 +31,8 @@
 <script src="/js/moment.min.js" type="text/javascript"></script>
 </head>
 <body>
+<div id="ui-user">
+</div>
 <h1><a href="/">Storm UI</a></h1>
 <div id="component-summary">
 </div>
@@ -70,6 +72,11 @@ $(document).ready(function() {
     });
 
     $.getJSON(url,function(response,status,jqXHR) {
+        var uiUser = $("#ui-user");
+        $.get("/templates/user-template.html", function(template) {
+            uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+        });
+
         var componentSummary = $("#component-summary");
         var componentStatsDetail = $("#component-stats-detail")
         var inputStats = $("#component-input-stats");
@@ -80,20 +87,20 @@ $(document).ready(function() {
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
-                if(response["spoutSummary"].length > 0) {
+                if (response["spoutSummary"].length > 0) {
                     $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
                 }
                 outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
-                if(response["outputStats"].length > 0) {
+                if (response["outputStats"].length > 0) {
                     $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
                 }
                 executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
-                if(response["executorStats"].length > 0) {
+                if (response["executorStats"].length > 0) {
                     $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
                 }
             } else {
                 componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
-                if(response["boltStats"].length > 0) {
+                if (response["boltStats"].length > 0) {
                     $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
                 }
                 inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
@@ -101,7 +108,7 @@ $(document).ready(function() {
                     $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
                 outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
-                if(response["outputStats"].length > 0) {
+                if (response["outputStats"].length > 0) {
                     $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
                 }
                 executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
@@ -115,10 +122,10 @@ $(document).ready(function() {
             }
 
             var errorCells = document.getElementsByClassName("errorSpan");
-            for (i =0; i < errorCells.length; i++) 
+            for (i =0; i < errorCells.length; i++)
             {
               var timeLapsedInSecs = errorCells[i].id;
-              if (parseInt(timeLapsedInSecs) < 1800) { 
+              if (parseInt(timeLapsedInSecs) < 1800) {
                 errorCells[i].style.color = "#9d261d";
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }

@@ -117,6 +117,17 @@
     (is (thrown-cause? java.lang.IllegalArgumentException
       (.validateField validator "test" 42)))))
 
+(deftest test-positive-integer-validator
+  (let [validator ConfigValidation/PositiveIntegerValidator]
+    (doseq [x [42.42 -32 0 -0 "Forty-two"]]
+      (is (thrown-cause? java.lang.IllegalArgumentException
+        (.validateField validator "test" x))))
+
+    (doseq [x [42 4294967296 1 nil]]
+      (is (nil? (try
+                  (.validateField validator "test" x)
+                  (catch Exception e e)))))))
+
 (deftest test-worker-childopts-is-string-or-string-list
   (let [pass-cases [nil "some string" ["some" "string" "list"]]]
     (testing "worker.childopts validates"

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -13,6 +15,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 require "rubygems"
 require "json"
 
@@ -38,26 +41,26 @@ module Storm
 
     def read_task_ids
       Storm::Protocol.pending_taskids.shift ||
-        begin
-          msg = read_message
-          until msg.is_a? Array
-            Storm::Protocol.pending_commands.push(msg)
+          begin
             msg = read_message
+            until msg.is_a? Array
+              Storm::Protocol.pending_commands.push(msg)
+              msg = read_message
+            end
+            msg
           end
-          msg
-        end
     end
 
     def read_command
       Storm::Protocol.pending_commands.shift ||
-        begin
-          msg = read_message
-          while msg.is_a? Array
-            Storm::Protocol.pending_taskids.push(msg)
+          begin
             msg = read_message
+            while msg.is_a? Array
+              Storm::Protocol.pending_taskids.push(msg)
+              msg = read_message
+            end
+            msg
           end
-          msg
-        end
     end
 
     def send_msg_to_parent(msg)
@@ -102,10 +105,10 @@ module Storm
 
     def emit(*args)
       case Storm::Protocol.mode
-      when 'spout'
-        emit_spout(*args)
-      when 'bolt'
-        emit_bolt(*args)
+        when 'spout'
+          emit_spout(*args)
+        when 'bolt'
+          emit_bolt(*args)
       end
     end
 
@@ -117,8 +120,32 @@ module Storm
       send_msg_to_parent :command => :fail, :id => tup.id
     end
 
-    def log(msg)
-      send_msg_to_parent :command => :log, :msg => msg.to_s
+    def reportError(msg)
+      send_msg_to_parent :command => :error, :msg => msg.to_s
+    end
+
+    def log(msg, level=2)
+      send_msg_to_parent :command => :log, :msg => msg.to_s, :level => level
+    end
+
+    def logTrace(msg)
+      log(msg, 0)
+    end
+
+    def logDebug(msg)
+      log(msg, 1)
+    end
+
+    def logInfo(msg)
+      log(msg, 2)
+    end
+
+    def logWarn(msg)
+      log(msg, 3)
+    end
+
+    def logError(msg)
+      log(msg, 4)
     end
 
     def handshake
@@ -142,6 +169,10 @@ module Storm
     def self.from_hash(hash)
       Tuple.new(*hash.values_at("id", "comp", "stream", "task", "tuple"))
     end
+
+    def is_heartbeat
+      task == -1 and stream == '__heartbeat'
+    end
   end
 
   class Bolt
@@ -156,10 +187,15 @@ module Storm
       prepare(*handshake)
       begin
         while true
-          process Tuple.from_hash(read_command)
+          tuple = Tuple.from_hash(read_command)
+          if tuple.is_heartbeat
+            sync
+          else
+            process tuple
+          end
         end
       rescue Exception => e
-        log 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')
+        reportError 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')
       end
     end
   end
@@ -183,17 +219,17 @@ module Storm
         while true
           msg = read_command
           case msg['command']
-          when 'next'
-            nextTuple
-          when 'ack'
-            ack(msg['id'])
-          when 'fail'
-            fail(msg['id'])
+            when 'next'
+              nextTuple
+            when 'ack'
+              ack(msg['id'])
+            when 'fail'
+              fail(msg['id'])
           end
           sync
         end
       rescue Exception => e
-        log 'Exception in spout: ' + e.message + ' - ' + e.backtrace.join('\n')
+        reportError 'Exception in spout: ' + e.message + ' - ' + e.backtrace.join('\n')
       end
     end
   end

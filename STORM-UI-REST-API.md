@@ -180,7 +180,7 @@ Response Fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
-
+|antiForgeryToken| String | CSRF token|
 
 
 Examples:  
@@ -325,6 +325,7 @@ Sample Response:
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
     },
+    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
 }
 ```
   
@@ -519,6 +520,20 @@ Sample Response:
     ]
 }
 ```
+## Cross site request forgery(CSRF) prevention in post requests
+In order to prevent CSRF vulnerability, storm rest API uses a CSRF token. This is primarily done for the ui however we 
+do not have alternative apis/paths for ui and non ui clients. 
+
+The token is generated during the /api/v1/topology/:id (GET) request.The json response for this GET request contains 
+a field called "antiForgeryToken". All the post requests below must include a header "x-csrf-token" with the value of 
+"antiForgeryToken" from the GET response. In absence of this header with the right token value you will get following 
+error response:
+````
+{{
+    "error" : "Forbidden action."
+    "errorMessage" : "missing CSRF token."
+}}
+````
 
 ### /api/v1/topology/:id/activate (POST)
 activates a  topology 

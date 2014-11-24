@@ -17,10 +17,19 @@
  */
 package backtype.storm.messaging.netty;
 
-import backtype.storm.Config;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.utils.Utils;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
@@ -30,22 +39,21 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
+import backtype.storm.Config;
+import backtype.storm.messaging.IConnection;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.utils.Utils;
 
-class Server implements IConnection {
+class Server implements IConnection, IStatefulObject {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
     Map storm_conf;
     int port;
+    private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<String, AtomicInteger>();
+    private final AtomicInteger messagesDequeued = new AtomicInteger(0);
+    private final AtomicInteger[] pendingMessages;
+    
     
     // Create multiple queues for incoming messages. The size equals the number of receiver threads.
     // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
@@ -56,7 +64,7 @@ class Server implements IConnection {
     final ServerBootstrap bootstrap;
     
     private int queueCount;
-    HashMap<Integer, Integer> taskToQueueId = null;
+    private volatile HashMap<Integer, Integer> taskToQueueId = null;
     int roundRobinQueueId;
 	
     boolean closing = false;
@@ -73,8 +81,10 @@ class Server implements IConnection {
         taskToQueueId = new HashMap<Integer, Integer>();
     
         message_queue = new LinkedBlockingQueue[queueCount];
+        pendingMessages = new AtomicInteger[queueCount];
         for (int i = 0; i < queueCount; i++) {
             message_queue[i] = new LinkedBlockingQueue<ArrayList<TaskMessage>>();
+            pendingMessages[i] = new AtomicInteger(0);
         }
         
         // Configure the server.
@@ -131,35 +141,54 @@ class Server implements IConnection {
     
     private Integer getMessageQueueId(int task) {
       // try to construct the map from taskId -> queueId in round robin manner.
-      
       Integer queueId = taskToQueueId.get(task);
       if (null == queueId) {
-        synchronized(taskToQueueId) {
-          //assgin task to queue in round-robin manner
-          if (null == taskToQueueId.get(task)) {
+        synchronized (this) {
+          queueId = taskToQueueId.get(task);
+          if (queueId == null) {
             queueId = roundRobinQueueId++;
-            
-            taskToQueueId.put(task, queueId);
             if (roundRobinQueueId == queueCount) {
               roundRobinQueueId = 0;
             }
+            HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
+            newRef.put(task, queueId);
+            taskToQueueId = newRef;
           }
         }
       }
       return queueId;
     }
 
+    private void addReceiveCount(String from, int amount) {
+        //This is possibly lossy in the case where a value is deleted
+        // because it has received no messages over the metrics collection
+        // period and new messages are starting to come in.  This is
+        // because I don't want the overhead of a synchronize just to have
+        // the metric be absolutely perfect.
+        AtomicInteger i = messagesEnqueued.get(from);
+        if (i == null) {
+            i = new AtomicInteger(amount);
+            AtomicInteger prev = messagesEnqueued.putIfAbsent(from, i);
+            if (prev != null) {
+                prev.addAndGet(amount);
+            }
+        } else {
+            i.addAndGet(amount);
+        }
+    }
+
+
     /**
      * enqueue a received message 
      * @param message
      * @throws InterruptedException
      */
-    protected void enqueue(List<TaskMessage> msgs) throws InterruptedException {
+    protected void enqueue(List<TaskMessage> msgs, String from) throws InterruptedException {
       
       if (null == msgs || msgs.size() == 0 || closing) {
         return;
       }
-      
+      addReceiveCount(from, msgs.size());
       ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
       
       if (null == messageGroups || closing) {
@@ -170,6 +199,7 @@ class Server implements IConnection {
         ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
         if (null != msgGroup) {
           message_queue[receiverId].put(msgGroup);
+          pendingMessages[receiverId].addAndGet(msgGroup.size());
         }
       }
     }
@@ -196,6 +226,8 @@ class Server implements IConnection {
         }
       
       if (null != ret) {
+        messagesDequeued.addAndGet(ret.size());
+        pendingMessages[queueId].addAndGet(0 - ret.size());
         return ret.iterator();
       }
       return null;
@@ -239,5 +271,31 @@ class Server implements IConnection {
 	
     public String name() {
       return "Netty-server-localhost-" + port;
+    }
+
+    @Override
+    public Object getState() {
+        LOG.info("Getting metrics for server on " + port);
+        HashMap<String, Object> ret = new HashMap<String, Object>();
+        ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
+        ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
+        for (AtomicInteger p: pendingMessages) {
+            pending.add(p.get());
+        }
+        ret.put("pending", pending);
+        HashMap<String, Integer> enqueued = new HashMap<String, Integer>();
+        Iterator<Map.Entry<String, AtomicInteger>> it = messagesEnqueued.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, AtomicInteger> ent = it.next();
+            //Yes we can delete something that is not 0 because of races, but that is OK for metrics
+            AtomicInteger i = ent.getValue();
+            if (i.get() == 0) {
+                it.remove();
+            } else {
+                enqueued.put(ent.getKey(), i.getAndSet(0));
+            }
+        }
+        ret.put("enqueued", enqueued);
+        return ret;
     }
 }

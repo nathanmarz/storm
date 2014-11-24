@@ -32,7 +32,7 @@
            Config/STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING expected_ceiling})
         servers ["bogus_server"]
         arbitrary_port 42
-        curator (Utils/newCurator conf servers arbitrary_port)
+        curator (Utils/newCurator conf servers arbitrary_port nil)
         retry (-> curator .getZookeeperClient .getRetryPolicy)
        ]
     (is (.isAssignableFrom ExponentialBackoffRetry (.getClass retry)))
@@ -48,19 +48,67 @@
                        "backtype.storm.security.auth.SimpleTransportPlugin"
                       Config/NIMBUS_HOST ""
                       Config/NIMBUS_THRIFT_PORT 65535
-                     })]
-    (is (thrown? RuntimeException
+                      STORM-NIMBUS-RETRY-TIMES 0})]
+    (is (thrown-cause? RuntimeException
       (NimbusClient/getConfiguredClient storm-conf)))
   )
 )
 
 (deftest test-getConfiguredClient-throws-RunTimeException-on-bad-args
-  (let [storm-conf (read-storm-config)]
-    (is (thrown? TTransportException
+  (let [storm-conf (merge
+                    (read-storm-config)
+                    {STORM-NIMBUS-RETRY-TIMES 0})]
+    (is (thrown-cause? TTransportException
       (NimbusClient. storm-conf "" 65535)
     ))
   )
 )
+
+(deftest test-isZkAuthenticationConfiguredTopology
+    (testing "Returns false on null config"
+      (is (not (Utils/isZkAuthenticationConfiguredTopology nil))))
+    (testing "Returns false on scheme key missing"
+      (is (not (Utils/isZkAuthenticationConfiguredTopology
+          {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME nil}))))
+    (testing "Returns false on scheme value null"
+      (is (not
+        (Utils/isZkAuthenticationConfiguredTopology
+          {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME nil}))))
+    (testing "Returns true when scheme set to string"
+      (is
+        (Utils/isZkAuthenticationConfiguredTopology
+          {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME "foobar"}))))
+
+(deftest test-isZkAuthenticationConfiguredStormServer
+  (let [k "java.security.auth.login.config"
+        oldprop (System/getProperty k)]
+    (try
+      (.remove (System/getProperties) k)
+      (testing "Returns false on null config"
+        (is (not (Utils/isZkAuthenticationConfiguredStormServer nil))))
+      (testing "Returns false on scheme key missing"
+        (is (not (Utils/isZkAuthenticationConfiguredStormServer
+            {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+      (testing "Returns false on scheme value null"
+        (is (not
+          (Utils/isZkAuthenticationConfiguredStormServer
+            {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+      (testing "Returns true when scheme set to string"
+        (is
+          (Utils/isZkAuthenticationConfiguredStormServer
+            {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"})))
+      (testing "Returns true when java.security.auth.login.config is set"
+        (do
+          (System/setProperty k "anything")
+          (is (Utils/isZkAuthenticationConfiguredStormServer {}))))
+      (testing "Returns false when java.security.auth.login.config is set"
+        (do
+          (System/setProperty k "anything")
+          (is (Utils/isZkAuthenticationConfiguredStormServer {}))))
+    (finally 
+      (if (not-nil? oldprop) 
+        (System/setProperty k oldprop)
+        (.remove (System/getProperties) k))))))
 
 (deftest test-secs-to-millis-long
   (is (= 0 (secs-to-millis-long 0)))

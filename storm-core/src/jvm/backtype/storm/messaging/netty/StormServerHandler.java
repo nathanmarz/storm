@@ -51,7 +51,7 @@ class StormServerHandler extends SimpleChannelUpstreamHandler  {
       }
       
       try {
-        server.enqueue(msgs);
+        server.enqueue(msgs, e.getRemoteAddress().toString());
       } catch (InterruptedException e1) {
         LOG.info("failed to enqueue a request message", e);
         failure_count.incrementAndGet();

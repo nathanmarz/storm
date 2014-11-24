@@ -89,6 +89,11 @@
           </span>
         </th>
         <th>
+          <span class="tip above" title="The user that submitted the Topology, if authentication is enabled.">
+            Owner
+          </span>
+        </th>
+        <th>
           <span class="tip above" title="The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING.">
             Status
           </span>
@@ -113,6 +118,11 @@
             Num tasks
           </span>
         </th>
+        <th>
+          <span class="tip left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
+            Scheduler Info
+          </span>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -120,11 +130,13 @@
       <tr>
         <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
         <td>{{id}}</td>
+        <td>{{owner}}</td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
         <td>{{workersTotal}}</td>
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
+        <td>{{schedulerInfo}}</td>
       </tr>
       {{/topologies}}
     </tbody>

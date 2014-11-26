@@ -1,5 +1,6 @@
 ## 0.10.0
  * STORM-533: Add in client and server IConnection metrics.
+ * STORM-572: Storm UI 'favicon.ico'
 
 ## 0.9.3-rc2
  * STORM-558 change "swap!" to "reset!" to fix assignment-versions in supervisor

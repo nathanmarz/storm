@@ -30,3 +30,4 @@ target
 .idea
 .*
 !/.gitignore
+_site

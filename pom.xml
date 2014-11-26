@@ -729,7 +729,7 @@
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
-                <version>0.10</version>
+                <version>0.11</version>
                 <configuration>
                     <excludeSubProjects>false</excludeSubProjects>
                     <excludes>
@@ -743,16 +743,21 @@
                         <exclude>**/README.md</exclude>
                         <exclude>**/README.markdown</exclude>
                         <exclude>**/DEVELOPER.md</exclude>
+                        <exclude>**/BYLAWS.md</exclude>
+                        <exclude>**/STORM-UI-REST-API.md</exclude>
                         <exclude>SECURITY.md</exclude>
                         <exclude>VERSION</exclude>
                         <exclude>TODO</exclude>
                         <!-- thrift-generated code -->
                         <exclude>**/src/py/**</exclude>
 
-                        <!-- the following are in the NOTICE file -->
+                        <!-- the following are in the LICENSE file -->
                         <exclude>**/src/ui/public/js/jquery-1.6.2.min.js</exclude>
                         <exclude>**/src/ui/public/js/jquery.cookies.2.2.0.min.js</exclude>
                         <exclude>**/src/ui/public/js/jquery.tablesorter.min.js</exclude>
+                        <exclude>**/src/ui/public/js/moment.min.js</exclude>
+                        <exclude>**/src/ui/public/js/jquery.blockUI.min.js</exclude>
+                        <exclude>**/src/ui/public/js/url.min.js</exclude>
                         <exclude>**/src/ui/public/js/arbor.js</exclude>
                         <exclude>**/src/ui/public/js/arbor-graphics.js</exclude>
                         <exclude>**/src/ui/public/js/arbor-tween.js</exclude>

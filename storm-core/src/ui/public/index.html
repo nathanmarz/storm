@@ -100,10 +100,12 @@ $(document).ready(function() {
     $.getJSON("/api/v1/cluster/summary",function(response,status,jqXHR) {
         $.get("/templates/user-template.html", function(template) {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+            $('#ui-user [data-toggle="tooltip"]').tooltip()
         });
 
         $.get("/templates/index-page-template.html", function(template) {
             clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
+            $('#cluster-summary [data-toggle="tooltip"]').tooltip();
         });
     });
     $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
@@ -116,6 +118,7 @@ $(document).ready(function() {
               {type: "time-str", targets: [4]}
             ]
           });
+          $('#topology-summary [data-toggle="tooltip"]').tooltip();
       });
     });
     $.getJSON("/api/v1/supervisor/summary",function(response,status,jqXHR) {
@@ -128,6 +131,7 @@ $(document).ready(function() {
               {type: "time-str", targets: [2]}
             ]
           });
+          $('#supervisor-summary [data-toggle="tooltip"]').tooltip();
       });
     });
     $.getJSON("/api/v1/cluster/configuration",function(response,status,jqXHR) {
@@ -136,6 +140,7 @@ $(document).ready(function() {
         config.append(Mustache.render($(template).filter("#configuration-template").html(),formattedResponse));
         //key, value
         dtAutoPage("#nimbus-configuration-table", {});
+        $('#nimbus-configuration [data-toggle="tooltip"]').tooltip();
       });
     });
   });

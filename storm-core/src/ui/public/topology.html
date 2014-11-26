@@ -122,6 +122,7 @@ $(document).ready(function() {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+            $('#ui-user [data-toggle="tooltip"]').tooltip();
         });
 
         var antiForgeryToken = $("#anti-forgery-token");
@@ -185,6 +186,13 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
+            $('#topology-summary [data-toggle="tooltip"]').tooltip();
+            $('#topology-stats [data-toggle="tooltip"]').tooltip();
+            $('#spout-stats [data-toggle="tooltip"]').tooltip();
+            $('#bolt-stats [data-toggle="tooltip"]').tooltip();
+            $('#topology-configuration [data-toggle="tooltip"]').tooltip();
+            $('#topology-actions [data-toggle="tooltip"]').tooltip();
+            $('#topology-visualization [data-toggle="tooltip"]').tooltip();
         });
     });
  });

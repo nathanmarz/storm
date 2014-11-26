@@ -108,6 +108,7 @@ $(document).ready(function() {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+            $('#ui-user [data-toggle="tooltip"]').tooltip()
         });
 
         var componentSummary = $("#component-summary");
@@ -195,6 +196,12 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
+            $('#component-summary [data-toggle="tooltip"]').tooltip();
+            $('#component-stats-detail [data-toggle="tooltip"]').tooltip();
+            $('#component-input-stats [data-toggle="tooltip"]').tooltip();
+            $('#component-output-stats [data-toggle="tooltip"]').tooltip();
+            $('#component-executor-stats [data-toggle="tooltip"]').tooltip();
+            $('#component-errors [data-toggle="tooltip"]').tooltip();
         });
     });
 });

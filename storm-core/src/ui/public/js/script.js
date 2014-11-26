@@ -112,15 +112,8 @@ function confirmAction(id, name, action, wait, defaultWait) {
 }
 
 $(function () {
-    var placements = ['above', 'below', 'left', 'right'];
-    for (var i in placements) {
-      $('.tip.'+placements[i]).tooltip({
-          live: true,
-          placement: placements[i],
-          delayIn: 1000
-      });
-    }
-});
+  $('[data-toggle="tooltip"]').tooltip()
+})
 
 function formatConfigData(data) {
     var mustacheFormattedData = {'config':[]};

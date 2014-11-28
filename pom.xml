@@ -186,7 +186,7 @@
         <commons-io.version>2.4</commons-io.version>
         <commons-lang.version>2.5</commons-lang.version>
         <commons-exec.version>1.1</commons-exec.version>
-        <clj-time.version>0.4.1</clj-time.version>
+        <clj-time.version>0.8.0</clj-time.version>
         <curator.version>2.5.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
         <ring.version>1.3.0</ring.version>

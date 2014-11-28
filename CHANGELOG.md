@@ -4,6 +4,7 @@
  * STORM-572: Allow Users to pass TEST-TIMEOUT-MS for java
  * STORM-571: upgrade clj-time.
  * STORM-569: Add Conf for bolt's outgoing overflow-buffer.
+ * STORM-565: Fix NPE when topology.groups is null.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

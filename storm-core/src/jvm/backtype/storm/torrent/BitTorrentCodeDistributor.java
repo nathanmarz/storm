@@ -2,6 +2,7 @@ package backtype.storm.torrent;
 
 import backtype.storm.Config;
 import backtype.storm.nimbus.ICodeDistributor;
+import com.google.common.collect.Lists;
 import com.google.common.primitives.Shorts;
 import com.turn.ttorrent.client.Client;
 import com.turn.ttorrent.client.SharedTorrent;
@@ -124,13 +125,8 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
             file.delete();
         }
         srcDir.delete();
-        
-        List<File> files = new ArrayList<File>();
-        for(File file : destDir.listFiles()) {
-            files.add(file);
-        }
 
-        return files;
+        return Lists.newArrayList(destDir.listFiles());
     }
 
     @Override

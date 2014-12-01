@@ -19,7 +19,7 @@
            [backtype.storm Config])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
-  (:import [org.apache.curator.framework.recipes.leader LeaderLatch Participant])
+  (:import [org.apache.curator.framework.recipes.leader LeaderLatch Participant LeaderLatchListener])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])
@@ -225,6 +225,28 @@
      is-leader (.isLeader participant)]
     (NimbusInfo. server port is-leader)))
 
+(defn leader-latch-listener
+  "Leader latch listener that will be invoked when we either gain or lose leadership"
+  [conf zk leader-latch]
+  (let [hostname (.getCanonicalHostName (InetAddress/getLocalHost))
+        STORMS-ROOT (str (conf STORM-ZOOKEEPER-ROOT) "/storms")]
+    (reify LeaderLatchListener
+      (^void isLeader[this]
+        (log-message (str hostname "gained leadership, checking if it has all the topology code locally."))
+        (let [active-topology-ids (set (get-children zk STORMS-ROOT false))
+              local-topology-ids (set (.list (File. (master-stormdist-root conf))))
+              diff-topology (first (set-delta active-topology-ids local-topology-ids))]
+        (log-message (str "active-topology-ids [" (clojure.string/join "," active-topology-ids)
+                          "] local-topology-ids ]" (clojure.string/join "," local-topology-ids))
+                          "] diff-topology [" (clojure.sting/join "," diff-topology) "]")
+        (if (empty? diff-topology)
+          (log-message " Accepting leadership, all active topology found localy.")
+          (do
+            (log-message " code for all active topologies not available locally, giving up leadership.")
+            (.close leader-latch)))))
+      (^void notLeader[this]
+        (log-message (str hostname " lost leadership."))))))
+
 (defn zk-leader-elector
   "Zookeeper Implementation of ILeaderElector."
   [conf]
@@ -232,11 +254,15 @@
         zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
         leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
         id (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
-        leader-latch (LeaderLatch. zk leader-lock-path id)]
+        leader-latch (LeaderLatch. zk leader-lock-path id)
+        leader-latch-listener (leader-latch-listener conf zk leader-latch)
+        ]
     (reify ILeaderElector
       (prepare [this conf]
         (log-message "no-op for zookeeper implementation"))
       (^void addToLeaderLockQueue [this]
+        ; listeners are cleared up when close is called on leader latch so we add them at start
+        (.addListener leader-latch leader-latch-listener)
         (.start leader-latch)
         (log-message "Queued up for leader lock."))
       (^void removeFromLeaderLockQueue [this]

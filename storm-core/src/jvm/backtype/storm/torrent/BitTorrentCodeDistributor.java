@@ -94,6 +94,8 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         this.clients.put(topologyId, client);
         rebalanceRates();
         client.share(this.seedDuration);
+
+        //TODO: Should have a timeout after which we just fail the supervisor.
         if(this.seedDuration == 0) {
             client.waitForCompletion();
         } else {
@@ -108,22 +110,27 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         LOG.info("BitTorrent download complete.");
 
         /**
-         * TODO: This should not be needed. currently the bittorrent library uses the torrent name (which is topologyId)
+         * This should not be needed. currently the bittorrent library uses the torrent name (which is topologyId)
          * as the folder name and downloads all the files under that folder. so we need to either download
-         * the torrent files under /storm-local/supervisor or nimbus/stormdist/ to ensure storm-dist becomes the parent
-         * of all torrent files and the actual code will be downloaded under stormdist/topologyId or we have to keep
-         * 2 copies aorund. IDeally we should be able to specify that the downloaded files must be downloaded under
+         * the torrent files under /storm-local/supervisor/stormdist or nimbus/stormdist/ to ensure stormdist becomes
+         * the parent of all torrent files and the actual code will be downloaded under stormdist/topologyId/.
+         * Ideally we should be able to specify that the downloaded files must be downloaded under
          * given folder only and no extra folder needs to be created.
          */
-
 
         File srcDir = Paths.get(destDir.getPath(), topologyId).toFile();
         for(File file : srcDir.listFiles()) {
             Files.copy(file.toPath(), destDir.toPath().resolve(file.getName()));
+            file.delete();
+        }
+        srcDir.delete();
+        
+        List<File> files = new ArrayList<File>();
+        for(File file : destDir.listFiles()) {
+            files.add(file);
         }
 
-        //TODO: change this to actually return downloaded files.
-        return new ArrayList<File>();
+        return files;
     }
 
     @Override

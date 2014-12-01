@@ -16,7 +16,6 @@
 
 (ns backtype.storm.zookeeper
   (:import [org.apache.curator.retry RetryNTimes]
-           [backtype.storm.nimbus ZKLeaderElector]
            [backtype.storm Config])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])

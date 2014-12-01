@@ -455,6 +455,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_AUTO_CRED_PLUGINS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * Storm UI binds to this host/interface.
+     */
+    public static final String UI_HOST = "ui.host";
+    public static final Object UI_HOST_SCHEMA = String.class;
+    
+    /**
      * Storm UI binds to this port.
      */
     public static final String UI_PORT = "ui.port";

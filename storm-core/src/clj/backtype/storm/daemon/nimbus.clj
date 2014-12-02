@@ -330,6 +330,19 @@
    (if (:bt-tracker nimbus) (.upload (:bt-tracker nimbus) stormroot storm-id))
    ))
 
+(defn- wait-for-desired-code-replication [nimbus conf storm-id]
+  (let [min-replication-count (conf MIN-REPLICATION-COUNT)
+        max-replication-wait-time (conf MAX-REPLICATION-WAIT-TIME-SEC)
+        total-sleep-time (atom 0)]
+  (if (:bt-tracker nimbus)
+    (while (and (< min-replication-count (.getReplicationCount (:bt-tracker nimbus) storm-id))
+             (or
+              (= -1 max-replication-wait-time)
+              (< @total-sleep-time max-replication-wait-time)))
+      (do
+        (sleep-secs 1)
+        (swap! total-sleep-time inc))))))
+
 (defn- read-storm-topology [conf storm-id]
   (let [stormroot (master-stormdist-root conf storm-id)]
     (Utils/deserialize
@@ -980,6 +993,7 @@
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
               (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)
+              (wait-for-desired-code-replication nimbus conf storm-id)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]

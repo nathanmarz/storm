@@ -898,6 +898,23 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_BITTORRENT_SEED_DURATION = "supervisor.bittorrent.seed.duration";
     public static final Object SUPERVISOR_BITTORRENT_SEED_DURATION_SCHEMA = Number.class;
 
+    /**
+     * Minimum number of nimbus hosts where the code must be replicated before leader nimbus
+     * is allowed to perform topology activation tasks like setting up heartbeats/assignments
+     * and marking the topology as active. default is 0.
+     */
+    public static final String MIN_REPLICATION_COUNT = "min.replication.count";
+    public static final Object MIN_REPLICATION_COUNT_SCHEMA = Number.class;
+
+    /**
+     * Maximum wait time for the nimbus host replication to achieve the min.replication.count.
+     * Once this time is elapsed nimbus will go ahead and perform topology activation tasks even
+     * if required min.replication.count is not achieved. The default is 0 seconds, a value of
+     * -1 indicates to wait for ever.
+     */
+    public static final String MAX_REPLICATION_WAIT_TIME_SEC = "max.replication.wait.time.sec";
+    public static final Object MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }

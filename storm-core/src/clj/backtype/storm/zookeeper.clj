@@ -238,7 +238,7 @@
               diff-topology (first (set-delta active-topology-ids local-topology-ids))]
         (log-message (str "active-topology-ids [" (clojure.string/join "," active-topology-ids)
                           "] local-topology-ids ]" (clojure.string/join "," local-topology-ids))
-                          "] diff-topology [" (clojure.sting/join "," diff-topology) "]")
+                          "] diff-topology [" (clojure.string/join "," diff-topology) "]")
         (if (empty? diff-topology)
           (log-message " Accepting leadership, all active topology found localy.")
           (do

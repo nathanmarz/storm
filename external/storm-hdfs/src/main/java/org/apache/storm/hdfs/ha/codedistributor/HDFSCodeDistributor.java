@@ -17,7 +17,6 @@ import java.util.Map;
 public class HDFSCodeDistributor implements ICodeDistributor {
     private static final Logger LOG = LoggerFactory.getLogger(HDFSCodeDistributor.class);
 
-    //TODO should we move this Config.java?
     private final static String HDFS_STORM_DIR = "hdfs.storm.dir";
 
     private FileSystem fs;
@@ -79,10 +78,6 @@ public class HDFSCodeDistributor implements ICodeDistributor {
 
     @Override
     public short getReplicationCount(String topologyId) throws IOException {
-        //TODO: we might want to check if the code is actually loaded to hdfs and return hdfs replication factor
-        // for the topologyId folder. That may require the interface to change and it will have to pass the
-        // meta file input param here. For now assuming the caller only calls this if call to  upload succeeded.
-
         Path hdfsDestPath = new Path(stormDir, new Path(topologyId));
         if(fs.exists(hdfsDestPath)) {
             FileStatus fileStatus = fs.getFileStatus(hdfsDestPath);

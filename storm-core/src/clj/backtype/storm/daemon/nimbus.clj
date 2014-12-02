@@ -333,15 +333,22 @@
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
   (let [min-replication-count (conf MIN-REPLICATION-COUNT)
         max-replication-wait-time (conf MAX-REPLICATION-WAIT-TIME-SEC)
-        total-sleep-time (atom 0)]
+        total-wait-time (atom 0)
+        current-replication-count (atom (.getReplicationCount (:bt-tracker nimbus) storm-id))]
   (if (:bt-tracker nimbus)
-    (while (and (< min-replication-count (.getReplicationCount (:bt-tracker nimbus) storm-id))
-             (or
-              (= -1 max-replication-wait-time)
-              (< @total-sleep-time max-replication-wait-time)))
-      (do
+    (while (and (< min-replication-count @current-replication-count)
+             (or (= -1 max-replication-wait-time)
+               (< @total-wait-time max-replication-wait-time)))
         (sleep-secs 1)
-        (swap! total-sleep-time inc))))))
+        (log-debug "waiting for desired replication to be achieved.
+          min-replication-count = " min-replication-count  " max-replication-wait-time = " max-replication-wait-time
+          "current-replication-count = " @current-replication-count " total-wait-time " @total-wait-time)
+        (swap! total-wait-time inc)
+        (swap! current-replication-count (fn [unused] (.getReplicationCount (:bt-tracker nimbus) storm-id)))))
+  (if (< min-replication-count @current-replication-count)
+    (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time
+      so moving on with replication count = " @current-replication-count)
+    (log-message "desired replication count "  min-replication-count " achieved."))))
 
 (defn- read-storm-topology [conf storm-id]
   (let [stormroot (master-stormdist-root conf storm-id)]

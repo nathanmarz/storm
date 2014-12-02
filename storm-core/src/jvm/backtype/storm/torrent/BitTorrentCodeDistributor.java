@@ -133,7 +133,6 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
     public short getReplicationCount(String topologyId) {
         Collection<TrackedTorrent> trackedTorrents = tracker.getTrackedTorrents();
         for(TrackedTorrent trackedTorrent: trackedTorrents) {
-            //TODO this needs to be actual name and not topologyId
             if(trackedTorrent.getName().equals(topologyId)) {
                 return Shorts.checkedCast(trackedTorrent.seeders());
             }

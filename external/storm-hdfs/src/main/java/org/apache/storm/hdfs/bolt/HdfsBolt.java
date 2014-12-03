@@ -25,6 +25,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
 import org.apache.hadoop.hdfs.client.HdfsDataOutputStream.SyncFlag;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.storm.hdfs.bolt.format.FileNameFormat;
 import org.apache.storm.hdfs.bolt.format.RecordFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
@@ -33,10 +37,16 @@ import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.Subject;
 import java.io.IOException;
 import java.net.URI;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 public class HdfsBolt extends AbstractHdfsBolt{
     private static final Logger LOG = LoggerFactory.getLogger(HdfsBolt.class);
@@ -83,6 +93,23 @@ public class HdfsBolt extends AbstractHdfsBolt{
     @Override
     public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing HDFS Bolt...");
+        AccessControlContext context = AccessController.getContext();
+        Subject subject = Subject.getSubject(context);
+
+        if(subject != null) {
+            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
+            if (privateCredentials != null) {
+                for (Credentials cred : privateCredentials) {
+                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
+                    if (allTokens != null) {
+                        for (Token<? extends TokenIdentifier> token : allTokens) {
+                            UserGroupInformation.getCurrentUser().addToken(token);
+                            LOG.info("Added delegation tokens to UGI.");
+                        }
+                    }
+                }
+            }
+        }
         this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
     }
 

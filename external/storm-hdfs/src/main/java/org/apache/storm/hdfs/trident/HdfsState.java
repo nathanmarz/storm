@@ -17,6 +17,7 @@
  */
 package org.apache.storm.hdfs.trident;
 
+import backtype.storm.Config;
 import backtype.storm.task.IMetricsContext;
 import backtype.storm.topology.FailedException;
 import org.apache.hadoop.conf.Configuration;
@@ -26,7 +27,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.storm.hdfs.common.rotation.RotationAction;
+import org.apache.storm.hdfs.common.security.AutoHDFS;
 import org.apache.storm.hdfs.common.security.HdfsSecurityUtil;
 import org.apache.storm.hdfs.trident.format.FileNameFormat;
 import org.apache.storm.hdfs.trident.format.RecordFormat;
@@ -40,9 +46,12 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
 
+import javax.security.auth.Subject;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.util.*;
 
 public class HdfsState implements State {
@@ -104,7 +113,10 @@ public class HdfsState implements State {
                 }
             }
             try{
-                HdfsSecurityUtil.login(conf, hdfsConfig);
+                //if AutoHDFS is specified, do not attempt login.
+                if(!AutoHDFS.class.getName().equals(conf.get(Config.TOPOLOGY_AUTO_CREDENTIALS))) {
+                    HdfsSecurityUtil.login(conf, hdfsConfig);
+                }
                 doPrepare(conf, partitionIndex, numPartitions);
                 this.currentFile = createOutputFile();
 
@@ -170,6 +182,24 @@ public class HdfsState implements State {
         @Override
         void doPrepare(Map conf, int partitionIndex, int numPartitions) throws IOException {
             LOG.info("Preparing HDFS Bolt...");
+            AccessControlContext context = AccessController.getContext();
+            Subject subject = Subject.getSubject(context);
+
+            if(subject != null) {
+                Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
+                if (privateCredentials != null) {
+                    for (Credentials cred : privateCredentials) {
+                        Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
+                        if (allTokens != null) {
+                            for (Token<? extends TokenIdentifier> token : allTokens) {
+                                UserGroupInformation.getCurrentUser().addToken(token);
+                                LOG.info("Added delegation tokens to UGI.");
+                            }
+                        }
+                    }
+                }
+            }
+
             this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
         }
 

@@ -1,9 +1,11 @@
 package backtype.storm.nimbus;
 
-public class NimbusInfo {
+import java.io.Serializable;
+
+public class NimbusInfo implements Serializable {
     private String host;
     private int port;
-    private boolean isLeader;
+    private transient boolean isLeader;
 
     public NimbusInfo(String host, int port, boolean isLeader) {
         this.host = host;

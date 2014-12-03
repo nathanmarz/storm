@@ -128,6 +128,8 @@
   (assignment-info [this storm-id callback])
   (assignment-info-with-version [this storm-id callback])
   (assignment-version [this storm-id callback])
+  (code-distributor [this callback])
+  (code-distributor-info [this storm-id])
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
@@ -146,6 +148,7 @@
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
+  (setup-code-distributor! [this storm-id info])
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id node port error])
   (errors [this storm-id task-id])
@@ -157,12 +160,14 @@
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
+(def CODE-DISTRIBUTOR-ROOT "code-distributor")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
+(def CODE-DISTRIBUTOR-SUBTREE (str "/" CODE-DISTRIBUTOR-ROOT))
 
 (defn supervisor-path
   [id]
@@ -171,6 +176,10 @@
 (defn assignment-path
   [id]
   (str ASSIGNMENTS-SUBTREE "/" id))
+
+(defn code-distributor-path
+  [id]
+  (str CODE-DISTRIBUTOR-SUBTREE "/" id))
 
 (defn storm-path
   [id]
@@ -242,6 +251,8 @@
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
+        code-distributor-callback (atom nil)
+        code-distributor-info (atom nil)
         state-id (register
                    cluster-state
                    (fn [type path]
@@ -254,7 +265,7 @@
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
-    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE]]
       (mkdirs cluster-state p))
     (reify
       StormClusterState
@@ -285,6 +296,16 @@
         (when callback
           (swap! assignment-version-callback assoc storm-id callback))
         (get-version cluster-state (assignment-path storm-id) (not-nil? callback)))
+
+      (code-distributor
+        [this callback]
+        (when callback
+          (reset! code-distributor-callback callback))
+        (get-children cluster-state CODE-DISTRIBUTOR-SUBTREE (not-nil? callback)))
+
+      (code-distributor-info
+        [this storm-id]
+        (get-children cluster-state (code-distributor-path state-id) false))
 
       (active-storms
         [this]
@@ -385,9 +406,15 @@
         [this storm-id info]
         (set-data cluster-state (assignment-path storm-id) (Utils/serialize info)))
 
+      (setup-code-distributor!
+        [this storm-id info]
+        (mkdirs cluster-state (code-distributor-path storm-id))
+        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" info)))
+
       (remove-storm!
         [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))
+        (delete-node cluster-state (code-distributor-path storm-id))
         (remove-storm-base! this storm-id))
 
       (report-error

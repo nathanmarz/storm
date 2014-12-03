@@ -20,6 +20,7 @@
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
+  (:import [java.net InetAddress])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
@@ -993,13 +994,15 @@
                             topology)
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
-                storm-cluster-state (:storm-cluster-state nimbus)]
+                storm-cluster-state (:storm-cluster-state nimbus)
+                host-port-info (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))]
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
               (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)
+              (.setup-code-distributor! storm-cluster-state storm-id host-port-info)
               (wait-for-desired-code-replication nimbus conf storm-id)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive

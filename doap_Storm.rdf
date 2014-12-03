@@ -24,7 +24,7 @@
   <Project rdf:about="http://storm.apache.org/">
     <created>2014-04-12</created>
     <license rdf:resource="http://usefulinc.com/doap/licenses/asl20" />
-    <name>Apache Kafka</name>
+    <name>Apache Storm</name>
     <homepage rdf:resource="http://storm.apache.org/" />
     <asfext:pmc rdf:resource="http://storm.apache.org" />
     <shortdesc>Apache Storm is a distributed real-time computation system.</shortdesc>
@@ -32,7 +32,7 @@
     <bug-database rdf:resource="https://issues.apache.org/jira/browse/STORM" />
     <mailing-list rdf:resource="http://storm.apache.org/community.html" />
     <download-page rdf:resource="http://storm.apache.org/downloads.html" />
-    <programming-language>Clojure</programming-language>
+    <programming-language>Java</programming-language>
     <category rdf:resource="http://projects.apache.org/category/big-data" />
     <release>
       <Version>

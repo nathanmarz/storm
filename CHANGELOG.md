@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-567: Move Storm Documentation/Website from SVN to git
  * STORM-533: Add in client and server IConnection metrics.
  * STORM-572: Storm UI 'favicon.ico'
  * STORM-572: Allow Users to pass TEST-TIMEOUT-MS for java

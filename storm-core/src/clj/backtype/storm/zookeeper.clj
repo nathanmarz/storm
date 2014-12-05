@@ -19,7 +19,7 @@
            [backtype.storm Config])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
-  (:import [org.apache.curator.framework.recipes.leader LeaderLatch Participant LeaderLatchListener])
+  (:import [org.apache.curator.framework.recipes.leader LeaderLatch LeaderLatch$State Participant LeaderLatchListener])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])
@@ -254,37 +254,45 @@
         zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
         leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
         id (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
-        leader-latch (LeaderLatch. zk leader-lock-path id)
-        leader-latch-listener (leader-latch-listener conf zk leader-latch)
+        leader-latch (atom (LeaderLatch. zk leader-lock-path id))
+        leader-latch-listener (atom (leader-latch-listener conf zk @leader-latch))
         ]
     (reify ILeaderElector
       (prepare [this conf]
         (log-message "no-op for zookeeper implementation"))
+
       (^void addToLeaderLockQueue [this]
-        ; listeners are cleared up when close is called on leader latch so we add them at start
-        (.addListener leader-latch leader-latch-listener)
-        (.start leader-latch)
-        (log-message "Queued up for leader lock."))
+        (let [state (.getState @leader-latch)]
+        ;if this latch is already closed, we need to create new instance.
+        (if (.equals LeaderLatch$State/CLOSED state)
+          (do
+            (swap! leader-latch (fn[unused] (LeaderLatch. zk leader-lock-path id)))
+            (swap! leader-latch-listener (fn[unused] (leader-latch-listener conf zk @leader-latch)))))
+        ;Only if the latch is not already started we invoke start.
+        (if (.equals LeaderLatch$State/LATENT state)
+          (do
+            (.addListener @leader-latch @leader-latch-listener)
+            (.start @leader-latch)))
+        (log-message "Queued up for leader lock.")))
+
       (^void removeFromLeaderLockQueue [this]
-        (.close leader-latch)
+        ;Only started latches can be closed.
+        (if (.equals LeaderLatch$State/STARTED (.getState @leader-latch))
+          (.close @leader-latch))
         (log-message "Removed from leader lock queue."))
+
       (^boolean isLeader [this]
-        (.hasLeadership leader-latch))
+        (.hasLeadership @leader-latch))
+
       (^NimbusInfo getLeader [this]
-        (to-NimbusInfo (.getLeader leader-latch)))
+        (to-NimbusInfo (.getLeader @leader-latch)))
+
       (^List getAllNimbuses [this]
-        (let [participants (.getParticipants leader-latch)]
+        (let [participants (.getParticipants @leader-latch)]
           (map (fn [^Participant participant]
                  (to-NimbusInfo participant))
             participants)))
+
       (^void close[this]
         (log-message "closing zookeeper connection of leader elector.")
         (.close zk)))))
-
-(gen-class
-  :name backtype.storm.ZKLeaderElectorFactory
-  :impl-ns backtype.storm.zookeeper
-  :methods [[makeZkLeaderElector [backtype.storm.Config] backtype.storm.nimbus.ILeaderElector]])
-
-(defn -makeZkLeaderElector [conf]
-  (zk-leader-elector conf))

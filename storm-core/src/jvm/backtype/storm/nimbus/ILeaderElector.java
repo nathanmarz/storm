@@ -21,13 +21,15 @@ public interface ILeaderElector extends Closeable {
 
     /**
      * queue up for leadership lock. The call returns immediately and the caller must
-     * check isLeader() to perform any leadership action.
+     * check isLeader() to perform any leadership action. This method can be called
+     * multiple times so it needs to be idempotent.
      */
     void addToLeaderLockQueue();
 
     /**
      * Removes the caller from the leader lock queue. If the caller is leader
-     * also releases the lock.
+     * also releases the lock. This method can be called multiple times so it needs
+     * to be idempotent.
      */
     void removeFromLeaderLockQueue();
 

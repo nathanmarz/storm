@@ -61,8 +61,9 @@
     ))
 
 (defmulti mk-bt-tracker cluster-mode)
+(defmulti sync-code cluster-mode)
 
-;;Probably no need to allow for custom Leader election implementation.
+;;TODO we should try genclass for zkLeaderElector and just set NIMBUS-LEADER-ELECTOR-CLASS in defaults.yaml
 (defn mk-leader-elector [conf]
   (if (conf NIMBUS-LEADER-ELECTOR-CLASS)
     (do (log-message "Using custom Leade elector: " (conf NIMBUS-LEADER-ELECTOR-CLASS))
@@ -81,6 +82,7 @@
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
+     :host-port-info (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
      :inimbus inimbus
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf)
@@ -964,7 +966,15 @@
                         (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
-                          ))    
+                          ))
+
+    (schedule-recurring (:timer nimbus)
+      0
+      (conf NIMBUS-CODE-SYNC-FREQ-SECS)
+      (fn []
+        (sync-code conf nimbus)
+        ))
+
     (reify Nimbus$Iface
       (^void submitTopologyWithOpts
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
@@ -995,7 +1005,7 @@
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
                 storm-cluster-state (:storm-cluster-state nimbus)
-                host-port-info (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))]
+                host-port-info (:host-port-info nimbus) ]
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
@@ -1210,6 +1220,45 @@
     code-distributor))
 
 (defmethod mk-bt-tracker :local [conf]
+  nil)
+
+(defn download-code [conf nimbus storm-id host port]
+  ;TODO make download atomic.
+  (let [;tmp-root (str (master-tmp-dir conf) file-path-separator (uuid)
+        storm-cluster-state (:storm-cluster-state nimbus)
+        host-port-info (:host-port-info nimbus)
+        code-dir (master-stormdist-root conf)
+        storm-root (master-stormdist-root conf storm-id)
+        meta-file-path (master-storm-metafile-path storm-root)]
+    (FileUtils/forceMkdir (File. tmp-root))
+    (FileUtils/forceMkdir (File. storm-root))
+    (FileUtils/cleanDirectory (File. storm-root))
+    (Utils/downloadFromHost conf meta-file-path meta-file-path host port)
+    (if (:bt-tracker nimbus)
+      (.download (:bt-tracker nimbus) storm-id (File. meta-file-path)))
+    (.setup-code-distributor! storm-cluster-state storm-id host-port-info)))
+
+;TODO this needs to use the cluster callback.
+(defmethod sync-code :distributed [conf nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        code-ids (set (code-ids (:conf nimbus)))
+        active-topologies (set (.code-distributor storm-cluster-state nil))
+        missing-topologies (set/difference active-topologies code-ids)]
+    (if (not (empty? missing-topologies))
+      (doseq [missing missing-topologies]
+        (log-message "missing topology " missing " has state on zookeeper but doesn't have a local dir on this host.")
+        (let [nimbuses-with-missing (.code-distributor-info storm-cluster-state missing)]
+          (log-message "trying to download missing topology code from " (clojure.string/join "," nimbuses-with-missing))
+          (doseq [nimbus-host-port nimbuses-with-missing]
+            (let [[host port] (clojure.string/split nimbus-host-port #":")]
+              (when-not (contains? missing (code-ids (:conf nimbus)))
+                (try
+                  (download-code conf nimbus missing host (Integer/parseInt port))
+                  (.addToLeaderLockQueue (:leader-elector nimbus))
+                  (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing))))))))
+      (log-message "local disk in completely in sync with zk code-distributor."))))
+
+(defmethod sync-code :local [conf nimbus]
   nil)
 
 (defn launch-server! [conf nimbus]

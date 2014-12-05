@@ -305,7 +305,7 @@
 
       (code-distributor-info
         [this storm-id]
-        (get-children cluster-state (code-distributor-path state-id) false))
+        (get-children cluster-state (code-distributor-path storm-id) false))
 
       (active-storms
         [this]

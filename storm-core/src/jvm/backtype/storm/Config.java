@@ -915,6 +915,15 @@ public class Config extends HashMap<String, Object> {
     public static final String MAX_REPLICATION_WAIT_TIME_SEC = "max.replication.wait.time.sec";
     public static final Object MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
 
+
+    /**
+     * How often nimbus should wake the cleanup thread to clean the inbox.
+     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     */
+    public static final String NIMBUS_CODE_SYNC_FREQ_SECS = "nimbus.code.sync.freq.secs";
+    public static final Object NIMBUS_CODE_SYNC_FREQ_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }

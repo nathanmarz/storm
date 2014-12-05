@@ -180,10 +180,11 @@ public class KafkaUtils {
         if (fetchResponse.hasError()) {
             KafkaError error = KafkaError.getError(fetchResponse.errorCode(topic, partitionId));
             if (error.equals(KafkaError.OFFSET_OUT_OF_RANGE) && config.useStartOffsetTimeIfOffsetOutOfRange) {
-                LOG.warn("Got fetch request with offset out of range: [" + offset + "]; " +
+                String msg = "Got fetch request with offset out of range: [" + offset + "]; " +
                         "retrying with default start offset time from configuration. " +
-                        "configured start offset time: [" + config.startOffsetTime + "]");
-                throw new UpdateOffsetException();
+                        "configured start offset time: [" + config.startOffsetTime + "]";
+                LOG.warn(msg);
+                throw new UpdateOffsetException(msg);
             } else {
                 String message = "Error fetching data from [" + partition + "] for topic [" + topic + "]: [" + error + "]";
                 LOG.error(message);

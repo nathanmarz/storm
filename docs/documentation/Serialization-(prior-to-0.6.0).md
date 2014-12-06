@@ -39,7 +39,7 @@ Storm uses the `accept` method to determine if a type can be serialized by this 
 
 `deserialize` reads the serialized object off of the stream and returns it.
 
-You can see example serialization implementations in the source for [SerializationFactory](https://github.com/apache/storm/blob/0.5.4/src/jvm/backtype/storm/serialization/SerializationFactory.java)
+You can see example serialization implementations in the source for [SerializationFactory](https://github.com/apache/incubator-storm/blob/0.5.4/src/jvm/backtype/storm/serialization/SerializationFactory.java)
 
 #### Registering a serializer
 

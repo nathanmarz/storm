@@ -74,11 +74,11 @@ You should only store static data, and as little of it as possible, into the met
 
 ### How often is the 'emitPartitionBatchNew' function called?
 
-Since the MBC is the actual spout, all the tuples in a batch are just members of its tupletree. That means storm's "max spout pending" config effectively defines the number of concurrent batches trident runs. The MBC emits a new batch if it has fewer than max-spending tuples pending and if at least one [trident batch interval](https://github.com/apache/storm/blob/master/conf/defaults.yaml#L115)'s worth of seconds has passed since the last batch.
+Since the MBC is the actual spout, all the tuples in a batch are just members of its tupletree. That means storm's "max spout pending" config effectively defines the number of concurrent batches trident runs. The MBC emits a new batch if it has fewer than max-spending tuples pending and if at least one [trident batch interval](https://github.com/apache/incubator-storm/blob/master/conf/defaults.yaml#L115)'s worth of seconds has passed since the last batch.
 
 ### If nothing was emitted does Trident slow down the calls?
 
-Yes, there's a pluggable "spout wait strategy"; the default is to sleep for a [configurable amount of time](https://github.com/apache/storm/blob/master/conf/defaults.yaml#L110)
+Yes, there's a pluggable "spout wait strategy"; the default is to sleep for a [configurable amount of time](https://github.com/apache/incubator-storm/blob/master/conf/defaults.yaml#L110)
 
 ### OK, then what is the trident batch interval for?
 

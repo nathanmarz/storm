@@ -17,4 +17,4 @@ To develop topologies, you'll need the Storm jars on your classpath. You should 
 
 ### Developing Storm
 
-Please refer to [DEVELOPER.md](https://github.com/apache/storm/blog/master/DEVELOPER.md) for more details.
+Please refer to [DEVELOPER.md](https://github.com/apache/storm/blob/master/DEVELOPER.md) for more details.

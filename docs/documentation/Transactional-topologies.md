@@ -81,7 +81,7 @@ Finally, another thing to note is that transactional topologies require a source
 
 ## The basics through example
 
-You build transactional topologies by using [TransactionalTopologyBuilder](/apidocs/backtype/storm/transactional/TransactionalTopologyBuilder.html). Here's the transactional topology definition for a topology that computes the global count of tuples from the input stream. This code comes from [TransactionalGlobalCount](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/TransactionalGlobalCount.java) in storm-starter.
+You build transactional topologies by using [TransactionalTopologyBuilder](/apidocs/backtype/storm/transactional/TransactionalTopologyBuilder.html). Here's the transactional topology definition for a topology that computes the global count of tuples from the input stream. This code comes from [TransactionalGlobalCount](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/TransactionalGlobalCount.java) in storm-starter.
 
 ```java
 MemoryTransactionalSpout spout = new MemoryTransactionalSpout(DATA, new Fields("word"), PARTITION_TAKE_PER_BATCH);
@@ -201,7 +201,7 @@ First, notice that this bolt implements the `ICommitter` interface. This tells S
 
 The code for `finishBatch` in `UpdateGlobalCount` gets the current value from the database and compares its transaction id to the transaction id for this batch. If they are the same, it does nothing. Otherwise, it increments the value in the database by the partial count for this batch.
 
-A more involved transactional topology example that updates multiple databases idempotently can be found in storm-starter in the [TransactionalWords](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/TransactionalWords.java) class.
+A more involved transactional topology example that updates multiple databases idempotently can be found in storm-starter in the [TransactionalWords](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/TransactionalWords.java) class.
 
 ## Transactional Topology API
 

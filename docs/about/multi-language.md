@@ -6,4 +6,4 @@ Storm was designed from the ground up to be usable with any programming language
 
 Similarly, spouts and bolts can be defined in any language. Non-JVM spouts and bolts communicate to Storm over a [JSON-based protocol](/documentation/Multilang-protocol.html) over stdin/stdout. Adapters that implement this protocol exist for [Ruby](https://github.com/apache/incubator-storm/blob/master/storm-core/src/multilang/rb/storm.rb), [Python](https://github.com/apache/incubator-storm/blob/master/storm-core/src/multilang/py/storm.py), [Javascript](https://github.com/Lazyshot/storm-node), [Perl](https://github.com/gphat/io-storm), and [PHP](https://github.com/lazyshot/storm-php).
 
-*storm-starter* has an [example topology](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/WordCountTopology.java) that implements one of the bolts in Python.
+*storm-starter* has an [example topology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/WordCountTopology.java) that implements one of the bolts in Python.

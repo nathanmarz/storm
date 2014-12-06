@@ -19,7 +19,7 @@ To develop topologies, you'll need the Storm jars on your classpath. You should 
 </dependency>
 ```
 
-[Here's an example](https://github.com/nathanmarz/storm-starter/blob/master/m2-pom.xml) of a pom.xml for a Storm project.
+[Here's an example](https://github.com/apache/storm/blob/master/examples/storm-starter/pom.xml) of a pom.xml for a Storm project.
 
 If Maven isn't your thing, check out [leiningen](https://github.com/technomancy/leiningen). Leiningen is a build tool for Clojure, but it can be used for pure Java projects as well. Leiningen makes builds and dependency management using Maven dead-simple. Here's an example project.clj for a pure-Java Storm project:
 

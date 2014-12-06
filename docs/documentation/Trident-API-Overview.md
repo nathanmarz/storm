@@ -270,7 +270,7 @@ mystream.aggregate(new Count(), new Fields("count"))
 
 Like partitionAggregate, aggregators for aggregate can be chained. However, if you chain a CombinerAggregator with a non-CombinerAggregator, Trident is unable to do the partial aggregation optimization.
 
-You can read more about how to use persistentAggregate in the [Trident state doc](https://github.com/apache/incubator-storm/wiki/Trident-state).
+You can read more about how to use persistentAggregate in the [Trident state doc](https://github.com/apache/storm/wiki/Trident-state).
 
 ## Operations on grouped streams
 

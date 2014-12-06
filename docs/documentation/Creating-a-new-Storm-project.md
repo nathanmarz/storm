@@ -14,8 +14,6 @@ Follow along to see how to set up the [storm-starter](https://github.com/apache/
 
 You'll need the Storm jars on your classpath to develop Storm topologies. Using [Maven](Maven.html) is highly recommended. [Here's an example](https://github.com/apache/storm/blob/master/examples/storm-starter/pom.xml) of how to setup your pom.xml for a Storm project. If you don't want to use Maven, you can include the jars from the Storm release on your classpath.
 
-[storm-starter](https://github.com/apache/storm/blob/master/examples/storm-starter) uses [Leiningen](http://github.com/technomancy/leiningen) for build and dependency resolution. You can install leiningen by downloading [this script](https://raw.github.com/technomancy/leiningen/stable/bin/lein), placing it on your path, and making it executable. To retrieve the dependencies for Storm, simply run `lein deps` in the project root.
-
 To set up the classpath in Eclipse, create a new Java project, include `src/jvm/` as a source path, and make sure all the jars in `lib/` and `lib/dev/` are in the `Referenced Libraries` section of the project.
 
 ### If using multilang, add multilang dir to classpath

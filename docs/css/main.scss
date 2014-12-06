@@ -1,0 +1,47 @@
+---
+# Only the main Sass file needs front matter (the dashes are enough)
+---
+@charset "utf-8";
+
+
+$spacing-unit:     30px;
+
+@import
+        "syntax-highlighting"
+;
+
+#sidebar {
+  float: left;
+  background: #F6F9FB;
+	border: 1px solid #E1E1E1;
+	padding: 0px 10px 10px 0px;
+	margin-left: 0px;
+
+}
+
+#sidebar a.current {
+  color: #E00000;
+}
+
+#sidebar ul {
+  list-style: none;
+  font-size: 0.83em;
+  padding-left: 20px;
+}
+
+#sidebar ul li {
+  margin-top: 3px;
+}
+
+
+#aboutcontent {
+	width: 70%;
+	margin-top:0px;
+	margin-left: 220px;
+}
+
+#footer {
+	//margin: 100px;
+	//padding: 0;
+	font-size: 0.7em;
+}

@@ -21,6 +21,7 @@
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
+  (:import [backtype.storm.security.auth IAuthorizer]) 
   (:import [java.io InterruptedIOException])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
@@ -41,6 +42,7 @@
 (def SYSTEM-TICK-STREAM-ID Constants/SYSTEM_TICK_STREAM_ID)
 (def METRICS-STREAM-ID Constants/METRICS_STREAM_ID)
 (def METRICS-TICK-STREAM-ID Constants/METRICS_TICK_STREAM_ID)
+(def CREDENTIALS-CHANGED-STREAM-ID Constants/CREDENTIALS_CHANGED_STREAM_ID)
 
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
@@ -49,7 +51,7 @@
 
 
 ;; component->executors is a map from spout/bolt id to number of executors for that component
-(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner])
 
 (defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs])
 
@@ -291,7 +293,8 @@
                           {}
                           (SystemBolt.)
                           {SYSTEM-TICK-STREAM-ID (thrift/output-fields ["rate_secs"])
-                           METRICS-TICK-STREAM-ID (thrift/output-fields ["interval"])}                          
+                           METRICS-TICK-STREAM-ID (thrift/output-fields ["interval"])
+                           CREDENTIALS-CHANGED-STREAM-ID (thrift/output-fields ["creds"])}
                           :p 0
                           :conf {TOPOLOGY-TASKS 0})]
     (.put_to_bolts topology SYSTEM-COMPONENT-ID system-bolt-spec)))
@@ -352,3 +355,14 @@
   (->> executor->node+port
        (mapcat (fn [[e node+port]] (for [t (executor-id->tasks e)] [t node+port])))
        (into {})))
+
+(defn mk-authorization-handler [klassname conf]
+  (let [aznClass (if klassname (Class/forName klassname))
+        aznHandler (if aznClass (.newInstance aznClass))] 
+    (if aznHandler (.prepare ^IAuthorizer aznHandler conf))
+    (log-debug "authorization class name:" klassname
+                 " class:" aznClass
+                 " handler:" aznHandler)
+    aznHandler
+  )) 
+

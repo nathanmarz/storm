@@ -1,7 +1,24 @@
+## 0.10.0
+ * STORM-567: Move Storm Documentation/Website from SVN to git
+ * STORM-533: Add in client and server IConnection metrics.
+ * STORM-572: Storm UI 'favicon.ico'
+ * STORM-572: Allow Users to pass TEST-TIMEOUT-MS for java
+ * STORM-571: upgrade clj-time.
+ * STORM-569: Add Conf for bolt's outgoing overflow-buffer.
+ * STORM-565: Fix NPE when topology.groups is null.
+
 ## 0.9.3-rc2
+ * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor
+ * STORM-555: Storm json response should set charset to UTF-8
+ * STORM-513: check heartbeat from multilang subprocess
+ * STORM-549: "topology.enable.message.timeouts" does nothing
+ * STORM-546: Local hostname configuration ignored by executor
+ * STORM-492: Test timeout should be configurable
  * STORM-540: Change default time format in logs to ISO8601 in order to include timezone
  * STORM-511: Storm-Kafka spout keeps sending fetch requests with invalid offset
  * STORM-538: Guava com.google.thirdparty.publicsuffix is not shaded
+ * STORM-497: don't modify the netty server taskToQueueId mapping while the someone could be reading it.
+ * STORM-537: A worker reconnects infinitely to another dead worker (Sergey Tryuber)
 
 ## 0.9.3-rc1
  * STORM-519: add tuple as an input param to HBaseValueMapper 
@@ -62,7 +79,6 @@
  * STORM-406: Fix for reconnect logic in netty client.
  * STORM-366: Add color span to most recent error and fix ui templates.
  * STORM-369: topology summary page displays wrong order.
- * STORM-350: LMAX Disruptor 3.2.1
  * STORM-239: Allow supervisor to operate in paths with spaces in them
  * STORM-87: fail fast on ShellBolt exception
  * STORM-417: Storm UI lost table sort style when tablesorter was updated

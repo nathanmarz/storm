@@ -79,6 +79,7 @@ under the License.
 * Michael G. Noll ([@miguno](https://github.com/miguno))
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Sriharsha Chintalapani([@harshach](https://github.com/harshach))
+* Sean Zhong ([@clockfly] (http://github.com/clockfly))
 
 ## Contributors
 
@@ -160,6 +161,7 @@ under the License.
 * Jo Liss ([@joliss](https://github.com/joliss))
 * averykhoo ([@averykhoo](https://github.com/averykhoo))
 * Curtis Allen ([@curtisallen](https://github.com/curtisallen))
+* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal)) 
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
@@ -175,6 +177,8 @@ under the License.
 * Dane Hammer ([@danehammer](https://github.com/danehammer))
 * Christophe Carre' ([@chrisz](https://github.com/chrisz))
 * Anya Tchernishov ([@anyatch](https://github.com/anyatch))
+* Ahmet DAL ([@javrasya](https://github.com/javrasya))
+* Kai Sasaki ([@Lewuathe](https://github.com/Lewuathe))
 
 ## Acknowledgements
 

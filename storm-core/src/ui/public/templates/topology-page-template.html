@@ -29,6 +29,11 @@
           </span>
         </th>
         <th>
+          <span class="tip above" title="The user that submitted the Topology, if authentication is enabled.">
+            Owner
+          </span>
+        </th>
+        <th>
           <span class="tip above" title="The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING.">
             Status
           </span>
@@ -53,17 +58,24 @@
             Num tasks
           </span>
         </th>
+        <th>
+          <span class="tip left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
+            Scheduler Info
+          </span>
+        </th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>{{name}}</td>
         <td>{{id}}</td>
+        <td>{{owner}}</td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
         <td>{{workersTotal}}</td>
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
+        <td>{{schedulerInfo}}</td>
       </tr>
     </tbody>
   </table>
@@ -326,8 +338,11 @@
 </script>
 
 <script id="topology-actions-template" type="text/html">
-  <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate">
-  <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate">
-  <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance">
-  <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
+  <h2>Topology actions</h2>
+  <p id="topology-actions">
+    <input {{activateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate">
+    <input {{deactivateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate">
+    <input {{rebalanceStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance">
+    <input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
+  </p>
 </script>

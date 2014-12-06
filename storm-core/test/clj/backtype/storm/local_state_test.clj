@@ -16,7 +16,9 @@
 (ns backtype.storm.local-state-test
   (:use [clojure test])
   (:use [backtype.storm testing])
-  (:import [backtype.storm.utils LocalState]))
+  (:import [backtype.storm.utils LocalState]
+           [org.apache.commons.io FileUtils]
+           [java.io File]))
 
 (deftest test-local-state
   (with-local-tmp [dir1 dir2]
@@ -41,3 +43,13 @@
       (.put ls2 "b" 8)
       (is (= 8 (.get ls2 "b")))
       )))
+
+(deftest empty-state
+  (with-local-tmp [dir]
+    (let [ls (LocalState. dir)
+          data (FileUtils/openOutputStream (File. dir "12345"))
+          version (FileUtils/openOutputStream (File. dir "12345.version"))]
+      (is (= nil (.get ls "c")))
+      (.put ls "a" 1)
+      (is (= 1 (.get ls "a")))
+  )))

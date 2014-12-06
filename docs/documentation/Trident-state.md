@@ -309,7 +309,7 @@ public interface Snapshottable<T> extends State {
 }
 ```
 
-[MemoryMapState](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/testing/MemoryMapState.java) and [MemcachedState](https://github.com/nathanmarz/trident-memcached/blob/master/src/jvm/trident/memcached/MemcachedState.java) each implement both of these interfaces.
+[MemoryMapState](https://github.com/apache/storm/blob/master/storm-core/src/jvm/storm/trident/testing/MemoryMapState.java) and [MemcachedState](https://github.com/nathanmarz/trident-memcached/blob/master/src/jvm/trident/memcached/MemcachedState.java) each implement both of these interfaces.
 
 ## Implementing Map States
 
@@ -322,10 +322,10 @@ public interface IBackingMap<T> {
 }
 ```
 
-OpaqueMap's will call multiPut with [OpaqueValue](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/state/OpaqueValue.java)'s for the vals, TransactionalMap's will give [TransactionalValue](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/state/TransactionalValue.java)'s for the vals, and NonTransactionalMaps will just pass the objects from the topology through.
+OpaqueMap's will call multiPut with [OpaqueValue](https://github.com/apache/storm/blob/master/storm-core/src/jvm/storm/trident/state/OpaqueValue.java)'s for the vals, TransactionalMap's will give [TransactionalValue](https://github.com/apache/storm/blob/master/storm-core/src/jvm/storm/trident/state/TransactionalValue.java)'s for the vals, and NonTransactionalMaps will just pass the objects from the topology through.
 
-Trident also provides the [CachedMap](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/state/map/CachedMap.java) class to do automatic LRU caching of map key/vals.
+Trident also provides the [CachedMap](https://github.com/apache/storm/blob/master/storm-core/src/jvm/storm/trident/state/map/CachedMap.java) class to do automatic LRU caching of map key/vals.
 
-Finally, Trident provides the [SnapshottableMap](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/state/map/SnapshottableMap.java) class that turns a MapState into a Snapshottable object, by storing global aggregations into a fixed key.
+Finally, Trident provides the [SnapshottableMap](https://github.com/apache/storm/blob/master/storm-core/src/jvm/storm/trident/state/map/SnapshottableMap.java) class that turns a MapState into a Snapshottable object, by storing global aggregations into a fixed key.
 
 Take a look at the implementation of [MemcachedState](https://github.com/nathanmarz/trident-memcached/blob/master/src/jvm/trident/memcached/MemcachedState.java) to see how all these utilities can be put together to make a high performance MapState implementation. MemcachedState allows you to choose between opaque transactional, transactional, and non-transactional semantics.

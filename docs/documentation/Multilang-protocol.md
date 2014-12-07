@@ -229,7 +229,7 @@ ShellSpout/ShellBolt has been introduced from [STORM-513](https://issues.apache.
 * Spout
 
 Shell spouts are synchronous, and subprocess always send 'sync' at the end of next() so you don't need to take care of.
-One thing you have to take care of is, don't let subprocess sleep too much from next(), especially less to worker timeout.
+One thing you have to take care of is, don't let subprocess sleep too much from next(), especially keep it less to worker timeout.
 
 * Bolt
 

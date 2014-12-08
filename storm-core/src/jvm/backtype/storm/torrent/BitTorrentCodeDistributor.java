@@ -152,13 +152,11 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
             this.tracker.remove(torrent);
         }
         rebalanceRates();
-
-        //TODO: ensure supervisor and nimbus will blow the stormroot/topologyId folder completely.
     }
 
     @Override
     public void close(Map conf) {
-        //TODO should we delete all .torrent files?
+        this.tracker.stop();
     }
 
     private synchronized void rebalanceRates(){

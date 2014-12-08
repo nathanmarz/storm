@@ -7,6 +7,7 @@ import org.apache.commons.lang.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.storm.hdfs.common.security.HdfsSecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +25,11 @@ public class HDFSCodeDistributor implements ICodeDistributor {
 
     @Override
     public void prepare(Map conf) throws Exception {
-        //TODO need to handle secure HDFS, also this assumes the hdfs-site.xml, core-site.xml and yarn-site.xml is
-        //part of the classPath , document the assumption in README.md
-
         Validate.notNull(conf.get(HDFS_STORM_DIR), "you must specify " + HDFS_STORM_DIR);
-        this.fs = FileSystem.get(new Configuration());
+
+        Configuration configuration = new Configuration();
+        HdfsSecurityUtil.login(conf, configuration);
+        this.fs = FileSystem.get(configuration);
         this.stormDir = new Path(String.valueOf(conf.get(HDFS_STORM_DIR)));
         if(!this.fs.exists(stormDir)) {
             this.fs.mkdirs(this.stormDir);
@@ -96,6 +97,5 @@ public class HDFSCodeDistributor implements ICodeDistributor {
 
     @Override
     public void close(Map conf) {
-        //TODO Should we delete all the files?
     }
 }

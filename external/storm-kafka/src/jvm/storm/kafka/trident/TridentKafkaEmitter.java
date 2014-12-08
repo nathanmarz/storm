@@ -111,7 +111,17 @@ public class TridentKafkaEmitter {
         } else {
             offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
         }
-        ByteBufferMessageSet msgs = fetchMessages(consumer, partition, offset);
+
+        ByteBufferMessageSet msgs = null;
+        try {
+            msgs = fetchMessages(consumer, partition, offset);
+        } catch (UpdateOffsetException e) {
+            long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
+            LOG.warn("OffsetOutOfRange: Updating offset from offset = " + offset + " to offset = " + newOffset);
+            offset = newOffset;
+            msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
+        }
+
         long endoffset = offset;
         for (MessageAndOffset msg : msgs) {
             emit(collector, msg.message());
@@ -131,13 +141,7 @@ public class TridentKafkaEmitter {
     private ByteBufferMessageSet fetchMessages(SimpleConsumer consumer, Partition partition, long offset) {
         long start = System.nanoTime();
         ByteBufferMessageSet msgs = null;
-        try {
-            msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
-        } catch (UpdateOffsetException e) {
-            long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
-            LOG.warn("OffsetOutOfRange, Updating offset from offset = " + offset + " to offset = " + newOffset);
-            msgs = KafkaUtils.fetchMessages(_config, consumer, partition, newOffset);
-        }
+        msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
         long end = System.nanoTime();
         long millis = (end - start) / 1000000;
         _kafkaMeanFetchLatencyMetric.update(millis);
@@ -160,16 +164,25 @@ public class TridentKafkaEmitter {
             SimpleConsumer consumer = _connections.register(partition);
             long offset = (Long) meta.get("offset");
             long nextOffset = (Long) meta.get("nextOffset");
-            ByteBufferMessageSet msgs = fetchMessages(consumer, partition, offset);
-            for (MessageAndOffset msg : msgs) {
-                if (offset == nextOffset) {
-                    break;
+            ByteBufferMessageSet msgs = null;
+            try {
+                msgs = fetchMessages(consumer, partition, offset);
+            } catch (UpdateOffsetException e) {
+                LOG.warn("OffsetOutOfRange during reEmitPartitionBatch, the transaction can not be replayed." +
+                        "Returning empty messages");
+            }
+
+            if(msgs != null) {
+                for (MessageAndOffset msg : msgs) {
+                    if (offset == nextOffset) {
+                        break;
+                    }
+                    if (offset > nextOffset) {
+                        throw new RuntimeException("Error when re-emitting batch. overshot the end offset");
+                    }
+                    emit(collector, msg.message());
+                    offset = msg.nextOffset();
                 }
-                if (offset > nextOffset) {
-                    throw new RuntimeException("Error when re-emitting batch. overshot the end offset");
-                }
-                emit(collector, msg.message());
-                offset = msg.nextOffset();
             }
         }
     }

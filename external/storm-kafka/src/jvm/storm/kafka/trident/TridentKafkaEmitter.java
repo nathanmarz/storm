@@ -29,11 +29,8 @@ import kafka.message.Message;
 import kafka.message.MessageAndOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.kafka.DynamicPartitionConnections;
-import storm.kafka.FailedFetchException;
-import storm.kafka.KafkaUtils;
-import storm.kafka.Partition;
-import storm.kafka.UpdateOffsetException;
+import storm.kafka.*;
+import storm.kafka.TopicOffsetOutOfRangeException;
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
@@ -115,7 +112,7 @@ public class TridentKafkaEmitter {
         ByteBufferMessageSet msgs = null;
         try {
             msgs = fetchMessages(consumer, partition, offset);
-        } catch (UpdateOffsetException e) {
+        } catch (TopicOffsetOutOfRangeException e) {
             long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
             LOG.warn("OffsetOutOfRange: Updating offset from offset = " + offset + " to offset = " + newOffset);
             offset = newOffset;
@@ -167,7 +164,7 @@ public class TridentKafkaEmitter {
             ByteBufferMessageSet msgs = null;
             try {
                 msgs = fetchMessages(consumer, partition, offset);
-            } catch (UpdateOffsetException e) {
+            } catch (TopicOffsetOutOfRangeException e) {
                 LOG.warn("OffsetOutOfRange during reEmitPartitionBatch, the transaction can not be replayed." +
                         "Returning empty messages");
             }

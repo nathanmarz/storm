@@ -339,7 +339,7 @@
         total-wait-time (atom 0)
         current-replication-count (atom (.getReplicationCount (:bt-tracker nimbus) storm-id))]
   (if (:bt-tracker nimbus)
-    (while (and (< min-replication-count @current-replication-count)
+    (while (and (> min-replication-count @current-replication-count)
              (or (= -1 max-replication-wait-time)
                (< @total-wait-time max-replication-wait-time)))
         (sleep-secs 1)
@@ -347,11 +347,13 @@
           min-replication-count = " min-replication-count  " max-replication-wait-time = " max-replication-wait-time
           "current-replication-count = " @current-replication-count " total-wait-time " @total-wait-time)
         (swap! total-wait-time inc)
-        (swap! current-replication-count (fn [unused] (.getReplicationCount (:bt-tracker nimbus) storm-id)))))
+        (reset! current-replication-count  (.getReplicationCount (:bt-tracker nimbus) storm-id))))
   (if (< min-replication-count @current-replication-count)
+    (log-message "desired replication count "  min-replication-count " achieved,
+      current-replication-count" @current-replication-count)
     (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time
       so moving on with replication count = " @current-replication-count)
-    (log-message "desired replication count "  min-replication-count " achieved."))))
+    )))
 
 (defn- read-storm-topology [conf storm-id]
   (let [stormroot (master-stormdist-root conf storm-id)]
@@ -1223,22 +1225,22 @@
   nil)
 
 (defn download-code [conf nimbus storm-id host port]
-  ;TODO make download atomic.
-  (let [;tmp-root (str (master-tmp-dir conf) file-path-separator (uuid)
+  (let [tmp-root (str (master-tmp-dir conf) file-path-separator (uuid))
         storm-cluster-state (:storm-cluster-state nimbus)
         host-port-info (:host-port-info nimbus)
         code-dir (master-stormdist-root conf)
         storm-root (master-stormdist-root conf storm-id)
-        meta-file-path (master-storm-metafile-path storm-root)]
+        remote-meta-file-path (master-storm-metafile-path storm-root)
+        local-meta-file-path (master-storm-metafile-path tmp-root)]
     (FileUtils/forceMkdir (File. tmp-root))
-    (FileUtils/forceMkdir (File. storm-root))
-    (FileUtils/cleanDirectory (File. storm-root))
-    (Utils/downloadFromHost conf meta-file-path meta-file-path host port)
+    (Utils/downloadFromHost conf remote-meta-file-path local-meta-file-path host port)
     (if (:bt-tracker nimbus)
-      (.download (:bt-tracker nimbus) storm-id (File. meta-file-path)))
+      (.download (:bt-tracker nimbus) storm-id (File. local-meta-file-path)))
+    (if (.exists (File. storm-root)) (FileUtils/forceDelete (File. storm-root)))
+    (FileUtils/moveDirectory (File. tmp-root) (File. storm-root))
     (.setup-code-distributor! storm-cluster-state storm-id host-port-info)))
 
-;TODO this needs to use the cluster callback.
+;;TODO we need a call back registration for (code-distributor storm-cluster-state)
 (defmethod sync-code :distributed [conf nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         code-ids (set (code-ids (:conf nimbus)))
@@ -1251,7 +1253,7 @@
           (log-message "trying to download missing topology code from " (clojure.string/join "," nimbuses-with-missing))
           (doseq [nimbus-host-port nimbuses-with-missing]
             (let [[host port] (clojure.string/split nimbus-host-port #":")]
-              (when-not (contains? missing (code-ids (:conf nimbus)))
+              (when-not (contains? (code-ids (:conf nimbus)) missing)
                 (try
                   (download-code conf nimbus missing host (Integer/parseInt port))
                   (.addToLeaderLockQueue (:leader-elector nimbus))

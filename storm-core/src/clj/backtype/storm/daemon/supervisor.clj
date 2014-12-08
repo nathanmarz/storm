@@ -465,12 +465,14 @@
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)
           master-meta-file-path (master-storm-metafile-path master-code-dir)
-          supervisor-meta-file-path (supervisor-storm-metafile-path stormroot)]
-      (FileUtils/forceMkdir (File. stormroot))
+          supervisor-meta-file-path (supervisor-storm-metafile-path tmproot)]
+      (FileUtils/forceMkdir (File. tmproot))
       (Utils/downloadFromMaster conf master-meta-file-path supervisor-meta-file-path)
       (if (:bt-tracker supervisor)
         (.download (:bt-tracker supervisor) storm-id (File. supervisor-meta-file-path)))
       (extract-dir-from-jar (supervisor-stormjar-path stormroot) RESOURCES-SUBDIR stormroot)
+      (if (.exists (File. stormroot)) (FileUtils/forceDelete (File. stormroot)))
+      (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
       ))
 
 (defmethod mk-bt-tracker :distributed [conf]

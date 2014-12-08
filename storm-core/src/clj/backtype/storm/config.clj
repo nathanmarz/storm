@@ -140,6 +140,12 @@
   ([conf storm-id]
    (str (master-stormdist-root conf) file-path-separator storm-id)))
 
+(defn master-tmp-dir
+  [conf]
+  (let [ret (str (master-local-dir conf) file-path-separator "tmp")]
+    (FileUtils/forceMkdir (File. ret))
+    ret ))
+
 (defn master-storm-metafile-path [stormroot ]
   (str stormroot file-path-separator "storm-code-distributor.meta"))
 

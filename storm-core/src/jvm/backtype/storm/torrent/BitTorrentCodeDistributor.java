@@ -46,7 +46,8 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         LOG.info("Download rates [U/D]: {}/{} kB/sec", format(this.maxUpload), format(this.maxDownload));
 
         LOG.info("Starting bt tracker bound to hostname '{}'", hostName);
-        InetSocketAddress socketAddr = new InetSocketAddress(hostName, port);
+        //using "::" to ensure we bind to all IPV4 and IPV6 network interfaces.
+        InetSocketAddress socketAddr = new InetSocketAddress("::", port);
         this.tracker = new Tracker(socketAddr);
         LOG.info("Announce URL: {}", this.tracker.getAnnounceUrl());
         this.tracker.start();

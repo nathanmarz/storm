@@ -266,20 +266,26 @@
         ;if this latch is already closed, we need to create new instance.
         (if (.equals LeaderLatch$State/CLOSED state)
           (do
-            (swap! leader-latch (fn[unused] (LeaderLatch. zk leader-lock-path id)))
-            (swap! leader-latch-listener (fn[unused] (leader-latch-listener conf zk @leader-latch)))))
+            (reset! leader-latch (LeaderLatch. zk leader-lock-path id))
+            (reset! leader-latch-listener (leader-latch-listener conf zk @leader-latch))
+            (log-message "LeaderLatch was in closed state. Resetted the leaderLatch and listeners.")
+            ))
+
         ;Only if the latch is not already started we invoke start.
         (if (.equals LeaderLatch$State/LATENT state)
           (do
             (.addListener @leader-latch @leader-latch-listener)
-            (.start @leader-latch)))
-        (log-message "Queued up for leader lock.")))
+            (.start @leader-latch)
+            (log-message "Queued up for leader lock."))
+          (log-message "Node already in queue for leader lock."))))
 
       (^void removeFromLeaderLockQueue [this]
         ;Only started latches can be closed.
         (if (.equals LeaderLatch$State/STARTED (.getState @leader-latch))
-          (.close @leader-latch))
-        (log-message "Removed from leader lock queue."))
+          (do
+            (.close @leader-latch)
+            (log-message "Removed from leader lock queue."))
+          (log-message "leader latch is not started so no removeFromLeaderLockQueue needed.")))
 
       (^boolean isLeader [this]
         (.hasLeadership @leader-latch))

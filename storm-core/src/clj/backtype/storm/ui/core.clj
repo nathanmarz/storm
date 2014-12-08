@@ -272,6 +272,9 @@
   (url-format "http://%s:%s/log?file=worker-%s.log"
               host (*STORM-CONF* LOGVIEWER-PORT) port))
 
+(defn nimbus-log-link [host port]
+  (url-format "http://%s:%s/log?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+
 (defn compute-executor-capacity
   [^ExecutorSummary e]
   (let [stats (.get_stats e)
@@ -513,7 +516,8 @@
      (for [^NimbusInfo n nimbuses]
        {
         "host" (.getHost n)
-        "port"  (.getPort n)
+        "port" (.getPort n)
+        "nimbusLogLink" (nimbus-log-link (.getHost n) (.getPort n))
         "isLeader" (.isLeader n)})}))
 
 (defn supervisor-summary

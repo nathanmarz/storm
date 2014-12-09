@@ -29,9 +29,7 @@ public final class MockTupleHelpers {
   }
 
   public static Tuple mockTickTuple() {
-    Tuple tuple = mockTuple(Constants.SYSTEM_COMPONENT_ID, Constants.SYSTEM_TICK_STREAM_ID);
-    when(tuple.isTick()).thenReturn(true);
-    return tuple;
+    return mockTuple(Constants.SYSTEM_COMPONENT_ID, Constants.SYSTEM_TICK_STREAM_ID);
   }
 
   public static Tuple mockTuple(String componentId, String streamId) {

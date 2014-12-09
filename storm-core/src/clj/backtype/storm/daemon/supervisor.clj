@@ -470,7 +470,7 @@
       (Utils/downloadFromMaster conf master-meta-file-path supervisor-meta-file-path)
       (if (:bt-tracker supervisor)
         (.download (:bt-tracker supervisor) storm-id (File. supervisor-meta-file-path)))
-      (extract-dir-from-jar (supervisor-stormjar-path stormroot) RESOURCES-SUBDIR stormroot)
+      (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (if (.exists (File. stormroot)) (FileUtils/forceDelete (File. stormroot)))
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
       ))

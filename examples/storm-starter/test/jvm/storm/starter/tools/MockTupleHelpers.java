@@ -19,7 +19,6 @@ package storm.starter.tools;
 
 import backtype.storm.Constants;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
 
 import static org.mockito.Mockito.*;
 
@@ -39,9 +38,9 @@ public final class MockTupleHelpers {
     when(tuple.isTick()).thenReturn(isTick(componentId, streamId));
     return tuple;
   }
-  
+
   private static boolean isTick(String componentId, String streamId) {
-    return componentId.equals(Constants.SYSTEM_COMPONENT_ID) && 
+    return componentId.equals(Constants.SYSTEM_COMPONENT_ID) &&
            streamId.equals(Constants.SYSTEM_TICK_STREAM_ID);
   }
 

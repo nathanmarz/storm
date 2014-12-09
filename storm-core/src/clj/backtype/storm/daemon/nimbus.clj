@@ -950,6 +950,8 @@
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (cleanup-corrupt-topologies! nimbus)
+    ;register call back for code-distributor
+    (.code-distributor (:storm-cluster-state nimbus) (fn [] ((sync-code conf nimbus))))
     (when (is-leader nimbus :throw-exception false)
       (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
         (transition! nimbus storm-id :startup)))
@@ -1209,7 +1211,7 @@
         (.cleanup (:uploaders nimbus))
         (.close (:leader-elector nimbus))
         (log-message (:bt-tracker nimbus))
-        (if (:bt-tracker nimbus) (.close (:bt-tracker nimbus)))
+        (if (:bt-tracker nimbus) (.close (:bt-tracker nimbus) (:conf nimbus)))
         (log-message "Shut down master")
         )
       DaemonCommon
@@ -1240,7 +1242,6 @@
     (FileUtils/moveDirectory (File. tmp-root) (File. storm-root))
     (.setup-code-distributor! storm-cluster-state storm-id host-port-info)))
 
-;;TODO we need a call back registration for (code-distributor storm-cluster-state)
 (defmethod sync-code :distributed [conf nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         code-ids (set (code-ids (:conf nimbus)))

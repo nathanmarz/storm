@@ -252,7 +252,6 @@
         assignments-callback (atom nil)
         storm-base-callback (atom {})
         code-distributor-callback (atom nil)
-        code-distributor-info (atom nil)
         state-id (register
                    cluster-state
                    (fn [type path]
@@ -262,6 +261,7 @@
                                             (issue-callback! assignments-callback)
                                             (issue-map-callback! assignment-info-callback (first args)))
                          SUPERVISORS-ROOT (issue-callback! supervisors-callback)
+                         CODE-DISTRIBUTOR-ROOT (issue-callback! code-distributor-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]

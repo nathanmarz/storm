@@ -34,6 +34,50 @@ ColumnList cols = new ColumnList();
 cols.addCounter(this.columnFamily, field.getBytes(), toLong(tuple.getValueByField(field)));
 ```
 
+When the remote HBase is security enabled, a kerberos keytab and the corresponding principal name need to be
+provided for the storm-hbase connector. Specifically, the Config object passed into the topology should contain
+{(“storm.keytab.file”, “$keytab”), ("storm.kerberos.principal", “$principal”)}. Example:
+
+```java
+Config config = new Config();
+...
+config.put("storm.keytab.file", "$keytab");
+config.put("storm.kerberos.principal", "$principle");
+StormSubmitter.submitTopology("$topologyName", config, builder.createTopology());
+```
+
+##Working with Secure HBASE using delegation tokens.
+If your topology is going to interact with secure HBase, your bolts/states needs to be authenticated by HBase Master. 
+The approach described above requires that all potential worker hosts have "storm.keytab.file" on them. If you have 
+multiple topologies on a cluster , each with different hbase user, you will have to create multiple keytabs and distribute
+it to all workers. Instead of doing that you could use the following approach:
+
+Your administrator can configure nimbus to automatically get delegation tokens on behalf of the topology submitter user.
+The nimbus need to start with following configurations:
+
+nimbus.autocredential.plugins.classes : ["org.apache.storm.hbase.security.AutoHBase"] 
+nimbus.credential.renewers.classes : ["org.apache.storm.hbase.security.AutoHBase"] 
+storm.keytab.file: "/path/to/keytab/on/nimbus" (This is the keytab of hbase super user that can impersonate other users.)
+storm.kerberos.principal: "superuser@EXAMPLE.com"
+
+Your topology configuration should have:
+topology.auto-credentials :["org.apache.storm.hbase.security.AutoHBase"] 
+
+If nimbus did not have the above configuration you need to add it and then restart it. Ensure the hbase configuration 
+files(core-site.xml,hdfs-site.xml and hbase-site.xml) and the storm-hbase jar with all the dependencies is present in nimbus's classpath. 
+Nimbus will use the keytab and principal specified in the config to authenticate with HBase master node. From then on for every
+topology submission, nimbus will impersonate the topology submitter user and acquire delegation tokens on behalf of the
+topology submitter user. If topology was started with topology.auto-credentials set to AutoHBase, nimbus will push the
+delegation tokens to all the workers for your topology and the hbase bolt/state will authenticate with these tokens.
+
+As nimbus is impersonating topology submitter user, you need to ensure the user specified in storm.kerberos.principal 
+has permissions to acquire tokens on behalf of other users. To achieve this you need to follow configuration directions 
+listed on this link
+
+http://hbase.apache.org/book/security.html#security.rest.gateway
+
+You can read about setting up secure HBase here:http://hbase.apache.org/book/security.html.
+
 ### SimpleHBaseMapper
 `storm-hbase` includes a general purpose `HBaseMapper` implementation called `SimpleHBaseMapper` that can map Storm
 tuples to both regular HBase columns as well as counter columns.

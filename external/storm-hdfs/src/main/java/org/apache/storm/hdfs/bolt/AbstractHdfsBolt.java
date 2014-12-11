@@ -103,10 +103,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
 
 
         try{
-            //if AutoHDFS is specified, do not attempt login.
-            if(!AutoHDFS.class.getName().equals(conf.get(Config.TOPOLOGY_AUTO_CREDENTIALS))) {
-                HdfsSecurityUtil.login(conf, hdfsConfig);
-            }
+            HdfsSecurityUtil.login(conf, hdfsConfig);
             doPrepare(conf, topologyContext, collector);
             this.currentFile = createOutputFile();
 

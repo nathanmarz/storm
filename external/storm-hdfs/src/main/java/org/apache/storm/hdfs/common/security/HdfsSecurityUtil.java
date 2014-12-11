@@ -17,12 +17,24 @@
  */
 package org.apache.storm.hdfs.common.security;
 
+import static backtype.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.security.auth.Subject;
 import java.io.IOException;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class provides util methods for storm-hdfs connector communicating
@@ -32,17 +44,43 @@ public class HdfsSecurityUtil {
     public static final String STORM_KEYTAB_FILE_KEY = "hdfs.keytab.file";
     public static final String STORM_USER_NAME_KEY = "hdfs.kerberos.principal";
 
+    private static final Logger LOG = LoggerFactory.getLogger(HdfsSecurityUtil.class);
+
     public static void login(Map conf, Configuration hdfsConfig) throws IOException {
-        if (UserGroupInformation.isSecurityEnabled()) {
-            String keytab = (String) conf.get(STORM_KEYTAB_FILE_KEY);
-            if (keytab != null) {
-              hdfsConfig.set(STORM_KEYTAB_FILE_KEY, keytab);
+        //Add all tokens
+        AccessControlContext context = AccessController.getContext();
+        Subject subject = Subject.getSubject(context);
+
+        if(subject != null) {
+            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
+            if (privateCredentials != null) {
+                for (Credentials cred : privateCredentials) {
+                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
+                    if (allTokens != null) {
+                        for (Token<? extends TokenIdentifier> token : allTokens) {
+                            UserGroupInformation.getCurrentUser().addToken(token);
+                            LOG.info("Added delegation tokens to UGI.");
+                        }
+                    }
+                }
             }
-            String userName = (String) conf.get(STORM_USER_NAME_KEY);
-            if (userName != null) {
-              hdfsConfig.set(STORM_USER_NAME_KEY, userName);
+        }
+
+        //If AutoHDFS is specified, do not attempt to login using keytabs, only kept for backward compatibility.
+        if(conf.get(TOPOLOGY_AUTO_CREDENTIALS) == null ||
+                !(((List)conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoHDFS.class.getName()))) {
+            if (UserGroupInformation.isSecurityEnabled()) {
+                LOG.info("Logging in using keytab as AutoHDFS is not specified for " + TOPOLOGY_AUTO_CREDENTIALS);
+                String keytab = (String) conf.get(STORM_KEYTAB_FILE_KEY);
+                if (keytab != null) {
+                    hdfsConfig.set(STORM_KEYTAB_FILE_KEY, keytab);
+                }
+                String userName = (String) conf.get(STORM_USER_NAME_KEY);
+                if (userName != null) {
+                    hdfsConfig.set(STORM_USER_NAME_KEY, userName);
+                }
+                SecurityUtil.login(hdfsConfig, STORM_KEYTAB_FILE_KEY, STORM_USER_NAME_KEY);
             }
-            SecurityUtil.login(hdfsConfig, STORM_KEYTAB_FILE_KEY, STORM_USER_NAME_KEY);
         }
     }
 }

@@ -93,23 +93,7 @@ public class HdfsBolt extends AbstractHdfsBolt{
     @Override
     public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing HDFS Bolt...");
-        AccessControlContext context = AccessController.getContext();
-        Subject subject = Subject.getSubject(context);
 
-        if(subject != null) {
-            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
-            if (privateCredentials != null) {
-                for (Credentials cred : privateCredentials) {
-                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
-                    if (allTokens != null) {
-                        for (Token<? extends TokenIdentifier> token : allTokens) {
-                            UserGroupInformation.getCurrentUser().addToken(token);
-                            LOG.info("Added delegation tokens to UGI.");
-                        }
-                    }
-                }
-            }
-        }
         this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
     }
 

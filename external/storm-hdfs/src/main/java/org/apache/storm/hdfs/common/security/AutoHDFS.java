@@ -35,6 +35,7 @@ import javax.security.auth.Subject;
 import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.net.URI;
+import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,7 @@ import java.util.Map;
 public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusCredentialPlugin {
     private static final Logger LOG = LoggerFactory.getLogger(AutoHDFS.class);
     public static final String HDFS_CREDENTIALS = "HDFS_CREDENTIALS";
+    public static final String TOPOLOGY_HDFS_URI = "topology.hdfs.uri";
 
     @Override
     public void prepare(Map conf) {
@@ -61,6 +63,7 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     public void populateCredentials(Map<String, String> credentials, Map conf) {
         try {
             credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf)));
+            LOG.info("HDFS tokens added to credentials map.");
         } catch (Exception e) {
             LOG.warn("Could not populate HDFS credentials.", e);
         }
@@ -166,29 +169,39 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
 
         try {
             if(UserGroupInformation.isSecurityEnabled()) {
-                Configuration configuration = new Configuration();
+                final Configuration configuration = new Configuration();
                 HdfsSecurityUtil.login(conf, configuration);
 
                 final String topologySubmitterUser = (String) conf.get(Config.TOPOLOGY_SUBMITTER_PRINCIPAL);
                 final String hdfsUser = (String) conf.get(HdfsSecurityUtil.STORM_USER_NAME_KEY);
 
-                URI nameNodeURI = conf.containsKey(Config.TOPOLOGY_HDFS_URI) ? new URI(conf.get(Config.TOPOLOGY_HDFS_URI).toString())
+                final URI nameNodeURI = conf.containsKey(TOPOLOGY_HDFS_URI) ? new URI(conf.get(TOPOLOGY_HDFS_URI).toString())
                         : FileSystem.getDefaultUri(configuration);
-
-                FileSystem fileSystem =  FileSystem.get(nameNodeURI, configuration);
 
                 UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
 
-                UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(topologySubmitterUser, ugi);
+                final UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(topologySubmitterUser, ugi);
 
-                Credentials credential= proxyUser.getCredentials();
+                Credentials creds = (Credentials) proxyUser.doAs(new PrivilegedAction<Object>() {
+                    @Override
+                    public Object run() {
+                        try {
+                            FileSystem fileSystem = FileSystem.get(nameNodeURI, configuration);
+                            Credentials credential= proxyUser.getCredentials();
 
-                fileSystem.addDelegationTokens(hdfsUser, credential);
+                            fileSystem.addDelegationTokens(hdfsUser, credential);
+                            return credential;
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+
 
                 ByteArrayOutputStream bao = new ByteArrayOutputStream();
                 ObjectOutputStream out = new ObjectOutputStream(bao);
 
-                credential.write(out);
+                creds.write(out);
                 out.flush();
                 out.close();
 
@@ -208,7 +221,7 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         Map conf = new HashMap();
-        conf.put(Config.TOPOLOGY_SUBMITTER_PRINCIPAL, args[0]); //with realm e.g. storm@WITZEND.COM or storm/node.exmaple.com@WITZEND.COM
+        conf.put(Config.TOPOLOGY_SUBMITTER_PRINCIPAL, args[0]); //with realm e.g. storm@WITZEND.COM
         conf.put(HdfsSecurityUtil.STORM_USER_NAME_KEY, args[1]); //with realm e.g. hdfs@WITZEND.COM
         conf.put(HdfsSecurityUtil.STORM_KEYTAB_FILE_KEY, args[2]);// /etc/security/keytabs/storm.keytab
 

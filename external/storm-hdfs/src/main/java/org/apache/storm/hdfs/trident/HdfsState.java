@@ -113,13 +113,9 @@ public class HdfsState implements State {
                 }
             }
             try{
-                //if AutoHDFS is specified, do not attempt login.
-                if(!AutoHDFS.class.getName().equals(conf.get(Config.TOPOLOGY_AUTO_CREDENTIALS))) {
-                    HdfsSecurityUtil.login(conf, hdfsConfig);
-                }
+                HdfsSecurityUtil.login(conf, hdfsConfig);
                 doPrepare(conf, partitionIndex, numPartitions);
                 this.currentFile = createOutputFile();
-
             } catch (Exception e){
                 throw new RuntimeException("Error preparing HdfsState: " + e.getMessage(), e);
             }
@@ -182,23 +178,6 @@ public class HdfsState implements State {
         @Override
         void doPrepare(Map conf, int partitionIndex, int numPartitions) throws IOException {
             LOG.info("Preparing HDFS Bolt...");
-            AccessControlContext context = AccessController.getContext();
-            Subject subject = Subject.getSubject(context);
-
-            if(subject != null) {
-                Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
-                if (privateCredentials != null) {
-                    for (Credentials cred : privateCredentials) {
-                        Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
-                        if (allTokens != null) {
-                            for (Token<? extends TokenIdentifier> token : allTokens) {
-                                UserGroupInformation.getCurrentUser().addToken(token);
-                                LOG.info("Added delegation tokens to UGI.");
-                            }
-                        }
-                    }
-                }
-            }
 
             this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
         }

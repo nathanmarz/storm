@@ -949,7 +949,7 @@
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (cleanup-corrupt-topologies! nimbus)
     ;register call back for code-distributor
-    (.code-distributor (:storm-cluster-state nimbus) (fn [] ((sync-code conf nimbus))))
+    (.code-distributor (:storm-cluster-state nimbus) (fn [] (sync-code conf nimbus)))
     (when (is-leader nimbus :throw-exception false)
       (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
         (transition! nimbus storm-id :startup)))
@@ -1257,7 +1257,7 @@
                   (download-code conf nimbus missing host (Integer/parseInt port))
                   (.addToLeaderLockQueue (:leader-elector nimbus))
                   (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing))))))))
-      (log-message "local disk in completely in sync with zk code-distributor."))))
+      (log-message "local disk is completely in sync with zk code-distributor."))))
 
 (defmethod sync-code :local [conf nimbus]
   nil)

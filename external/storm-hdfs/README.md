@@ -325,10 +325,12 @@ currently have 2 options to support this:
 Your administrator can configure nimbus to automatically get delegation tokens on behalf of the topology submitter user.
 The nimbus need to start with following configurations:
 
-nimbus.autocredential.plugins.classes : [org.apache.storm.hdfs.common.security.AutoHDFS"] 
+nimbus.autocredential.plugins.classes : ["org.apache.storm.hdfs.common.security.AutoHDFS"] 
 nimbus.credential.renewers.classes : ["org.apache.storm.hdfs.common.security.AutoHDFS"] 
 hdfs.keytab.file: "/path/to/keytab/on/nimbus" (This is the keytab of hdfs super user that can impersonate other users.)
 hdfs.kerberos.principal: "superuser@EXAMPLE.com" 
+nimbus.credential.renewers.freq.secs : 82800 (23 hours, hdfs tokens needs to be renewed every 24 hours so this value should be
+less then 24 hours.)
 topology.hdfs.uri:"hdfs://host:port" (This is an optional config, by default we will use value of "fs.defaultFS" property
 specified in hadoop's core-site.xml)
 
@@ -351,8 +353,8 @@ http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/Superuse
 You can read about setting up secure HDFS here: http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SecureMode.html.
 
 ### Using keytabs on all worker hosts
-If you have distributed the keytab files for hdfs user on all potential worker hosts then you can use this method. Your
-topology configuration should have:
+If you have distributed the keytab files for hdfs user on all potential worker hosts then you can use this method. You should specify a 
+hdfs config key using the method HdfsBolt/State.withconfigKey("somekey") and the value map of this key should have following 2 properties:
 
 hdfs.keytab.file: "/path/to/keytab/"
 hdfs.kerberos.principal: "user@EXAMPLE.com"

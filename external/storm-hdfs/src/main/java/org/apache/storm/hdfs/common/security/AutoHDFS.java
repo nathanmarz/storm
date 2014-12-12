@@ -25,6 +25,7 @@ import backtype.storm.security.auth.ICredentialsRenewer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
@@ -39,6 +40,10 @@ import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
+import static org.apache.storm.hdfs.common.security.HdfsSecurityUtil.STORM_KEYTAB_FILE_KEY;
+import static org.apache.storm.hdfs.common.security.HdfsSecurityUtil.STORM_USER_NAME_KEY;
 
 /**
  * Automatically get HDFS delegation tokens and push it to user's topology. The class
@@ -49,9 +54,15 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     public static final String HDFS_CREDENTIALS = "HDFS_CREDENTIALS";
     public static final String TOPOLOGY_HDFS_URI = "topology.hdfs.uri";
 
+    private String hdfsKeyTab;
+    private String hdfsPrincipal;
+
     @Override
     public void prepare(Map conf) {
-        //no op.
+        if(conf.containsKey(STORM_KEYTAB_FILE_KEY) && conf.containsKey(STORM_USER_NAME_KEY)) {
+            this.hdfsKeyTab = (String) conf.get(STORM_KEYTAB_FILE_KEY);
+            this.hdfsPrincipal = (String) conf.get(STORM_USER_NAME_KEY);
+        }
     }
 
     @Override
@@ -65,13 +76,13 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
             credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf)));
             LOG.info("HDFS tokens added to credentials map.");
         } catch (Exception e) {
-            LOG.warn("Could not populate HDFS credentials.", e);
+            LOG.error("Could not populate HDFS credentials.", e);
         }
     }
 
     @Override
     public void populateCredentials(Map<String, String> credentials) {
-        //no op.
+        credentials.put(HDFS_CREDENTIALS, DatatypeConverter.printBase64Binary("dummy place holder".getBytes()));
     }
 
     /*
@@ -91,7 +102,7 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
                 credential = new Credentials();
                 credential.readFields(in);
             } catch (Exception e) {
-                LOG.warn("Could not obtain credentials from credentials map.", e);
+                LOG.error("Could not obtain credentials from credentials map.", e);
             }
         }
         return credential;
@@ -103,6 +114,7 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     @Override
     public void updateSubject(Subject subject, Map<String, String> credentials) {
         addCredentialToSubject(subject, credentials);
+        addTokensToUGI(subject);
     }
 
     /**
@@ -111,6 +123,7 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     @Override
     public void populateSubject(Subject subject, Map<String, String> credentials) {
         addCredentialToSubject(subject, credentials);
+        addTokensToUGI(subject);
     }
 
     @SuppressWarnings("unchecked")
@@ -124,7 +137,28 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
                 LOG.info("No credential found in credentials");
             }
         } catch (Exception e) {
-            LOG.warn("Failed to initialize and get UserGroupInformation.", e);
+            LOG.error("Failed to initialize and get UserGroupInformation.", e);
+        }
+    }
+
+    public void addTokensToUGI(Subject subject) {
+        if(subject != null) {
+            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
+            if (privateCredentials != null) {
+                for (Credentials cred : privateCredentials) {
+                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
+                    if (allTokens != null) {
+                        for (Token<? extends TokenIdentifier> token : allTokens) {
+                            try {
+                                UserGroupInformation.getCurrentUser().addToken(token);
+                                LOG.info("Added delegation tokens to UGI.");
+                            } catch (IOException e) {
+                                LOG.error("Exception while trying to add tokens to ugi", e);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -134,24 +168,19 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     @Override
     @SuppressWarnings("unchecked")
     public void renew(Map<String, String> credentials, Map topologyConf) {
-        Credentials credential = getCredentials(credentials);
-        //maximum allowed expiration time until which tokens will keep renewing,
-        //currently set to 1 day.
-        final long MAX_ALLOWED_EXPIRATION_MILLIS = 24 * 60 * 60 * 1000;
-
         try {
+            Credentials credential = getCredentials(credentials);
             if (credential != null) {
                 Configuration configuration = new Configuration();
                 Collection<Token<? extends TokenIdentifier>> tokens = credential.getAllTokens();
 
                 if(tokens != null && tokens.isEmpty() == false) {
                     for (Token token : tokens) {
+                        //We need to re-login some other thread might have logged into hadoop using
+                        // their credentials (e.g. AutoHBase might be also part of nimbu auto creds)
+                        login(configuration);
                         long expiration = (Long) token.renew(configuration);
-                        if (expiration < MAX_ALLOWED_EXPIRATION_MILLIS) {
-                            LOG.debug("expiration {} is less then MAX_ALLOWED_EXPIRATION_MILLIS {}, getting new tokens",
-                                    expiration, MAX_ALLOWED_EXPIRATION_MILLIS);
-                            populateCredentials(credentials, topologyConf);
-                        }
+                        LOG.info("HDFS delegation token renewed, new expiration time {}", expiration);
                     }
                 } else {
                     LOG.debug("No tokens found for credentials, skipping renewal.");
@@ -160,20 +189,19 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
         } catch (Exception e) {
             LOG.warn("could not renew the credentials, one of the possible reason is tokens are beyond " +
                     "renewal period so attempting to get new tokens.", e);
-            populateCredentials(credentials);
+            populateCredentials(credentials, topologyConf);
         }
     }
 
     @SuppressWarnings("unchecked")
     protected byte[] getHadoopCredentials(Map conf) {
-
         try {
             if(UserGroupInformation.isSecurityEnabled()) {
                 final Configuration configuration = new Configuration();
-                HdfsSecurityUtil.login(conf, configuration);
+
+                login(configuration);
 
                 final String topologySubmitterUser = (String) conf.get(Config.TOPOLOGY_SUBMITTER_PRINCIPAL);
-                final String hdfsUser = (String) conf.get(HdfsSecurityUtil.STORM_USER_NAME_KEY);
 
                 final URI nameNodeURI = conf.containsKey(TOPOLOGY_HDFS_URI) ? new URI(conf.get(TOPOLOGY_HDFS_URI).toString())
                         : FileSystem.getDefaultUri(configuration);
@@ -189,7 +217,8 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
                             FileSystem fileSystem = FileSystem.get(nameNodeURI, configuration);
                             Credentials credential= proxyUser.getCredentials();
 
-                            fileSystem.addDelegationTokens(hdfsUser, credential);
+                            fileSystem.addDelegationTokens(hdfsPrincipal, credential);
+                            LOG.info("Delegation tokens acquired for user {}", topologySubmitterUser);
                             return credential;
                         } catch (IOException e) {
                             throw new RuntimeException(e);
@@ -214,6 +243,14 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
         }
     }
 
+    private void login(Configuration configuration) throws IOException {
+        configuration.set(STORM_KEYTAB_FILE_KEY, this.hdfsKeyTab);
+        configuration.set(STORM_USER_NAME_KEY, this.hdfsPrincipal);
+        SecurityUtil.login(configuration, STORM_KEYTAB_FILE_KEY, STORM_USER_NAME_KEY);
+
+        LOG.info("Logged into hdfs with principal {}", this.hdfsPrincipal);
+    }
+
     protected String getCredentialKey() {
         return HDFS_CREDENTIALS;
     }
@@ -222,8 +259,8 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     public static void main(String[] args) throws Exception {
         Map conf = new HashMap();
         conf.put(Config.TOPOLOGY_SUBMITTER_PRINCIPAL, args[0]); //with realm e.g. storm@WITZEND.COM
-        conf.put(HdfsSecurityUtil.STORM_USER_NAME_KEY, args[1]); //with realm e.g. hdfs@WITZEND.COM
-        conf.put(HdfsSecurityUtil.STORM_KEYTAB_FILE_KEY, args[2]);// /etc/security/keytabs/storm.keytab
+        conf.put(STORM_USER_NAME_KEY, args[1]); //with realm e.g. hdfs@WITZEND.COM
+        conf.put(STORM_KEYTAB_FILE_KEY, args[2]);// /etc/security/keytabs/storm.keytab
 
         Configuration configuration = new Configuration();
         AutoHDFS autoHDFS = new AutoHDFS();

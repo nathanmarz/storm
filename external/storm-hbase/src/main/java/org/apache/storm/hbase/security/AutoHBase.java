@@ -29,19 +29,19 @@ import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.hadoop.hbase.security.token.TokenUtil;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.Subject;
 import javax.xml.bind.DatatypeConverter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.InetAddress;
-import java.security.PrivilegedAction;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Automatically get hbase delegation tokens and push it to user's topology. The class
@@ -54,9 +54,15 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
     public static final String HBASE_KEYTAB_FILE_KEY = "hbase.keytab.file";
     public static final String HBASE_PRINCIPAL_KEY = "hbase.kerberos.principal";
 
+    public String hbaseKeytab;
+    public String hbasePrincipal;
+
     @Override
     public void prepare(Map conf) {
-        //no op.
+        if(conf.containsKey(HBASE_KEYTAB_FILE_KEY) && conf.containsKey(HBASE_PRINCIPAL_KEY)) {
+            hbaseKeytab = (String) conf.get(HBASE_KEYTAB_FILE_KEY);
+            hbasePrincipal = (String) conf.get(HBASE_PRINCIPAL_KEY);
+        }
     }
 
     @Override
@@ -69,13 +75,13 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
         try {
             credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf)));
         } catch (Exception e) {
-            LOG.warn("Could not populate HBase credentials.", e);
+            LOG.error("Could not populate HBase credentials.", e);
         }
     }
 
     @Override
     public void populateCredentials(Map<String, String> credentials) {
-        //no op.
+        credentials.put(HBASE_CREDENTIALS, DatatypeConverter.printBase64Binary("dummy place holder".getBytes()));
     }
 
     /*
@@ -96,7 +102,7 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
                 credential.readFields(in);
                 LOG.info("Got hbase credentials from credentials Map.");
             } catch (Exception e) {
-                LOG.warn("Could not obtain credentials from credentials map.", e);
+                LOG.error("Could not obtain credentials from credentials map.", e);
             }
         }
         return credential;
@@ -108,6 +114,7 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
     @Override
     public void updateSubject(Subject subject, Map<String, String> credentials) {
         addCredentialToSubject(subject, credentials);
+        addTokensToUGI(subject);
     }
 
     /**
@@ -116,6 +123,7 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
     @Override
     public void populateSubject(Subject subject, Map<String, String> credentials) {
         addCredentialToSubject(subject, credentials);
+        addTokensToUGI(subject);
     }
 
     @SuppressWarnings("unchecked")
@@ -129,7 +137,28 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
                 LOG.info("No credential found in credentials map.");
             }
         } catch (Exception e) {
-            LOG.warn("Failed to initialize and get UserGroupInformation.", e);
+            LOG.error("Failed to initialize and get UserGroupInformation.", e);
+        }
+    }
+
+    public void addTokensToUGI(Subject subject) {
+        if(subject != null) {
+            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
+            if (privateCredentials != null) {
+                for (Credentials cred : privateCredentials) {
+                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
+                    if (allTokens != null) {
+                        for (Token<? extends TokenIdentifier> token : allTokens) {
+                            try {
+                                UserGroupInformation.getCurrentUser().addToken(token);
+                                LOG.info("Added delegation tokens to UGI.");
+                            } catch (IOException e) {
+                                LOG.error("Exception while trying to add tokens to ugi", e);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -142,8 +171,8 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
 
                 UserProvider provider = UserProvider.instantiate(hbaseConf);
 
-                hbaseConf.set(HBASE_KEYTAB_FILE_KEY, conf.get(HBASE_KEYTAB_FILE_KEY).toString());
-                hbaseConf.set(HBASE_PRINCIPAL_KEY, conf.get(HBASE_PRINCIPAL_KEY).toString());
+                hbaseConf.set(HBASE_KEYTAB_FILE_KEY, hbaseKeytab);
+                hbaseConf.set(HBASE_PRINCIPAL_KEY, hbasePrincipal);
                 provider.login(HBASE_KEYTAB_FILE_KEY, HBASE_PRINCIPAL_KEY, InetAddress.getLocalHost().getCanonicalHostName());
 
                 LOG.info("Logged into Hbase as principal = " + conf.get(HBASE_PRINCIPAL_KEY));

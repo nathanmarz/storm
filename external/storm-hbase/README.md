@@ -47,7 +47,7 @@ StormSubmitter.submitTopology("$topologyName", config, builder.createTopology())
 ```
 
 ##Working with Secure HBASE using delegation tokens.
-If your topology is going to interact with secure HBase, your bolts/states needs to be authenticated by HBase Master. 
+If your topology is going to interact with secure HBase, your bolts/states needs to be authenticated by HBase. 
 The approach described above requires that all potential worker hosts have "storm.keytab.file" on them. If you have 
 multiple topologies on a cluster , each with different hbase user, you will have to create multiple keytabs and distribute
 it to all workers. Instead of doing that you could use the following approach:
@@ -57,15 +57,18 @@ The nimbus need to start with following configurations:
 
 nimbus.autocredential.plugins.classes : ["org.apache.storm.hbase.security.AutoHBase"] 
 nimbus.credential.renewers.classes : ["org.apache.storm.hbase.security.AutoHBase"] 
-storm.keytab.file: "/path/to/keytab/on/nimbus" (This is the keytab of hbase super user that can impersonate other users.)
-storm.kerberos.principal: "superuser@EXAMPLE.com"
+hbase.keytab.file: "/path/to/keytab/on/nimbus" (This is the keytab of hbase super user that can impersonate other users.)
+hbase.kerberos.principal: "superuser@EXAMPLE.com"
+nimbus.credential.renewers.freq.secs : 518400 (6 days, hbase tokens by default expire every 7 days and can not be renewed, 
+if you have custom settings for hbase.auth.token.max.lifetime in hbase-site.xml than you should ensure this value is 
+atleast 1 hour less then that.)
 
 Your topology configuration should have:
 topology.auto-credentials :["org.apache.storm.hbase.security.AutoHBase"] 
 
 If nimbus did not have the above configuration you need to add it and then restart it. Ensure the hbase configuration 
 files(core-site.xml,hdfs-site.xml and hbase-site.xml) and the storm-hbase jar with all the dependencies is present in nimbus's classpath. 
-Nimbus will use the keytab and principal specified in the config to authenticate with HBase master node. From then on for every
+Nimbus will use the keytab and principal specified in the config to authenticate with HBase. From then on for every
 topology submission, nimbus will impersonate the topology submitter user and acquire delegation tokens on behalf of the
 topology submitter user. If topology was started with topology.auto-credentials set to AutoHBase, nimbus will push the
 delegation tokens to all the workers for your topology and the hbase bolt/state will authenticate with these tokens.

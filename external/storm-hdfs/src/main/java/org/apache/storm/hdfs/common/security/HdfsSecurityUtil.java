@@ -47,25 +47,6 @@ public class HdfsSecurityUtil {
     private static final Logger LOG = LoggerFactory.getLogger(HdfsSecurityUtil.class);
 
     public static void login(Map conf, Configuration hdfsConfig) throws IOException {
-        //Add all tokens
-        AccessControlContext context = AccessController.getContext();
-        Subject subject = Subject.getSubject(context);
-
-        if(subject != null) {
-            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
-            if (privateCredentials != null) {
-                for (Credentials cred : privateCredentials) {
-                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
-                    if (allTokens != null) {
-                        for (Token<? extends TokenIdentifier> token : allTokens) {
-                            UserGroupInformation.getCurrentUser().addToken(token);
-                            LOG.info("Added delegation tokens to UGI.");
-                        }
-                    }
-                }
-            }
-        }
-
         //If AutoHDFS is specified, do not attempt to login using keytabs, only kept for backward compatibility.
         if(conf.get(TOPOLOGY_AUTO_CREDENTIALS) == null ||
                 !(((List)conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoHDFS.class.getName()))) {

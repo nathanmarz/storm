@@ -49,24 +49,6 @@ public class HBaseSecurityUtil {
     public static final String STORM_USER_NAME_KEY = "storm.kerberos.principal";
 
     public static UserProvider login(Map conf, Configuration hbaseConfig) throws IOException {
-        AccessControlContext context = AccessController.getContext();
-        Subject subject = Subject.getSubject(context);
-
-        if (subject != null) {
-            Set<Credentials> privateCredentials = subject.getPrivateCredentials(Credentials.class);
-            if (privateCredentials != null) {
-                for (Credentials cred : privateCredentials) {
-                    Collection<Token<? extends TokenIdentifier>> allTokens = cred.getAllTokens();
-                    if (allTokens != null) {
-                        for (Token<? extends TokenIdentifier> token : allTokens) {
-                            UserGroupInformation.getCurrentUser().addToken(token);
-                            LOG.info("Added Hbase delegation tokens to UGI.");
-                        }
-                    }
-                }
-            }
-        }
-
         //Allowing keytab based login for backward compatibility.
         UserProvider provider = UserProvider.instantiate(hbaseConfig);
         if (conf.get(TOPOLOGY_AUTO_CREDENTIALS) == null ||

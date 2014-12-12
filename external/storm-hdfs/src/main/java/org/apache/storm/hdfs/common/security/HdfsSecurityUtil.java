@@ -17,24 +17,17 @@
  */
 package org.apache.storm.hdfs.common.security;
 
-import static backtype.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.security.token.TokenIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.security.auth.Subject;
 import java.io.IOException;
-import java.security.AccessControlContext;
-import java.security.AccessController;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import static backtype.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
 
 /**
  * This class provides util methods for storm-hdfs connector communicating

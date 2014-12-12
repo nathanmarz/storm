@@ -32,6 +32,7 @@ import org.apache.storm.hdfs.trident.format.FileNameFormat;
 import org.apache.storm.hdfs.trident.format.RecordFormat;
 import org.apache.storm.hdfs.trident.format.SequenceFormat;
 import org.apache.storm.hdfs.trident.rotation.FileRotationPolicy;
+
 import org.apache.storm.hdfs.trident.rotation.TimedRotationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +107,7 @@ public class HdfsState implements State {
                 HdfsSecurityUtil.login(conf, hdfsConfig);
                 doPrepare(conf, partitionIndex, numPartitions);
                 this.currentFile = createOutputFile();
+
             } catch (Exception e){
                 throw new RuntimeException("Error preparing HdfsState: " + e.getMessage(), e);
             }
@@ -168,7 +170,6 @@ public class HdfsState implements State {
         @Override
         void doPrepare(Map conf, int partitionIndex, int numPartitions) throws IOException {
             LOG.info("Preparing HDFS Bolt...");
-
             this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
         }
 

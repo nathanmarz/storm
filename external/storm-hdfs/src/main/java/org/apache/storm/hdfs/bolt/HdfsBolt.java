@@ -83,7 +83,6 @@ public class HdfsBolt extends AbstractHdfsBolt{
     @Override
     public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing HDFS Bolt...");
-
         this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
     }
 

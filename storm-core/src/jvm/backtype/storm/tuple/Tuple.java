@@ -165,11 +165,6 @@ public interface Tuple {
     public String getSourceStreamId();
 
     /**
-     * Returns if this tuple is a tick tuple or not.
-     */
-    public boolean isTick();
-
-    /**
      * Gets the message id that associated with this tuple.
      */
     public MessageId getMessageId();

@@ -22,6 +22,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.TupleUtils;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
@@ -89,8 +90,7 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
     @Override
     public void execute(Tuple input) {
-        if (input.isTick()) {
-          collector.ack(input);
+        if (TupleUtils.isTick(input)) {
           return; // Do not try to send ticks to Kafka
         }
 

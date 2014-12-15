@@ -214,11 +214,6 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
         return streamId;
     }
 
-    public boolean isTick() {
-        return Constants.SYSTEM_COMPONENT_ID.equals(this.getSourceComponent()) &&
-               Constants.SYSTEM_TICK_STREAM_ID.equals(this.getSourceStreamId());
-    }
-
     public MessageId getMessageId() {
         return id;
     }

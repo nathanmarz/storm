@@ -13,7 +13,7 @@
   ```
   
 
-## HiveBolt
+## HiveBolt (org.apache.storm.hive.bolt.HiveBolt)
 
 HiveBolt streams tuples directly into hive. Tuples are written using Hive Transactions. 
 Partiions to which HiveBolt will stream to can either created or pre-created or optionally
@@ -32,8 +32,8 @@ HiveBolt hiveBolt = new HiveBolt(hiveOptions);
    There are two implementaitons available
  
    
-   1) DelimitedRecordHiveMapper
-   2) JsonRecordHiveMapper
+   + DelimitedRecordHiveMapper (org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper)
+   + JsonRecordHiveMapper (org.apache.storm.hive.bolt.mapper.JsonRecordHiveMapper)
    
    ```java
    DelimitedRecordHiveMapper mapper = new DelimitedRecordHiveMapper()
@@ -51,7 +51,7 @@ HiveBolt hiveBolt = new HiveBolt(hiveOptions);
 |withPartitionFields| field names in a tuple can be mapped to hive table partitions | Fields |
 |withTimeAsPartitionField| users can select system time as partition in hive table| String . Date format|
 
-### HiveOptions
+### HiveOptions (org.apache.storm.hive.common.HiveOptions)
   
 HiveBolt takes in HiveOptions as a constructor arg.
 
@@ -82,7 +82,7 @@ HiveOptions params
 
 
  
-## HiveState
+## HiveState (org.apache.storm.hive.trident.HiveTrident)
 
 Hive Trident state also follows similar pattern to HiveBolt it takes in HiveOptions as an arg.
 

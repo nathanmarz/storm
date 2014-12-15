@@ -37,5 +37,4 @@ public final class MockTupleHelpers {
     when(tuple.getSourceStreamId()).thenReturn(streamId);
     return tuple;
   }
-
 }

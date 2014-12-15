@@ -153,7 +153,7 @@ public interface Tuple {
      * Gets the id of the component that created this tuple.
      */
     public String getSourceComponent();
-
+    
     /**
      * Gets the id of the task that created this tuple.
      */
@@ -163,7 +163,7 @@ public interface Tuple {
      * Gets the id of the stream that this tuple was emitted to.
      */
     public String getSourceStreamId();
-
+    
     /**
      * Gets the message id that associated with this tuple.
      */

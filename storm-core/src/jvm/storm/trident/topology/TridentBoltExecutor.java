@@ -300,7 +300,7 @@ public class TridentBoltExecutor implements IRichBolt {
     
     @Override
     public void execute(Tuple tuple) {
-        if (TupleUtils.isTick(tuple)) {
+        if(TupleUtils.isTick(tuple)) {
             long now = System.currentTimeMillis();
             if(now - _lastRotate > _messageTimeoutMs) {
                 _batches.rotate();

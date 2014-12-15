@@ -17,7 +17,6 @@
  */
 package backtype.storm.tuple;
 
-import backtype.storm.Constants;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.utils.IndifferentAccessMap;
@@ -213,7 +212,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
     public String getSourceStreamId() {
         return streamId;
     }
-
+    
     public MessageId getMessageId() {
         return id;
     }

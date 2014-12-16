@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-548: Receive Thread Shutdown hook should connect to local hostname but not Localhost
  * STORM-567: Move Storm Documentation/Website from SVN to git
  * STORM-533: Add in client and server IConnection metrics.
  * STORM-572: Storm UI 'favicon.ico'

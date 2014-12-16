@@ -1228,7 +1228,6 @@
   (let [tmp-root (str (master-tmp-dir conf) file-path-separator (uuid))
         storm-cluster-state (:storm-cluster-state nimbus)
         host-port-info (:host-port-info nimbus)
-        code-dir (master-stormdist-root conf)
         storm-root (master-stormdist-root conf storm-id)
         remote-meta-file-path (master-storm-metafile-path storm-root)
         local-meta-file-path (master-storm-metafile-path tmp-root)]
@@ -1246,18 +1245,20 @@
         active-topologies (set (.code-distributor storm-cluster-state nil))
         missing-topologies (set/difference active-topologies code-ids)]
     (if (not (empty? missing-topologies))
-      (doseq [missing missing-topologies]
-        (log-message "missing topology " missing " has state on zookeeper but doesn't have a local dir on this host.")
-        (let [nimbuses-with-missing (.code-distributor-info storm-cluster-state missing)]
-          (log-message "trying to download missing topology code from " (clojure.string/join "," nimbuses-with-missing))
-          (doseq [nimbus-host-port nimbuses-with-missing]
-            (let [[host port] (clojure.string/split nimbus-host-port #":")]
-              (when-not (contains? (code-ids (:conf nimbus)) missing)
-                (try
-                  (download-code conf nimbus missing host (Integer/parseInt port))
-                  (.addToLeaderLockQueue (:leader-elector nimbus))
-                  (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing))))))))
-      (log-message "local disk is completely in sync with zk code-distributor."))))
+      (do
+        (.removeFromLeaderLockQueue (:leader-elector nimbus))
+        (doseq [missing missing-topologies]
+          (log-message "missing topology " missing " has state on zookeeper but doesn't have a local dir on this host.")
+          (let [nimbuses-with-missing (.code-distributor-info storm-cluster-state missing)]
+            (log-message "trying to download missing topology code from " (clojure.string/join "," nimbuses-with-missing))
+            (doseq [nimbus-host-port nimbuses-with-missing]
+              (let [[host port] (clojure.string/split nimbus-host-port #":")]
+                (when-not (contains? (code-ids (:conf nimbus)) missing)
+                  (try
+                    (download-code conf nimbus missing host (Integer/parseInt port))
+                    (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing))))))))))
+    (.addToLeaderLockQueue (:leader-elector nimbus))
+    (log-message "local disk is completely in sync with zk code-distributor.")))
 
 (defmethod sync-code :local [conf nimbus]
   nil)

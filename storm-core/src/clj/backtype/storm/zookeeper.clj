@@ -225,7 +225,7 @@
      is-leader (.isLeader participant)]
     (NimbusInfo. server port is-leader)))
 
-(defn leader-latch-listener
+(defn leader-latch-listener-impl
   "Leader latch listener that will be invoked when we either gain or lose leadership"
   [conf zk leader-latch]
   (let [hostname (.getCanonicalHostName (InetAddress/getLocalHost))
@@ -255,7 +255,7 @@
         leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
         id (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
         leader-latch (atom (LeaderLatch. zk leader-lock-path id))
-        leader-latch-listener (atom (leader-latch-listener conf zk @leader-latch))
+        leader-latch-listener (atom (leader-latch-listener-impl conf zk @leader-latch))
         ]
     (reify ILeaderElector
       (prepare [this conf]
@@ -267,7 +267,7 @@
         (if (.equals LeaderLatch$State/CLOSED state)
           (do
             (reset! leader-latch (LeaderLatch. zk leader-lock-path id))
-            (reset! leader-latch-listener (leader-latch-listener conf zk @leader-latch))
+            (reset! leader-latch-listener (leader-latch-listener-impl conf zk @leader-latch))
             (log-message "LeaderLatch was in closed state. Resetted the leaderLatch and listeners.")
             ))
 

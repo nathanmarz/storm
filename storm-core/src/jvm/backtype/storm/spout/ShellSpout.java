@@ -17,6 +17,7 @@
  */
 package backtype.storm.spout;
 
+import backtype.storm.Config;
 import backtype.storm.generated.ShellComponent;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.metric.api.rpc.IShellMetric;
@@ -26,8 +27,14 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
 import java.util.Map;
 import java.util.List;
-import java.io.IOException;
+import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+import clojure.lang.RT;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +50,10 @@ public class ShellSpout implements ISpout {
     
     private SpoutMsg _spoutMsg;
 
+    private int workerTimeoutMills;
+    private ScheduledExecutorService heartBeatExecutorService;
+    private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
+
     public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
     }
@@ -56,13 +67,18 @@ public class ShellSpout implements ISpout {
         _collector = collector;
         _context = context;
 
+        workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+
         _process = new ShellProcess(_command);
 
         Number subpid = _process.launch(stormConf, context);
         LOG.info("Launched subprocess with pid " + subpid);
+
+        heartBeatExecutorService = MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
     }
 
     public void close() {
+        heartBeatExecutorService.shutdownNow();
         _process.destroy();
     }
 
@@ -131,6 +147,9 @@ public class ShellSpout implements ISpout {
                 if (command == null) {
                     throw new IllegalArgumentException("Command not found in spout message: " + shellMsg);
                 }
+
+                setHeartbeat();
+
                 if (command.equals("sync")) {
                     return;
                 } else if (command.equals("log")) {
@@ -189,9 +208,53 @@ public class ShellSpout implements ISpout {
 
     @Override
     public void activate() {
+        LOG.info("Start checking heartbeat...");
+        // prevent timer to check heartbeat based on last thing before activate
+        setHeartbeat();
+        heartBeatExecutorService.scheduleAtFixedRate(new SpoutHeartbeatTimerTask(this), 1, 1, TimeUnit.SECONDS);
     }
 
     @Override
     public void deactivate() {
+        heartBeatExecutorService.shutdownNow();
     }
+
+    private void setHeartbeat() {
+        lastHeartbeatTimestamp.set(System.currentTimeMillis());
+    }
+
+    private long getLastHeartbeat() {
+        return lastHeartbeatTimestamp.get();
+    }
+
+    private void die(Throwable exception) {
+        heartBeatExecutorService.shutdownNow();
+
+        LOG.error("Halting process: ShellSpout died.", exception);
+        _collector.reportError(exception);
+        _process.destroy();
+        System.exit(11);
+    }
+
+    private class SpoutHeartbeatTimerTask extends TimerTask {
+        private ShellSpout spout;
+
+        public SpoutHeartbeatTimerTask(ShellSpout spout) {
+            this.spout = spout;
+        }
+
+        @Override
+        public void run() {
+            long currentTimeMillis = System.currentTimeMillis();
+            long lastHeartbeat = getLastHeartbeat();
+
+            LOG.debug("current time : {}, last heartbeat : {}, worker timeout (ms) : {}",
+                    currentTimeMillis, lastHeartbeat, workerTimeoutMills);
+
+            if (currentTimeMillis - lastHeartbeat > workerTimeoutMills) {
+                spout.die(new RuntimeException("subprocess heartbeat timeout"));
+            }
+        }
+    }
+
 }

@@ -17,17 +17,18 @@
  */
 package backtype.storm.utils;
 
+
 import backtype.storm.generated.Nimbus;
 import backtype.storm.nimbus.ILeaderElector;
 import backtype.storm.nimbus.NimbusInfo;
 import backtype.storm.security.auth.ThriftClient;
+import backtype.storm.security.auth.ThriftConnectionType;
 import clojure.lang.IFn;
 import clojure.lang.PersistentArrayMap;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 
 public class NimbusClient extends ThriftClient {
@@ -59,7 +60,12 @@ public class NimbusClient extends ThriftClient {
     }
 
     public NimbusClient(Map conf, String host, int port, Integer timeout) throws TTransportException {
-        super(conf, host, port, timeout);
+        super(conf, ThriftConnectionType.NIMBUS, host, port, timeout);
+        _client = new Nimbus.Client(_protocol);
+    }
+
+    public NimbusClient(Map conf, String host) throws TTransportException {
+        super(conf, ThriftConnectionType.NIMBUS, host, null, null);
         _client = new Nimbus.Client(_protocol);
     }
 

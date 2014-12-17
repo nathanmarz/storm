@@ -25,12 +25,15 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
-  (:import [java.io File FileOutputStream StringWriter PrintWriter IOException])
+  (:import [java.io File FileOutputStream RandomAccessFile StringWriter
+            PrintWriter BufferedReader InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
+  (:import [org.yaml.snakeyaml Yaml]
+           [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [clojure [string :as str]])
   (:import [clojure.lang RT])
   (:require [clojure [set :as set]])
@@ -205,6 +208,12 @@
   (.getCanonicalHostName (InetAddress/getLocalHost)))
 
 (def memoized-local-hostname (memoize local-hostname))
+
+;; checks conf for STORM_LOCAL_HOSTNAME.
+;; when unconfigured, falls back to (memoized) guess by `local-hostname`.
+(defn hostname
+  [conf]
+  (conf Config/STORM_LOCAL_HOSTNAME (memoized-local-hostname)))
 
 (letfn [(try-port [port]
                   (with-open [socket (java.net.ServerSocket. port)]
@@ -411,6 +420,18 @@
     (catch ExecuteException e
       (log-message "Error when trying to kill " pid ". Process is probably already dead."))))
 
+(defn read-and-log-stream
+  [prefix stream]
+  (try
+    (let [reader (BufferedReader. (InputStreamReader. stream))]
+      (loop []
+        (if-let [line (.readLine reader)]
+                (do
+                  (log-warn (str prefix ":" line))
+                  (recur)))))
+    (catch IOException e
+      (log-warn "Error while trying to log stream" e))))
+
 (defn force-kill-process
   [pid]
   (send-signal-to-process pid sig-kill))
@@ -427,13 +448,6 @@
   (.addShutdownHook (Runtime/getRuntime) (Thread. #(func)))
   (.addShutdownHook (Runtime/getRuntime) (Thread. #((sleep-secs 1)
                                                     (.halt (Runtime/getRuntime) 20)))))
-
-(defnk launch-process [command :environment {}]
-  (let [builder (ProcessBuilder. command)
-        process-env (.environment builder)]
-    (doseq [[k v] environment]
-      (.put process-env k v))
-    (.start builder)))
 
 (defprotocol SmartThread
   (start [this])
@@ -486,6 +500,42 @@
         [this]
         (Time/isThreadWaiting thread)))))
 
+(defn shell-cmd
+  [command]
+  (->> command
+    (map #(str \' (clojure.string/escape % {\' "'\"'\"'"}) \'))
+      (clojure.string/join " ")))
+
+(defnk write-script
+  [dir command :environment {}]
+  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str (shell-cmd ["export" (str k "=" v)]) ";\n")) environment)) "\nexec " (shell-cmd command) ";")
+        script-path (str dir "/storm-worker-script.sh")
+        - (spit script-path script-src)]
+    script-path
+  ))
+
+(defnk launch-process
+  [command :environment {} :log-prefix nil :exit-code-callback nil]
+  (let [builder (ProcessBuilder. command)
+        process-env (.environment builder)]
+    (.redirectErrorStream builder true)
+    (doseq [[k v] environment]
+      (.put process-env k v))
+    (let [process (.start builder)]
+      (if (or log-prefix exit-code-callback)
+        (async-loop
+         (fn []
+           (if log-prefix
+             (read-and-log-stream log-prefix (.getInputStream process)))
+           (when exit-code-callback
+             (try
+               (.waitFor process)
+               (catch InterruptedException e
+                 (log-message log-prefix " interrupted.")))
+             (exit-code-callback (.exitValue process)))
+           nil)))                    
+      process)))
+   
 (defn exists-file?
   [path]
   (.exists (File. path)))
@@ -949,6 +999,35 @@
                 (meta form))
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
+
+(def LOG-DIR
+  (.getCanonicalPath 
+                (clojure.java.io/file (System/getProperty "storm.home") "logs")))
+
+(defn- logs-rootname [storm-id port]
+  (str storm-id "-worker-" port))
+
+(defn logs-filename [storm-id port]
+  (str (logs-rootname storm-id port) ".log"))
+
+(defn logs-metadata-filename [storm-id port]
+  (str (logs-rootname storm-id port) ".yaml"))
+
+(def worker-log-filename-pattern #"((.*-\d+-\d+)-worker-(\d+)).log")
+
+(defn get-log-metadata-file
+  ([fname]
+    (if-let [[_ _ id port] (re-matches worker-log-filename-pattern fname)]
+      (get-log-metadata-file id port)))
+  ([id port]
+    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
+
+(defn clojure-from-yaml-file [yamlFile]
+  (try
+    (let [obj (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. yamlFile))]
+      (clojurify-structure obj))
+    (catch Exception ex
+      (log-error ex))))
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))

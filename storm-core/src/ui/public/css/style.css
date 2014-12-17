@@ -19,6 +19,15 @@
     display: none;
 }
 
+.ui-user {
+    float: right;
+    padding: 0.5em;
+}
+
+.anti-forgery-token {
+    visibility:hidden;
+}
+
 body {
   color: #808080;
   padding: 0.2em;

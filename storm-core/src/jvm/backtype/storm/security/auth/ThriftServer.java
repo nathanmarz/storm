@@ -18,27 +18,28 @@
 package backtype.storm.security.auth;
 
 import java.util.Map;
+
 import javax.security.auth.login.Configuration;
+
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import backtype.storm.utils.Utils;
 
 public class ThriftServer {
     private static final Logger LOG = LoggerFactory.getLogger(ThriftServer.class);
     private Map _storm_conf; //storm configuration
     protected TProcessor _processor = null;
-    private int _port = 0;
+    private final ThriftConnectionType _type;
     private TServer _server = null;
     private Configuration _login_conf;
     
-    public ThriftServer(Map storm_conf, TProcessor processor, int port) {
+    public ThriftServer(Map storm_conf, TProcessor processor, ThriftConnectionType type) {
+        _storm_conf = storm_conf;
+        _processor = processor;
+        _type = type;
+
         try {
-            _storm_conf = storm_conf;
-            _processor = processor;
-            _port = port;
-            
             //retrieve authentication configuration 
             _login_conf = AuthUtils.GetConfiguration(_storm_conf);
         } catch (Exception x) {
@@ -63,10 +64,10 @@ public class ThriftServer {
     public void serve()  {
         try {
             //locate our thrift transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_storm_conf, _login_conf);
+            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_type, _storm_conf, _login_conf);
 
             //server
-            _server = transportPlugin.getServer(_port, _processor);
+            _server = transportPlugin.getServer(_processor);
 
             //start accepting requests
             _server.serve();

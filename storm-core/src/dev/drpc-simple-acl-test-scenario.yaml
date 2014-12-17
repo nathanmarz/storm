@@ -1,0 +1,11 @@
+# For the function "jump", alice can perform client operations, and bob can
+# perform invocation operations.
+drpc.authorizer.acl:
+  "jump":
+    "client.users":
+      - "alice"
+      - "bob"
+    "invocation.user": "charlie"
+  "partial":
+    "client.users":
+      - "alice"

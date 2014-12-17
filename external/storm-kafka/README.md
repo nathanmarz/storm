@@ -8,7 +8,7 @@ We support both trident and core storm spouts. For both spout implementation we 
 tracks kafka broker host to partition mapping and kafkaConfig that controls some kafka related parameters.
  
 ###BrokerHosts
-In order to initialize your kafka spout/emitter you need to construct and instance of the marker interface BrokerHosts. 
+In order to initialize your kafka spout/emitter you need to construct an instance of the marker interface BrokerHosts. 
 Currently we support following two implementations:
 
 ####ZkHosts
@@ -33,9 +33,9 @@ of this class you need to first construct an instance of GlobalPartitionInformat
     Broker brokerForPartition1 = new Broker("localhost", 9092);//localhost:9092 but we specified the port explicitly
     Broker brokerForPartition2 = new Broker("localhost:9092");//localhost:9092 specified as one string.
     GlobalPartitionInformation partitionInfo = new GlobalPartitionInformation();
-    partitionInfo.add(0, brokerForPartition0)//mapping form partition 0 to brokerForPartition0
-    partitionInfo.add(1, brokerForPartition1)//mapping form partition 1 to brokerForPartition1
-    partitionInfo.add(2, brokerForPartition2)//mapping form partition 2 to brokerForPartition2
+    partitionInfo.addPartition(0, brokerForPartition0);//mapping form partition 0 to brokerForPartition0
+    partitionInfo.addPartition(1, brokerForPartition1);//mapping form partition 1 to brokerForPartition1
+    partitionInfo.addPartition(2, brokerForPartition2);//mapping form partition 2 to brokerForPartition2
     StaticHosts hosts = new StaticHosts(partitionInfo);
 ```
 
@@ -46,12 +46,12 @@ The second thing needed for constructing a kafkaSpout is an instance of KafkaCon
     public KafkaConfig(BrokerHosts hosts, String topic, String clientId)
 ```
 
-The BorkerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
+The BrokerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
 The optional ClientId is used as a part of the zookeeper path where the spout's current consumption offset is stored.
 
 There are 2 extensions of KafkaConfig currently in use.
 
-Spoutconfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
+SpoutConfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
 as root to store your consumer's offset. The id should uniquely identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);
@@ -121,7 +121,6 @@ use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependen
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
             <version>0.8.1.1</version>
-            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>

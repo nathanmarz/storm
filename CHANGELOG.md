@@ -1,4 +1,6 @@
 ## 0.10.0
+ * STORM-585: Performance issue in none grouping
+ * STORM-525: Add time sorting function to the 2nd col of bolt exec table
  * STORM-548: Receive Thread Shutdown hook should connect to local hostname but not Localhost
  * STORM-567: Move Storm Documentation/Website from SVN to git
  * STORM-533: Add in client and server IConnection metrics.

@@ -349,7 +349,7 @@
   (let [min-replication-count (conf MIN-REPLICATION-COUNT)
         max-replication-wait-time (conf MAX-REPLICATION-WAIT-TIME-SEC)
         total-wait-time (atom 0)
-        current-replication-count (atom (.getReplicationCount (:bt-tracker nimbus) storm-id))]
+        current-replication-count (atom (if (:bt-tracker nimbus) (.getReplicationCount (:bt-tracker nimbus) storm-id) 0))]
   (if (:bt-tracker nimbus)
     (while (and (> min-replication-count @current-replication-count)
              (or (= -1 max-replication-wait-time)

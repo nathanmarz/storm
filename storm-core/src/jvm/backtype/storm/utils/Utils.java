@@ -260,13 +260,13 @@ public class Utils {
         download(client, file, localFile);
     }
 
-    public static void downloadFromHost(Map conf, String file, String localFile, String host, int port) throws IOException, TException {
+    public static void downloadFromHost(Map conf, String file, String localFile, String host, int port) throws IOException, TException, AuthorizationException {
         //TODO : instead of null as last arg we probably need some real timeout, check what is the default and if its ok to reuse.
         NimbusClient client = new NimbusClient (conf, host, port, null);
         download(client, file, localFile);
     }
 
-    private static void download(NimbusClient client, String file, String localFile) throws IOException, TException {
+    private static void download(NimbusClient client, String file, String localFile) throws IOException, TException, AuthorizationException {
         String id = client.getClient().beginFileDownload(file);
         WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
         while(true) {

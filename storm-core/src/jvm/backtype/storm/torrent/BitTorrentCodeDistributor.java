@@ -138,7 +138,7 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
             }
         }
 
-        throw new RuntimeException("No valid InetAddress could be obtained, something really wrong with network configuration.")
+        throw new RuntimeException("No valid InetAddress could be obtained, something really wrong with network configuration.");
     }
 
     @Override

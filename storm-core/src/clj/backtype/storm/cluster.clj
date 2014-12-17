@@ -432,8 +432,8 @@
 
       (setup-code-distributor!
         [this storm-id info]
-        (mkdirs cluster-state (code-distributor-path storm-id) acl)
-        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" info) acl))
+        (mkdirs cluster-state (code-distributor-path storm-id) acls)
+        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" info) acls))
 
       (remove-storm!
         [this storm-id]

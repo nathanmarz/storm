@@ -908,7 +908,7 @@
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getClusterInfo")
          (json-response (cluster-summary user) (:callback m))))
-  (GET "/api/v1/nimbus/summary" [& m]
+  (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
     (assert-authorized-user servlet-request "getClusterInfo")
     (json-response (nimbus-summary) (:callback m)))
   (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]

@@ -48,6 +48,7 @@
         nimbus-server (ThriftServer. (:daemon-conf cluster-map)
                                      (Nimbus$Processor. (:nimbus cluster-map)) 
                                      ThriftConnectionType/NIMBUS)]
+    (Thread/sleep 2000)
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop nimbus-server))))
     (.start (Thread. #(.serve nimbus-server)))
     (wait-for-condition #(.isServing nimbus-server))
@@ -60,7 +61,7 @@
       (testing/kill-local-storm-cluster cluster-map#)
       (.stop nimbus-server#)))
 
-(deftest Simple-authentication-test 
+(deftest Simple-authentication-test
   (with-test-cluster [6627 nil nil "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
@@ -71,10 +72,10 @@
                (is (thrown-cause? NotAliveException
                             (.activate nimbus_client "topo-name"))))
       (.close client))))
-  
-(deftest test-noop-authorization-w-simple-transport 
-  (with-test-cluster [6628 nil 
-                "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
+
+(deftest test-noop-authorization-w-simple-transport
+  (with-test-cluster [6628 nil
+                "backtype.storm.security.auth.authorizer.NoopAuthorizer"
                 "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
@@ -86,22 +87,22 @@
                             (.activate nimbus_client "topo-name"))))
       (.close client))))
 
-(deftest test-deny-authorization-w-simple-transport 
+(deftest test-deny-authorization-w-simple-transport
   (with-test-cluster [6629 nil
-                "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
+                "backtype.storm.security.auth.authorizer.DenyAuthorizer"
                 "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
-                             Config/NIMBUS_HOST "localhost"
                              Config/NIMBUS_THRIFT_PORT 6629
                              STORM-NIMBUS-RETRY-TIMES 0})
-          client (NimbusClient/getConfiguredClient storm-conf)
+          client (NimbusClient. storm-conf "localhost" 6629 nimbus-timeout)
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
           submitOptions (SubmitOptions. topologyInitialStatus)]
-      (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "topo-name" nil nil nil))) 
+      (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "topo-name" nil nil nil)))
       (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "topo-name" nil nil nil submitOptions)))
       (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
+
       (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))
       (is (thrown-cause? AuthorizationException (.finishFileUpload nimbus_client nil)))
       (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus_client nil)))
@@ -123,40 +124,38 @@
         (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "topo-ID"))))
       (.close client))))
 
-(deftest test-noop-authorization-w-sasl-digest 
+(deftest test-noop-authorization-w-sasl-digest
   (with-test-cluster [6630
-                "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
-                "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
+                "test/clj/backtype/storm/security/auth/jaas_digest.conf"
+                "backtype.storm.security.auth.authorizer.NoopAuthorizer"
                 "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
-                             Config/NIMBUS_HOST "localhost"
                              Config/NIMBUS_THRIFT_PORT 6630
                              STORM-NIMBUS-RETRY-TIMES 0})
-          client (NimbusClient/getConfiguredClient storm-conf)
+          client (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Authorization plugin should accept client request"
                (is (thrown-cause? NotAliveException
                             (.activate nimbus_client "topo-name"))))
       (.close client))))
 
-(deftest test-deny-authorization-w-sasl-digest 
+(deftest test-deny-authorization-w-sasl-digest
   (with-test-cluster [6631
-                "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
-                "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
+                "test/clj/backtype/storm/security/auth/jaas_digest.conf"
+                "backtype.storm.security.auth.authorizer.DenyAuthorizer"
                 "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
-                             Config/NIMBUS_HOST "localhost"
                              Config/NIMBUS_THRIFT_PORT 6631
                              STORM-NIMBUS-RETRY-TIMES 0})
-          client (NimbusClient/getConfiguredClient storm-conf)
+          client (NimbusClient. storm-conf "localhost" 6631 nimbus-timeout)
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
           submitOptions (SubmitOptions. topologyInitialStatus)]
-      (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "topo-name" nil nil nil))) 
+      (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "topo-name" nil nil nil)))
       (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "topo-name" nil nil nil submitOptions)))
       (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
       (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))

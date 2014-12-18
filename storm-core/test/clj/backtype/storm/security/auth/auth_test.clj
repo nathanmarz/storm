@@ -123,7 +123,6 @@
 (defn launch-server [server-port login-cfg aznClass transportPluginClass serverConf] 
   (let [conf1 (merge (read-storm-config)
                      {NIMBUS-AUTHORIZER aznClass 
-                      NIMBUS-HOST "localhost"
                       NIMBUS-THRIFT-PORT server-port
                       STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
         conf2 (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)

@@ -1244,6 +1244,8 @@
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil
+                 nimbus/mk-bt-tracker nil
+                 nimbus/mk-leader-elector nil
                  nimbus/mk-scheduler nil]
         (nimbus/nimbus-data auth-conf fake-inimbus)
         (verify-call-times-for cluster/mk-storm-cluster-state 1)

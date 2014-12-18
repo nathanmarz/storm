@@ -291,7 +291,7 @@ Sample response:
             "spoutId": "spout",
             "tasks": 5,
             "lastError": "",
-            "errorLapsedSecs": null
+            "errorLapsedSecs": null,
             "failed": 0
         }
     ],
@@ -307,7 +307,7 @@ Sample response:
             "processLatency": "0.043",
             "boltId": "count",
             "lastError": "",
-            "errorLapsedSecs": null
+            "errorLapsedSecs": null,
             "capacity": "0.003",
             "failed": 0
         },
@@ -322,7 +322,7 @@ Sample response:
             "processLatency": "2.112",
             "boltId": "split",
             "lastError": "",
-            "errorLapsedSecs": null
+            "errorLapsedSecs": null,
             "capacity": "0.000",
             "failed": 0
         }
@@ -497,7 +497,7 @@ Sample response:
             "acked": 0,
             "failed": 0
         }
-    ]
+    ],
     "executorStats": [
         {
             "workerLogLink": "http://10.11.1.7:8000/log?file=worker-6701.log",

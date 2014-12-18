@@ -113,7 +113,7 @@ public class TridentKafkaEmitter {
         try {
             msgs = fetchMessages(consumer, partition, offset);
         } catch (TopicOffsetOutOfRangeException e) {
-            long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
+            long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
             LOG.warn("OffsetOutOfRange: Updating offset from offset = " + offset + " to offset = " + newOffset);
             offset = newOffset;
             msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);

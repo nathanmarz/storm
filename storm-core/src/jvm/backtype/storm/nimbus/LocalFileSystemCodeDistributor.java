@@ -1,5 +1,7 @@
 package backtype.storm.nimbus;
 
+import backtype.storm.Config;
+import backtype.storm.utils.ZookeeperAuthInfo;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -16,9 +18,7 @@ import static backtype.storm.Config.*;
 import static backtype.storm.utils.Utils.downloadFromHost;
 import static backtype.storm.utils.Utils.newCurator;
 
-/**
- * Created by pbrahmbhatt on 12/12/14.
- */
+
 public class LocalFileSystemCodeDistributor implements ICodeDistributor {
     private static final Logger LOG = LoggerFactory.getLogger(LocalFileSystemCodeDistributor.class);
     private CuratorFramework zkClient;
@@ -29,9 +29,9 @@ public class LocalFileSystemCodeDistributor implements ICodeDistributor {
         this.conf = conf;
         List<String> zkServers = (List<String>) conf.get(STORM_ZOOKEEPER_SERVERS);
         int port = (Integer) conf.get(STORM_ZOOKEEPER_PORT);
-        zkClient = newCurator(conf, zkServers, port, (String) conf.get(STORM_ZOOKEEPER_ROOT));
+        ZookeeperAuthInfo zkAuthInfo = new ZookeeperAuthInfo(conf);
+        zkClient = newCurator(conf, zkServers, port, (String) conf.get(STORM_ZOOKEEPER_ROOT), zkAuthInfo);
         zkClient.start();
-        //TODO secure zk.
     }
 
     @Override

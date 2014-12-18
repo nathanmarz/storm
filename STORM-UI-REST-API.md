@@ -65,7 +65,7 @@ Sample response (does not include all the data fields):
 
 ### /api/v1/cluster/summary (GET)
 
-Returns cluster summary such as nimbus uptime, number of supervisors, slots etc..
+Returns cluster summary information such as nimbus uptime or number of supervisors.
 
 Response fields:
 

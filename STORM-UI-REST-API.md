@@ -625,7 +625,7 @@ Caution: Small wait times (0-5 seconds) may increase the probability of triggeri
 daemons.
 
 
-### API errors
+## API errors
 
 The API returns 500 HTTP status codes in case of any errors.
 

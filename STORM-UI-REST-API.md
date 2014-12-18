@@ -1,7 +1,7 @@
 # Storm UI REST API
 
 The Storm UI daemon provides a REST API that allows you to interact with a Storm cluster, which includes retrieving
-metrics data, configuration information as well as management operations such as starting or stopping topologies.
+metrics data and configuration information as well as management operations such as starting or stopping topologies.
 
 
 # Data format

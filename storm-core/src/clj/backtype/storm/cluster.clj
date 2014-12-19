@@ -142,7 +142,9 @@
   (assignment-info [this storm-id callback])
   (assignment-info-with-version [this storm-id callback])
   (assignment-version [this storm-id callback])
+  ;returns topologyIds under /stormroot/code-distributor
   (code-distributor [this callback])
+  ;returns lits of nimbusinfos under /stormroot/code-distributor/storm-id
   (code-distributor-info [this storm-id])
   (active-storms [this])
   (storm-base [this storm-id callback])
@@ -162,6 +164,7 @@
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
+  ;adds nimbusinfo under /stormroot/code-distributor/storm-id
   (setup-code-distributor! [this storm-id info])
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id node port error])

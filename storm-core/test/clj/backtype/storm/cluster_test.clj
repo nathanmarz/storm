@@ -14,7 +14,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.cluster-test
-  (:import [java.util Arrays])
+  (:import [java.util Arrays]
+           [backtype.storm.nimbus NimbusInfo])
   (:import [backtype.storm.daemon.common Assignment StormBase SupervisorInfo])
   (:import [org.apache.zookeeper ZooDefs ZooDefs$Ids])
   (:import [org.mockito Mockito])
@@ -170,6 +171,8 @@
     (let [state (mk-storm-state zk-port)
           assignment1 (Assignment. "/aaa" {} {1 [2 2002 1]} {})
           assignment2 (Assignment. "/aaa" {} {1 [2 2002]} {})
+          nimbusInfo1 (NimbusInfo. "nimbus1" 6667 false)
+          nimbusInfo2 (NimbusInfo. "nimbus2" 6667 false)
           base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "")
           base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "")]
       (is (= [] (.assignments state nil)))
@@ -200,6 +203,15 @@
       (is (= {"a" "a"} (.credentials state "storm1" nil)))
       (.set-credentials! state "storm1" {"b" "b"} {})
       (is (= {"b" "b"} (.credentials state "storm1" nil)))
+
+      (is (= [] (.code-distributor state nil)))
+      (.setup-code-distributor! state "storm1" nimbusInfo1)
+      (is (= ["storm1"] (.code-distributor state nil)))
+      (is (= [nimbusInfo1] (.code-distributor-info state "storm1")))
+      (.setup-code-distributor! state "storm1" nimbusInfo2)
+      (is (= #{nimbusInfo1 nimbusInfo2} (set (.code-distributor-info state "storm1"))))
+      (.remove-storm! state "storm1")
+      (is (= [] (.code-distributor state nil)))
 
       ;; TODO add tests for task info and task heartbeat setting and getting
       (.disconnect state)

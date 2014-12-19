@@ -261,7 +261,6 @@ public class Utils {
     }
 
     public static void downloadFromHost(Map conf, String file, String localFile, String host, int port) throws IOException, TException, AuthorizationException {
-        //TODO : instead of null as last arg we probably need some real timeout, check what is the default and if its ok to reuse.
         NimbusClient client = new NimbusClient (conf, host, port, null);
         download(client, file, localFile);
     }

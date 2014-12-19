@@ -162,12 +162,7 @@ public class TridentKafkaEmitter {
             long offset = (Long) meta.get("offset");
             long nextOffset = (Long) meta.get("nextOffset");
             ByteBufferMessageSet msgs = null;
-            try {
-                msgs = fetchMessages(consumer, partition, offset);
-            } catch (TopicOffsetOutOfRangeException e) {
-                LOG.warn("OffsetOutOfRange during reEmitPartitionBatch, the transaction can not be replayed." +
-                        "Returning empty messages");
-            }
+            msgs = fetchMessages(consumer, partition, offset);
 
             if(msgs != null) {
                 for (MessageAndOffset msg : msgs) {

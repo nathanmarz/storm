@@ -1258,32 +1258,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_CODE_DISTRIBUTOR_CLASS_SCHEMA = String.class;
 
     /**
-     * Which port the BitTorrent tracker should bind to.
-     */
-    public static final String BITTORRENT_PORT = "bittorrent.port";
-    public static final Object BITTORRENT_PORT_SCHEMA = Number.class;
-
-    /**
-     * Max upload rate for topology torrents in kB/sec. 0.0 == unlimited.
-     */
-    public static final String BITTORRENT_MAX_UPLOAD_RATE = "bittorrent.max.upload.rate";
-    public static final Object BITTORRENT_MAX_UPLOAD_RATE_SCHEMA = Number.class;
-
-    /**
-     * Max download rate for topology torrents in kB/sec. 0.0 == unlimited.
-     */
-    public static final String BITTORRENT_MAX_DOWNLOAD_RATE = "bittorrent.max.download.rate";
-    public static final Object BITTORRENT_MAX_DOWNLOAD_RATE_SCHEMA = Number.class;
-
-    /**
-     * Time in seconds that a supervisor should seed after completing a topology torrent download.
-     * A value of 0 will disable seeding (download only). A value of -1 indicates that the supervisor
-     * should seed indefinitely (until the topology is killed).
-     */
-    public static final String SUPERVISOR_BITTORRENT_SEED_DURATION = "supervisor.bittorrent.seed.duration";
-    public static final Object SUPERVISOR_BITTORRENT_SEED_DURATION_SCHEMA = Number.class;
-
-    /**
      * Minimum number of nimbus hosts where the code must be replicated before leader nimbus
      * is allowed to perform topology activation tasks like setting up heartbeats/assignments
      * and marking the topology as active. default is 0.

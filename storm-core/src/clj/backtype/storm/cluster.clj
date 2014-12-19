@@ -20,6 +20,7 @@
   (:import [backtype.storm.utils Utils])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
+  (:import [backtype.storm.nimbus NimbusInfo])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]]))
@@ -328,7 +329,7 @@
 
       (code-distributor-info
         [this storm-id]
-        (get-children cluster-state (code-distributor-path storm-id) false))
+        (map (fn [nimbus-info] (NimbusInfo/parse nimbus-info)) (get-children cluster-state (code-distributor-path storm-id) false)))
 
       (active-storms
         [this]
@@ -431,9 +432,9 @@
         (set-data cluster-state (assignment-path storm-id) (Utils/serialize info) acls))
 
       (setup-code-distributor!
-        [this storm-id info]
+        [this storm-id nimbusInfo]
         (mkdirs cluster-state (code-distributor-path storm-id) acls)
-        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" info) acls))
+        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" (.toHostPortString nimbusInfo)) acls))
 
       (remove-storm!
         [this storm-id]

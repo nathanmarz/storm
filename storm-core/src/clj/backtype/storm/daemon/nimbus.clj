@@ -25,6 +25,7 @@
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:use [backtype.storm bootstrap util zookeeper])
   (:import [backtype.storm.generated AuthorizationException])
+  (:import [backtype.storm.nimbus NimbusInfo])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
@@ -78,7 +79,7 @@
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
-     :host-port-info (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
+     :nimbus-host-port-info (NimbusInfo. (.getCanonicalHostName (InetAddress/getLocalHost)) (conf NIMBUS-THRIFT-PORT) false)
      :inimbus inimbus
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
      :submitted-count (atom 0)
@@ -1107,8 +1108,7 @@
                                 (dissoc storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
-                storm-cluster-state (:storm-cluster-state nimbus)
-                host-port-info (:host-port-info nimbus) ]
+                storm-cluster-state (:storm-cluster-state nimbus)]
             (when credentials (doseq [nimbus-autocred-plugin (:nimbus-autocred-plugins nimbus)]
               (.populateCredentials nimbus-autocred-plugin credentials (Collections/unmodifiableMap storm-conf))))
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
@@ -1125,7 +1125,7 @@
               ;;cred-update-lock is not needed here because creds are being added for the first time.
               (.set-credentials! storm-cluster-state storm-id credentials storm-conf)
               (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)
-              (.setup-code-distributor! storm-cluster-state storm-id host-port-info)
+              (.setup-code-distributor! storm-cluster-state storm-id (:nimbus-host-port-info nimbus))
               (wait-for-desired-code-replication nimbus conf storm-id)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
@@ -1380,7 +1380,6 @@
 (defn download-code [conf nimbus storm-id host port]
   (let [tmp-root (str (master-tmp-dir conf) file-path-separator (uuid))
         storm-cluster-state (:storm-cluster-state nimbus)
-        host-port-info (:host-port-info nimbus)
         storm-root (master-stormdist-root conf storm-id)
         remote-meta-file-path (master-storm-metafile-path storm-root)
         local-meta-file-path (master-storm-metafile-path tmp-root)]
@@ -1390,7 +1389,7 @@
       (.download (:bt-tracker nimbus) storm-id (File. local-meta-file-path)))
     (if (.exists (File. storm-root)) (FileUtils/forceDelete (File. storm-root)))
     (FileUtils/moveDirectory (File. tmp-root) (File. storm-root))
-    (.setup-code-distributor! storm-cluster-state storm-id host-port-info)))
+    (.setup-code-distributor! storm-cluster-state storm-id (:nimbus-host-port-info nimbus))))
 
 (defmethod sync-code :distributed [conf nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1405,11 +1404,10 @@
           (let [nimbuses-with-missing (.code-distributor-info storm-cluster-state missing)]
             (log-message "trying to download missing topology code from " (clojure.string/join "," nimbuses-with-missing))
             (doseq [nimbus-host-port nimbuses-with-missing]
-              (let [[host port] (clojure.string/split nimbus-host-port #":")]
-                (when-not (contains? (code-ids (:conf nimbus)) missing)
-                  (try
-                    (download-code conf nimbus missing host (Integer/parseInt port))
-                    (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing))))))))))
+              (when-not (contains? (code-ids (:conf nimbus)) missing)
+                (try
+                  (download-code conf nimbus missing (.getHost nimbus-host-port) (.getPort nimbus-host-port))
+                  (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing)))))))))
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (log-message "local disk is completely in sync with zk code-distributor.")))
 

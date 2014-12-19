@@ -233,7 +233,7 @@
         STORMS-ROOT (str (conf STORM-ZOOKEEPER-ROOT) "/storms")]
     (reify LeaderLatchListener
       (^void isLeader[this]
-        (log-message (str hostname "gained leadership, checking if it has all the topology code locally."))
+        (log-message (str hostname " gained leadership, checking if it has all the topology code locally."))
         (let [active-topology-ids (set (get-children zk STORMS-ROOT false))
               local-topology-ids (set (.list (File. (master-stormdist-root conf))))
               diff-topology (first (set-delta active-topology-ids local-topology-ids))]
@@ -241,9 +241,9 @@
                           "] local-topology-ids [" (clojure.string/join "," local-topology-ids)
                           "] diff-topology [" (clojure.string/join "," diff-topology) "]")
         (if (empty? diff-topology)
-          (log-message " Accepting leadership, all active topology found localy.")
+          (log-message "Accepting leadership, all active topology found localy.")
           (do
-            (log-message " code for all active topologies not available locally, giving up leadership.")
+            (log-message "code for all active topologies not available locally, giving up leadership.")
             (.close leader-latch)))))
       (^void notLeader[this]
         (log-message (str hostname " lost leadership."))))))
@@ -263,9 +263,8 @@
         (log-message "no-op for zookeeper implementation"))
 
       (^void addToLeaderLockQueue [this]
-        (let [state (.getState @leader-latch)]
         ;if this latch is already closed, we need to create new instance.
-        (if (.equals LeaderLatch$State/CLOSED state)
+        (if (.equals LeaderLatch$State/CLOSED (.getState @leader-latch))
           (do
             (reset! leader-latch (LeaderLatch. zk leader-lock-path id))
             (reset! leader-latch-listener (leader-latch-listener-impl conf zk @leader-latch))
@@ -273,12 +272,12 @@
             ))
 
         ;Only if the latch is not already started we invoke start.
-        (if (.equals LeaderLatch$State/LATENT state)
+        (if (.equals LeaderLatch$State/LATENT (.getState @leader-latch))
           (do
             (.addListener @leader-latch @leader-latch-listener)
             (.start @leader-latch)
             (log-message "Queued up for leader lock."))
-          (log-message "Node already in queue for leader lock."))))
+          (log-message "Node already in queue for leader lock.")))
 
       (^void removeFromLeaderLockQueue [this]
         ;Only started latches can be closed.

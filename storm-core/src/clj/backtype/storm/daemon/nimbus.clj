@@ -79,7 +79,7 @@
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
-     :nimbus-host-port-info (NimbusInfo. (.getCanonicalHostName (InetAddress/getLocalHost)) (conf NIMBUS-THRIFT-PORT) false)
+     :nimbus-host-port-info (NimbusInfo/fromConf conf)
      :inimbus inimbus
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
      :submitted-count (atom 0)

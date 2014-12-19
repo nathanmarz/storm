@@ -1,6 +1,11 @@
 package backtype.storm.nimbus;
 
+import backtype.storm.Config;
+
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Map;
 
 public class NimbusInfo implements Serializable {
     private static final String DELIM = ":";
@@ -24,6 +29,17 @@ public class NimbusInfo implements Serializable {
         }
     }
 
+    public static NimbusInfo fromConf(Map conf) {
+        try {
+            String host = InetAddress.getLocalHost().getCanonicalHostName();
+            int port = Integer.parseInt(conf.get(Config.NIMBUS_THRIFT_PORT).toString());
+            return new NimbusInfo(host, port, false);
+
+        } catch (UnknownHostException e) {
+            throw new RuntimeException("Something wrong with network/dns config, host cant figure out its name", e);
+        }
+    }
+
     public String toHostPortString() {
         return String.format("%s%s%s",host,DELIM,port);
     }
@@ -38,6 +54,28 @@ public class NimbusInfo implements Serializable {
 
     public String getHost() {
         return host;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof NimbusInfo)) return false;
+
+        NimbusInfo that = (NimbusInfo) o;
+
+        if (isLeader != that.isLeader) return false;
+        if (port != that.port) return false;
+        if (!host.equals(that.host)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = host.hashCode();
+        result = 31 * result + port;
+        result = 31 * result + (isLeader ? 1 : 0);
+        return result;
     }
 
     @Override

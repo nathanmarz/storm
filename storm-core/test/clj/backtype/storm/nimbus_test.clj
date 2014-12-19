@@ -1235,7 +1235,8 @@
     (let [scheme "digest"
           digest "storm:thisisapoorpassword"
           auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
-                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
+                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest
+                     NIMBUS-THRIFT-PORT 6666}
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
       (stubbing [mk-authorization-handler nil

@@ -64,15 +64,6 @@
 (defmulti mk-bt-tracker cluster-mode)
 (defmulti sync-code cluster-mode)
 
-;;TODO we should try genclass for zkLeaderElector and just set NIMBUS-LEADER-ELECTOR-CLASS in defaults.yaml
-;;TODO we need to pass acls, looks like not posible as leader-latch does not work with ACLS
-;;TODO we need to call .preapare or just get rid of the interface all together.
-(defn mk-leader-elector [conf]
-  (if (conf NIMBUS-LEADER-ELECTOR-CLASS)
-    (do (log-message "Using custom Leade elector: " (conf NIMBUS-LEADER-ELECTOR-CLASS))
-      (-> (conf NIMBUS-LEADER-ELECTOR-CLASS) new-instance))
-    (zk-leader-elector conf)))
-
 (defnk is-leader [nimbus :throw-exception true]
   (let [leader-elector (:leader-elector nimbus)]
     (if (.isLeader leader-elector) true
@@ -107,7 +98,7 @@
                                  (exit-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
-     :leader-elector (mk-leader-elector conf)
+     :leader-elector (zk-leader-elector conf)
      :bt-tracker (mk-bt-tracker conf)
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)

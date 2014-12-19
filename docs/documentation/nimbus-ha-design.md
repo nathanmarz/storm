@@ -13,9 +13,8 @@ of the backups will take over.
 the list of potential leaders automatically. 
 * No topology resubmissions required in case of nimbus fail overs.
 * No active topology should ever be lost. 
-##Components:
-Following are different components to achieve the above goals.
-###Leader Election:
+
+##Leader Election:
 The nimbus server will use the following interface:
 
 ```java
@@ -81,7 +80,7 @@ This sequence diagram describes how leader election and failover would work with
 
 ![Nimbus Fail Over](images/nimbus_ha_leader_election_and_failover.png)
 
-###Nimbus state store:
+##Nimbus state store:
 
 Currently the nimbus stores 2 kind of data
 * Meta information like supervisor info, assignment info which is stored in zookeeper
@@ -93,9 +92,9 @@ and it is hard to test for correctness.However many storm users do not want to t
 storage system like HDFS and still need high availability.Eventually, we want to move to the bittorrent protocol for code 
 distribution given the size of the jars and to achieve better scaling when the total number of supervisors is very high. 
 The current file system based model for code distribution works fine with systems that have file system like structure
-but it fails to support a non file system based approach like bit torrent. To support bit torrent we can go with the 
-following interface instead of the storage interface described above. The interface described below can still be used with
-HDFS,S3 and local file system, so this is a more extensible interface. 
+but it fails to support a non file system based approach like bit torrent. To support bit torrent and all the file
+system based replicated storage systems we propose the following interface:
+
 ```java
 /**
  * Interface responsible to distribute code in the cluster.

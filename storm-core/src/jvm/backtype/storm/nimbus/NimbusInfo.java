@@ -56,6 +56,10 @@ public class NimbusInfo implements Serializable {
         return host;
     }
 
+    public void setLeader(boolean isLeader) {
+        this.isLeader = isLeader;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

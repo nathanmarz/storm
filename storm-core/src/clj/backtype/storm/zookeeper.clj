@@ -221,10 +221,9 @@
     [id (if (clojure.string/blank? (.getId participant))
           (throw (RuntimeException. "No nimbus leader participant host found, have you started your nimbus hosts?"))
           (.getId participant))
-     server (first (.split id ":"))
-     port (Integer/parseInt (last (.split id ":")))
-     is-leader (.isLeader participant)]
-    (NimbusInfo. server port is-leader)))
+     nimbus-info (NimbusInfo/parse id)]
+    (.setLeader nimbus-info (.isLeader participant))
+    nimbus-info))
 
 (defn leader-latch-listener-impl
   "Leader latch listener that will be invoked when we either gain or lose leadership"
@@ -254,7 +253,7 @@
   (let [servers (conf STORM-ZOOKEEPER-SERVERS)
         zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
         leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
-        id (str (.getCanonicalHostName (InetAddress/getLocalHost)) ":" (conf NIMBUS-THRIFT-PORT))
+        id (.toHostPortString (NimbusInfo/fromConf conf))
         leader-latch (atom (LeaderLatch. zk leader-lock-path id))
         leader-latch-listener (atom (leader-latch-listener-impl conf zk @leader-latch))
         ]

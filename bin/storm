@@ -307,6 +307,13 @@ def repl():
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class("clojure.main", jvmtype="-client", extrajars=cppaths)
 
+def get_logback_conf_dir():
+    cppaths = [CLUSTER_CONF_DIR]
+    storm_logback_conf_dir = confvalue("storm.logback.conf.dir", cppaths)
+    if(storm_logback_conf_dir == None or storm_logback_conf_dir == "nil"):
+        storm_logback_conf_dir = STORM_DIR + "/logback"
+    return storm_logback_conf_dir
+
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
 
@@ -319,7 +326,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + get_logback_conf_dir() + "/cluster.xml",
     ]
     exec_storm_class(
         klass, 
@@ -339,7 +346,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + get_logback_conf_dir() + "/cluster.xml",
     ]
     exec_storm_class(
         klass, 
@@ -360,7 +367,7 @@ def ui():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + get_logback_conf_dir() + "/cluster.xml"
     ]
     exec_storm_class(
         "backtype.storm.ui.core", 
@@ -381,7 +388,7 @@ def logviewer():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + get_logback_conf_dir() + "/cluster.xml"
     ]
     exec_storm_class(
         "backtype.storm.daemon.logviewer", 
@@ -401,7 +408,7 @@ def drpc():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml"
+        "-Dlogback.configurationFile=" + get_logback_conf_dir() + "/cluster.xml"
     ]
     exec_storm_class(
         "backtype.storm.daemon.drpc", 

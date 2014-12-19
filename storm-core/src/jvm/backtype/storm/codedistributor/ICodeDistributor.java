@@ -1,4 +1,4 @@
-package backtype.storm.nimbus;
+package backtype.storm.codedistributor;
 
 
 import java.io.File;

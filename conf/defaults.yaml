@@ -48,7 +48,7 @@ storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
-storm.codedistributor.class: "backtype.storm.torrent.BitTorrentCodeDistributor"
+storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
 
 ### bittorrent configuration
 bittorrent.port: 6969

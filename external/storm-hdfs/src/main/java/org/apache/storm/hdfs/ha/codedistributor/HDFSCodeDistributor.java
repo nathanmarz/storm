@@ -1,6 +1,6 @@
 package org.apache.storm.hdfs.ha.codedistributor;
 
-import backtype.storm.nimbus.ICodeDistributor;
+import backtype.storm.codedistributor.ICodeDistributor;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;

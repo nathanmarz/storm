@@ -1,6 +1,5 @@
-package backtype.storm.nimbus;
+package backtype.storm.codedistributor;
 
-import backtype.storm.Config;
 import backtype.storm.utils.ZookeeperAuthInfo;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;

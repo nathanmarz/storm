@@ -1257,7 +1257,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_HDFS_URI_SCHEMA = String.class;
 
     /**
-     * Which implementation of {@link backtype.storm.nimbus.ICodeDistributor} should be used by storm for code
+     * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code
      * distribution.
      */
     public static final String STORM_CODE_DISTRIBUTOR_CLASS = "storm.codedistributor.class";

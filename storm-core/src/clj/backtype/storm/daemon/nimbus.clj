@@ -65,6 +65,8 @@
 (defmulti sync-code cluster-mode)
 
 ;;TODO we should try genclass for zkLeaderElector and just set NIMBUS-LEADER-ELECTOR-CLASS in defaults.yaml
+;;TODO we need to pass acls, looks like not posible as leader-latch does not work with ACLS
+;;TODO we need to call .preapare or just get rid of the interface all together.
 (defn mk-leader-elector [conf]
   (if (conf NIMBUS-LEADER-ELECTOR-CLASS)
     (do (log-message "Using custom Leade elector: " (conf NIMBUS-LEADER-ELECTOR-CLASS))

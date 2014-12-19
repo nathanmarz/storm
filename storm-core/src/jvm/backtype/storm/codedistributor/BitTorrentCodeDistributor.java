@@ -1,7 +1,6 @@
-package backtype.storm.torrent;
+package backtype.storm.codedistributor;
 
 import backtype.storm.Config;
-import backtype.storm.nimbus.ICodeDistributor;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Shorts;
 import com.turn.ttorrent.client.Client;
@@ -78,7 +77,8 @@ public class BitTorrentCodeDistributor implements ICodeDistributor {
         LOG.info("Seeding torrent...");
 
         /**
-         * Every time on prepare we need to call tracker.announce for all torrents that
+         *
+         * TODO: Every time on prepare we need to call tracker.announce for all torrents that
          * exists in the file system, other wise the tracker will reject any peer request
          * with unknown torrents. You need to bootstrap trackers.
          */

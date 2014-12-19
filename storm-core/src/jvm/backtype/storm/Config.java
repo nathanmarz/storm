@@ -1288,18 +1288,17 @@ public class Config extends HashMap<String, Object> {
      * is allowed to perform topology activation tasks like setting up heartbeats/assignments
      * and marking the topology as active. default is 0.
      */
-    public static final String MIN_REPLICATION_COUNT = "min.replication.count";
-    public static final Object MIN_REPLICATION_COUNT_SCHEMA = Number.class;
+    public static final String NIMBUS_MIN_REPLICATION_COUNT = "nimbus.min.replication.count";
+    public static final Object NIMBUS_MIN_REPLICATION_COUNT_SCHEMA = Number.class;
 
     /**
-     * Maximum wait time for the nimbus host replication to achieve the min.replication.count.
+     * Maximum wait time for the nimbus host replication to achieve the nimbus.min.replication.count.
      * Once this time is elapsed nimbus will go ahead and perform topology activation tasks even
-     * if required min.replication.count is not achieved. The default is 0 seconds, a value of
+     * if required nimbus.min.replication.count is not achieved. The default is 0 seconds, a value of
      * -1 indicates to wait for ever.
      */
-    public static final String MAX_REPLICATION_WAIT_TIME_SEC = "max.replication.wait.time.sec";
-    public static final Object MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
-
+    public static final String NIMBUS_MAX_REPLICATION_WAIT_TIME_SEC = "nimbus.max.replication.wait.time.sec";
+    public static final Object NIMBUS_MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
 
     /**
      * How often nimbus should wake the cleanup thread to clean the inbox.

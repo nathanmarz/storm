@@ -70,8 +70,8 @@ nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
-min.replication.count: 0
-max.replication.wait.time.sec: 0
+nimbus.min.replication.count: 0
+nimbus.max.replication.wait.time.sec: 0
 nimbus.credential.renewers.freq.secs: 600
 
 ### ui.* configs are for the master

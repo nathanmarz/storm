@@ -340,8 +340,8 @@
    ))
 
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
-  (let [min-replication-count (conf MIN-REPLICATION-COUNT)
-        max-replication-wait-time (conf MAX-REPLICATION-WAIT-TIME-SEC)
+  (let [min-replication-count (conf NIMBUS-MIN-REPLICATION-COUNT)
+        max-replication-wait-time (conf NIMBUS-MAX-REPLICATION-WAIT-TIME-SEC)
         total-wait-time (atom 0)
         current-replication-count (atom (if (:bt-tracker nimbus) (.getReplicationCount (:bt-tracker nimbus) storm-id) 0))]
   (if (:bt-tracker nimbus)

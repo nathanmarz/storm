@@ -984,23 +984,25 @@
 )
 
 (defn renew-credentials [nimbus]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        renewers (:cred-renewers nimbus)
-        update-lock (:cred-update-lock nimbus)
-        assigned-ids (set (.active-storms storm-cluster-state))]
-    (when-not (empty? assigned-ids)
-      (doseq [id assigned-ids]
-        (locking update-lock
-          (let [orig-creds (.credentials storm-cluster-state id nil)
-                topology-conf (try-read-storm-conf (:conf nimbus) id)]
-            (if orig-creds
-              (let [new-creds (HashMap. orig-creds)]
-                (doseq [renewer renewers]
-                  (log-message "Renewing Creds For " id " with " renewer)
-                  (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
-                (when-not (= orig-creds new-creds)
-                  (.set-credentials! storm-cluster-state id new-creds topology-conf)
-                  )))))))))
+  (if (is-leader nimbus :throw-exception false)
+    (let [storm-cluster-state (:storm-cluster-state nimbus)
+          renewers (:cred-renewers nimbus)
+          update-lock (:cred-update-lock nimbus)
+          assigned-ids (set (.active-storms storm-cluster-state))]
+      (when-not (empty? assigned-ids)
+        (doseq [id assigned-ids]
+          (locking update-lock
+            (let [orig-creds (.credentials storm-cluster-state id nil)
+                  topology-conf (try-read-storm-conf (:conf nimbus) id)]
+              (if orig-creds
+                (let [new-creds (HashMap. orig-creds)]
+                  (doseq [renewer renewers]
+                    (log-message "Renewing Creds For " id " with " renewer)
+                    (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
+                  (when-not (= orig-creds new-creds)
+                    (.set-credentials! storm-cluster-state id new-creds topology-conf)
+                    ))))))))
+    (log-message "not a leader skipping , credential renweal.")))
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)

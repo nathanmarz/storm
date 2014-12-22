@@ -25,7 +25,6 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.github.ptgoetz</groupId>
     <artifactId>storm-hbase</artifactId>
 
     <developers>

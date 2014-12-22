@@ -274,9 +274,9 @@ The *SimpleACLAuthorizer* plug-in needs to know who the supervisor users are, an
 
 These are set through *nimbus.supervisor.users* and *nimbus.admins* respectively.  Each can either be a full Kerberos principal name, or the name of the user with host and realm stripped off.
 
-The UI and Log servers have their own authorization configurations.  These are set through *logs.users* and *ui.users*.  These should be set to the admin users for all of the nodes in the cluster.  
+The Log servers have their own authorization configurations.  These are set through *logs.users* and *logs.groups*.  These should be set to the admin users or groups for all of the nodes in the cluster.  
 
-When a topology is sumbitted, the sumbitting user can specify users in this list as well.  The users specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's details in the ui and/or to the topology's worker logs in the logviewers.  
+When a topology is sumbitted, the sumbitting user can specify users in this list as well.  The users and groups specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's worker logs in the logviewers.  
 
 ### Supervisors headless User and group Setup
 

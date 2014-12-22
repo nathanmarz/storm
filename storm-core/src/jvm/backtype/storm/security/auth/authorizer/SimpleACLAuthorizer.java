@@ -110,7 +110,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             }
 
             Set<String> topoGroups = new HashSet<String>();
-            if (topology_conf.containsKey(Config.TOPOLOGY_GROUPS)) {
+            if (topology_conf.containsKey(Config.TOPOLOGY_GROUPS) && topology_conf.get(Config.TOPOLOGY_GROUPS) != null) {
                 topoGroups.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_GROUPS));
             }
 

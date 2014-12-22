@@ -8,7 +8,7 @@ We support both trident and core storm spouts. For both spout implementation we 
 tracks kafka broker host to partition mapping and kafkaConfig that controls some kafka related parameters.
  
 ###BrokerHosts
-In order to initialize your kafka spout/emitter you need to construct and instance of the marker interface BrokerHosts. 
+In order to initialize your kafka spout/emitter you need to construct an instance of the marker interface BrokerHosts. 
 Currently we support following two implementations:
 
 ####ZkHosts
@@ -46,12 +46,12 @@ The second thing needed for constructing a kafkaSpout is an instance of KafkaCon
     public KafkaConfig(BrokerHosts hosts, String topic, String clientId)
 ```
 
-The BorkerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
+The BrokerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
 The optional ClientId is used as a part of the zookeeper path where the spout's current consumption offset is stored.
 
 There are 2 extensions of KafkaConfig currently in use.
 
-Spoutconfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
+SpoutConfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
 as root to store your consumer's offset. The id should uniquely identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);

@@ -54,17 +54,20 @@
 
 (defn -completeTopology
   ([^ILocalCluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
-     (let [mocked-sources (or (-> completeTopologyParam .getMockedSources .getData) {})
-           storm-conf (or (.getStormConf completeTopologyParam) {})
-           cleanup-state (or (.getCleanupState completeTopologyParam) true)
-           topology-name (.getTopologyName completeTopologyParam)]
-       (complete-topology (.getState cluster) topology
-                          :mock-sources mocked-sources
-                          :storm-conf storm-conf
-                          :cleanup-state cleanup-state
-                          :topology-name topology-name)))
+    (let [mocked-sources (or (-> completeTopologyParam .getMockedSources .getData) {})
+          storm-conf (or (.getStormConf completeTopologyParam) {})
+          cleanup-state (or (.getCleanupState completeTopologyParam) true)
+          topology-name (.getTopologyName completeTopologyParam)
+          timeout-ms (or (.getTimeoutMs completeTopologyParam) TEST-TIMEOUT-MS)]
+      (complete-topology (.getState cluster) topology
+        :mock-sources mocked-sources
+        :storm-conf storm-conf
+        :cleanup-state cleanup-state
+        :topology-name topology-name
+        :timeout-ms timeout-ms)))
   ([^ILocalCluster cluster ^StormTopology topology]
-     (-completeTopology cluster topology (CompleteTopologyParam.))))
+    (-completeTopology cluster topology (CompleteTopologyParam.))))
+
 
 (defn -withSimulatedTime
   [^Runnable code]

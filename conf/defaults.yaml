@@ -196,5 +196,6 @@ topology.trident.batch.emit.interval.millis: 500
 topology.testing.always.try.serialize: false
 topology.classpath: null
 topology.environment: null
+topology.bolts.outgoing.overflow.buffer.enable: false
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

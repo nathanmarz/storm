@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-487: Remove storm.cmd, no need to duplicate work python runs on windows too.
  * STORM-585: Performance issue in none grouping
  * STORM-525: Add time sorting function to the 2nd col of bolt exec table
  * STORM-548: Receive Thread Shutdown hook should connect to local hostname but not Localhost

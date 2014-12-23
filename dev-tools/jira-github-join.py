@@ -32,7 +32,7 @@ def main():
 	github = GitHub(options)
 	
 	openPullRequests = github.openPulls("apache","storm")
-	stormJiraNumber = re.compile("STORM-[0-9]+")
+	stormJiraNumber = re.compile("STORM-[0-9]+", re.I)
 	openJiras = jrepo.openJiras("STORM")
 	
 	jira2Pulls = {}
@@ -42,7 +42,7 @@ def main():
 	for pull in openPullRequests:
 		found = stormJiraNumber.search(pull.title())
 		if found:
-			jiraNum = found.group(0)
+			jiraNum = found.group(0).upper()
 			if not (jiraNum in openJiras):
 				pullWithBadJira.append(pull)
 			else:

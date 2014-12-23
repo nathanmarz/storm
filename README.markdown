@@ -180,6 +180,7 @@ under the License.
 * Ahmet DAL ([@javrasya](https://github.com/javrasya))
 * Kai Sasaki ([@Lewuathe](https://github.com/Lewuathe))
 * Matthew Siegel ([@msiegel07](https://github.com/msiegel07))
+* Jun Xia ([@tedxia](https://github.com/tedxia))
 
 ## Acknowledgements
 

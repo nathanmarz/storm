@@ -41,6 +41,14 @@ public class DynamicBrokersReader {
     private String _topic;
 
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
+        // Check required parameters
+        if(conf == null) {LOG.error("conf cannot be null");}
+        validateConfig(conf);
+
+        if(zkStr == null) {LOG.error("zkString cannot be null");}
+        if(zkPath == null) {LOG.error("zkPath cannot be null");}
+        if(topic == null) {LOG.error("topic cannot be null");}
+
         _zkPath = zkPath;
         _topic = topic;
         try {
@@ -53,6 +61,7 @@ public class DynamicBrokersReader {
             _curator.start();
         } catch (Exception ex) {
             LOG.error("Couldn't connect to zookeeper", ex);
+            throw new RuntimeException(ex);
         }
     }
 
@@ -146,6 +155,21 @@ public class DynamicBrokersReader {
             return new Broker(host, port);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void validateConfig(final Map conf) {
+        if(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT) == null) {
+            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_SESSION_TIMEOUT);
+        }
+        if(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT) == null) {
+            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT);
+        }
+        if(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES) == null) {
+            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_RETRY_TIMES);
+        }
+        if(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL) == null) {
+            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_RETRY_INTERVAL);
         }
     }
 

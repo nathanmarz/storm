@@ -12,6 +12,7 @@
  * STORM-565: Fix NPE when topology.groups is null.
  * STORM-575: Ability to specify Jetty host to bind to
  * STORM-577: long time launch worker will block supervisor heartbeat
+ * STORM-505: Fix debug string construction
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

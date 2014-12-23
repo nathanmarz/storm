@@ -179,6 +179,7 @@ under the License.
 * Anya Tchernishov ([@anyatch](https://github.com/anyatch))
 * Ahmet DAL ([@javrasya](https://github.com/javrasya))
 * Kai Sasaki ([@Lewuathe](https://github.com/Lewuathe))
+* Matthew Siegel ([@msiegel07](https://github.com/msiegel07))
 
 ## Acknowledgements
 

@@ -70,7 +70,7 @@ builder.setBolt("merge", new MergeObjects())
   .globalGrouping("rank");
 ```
 
-This pattern works because of the fields grouping done by the first bolt which gives the partitioning you need for this to be semantically correct. You can see an example of this pattern in storm-starter [here](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/RollingTopWords.java).
+This pattern works because of the fields grouping done by the first bolt which gives the partitioning you need for this to be semantically correct. You can see an example of this pattern in storm-starter [here](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/RollingTopWords.java).
 
 
 ### TimeCacheMap for efficiently keeping a cache of things that have been recently updated

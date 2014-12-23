@@ -6,7 +6,7 @@ Storm integrates with any queueing system and any database system. Storm's [spou
 
 1. [Kestrel](https://github.com/nathanmarz/storm-kestrel)
 2. [RabbitMQ / AMQP](https://github.com/Xorlev/storm-amqp-spout)
-3. [Kafka](https://github.com/apache/incubator-storm/tree/master/external/storm-kafka)
+3. [Kafka](https://github.com/apache/storm/tree/master/external/storm-kafka)
 4. [JMS](https://github.com/ptgoetz/storm-jms)
 5. [Amazon Kinesis](https://github.com/awslabs/kinesis-storm-spout)
 

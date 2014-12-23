@@ -123,9 +123,10 @@ GitHub.
 
 ## Contribute documentation
 
-Documentation contributions are very welcome!  The best way to send contributions is as emails through the
-[Storm Developers](http://storm.apache.org/community.html) mailing list.
+Documentation contributions are very welcome!
 
+You can contribute documentation by pull request, as same as code contribution.
+Main directory is ```docs/```, and you can refer to docs/README.md for how to build / test website.
 
 <a name="pull-requests"></a>
 

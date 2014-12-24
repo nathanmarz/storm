@@ -64,8 +64,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * Netty based messaging: Sets the backlog value to specify when the channel binds to a local address
      */
-    public static final String STORM_MESSAGING_NETTY_BACKLOG = "storm.messaging.netty.backlog"; 
-    public static final Object STORM_MESSAGING_NETTY_BACKLOG_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog"; 
+    public static final Object STORM_MESSAGING_NETTY_SOCKET_BACKLOG_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * Netty based messaging: The max # of retries that a peer will perform when a remote is not accessible

@@ -89,7 +89,7 @@ class Server implements IConnection, IStatefulObject {
         
         // Configure the server.
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
-        int backlog = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BACKLOG), 500);
+        int backlog = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SOCKET_BACKLOG), 500);
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS));
 
         ThreadFactory bossFactory = new NettyRenameThreadFactory(name() + "-boss");

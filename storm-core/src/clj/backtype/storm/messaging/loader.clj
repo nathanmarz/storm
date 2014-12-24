@@ -24,7 +24,7 @@
 (defn mk-local-context []
   (local/mk-context))
 
-(defn- mk-receive-thread [storm-id port transfer-local-fn  daemon kill-fn priority socket max-buffer-size thread-id]
+(defn- mk-receive-thread [storm-id port transfer-local-fn  daemon kill-fn priority socket thread-id]
     (async-loop
        (fn []
          (log-message "Starting receive-thread: [stormId: " storm-id ", port: " port ", thread-id: " thread-id  " ]")
@@ -54,20 +54,19 @@
          :priority priority
          :thread-name (str "worker-receiver-thread-" thread-id)))
 
-(defn- mk-receive-threads [storm-id port transfer-local-fn  daemon kill-fn priority socket max-buffer-size thread-count]
+(defn- mk-receive-threads [storm-id port transfer-local-fn  daemon kill-fn priority socket thread-count]
   (into [] (for [thread-id (range thread-count)] 
-             (mk-receive-thread storm-id port transfer-local-fn  daemon kill-fn priority socket max-buffer-size thread-id))))
+             (mk-receive-thread storm-id port transfer-local-fn  daemon kill-fn priority socket thread-id))))
 
 
 (defnk launch-receive-thread!
-  [context socket storm-id receiver-thread-count port transfer-local-fn max-buffer-size
+  [context socket storm-id receiver-thread-count port transfer-local-fn
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
    :priority Thread/NORM_PRIORITY]
-  (let [max-buffer-size (int max-buffer-size)
-        local-hostname (memoized-local-hostname)
+  (let [local-hostname (memoized-local-hostname)
         thread-count (if receiver-thread-count receiver-thread-count 1)
-        vthreads (mk-receive-threads storm-id port transfer-local-fn daemon kill-fn priority socket max-buffer-size thread-count)]
+        vthreads (mk-receive-threads storm-id port transfer-local-fn daemon kill-fn priority socket thread-count)]
     (fn []
       (let [kill-socket (.connect ^IContext context storm-id local-hostname port)]
         (log-message "Shutting down receiving-thread: [" storm-id ", " port "]")

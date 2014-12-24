@@ -18,7 +18,9 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import javax.security.auth.login.Configuration;
 
@@ -27,24 +29,26 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import backtype.storm.security.auth.ThriftConnectionType;
+
 /**
  * Interface for Thrift Transport plugin
  */
 public interface ITransportPlugin {
     /**
      * Invoked once immediately after construction
+     * @param type the type of connection this will process.
      * @param storm_conf Storm configuration 
      * @param login_conf login configuration
      */
-    void prepare(Map storm_conf, Configuration login_conf);
+    void prepare(ThriftConnectionType type, Map storm_conf, Configuration login_conf);
     
     /**
-     * Create a server associated with a given port and service handler
-     * @param port listening port
+     * Create a server associated with a given port, service handler, and purpose
      * @param processor service handler
-     * @return server to be binded
+     * @return server
      */
-    public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException;
+    public TServer getServer(TProcessor processor) throws IOException, TTransportException;
 
     /**
      * Connect to the specified server via framed transport 

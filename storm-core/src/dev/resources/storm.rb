@@ -41,26 +41,26 @@ module Storm
 
     def read_task_ids
       Storm::Protocol.pending_taskids.shift ||
-        begin
-          msg = read_message
-          until msg.is_a? Array
-            Storm::Protocol.pending_commands.push(msg)
+          begin
             msg = read_message
+            until msg.is_a? Array
+              Storm::Protocol.pending_commands.push(msg)
+              msg = read_message
+            end
+            msg
           end
-          msg
-        end
     end
 
     def read_command
       Storm::Protocol.pending_commands.shift ||
-        begin
-          msg = read_message
-          while msg.is_a? Array
-            Storm::Protocol.pending_taskids.push(msg)
+          begin
             msg = read_message
+            while msg.is_a? Array
+              Storm::Protocol.pending_taskids.push(msg)
+              msg = read_message
+            end
+            msg
           end
-          msg
-        end
     end
 
     def send_msg_to_parent(msg)
@@ -105,10 +105,10 @@ module Storm
 
     def emit(*args)
       case Storm::Protocol.mode
-      when 'spout'
-        emit_spout(*args)
-      when 'bolt'
-        emit_bolt(*args)
+        when 'spout'
+          emit_spout(*args)
+        when 'bolt'
+          emit_bolt(*args)
       end
     end
 
@@ -169,6 +169,10 @@ module Storm
     def self.from_hash(hash)
       Tuple.new(*hash.values_at("id", "comp", "stream", "task", "tuple"))
     end
+
+    def is_heartbeat
+      task == -1 and stream == '__heartbeat'
+    end
   end
 
   class Bolt
@@ -183,7 +187,12 @@ module Storm
       prepare(*handshake)
       begin
         while true
-          process Tuple.from_hash(read_command)
+          tuple = Tuple.from_hash(read_command)
+          if tuple.is_heartbeat
+            sync
+          else
+            process tuple
+          end
         end
       rescue Exception => e
         reportError 'Exception in bolt: ' + e.message + ' - ' + e.backtrace.join('\n')
@@ -210,12 +219,12 @@ module Storm
         while true
           msg = read_command
           case msg['command']
-          when 'next'
-            nextTuple
-          when 'ack'
-            ack(msg['id'])
-          when 'fail'
-            fail(msg['id'])
+            when 'next'
+              nextTuple
+            when 'ack'
+              ack(msg['id'])
+            when 'fail'
+              fail(msg['id'])
           end
           sync
         end

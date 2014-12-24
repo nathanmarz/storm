@@ -21,6 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
 import backtype.storm.generated.AlreadyAliveException;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.generated.InvalidTopologyException;
 import backtype.storm.generated.StormTopology;
 
@@ -41,7 +42,7 @@ public final class StormRunner {
   }
 
   public static void runTopologyRemotely(StormTopology topology, String topologyName, Config conf)
-      throws AlreadyAliveException, InvalidTopologyException {
+      throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
     StormSubmitter.submitTopology(topologyName, conf, topology);
   }
 }

@@ -229,6 +229,10 @@ The following commands must be run from the top-level directory.
     # Build the code and run the tests (requires nodejs, python and ruby installed) 
     $ mvn clean install
 
+    # Build the code and run the tests, with specifying default test timeout (in millisecond)
+    $ export STORM_TEST_TIMEOUT_MS=10000
+    $ mvn clean install
+
     # Build the code but skip the tests
     $ mvn clean install -DskipTests=true
 

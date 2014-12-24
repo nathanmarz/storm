@@ -1,15 +1,46 @@
 # Storm UI REST API
-Storm UI server provides a REST Api to access cluster, topology, component overview and metrics. 
-This api returns json response.  
-REST API supports JSONP. User can pass callback query param to wrap json in the callback function.
-Please ignore undocumented elements in the json repsonse.
 
-## Using the UI REST Api
+The Storm UI daemon provides a REST API that allows you to interact with a Storm cluster, which includes retrieving
+metrics data and configuration information as well as management operations such as starting or stopping topologies.
+
+
+# Data format
+
+The REST API returns JSON responses and supports JSONP.
+Clients can pass a callback query parameter to wrap JSON in the callback function.
+
+
+# Using the UI REST API
+
+_Note: It is recommended to ignore undocumented elements in the JSON response because future versions of Storm may not_
+_support those elements anymore._
+
+
+## REST API Base URL
+
+The REST API is part of the UI daemon of Storm (started by `storm ui`) and thus runs on the same host and port as the
+Storm UI (the UI daemon is often run on the same host as the Nimbus daemon).  The port is configured by `ui.port`,
+which is set to `8080` by default (see [defaults.yaml](conf/defaults.yaml)).
+
+The API base URL would thus be:
+
+    http://<ui-host>:<ui-port>/api/v1/...
+
+You can use a tool such as `curl` to talk to the REST API:
+
+    # Request the cluster configuration.
+    # Note: We assume ui.port is configured to the default value of 8080.
+    $ curl http://<ui-host>:8080/api/v1/cluster/configuration
+
+
+## GET Operations
 
 ### /api/v1/cluster/configuration (GET)
- returns cluster configuration.  Below is a sample response but doesn't include all the config fileds.
 
-Sample Response:  
+Returns the cluster configuration.
+
+Sample response (does not include all the data fields):
+
 ```json
   {
     "dev.zookeeper.path": "/tmp/dev-storm-zookeeper",
@@ -31,11 +62,12 @@ Sample Response:
     "topology.executor.send.buffer.size": 1024,
     }
 ```
-    
-### /api/v1/cluster/summary (GET)
-returns cluster summary such as nimbus uptime,number of supervisors,slots etc..
 
-Response Fields:
+### /api/v1/cluster/summary (GET)
+
+Returns cluster summary information such as nimbus uptime or number of supervisors.
+
+Response fields:
 
 |Field  |Value|Description
 |---	|---	|---
@@ -48,7 +80,8 @@ Response Fields:
 |executorsTotal| Integer |Total number of executors|
 |tasksTotal| Integer |Total tasks|
 
-Sample Response:  
+Sample response:
+
 ```json
    {
     "stormVersion": "0.9.2-incubating-SNAPSHOT",
@@ -61,11 +94,12 @@ Sample Response:
     "tasksTotal": 28
     }
 ```
-    
-### /api/v1/supervisor/summary (GET)
-returns all supervisors summary 
 
-Response Fields:
+### /api/v1/supervisor/summary (GET)
+
+Returns summary information for all supervisors.
+
+Response fields:
 
 |Field  |Value|Description|
 |---	|---	|---
@@ -75,7 +109,8 @@ Response Fields:
 |slotsTotal| Integer| Total number of available worker slots for this supervisor|
 |slotsUsed| Integer| Number of worker slots used on this supervisor|
 
-Sample Response:  
+Sample response:
+
 ```json
 {
     "supervisors": [
@@ -89,11 +124,12 @@ Sample Response:
     ]
 }
 ```
-    
-### /api/v1/topology/summary (GET)
-Returns all topologies summary
 
-Response Fields:
+### /api/v1/topology/summary (GET)
+
+Returns summary information for all topologies.
+
+Response fields:
 
 |Field  |Value | Description|
 |---	|---	|---
@@ -105,7 +141,8 @@ Response Fields:
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
 
-Sample Response:  
+Sample response:
+
 ```json
 {
     "topologies": [
@@ -121,12 +158,13 @@ Sample Response:
     ]
 }
 ```
- 
-### /api/v1/topology/:id (GET)
-  Returns topology information and stats. Subsititute id with topology id.
 
-Request Parameters:
-  
+### /api/v1/topology/:id (GET)
+
+Returns topology information and statistics.  Substitute id with topology id.
+
+Request parameters:
+
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
@@ -134,14 +172,14 @@ Request Parameters:
 |sys       |String. Values 1 or 0. Default value 0| Controls including sys stats part of the response|
 
 
-Response Fields:
+Response fields:
 
 |Field  |Value |Description|
 |---	|---	|---
 |id| String| Topology Id|
 |name| String |Topology Name|
-|uptime| String |Shows how long the topology is running|
-|status| String |Shows Topology's current status|
+|uptime| String |How long the topology has been running|
+|status| String |Current status of the topology, e.g. "ACTIVE"|
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
@@ -170,8 +208,8 @@ Response Fields:
 |bolts| Array | Array of bolt components in the topology|
 |bolts.boltId| String |Bolt id|
 |bolts.capacity| String (double value returned in String format) |This value indicates number of messages executed * average execute latency / time window|
-|bolts.processLatency| String (double value returned in String format)  |Bolt's average time to ack a message after it's received|
-|bolts.executeLatency| String (double value returned in String format) |Average time for bolt's execute method |
+|bolts.processLatency| String (double value returned in String format)  |Average time of the bolt to ack a message after it was received|
+|bolts.executeLatency| String (double value returned in String format) |Average time to run the execute method of the bolt|
 |bolts.executors| Integer |Number of executor tasks in the bolt component|
 |bolts.tasks| Integer |Number of instances of bolt|
 |bolts.acked| Long |Number of tuples acked by the bolt|
@@ -180,18 +218,20 @@ Response Fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
+|antiForgeryToken| String | CSRF token|
 
 
+Examples:
 
-Examples:  
 ```no-highlight
  1. http://ui-daemon-host-name:8080/api/v1/topology/WordCount3-1-1402960825
  2. http://ui-daemon-host-name:8080/api/v1/topology/WordCount3-1-1402960825?sys=1
  3. http://ui-daemon-host-name:8080/api/v1/topology/WordCount3-1-1402960825?window=600
 ```
 
-Sample Response:  
-```json 
+Sample response:
+
+```json
  {
     "name": "WordCount3",
     "id": "WordCount3-1-1402960825",
@@ -251,7 +291,7 @@ Sample Response:
             "spoutId": "spout",
             "tasks": 5,
             "lastError": "",
-            "errorLapsedSecs": null
+            "errorLapsedSecs": null,
             "failed": 0
         }
     ],
@@ -267,7 +307,7 @@ Sample Response:
             "processLatency": "0.043",
             "boltId": "count",
             "lastError": "",
-            "errorLapsedSecs": null
+            "errorLapsedSecs": null,
             "capacity": "0.003",
             "failed": 0
         },
@@ -282,7 +322,7 @@ Sample Response:
             "processLatency": "2.112",
             "boltId": "split",
             "lastError": "",
-            "errorLapsedSecs": null
+            "errorLapsedSecs": null,
             "capacity": "0.000",
             "failed": 0
         }
@@ -325,9 +365,10 @@ Sample Response:
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
     },
+    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
 }
 ```
-  
+
 
 ### /api/v1/topology/:id/component/:component (GET)
 
@@ -340,13 +381,13 @@ Returns detailed metrics and executor information
 |window    |String. Default value :all-time| window duration for metrics in seconds|
 |sys       |String. Values 1 or 0. Default value 0| controls including sys stats part of the response|
 
-Response Fields:
+Response fields:
 
 |Field  |Value |Description|
 |---	|---	|---
-|id   | String | Component's id|
+|id   | String | Component id|
 |name | String | Topology name|
-|componentType | String | component's type SPOUT or BOLT|
+|componentType | String | component type: SPOUT or BOLT|
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
 |componentErrors| Array of Errors | List of component errors|
@@ -356,7 +397,7 @@ Response Fields:
 |componentErrors.error| String |Shows the error happened in a component|
 |componentErrors.errorLapsedSecs| Integer | Number of seconds elapsed since the error happened in a component |
 |componentErrors.errorWorkerLogLink| String | Link to the worker log that reported the exception |
-|topologyId| String | Topology's Id|
+|topologyId| String | Topology id|
 |tasks| Integer |Number of instances of component|
 |window    |String. Default value "All Time" | window duration for metrics in seconds|
 |spoutSummary or boltStats| Array |Array of component stats. **Please note this element tag can be spoutSummary or boltStats depending on the componentType**|
@@ -370,21 +411,23 @@ Response Fields:
 |boltStats.windowPretty| String |Duration passed in HH:MM:SS format|
 |boltStats..window| String | window duration for metrics in seconds|
 |boltStats.transferred| Long |Total number of messages  transferred in given window|
-|boltStats.processLatency| String (double value returned in String format)  |Bolt's average time to ack a message after it's received|
+|boltStats.processLatency| String (double value returned in String format)  |Average time of the bolt to ack a message after it was received|
 |boltStats.acked| Long |Number of messages acked|
 |boltStats.failed| Long |Number of messages failed|
 
-Examples:  
+Examples:
+
 ```no-highlight
 1. http://ui-daemon-host-name:8080/api/v1/topology/WordCount3-1-1402960825/component/spout
 2. http://ui-daemon-host-name:8080/api/v1/topology/WordCount3-1-1402960825/component/spout?sys=1
 3. http://ui-daemon-host-name:8080/api/v1/topology/WordCount3-1-1402960825/component/spout?window=600
 ```
- 
-Sample Response:  
+
+Sample response:
+
 ```json
 {
-    "name": "WordCount3", 
+    "name": "WordCount3",
     "id": "spout",
     "componentType": "spout",
     "windowHint": "10m 0s",
@@ -454,7 +497,7 @@ Sample Response:
             "acked": 0,
             "failed": 0
         }
-    ]
+    ],
     "executorStats": [
         {
             "workerLogLink": "http://10.11.1.7:8000/log?file=worker-6701.log",
@@ -520,15 +563,38 @@ Sample Response:
 }
 ```
 
+## POST Operations
+
+### Cross site request forgery (CSRF) prevention in POST requests
+
+In order to prevent CSRF vulnerability, the REST API uses a CSRF token. This is primarily done for the UI, however we
+do not have alternative APIs/paths for UI and non-UI clients.
+
+The token is generated during the `/api/v1/topology/:id` (GET) request. The JSON response for this GET request contains
+a field called "antiForgeryToken". All the post requests below must include a header "x-csrf-token" with the value of
+"antiForgeryToken" from the GET response. In absence of this header with the right token value you will get following
+error response:
+
+```
+{
+    "error" : "Forbidden action.",
+    "errorMessage" : "missing CSRF token."
+}
+```
+
+
 ### /api/v1/topology/:id/activate (POST)
-activates a  topology 
+
+Activates a topology.
 
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 
+
 ### /api/v1/topology/:id/deactivate (POST)
-deactivates a  topology 
+
+Deactivates a topology.
 
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
@@ -536,28 +602,35 @@ deactivates a  topology
 
 
 ### /api/v1/topology/:id/rebalance/:wait-time (POST)
-rebalances a topology
+
+Rebalances a topology.
 
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 |wait-time |String (required)| Wait time before rebalance happens |
+
 
 ### /api/v1/topology/:id/kill/:wait-time (POST)
-kills a topology
+
+Kills a topology.
 
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 |wait-time |String (required)| Wait time before rebalance happens |
 
+Caution: Small wait times (0-5 seconds) may increase the probability of triggering the bug reported in
+[STORM-112](https://issues.apache.org/jira/browse/STORM-112), which may result in broker Supervisor
+daemons.
 
 
-### ERRORS
-on errors in any of the above api returns 500 http status code with 
-the following response.
+## API errors
 
-Sample Response:  
+The API returns 500 HTTP status codes in case of any errors.
+
+Sample response:
+
 ```json
 {
   "error": "Internal Server Error",

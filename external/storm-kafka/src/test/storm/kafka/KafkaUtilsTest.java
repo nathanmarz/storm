@@ -99,15 +99,13 @@ public class KafkaUtilsTest {
                 new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), -99);
     }
 
-    @Test
+    @Test(expected = UpdateOffsetException.class)
     public void fetchMessagesWithInvalidOffsetAndDefaultHandlingEnabled() throws Exception {
         config = new KafkaConfig(brokerHosts, "newTopic");
         String value = "test";
         createTopicAndSendMessage(value);
-        ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(config, simpleConsumer,
+        KafkaUtils.fetchMessages(config, simpleConsumer,
                 new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), -99);
-        String message = new String(Utils.toByteArray(messageAndOffsets.iterator().next().message().payload()));
-        assertThat(message, is(equalTo(value)));
     }
 
     @Test
@@ -139,6 +137,7 @@ public class KafkaUtilsTest {
     @Test
     public void generateTuplesWithKeyAndKeyValueScheme() {
         config.scheme = new KeyValueSchemeAsMultiScheme(new StringKeyValueScheme());
+        config.useStartOffsetTimeIfOffsetOutOfRange = false;
         String value = "value";
         String key = "key";
         createTopicAndSendMessage(key, value);

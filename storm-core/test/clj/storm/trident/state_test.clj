@@ -19,10 +19,17 @@
   (:import [storm.trident.operation.builtin Count])
   (:import [storm.trident.state OpaqueValue])
   (:import [storm.trident.state CombinerValueUpdater])
+  (:import [storm.trident.topology.state TransactionalState TestTransactionalState])
   (:import [storm.trident.state.map TransactionalMap OpaqueMap])
   (:import [storm.trident.testing MemoryBackingMap MemoryMapState])
+  (:import [backtype.storm.utils ZookeeperAuthInfo])
+  (:import [org.apache.curator.framework CuratorFramework])
+  (:import [org.apache.curator.framework.api CreateBuilder ProtectACLCreateModePathAndBytesable])
+  (:import [org.apache.zookeeper CreateMode ZooDefs ZooDefs$Ids])
+  (:import [org.mockito Matchers Mockito])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:use [storm.trident testing])
-  (:use [backtype.storm util]))
+  (:use [backtype.storm config util]))
 
 (defn single-remove [map key]
   (-> map (.multiRemove [[key]])))
@@ -103,6 +110,22 @@
     (.commit map 2)
     ))
 
+(deftest test-create-node-acl
+  (testing "Creates ZooKeeper nodes with the correct ACLs"
+    (let [curator (Mockito/mock CuratorFramework)
+          builder0 (Mockito/mock CreateBuilder)
+          builder1 (Mockito/mock ProtectACLCreateModePathAndBytesable)
+          expectedAcls ZooDefs$Ids/CREATOR_ALL_ACL]
+      (. (Mockito/when (.create curator)) (thenReturn builder0))
+      (. (Mockito/when (.creatingParentsIfNeeded builder0)) (thenReturn builder1))
+      (. (Mockito/when (.withMode builder1 (Matchers/isA CreateMode))) (thenReturn builder1))
+      (. (Mockito/when (.withACL builder1 (Mockito/anyList))) (thenReturn builder1))
+      (TestTransactionalState/createNode curator "" (byte-array 0) expectedAcls nil)
+      (is (nil?
+        (try
+          (. (Mockito/verify builder1) (withACL expectedAcls))
+        (catch MockitoAssertionError e
+          e)))))))
 
 (deftest test-memory-map-state-remove
   (let [map (MemoryMapState. (uuid))]

@@ -85,12 +85,13 @@
    :sequential CreateMode/PERSISTENT_SEQUENTIAL})
 
 (defn create-node
-  ([^CuratorFramework zk ^String path ^bytes data mode]
-   (try
-     (.. zk (create) (withMode (zk-create-modes mode)) (withACL ZooDefs$Ids/OPEN_ACL_UNSAFE) (forPath (normalize-path path) data))
-     (catch Exception e (throw (wrap-in-runtime e)))))
-  ([^CuratorFramework zk ^String path ^bytes data]
-   (create-node zk path data :persistent)))
+  ([^CuratorFramework zk ^String path ^bytes data mode acls]
+    (let [mode  (zk-create-modes mode)]
+      (try
+        (.. zk (create) (withMode mode) (withACL acls) (forPath (normalize-path path) data))
+        (catch Exception e (throw (wrap-in-runtime e))))))
+  ([^CuratorFramework zk ^String path ^bytes data acls]
+    (create-node zk path data :persistent acls)))
 
 (defn exists-node?
   [^CuratorFramework zk ^String path watch?]
@@ -109,12 +110,12 @@
              (catch Exception e (throw (wrap-in-runtime e)))))
 
 (defn mkdirs
-  [^CuratorFramework zk ^String path]
+  [^CuratorFramework zk ^String path acls]
   (let [path (normalize-path path)]
     (when-not (or (= path "/") (exists-node? zk path false))
-      (mkdirs zk (parent-path path))
+      (mkdirs zk (parent-path path) acls)
       (try-cause
-        (create-node zk path (barr 7) :persistent)
+        (create-node zk path (barr 7) :persistent acls)
         (catch KeeperException$NodeExistsException e
           ;; this can happen when multiple clients doing mkdir at same time
           ))

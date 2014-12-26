@@ -19,7 +19,7 @@ package storm.kafka.bolt.mapper;
 
 import backtype.storm.tuple.Tuple;
 
-public class FieldNameBasedTupleToKafkaMapper<K,V> implements TupleToKafkaMapper {
+public class FieldNameBasedTupleToKafkaMapper<K,V> implements TupleToKafkaMapper<K, V> {
 
     public static final String BOLT_KEY = "key";
     public static final String BOLT_MESSAGE = "message";

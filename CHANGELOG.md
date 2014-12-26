@@ -1,4 +1,8 @@
 ## 0.10.0
+ * STORM-487: Remove storm.cmd, no need to duplicate work python runs on windows too.
+ * STORM-585: Performance issue in none grouping
+ * STORM-525: Add time sorting function to the 2nd col of bolt exec table
+ * STORM-548: Receive Thread Shutdown hook should connect to local hostname but not Localhost
  * STORM-567: Move Storm Documentation/Website from SVN to git
  * STORM-533: Add in client and server IConnection metrics.
  * STORM-572: Storm UI 'favicon.ico'
@@ -6,6 +10,9 @@
  * STORM-571: upgrade clj-time.
  * STORM-569: Add Conf for bolt's outgoing overflow-buffer.
  * STORM-565: Fix NPE when topology.groups is null.
+ * STORM-575: Ability to specify Jetty host to bind to
+ * STORM-577: long time launch worker will block supervisor heartbeat
+ * STORM-505: Fix debug string construction
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

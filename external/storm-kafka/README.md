@@ -8,7 +8,7 @@ We support both trident and core storm spouts. For both spout implementation we 
 tracks kafka broker host to partition mapping and kafkaConfig that controls some kafka related parameters.
  
 ###BrokerHosts
-In order to initialize your kafka spout/emitter you need to construct and instance of the marker interface BrokerHosts. 
+In order to initialize your kafka spout/emitter you need to construct an instance of the marker interface BrokerHosts. 
 Currently we support following two implementations:
 
 ####ZkHosts

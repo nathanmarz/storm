@@ -42,7 +42,7 @@ def cygpath(x):
     command = ["cygpath", "-wp", x]
     p = sub.Popen(command,stdout=sub.PIPE)
     output, errors = p.communicate()
-    lines = output.split("\n")
+    lines = output.split(os.linesep)
     return lines[0]
 
 def init_storm_env():
@@ -59,17 +59,22 @@ def init_storm_env():
         os.environ[option] = value
 
 normclasspath = cygpath if sys.platform == 'cygwin' else identity
-STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
-USER_CONF_DIR = os.path.expanduser("~/.storm")
+STORM_DIR = os.sep.join(os.path.realpath( __file__ ).split(os.sep)[:-2])
+USER_CONF_DIR = os.path.expanduser("~" + os.sep + ".storm")
 STORM_CONF_DIR = os.getenv('STORM_CONF_DIR', None)
 
 if STORM_CONF_DIR == None:
-    CLUSTER_CONF_DIR = STORM_DIR + "/conf"
+    CLUSTER_CONF_DIR = os.path.join(STORM_DIR, "conf")
 else:
     CLUSTER_CONF_DIR = STORM_CONF_DIR
 
-if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
+if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
     USER_CONF_DIR = CLUSTER_CONF_DIR
+
+STORM_RELEASE_DIR = os.path.join(STORM_DIR, "RELEASE")
+STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
+STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
+STORM_LOGBACK_FILE_PATH = os.path.join(STORM_DIR, "logback", "cluster.xml")
 
 init_storm_env()
 
@@ -95,14 +100,14 @@ def get_jars_full(adir):
     ret = []
     for f in files:
         if f.endswith(".jar"):
-            ret.append(adir + "/" + f)
+            ret.append(os.path.join(adir, f))
     return ret
 
 def get_classpath(extrajars):
     ret = get_jars_full(STORM_DIR)
-    ret.extend(get_jars_full(STORM_DIR + "/lib"))
+    ret.extend(get_jars_full(STORM_LIB_DIR))
     ret.extend(extrajars)
-    return normclasspath(":".join(ret))
+    return normclasspath(os.pathsep.join(ret))
 
 def confvalue(name, extrapaths):
     global CONFFILE
@@ -115,7 +120,7 @@ def confvalue(name, extrapaths):
     # python 3
     if not isinstance(output, str):
         output = output.decode('utf-8')
-    lines = output.split("\n")
+    lines = output.split(os.linesep)
     for line in lines:
         tokens = line.split(" ")
         if tokens[0] == "VALUE:":
@@ -165,7 +170,7 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
     global CONFFILE
     storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
     if(storm_log_dir == None or storm_log_dir == "nil"):
-        storm_log_dir = STORM_DIR+"/logs"
+        storm_log_dir = os.path.join(STORM_DIR, "logs")
     all_args = [
         JAVA_CMD, jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR,
@@ -178,8 +183,8 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
     if fork:
         os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
     else:
-        os.execvp(JAVA_CMD, all_args) # replaces the current process and
-        # never returns
+        # handling whitespaces in JAVA_CMD
+        sub.call(all_args)
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]
@@ -193,7 +198,7 @@ def jar(jarfile, klass, *args):
     exec_storm_class(
         klass,
         jvmtype="-client",
-        extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
+        extrajars=[jarfile, USER_CONF_DIR, STORM_BIN_DIR],
         args=args,
         jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
@@ -211,7 +216,7 @@ def kill(*args):
         "backtype.storm.command.kill_topology", 
         args=args, 
         jvmtype="-client", 
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 
 def upload_credentials(*args):
@@ -234,7 +239,7 @@ def activate(*args):
         "backtype.storm.command.activate", 
         args=args, 
         jvmtype="-client", 
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 def listtopos(*args):
     """Syntax: [storm list]
@@ -245,7 +250,7 @@ def listtopos(*args):
         "backtype.storm.command.list", 
         args=args, 
         jvmtype="-client", 
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 def deactivate(*args):
     """Syntax: [storm deactivate topology-name]
@@ -256,7 +261,7 @@ def deactivate(*args):
         "backtype.storm.command.deactivate", 
         args=args, 
         jvmtype="-client", 
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 def rebalance(*args):
     """Syntax: [storm rebalance topology-name [-w wait-time-secs] [-n new-num-workers] [-e component=parallelism]*]
@@ -283,7 +288,7 @@ def rebalance(*args):
         "backtype.storm.command.rebalance", 
         args=args, 
         jvmtype="-client", 
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
@@ -319,7 +324,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
     ]
     exec_storm_class(
         klass, 
@@ -339,7 +344,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
     ]
     exec_storm_class(
         klass, 
@@ -360,7 +365,7 @@ def ui():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
     ]
     exec_storm_class(
         "backtype.storm.ui.core", 
@@ -381,7 +386,7 @@ def logviewer():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
+        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
     ]
     exec_storm_class(
         "backtype.storm.daemon.logviewer", 
@@ -401,7 +406,7 @@ def drpc():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
-        "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml"
+        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
     ]
     exec_storm_class(
         "backtype.storm.daemon.drpc", 
@@ -424,10 +429,10 @@ def dev_zookeeper():
 
 def version():
   """Syntax: [storm version]
-  
-  Prints the version number of this Storm release.  
+
+  Prints the version number of this Storm release.
   """
-  releasefile = STORM_DIR + "/RELEASE"
+  releasefile = STORM_RELEASE_DIR
   if os.path.exists(releasefile):
     print(open(releasefile).readline().strip())
   else:
@@ -455,7 +460,7 @@ def monitor(*args):
         "backtype.storm.command.monitor",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 
 def print_commands():

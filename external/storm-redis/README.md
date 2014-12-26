@@ -6,31 +6,14 @@ Storm/Trident integration for [Redis](http://redis.io/)
 
 ### How do I use it?
 
-You can download the latest build at:
-    http://github.com/dashengju/storm-redis/releases
-
-Or use it as a maven dependency:
-
-```xml
-<repositories>
-    <repository>
-        <id>storm-redis</id>
-        <url>https://raw.github.com/dashengju/storm-redis/mvn-repo/</url>
-        <snapshots>
-            <enabled>true</enabled>
-            <updatePolicy>always</updatePolicy>
-        </snapshots>
-    </repository>
-</repositories>
-```
+use it as a maven dependency:
 
 ```xml
 <dependency>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-redis</artifactId>
-    <version>1.0.1</version>
+    <version>0.10.0</version>
     <type>jar</type>
-    <scope>compile</scope>
 </dependency>
 ```
 

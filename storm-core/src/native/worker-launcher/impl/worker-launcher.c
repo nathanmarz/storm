@@ -510,6 +510,10 @@ int setup_stormdist_dir(const char* local_dir) {
       }
     }
     ret = fts_close(tree);
+    if (exit_code == 0 && ret != 0) {
+      fprintf(LOGFILE, "Error in fts_close while setting up %s\n", local_dir);
+      exit_code = -1;
+    }
     free(paths[0]);
     paths[0] = NULL;
   }

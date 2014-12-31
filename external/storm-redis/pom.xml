@@ -33,6 +33,11 @@
             <name>Dasheng Ju</name>
             <email>dashengju@gmail.com</email>
         </developer>
+        <developer>
+            <id>HeartSaVioR</id>
+            <name>Jungtaek Lim</name>
+            <email>kabhwan@gmail.com</email>
+        </developer>
     </developers>
 
     <properties>

@@ -42,6 +42,10 @@ public class JedisContainer implements JedisCommandsInstanceContainer, Closeable
 
     @Override
     public void returnInstance(JedisCommands jedisCommands) {
+        if (jedisCommands == null) {
+            return;
+        }
+
         try {
             ((Closeable) jedisCommands).close();
         } catch (IOException e) {

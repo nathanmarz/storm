@@ -51,8 +51,9 @@ public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
                             TridentCollector collector) {
         long expireAt = System.currentTimeMillis() + expireIntervalMs;
 
-        JedisCommands jedisCommands = redisState.getInstance();
+        JedisCommands jedisCommands = null;
         try {
+            jedisCommands = redisState.getInstance();
             for (TridentTuple input : inputs) {
                 String key = this.tupleMapper.getKeyFromTridentTuple(input);
                 String redisKey = key;
@@ -67,7 +68,9 @@ public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
                 jedisCommands.expireAt(redisKey, expireAt);
             }
         } finally {
-            redisState.returnInstance(jedisCommands);
+            if (jedisCommands != null) {
+                redisState.returnInstance(jedisCommands);
+            }
         }
     }
 }

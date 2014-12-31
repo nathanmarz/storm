@@ -320,8 +320,9 @@ public class RedisMapState<T> implements IBackingMap<T> {
             String[] stringKeys = buildKeys(keys);
             List<String> values = Lists.newArrayList();
 
-            JedisCommands jedisCommands = container.getInstance();
+            JedisCommands jedisCommands = null;
             try {
+                jedisCommands = container.getInstance();
                 if (jedisCommands instanceof Jedis) {
                     //Todo because jedisCommands not support mget, we use Jedis for mget if it is Jedis
                     values = ((Jedis)jedisCommands).mget(stringKeys);
@@ -332,18 +333,23 @@ public class RedisMapState<T> implements IBackingMap<T> {
                     }
                 }
             } finally {
-                container.returnInstance(jedisCommands);
+                if (jedisCommands != null) {
+                    container.returnInstance(jedisCommands);
+                }
             }
 
             return deserializeValues(keys, values);
         } else {
-            JedisCommands jedisCommands = container.getInstance();
+            JedisCommands jedisCommands = null;
             try {
+                jedisCommands = container.getInstance();
                 Map<String, String> keyValue = jedisCommands.hgetAll(this.options.hkey);
                 List<String> values = buildValuesFromMap(keys, keyValue);
                 return deserializeValues(keys, values);
             } finally {
-                container.returnInstance(jedisCommands);
+                if (jedisCommands != null) {
+                    container.returnInstance(jedisCommands);
+                }
             }
         }
     }
@@ -384,8 +390,9 @@ public class RedisMapState<T> implements IBackingMap<T> {
         }
 
         if (Strings.isNullOrEmpty(this.options.hkey)) {
-            JedisCommands jedisCommands = container.getInstance();
+            JedisCommands jedisCommands = null;
             try {
+                jedisCommands = container.getInstance();
                 if (jedisCommands instanceof Jedis) {
                     //Todo because jedisCommands not support mget, we use Jedis for mget if it is Jedis
                     String[] keyValue = buildKeyValuesList(keys, vals);
@@ -398,18 +405,23 @@ public class RedisMapState<T> implements IBackingMap<T> {
                     }
                 }
             } finally {
-                container.returnInstance(jedisCommands);
+                if (jedisCommands != null) {
+                    container.returnInstance(jedisCommands);
+                }
             }
         } else {
-            JedisCommands jedisCommands = container.getInstance();
+            JedisCommands jedisCommands = null;
             try {
+                jedisCommands = container.getInstance();
                 for (int i = 0; i < keys.size(); i++) {
                     String val = new String(serializer.serialize(vals.get(i)));
                     String redisKey = keyFactory.build(keys.get(i));
                     jedisCommands.hset(this.options.hkey, redisKey, val);
                 }
             } finally {
-                container.returnInstance(jedisCommands);
+                if (jedisCommands != null) {
+                    container.returnInstance(jedisCommands);
+                }
             }
         }
     }

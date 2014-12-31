@@ -47,8 +47,9 @@ public class RedisStateQuerier extends BaseQueryFunction<RedisState, String> {
     public List<String> batchRetrieve(RedisState redisState, List<TridentTuple> inputs) {
         List<String> ret = Lists.newArrayList();
 
-        JedisCommands jedisCommands = redisState.getInstance();
+        JedisCommands jedisCommands = null;
         try {
+            jedisCommands = redisState.getInstance();
             for (TridentTuple input : inputs) {
                 String key = this.tupleMapper.getKeyFromTridentTuple(input);
                 if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
@@ -60,7 +61,9 @@ public class RedisStateQuerier extends BaseQueryFunction<RedisState, String> {
                 logger.debug("redis get key[" + key + "] count[" + value + "]");
             }
         } finally {
-            redisState.returnInstance(jedisCommands);
+            if (jedisCommands != null) {
+                redisState.returnInstance(jedisCommands);
+            }
         }
 
         return ret;

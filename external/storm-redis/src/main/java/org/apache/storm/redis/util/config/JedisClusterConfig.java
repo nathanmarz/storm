@@ -22,21 +22,27 @@ import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Protocol;
 
 import java.io.Serializable;
+import java.net.InetSocketAddress;
+import java.util.HashSet;
 import java.util.Set;
 
 public class JedisClusterConfig implements Serializable {
-    private Set<HostAndPort> nodes;
+    private Set<InetSocketAddress> nodes;
     private int timeout;
     private int maxRedirections;
 
-    public JedisClusterConfig(Set<HostAndPort> nodes, int timeout, int maxRedirections) {
+    public JedisClusterConfig(Set<InetSocketAddress> nodes, int timeout, int maxRedirections) {
         this.nodes = nodes;
         this.timeout = timeout;
         this.maxRedirections = maxRedirections;
     }
 
     public Set<HostAndPort> getNodes() {
-        return nodes;
+        Set<HostAndPort> ret = new HashSet<HostAndPort>();
+        for (InetSocketAddress node : nodes) {
+            ret.add(new HostAndPort(node.getHostName(), node.getPort()));
+        }
+        return ret;
     }
 
     public int getTimeout() {
@@ -47,12 +53,12 @@ public class JedisClusterConfig implements Serializable {
         return maxRedirections;
     }
 
-    static class Builder {
-        private Set<HostAndPort> nodes;
+    public static class Builder {
+        private Set<InetSocketAddress> nodes;
         private int timeout = Protocol.DEFAULT_TIMEOUT;
         private int maxRedirections = 5;
 
-        public Builder setNodes(Set<HostAndPort> nodes) {
+        public Builder setNodes(Set<InetSocketAddress> nodes) {
             this.nodes = nodes;
             return this;
         }

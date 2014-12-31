@@ -82,7 +82,7 @@ public class PersistentWordCount {
         String host = TEST_REDIS_HOST;
         int port = TEST_REDIS_PORT;
 
-        if (args.length > 2) {
+        if (args.length >= 2) {
             host = args[0];
             port = Integer.parseInt(args[1]);
         }

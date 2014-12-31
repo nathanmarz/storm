@@ -74,14 +74,10 @@ public class LookupWordCount {
                     // skip
                     LOG.warn("Word not found in Redis - word : " + wordName);
                 }
-            } catch (NumberFormatException e) {
-                LOG.error("Counter Type seems not stored to integer", e);
-            } catch (JedisConnectionException e) {
-                throw new RuntimeException("Unfortunately, this test requires redis-server running", e);
-            } catch (JedisException e) {
-                LOG.error("Exception occurred from Jedis/Redis", e);
             } finally {
-                returnInstance(jedisCommands);
+                if (jedisCommands != null) {
+                    returnInstance(jedisCommands);
+                }
                 this.collector.ack(input);
             }
         }
@@ -99,7 +95,7 @@ public class LookupWordCount {
         String host = TEST_REDIS_HOST;
         int port = TEST_REDIS_PORT;
 
-        if (args.length > 2) {
+        if (args.length >= 2) {
             host = args[0];
             port = Integer.parseInt(args[1]);
         }

@@ -41,7 +41,7 @@
     </developers>
 
     <properties>
-        <jedis.version>2.6.1</jedis.version>
+        <jedis.version>2.6.2</jedis.version>
     </properties>
 
     <dependencies>

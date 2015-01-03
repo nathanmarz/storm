@@ -901,6 +901,8 @@
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getTopology" (topology-config id))
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
+  (GET "/api/v1/token" [ & m]
+       (json-response (format "{\"antiForgeryToken\": \"%s\"}" *anti-forgery-token*) (:callback m) :serialize-fn identity))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)

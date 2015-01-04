@@ -21,13 +21,12 @@ import backtype.storm.task.IMetricsContext;
 import backtype.storm.tuple.Values;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.storm.redis.util.config.JedisPoolConfig;
+import org.apache.storm.redis.util.config.JedisClusterConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.JedisCluster;
 import storm.trident.state.JSONNonTransactionalSerializer;
 import storm.trident.state.JSONOpaqueSerializer;
 import storm.trident.state.JSONTransactionalSerializer;
@@ -52,8 +51,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-public class RedisMapState<T> implements IBackingMap<T> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisMapState.class);
+public class RedisClusterMapState<T> implements IBackingMap<T> {
+    private static final Logger logger = LoggerFactory.getLogger(RedisClusterMapState.class);
 
     private static final EnumMap<StateType, Serializer> DEFAULT_SERIALIZERS = Maps.newEnumMap(ImmutableMap.of(
             StateType.NON_TRANSACTIONAL, new JSONNonTransactionalSerializer(),
@@ -82,87 +81,89 @@ public class RedisMapState<T> implements IBackingMap<T> {
     }
 
     /**
-     * OpaqueTransactional for redis.
+     * OpaqueTransactional for redis-cluster.
      * */
-    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig) {
-        return opaque(jedisPoolConfig, new Options());
+    public static StateFactory opaque(JedisClusterConfig jedisClusterConfig) {
+        return opaque(jedisClusterConfig, new Options());
     }
 
-    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, String hkey) {
+    public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, String hkey) {
         Options opts = new Options();
         opts.hkey = hkey;
-        return opaque(jedisPoolConfig, opts);
+        return opaque(jedisClusterConfig, opts);
     }
 
-    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig,  KeyFactory factory) {
+    public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
-        return opaque(jedisPoolConfig, opts);
+        return opaque(jedisClusterConfig, opts);
     }
 
-    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, Options<OpaqueValue> opts) {
-        return new Factory(jedisPoolConfig, StateType.OPAQUE, opts);
+    public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, Options<OpaqueValue> opts) {
+        return new Factory(jedisClusterConfig, StateType.OPAQUE, opts);
     }
 
     /**
-     * Transactional for redis.
+     * Transactional for redis-cluster.
      * */
-    public static StateFactory transactional(JedisPoolConfig jedisPoolConfig) {
-        return transactional(jedisPoolConfig, new Options());
+    public static StateFactory transactional(JedisClusterConfig jedisClusterConfig) {
+        return transactional(jedisClusterConfig, new Options());
     }
 
-    public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, String hkey) {
+    public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, String hkey) {
         Options opts = new Options();
         opts.hkey = hkey;
-        return transactional(jedisPoolConfig, opts);
+        return transactional(jedisClusterConfig, opts);
     }
 
-    public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, KeyFactory factory) {
+    public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
-        return transactional(jedisPoolConfig, opts);
+        return transactional(jedisClusterConfig, opts);
     }
 
-    public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, Options<TransactionalValue> opts) {
-        return new Factory(jedisPoolConfig, StateType.TRANSACTIONAL, opts);
+    public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, Options<TransactionalValue> opts) {
+        return new Factory(jedisClusterConfig, StateType.TRANSACTIONAL, opts);
     }
 
     /**
-     * NonTransactional for redis.
+     * NonTransactional for redis-cluster.
      * */
-    public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig) {
-        return nonTransactional(jedisPoolConfig, new Options());
+    public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig) {
+        return nonTransactional(jedisClusterConfig, new Options());
     }
 
-    public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, String hkey) {
+    public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, String hkey) {
         Options opts = new Options();
         opts.hkey = hkey;
-        return nonTransactional(jedisPoolConfig, opts);
+        return nonTransactional(jedisClusterConfig, opts);
     }
 
-    public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, KeyFactory factory) {
+    public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
-        return nonTransactional(jedisPoolConfig, opts);
+        return nonTransactional(jedisClusterConfig, opts);
     }
 
-    public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, Options<Object> opts) {
-        return new Factory(jedisPoolConfig, StateType.NON_TRANSACTIONAL, opts);
+    public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, Options<Object> opts) {
+        return new Factory(jedisClusterConfig, StateType.NON_TRANSACTIONAL, opts);
     }
+
+
 
     protected static class Factory implements StateFactory {
         // TODO : serialize redis.clients.jedis.JedisPoolConfig
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
-        JedisPoolConfig jedisPoolConfig;
+        JedisClusterConfig jedisClusterConfig;
 
         StateType type;
         Serializer serializer;
         KeyFactory keyFactory;
         Options options;
 
-        public Factory(JedisPoolConfig jedisPoolConfig, StateType type, Options options) {
-            this.jedisPoolConfig = jedisPoolConfig;
+        public Factory(JedisClusterConfig jedisClusterConfig, StateType type, Options options) {
+            this.jedisClusterConfig = jedisClusterConfig;
             this.type = type;
             this.options = options;
 
@@ -180,13 +181,12 @@ public class RedisMapState<T> implements IBackingMap<T> {
         }
 
         public State makeState(@SuppressWarnings("rawtypes") Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            JedisPool jedisPool = new JedisPool(DEFAULT_POOL_CONFIG,
-                                                    jedisPoolConfig.getHost(),
-                                                    jedisPoolConfig.getPort(),
-                                                    jedisPoolConfig.getTimeout(),
-                                                    jedisPoolConfig.getPassword(),
-                                                    jedisPoolConfig.getDatabase());
-            RedisMapState state = new RedisMapState(jedisPool, options, serializer, keyFactory);
+            JedisCluster jedisCluster = new JedisCluster(jedisClusterConfig.getNodes(),
+                                                            jedisClusterConfig.getTimeout(),
+                                                            jedisClusterConfig.getMaxRedirections(),
+                                                            DEFAULT_POOL_CONFIG);
+
+            RedisClusterMapState state = new RedisClusterMapState(jedisCluster, options, serializer, keyFactory);
             CachedMap c = new CachedMap(state, options.localCacheSize);
 
             MapState ms;
@@ -207,14 +207,14 @@ public class RedisMapState<T> implements IBackingMap<T> {
         }
     }
 
-    private JedisPool jedisPool;
+    private JedisCluster jedisCluster;
     private Options options;
     private Serializer serializer;
     private KeyFactory keyFactory;
 
-    public RedisMapState(JedisPool jedisPool, Options options,
-                                            Serializer<T> serializer, KeyFactory keyFactory) {
-        this.jedisPool = jedisPool;
+    public RedisClusterMapState(JedisCluster jedisCluster, Options options,
+                                Serializer<T> serializer, KeyFactory keyFactory) {
+        this.jedisCluster = jedisCluster;
         this.options = options;
         this.serializer = serializer;
         this.keyFactory = keyFactory;
@@ -226,28 +226,18 @@ public class RedisMapState<T> implements IBackingMap<T> {
         }
         if (Strings.isNullOrEmpty(this.options.hkey)) {
             String[] stringKeys = buildKeys(keys);
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
-                List<String> values = jedis.mget(stringKeys);
-                return deserializeValues(keys, values);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
-                }
+            List<String> values = Lists.newArrayList();
+
+            for (String stringKey : stringKeys) {
+                String value = jedisCluster.get(stringKey);
+                values.add(value);
             }
+
+            return deserializeValues(keys, values);
         } else {
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
-                Map<String, String> keyValue = jedis.hgetAll(this.options.hkey);
-                List<String> values = buildValuesFromMap(keys, keyValue);
-                return deserializeValues(keys, values);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
-                }
-            }
+            Map<String, String> keyValue = jedisCluster.hgetAll(this.options.hkey);
+            List<String> values = buildValuesFromMap(keys, keyValue);
+            return deserializeValues(keys, values);
         }
     }
 
@@ -287,41 +277,17 @@ public class RedisMapState<T> implements IBackingMap<T> {
         }
 
         if (Strings.isNullOrEmpty(this.options.hkey)) {
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
-                String[] keyValue = buildKeyValuesList(keys, vals);
-                jedis.mset(keyValue);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
-                }
+            for (int i = 0; i < keys.size(); i++) {
+                String val = new String(serializer.serialize(vals.get(i)));
+                String redisKey = keyFactory.build(keys.get(i));
+                jedisCluster.set(redisKey, val);
             }
         } else {
-            Jedis jedis = jedisPool.getResource();
-            try {
-                Pipeline pl = jedis.pipelined();
-                pl.multi();
-
-                for (int i = 0; i < keys.size(); i++) {
-                    String val = new String(serializer.serialize(vals.get(i)));
-                    pl.hset(this.options.hkey, keyFactory.build(keys.get(i)), val);
-                }
-
-                pl.exec();
-                pl.sync();
-            } finally {
-                jedisPool.returnResource(jedis);
+            for (int i = 0; i < keys.size(); i++) {
+                String val = new String(serializer.serialize(vals.get(i)));
+                String redisKey = keyFactory.build(keys.get(i));
+                jedisCluster.hset(this.options.hkey, redisKey, val);
             }
         }
-    }
-
-    private String[] buildKeyValuesList(List<List<Object>> keys, List<T> vals) {
-        String[] keyValues = new String[keys.size() * 2];
-        for (int i = 0; i < keys.size(); i++) {
-            keyValues[i * 2] = keyFactory.build(keys.get(i));
-            keyValues[i * 2 + 1] = new String(serializer.serialize(vals.get(i)));
-        }
-        return keyValues;
     }
 }

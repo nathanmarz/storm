@@ -24,20 +24,23 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
-import org.apache.storm.redis.trident.state.RedisClusterState;
-import org.apache.storm.redis.trident.state.RedisClusterStateQuerier;
+import org.apache.storm.redis.trident.state.RedisClusterMapState;
 import org.apache.storm.redis.trident.state.RedisClusterStateUpdater;
+import org.apache.storm.redis.trident.state.RedisStateQuerier;
 import org.apache.storm.redis.util.config.JedisClusterConfig;
 import storm.trident.Stream;
 import storm.trident.TridentState;
 import storm.trident.TridentTopology;
+import storm.trident.operation.builtin.MapGet;
+import storm.trident.operation.builtin.Sum;
+import storm.trident.state.StateFactory;
 import storm.trident.testing.FixedBatchSpout;
 
 import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 
-public class WordCountTridentRedisCluster {
+public class WordCountTridentRedisClusterMap {
     public static StormTopology buildTopology(String redisHostPort){
         Fields fields = new Fields("word", "count");
         FixedBatchSpout spout = new FixedBatchSpout(fields, 4,
@@ -56,21 +59,16 @@ public class WordCountTridentRedisCluster {
         JedisClusterConfig clusterConfig = new JedisClusterConfig.Builder().setNodes(nodes)
                                         .build();
         TridentTupleMapper tupleMapper = new WordCountTupleMapper();
-        RedisClusterState.Factory factory = new RedisClusterState.Factory(clusterConfig);
+        StateFactory factory = RedisClusterMapState.transactional(clusterConfig);
 
         TridentTopology topology = new TridentTopology();
         Stream stream = topology.newStream("spout1", spout);
 
-        stream.partitionPersist(factory,
-                                fields,
-                                new RedisClusterStateUpdater("test_", tupleMapper, 86400000),
-                                new Fields());
+        TridentState state = stream.groupBy(new Fields("word"))
+                .persistentAggregate(factory, new Fields("count"), new Sum(), new Fields("sum"));
 
-        TridentState state = topology.newStaticState(factory);
-        stream = stream.stateQuery(state, new Fields("word"),
-                                new RedisClusterStateQuerier("test_", tupleMapper),
-                                new Fields("columnName","columnValue"));
-        stream.each(new Fields("word","columnValue"), new PrintFunction(), new Fields());
+        stream.stateQuery(state, new Fields("word"), new MapGet(), new Fields("sum"))
+                .each(new Fields("word", "sum"), new PrintFunction(), new Fields());
         return topology.build();
     }
 

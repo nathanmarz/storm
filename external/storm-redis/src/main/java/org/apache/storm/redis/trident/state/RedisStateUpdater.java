@@ -20,7 +20,7 @@ package org.apache.storm.redis.trident.state;
 import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.Jedis;
 import storm.trident.operation.TridentCollector;
 import storm.trident.state.BaseStateUpdater;
 import storm.trident.tuple.TridentTuple;
@@ -51,9 +51,9 @@ public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
                             TridentCollector collector) {
         long expireAt = System.currentTimeMillis() + expireIntervalMs;
 
-        JedisCommands jedisCommands = null;
+        Jedis jedis = null;
         try {
-            jedisCommands = redisState.getInstance();
+            jedis = redisState.getJedis();
             for (TridentTuple input : inputs) {
                 String key = this.tupleMapper.getKeyFromTridentTuple(input);
                 String redisKey = key;
@@ -64,12 +64,12 @@ public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
 
                 logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
 
-                jedisCommands.set(redisKey, value);
-                jedisCommands.expireAt(redisKey, expireAt);
+                jedis.set(redisKey, value);
+                jedis.expireAt(redisKey, expireAt);
             }
         } finally {
-            if (jedisCommands != null) {
-                redisState.returnInstance(jedisCommands);
+            if (jedis != null) {
+                redisState.returnJedis(jedis);
             }
         }
     }

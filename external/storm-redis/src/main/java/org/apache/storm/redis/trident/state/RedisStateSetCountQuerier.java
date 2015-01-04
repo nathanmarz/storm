@@ -21,7 +21,7 @@ import backtype.storm.tuple.Values;
 import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.Jedis;
 import storm.trident.operation.TridentCollector;
 import storm.trident.state.BaseQueryFunction;
 import storm.trident.tuple.TridentTuple;
@@ -44,22 +44,22 @@ public class RedisStateSetCountQuerier extends BaseQueryFunction<RedisState, Lon
     public List<Long> batchRetrieve(RedisState redisState, List<TridentTuple> inputs) {
         List<Long> ret = new ArrayList<Long>();
 
-        JedisCommands jedisCommands = null;
+        Jedis jedis = null;
         try {
-            jedisCommands = redisState.getInstance();
+            jedis = redisState.getJedis();
             for (TridentTuple input : inputs) {
                 String key = this.tupleMapper.getKeyFromTridentTuple(input);
                 if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
                     key = redisKeyPrefix + key;
                 }
-                long count = jedisCommands.scard(key);
+                long count = jedis.scard(key);
                 ret.add(count);
 
                 logger.debug("redis get key[" + key + "] count[" + count + "]");
             }
         } finally {
-            if (jedisCommands != null) {
-                redisState.returnInstance(jedisCommands);
+            if (jedis != null) {
+                redisState.returnJedis(jedis);
             }
         }
 

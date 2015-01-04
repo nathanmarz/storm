@@ -18,18 +18,17 @@
 package org.apache.storm.redis.trident.state;
 
 import backtype.storm.task.IMetricsContext;
-import org.apache.storm.redis.util.config.JedisPoolConfig;
+import org.apache.storm.redis.util.config.JedisClusterConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisCluster;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 
 import java.util.Map;
 
-public class RedisState implements State {
-    private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
+public class RedisClusterState implements State {
+    private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
 
     @Override
     public void beginCommit(Long aLong) {
@@ -43,42 +42,40 @@ public class RedisState implements State {
         // TODO : serialize redis.clients.jedis.JedisPoolConfig
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
-        private JedisPoolConfig jedisPoolConfig;
+        private JedisClusterConfig jedisClusterConfig;
 
-        public Factory(JedisPoolConfig config) {
-            this.jedisPoolConfig = config;
+        public Factory(JedisClusterConfig config) {
+            this.jedisClusterConfig = config;
         }
 
         public State makeState(@SuppressWarnings("rawtypes") Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            JedisPool jedisPool = new JedisPool(DEFAULT_POOL_CONFIG,
-                                                jedisPoolConfig.getHost(),
-                                                jedisPoolConfig.getPort(),
-                                                jedisPoolConfig.getTimeout(),
-                                                jedisPoolConfig.getPassword(),
-                                                jedisPoolConfig.getDatabase());
+            JedisCluster jedisCluster = new JedisCluster(jedisClusterConfig.getNodes(),
+                                                    jedisClusterConfig.getTimeout(),
+                                                    jedisClusterConfig.getMaxRedirections(),
+                                                    DEFAULT_POOL_CONFIG);
 
-            return new RedisState(jedisPool);
+            return new RedisClusterState(jedisCluster);
         }
     }
 
-    private JedisPool jedisPool;
+    private JedisCluster jedisCluster;
 
-    public RedisState(JedisPool jedisPool) {
-        this.jedisPool = jedisPool;
+    public RedisClusterState(JedisCluster jedisCluster) {
+        this.jedisCluster = jedisCluster;
     }
 
     /**
-     * The state updater and querier can get a Jedis instance
+     * The state updater and querier can get a JedisCluster instance
      * */
-    public Jedis getJedis() {
-        return this.jedisPool.getResource();
+    public JedisCluster getJedisCluster() {
+        return this.jedisCluster;
     }
 
     /**
-     * The state updater and querier return the Jedis instance
+     * The state updater and querier return the JedisCluster instance
      * */
-    public void returnJedis(Jedis jedis) {
-        this.jedisPool.returnResource(jedis);
+    public void returnJedisCluster(JedisCluster jedisCluster) {
+        //do nothing
     }
 
 }

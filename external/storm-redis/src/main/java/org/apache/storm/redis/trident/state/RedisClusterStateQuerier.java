@@ -29,9 +29,6 @@ import storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 
-/**
- * Created by judasheng on 14-12-12.
- */
 public class RedisClusterStateQuerier extends BaseQueryFunction<RedisClusterState, String> {
     private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
 

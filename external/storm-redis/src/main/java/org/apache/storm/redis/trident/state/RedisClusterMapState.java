@@ -48,6 +48,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -283,11 +284,12 @@ public class RedisClusterMapState<T> implements IBackingMap<T> {
                 jedisCluster.set(redisKey, val);
             }
         } else {
+            Map<String, String> keyValues = new HashMap<String, String>();
             for (int i = 0; i < keys.size(); i++) {
                 String val = new String(serializer.serialize(vals.get(i)));
-                String redisKey = keyFactory.build(keys.get(i));
-                jedisCluster.hset(this.options.hkey, redisKey, val);
+                keyValues.put(keyFactory.build(keys.get(i)), val);
             }
+            jedisCluster.hmset(this.options.hkey, keyValues);
         }
     }
 }

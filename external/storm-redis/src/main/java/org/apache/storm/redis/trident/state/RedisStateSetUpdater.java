@@ -31,26 +31,23 @@ import java.util.List;
 public class RedisStateSetUpdater extends BaseStateUpdater<RedisState> {
     private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
 
-    private static final long DEFAULT_EXPIRE_INTERVAL_MS = 86400000;
-
     private final String redisKeyPrefix;
     private final TridentTupleMapper tupleMapper;
-    private final long expireIntervalMs;
+    private final int expireIntervalSec;
 
-    public RedisStateSetUpdater(String redisKeyPrefix, TridentTupleMapper tupleMapper, long expireIntervalMs) {
+    public RedisStateSetUpdater(String redisKeyPrefix, TridentTupleMapper tupleMapper, int expireIntervalSec) {
         this.redisKeyPrefix = redisKeyPrefix;
         this.tupleMapper = tupleMapper;
-        if (expireIntervalMs > 0) {
-            this.expireIntervalMs = expireIntervalMs;
+        if (expireIntervalSec > 0) {
+            this.expireIntervalSec = expireIntervalSec;
         } else {
-            this.expireIntervalMs = DEFAULT_EXPIRE_INTERVAL_MS;
+            this.expireIntervalSec = 0;
         }
     }
 
     @Override
     public void updateState(RedisState redisState, List<TridentTuple> inputs,
                             TridentCollector collector) {
-        long expireAt = System.currentTimeMillis() + expireIntervalMs;
 
         Jedis jedis = null;
         try {
@@ -65,8 +62,11 @@ public class RedisStateSetUpdater extends BaseStateUpdater<RedisState> {
 
                 logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
 
-                jedis.sadd(redisKey, value);
-                jedis.expireAt(redisKey, expireAt);
+                if (this.expireIntervalSec > 0) {
+                    jedis.setex(redisKey, expireIntervalSec, value);
+                } else {
+                    jedis.set(redisKey, value);
+                }
                 Long count = jedis.scard(redisKey);
 
                 collector.emit(new Values(key, count));

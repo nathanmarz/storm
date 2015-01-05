@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Pipeline;
 import storm.trident.state.JSONNonTransactionalSerializer;
 import storm.trident.state.JSONOpaqueSerializer;
 import storm.trident.state.JSONTransactionalSerializer;
@@ -49,6 +48,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -300,16 +300,13 @@ public class RedisMapState<T> implements IBackingMap<T> {
         } else {
             Jedis jedis = jedisPool.getResource();
             try {
-                Pipeline pl = jedis.pipelined();
-                pl.multi();
-
+                Map<String, String> keyValues = new HashMap<String, String>();
                 for (int i = 0; i < keys.size(); i++) {
                     String val = new String(serializer.serialize(vals.get(i)));
-                    pl.hset(this.options.hkey, keyFactory.build(keys.get(i)), val);
-                }
+                    keyValues.put(keyFactory.build(keys.get(i)), val);
+                }               
+                jedis.hmset(this.options.hkey, keyValues);
 
-                pl.exec();
-                pl.sync();
             } finally {
                 jedisPool.returnResource(jedis);
             }

@@ -30,26 +30,23 @@ import java.util.List;
 public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState> {
     private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
 
-    private static final long DEFAULT_EXPIRE_INTERVAL_MS = 86400000;
-
     private final String redisKeyPrefix;
     private final TridentTupleMapper tupleMapper;
-    private final long expireIntervalMs;
+    private final int expireIntervalSec;
 
-    public RedisClusterStateUpdater(String redisKeyPrefix, TridentTupleMapper tupleMapper, long expireIntervalMs) {
+    public RedisClusterStateUpdater(String redisKeyPrefix, TridentTupleMapper tupleMapper, int expireIntervalSec) {
         this.redisKeyPrefix = redisKeyPrefix;
         this.tupleMapper = tupleMapper;
-        if (expireIntervalMs > 0) {
-            this.expireIntervalMs = expireIntervalMs;
+        if (expireIntervalSec > 0) {
+            this.expireIntervalSec = expireIntervalSec;
         } else {
-            this.expireIntervalMs = DEFAULT_EXPIRE_INTERVAL_MS;
+            this.expireIntervalSec = 0;
         }
     }
 
     @Override
     public void updateState(RedisClusterState redisClusterState, List<TridentTuple> inputs,
                             TridentCollector collector) {
-        long expireAt = System.currentTimeMillis() + expireIntervalMs;
 
         JedisCluster jedisCluster = null;
         try {
@@ -64,8 +61,11 @@ public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState
 
                 logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
 
-                jedisCluster.set(redisKey, value);
-                jedisCluster.expireAt(redisKey, expireAt);
+                if (this.expireIntervalSec > 0) {
+                    jedisCluster.setex(redisKey, expireIntervalSec, value);
+                } else {
+                    jedisCluster.set(redisKey, value);
+                }
             }
         } finally {
             if (jedisCluster != null) {

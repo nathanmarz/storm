@@ -18,6 +18,7 @@
  * STORM-613: Fix wrong getOffset return value
  * STORM-612: Update the contact address in configure.ac
  * STORM-611: Remove extra "break"s
+ * STORM-610: Check the return value of fts_close()
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

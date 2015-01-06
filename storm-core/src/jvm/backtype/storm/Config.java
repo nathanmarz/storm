@@ -497,6 +497,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of groups allowed to view logs via the Log Viewer
+     */
+    public static final String LOGS_GROUPS = "logs.groups";
+    public static final Object LOGS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Appender name used by log viewer to determine log directory.
      */
     public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
@@ -525,12 +531,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_HEADER_BUFFER_BYTES = "ui.header.buffer.bytes";
     public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
-
-    /**
-     * A list of users allowed to view topologies via the UI
-     */
-    public static final String UI_USERS = "ui.users";
-    public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.

@@ -504,7 +504,7 @@ int setup_stormdist_dir(const char* local_dir) {
       case FTS_NSOK:      // No stat information requested
       case FTS_ERR:       // Error return
       default:
-        fprintf(LOGFILE, "Unexpected...\n"); break;
+        fprintf(LOGFILE, "Unexpected...\n");
         exit_code = -1;
         break;
       }
@@ -674,7 +674,6 @@ static int delete_path(const char *full_path,
         fprintf(LOGFILE, "Error traversing directory %s - %s\n", 
                 entry->fts_path, strerror(entry->fts_errno));
         exit_code = -1;
-        break;
         break;
       default:
         exit_code = -1;

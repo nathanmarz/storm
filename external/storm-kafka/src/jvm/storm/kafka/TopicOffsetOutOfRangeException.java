@@ -17,9 +17,9 @@
  */
 package storm.kafka;
 
-public class UpdateOffsetException extends FailedFetchException {
+public class TopicOffsetOutOfRangeException extends RuntimeException {
 
-    public UpdateOffsetException(String message) {
+    public TopicOffsetOutOfRangeException(String message) {
         super(message);
     }
 }

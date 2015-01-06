@@ -17,6 +17,7 @@
  */
 package org.apache.storm.hbase.trident.state;
 
+import backtype.storm.Config;
 import backtype.storm.topology.FailedException;
 import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
@@ -35,6 +36,7 @@ import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -109,7 +111,12 @@ public class HBaseState implements State {
             }
         }
 
-        this.hBaseClient = new HBaseClient(conf, hbConfig, options.tableName);
+        //heck for backward compatibility, we need to pass TOPOLOGY_AUTO_CREDENTIALS to hbase conf
+        //the conf instance is instance of persistentMap so making a copy.
+        Map<String, Object> hbaseConfMap = new HashMap<String, Object>(conf);
+        hbaseConfMap.put(Config.TOPOLOGY_AUTO_CREDENTIALS, map.get(Config.TOPOLOGY_AUTO_CREDENTIALS));
+
+        this.hBaseClient = new HBaseClient(hbaseConfMap, hbConfig, options.tableName);
     }
 
     @Override

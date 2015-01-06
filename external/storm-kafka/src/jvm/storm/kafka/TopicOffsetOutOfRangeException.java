@@ -17,6 +17,9 @@
  */
 package storm.kafka;
 
-public class UpdateOffsetException extends RuntimeException {
+public class TopicOffsetOutOfRangeException extends RuntimeException {
 
+    public TopicOffsetOutOfRangeException(String message) {
+        super(message);
+    }
 }

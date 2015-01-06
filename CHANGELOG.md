@@ -20,6 +20,7 @@
  * STORM-611: Remove extra "break"s
  * STORM-610: Check the return value of fts_close()
  * STORM-442: multilang ShellBolt/ShellSpout die() can be hang when Exception happened
+ * STORM-599: Use use nimbus's cached heartbeats rather than fetching again from ZK
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

@@ -25,7 +25,8 @@ The following code creates a `SimpleJdbcMapper` instance that:
 
 1. Will allow the mapper to transform a storm tuple to a list of columns mapping to a row in table test.user_details.
 2. Will use the provided HikariCP configuration to establish a connection pool with specified Database configuration and
-automatically figure out the column names of the table that you intend to write to.
+automatically figure out the column names of the table that you intend to write to. 
+Please see https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby to lear more about hikari configuration properties.
 
 ```java
 Map hikariConfigMap = Maps.newHashMap();

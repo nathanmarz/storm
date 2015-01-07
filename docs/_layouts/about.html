@@ -1,0 +1,40 @@
+---
+layout: default
+title: About Storm
+items:
+    - 
+      - "/about/integrates.html"
+      - "Integrates"
+    - 
+      - "/about/simple-api.html"
+      - "Simple API"
+    - 
+      - "/about/scalable.html"
+      - "Scalable"
+    - 
+      - "/about/fault-tolerant.html"
+      - "Fault tolerant"
+    - 
+      - "/about/guarantees-data-processing.html"
+      - "Guarantees data processing"
+    - 
+      - "/about/multi-language.html"
+      - "Use with any language"
+    - 
+      - "/about/deployment.html"
+      - "Easy to deploy and operate"
+    - 
+      - "/about/free-and-open-source.html"
+      - "Free and open source"
+---
+
+<div id="sidebar">
+  <ul>
+  {% for post in page.items %}
+<li><a class="{% if page.url == post[0] then %}current{% else %}{% endif %}" href="{{ post[0] }}">{{ post[1] }}</a></li>
+  {% endfor %}
+  </ul>
+</div>
+<div id="aboutcontent">
+{{ content }}
+</div>

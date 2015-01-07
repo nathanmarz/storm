@@ -27,8 +27,13 @@ public class ZookeeperAuthInfo {
     public byte[] payload = null;
     
     public ZookeeperAuthInfo(Map conf) {
-        String scheme = (String) conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME);
-        String payload = (String) conf.get(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD);
+        String scheme = (String) conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME);
+        String payload = (String) conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
+
+        if (scheme == null || payload == null) {
+            scheme = (String) conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME);
+            payload = (String) conf.get(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD);
+        }
         if(scheme!=null) {
             this.scheme = scheme;
             if(payload != null) {

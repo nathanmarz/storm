@@ -74,8 +74,7 @@ if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
 STORM_RELEASE_DIR = os.path.join(STORM_DIR, "RELEASE")
 STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
 STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
-STORM_LOGBACK_DIR = os.path.join(STORM_DIR, "logback")
-STORM_LOGBACK_FILE_PATH = os.path.join(STORM_LOGBACK_DIR, "cluster.xml")
+STORM_LOGBACK_CONF_DIR = os.path.join(STORM_DIR, "logback")
 
 init_storm_env()
 
@@ -317,7 +316,7 @@ def get_logback_conf_dir():
     cppaths = [CLUSTER_CONF_DIR]
     storm_logback_conf_dir = confvalue("storm.logback.conf.dir", cppaths)
     if(storm_logback_conf_dir == None or storm_logback_conf_dir == "nil"):
-        storm_logback_conf_dir = STORM_LOGBACK_DIR
+        storm_logback_conf_dir = STORM_LOGBACK_CONF_DIR
     return storm_logback_conf_dir
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):

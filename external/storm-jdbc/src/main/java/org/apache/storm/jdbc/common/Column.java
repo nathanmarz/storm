@@ -18,13 +18,14 @@
 package org.apache.storm.jdbc.common;
 
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 
-public class Column<T> {
+public class Column<T> implements Serializable {
 
     private String columnName;
     private T val;
@@ -33,6 +34,11 @@ public class Column<T> {
     public Column(String columnName, T val, int sqlType) {
         this.columnName = columnName;
         this.val = val;
+        this.sqlType = sqlType;
+    }
+
+    public Column(String columnName, int sqlType) {
+        this.columnName = columnName;
         this.sqlType = sqlType;
     }
 

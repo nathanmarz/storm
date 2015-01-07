@@ -31,19 +31,23 @@ import java.util.Map;
 
 public class SimpleJdbcMapper implements JdbcMapper {
 
-    private Map<String, Integer> columnNameToType;
+    private List<Column> schemaColumns;
 
     public SimpleJdbcMapper(String tableName, Map map) {
         JDBCClient client = new JDBCClient(map);
-        this.columnNameToType = client.getColumnSchema(tableName);
+        this.schemaColumns = client.getColumnSchema(tableName);
+    }
+
+    public SimpleJdbcMapper(List<Column> schemaColumns) {
+        this.schemaColumns = schemaColumns;
     }
 
     @Override
     public List<Column> getColumns(ITuple tuple) {
         List<Column> columns = new ArrayList<Column>();
-        for(Map.Entry<String, Integer> entry: columnNameToType.entrySet()) {
-            String columnName = entry.getKey();
-            Integer columnSqlType = entry.getValue();
+        for(Column column : schemaColumns) {
+            String columnName = column.getColumnName();
+            Integer columnSqlType = column.getSqlType();
 
             if(Util.getJavaType(columnSqlType).equals(String.class)) {
                 String value = tuple.getStringByField(columnName);

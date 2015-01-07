@@ -34,15 +34,11 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
     protected OutputCollector collector;
 
     protected transient JDBCClient jdbcClient;
-    protected String tableName;
-    protected JdbcMapper mapper;
     protected String configKey;
 
-    public AbstractJdbcBolt(String tableName, JdbcMapper mapper) {
-        Validate.notEmpty(tableName, "Table name can not be blank or null");
-        Validate.notNull(mapper, "mapper can not be null");
-        this.tableName = tableName;
-        this.mapper = mapper;
+    public AbstractJdbcBolt(String configKey) {
+        Validate.notEmpty(configKey, "configKey can not be null");
+        this.configKey = configKey;
     }
 
     @Override

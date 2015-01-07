@@ -17,60 +17,45 @@
  */
 package org.apache.storm.jdbc.topology;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
-import backtype.storm.StormSubmitter;
+import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
-import com.google.common.collect.Maps;
-import org.apache.storm.jdbc.mapper.JdbcMapper;
-import org.apache.storm.jdbc.mapper.SimpleJdbcMapper;
+import com.google.common.collect.Lists;
+import org.apache.storm.jdbc.common.Column;
+import org.apache.storm.jdbc.mapper.SimpleJdbcLookupMapper;
 import org.apache.storm.jdbc.spout.UserSpout;
+import org.apache.storm.jdbc.trident.state.JdbcQuery;
 import org.apache.storm.jdbc.trident.state.JdbcState;
 import org.apache.storm.jdbc.trident.state.JdbcStateFactory;
 import org.apache.storm.jdbc.trident.state.JdbcUpdater;
 import storm.trident.Stream;
+import storm.trident.TridentState;
 import storm.trident.TridentTopology;
 
-import java.util.Map;
+import java.sql.Types;
 
-public class UserPersistanceTridentTopology {
+public class UserPersistanceTridentTopology extends AbstractUserTopology {
 
     public static void main(String[] args) throws Exception {
-        Map map = Maps.newHashMap();
-        map.put("dataSourceClassName", args[0]);//com.mysql.jdbc.jdbc2.optional.MysqlDataSource
-        map.put("dataSource.url", args[1]);//jdbc:mysql://localhost/test
-        map.put("dataSource.user",args[2]);//root
-        map.put("dataSource.password",args[3]);//password
-        String tableName = args[4];//database table name
-        JdbcMapper jdbcMapper = new SimpleJdbcMapper(tableName, map);
-
-        Config config = new Config();
-
-        config.put("jdbc.conf", map);
-
-        TridentTopology topology = new TridentTopology();
-        Stream stream = topology.newStream("userSpout", new UserSpout());
-
-        JdbcState.Options options = new JdbcState.Options()
-                .withConfigKey("jdbc.conf")
-                .withMapper(jdbcMapper)
-                .withTableName("user");
-
-        JdbcStateFactory jdbcStateFactory = new JdbcStateFactory(options);
-        stream.partitionPersist(jdbcStateFactory, new Fields("id","user_name","create_date"),  new JdbcUpdater(), new Fields());
-        if (args.length == 5) {
-            LocalCluster cluster = new LocalCluster();
-            cluster.submitTopology("test", config, topology.build());
-            Thread.sleep(30000);
-            cluster.killTopology("test");
-            cluster.shutdown();
-            System.exit(0);
-        } else if (args.length == 6) {
-            StormSubmitter.submitTopology(args[6], config, topology.build());
-        } else {
-            System.out.println("Usage: UserPersistanceTopology <dataSourceClassName> <dataSource.url> " +
-                    "<user> <password> <tableName> [topology name]");
-        }
+        new UserPersistanceTridentTopology().execute(args);
     }
 
+    @Override
+    public StormTopology getTopology() {
+        TridentTopology topology = new TridentTopology();
+
+        JdbcState.Options options = new JdbcState.Options()
+                .withConfigKey(JDBC_CONF)
+                .withMapper(this.jdbcMapper)
+                .withJdbcLookupMapper(new SimpleJdbcLookupMapper(new Fields("dept_name"), Lists.newArrayList(new Column("user_id", Types.INTEGER))))
+                .withTableName(TABLE_NAME)
+                .withSelectQuery(SELECT_QUERY);
+
+        JdbcStateFactory jdbcStateFactory = new JdbcStateFactory(options);
+
+        Stream stream = topology.newStream("userSpout", new UserSpout());
+        TridentState state = topology.newStaticState(jdbcStateFactory);
+        stream = stream.stateQuery(state, new Fields("user_id","user_name","create_date"), new JdbcQuery(), new Fields("dept_name"));
+        stream.partitionPersist(jdbcStateFactory, new Fields("user_id","user_name","dept_name","create_date"),  new JdbcUpdater(), new Fields());
+        return topology.build();
+    }
 }

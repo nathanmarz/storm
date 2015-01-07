@@ -51,21 +51,27 @@ import java.util.List;
 public class JdbcBolt extends AbstractJdbcBolt {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcBolt.class);
 
-    boolean writeToWAL = true;
+    private String tableName;
+    private JdbcMapper jdbcMapper;
 
-    public JdbcBolt(String tableName, JdbcMapper mapper) {
-        super(tableName, mapper);
+    public JdbcBolt(String configKey) {
+        super(configKey);
     }
 
-    public JdbcBolt withConfigKey(String configKey) {
-        this.configKey = configKey;
+    public JdbcBolt withTableName(String tableName) {
+        this.tableName = tableName;
+        return this;
+    }
+
+    public JdbcBolt withJdbcMapper(JdbcMapper jdbcMapper) {
+        this.jdbcMapper = jdbcMapper;
         return this;
     }
 
     @Override
     public void execute(Tuple tuple) {
         try {
-            List<Column> columns = mapper.getColumns(tuple);
+            List<Column> columns = jdbcMapper.getColumns(tuple);
             List<List<Column>> columnLists = new ArrayList<List<Column>>();
             columnLists.add(columns);
             this.jdbcClient.insert(this.tableName, columnLists);

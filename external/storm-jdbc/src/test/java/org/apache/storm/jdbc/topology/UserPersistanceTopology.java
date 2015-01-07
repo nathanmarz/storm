@@ -17,62 +17,36 @@
  */
 package org.apache.storm.jdbc.topology;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
-import backtype.storm.StormSubmitter;
+import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.TopologyBuilder;
-import com.google.common.collect.Maps;
 import org.apache.storm.jdbc.bolt.JdbcBolt;
-import org.apache.storm.jdbc.mapper.JdbcMapper;
-import org.apache.storm.jdbc.mapper.SimpleJdbcMapper;
-import org.apache.storm.jdbc.spout.UserSpout;
-
-import java.util.Map;
+import org.apache.storm.jdbc.bolt.JdbcLookupBolt;
 
 
-public class UserPersistanceTopology {
+public class UserPersistanceTopology extends AbstractUserTopology {
     private static final String USER_SPOUT = "USER_SPOUT";
-    private static final String USER_BOLT = "USER_BOLT";
+    private static final String LOOKUP_BOLT = "LOOKUP_BOLT";
+    private static final String PERSISTANCE_BOLT = "PERSISTANCE_BOLT";
 
     public static void main(String[] args) throws Exception {
-        if(args.length < 5) {
-            System.out.println("Usage: UserPersistanceTopology <dataSourceClassName> <dataSource.url> " +
-                    "<user> <password> <tableName> [topology name]");
-        }
-        Map map = Maps.newHashMap();
-        map.put("dataSourceClassName",args[0]);//com.mysql.jdbc.jdbc2.optional.MysqlDataSource
-        map.put("dataSource.url", args[1]);//jdbc:mysql://localhost/test
-        map.put("dataSource.user",args[2]);//root
-        map.put("dataSource.password",args[3]);//password
-        String tableName = args[4];//database table name
-        JdbcMapper jdbcMapper = new SimpleJdbcMapper(tableName, map);
+        new UserPersistanceTopology().execute(args);
+    }
 
-        Config config = new Config();
-
-        config.put("jdbc.conf", map);
-
-        UserSpout spout = new UserSpout();
-        JdbcBolt bolt = new JdbcBolt(tableName, jdbcMapper)
-                .withConfigKey("jdbc.conf");
+    @Override
+    public StormTopology getTopology() {
+        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt(JDBC_CONF)
+                .withJdbcLookupMapper(this.jdbcLookupMapper)
+                .withSelectSql(SELECT_QUERY);
+        JdbcBolt userPersistanceBolt = new JdbcBolt(JDBC_CONF)
+                .withTableName(TABLE_NAME)
+                .withJdbcMapper(this.jdbcMapper);
 
         // userSpout ==> jdbcBolt
         TopologyBuilder builder = new TopologyBuilder();
 
-        builder.setSpout(USER_SPOUT, spout, 1);
-        builder.setBolt(USER_BOLT, bolt, 1).shuffleGrouping(USER_SPOUT);
-
-        if (args.length == 5) {
-            LocalCluster cluster = new LocalCluster();
-            cluster.submitTopology("test", config, builder.createTopology());
-            Thread.sleep(30000);
-            cluster.killTopology("test");
-            cluster.shutdown();
-            System.exit(0);
-        } else if (args.length == 6) {
-            StormSubmitter.submitTopology(args[6], config, builder.createTopology());
-        } else {
-            System.out.println("Usage: UserPersistanceTopology <dataSourceClassName> <dataSource.url> " +
-                    "<user> <password> <tableName> [topology name]");
-        }
+        builder.setSpout(USER_SPOUT, this.userSpout, 1);
+        builder.setBolt(LOOKUP_BOLT, departmentLookupBolt, 1).shuffleGrouping(USER_SPOUT);
+        builder.setBolt(PERSISTANCE_BOLT, userPersistanceBolt, 1).shuffleGrouping(LOOKUP_BOLT);
+        return builder.createTopology();
     }
 }

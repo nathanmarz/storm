@@ -81,7 +81,6 @@ public class JDBCClient {
 
     public List<List<Column>> select(String sqlQuery, List<Column> queryParams) {
         Connection connection = null;
-        Map<String, Integer> columnSchemaMap = new HashMap<String, Integer>();
         try {
             connection = this.dataSource.getConnection();
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
@@ -95,29 +94,28 @@ public class JDBCClient {
                 for(int i=1 ; i <= columnCount; i++) {
                     String columnLabel = metaData.getColumnLabel(i);
                     int columnType = metaData.getColumnType(i);
-                    Object val = null;
                     Class columnJavaType = Util.getJavaType(columnType);
-                    if (columnJavaType == String.class) {
+                    if (columnJavaType.equals(String.class)) {
                         row.add(new Column<String>(columnLabel, resultSet.getString(columnLabel), columnType));
-                    } else if (columnJavaType == Integer.class) {
+                    } else if (columnJavaType.equals(Integer.class)) {
                         row.add(new Column<Integer>(columnLabel, resultSet.getInt(columnLabel), columnType));
-                    } else if (columnJavaType == Double.class) {
+                    } else if (columnJavaType.equals(Double.class)) {
                         row.add(new Column<Double>(columnLabel, resultSet.getDouble(columnLabel), columnType));
-                    } else if (columnJavaType == Float.class) {
+                    } else if (columnJavaType.equals(Float.class)) {
                         row.add(new Column<Float>(columnLabel, resultSet.getFloat(columnLabel), columnType));
-                    } else if (columnJavaType == Short.class) {
+                    } else if (columnJavaType.equals(Short.class)) {
                         row.add(new Column<Short>(columnLabel, resultSet.getShort(columnLabel), columnType));
-                    } else if (columnJavaType == Boolean.class) {
+                    } else if (columnJavaType.equals(Boolean.class)) {
                         row.add(new Column<Boolean>(columnLabel, resultSet.getBoolean(columnLabel), columnType));
-                    } else if (columnJavaType == byte[].class) {
+                    } else if (columnJavaType.equals(byte[].class)) {
                         row.add(new Column<byte[]>(columnLabel, resultSet.getBytes(columnLabel), columnType));
-                    } else if (columnJavaType == Long.class) {
+                    } else if (columnJavaType.equals(Long.class)) {
                         row.add(new Column<Long>(columnLabel, resultSet.getLong(columnLabel), columnType));
-                    } else if (columnJavaType == Date.class) {
+                    } else if (columnJavaType.equals(Date.class)) {
                         row.add(new Column<Date>(columnLabel, resultSet.getDate(columnLabel), columnType));
-                    } else if (columnJavaType == Time.class) {
+                    } else if (columnJavaType.equals(Time.class)) {
                         row.add(new Column<Time>(columnLabel, resultSet.getTime(columnLabel), columnType));
-                    } else if (columnJavaType == Timestamp.class) {
+                    } else if (columnJavaType.equals(Timestamp.class)) {
                         row.add(new Column<Timestamp>(columnLabel, resultSet.getTimestamp(columnLabel), columnType));
                     } else {
                         throw new RuntimeException("type =  " + columnType + " for column " + columnLabel + " not supported.");
@@ -133,17 +131,17 @@ public class JDBCClient {
         }
     }
 
-    public Map<String, Integer> getColumnSchema(String tableName) {
+    public List<Column> getColumnSchema(String tableName) {
         Connection connection = null;
-        Map<String, Integer> columnSchemaMap = new HashMap<String, Integer>();
+        List<Column> columns = new ArrayList<Column>();
         try {
             connection = this.dataSource.getConnection();
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet resultSet = metaData.getColumns(null, null, tableName, null);
             while (resultSet.next()) {
-                columnSchemaMap.put(resultSet.getString("COLUMN_NAME"), resultSet.getInt("DATA_TYPE"));
+                columns.add(new Column(resultSet.getString("COLUMN_NAME"), resultSet.getInt("DATA_TYPE")));
             }
-            return columnSchemaMap;
+            return columns;
         } catch (SQLException e) {
             throw new RuntimeException("Failed to get schema for table " + tableName, e);
         } finally {
@@ -170,27 +168,27 @@ public class JDBCClient {
             Class columnJavaType = Util.getJavaType(column.getSqlType());
             if (column.getVal() == null) {
                 preparedStatement.setNull(index, column.getSqlType());
-            } else if (columnJavaType == String.class) {
+            } else if (columnJavaType.equals(String.class)) {
                 preparedStatement.setString(index, (String) column.getVal());
-            } else if (columnJavaType == Integer.class) {
+            } else if (columnJavaType.equals(Integer.class)) {
                 preparedStatement.setInt(index, (Integer) column.getVal());
-            } else if (columnJavaType == Double.class) {
+            } else if (columnJavaType.equals(Double.class)) {
                 preparedStatement.setDouble(index, (Double) column.getVal());
-            } else if (columnJavaType == Float.class) {
+            } else if (columnJavaType.equals(Float.class)) {
                 preparedStatement.setFloat(index, (Float) column.getVal());
-            } else if (columnJavaType == Short.class) {
+            } else if (columnJavaType.equals(Short.class)) {
                 preparedStatement.setShort(index, (Short) column.getVal());
-            } else if (columnJavaType == Boolean.class) {
+            } else if (columnJavaType.equals(Boolean.class)) {
                 preparedStatement.setBoolean(index, (Boolean) column.getVal());
-            } else if (columnJavaType == byte[].class) {
+            } else if (columnJavaType.equals(byte[].class)) {
                 preparedStatement.setBytes(index, (byte[]) column.getVal());
-            } else if (columnJavaType == Long.class) {
+            } else if (columnJavaType.equals(Long.class)) {
                 preparedStatement.setLong(index, (Long) column.getVal());
-            } else if (columnJavaType == Date.class) {
+            } else if (columnJavaType.equals(Date.class)) {
                 preparedStatement.setDate(index, (Date) column.getVal());
-            } else if (columnJavaType == Time.class) {
+            } else if (columnJavaType.equals(Time.class)) {
                 preparedStatement.setTime(index, (Time) column.getVal());
-            } else if (columnJavaType == Timestamp.class) {
+            } else if (columnJavaType.equals(Timestamp.class)) {
                 preparedStatement.setTimestamp(index, (Timestamp) column.getVal());
             } else {
                 throw new RuntimeException("Unknown type of value " + column.getVal() + " for column " + column.getColumnName());

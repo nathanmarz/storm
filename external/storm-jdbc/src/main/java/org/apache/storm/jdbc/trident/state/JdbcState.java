@@ -18,10 +18,13 @@
 package org.apache.storm.jdbc.trident.state;
 
 import backtype.storm.topology.FailedException;
+import backtype.storm.tuple.Values;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.common.JDBCClient;
 import org.apache.storm.jdbc.mapper.JdbcMapper;
+import org.apache.storm.jdbc.mapper.JdbcLookupMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.trident.operation.TridentCollector;
@@ -48,8 +51,10 @@ public class JdbcState implements State {
 
     public static class Options implements Serializable {
         private JdbcMapper mapper;
+        private JdbcLookupMapper jdbcLookupMapper;
         private String configKey;
         private String tableName;
+        private String selectQuery;
 
         public Options withConfigKey(String configKey) {
             this.configKey = configKey;
@@ -63,6 +68,16 @@ public class JdbcState implements State {
 
         public Options withMapper(JdbcMapper mapper) {
             this.mapper = mapper;
+            return this;
+        }
+
+        public Options withJdbcLookupMapper(JdbcLookupMapper jdbcLookupMapper) {
+            this.jdbcLookupMapper = jdbcLookupMapper;
+            return this;
+        }
+
+        public Options withSelectQuery(String selectQuery) {
+            this.selectQuery = selectQuery;
             return this;
         }
     }
@@ -97,5 +112,23 @@ public class JdbcState implements State {
             LOG.warn("Batch write failed but some requests might have succeeded. Triggering replay.", e);
             throw new FailedException(e);
         }
+    }
+
+    public List<List<Values>> batchRetrieve(List<TridentTuple> tridentTuples) {
+        List<List<Values>> batchRetrieveResult = Lists.newArrayList();
+        try {
+            for (TridentTuple tuple : tridentTuples) {
+                List<Column> columns = options.jdbcLookupMapper.getColumns(tuple);
+                List<List<Column>> rows = jdbcClient.select(options.selectQuery, columns);
+                for(List<Column> row : rows) {
+                    List<Values> values = options.jdbcLookupMapper.toTuple(tuple, row);
+                    batchRetrieveResult.add(values);
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Batch get operation failed. Triggering replay.", e);
+            throw new FailedException(e);
+        }
+        return batchRetrieveResult;
     }
 }

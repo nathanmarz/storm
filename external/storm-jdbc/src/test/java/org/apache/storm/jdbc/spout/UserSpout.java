@@ -72,7 +72,7 @@ public class UserSpout implements IRichSpout {
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("id","user_name","create_date"));
+        declarer.declare(new Fields("user_id","user_name","create_date"));
     }
 
     @Override

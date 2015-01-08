@@ -135,7 +135,14 @@ public class ShellProcess implements Serializable {
     public String getErrorsString() {
         if (processErrorStream != null) {
             try {
-                return IOUtils.toString(processErrorStream);
+                StringBuilder sb = new StringBuilder();
+                while (processErrorStream.available() > 0) {
+                    int bufferSize = processErrorStream.available();
+                    byte[] errorReadingBuffer = new byte[bufferSize];
+                    processErrorStream.read(errorReadingBuffer, 0, bufferSize);
+                    sb.append(new String(errorReadingBuffer));
+                }
+                return sb.toString();
             } catch (IOException e) {
                 return "(Unable to capture error stream)";
             }

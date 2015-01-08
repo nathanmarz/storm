@@ -274,9 +274,9 @@ The *SimpleACLAuthorizer* plug-in needs to know who the supervisor users are, an
 
 These are set through *nimbus.supervisor.users* and *nimbus.admins* respectively.  Each can either be a full Kerberos principal name, or the name of the user with host and realm stripped off.
 
-The UI and Log servers have their own authorization configurations.  These are set through *logs.users* and *ui.users*.  These should be set to the admin users for all of the nodes in the cluster.  
+The Log servers have their own authorization configurations.  These are set through *logs.users* and *logs.groups*.  These should be set to the admin users or groups for all of the nodes in the cluster.  
 
-When a topology is sumbitted, the sumbitting user can specify users in this list as well.  The users specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's details in the ui and/or to the topology's worker logs in the logviewers.  
+When a topology is sumbitted, the sumbitting user can specify users in this list as well.  The users and groups specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's worker logs in the logviewers.  
 
 ### Supervisors headless User and group Setup
 
@@ -330,22 +330,17 @@ This config file also needs to be owned by root and not have world or group writ
 ### Automatic Credentials Push and Renewal
 Individual topologies have the ability to push credentials (tickets and tokens) to workers so that they can access secure services.  Exposing this to all of the users can be a pain for them.
 To hide this from them in the common case plugins can be used to populate the credentials, unpack them on the other side into a java Subject, and also allow Nimbus to renew the credentials if needed.
-These are controlled by the following configs. topology.auto-credentials is a list of java plugins that populate the credentials and unpack them on the worker side.
-On a kerberos secure cluster they should be set by default to point to backtype.storm.security.auth.kerberos.AutoTGT.  nimbus.credential.renewers.classes should also be set to this value so that nimbus can periodically renew the TGT on behalf of the user.
+These are controlled by the following configs. topology.auto-credentials is a list of java plugins, all of which must implement IAutoCredentials interface, that populate the credentials on gateway 
+and unpack them on the worker side. On a kerberos secure cluster they should be set by default to point to backtype.storm.security.auth.kerberos.AutoTGT.  
+nimbus.credential.renewers.classes should also be set to this value so that nimbus can periodically renew the TGT on behalf of the user.
 
 nimbus.credential.renewers.freq.secs controls how often the renewer will poll to see if anything needs to be renewed, but the default should be fine.
 
-#### Automatic HDFS credential push and renewal
-If your topology is going to use secure HDFS , your administrator can configure nimbus to automatically get delegation tokens on behalf of the topology submitter user. The nimbus need to start with 
-nimbus.autocredential.plugins.classes=backtype.storm.security.auth.hadoop.AutoHDFS and nimbus.credential.renewers.classes=backtype.storm.security.auth.hadoop.AutoHDFS. Your topology configuration
-should  have topology.auto-credentials=backtype.storm.security.auth.hadoop.AutoHDFS so workers can automatically get the credentials in the Subject.
-
-If nimbus did not have the above configuration you need to add it and then restart it. Ensure all the hadoop configuration files are present in the nimbus' classpath. Please read more about setting up
-secure hadoop on http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SecureMode.html.
-
-You also need to ensure that nimbus user is allowed to act as a super user and get delegation tokens on behalf of other users. To achieve this you need to follow configuration directions listed on this link
-http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/Superusers.html.
-
+In addition Nimbus itself can be used to get credentials on behalf of the user submitting topologies. This can be configures using nimbus.autocredential.plugins.classes which is a list 
+of fully qualified class names ,all of which must implement INimbusCredentialPlugin.  Nimbus will invoke the populateCredentials method of all the configured implementation as part of topology
+submission. You should use this config with topology.auto-credentials and nimbus.credential.renewers.classes so the credentials can be populated on worker side and nimbus can automatically renew
+them. Currently there are 2 examples of using this config, AutoHDFS and AutoHBase which auto populates hdfs and hbase delegation tokens for topology submitter so they don't have to disrtibute keytabs
+on all possible worker hosts.
 
 ### Limits
 By default storm allows any sized topology to be submitted. But ZK and others have limitations on how big a topology can actually be.  The following configs allow you to limit the maximum size a topology can be.

@@ -118,7 +118,7 @@ The reach of a URL is the number of unique people exposed to a URL on Twitter. T
 
 A single reach computation can involve thousands of database calls and tens of millions of follower records during the computation. It's a really, really intense computation. As you're about to see, implementing this function on top of Storm is dead simple. On a single machine, reach can take minutes to compute; on a Storm cluster, you can compute reach for even the hardest URLs in a couple seconds.
 
-A sample reach topology is defined in storm-starter [here](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/ReachTopology.java). Here's how you define the reach topology:
+A sample reach topology is defined in storm-starter [here](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/ReachTopology.java). Here's how you define the reach topology:
 
 ```java
 LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");

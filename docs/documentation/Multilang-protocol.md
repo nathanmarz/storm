@@ -221,3 +221,31 @@ A "log" will log a message in the worker log. It looks like:
 
 * Note that, as of version 0.7.1, there is no longer any need for a
   shell bolt to 'sync'.
+
+### Handling Heartbeat (0.9.3 and later)
+
+ShellSpout/ShellBolt has been introduced from [STORM-513](https://issues.apache.org/jira/browse/STORM-513) to prevent hanging/zombie subprocess.
+
+* Spout
+
+Shell spouts are synchronous, and subprocess always send 'sync' at the end of next() so you don't need to take care of.
+One thing you have to take care of is, don't let subprocess sleep too much from next(), especially keep it less to worker timeout.
+
+* Bolt
+
+SHell bolts are asynchronous, so ShellBolt will send heartbeat tuple periodically.
+Heartbeat tuple looks like:
+
+```
+{
+	"id": "-6955786537413359385",
+	"comp": "1",
+	// heartbeat tuple
+	"stream": "__heartbeat",
+	// it's system task id
+	"task": -1,
+	"tuple": []
+}
+```
+
+When subprocess receives heartbeat tuple, it should send 'sync' to ShellBolt.

@@ -279,13 +279,13 @@
 ))
 
 (deftest shell-based-groups-mapping-test
-  (let [cluster-conf (merge (read-storm-config))
+  (let [cluster-conf (read-storm-config)
         groups (ShellBasedGroupsMapping. )
         user-name (System/getProperty "user.name")]
     (.prepare groups cluster-conf)
-    (>= 0 (.size (.getGroups groups user-name)))
-    (= 0 (.size (.getGroups groups "userDoesNotExist")))
-    (= 0 (.size (.getGroups groups nil)))))
+    (is (<= 0 (.size (.getGroups groups user-name))))
+    (is (= 0 (.size (.getGroups groups "userDoesNotExist"))))
+    (is (= 0 (.size (.getGroups groups nil))))))
 
 (deftest simple-acl-same-user-auth-test
   (let [cluster-conf (merge (read-storm-config)

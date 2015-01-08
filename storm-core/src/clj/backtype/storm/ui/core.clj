@@ -969,6 +969,7 @@
           filters-confs [{:filter-class (conf UI-FILTER)
                           :filter-params (conf UI-FILTER-PARAMS)}]]
       (storm-run-jetty {:port (conf UI-PORT)
+                        :host (conf UI-HOST)
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
                                           (.setRequestHeaderSize connector header-buffer-size))

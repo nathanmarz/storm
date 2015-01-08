@@ -1,4 +1,4 @@
-s file is used to generate the package-info.java class that
+#this file is used to generate the package-info.java class that
 # records the version, revision, branch, user, timestamp, and url
 unset LANG
 unset LC_CTYPE
@@ -8,14 +8,14 @@ build_dir=$2
 user=`whoami`
 date=`date`
 cwd=`pwd`
-if [ -d .git ]; then
+if [ -d ../.git ]; then
   revision=`git log -1 --pretty=format:"%H"`
   hostname=`hostname`
   branch=`git branch | sed -n -e 's/^* //p'`
-  url="git://${hostname}${cwd}"
+  url=`git remote -v | sed -n -e 's/^origin\t\(.*\)(fetch)/\1/p'`
 elif [ -d .svn ]; then
   revision=`svn info | sed -n -e 's/Last Changed Rev: \(.*\)/\1/p'`
-  url=`svn info | sed -n -e 's/URL: \(.*\)/\1/p'`
+  url=`svn info | sed -n -e 's/^URL: \(.*\)/\1/p'`
   # Get canonical branch (branches/X, tags/X, or trunk)
   branch=`echo $url | sed -n -e 's,.*\(branches/.*\)$,\1,p' \
                              -e 's,.*\(tags/.*\)$,\1,p' \

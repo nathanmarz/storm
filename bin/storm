@@ -83,13 +83,6 @@ def get_config_opts():
     global CONFIG_OPTS
     return "-Dstorm.options=" + ','.join(map(quote_plus,CONFIG_OPTS))
 
-if not os.path.exists(STORM_DIR + "/RELEASE"):
-    print("******************************************")
-    print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
-    print("\nYou can download a Storm release at http://storm-project.net/downloads.html")
-    print("******************************************")
-    sys.exit(1)  
-
 def get_jars_full(adir):
     files = os.listdir(adir)
     ret = []

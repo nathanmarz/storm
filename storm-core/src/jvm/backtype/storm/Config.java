@@ -449,6 +449,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_AUTO_CRED_PLUGINS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * Storm UI binds to this host/interface.
+     */
+    public static final String UI_HOST = "ui.host";
+    public static final Object UI_HOST_SCHEMA = String.class;
+    
+    /**
      * Storm UI binds to this port.
      */
     public static final String UI_PORT = "ui.port";
@@ -485,6 +491,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of groups allowed to view logs via the Log Viewer
+     */
+    public static final String LOGS_GROUPS = "logs.groups";
+    public static final Object LOGS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Appender name used by log viewer to determine log directory.
      */
     public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
@@ -513,12 +525,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_HEADER_BUFFER_BYTES = "ui.header.buffer.bytes";
     public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
-
-    /**
-     * A list of users allowed to view topologies via the UI
-     */
-    public static final String UI_USERS = "ui.users";
-    public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
@@ -1235,22 +1241,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
 
     /**
-     * HDFS information, used to get the delegation token on behalf of the topology
-     * submitter user and renew the tokens. see {@link backtype.storm.security.auth.hadoop.AutoHDFS}
-     * kerberos principal name with realm should be provided.
-     */
-    public static final Object TOPOLOGY_HDFS_PRINCIPAL = "topology.hdfs.user";
-    public static final Object TOPOLOGY_HDFS_PRINCIPAL_SCHEMA = String.class;
-
-    /**
-     * The HDFS URI to be used by AutoHDFS.java to grab the delegation token on topology
-     * submitter user's behalf by the nimbus. If this is not provided the default URI provided
-     * in the hdfs configuration files will be used.
-     */
-    public static final Object TOPOLOGY_HDFS_URI = "topology.hdfs.uri";
-    public static final Object TOPOLOGY_HDFS_URI_SCHEMA = String.class;
-
-    /**
      * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code
      * distribution.
      */
@@ -1275,12 +1265,10 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
 
     /**
-     * How often nimbus should wake the cleanup thread to clean the inbox.
-     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     * How often nimbus's background thread to sync code for missing topologies should run.
      */
     public static final String NIMBUS_CODE_SYNC_FREQ_SECS = "nimbus.code.sync.freq.secs";
     public static final Object NIMBUS_CODE_SYNC_FREQ_SECS_SCHEMA = ConfigValidation.IntegerValidator;
-
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

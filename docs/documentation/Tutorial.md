@@ -7,7 +7,7 @@ In this tutorial, you'll learn how to create Storm topologies and deploy them to
 
 ## Preliminaries
 
-This tutorial uses examples from the [storm-starter](http://github.com/nathanmarz/storm-starter) project. It's recommended that you clone the project and follow along with the examples. Read [Setting up a development environment](Setting-up-development-environment.html) and [Creating a new Storm project](Creating-a-new-Storm-project.html) to get your machine set up. 
+This tutorial uses examples from the [storm-starter](https://github.com/apache/storm/blob/master/examples/storm-starter) project. It's recommended that you clone the project and follow along with the examples. Read [Setting up a development environment](Setting-up-development-environment.html) and [Creating a new Storm project](Creating-a-new-Storm-project.html) to get your machine set up.
 
 ## Components of a Storm cluster
 
@@ -237,7 +237,7 @@ A stream grouping tells a topology how to send tuples between two components. Re
 
 When a task for Bolt A emits a tuple to Bolt B, which task should it send the tuple to?
 
-A "stream grouping" answers this question by telling Storm how to send tuples between sets of tasks. Before we dig into the different kinds of stream groupings, let's take a look at another topology from [storm-starter](http://github.com/nathanmarz/storm-starter). This [WordCountTopology](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/WordCountTopology.java) reads sentences off of a spout and streams out of `WordCountBolt` the total number of times it has seen that word before:
+A "stream grouping" answers this question by telling Storm how to send tuples between sets of tasks. Before we dig into the different kinds of stream groupings, let's take a look at another topology from [storm-starter](http://github.com/apache/storm/blob/master/examples/storm-starter). This [WordCountTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/WordCountTopology.java) reads sentences off of a spout and streams out of `WordCountBolt` the total number of times it has seen that word before:
 
 ```java
 TopologyBuilder builder = new TopologyBuilder();

@@ -70,6 +70,7 @@ nimbus.max.replication.wait.time.sec: 0
 nimbus.credential.renewers.freq.secs: 600
 
 ### ui.* configs are for the master
+ui.host: 0.0.0.0
 ui.port: 8080
 ui.childopts: "-Xmx768m"
 ui.actions.enabled: true

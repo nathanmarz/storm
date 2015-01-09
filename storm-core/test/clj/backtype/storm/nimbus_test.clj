@@ -1245,7 +1245,7 @@
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil
-                 nimbus/mk-bt-tracker nil
+                 nimbus/mk-code-distributor nil
                  zk-leader-elector nil
                  nimbus/mk-scheduler nil]
         (nimbus/nimbus-data auth-conf fake-inimbus)

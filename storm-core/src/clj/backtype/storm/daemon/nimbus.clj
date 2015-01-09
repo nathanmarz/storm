@@ -62,7 +62,7 @@
     scheduler
     ))
 
-(defmulti mk-bt-tracker cluster-mode)
+(defmulti mk-code-distributor cluster-mode)
 (defmulti sync-code cluster-mode)
 
 (defnk is-leader [nimbus :throw-exception true]
@@ -100,7 +100,7 @@
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :leader-elector (zk-leader-elector conf)
-     :bt-tracker (mk-bt-tracker conf)
+     :bt-tracker (mk-code-distributor conf)
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
@@ -336,15 +336,15 @@
    (setup-jar conf tmp-jar-location stormroot)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
    (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
-   (if (:bt-tracker nimbus) (.upload (:bt-tracker nimbus) stormroot storm-id))
+   (if (:code-distributor nimbus) (.upload (:code-distributor nimbus) stormroot storm-id))
    ))
 
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
   (let [min-replication-count (conf NIMBUS-MIN-REPLICATION-COUNT)
         max-replication-wait-time (conf NIMBUS-MAX-REPLICATION-WAIT-TIME-SEC)
         total-wait-time (atom 0)
-        current-replication-count (atom (if (:bt-tracker nimbus) (.getReplicationCount (:bt-tracker nimbus) storm-id) 0))]
-  (if (:bt-tracker nimbus)
+        current-replication-count (atom (if (:code-distributor nimbus) (.getReplicationCount (:code-distributor nimbus) storm-id) 0))]
+  (if (:code-distributor nimbus)
     (while (and (> min-replication-count @current-replication-count)
              (or (= -1 max-replication-wait-time)
                (< @total-wait-time max-replication-wait-time)))
@@ -353,7 +353,7 @@
           min-replication-count = " min-replication-count  " max-replication-wait-time = " max-replication-wait-time
           "current-replication-count = " @current-replication-count " total-wait-time " @total-wait-time)
         (swap! total-wait-time inc)
-        (reset! current-replication-count  (.getReplicationCount (:bt-tracker nimbus) storm-id))))
+        (reset! current-replication-count  (.getReplicationCount (:code-distributor nimbus) storm-id))))
   (if (< min-replication-count @current-replication-count)
     (log-message "desired replication count "  min-replication-count " achieved,
       current-replication-count" @current-replication-count)
@@ -897,7 +897,7 @@
         (when-not (empty? to-cleanup-ids)
           (doseq [id to-cleanup-ids]
             (log-message "Cleaning up " id)
-            (if (:bt-tracker nimbus) (.cleanup (:bt-tracker nimbus) id))
+            (if (:code-distributor nimbus) (.cleanup (:code-distributor nimbus) id))
             (.teardown-heartbeats! storm-cluster-state id)
             (.teardown-topology-errors! storm-cluster-state id)
             (rmr (master-stormdist-root conf id))
@@ -1363,19 +1363,19 @@
         (.cleanup (:downloaders nimbus))
         (.cleanup (:uploaders nimbus))
         (.close (:leader-elector nimbus))
-        (if (:bt-tracker nimbus) (.close (:bt-tracker nimbus) (:conf nimbus)))
+        (if (:code-distributor nimbus) (.close (:code-distributor nimbus) (:conf nimbus)))
         (log-message "Shut down master")
         )
       DaemonCommon
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
 
-(defmethod mk-bt-tracker :distributed [conf]
+(defmethod mk-code-distributor :distributed [conf]
   (let [code-distributor (new-instance (conf STORM-CODE-DISTRIBUTOR-CLASS))]
     (.prepare code-distributor conf)
     code-distributor))
 
-(defmethod mk-bt-tracker :local [conf]
+(defmethod mk-code-distributor :local [conf]
   nil)
 
 (defn download-code [conf nimbus storm-id host port]
@@ -1386,8 +1386,8 @@
         local-meta-file-path (master-storm-metafile-path tmp-root)]
     (FileUtils/forceMkdir (File. tmp-root))
     (Utils/downloadFromHost conf remote-meta-file-path local-meta-file-path host port)
-    (if (:bt-tracker nimbus)
-      (.download (:bt-tracker nimbus) storm-id (File. local-meta-file-path)))
+    (if (:code-distributor nimbus)
+      (.download (:code-distributor nimbus) storm-id (File. local-meta-file-path)))
     (if (.exists (File. storm-root)) (FileUtils/forceDelete (File. storm-root)))
     (FileUtils/moveDirectory (File. tmp-root) (File. storm-root))
     (.setup-code-distributor! storm-cluster-state storm-id (:nimbus-host-port-info nimbus))))

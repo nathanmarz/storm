@@ -48,7 +48,6 @@
         nimbus-server (ThriftServer. (:daemon-conf cluster-map)
                                      (Nimbus$Processor. (:nimbus cluster-map)) 
                                      ThriftConnectionType/NIMBUS)]
-    (Thread/sleep 2000)
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop nimbus-server))))
     (.start (Thread. #(.serve nimbus-server)))
     (wait-for-condition #(.isServing nimbus-server))

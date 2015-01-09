@@ -32,7 +32,7 @@
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
-(defmulti mk-bt-tracker cluster-mode)
+(defmulti mk-code-distributor cluster-mode)
 
 ;; used as part of a map from port to this
 (defrecord LocalAssignment [storm-id executors])
@@ -302,7 +302,7 @@
                                          ))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
-   :bt-tracker (mk-bt-tracker conf)
+   :bt-tracker (mk-code-distributor conf)
    })
 
 (defn sync-processes [supervisor]
@@ -342,8 +342,8 @@
          ". State: " state
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)
-        (if (:bt-tracker supervisor)
-          (.cleanup (:bt-tracker supervisor) id))
+        (if (:code-distributor supervisor)
+          (.cleanup (:code-distributor supervisor) id))
         ))
 
     (doseq [id (vals new-worker-ids)]
@@ -552,8 +552,8 @@
           supervisor-meta-file-path (supervisor-storm-metafile-path tmproot)]
       (FileUtils/forceMkdir (File. tmproot))
       (Utils/downloadFromMaster conf master-meta-file-path supervisor-meta-file-path)
-      (if (:bt-tracker supervisor)
-        (.download (:bt-tracker supervisor) storm-id (File. supervisor-meta-file-path)))
+      (if (:code-distributor supervisor)
+        (.download (:code-distributor supervisor) storm-id (File. supervisor-meta-file-path)))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (if (.exists (File. stormroot)) (FileUtils/forceDelete (File. stormroot)))
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
@@ -587,7 +587,7 @@
                                              (storm-conf TOPOLOGY-USERS)))))}]
     (write-log-metadata-to-yaml-file! storm-id port data conf)))
 
-(defmethod mk-bt-tracker :distributed [conf]
+(defmethod mk-code-distributor :distributed [conf]
   (let [code-distributor (new-instance (conf STORM-CODE-DISTRIBUTOR-CLASS))]
     (.prepare code-distributor conf)
     code-distributor))
@@ -719,7 +719,7 @@
               )
             )))
 
-(defmethod mk-bt-tracker :local [conf] nil)
+(defmethod mk-code-distributor :local [conf] nil)
 
 (defmethod launch-worker
     :local [supervisor storm-id port worker-id]

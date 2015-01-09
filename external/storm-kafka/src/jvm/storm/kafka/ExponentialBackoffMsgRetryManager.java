@@ -17,10 +17,11 @@
  */
 package storm.kafka;
 
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager {
 
@@ -28,8 +29,8 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
     private final double retryDelayMultiplier;
     private final long retryDelayMaxMs;
 
-    private Queue<MessageRetryRecord> waiting = new PriorityQueue<MessageRetryRecord>();
-    private SortedMap<Long,MessageRetryRecord> records = new TreeMap<Long,MessageRetryRecord>();
+    private Queue<MessageRetryRecord> waiting = new PriorityQueue<MessageRetryRecord>(11, new RetryTimeComparator());
+    private Map<Long,MessageRetryRecord> records = new HashMap<Long,MessageRetryRecord>();
 
     public ExponentialBackoffMsgRetryManager(long retryInitialDelayMs, double retryDelayMultiplier, long retryDelayMaxMs) {
         this.retryInitialDelayMs = retryInitialDelayMs;
@@ -103,7 +104,7 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
      *  </li>
      * </ul>
      */
-    class MessageRetryRecord implements Comparable<MessageRetryRecord> {
+    class MessageRetryRecord {
         private final long offset;
         private final int retryNum;
         private final long retryTimeUTC;
@@ -131,7 +132,11 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
 
         private long calculateRetryDelay() {
             double delayMultiplier = Math.pow(retryDelayMultiplier, this.retryNum - 1);
-            long delayThisRetryMs = (long) (retryInitialDelayMs * delayMultiplier);
+            double delay = retryInitialDelayMs * delayMultiplier;
+            Long maxLong = Long.MAX_VALUE;
+            long delayThisRetryMs = delay >= maxLong.doubleValue()
+                                    ?  maxLong
+                                    : (long) delay;
             return Math.min(delayThisRetryMs, retryDelayMaxMs);
         }
 
@@ -145,10 +150,18 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
         public int hashCode() {
             return Long.valueOf(this.offset).hashCode();
         }
+    }
+
+    class RetryTimeComparator implements Comparator<MessageRetryRecord> {
 
         @Override
-        public int compareTo(MessageRetryRecord other) {
-            return Long.compare(this.retryTimeUTC, other.retryTimeUTC);
+        public int compare(MessageRetryRecord record1, MessageRetryRecord record2) {
+            return Long.compare(record1.retryTimeUTC, record2.retryTimeUTC);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return false;
         }
     }
 }

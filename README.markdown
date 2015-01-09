@@ -182,6 +182,7 @@ under the License.
 * Matthew Siegel ([@msiegel07](https://github.com/msiegel07))
 * Jun Xia ([@tedxia](https://github.com/tedxia))
 * caofangkun ([@caofangkun](https://github.com/caofangkun))
+* Mansheng Yang ([@lightyang](https://github.com/lightyang))
 
 ## Acknowledgements
 

@@ -1,4 +1,6 @@
 ## 0.10.0
+ * STORM-586: Trident kafka spout fails instead of updating offset when kafka offset is out of range.
+ * STORM-595: storm-hdfs can only work with sequence files that use Writables.
  * STORM-487: Remove storm.cmd, no need to duplicate work python runs on windows too.
  * STORM-585: Performance issue in none grouping
  * STORM-525: Add time sorting function to the 2nd col of bolt exec table
@@ -13,6 +15,16 @@
  * STORM-575: Ability to specify Jetty host to bind to
  * STORM-577: long time launch worker will block supervisor heartbeat
  * STORM-505: Fix debug string construction
+ * STORM-613: Fix wrong getOffset return value
+ * STORM-612: Update the contact address in configure.ac
+ * STORM-611: Remove extra "break"s
+ * STORM-610: Check the return value of fts_close()
+ * STORM-442: multilang ShellBolt/ShellSpout die() can be hang when Exception happened
+ * STORM-599: Use use nimbus's cached heartbeats rather than fetching again from ZK
+ * STORM-410: Add groups support to log-viewer
+ * STORM-444: Add AutoHDFS like credential fetching for HBase
+ * STORM-552: Add netty socket backlog config
+ * STORM-578: Calls to submit-mocked-assignment in supervisor-test use invalid executor-id format
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

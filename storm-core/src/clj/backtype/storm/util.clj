@@ -39,6 +39,7 @@
   (:require [clojure [set :as set]])
   (:require [clojure.java.io :as io])
   (:use [clojure walk])
+  (:require [ring.util.codec :as codec])
   (:use [backtype.storm log]))
 
 (defn wrap-in-runtime
@@ -857,11 +858,11 @@
 
 (defn url-encode
   [s]
-  (java.net.URLEncoder/encode s "UTF-8"))
+  (codec/url-encode s))
 
 (defn url-decode
   [s]
-  (java.net.URLDecoder/decode s "UTF-8"))
+  (codec/url-decode s))
 
 (defn join-maps
   [& maps]

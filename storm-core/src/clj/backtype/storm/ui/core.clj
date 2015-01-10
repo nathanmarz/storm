@@ -544,7 +544,7 @@
     (for [^TopologySummary t summs]
       {
        "id" (.get_id t)
-       "encodedId" (ring.util.codec/url-encode (.get_id t))
+       "encodedId" (url-encode (.get_id t))
        "owner" (.get_owner t)
        "name" (.get_name t)
        "status" (.get_status t)
@@ -578,7 +578,7 @@
               error-host (get-error-host last-error)
               error-port (get-error-port last-error error-host top-id)]]
     {"spoutId" id
-     "encodedSpoutId" (ring.util.codec/url-encode id)
+     "encodedSpoutId" (url-encode id)
      "executors" (count summs)
      "tasks" (sum-tasks summs)
      "emitted" (get-in stats [:emitted window])
@@ -602,7 +602,7 @@
               error-host (get-error-host last-error)
               error-port (get-error-port last-error error-host top-id)]]
     {"boltId" id
-     "encodedBoltId" (ring.util.codec/url-encode id)
+     "encodedBoltId" (url-encode id)
      "executors" (count summs)
      "tasks" (sum-tasks summs)
      "emitted" (get-in stats [:emitted window])
@@ -624,7 +624,7 @@
         workers (set (for [^ExecutorSummary e executors]
                        [(.get_host e) (.get_port e)]))]
       {"id" (.get_id summ)
-       "encodedId" (ring.util.codec/url-encode (.get_id summ))
+       "encodedId" (url-encode (.get_id summ))
        "owner" (.get_owner summ)
        "name" (.get_name summ)
        "status" (.get_status summ)
@@ -706,7 +706,7 @@
                           swap-map-order
                           (get window)))]]
     {"id" (pretty-executor-info (.get_executor_info e))
-     "encodedId" (ring.util.codec/url-encode (pretty-executor-info (.get_executor_info e)))
+     "encodedId" (url-encode (pretty-executor-info (.get_executor_info e)))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
      "host" (.get_host e)
      "port" (.get_port e)
@@ -783,7 +783,7 @@
             swap-map-order)]
     (for [[^GlobalStreamId s stats] stream-summary]
       {"component" (.get_componentId s)
-       "encodedComponent" (ring.util.codec/url-encode (.get_componentId s))
+       "encodedComponent" (url-encode (.get_componentId s))
        "stream" (.get_streamId s)
        "executeLatency" (float-str (:execute-latencies stats))
        "processLatency" (float-str (:execute-latencies stats))
@@ -802,7 +802,7 @@
                           swap-map-order
                           (get window)))]]
     {"id" (pretty-executor-info (.get_executor_info e))
-     "encodedId" (ring.util.codec/url-encode (pretty-executor-info (.get_executor_info e)))
+     "encodedId" (url-encode (pretty-executor-info (.get_executor_info e)))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
      "host" (.get_host e)
      "port" (.get_port e)
@@ -843,12 +843,12 @@
       (merge
         {"user" user
          "id" component
-         "encodedId" (ring.util.codec/url-encode component)
+         "encodedId" (url-encode component)
          "name" (.get_name summ)
          "executors" (count summs)
          "tasks" (sum-tasks summs)
          "topologyId" topology-id
-         "encodedTopologyId" (ring.util.codec/url-encode topology-id)
+         "encodedTopologyId" (url-encode topology-id)
          "window" window
          "componentType" (name type)
          "windowHint" (window-hint window)}
@@ -916,7 +916,7 @@
         (assert-authorized-user servlet-request "deactivate" (topology-config id))
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" (ring.util.codec/url-encode id))))
+    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -926,7 +926,7 @@
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" (ring.util.codec/url-encode id))))
+    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
     (with-nimbus nimbus
       (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -936,7 +936,7 @@
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" (ring.util.codec/url-encode id))))
+    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
 
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))

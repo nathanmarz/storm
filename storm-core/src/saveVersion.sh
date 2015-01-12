@@ -25,7 +25,7 @@ else
   branch="Unknown"
   url="file://$cwd"
 fi
-srcChecksum=`find src -name '*.java' | LC_ALL=C sort | xargs md5sum | md5sum | cut -d ' ' -f 1`
+srcChecksum=`find src -name '*.*' -type f | LC_ALL=C sort | xargs md5sum | md5sum | cut -d ' ' -f 1`
 
 mkdir -p $build_dir/backtype/storm/utils
 cat << EOF | \

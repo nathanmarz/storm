@@ -480,7 +480,7 @@
                            <arguments>
                               <argument>${basedir}/src/saveVersion.sh</argument>
                               <argument>${project.version}</argument>
-                              <argument>${basedir}/src/jvm</argument>
+                              <argument>${project.build.directory}/build</argument>
                            </arguments>
                      </configuration>
                   </execution>
@@ -543,6 +543,7 @@
                                 <configuration>
                                     <sources><!-- Allows JaCoCo to find the clojure source code -->
                                         <source>src/clj</source>
+                                        <source>${project.build.directory}/build</source>
                                     </sources>
                                 </configuration>
                             </execution>

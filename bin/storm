@@ -71,7 +71,6 @@ else:
 if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 
-STORM_RELEASE_DIR = os.path.join(STORM_DIR, "RELEASE")
 STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
 STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
 STORM_LOGBACK_FILE_PATH = os.path.join(STORM_DIR, "logback", "cluster.xml")
@@ -88,7 +87,7 @@ def get_config_opts():
     global CONFIG_OPTS
     return "-Dstorm.options=" + ','.join(map(quote_plus,CONFIG_OPTS))
 
-if not os.path.exists(STORM_DIR + "/lib/"):
+if not os.path.exists(STORM_LIB_DIR):
     print("******************************************")
     print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
     print("\nYou can download a Storm release at http://storm-project.net/downloads.html")

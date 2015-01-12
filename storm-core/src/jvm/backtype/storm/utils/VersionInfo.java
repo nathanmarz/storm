@@ -49,7 +49,7 @@ public class VersionInfo {
 
   public static void main(String[] args) {
     System.out.println("Storm " + getVersion());
-    System.out.println("Subversion " + getUrl() + " -r " + getRevision());
+    System.out.println("URL " + getUrl() + " -r " + getRevision());
     System.out.println("Branch " + getBranch());
     System.out.println("Compiled by " + getUser() + " on " + getDate());
     System.out.println("From source with checksum " + getSrcChecksum());

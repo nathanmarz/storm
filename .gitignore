@@ -32,4 +32,3 @@ target
 !/.gitignore
 _site
 storm-core/dependency-reduced-pom.xml
-storm-core/src/jvm/backtype/storm/package-info.java

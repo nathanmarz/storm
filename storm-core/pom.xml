@@ -305,7 +305,20 @@
                     <include>NOTICE</include>
                 </includes>
             </resource>
-
+            <resource>
+                <directory>${basedir}/src/resources</directory>
+                <excludes>
+                  <exclude>core-version-info.properties</exclude>
+                </excludes>
+                <filtering>false</filtering>
+           </resource>
+           <resource>
+              <directory>${basedir}/src/resources</directory>
+              <includes>
+                <include>core-version-info.properties</include>
+             </includes>
+             <filtering>true</filtering>
+         </resource>
         </resources>
         <testResources>
             <testResource>
@@ -464,29 +477,27 @@
                 </dependencies>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.2.1</version>
-                <inherited>false</inherited>
-                <executions>
-                   <execution>
-                      <id>Version Calculation</id>
-                      <phase>generate-sources</phase>
-                      <goals>
-                          <goal>exec</goal>
-                      </goals>
-                      <configuration>
-                         <executable>sh</executable>
-                           <arguments>
-                              <argument>${basedir}/src/saveVersion.sh</argument>
-                              <argument>${project.version}</argument>
-                              <argument>${project.build.directory}/build</argument>
-                           </arguments>
-                     </configuration>
-                  </execution>
-               </executions>
+               <groupId>org.apache.storm</groupId>
+               <artifactId>storm-maven-plugins</artifactId>
+               <executions>
+                 <execution>
+                   <id>version-info</id>
+                   <phase>generate-resources</phase>
+                   <goals>
+                     <goal>version-info</goal>
+                   </goals>
+                   <configuration>
+                   <source>
+                      <directory>${basedir}/src/</directory>
+                      <includes>
+                        <include>jvm/**/*.java</include>
+                        <include>clj/**/*.clj</include>
+                      </includes>
+                  </source>
+                 </configuration>
+               </execution>
+             </executions>
           </plugin>
-
           <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>2.8</version>
@@ -543,7 +554,6 @@
                                 <configuration>
                                     <sources><!-- Allows JaCoCo to find the clojure source code -->
                                         <source>src/clj</source>
-                                        <source>${project.build.directory}/build</source>
                                     </sources>
                                 </configuration>
                             </execution>

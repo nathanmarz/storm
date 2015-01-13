@@ -1,0 +1,24 @@
+--- pom.xml
++++ pom.xml
+@@ -305,6 +305,21 @@
+                     <include>NOTICE</include>
+                 </includes>
+             </resource>
++         <resource>
++        <directory>${basedir}/src/main/resources</directory>
++        <excludes>
++          <exclude>common-version-info.properties</exclude>
++        </excludes>
++        <filtering>false</filtering>
++      </resource>
++      <resource>
++        <directory>${basedir}/src/main/resources</directory>
++        <includes>
++          <include>common-version-info.properties</include>
++        </includes>
++        <filtering>true</filtering>
++      </resource>
++
+ 
+         </resources>
+         <testResources>

@@ -9,11 +9,11 @@ user=`whoami`
 date=`date`
 cwd=`pwd`
 if [ -d ../.git ]; then
-  revision=`git log -1 --pretty=format:"%H"`
+  revision=`git rev-parse HEAD`
   branch=`git branch | sed -n -e 's/^* //p'`
   url=`git remote -v | sed -n -e 's/^origin[[:space:]]\(.*\)(fetch)/\1/p'`
 elif [ -d .svn ]; then
-  revision=`git rev-parse HEAD`
+  revision=`svn info | sed -n -e 's/Last Changed Rev: \(.*\)/\1/p'`
   url=`svn info | sed -n -e 's/^URL: \(.*\)/\1/p'`
   # Get canonical branch (branches/X, tags/X, or trunk)
   branch=`echo $url | sed -n -e 's,.*\(branches/.*\)$,\1,p' \

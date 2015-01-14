@@ -26,6 +26,7 @@
  * STORM-578: Calls to submit-mocked-assignment in supervisor-test use invalid executor-id format
  * STORM-600: upgrade jacoco plugin to support jdk8
  * STORM-495: KafkaSpout retries with exponential backoff
+ * STORM-620: Duplicate maven plugin declaration
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

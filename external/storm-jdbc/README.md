@@ -4,7 +4,7 @@ to either insert storm tuples in a database table or to execute select queries a
 in a storm topology. This code uses HikariCP for connection pooling. See http://brettwooldridge.github.io/HikariCP.
 
 ## Inserting into a database.
-The bolt and trindet state included in this package for inserting data into a database tables are tied to a single table.
+The bolt and trident state included in this package for inserting data into a database tables are tied to a single table.
 The main API for inserting data in a table using JDBC is the `org.apache.storm.jdbc.mapper.JdbcMapper` interface:
 
 ```java

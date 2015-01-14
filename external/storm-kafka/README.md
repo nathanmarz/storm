@@ -51,17 +51,29 @@ The optional ClientId is used as a part of the zookeeper path where the spout's 
 
 There are 2 extensions of KafkaConfig currently in use.
 
-SpoutConfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
-as root to store your consumer's offset. The id should uniquely identify your spout.
+Spoutconfig is an extension of KafkaConfig that supports additional fields with ZooKeeper connection info and for controlling
+behavior specific to KafkaSpout. The Zkroot will be used as root to store your consumer's offset. The id should uniquely
+identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);
+public SpoutConfig(BrokerHosts hosts, String topic, String id);
+```
+In addition to these parameters, SpoutConfig contains the following fields that control how KafkaSpout behaves:
+```java
+    // setting for how often to save the current kafka offset to ZooKeeper
+    public long stateUpdateIntervalMs = 2000;
+
+    // Exponential back-off retry settings.  These are used when retrying messages after a bolt
+    // calls OutputCollector.fail().
+    // Note: be sure to set backtype.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
+    // resubmitting the message while still retrying.
+    public long retryInitialDelayMs = 0;
+    public double retryDelayMultiplier = 1.0;
+    public long retryDelayMaxMs = 60 * 1000;
 ```
 Core KafkaSpout only accepts an instance of SpoutConfig.
 
 TridentKafkaConfig is another extension of KafkaConfig.
-```java
-public SpoutConfig(BrokerHosts hosts, String topic, String id);
-```
 TridentKafkaEmitter only accepts TridentKafkaConfig.
 
 The KafkaConfig class also has bunch of public variables that controls your application's behavior. Here are defaults:

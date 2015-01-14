@@ -183,6 +183,7 @@ under the License.
 * Jun Xia ([@tedxia](https://github.com/tedxia))
 * caofangkun ([@caofangkun](https://github.com/caofangkun))
 * Mansheng Yang ([@lightyang](https://github.com/lightyang))
+* Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
 
 ## Acknowledgements
 

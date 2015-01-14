@@ -93,7 +93,7 @@ public abstract class AbstractUserTopology {
             cluster.shutdown();
             System.exit(0);
         } else {
-            StormSubmitter.submitTopology(args[5], config, getTopology());
+            StormSubmitter.submitTopology(args[4], config, getTopology());
         }
     }
 

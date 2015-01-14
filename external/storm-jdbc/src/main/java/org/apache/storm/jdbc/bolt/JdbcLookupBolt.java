@@ -1,0 +1,80 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.storm.jdbc.bolt;
+
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
+import org.apache.storm.jdbc.common.Column;
+import org.apache.storm.jdbc.mapper.JdbcLookupMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+/**
+ * Basic bolt for querying from any database.
+ */
+public class JdbcLookupBolt extends AbstractJdbcBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcLookupBolt.class);
+
+    private String selectQuery;
+
+    private JdbcLookupMapper jdbcLookupMapper;
+
+    public JdbcLookupBolt(String configKey) {
+        super(configKey);
+    }
+
+    public JdbcLookupBolt withJdbcLookupMapper(JdbcLookupMapper jdbcLookupMapper) {
+        this.jdbcLookupMapper = jdbcLookupMapper;
+        return this;
+    }
+
+    public JdbcLookupBolt withSelectSql(String selectQuery) {
+        this.selectQuery = selectQuery;
+        return this;
+    }
+
+
+    @Override
+    public void execute(Tuple tuple) {
+        try {
+            List<Column> columns = jdbcLookupMapper.getColumns(tuple);
+            List<List<Column>> result = jdbcClient.select(this.selectQuery, columns);
+
+            if (result != null && result.size() != 0) {
+                for (List<Column> row : result) {
+                    List<Values> values = jdbcLookupMapper.toTuple(tuple, row);
+                    for (Values value : values) {
+                        collector.emit(value);
+                    }
+                }
+            }
+            this.collector.ack(tuple);
+        } catch (Exception e) {
+            LOG.info("Failed to execute a select query {} on tuple {} ", this.selectQuery, tuple);
+            this.collector.fail(tuple);
+        }
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
+        jdbcLookupMapper.declareOutputFields(outputFieldsDeclarer);
+    }
+}

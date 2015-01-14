@@ -8,7 +8,7 @@ can be turned on as needed.
 
 You can still have a secure storm cluster without turning on formal
 Authentication and Authorization. But to do so usually requires 
-configuring your Operating System to ristrict the operations that can be done.
+configuring your Operating System to restrict the operations that can be done.
 This is generally a good idea even if you plan on running your cluster with Auth.
 
 The exact detail of how to setup these precautions varies a lot and is beyond
@@ -52,7 +52,7 @@ proxy the connection to the storm process.  To make this work the ui process mus
 logviewer.port set to the port of the proxy in its storm.yaml, while the logviewers
 must have it set to the actual port that they are going to bind to.
 
-The servlet filters are prefered because it allows indavidual topologies to
+The servlet filters are preferred because it allows individual topologies to
 specificy who is and who is not allowed to access the pages associated with
 them.  
 
@@ -65,7 +65,7 @@ ui.filter.params:
    "kerberos.keytab": "/vagrant/keytabs/http.keytab"
    "kerberos.name.rules": "RULE:[2:$1@$0]([jt]t@.*EXAMPLE.COM)s/.*/$MAPRED_USER/ RULE:[2:$1@$0]([nd]n@.*EXAMPLE.COM)s/.*/$HDFS_USER/DEFAULT"
 ```
-make sure to create a prinicpal 'HTTP/{hostname}' (here hostname should be the one where UI daemon runs
+make sure to create a principal 'HTTP/{hostname}' (here hostname should be the one where UI daemon runs
 
 Once configured users needs to do kinit before accessing UI.
 Ex:
@@ -89,7 +89,7 @@ this document and it is assumed that you have done that already.
 Each Zookeeper Server, Nimbus, and DRPC server will need a service principal, which, by convention, includes the FQDN of the host it will run on.  Be aware that the zookeeper user *MUST* be zookeeper.  
 The supervisors and UI also need a principal to run as, but because they are outgoing connections they do not need to be service principals. 
 The following is an example of how to setup kerberos principals, but the
-details may varry depending on your KDC and OS.
+details may vary depending on your KDC and OS.
 
 
 ```bash
@@ -276,7 +276,7 @@ These are set through *nimbus.supervisor.users* and *nimbus.admins* respectively
 
 The Log servers have their own authorization configurations.  These are set through *logs.users* and *logs.groups*.  These should be set to the admin users or groups for all of the nodes in the cluster.  
 
-When a topology is sumbitted, the sumbitting user can specify users in this list as well.  The users and groups specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's worker logs in the logviewers.  
+When a topology is submitted, the submitting user can specify users in this list as well.  The users and groups specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's worker logs in the logviewers.
 
 ### Supervisors headless User and group Setup
 
@@ -318,7 +318,7 @@ There are several files that go along with this that are needed to be configured
 
 The worker-launcher executable is a special program that allows the supervisor to launch workers as different users.  For this to work it needs to be owned by root, but with the group set to be a group that only teh supervisor headless user is a part of.
 It also needs to have 6550 permissions.
-There is also a worker-launcher.cfg file, usually located under /etc/ that should look somethign like the following
+There is also a worker-launcher.cfg file, usually located under /etc/ that should look something like the following
 
 ```
 storm.worker-launcher.group=$(worker_launcher_group)
@@ -339,7 +339,7 @@ nimbus.credential.renewers.freq.secs controls how often the renewer will poll to
 In addition Nimbus itself can be used to get credentials on behalf of the user submitting topologies. This can be configures using nimbus.autocredential.plugins.classes which is a list 
 of fully qualified class names ,all of which must implement INimbusCredentialPlugin.  Nimbus will invoke the populateCredentials method of all the configured implementation as part of topology
 submission. You should use this config with topology.auto-credentials and nimbus.credential.renewers.classes so the credentials can be populated on worker side and nimbus can automatically renew
-them. Currently there are 2 examples of using this config, AutoHDFS and AutoHBase which auto populates hdfs and hbase delegation tokens for topology submitter so they don't have to disrtibute keytabs
+them. Currently there are 2 examples of using this config, AutoHDFS and AutoHBase which auto populates hdfs and hbase delegation tokens for topology submitter so they don't have to distribute keytabs
 on all possible worker hosts.
 
 ### Limits

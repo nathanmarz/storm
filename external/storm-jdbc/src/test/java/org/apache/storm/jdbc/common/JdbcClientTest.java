@@ -43,7 +43,8 @@ public class JdbcClientTest {
         map.put("dataSource.user","SA");//root
         map.put("dataSource.password","");//password
 
-        this.client = new JdbcClient(map);
+        int queryTimeoutSecs = 60;
+        this.client = new JdbcClient(map, queryTimeoutSecs);
         client.executeSql("create table user_details (id integer, user_name varchar(100), create_date date)");
     }
 

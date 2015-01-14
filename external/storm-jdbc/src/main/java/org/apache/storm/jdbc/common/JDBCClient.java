@@ -35,12 +35,14 @@ public class JdbcClient {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcClient.class);
 
     private HikariDataSource dataSource;
+    private int queryTimeoutSecs;
 
-    public JdbcClient(Map<String, Object> map) {
+    public JdbcClient(Map<String, Object> map, int queryTimeoutSecs) {
         Properties properties = new Properties();
         properties.putAll(map);
         HikariConfig config = new HikariConfig(properties);
         this.dataSource = new HikariDataSource(config);
+        this.queryTimeoutSecs = queryTimeoutSecs;
     }
 
     public int insert(String tableName, List<List<Column>> columnLists) {
@@ -67,6 +69,7 @@ public class JdbcClient {
             }
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
+            preparedStatement.setQueryTimeout(queryTimeoutSecs);
             for(List<Column> columnList : columnLists) {
                 setPreparedStatementParams(preparedStatement, columnList);
             }
@@ -84,6 +87,7 @@ public class JdbcClient {
         try {
             connection = this.dataSource.getConnection();
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
+            preparedStatement.setQueryTimeout(queryTimeoutSecs);
             setPreparedStatementParams(preparedStatement, queryParams);
             ResultSet resultSet = preparedStatement.executeQuery();
             List<List<Column>> rows = Lists.newArrayList();

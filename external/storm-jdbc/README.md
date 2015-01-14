@@ -54,16 +54,20 @@ List<Column> columnSchema = Lists.newArrayList(
 ```
 
 ### JdbcBolt
-To use the `JdbcBolt`, construct it with configuration key in your storm config that hold the hikari configuration map.
-In addition you must specify the JdbcMapper implementation to covert storm tuple to DB row and the table name in which 
-the rows will be inserted.
+To use the `JdbcBolt`, you construct an instance of it and specify a configuration key in your storm config that hold the 
+hikari configuration map. In addition you must specify the JdbcMapper implementation to covert storm tuple to DB row and 
+the table name in which the rows will be inserted. You can optionally specify a query timeout seconds param that specifies 
+max seconds an insert query can take. The default is set to 30 seconds which is equal to topology.message.timeout.secs. 
+You should set this value to be <= topology.message.timeout.secs.
 
  ```java
 Config config = new Config();
 config.put("jdbc.conf", hikariConfigMap);
-JdbcBolt userPersistanceBolt = new JdbcBolt("jdbc.conf")
+JdbcBolt userPersistanceBolt = new JdbcBolt()
+                                    .withConfigKey("jdbc.conf")
                                     .withTableName("user_details")
-                                    .withJdbcMapper(simpleJdbcMapper);
+                                    .withJdbcMapper(simpleJdbcMapper)
+                                    .withQueryTimeoutSecs(30);
  ```
 ### JdbcTridentState
 We also support a trident persistent state that can be used with trident topologies. To create a jdbc persistent trident
@@ -74,7 +78,8 @@ hikari configuration map. See the example below:
 JdbcState.Options options = new JdbcState.Options()
         .withConfigKey("jdbc.conf")
         .withMapper(jdbcMapper)
-        .withTableName("user_details");
+        .withTableName("user_details")
+        .withQueryTimeoutSecs(30);
 
 JdbcStateFactory jdbcStateFactory = new JdbcStateFactory(options);
 ```
@@ -125,13 +130,16 @@ this.jdbcLookupMapper = new SimpleJdbcLookupMapper(outputFields, queryParamColum
 ```
 
 ### JdbcLookupBolt
-To use the `JdbcLookupBolt`, construct it with configuration key in your storm config that hold the hikari configuration map.
-In addition you must specify the `JdbcLookupMapper` and the select query to execute.
+To use the `JdbcLookupBolt`, construct an instance of it and specify a configuration key in your storm config that hold the 
+hikari configuration map. In addition you must specify the `JdbcLookupMapper` and the select query to execute.
+You can optionally specify a query timeout seconds param that specifies max seconds the select query can take. 
+The default is set to 30 seconds which is equal to topology.message.timeout.secs. You should set this value to be <= topology.message.timeout.secs.
 
 ```java
 JdbcLookupBolt userNameLookupBolt = new JdbcLookupBolt("jdbc.conf")
         .withJdbcLookupMapper(new SimpleJdbcLookupMapper(outputFields, queryParamColumns))
         .withSelectSql("select user_name from user_details where user_id = ?")
+        .withQueryTimeoutSecs(30);
 ```
 
 ### JdbcTridentState for lookup
@@ -142,6 +150,7 @@ JdbcState.Options options = new JdbcState.Options()
         .withConfigKey("jdbc.conf")
         .withJdbcLookupMapper(new SimpleJdbcLookupMapper(new Fields("user_name"), Lists.newArrayList(new Column("user_id", Types.INTEGER))))
         .withSelectQuery("select user_name from user_details where user_id = ?");
+        .withQueryTimeoutSecs(30);
 ```
 
 ## Example:

@@ -55,6 +55,7 @@ public class JdbcState implements State {
         private String configKey;
         private String tableName;
         private String selectQuery;
+        private int queryTimeoutSecs = 30;
 
         public Options withConfigKey(String configKey) {
             this.configKey = configKey;
@@ -80,13 +81,18 @@ public class JdbcState implements State {
             this.selectQuery = selectQuery;
             return this;
         }
+
+        public Options withQueryTimeoutSecs(int queryTimeoutSecs) {
+            this.queryTimeoutSecs = queryTimeoutSecs;
+            return this;
+        }
     }
 
     protected void prepare() {
         Map<String, Object> conf = (Map<String, Object>) map.get(options.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + options.configKey + "'");
 
-        this.jdbcClient = new JdbcClient(conf);
+        this.jdbcClient = new JdbcClient(conf, options.queryTimeoutSecs);
     }
 
     @Override

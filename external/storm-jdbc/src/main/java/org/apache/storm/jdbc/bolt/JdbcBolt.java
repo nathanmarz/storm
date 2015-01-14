@@ -37,8 +37,9 @@ public class JdbcBolt extends AbstractJdbcBolt {
     private String tableName;
     private JdbcMapper jdbcMapper;
 
-    public JdbcBolt(String configKey) {
-        super(configKey);
+    public JdbcBolt withConfigKey(String configKey) {
+        this.configKey = configKey;
+        return this;
     }
 
     public JdbcBolt withTableName(String tableName) {
@@ -48,6 +49,11 @@ public class JdbcBolt extends AbstractJdbcBolt {
 
     public JdbcBolt withJdbcMapper(JdbcMapper jdbcMapper) {
         this.jdbcMapper = jdbcMapper;
+        return this;
+    }
+
+    public JdbcBolt withQueryTimeoutSecs(int queryTimeoutSecs) {
+        this.queryTimeoutSecs = queryTimeoutSecs;
         return this;
     }
 

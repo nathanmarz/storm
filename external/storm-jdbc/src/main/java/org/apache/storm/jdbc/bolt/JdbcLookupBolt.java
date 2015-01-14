@@ -37,8 +37,9 @@ public class JdbcLookupBolt extends AbstractJdbcBolt {
 
     private JdbcLookupMapper jdbcLookupMapper;
 
-    public JdbcLookupBolt(String configKey) {
-        super(configKey);
+    public JdbcLookupBolt withConfigKey(String configKey) {
+        this.configKey = configKey;
+        return this;
     }
 
     public JdbcLookupBolt withJdbcLookupMapper(JdbcLookupMapper jdbcLookupMapper) {
@@ -51,6 +52,10 @@ public class JdbcLookupBolt extends AbstractJdbcBolt {
         return this;
     }
 
+    public JdbcLookupBolt withQueryTimeoutSecs(int queryTimeoutSecs) {
+        this.queryTimeoutSecs = queryTimeoutSecs;
+        return this;
+    }
 
     @Override
     public void execute(Tuple tuple) {

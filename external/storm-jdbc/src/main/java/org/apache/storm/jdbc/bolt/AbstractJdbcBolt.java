@@ -34,11 +34,7 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
 
     protected transient JdbcClient jdbcClient;
     protected String configKey;
-
-    public AbstractJdbcBolt(String configKey) {
-        Validate.notEmpty(configKey, "configKey can not be null");
-        this.configKey = configKey;
-    }
+    protected int queryTimeoutSecs = 30;
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
@@ -47,6 +43,6 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
         Map<String, Object> conf = (Map<String, Object>)map.get(this.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + this.configKey + "'");
 
-        this.jdbcClient = new JdbcClient(conf);
+        this.jdbcClient = new JdbcClient(conf, queryTimeoutSecs);
     }
 }

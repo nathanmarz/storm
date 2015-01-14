@@ -74,7 +74,8 @@ public abstract class AbstractUserTopology {
         Config config = new Config();
         config.put(JDBC_CONF, map);
 
-        JdbcClient jdbcClient = new JdbcClient(map);
+        int queryTimeoutSecs = 60;
+        JdbcClient jdbcClient = new JdbcClient(map, queryTimeoutSecs);
         for (String sql : setupSqls) {
             jdbcClient.executeSql(sql);
         }

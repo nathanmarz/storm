@@ -34,10 +34,12 @@ public class UserPersistanceTopology extends AbstractUserTopology {
 
     @Override
     public StormTopology getTopology() {
-        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt(JDBC_CONF)
+        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt()
+                .withConfigKey(JDBC_CONF)
                 .withJdbcLookupMapper(this.jdbcLookupMapper)
                 .withSelectSql(SELECT_QUERY);
-        JdbcBolt userPersistanceBolt = new JdbcBolt(JDBC_CONF)
+        JdbcBolt userPersistanceBolt = new JdbcBolt()
+                .withConfigKey(JDBC_CONF)
                 .withTableName(TABLE_NAME)
                 .withJdbcMapper(this.jdbcMapper);
 

@@ -32,7 +32,7 @@ import java.util.Map;
 
 public class JdbcClientTest {
 
-    private JDBCClient client;
+    private JdbcClient client;
 
     private static final String tableName = "user_details";
     @Before
@@ -43,7 +43,7 @@ public class JdbcClientTest {
         map.put("dataSource.user","SA");//root
         map.put("dataSource.password","");//password
 
-        this.client = new JDBCClient(map);
+        this.client = new JdbcClient(map);
         client.executeSql("create table user_details (id integer, user_name varchar(100), create_date date)");
     }
 

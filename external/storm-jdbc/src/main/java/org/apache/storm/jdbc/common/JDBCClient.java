@@ -31,12 +31,12 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 
-public class JDBCClient {
-    private static final Logger LOG = LoggerFactory.getLogger(JDBCClient.class);
+public class JdbcClient {
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcClient.class);
 
     private HikariDataSource dataSource;
 
-    public JDBCClient(Map<String, Object> map) {
+    public JdbcClient(Map<String, Object> map) {
         Properties properties = new Properties();
         properties.putAll(map);
         HikariConfig config = new HikariConfig(properties);

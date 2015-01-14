@@ -19,7 +19,7 @@ package org.apache.storm.jdbc.mapper;
 
 import backtype.storm.tuple.ITuple;
 import org.apache.storm.jdbc.common.Column;
-import org.apache.storm.jdbc.common.JDBCClient;
+import org.apache.storm.jdbc.common.JdbcClient;
 import org.apache.storm.jdbc.common.Util;
 
 import java.sql.Date;
@@ -34,7 +34,7 @@ public class SimpleJdbcMapper implements JdbcMapper {
     private List<Column> schemaColumns;
 
     public SimpleJdbcMapper(String tableName, Map map) {
-        JDBCClient client = new JDBCClient(map);
+        JdbcClient client = new JdbcClient(map);
         this.schemaColumns = client.getColumnSchema(tableName);
     }
 

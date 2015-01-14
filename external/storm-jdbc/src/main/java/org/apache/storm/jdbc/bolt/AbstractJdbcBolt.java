@@ -21,8 +21,7 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.base.BaseRichBolt;
 import org.apache.commons.lang.Validate;
-import org.apache.storm.jdbc.common.JDBCClient;
-import org.apache.storm.jdbc.mapper.JdbcMapper;
+import org.apache.storm.jdbc.common.JdbcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
 
     protected OutputCollector collector;
 
-    protected transient JDBCClient jdbcClient;
+    protected transient JdbcClient jdbcClient;
     protected String configKey;
 
     public AbstractJdbcBolt(String configKey) {
@@ -48,6 +47,6 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
         Map<String, Object> conf = (Map<String, Object>)map.get(this.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + this.configKey + "'");
 
-        this.jdbcClient = new JDBCClient(conf);
+        this.jdbcClient = new JdbcClient(conf);
     }
 }

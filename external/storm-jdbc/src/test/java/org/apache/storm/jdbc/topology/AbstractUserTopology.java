@@ -24,7 +24,7 @@ import backtype.storm.tuple.Fields;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.storm.jdbc.common.Column;
-import org.apache.storm.jdbc.common.JDBCClient;
+import org.apache.storm.jdbc.common.JdbcClient;
 import org.apache.storm.jdbc.mapper.JdbcMapper;
 import org.apache.storm.jdbc.mapper.JdbcLookupMapper;
 import org.apache.storm.jdbc.mapper.SimpleJdbcMapper;
@@ -74,7 +74,7 @@ public abstract class AbstractUserTopology {
         Config config = new Config();
         config.put(JDBC_CONF, map);
 
-        JDBCClient jdbcClient = new JDBCClient(map);
+        JdbcClient jdbcClient = new JdbcClient(map);
         for (String sql : setupSqls) {
             jdbcClient.executeSql(sql);
         }

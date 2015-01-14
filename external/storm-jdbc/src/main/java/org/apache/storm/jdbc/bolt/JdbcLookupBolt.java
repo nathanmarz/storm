@@ -68,8 +68,9 @@ public class JdbcLookupBolt extends AbstractJdbcBolt {
             }
             this.collector.ack(tuple);
         } catch (Exception e) {
-            LOG.info("Failed to execute a select query {} on tuple {} ", this.selectQuery, tuple);
+            LOG.warn("Failed to execute a select query {} on tuple {} ", this.selectQuery, tuple);
             this.collector.fail(tuple);
+            this.collector.reportError(e);
         }
     }
 

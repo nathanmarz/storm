@@ -61,6 +61,7 @@ public class JdbcBolt extends AbstractJdbcBolt {
         } catch (Exception e) {
             LOG.warn("Failing tuple.", e);
             this.collector.fail(tuple);
+            this.collector.reportError(e);
             return;
         }
 

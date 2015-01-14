@@ -22,7 +22,7 @@ import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
-import org.apache.storm.jdbc.common.JDBCClient;
+import org.apache.storm.jdbc.common.JdbcClient;
 import org.apache.storm.jdbc.mapper.JdbcMapper;
 import org.apache.storm.jdbc.mapper.JdbcLookupMapper;
 import org.slf4j.Logger;
@@ -41,7 +41,7 @@ public class JdbcState implements State {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcState.class);
 
     private Options options;
-    private JDBCClient jdbcClient;
+    private JdbcClient jdbcClient;
     private Map map;
 
     protected JdbcState(Map map, int partitionIndex, int numPartitions, Options options) {
@@ -86,7 +86,7 @@ public class JdbcState implements State {
         Map<String, Object> conf = (Map<String, Object>) map.get(options.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + options.configKey + "'");
 
-        this.jdbcClient = new JDBCClient(conf);
+        this.jdbcClient = new JdbcClient(conf);
     }
 
     @Override

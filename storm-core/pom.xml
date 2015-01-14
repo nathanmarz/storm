@@ -308,14 +308,14 @@
             <resource>
                 <directory>${basedir}/src/resources</directory>
                 <excludes>
-                  <exclude>core-version-info.properties</exclude>
+                  <exclude>storm-core-version-info.properties</exclude>
                 </excludes>
                 <filtering>false</filtering>
            </resource>
            <resource>
               <directory>${basedir}/src/resources</directory>
               <includes>
-                <include>core-version-info.properties</include>
+                <include>storm-core-version-info.properties</include>
              </includes>
              <filtering>true</filtering>
          </resource>

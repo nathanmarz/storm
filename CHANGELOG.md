@@ -20,7 +20,6 @@
  * STORM-611: Remove extra "break"s
  * STORM-610: Check the return value of fts_close()
  * STORM-442: multilang ShellBolt/ShellSpout die() can be hang when Exception happened
- * STORM-599: Use use nimbus's cached heartbeats rather than fetching again from ZK
  * STORM-410: Add groups support to log-viewer
  * STORM-444: Add AutoHDFS like credential fetching for HBase
  * STORM-552: Add netty socket backlog config

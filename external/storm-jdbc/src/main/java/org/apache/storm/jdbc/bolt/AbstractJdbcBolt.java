@@ -17,6 +17,7 @@
  */
 package org.apache.storm.jdbc.bolt;
 
+import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.base.BaseRichBolt;
@@ -34,7 +35,7 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
 
     protected transient JdbcClient jdbcClient;
     protected String configKey;
-    protected int queryTimeoutSecs = 30;
+    protected Integer queryTimeoutSecs;
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
@@ -42,6 +43,10 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
 
         Map<String, Object> conf = (Map<String, Object>)map.get(this.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + this.configKey + "'");
+
+        if(queryTimeoutSecs == null) {
+            queryTimeoutSecs = Integer.parseInt(map.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS).toString());
+        }
 
         this.jdbcClient = new JdbcClient(conf, queryTimeoutSecs);
     }

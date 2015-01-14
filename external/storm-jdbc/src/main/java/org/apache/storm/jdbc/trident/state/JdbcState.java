@@ -17,6 +17,7 @@
  */
 package org.apache.storm.jdbc.trident.state;
 
+import backtype.storm.Config;
 import backtype.storm.topology.FailedException;
 import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
@@ -55,7 +56,7 @@ public class JdbcState implements State {
         private String configKey;
         private String tableName;
         private String selectQuery;
-        private int queryTimeoutSecs = 30;
+        private Integer queryTimeoutSecs;
 
         public Options withConfigKey(String configKey) {
             this.configKey = configKey;
@@ -91,6 +92,10 @@ public class JdbcState implements State {
     protected void prepare() {
         Map<String, Object> conf = (Map<String, Object>) map.get(options.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + options.configKey + "'");
+
+        if(options.queryTimeoutSecs == null) {
+            options.queryTimeoutSecs = Integer.parseInt(map.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS).toString());
+        }
 
         this.jdbcClient = new JdbcClient(conf, options.queryTimeoutSecs);
     }

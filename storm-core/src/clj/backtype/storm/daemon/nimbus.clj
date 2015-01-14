@@ -365,8 +365,7 @@
                        nimbus-time
                        (>= (time-delta nimbus-time) timeout))
        :nimbus-time nimbus-time
-       :executor-reported-time reported-time
-       :heartbeat hb}))
+       :executor-reported-time reported-time}))
 
 (defn update-heartbeat-cache [cache executor-beats all-executors timeout]
   (let [cache (select-keys cache all-executors)]
@@ -1262,9 +1261,11 @@
               _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
               task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               base (.storm-base storm-cluster-state storm-id nil)
+              storm-name (if base (:storm-name base) (throw (NotAliveException. (str storm-id))))
               launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
+              task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (map-val :heartbeat @(:heartbeats-cache nimbus))
+              beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
               all-components (-> task->component reverse-map keys)
               errors (->> all-components
                           (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))

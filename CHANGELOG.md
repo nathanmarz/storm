@@ -25,6 +25,7 @@
  * STORM-444: Add AutoHDFS like credential fetching for HBase
  * STORM-552: Add netty socket backlog config
  * STORM-578: Calls to submit-mocked-assignment in supervisor-test use invalid executor-id format
+ * STORM-600: upgrade jacoco plugin to support jdk8
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

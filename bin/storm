@@ -74,7 +74,7 @@ if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
 STORM_RELEASE_DIR = os.path.join(STORM_DIR, "RELEASE")
 STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
 STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
-STORM_LOGBACK_FILE_PATH = os.path.join(STORM_DIR, "logback", "cluster.xml")
+STORM_LOGBACK_CONF_DIR = os.path.join(STORM_DIR, "logback")
 
 init_storm_env()
 
@@ -228,7 +228,7 @@ def upload_credentials(*args):
         "backtype.storm.command.upload_credentials", 
         args=args, 
         jvmtype="-client", 
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 def activate(*args):
     """Syntax: [storm activate topology-name]
@@ -312,6 +312,13 @@ def repl():
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class("clojure.main", jvmtype="-client", extrajars=cppaths)
 
+def get_logback_conf_dir():
+    cppaths = [CLUSTER_CONF_DIR]
+    storm_logback_conf_dir = confvalue("storm.logback.conf.dir", cppaths)
+    if(storm_logback_conf_dir == None or storm_logback_conf_dir == "nil"):
+        storm_logback_conf_dir = STORM_LOGBACK_CONF_DIR
+    return storm_logback_conf_dir
+
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
 
@@ -324,7 +331,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
+        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml"),
     ]
     exec_storm_class(
         klass, 
@@ -344,7 +351,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
+        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml"),
     ]
     exec_storm_class(
         klass, 
@@ -365,7 +372,7 @@ def ui():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
+        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
     ]
     exec_storm_class(
         "backtype.storm.ui.core", 
@@ -386,7 +393,7 @@ def logviewer():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
-        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
+        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
     ]
     exec_storm_class(
         "backtype.storm.daemon.logviewer", 
@@ -406,7 +413,7 @@ def drpc():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
-        "-Dlogback.configurationFile=" + STORM_LOGBACK_FILE_PATH,
+        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
     ]
     exec_storm_class(
         "backtype.storm.daemon.drpc", 

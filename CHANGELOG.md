@@ -1,4 +1,6 @@
 ## 0.10.0
+ * STORM-248: cluster.xml location is hardcoded for workers
+ * STORM-322: Windows script do not handle spaces in JAVA_HOME path
  * STORM-586: Trident kafka spout fails instead of updating offset when kafka offset is out of range.
  * STORM-595: storm-hdfs can only work with sequence files that use Writables.
  * STORM-487: Remove storm.cmd, no need to duplicate work python runs on windows too.

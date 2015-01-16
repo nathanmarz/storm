@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-627: Storm-hbase configuration error.
  * STORM-248: cluster.xml location is hardcoded for workers
  * STORM-322: Windows script do not handle spaces in JAVA_HOME path
  * STORM-586: Trident kafka spout fails instead of updating offset when kafka offset is out of range.

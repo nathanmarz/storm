@@ -24,7 +24,6 @@ import redis.clients.jedis.JedisPool;
 
 public class JedisCommandsContainerBuilder {
 
-    // TODO : serialize redis.clients.jedis.JedisPoolConfig
     public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
     public static JedisCommandsInstanceContainer build(JedisPoolConfig config) {

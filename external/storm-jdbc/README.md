@@ -211,7 +211,6 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 
-## Committer
-
+## Committer Sponsors
 * Parth Brahmbhatt ([brahmbhatt.parth@gmail.com](mailto:brahmbhatt.parth@gmail.com))
- 
+* Sriharsha Chintalapani ([sriharsha@apache.org](mailto:sriharsha@apache.org)) 

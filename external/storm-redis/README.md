@@ -75,8 +75,6 @@ use it as a maven dependency:
 
 2. RedisClusterState and RedisClusterMapState, which provide JedisCluster interface, just for redis cluster.
 
-3. ShardedRedisState and ShardedRedisMapState, which provide ShardedJedis interface, but not implements now.
-
 RedisState
 ```java
         JedisPoolConfig poolConfig = new JedisPoolConfig.Builder()

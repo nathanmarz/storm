@@ -62,47 +62,4 @@
             <version>18.0</version>
         </dependency>
     </dependencies>
-
-    <!--
-    <build>
-        <sourceDirectory>src</sourceDirectory>
-        <resources>
-            <resource>
-                <directory>${basedir}/multilang</directory>
-            </resource>
-            <resource>
-                <directory>${basedir}/resources</directory>
-            </resource>
-        </resources>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.2</version>
-                <configuration>
-                    <artifactSet>
-                        <excludes>
-                            <exclude>junit:junit</exclude>
-                            <exclude>org.slf4j:slf4j-simple</exclude>
-                            <exclude>org.slf4j:slf4j-log4j12</exclude>
-                            <exclude>org.apache.zookeeper</exclude>
-                        </excludes>
-                    </artifactSet>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <finalName>${project.artifactId}-${project.version}-with-dependencies</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-    -->
 </project>

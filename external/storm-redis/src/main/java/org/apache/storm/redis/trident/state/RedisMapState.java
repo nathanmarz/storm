@@ -151,7 +151,6 @@ public class RedisMapState<T> implements IBackingMap<T> {
     }
 
     protected static class Factory implements StateFactory {
-        // TODO : serialize redis.clients.jedis.JedisPoolConfig
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
         JedisPoolConfig jedisPoolConfig;

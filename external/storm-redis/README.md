@@ -134,7 +134,7 @@ under the License.
 
 ## Committer Sponsors
 
- * Bobby Evans ([bobby@apache.org](mailto:bobby@apache.org))
- * DashengJu ([dashengju@gmail.com](mailto:dashengju@gmail.com))
- * HeartSaVioR ([kabhwan@gmail.com](mailto:kabhwan@gmail.com))
+ * Robert Evans ([@revans2](https://github.com/revans2))
+ * DashengJu ([@dashengju](https://github.com/dashengju))
+ * Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
  

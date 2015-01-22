@@ -18,7 +18,7 @@ Kafka's zookeeper's entries to track brokerHost -> partition mapping. You can in
     public ZkHosts(String brokerZkStr, String brokerZkPath) 
     public ZkHosts(String brokerZkStr)
 ```
-Where brokerZkStr is just ip:port e.g. localhost:9092. brokerZkPath is the root directory under which all the topics and
+Where brokerZkStr is just ip:port e.g. localhost:2181. brokerZkPath is the root directory under which all the topics and
 partition information is stored. by Default this is /brokers which is what default kafka implementation uses.
 
 By default the broker-partition mapping is refreshed every 60 seconds from zookeeper. If you want to change it you

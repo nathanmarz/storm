@@ -156,6 +156,7 @@
 
     <modules>
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
+        <module>storm-buildtools/storm-maven-plugins</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
@@ -209,7 +210,6 @@
         <reply.version>0.3.0</reply.version>
         <conjure.version>2.1.3</conjure.version>
         <zookeeper.version>3.4.6</zookeeper.version>
-        <conjure.version>2.1.3</conjure.version>
         <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
 

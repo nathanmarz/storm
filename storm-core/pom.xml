@@ -305,7 +305,20 @@
                     <include>NOTICE</include>
                 </includes>
             </resource>
-
+            <resource>
+                <directory>${basedir}/src/resources</directory>
+                <excludes>
+                  <exclude>storm-core-version-info.properties</exclude>
+                </excludes>
+                <filtering>false</filtering>
+           </resource>
+           <resource>
+              <directory>${basedir}/src/resources</directory>
+              <includes>
+                <include>storm-core-version-info.properties</include>
+             </includes>
+             <filtering>true</filtering>
+         </resource>
         </resources>
         <testResources>
             <testResource>
@@ -464,6 +477,28 @@
                 </dependencies>
             </plugin>
             <plugin>
+               <groupId>org.apache.storm</groupId>
+               <artifactId>storm-maven-plugins</artifactId>
+               <executions>
+                 <execution>
+                   <id>version-info</id>
+                   <phase>generate-resources</phase>
+                   <goals>
+                     <goal>version-info</goal>
+                   </goals>
+                   <configuration>
+                   <source>
+                      <directory>${basedir}/src/</directory>
+                      <includes>
+                        <include>jvm/**/*.java</include>
+                        <include>clj/**/*.clj</include>
+                      </includes>
+                  </source>
+                 </configuration>
+               </execution>
+             </executions>
+          </plugin>
+          <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>2.8</version>
                 <executions>

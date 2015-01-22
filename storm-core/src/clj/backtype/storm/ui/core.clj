@@ -33,6 +33,7 @@
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.utils VersionInfo])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -71,16 +72,6 @@
   (->> summs
        (map #(.get_stats ^ExecutorSummary %))
        (filter not-nil?)))
-
-(defn read-storm-version
-  "Returns a string containing the Storm version or 'Unknown'."
-  []
-  (let [storm-home (System/getProperty "storm.home")
-        release-path (format "%s/RELEASE" storm-home)
-        release-file (File. release-path)]
-    (if (and (.exists release-file) (.isFile release-file))
-      (trim (slurp release-path))
-      "Unknown")))
 
 (defn component-type
   "Returns the component type (either :bolt or :spout) for a given
@@ -510,7 +501,7 @@
                              (map #(.get_num_executors ^TopologySummary %))
                              (reduce +))]
        {"user" user
-        "stormVersion" (read-storm-version)
+        "stormVersion" (str (VersionInfo/getVersion))
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "supervisors" (count sups)
         "slotsTotal" total-slots

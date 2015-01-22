@@ -71,7 +71,6 @@ else:
 if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 
-STORM_RELEASE_DIR = os.path.join(STORM_DIR, "RELEASE")
 STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
 STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
 STORM_LOGBACK_CONF_DIR = os.path.join(STORM_DIR, "logback")
@@ -88,12 +87,12 @@ def get_config_opts():
     global CONFIG_OPTS
     return "-Dstorm.options=" + ','.join(map(quote_plus,CONFIG_OPTS))
 
-if not os.path.exists(STORM_DIR + "/RELEASE"):
+if not os.path.exists(STORM_LIB_DIR):
     print("******************************************")
     print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
     print("\nYou can download a Storm release at http://storm-project.net/downloads.html")
     print("******************************************")
-    sys.exit(1)  
+    sys.exit(1)
 
 def get_jars_full(adir):
     files = os.listdir(adir)
@@ -439,11 +438,11 @@ def version():
 
   Prints the version number of this Storm release.
   """
-  releasefile = STORM_RELEASE_DIR
-  if os.path.exists(releasefile):
-    print(open(releasefile).readline().strip())
-  else:
-    print("Unknown")
+  cppaths = [CLUSTER_CONF_DIR]
+  exec_storm_class(
+       "backtype.storm.utils.VersionInfo",
+       jvmtype="-client",
+       extrajars=[CLUSTER_CONF_DIR])
 
 def print_classpath():
     """Syntax: [storm classpath]

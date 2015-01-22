@@ -258,7 +258,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (let [file (.getCanonicalFile (File. root-dir fname))
           file-length (.length file)
           path (.getCanonicalPath file)]
-      (if (.exists file)
+      (if (and (= (.getCanonicalFile (File. root-dir))
+                  (.getParentFile file))
+               (.exists file))
         (let [default-length 51200
               length (if length
                        (min 10485760 length)

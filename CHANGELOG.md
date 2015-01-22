@@ -31,7 +31,8 @@
  * STORM-600: upgrade jacoco plugin to support jdk8
  * STORM-495: KafkaSpout retries with exponential backoff
  * STORM-620: Duplicate maven plugin declaration
- * STORM-599: Use use nimbus's cached heartbeats rather than fetching again from ZK
+ * STORM-599: Use nimbus's cached heartbeats rather than fetching again from ZK
+ * STORM-559: ZkHosts in README should use 2181 as port.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

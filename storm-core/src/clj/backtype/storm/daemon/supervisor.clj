@@ -302,7 +302,7 @@
                                          ))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
-   :bt-tracker (mk-code-distributor conf)
+   :code-distributor (mk-code-distributor conf)
    })
 
 (defn sync-processes [supervisor]

@@ -35,6 +35,7 @@
  * STORM-559: ZkHosts in README should use 2181 as port.
  * STORM-243: Record version and revision information in builds
  * STORM-630: Support for Clojure 1.6.0
+ * STORM-629: Place Link to Source Code Repository on Webpage
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

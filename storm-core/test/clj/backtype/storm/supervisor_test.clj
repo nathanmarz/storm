@@ -358,7 +358,7 @@
 (defn rm-r [f]
   (if (.isDirectory f)
     (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f) 
+    (.delete f)
   ))
 
 (deftest test-worker-launch-command-run-as-user
@@ -521,7 +521,7 @@
 (defn found? [sub-str input-str]
   (if (string? input-str)
     (contrib-str/substring? sub-str (str input-str))
-    (some? #(contrib-str/substring? sub-str %) input-str)))
+    (boolean (some #(contrib-str/substring? sub-str %) input-str))))
 
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))

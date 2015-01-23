@@ -1,4 +1,8 @@
 ## 0.10.0
+ * STORM-456: Storm UI: cannot navigate to topology page when name contains spaces.
+ * STORM-627: Storm-hbase configuration error.
+ * STORM-248: cluster.xml location is hardcoded for workers
+ * STORM-322: Windows script do not handle spaces in JAVA_HOME path
  * STORM-586: Trident kafka spout fails instead of updating offset when kafka offset is out of range.
  * STORM-595: storm-hdfs can only work with sequence files that use Writables.
  * STORM-487: Remove storm.cmd, no need to duplicate work python runs on windows too.
@@ -20,9 +24,16 @@
  * STORM-611: Remove extra "break"s
  * STORM-610: Check the return value of fts_close()
  * STORM-442: multilang ShellBolt/ShellSpout die() can be hang when Exception happened
- * STORM-599: Use use nimbus's cached heartbeats rather than fetching again from ZK
  * STORM-410: Add groups support to log-viewer
  * STORM-444: Add AutoHDFS like credential fetching for HBase
+ * STORM-552: Add netty socket backlog config
+ * STORM-578: Calls to submit-mocked-assignment in supervisor-test use invalid executor-id format
+ * STORM-600: upgrade jacoco plugin to support jdk8
+ * STORM-495: KafkaSpout retries with exponential backoff
+ * STORM-620: Duplicate maven plugin declaration
+ * STORM-599: Use nimbus's cached heartbeats rather than fetching again from ZK
+ * STORM-559: ZkHosts in README should use 2181 as port.
+ * STORM-243: Record version and revision information in builds
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

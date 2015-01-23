@@ -96,10 +96,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup1" 3]
-                           [4] ["sup1" 3]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup1" 3]
+                           [4 4] ["sup1" 3]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2 3])
@@ -147,10 +147,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup2" 1]
-                           [4] ["sup2" 1]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup2" 1]
+                           [4 4] ["sup2" 1]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2])
@@ -168,9 +168,9 @@
                           {1 "1"
                            2 "1"
                            3 "1"}
-                          {[1] ["sup1" 3]
-                           [2] ["sup1" 3]
-                           [3] ["sup2" 2]
+                          {[1 1] ["sup1" 3]
+                           [2 2] ["sup1" 3]
+                           [3 3] ["sup2" 2]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [3])
@@ -611,8 +611,8 @@
                      topology1
                      {1 "1"
                       2 "1"}
-                     {[1] ["sup1" 1]
-                      [2] ["sup1" 2]
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]
                       })
                     (submit-mocked-assignment
                      (:nimbus cluster)
@@ -621,8 +621,8 @@
                      topology2
                      {1 "1"
                       2 "1"}
-                     {[1] ["sup1" 1]
-                      [2] ["sup1" 2]
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]
                       })
                     (advance-cluster-time cluster 10)
                     ))

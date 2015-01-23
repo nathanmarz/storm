@@ -1264,7 +1264,7 @@
               base (.storm-base storm-cluster-state storm-id nil)
               launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (map-val :heartbeat @(:heartbeats-cache nimbus))
+              beats (map-val :heartbeat (get @(:heartbeats-cache nimbus) storm-id))
               all-components (-> task->component reverse-map keys)
               errors (->> all-components
                           (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))

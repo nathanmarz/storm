@@ -240,6 +240,17 @@ Alibaba is the leading B2B e-commerce website in the world. We use storm to proc
 
 <tr>
 <td>
+<a href="http://iQIYI.COM">iQIYI</a>
+</td>
+<td>
+<p>
+iQIYI is China`s largest online video platform. We are using Storm in our video advertising system, video recommendation system, log analysis system and many other scenarios. Now we have several standalone Storm clusters, and we also have Storm clusters on Mesos and on Yarn. Kafka-Storm integration and Storm–HBase integration are quite common in our production environment. We have great interests in the new development about integration of Storm with other applications, like HBase, HDFS and Kafka.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
 <a href="http://www.baidu.com/">Baidu</a>
 </td>
 <td>

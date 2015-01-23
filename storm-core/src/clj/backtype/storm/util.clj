@@ -617,7 +617,7 @@
   (while (not (apredicate))
     (Time/sleep 100)))
 
-(defn some?
+(defn some-in-seq?
   [pred aseq]
   ((complement nil?) (some pred aseq)))
 
@@ -854,7 +854,7 @@
 (defn zip-contains-dir?
   [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target "/")) entries)))
+    (some-in-seq? #(.startsWith % (str target "/")) entries)))
 
 (defn url-encode
   [s]

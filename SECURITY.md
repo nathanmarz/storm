@@ -351,7 +351,7 @@ By default storm allows any sized topology to be submitted. But ZK and others ha
 | nimbus.executors.perTopology | The maximum number of executors/threads a topology can use. |
 
 ### Log Cleanup
-The Logviewer deamon now is also responsible for cleaning up old log files for dead topologies.
+The Logviewer daemon now is also responsible for cleaning up old log files for dead topologies.
 
 | YAML Setting | Description |
 |--------------|-------------------------------------|

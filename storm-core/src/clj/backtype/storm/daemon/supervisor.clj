@@ -54,10 +54,10 @@
                       {sid nil})))
            (apply merge)
            (filter-val not-nil?))]
-          
+
       {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
        :versions new-assignments})))
-  
+
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -163,7 +163,7 @@
      )))
 
 (defn- wait-for-worker-launch [conf id start-time]
-  (let [state (worker-state conf id)]    
+  (let [state (worker-state conf id)]
     (loop []
       (let [hb (.get state LS-WORKER-HEARTBEAT)]
         (when (and
@@ -305,6 +305,7 @@
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
+        storm-cluster-state (:storm-cluster-state supervisor)
         assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
@@ -327,7 +328,7 @@
     ;; 5. create local dir for worker id
     ;; 5. launch new workers (give worker-id, port, and supervisor-id)
     ;; 6. wait for workers launch
-  
+
     (log-debug "Syncing processes")
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
@@ -349,6 +350,20 @@
                         (keys keepers))
            (zipmap (vals new-worker-ids) (keys new-worker-ids))
            ))
+
+    ;; check storm topology code dir exists before launching workers
+    (doseq [[port assignment] reassign-executors]
+      (let [storm-cluster-state (:storm-cluster-state supervisor)
+            downloaded-storm-ids (set (read-downloaded-storm-ids conf))
+            storm-id (:storm-id assignment)
+            assignment-info (.assignment-info-with-version storm-cluster-state storm-id nil)
+            storm-code-map (read-storm-code-locations assignment-info)
+            master-code-dir (if (contains? storm-code-map :data) (storm-code-map :data))
+            stormroot (supervisor-stormdist-root conf storm-id)]
+        (if-not (or (downloaded-storm-ids storm-id) (.exists (File. stormroot)))
+          (download-storm-code conf storm-id master-code-dir))
+        ))
+
     (wait-for-workers-launch
      conf
      (dofor [[port assignment] reassign-executors]
@@ -399,7 +414,7 @@
           sync-callback (fn [& ignored] (.add event-manager this))
           assignment-versions @(:assignment-versions supervisor)
           {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
-                                                                   storm-cluster-state sync-callback 
+                                                                   storm-cluster-state sync-callback
                                                                    assignment-versions)
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
@@ -417,7 +432,7 @@
       (log-debug "Downloaded storm ids: " downloaded-storm-ids)
       (log-debug "All assignment: " all-assignment)
       (log-debug "New assignment: " new-assignment)
-      
+
       ;; download code first
       ;; This might take awhile
       ;;   - should this be done separately from usual monitoring?
@@ -425,16 +440,7 @@
       (doseq [[storm-id master-code-dir] storm-code-map]
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
-          (log-message "Downloading code for storm id "
-             storm-id
-             " from "
-             master-code-dir)
-          (download-storm-code conf storm-id master-code-dir)
-          (log-message "Finished downloading code for storm id "
-             storm-id
-             " from "
-             master-code-dir)
-          ))
+          (download-storm-code conf storm-id master-code-dir)))
 
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
@@ -470,7 +476,7 @@
   (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
   (let [supervisor (supervisor-data conf shared-context isupervisor)
-        [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]                         
+        [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
         sync-processes (partial sync-processes supervisor)
         synchronize-supervisor (mk-synchronize-supervisor supervisor sync-processes event-manager processes-event-manager)
         heartbeat-fn (fn [] (.supervisor-heartbeat!
@@ -542,14 +548,24 @@
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
+      (log-message "Downloading code for storm id "
+                   storm-id
+                   " from "
+                   master-code-dir)
       (FileUtils/forceMkdir (File. tmproot))
-      
+
       (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
       (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
-      (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
+      (if-not (.exists (File. stormroot))
+        (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+        (FileUtils/deleteDirectory (File. tmproot)))
+      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
+      (log-message "Finished downloading code for storm id "
+                   storm-id
+                   " from "
+                   master-code-dir)
     ))
 
 (defn write-log-metadata-to-yaml-file! [storm-id port data conf]
@@ -595,7 +611,7 @@
                          "%WORKER-PORT%" (str port)}
         sub-fn #(reduce (fn [string entry]
                           (apply clojure.string/replace string entry))
-                        % 
+                        %
                         replacement-map)]
     (cond
       (nil? value) nil

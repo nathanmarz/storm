@@ -185,6 +185,7 @@ under the License.
 * Mansheng Yang ([@lightyang](https://github.com/lightyang))
 * Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
 * 周向涛 ([@taojoe](https://github.com/taojoe))
+* Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
 
 ## Acknowledgements
 

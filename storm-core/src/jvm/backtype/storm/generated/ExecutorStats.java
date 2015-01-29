@@ -44,16 +44,19 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
   private static final org.apache.thrift.protocol.TField EMITTED_FIELD_DESC = new org.apache.thrift.protocol.TField("emitted", org.apache.thrift.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift.protocol.TField TRANSFERRED_FIELD_DESC = new org.apache.thrift.protocol.TField("transferred", org.apache.thrift.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift.protocol.TField SPECIFIC_FIELD_DESC = new org.apache.thrift.protocol.TField("specific", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift.protocol.TField RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("rate", org.apache.thrift.protocol.TType.DOUBLE, (short)4);
 
   private Map<String,Map<String,Long>> emitted; // required
   private Map<String,Map<String,Long>> transferred; // required
   private ExecutorSpecificStats specific; // required
+  private double rate; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EMITTED((short)1, "emitted"),
     TRANSFERRED((short)2, "transferred"),
-    SPECIFIC((short)3, "specific");
+    SPECIFIC((short)3, "specific"),
+    RATE((short)4, "rate");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -74,6 +77,8 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
           return TRANSFERRED;
         case 3: // SPECIFIC
           return SPECIFIC;
+        case 4: // RATE
+          return RATE;
         default:
           return null;
       }
@@ -114,24 +119,28 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
   }
 
   // isset id assignments
+  private static final int __RATE_ISSET_ID = 0;
+  private BitSet __isset_bit_vector = new BitSet(1);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EMITTED, new org.apache.thrift.meta_data.FieldMetaData("emitted", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+    tmpMap.put(_Fields.EMITTED, new org.apache.thrift.meta_data.FieldMetaData("emitted", org.apache.thrift.TFieldRequirementType.REQUIRED,
+        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP,
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING),
+            new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP,
+                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING),
                 new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)))));
-    tmpMap.put(_Fields.TRANSFERRED, new org.apache.thrift.meta_data.FieldMetaData("transferred", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+    tmpMap.put(_Fields.TRANSFERRED, new org.apache.thrift.meta_data.FieldMetaData("transferred", org.apache.thrift.TFieldRequirementType.REQUIRED,
+        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP,
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING),
+            new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP,
+                new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING),
                 new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)))));
-    tmpMap.put(_Fields.SPECIFIC, new org.apache.thrift.meta_data.FieldMetaData("specific", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.SPECIFIC, new org.apache.thrift.meta_data.FieldMetaData("specific", org.apache.thrift.TFieldRequirementType.REQUIRED,
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ExecutorSpecificStats.class)));
+    tmpMap.put(_Fields.RATE, new org.apache.thrift.meta_data.FieldMetaData("rate", org.apache.thrift.TFieldRequirementType.REQUIRED,
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ExecutorStats.class, metaDataMap);
   }
@@ -142,18 +151,23 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
   public ExecutorStats(
     Map<String,Map<String,Long>> emitted,
     Map<String,Map<String,Long>> transferred,
-    ExecutorSpecificStats specific)
+    ExecutorSpecificStats specific,
+    double rate)
   {
     this();
     this.emitted = emitted;
     this.transferred = transferred;
     this.specific = specific;
+    this.rate = rate;
+    set_rate_isSet(true);
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public ExecutorStats(ExecutorStats other) {
+    __isset_bit_vector.clear();
+    __isset_bit_vector.or(other.__isset_bit_vector);
     if (other.is_set_emitted()) {
       Map<String,Map<String,Long>> __this__emitted = new HashMap<String,Map<String,Long>>();
       for (Map.Entry<String, Map<String,Long>> other_element : other.emitted.entrySet()) {
@@ -209,6 +223,7 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
     if (other.is_set_specific()) {
       this.specific = new ExecutorSpecificStats(other.specific);
     }
+    this.rate = other.rate;
   }
 
   public ExecutorStats deepCopy() {
@@ -220,6 +235,8 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
     this.emitted = null;
     this.transferred = null;
     this.specific = null;
+    set_rate_isSet(false);
+    this.rate = 0.0;
   }
 
   public int get_emitted_size() {
@@ -313,6 +330,28 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
     }
   }
 
+  public double get_rate() {
+    return this.rate;
+  }
+
+  public void set_rate(double rate) {
+    this.rate = rate;
+    set_rate_isSet(true);
+  }
+
+  public void unset_rate() {
+    __isset_bit_vector.clear(__RATE_ISSET_ID);
+  }
+
+  /** Returns true if field rate is set (has been assigned a value) and false otherwise */
+  public boolean is_set_rate() {
+    return __isset_bit_vector.get(__RATE_ISSET_ID);
+  }
+
+  public void set_rate_isSet(boolean value) {
+    __isset_bit_vector.set(__RATE_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case EMITTED:
@@ -339,6 +378,14 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
       }
       break;
 
+    case RATE:
+      if (value == null) {
+        unset_rate();
+      } else {
+        set_rate((Double)value);
+      }
+      break;
+
     }
   }
 
@@ -352,6 +399,9 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
 
     case SPECIFIC:
       return get_specific();
+
+    case RATE:
+      return Double.valueOf(get_rate());
 
     }
     throw new IllegalStateException();
@@ -370,6 +420,8 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
       return is_set_transferred();
     case SPECIFIC:
       return is_set_specific();
+    case RATE:
+      return is_set_rate();
     }
     throw new IllegalStateException();
   }
@@ -414,6 +466,15 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
         return false;
     }
 
+    boolean this_present_rate = true;
+    boolean that_present_rate = true;
+    if (this_present_rate || that_present_rate) {
+      if (!(this_present_rate && that_present_rate))
+        return false;
+      if (this.rate != that.rate)
+        return false;
+    }
+
     return true;
   }
 
@@ -435,6 +496,11 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
     builder.append(present_specific);
     if (present_specific)
       builder.append(specific);
+
+    boolean present_rate = true;
+    builder.append(present_rate);
+    if (present_rate)
+      builder.append(rate);
 
     return builder.toHashCode();
   }
@@ -477,6 +543,16 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_rate()).compareTo(typedOther.is_set_rate());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_rate()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rate, typedOther.rate);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -490,7 +566,7 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift.protocol.TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -564,6 +640,14 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 4: // RATE
+          if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
+            this.rate = iprot.readDouble();
+            set_rate_isSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -624,6 +708,9 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
       this.specific.write(oprot);
       oprot.writeFieldEnd();
     }
+    oprot.writeFieldBegin(RATE_FIELD_DESC);
+    oprot.writeDouble(this.rate);
+    oprot.writeFieldEnd();
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -656,6 +743,10 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
       sb.append(this.specific);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("rate:");
+    sb.append(this.rate);
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -674,6 +765,10 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'specific' is unset! Struct:" + toString());
     }
 
+    if (!is_set_rate()) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'rate' is unset! Struct:" + toString());
+    }
+
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -686,6 +781,8 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
+      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+      __isset_bit_vector = new BitSet(1);
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);

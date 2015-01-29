@@ -103,6 +103,6 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
     }
     
     private IBatchBolt newTransactionalBolt() {
-        return (IBatchBolt) Utils.deserialize(_boltSer);
+        return Utils.deserialize(_boltSer, IBatchBolt.class);
     }
 }

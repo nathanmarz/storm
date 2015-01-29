@@ -17,41 +17,35 @@
  */
 package backtype.storm.serialization;
 
-import java.io.*;
+import org.apache.thrift.TBase;
+
 import java.util.Map;
 
-public class DefaultSerializationDelegate implements SerializationDelegate {
+public class ThriftSerializationDelegateBridge implements SerializationDelegate {
+    private SerializationDelegate thriftSerializationDelegate = new ThriftSerializationDelegate();
+    private SerializationDelegate defaultSerializationDelegate = new DefaultSerializationDelegate();
 
     @Override
     public void prepare(Map stormConf) {
-        // No-op
+        this.thriftSerializationDelegate.prepare(stormConf);
+        this.defaultSerializationDelegate.prepare(stormConf);
     }
 
     @Override
     public byte[] serialize(Object object) {
-        try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(object);
-            oos.close();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if(object instanceof TBase) {
+            return thriftSerializationDelegate.serialize(object);
+        } else {
+            return defaultSerializationDelegate.serialize(object);
         }
     }
 
     @Override
     public <T> T deserialize(byte[] bytes, Class<T> clazz) {
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            ObjectInputStream ois = new ObjectInputStream(bis);
-            Object ret = ois.readObject();
-            ois.close();
-            return (T)ret;
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        } catch(ClassNotFoundException e) {
-            throw new RuntimeException(e);
+        if(TBase.class.isAssignableFrom(clazz)) {
+            return thriftSerializationDelegate.deserialize(bytes, clazz);
+        } else {
+            return defaultSerializationDelegate.deserialize(bytes, clazz);
         }
     }
 }

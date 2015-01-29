@@ -17,55 +17,30 @@
  */
 package backtype.storm.serialization;
 
-import static org.junit.Assert.*;
+import backtype.storm.generated.ErrorInfo;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.Serializable;
-import org.junit.Test;
-import org.junit.Before;
+
+import static org.junit.Assert.assertEquals;
 
 
-public class GzipBridgeSerializationDelegateTest {
+public class ThriftBridgeSerializationDelegateTest {
 
     SerializationDelegate testDelegate;
 
     @Before
     public void setUp() throws Exception {
-        testDelegate = new GzipBridgeSerializationDelegate();
+        testDelegate = new ThriftSerializationDelegateBridge();
+        testDelegate.prepare(null);
     }
 
     @Test
-    public void testDeserialize_readingFromGzip() throws Exception {
+    public void testNonThriftInstance() throws Exception {
         TestPojo pojo = new TestPojo();
         pojo.name = "foo";
         pojo.age = 100;
-
-        byte[] serialized = new GzipSerializationDelegate().serialize(pojo);
-
-        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized, TestPojo.class);
-
-        assertEquals(pojo2.name, pojo.name);
-        assertEquals(pojo2.age, pojo.age);
-    }
-
-    @Test
-    public void testDeserialize_readingFromGzipBridge() throws Exception {
-        TestPojo pojo = new TestPojo();
-        pojo.name = "bar";
-        pojo.age = 200;
-
-        byte[] serialized = new GzipBridgeSerializationDelegate().serialize(pojo);
-
-        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized, TestPojo.class);
-
-        assertEquals(pojo2.name, pojo.name);
-        assertEquals(pojo2.age, pojo.age);
-    }
-
-    @Test
-    public void testDeserialize_readingFromDefault() throws Exception {
-        TestPojo pojo = new TestPojo();
-        pojo.name = "baz";
-        pojo.age = 300;
 
         byte[] serialized = new DefaultSerializationDelegate().serialize(pojo);
 
@@ -73,6 +48,28 @@ public class GzipBridgeSerializationDelegateTest {
 
         assertEquals(pojo2.name, pojo.name);
         assertEquals(pojo2.age, pojo.age);
+
+        serialized = testDelegate.serialize(pojo);
+        pojo2 = (TestPojo) new DefaultSerializationDelegate().deserialize(serialized, Serializable.class);
+        assertEquals(pojo2.name, pojo.name);
+        assertEquals(pojo2.age, pojo.age);
+    }
+
+    @Test
+    public void testThriftInstance() throws Exception {
+        ErrorInfo errorInfo = new ErrorInfo();
+        errorInfo.set_error("error");
+        errorInfo.set_error_time_secs(1);
+        errorInfo.set_host("host");
+        errorInfo.set_port(1);
+
+        byte[] serialized = new ThriftSerializationDelegate().serialize(errorInfo);
+        ErrorInfo errorInfo2 = testDelegate.deserialize(serialized, ErrorInfo.class);
+        assertEquals(errorInfo, errorInfo2);
+
+        serialized = testDelegate.serialize(errorInfo);
+        errorInfo2 = new ThriftSerializationDelegate().deserialize(serialized, ErrorInfo.class);
+        assertEquals(errorInfo, errorInfo2);
     }
 
     static class TestPojo implements Serializable {

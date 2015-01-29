@@ -15,12 +15,14 @@
 ;; limitations under the License.
 
 (ns backtype.storm.thrift
-  (:import [java.util HashMap])
+  (:import [java.util HashMap]
+           [java.io Serializable]
+           [backtype.storm.generated NodeInfo Assignment])
   (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology
             StormTopology$_Fields Bolt Nimbus$Client Nimbus$Iface
             ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
             GlobalStreamId ComponentObject ComponentObject$_Fields
-            ShellComponent])
+            ShellComponent SupervisorInfo])
   (:import [backtype.storm.utils Utils NimbusClient])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
@@ -155,7 +157,7 @@
   [^ComponentObject obj]
   (when (not= (.getSetField obj) ComponentObject$_Fields/SERIALIZED_JAVA)
     (throw (RuntimeException. "Cannot deserialize non-java-serialized object")))
-  (Utils/deserialize (.get_serialized_java obj)))
+  (Utils/deserialize (.get_serialized_java obj) Serializable))
 
 (defn serialize-component-object
   [obj]
@@ -271,3 +273,4 @@
 (def SPOUT-FIELDS
   [StormTopology$_Fields/SPOUTS
    StormTopology$_Fields/STATE_SPOUTS])
+

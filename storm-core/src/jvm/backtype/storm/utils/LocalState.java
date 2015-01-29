@@ -64,7 +64,7 @@ public class LocalState {
             if (serialized.length == 0) {
                 LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
             } else {
-                result = (Map<Object, Object>) Utils.deserialize(serialized);
+                result = Utils.deserialize(serialized, Map.class);
             }
         }
         return result;

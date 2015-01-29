@@ -42,11 +42,11 @@ public class GzipBridgeSerializationDelegate implements SerializationDelegate {
     }
 
     @Override
-    public Object deserialize(byte[] bytes) {
+    public <T> T deserialize(byte[] bytes, Class<T> clazz) {
         if (isGzipped(bytes)) {
-            return gzipDelegate.deserialize(bytes);
+            return gzipDelegate.deserialize(bytes, clazz);
         } else {
-            return defaultDelegate.deserialize(bytes);
+            return defaultDelegate.deserialize(bytes,clazz);
         }
     }
 

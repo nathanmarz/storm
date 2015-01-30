@@ -76,6 +76,16 @@
           </execution>
         </executions>
       </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-install-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>default-install</id>
+                    <phase>package</phase>
+                </execution>
+            </executions>
+        </plugin>
     </plugins>
   </build>
 </project>

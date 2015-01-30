@@ -45,7 +45,7 @@
   (let [storm-ids (.assignments storm-cluster-state callback)]
     (let [new-assignments 
           (->>
-           (dofor [sid storm-ids] 
+           (dofor [sid storm-ids]
                   (let [recorded-version (:version (get assignment-versions sid))]
                     (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
                       (if (= assignment-version recorded-version)
@@ -149,7 +149,7 @@
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
-                         (or 
+                         (or
                           (when (get (get-dead-workers) id)
                             (log-message "Worker Process " id " has died!")
                             true)
@@ -300,10 +300,12 @@
                                          ))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
+   :download-lock (Object.)
    })
 
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
+        download-lock (:download-lock supervisor)
         ^LocalState local-state (:local-state supervisor)
         storm-cluster-state (:storm-cluster-state supervisor)
         assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
@@ -353,15 +355,16 @@
 
     ;; check storm topology code dir exists before launching workers
     (doseq [[port assignment] reassign-executors]
-      (let [storm-cluster-state (:storm-cluster-state supervisor)
-            downloaded-storm-ids (set (read-downloaded-storm-ids conf))
+      (let [downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             storm-id (:storm-id assignment)
-            assignment-info (.assignment-info-with-version storm-cluster-state storm-id nil)
+            cached-assignment-info @(:assignment-versions supervisor)
+            assignment-info (if (nil? cached-assignment-info) (.assignment-info-with-version storm-cluster-state storm-id nil)
+                                (get cached-assignment-info storm-id))
             storm-code-map (read-storm-code-locations assignment-info)
             master-code-dir (if (contains? storm-code-map :data) (storm-code-map :data))
             stormroot (supervisor-stormdist-root conf storm-id)]
         (if-not (or (downloaded-storm-ids storm-id) (.exists (File. stormroot)))
-          (download-storm-code conf storm-id master-code-dir))
+          (download-storm-code conf storm-id master-code-dir download-lock))
         ))
 
     (wait-for-workers-launch
@@ -408,14 +411,15 @@
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
+          download-lock (:download-lock supervisor)
           storm-cluster-state (:storm-cluster-state supervisor)
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
           assignment-versions @(:assignment-versions supervisor)
-          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
+          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot
                                                                    storm-cluster-state sync-callback
-                                                                   assignment-versions)
+                                                                  assignment-versions)
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)
@@ -440,7 +444,7 @@
       (doseq [[storm-id master-code-dir] storm-code-map]
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
-          (download-storm-code conf storm-id master-code-dir)))
+          (download-storm-code conf storm-id master-code-dir download-lock)))
 
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
@@ -544,29 +548,30 @@
 
 ;; distributed implementation
 (defmethod download-storm-code
-    :distributed [conf storm-id master-code-dir]
+    :distributed [conf storm-id master-code-dir download-lock]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
-      (log-message "Downloading code for storm id "
-                   storm-id
-                   " from "
-                   master-code-dir)
-      (FileUtils/forceMkdir (File. tmproot))
+      (locking download-lock
+            (log-message "Downloading code for storm id "
+                         storm-id
+                         " from "
+                         master-code-dir)
+            (FileUtils/forceMkdir (File. tmproot))
 
-      (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
-      (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
-      (if-not (.exists (File. stormroot))
-        (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-        (FileUtils/deleteDirectory (File. tmproot)))
-      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
-      (log-message "Finished downloading code for storm id "
-                   storm-id
-                   " from "
-                   master-code-dir)
-    ))
+            (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
+            (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
+            (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
+            (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
+            (if-not (.exists (File. stormroot))
+              (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+              (FileUtils/deleteDirectory (File. tmproot)))
+            (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
+            (log-message "Finished downloading code for storm id "
+                         storm-id
+                         " from "
+                         master-code-dir))
+      ))
 
 (defn write-log-metadata-to-yaml-file! [storm-id port data conf]
   (let [file (get-log-metadata-file storm-id port)]
@@ -600,9 +605,9 @@
         os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
         arch (System/getProperty "os.arch")
         arch-resource-root (str resource-root File/separator os "-" arch)]
-    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
+    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH))))
 
-(defn substitute-childopts 
+(defn substitute-childopts
   "Generates runtime childopts by replacing keys with topology-id, worker-id, port"
   [value worker-id topology-id port]
   (let [replacement-map {"%ID%"          (str port)
@@ -684,10 +689,10 @@
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
-           callback (fn [exit-code] 
+           callback (fn [exit-code]
                           (log-message log-prefix " exited with code: " exit-code)
                           (add-dead-worker worker-id))]
-        (remove-dead-worker worker-id) 
+        (remove-dead-worker worker-id)
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
             (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback))
@@ -703,25 +708,27 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir]
-  (let [stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
-      (let [classloader (.getContextClassLoader (Thread/currentThread))
-            resources-jar (resources-jar)
-            url (.getResource classloader RESOURCES-SUBDIR)
-            target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
-            (cond
-              resources-jar
-              (do
-                (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
-                (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
-              url
-              (do
-                (log-message "Copying resources at " (URI. (str url)) " to " target-dir)
-                (if (= (.getProtocol url) "jar" )
-                    (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
-                    (FileUtils/copyDirectory (File. (.getPath (URI. (str url)))) (File. target-dir)))
-                )
+    :local [conf storm-id master-code-dir download-lock]
+    (let [stormroot (supervisor-stormdist-root conf storm-id)]
+      (locking download-lock
+            (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
+            (let [classloader (.getContextClassLoader (Thread/currentThread))
+                  resources-jar (resources-jar)
+                  url (.getResource classloader RESOURCES-SUBDIR)
+                  target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
+              (cond
+               resources-jar
+               (do
+                 (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
+                 (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
+               url
+               (do
+                 (log-message "Copying resources at " (URI. (str url)) " to " target-dir)
+                 (if (= (.getProtocol url) "jar" )
+                   (extract-dir-from-jar (.getFile (.getJarFileURL (.openConnection url))) RESOURCES-SUBDIR stormroot)
+                   (FileUtils/copyDirectory (File. (.getPath (URI. (str url)))) (File. target-dir)))
+                 )
+               )
               )
             )))
 

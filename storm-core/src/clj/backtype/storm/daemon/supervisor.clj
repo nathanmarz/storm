@@ -358,12 +358,13 @@
       (let [downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             storm-id (:storm-id assignment)
             cached-assignment-info @(:assignment-versions supervisor)
-            assignment-info (if (nil? cached-assignment-info) (.assignment-info-with-version storm-cluster-state storm-id nil)
-                                (get cached-assignment-info storm-id))
-            storm-code-map (read-storm-code-locations assignment-info)
+            assignment-info (if (and (not-nil? cached-assignment-info) (contains? cached-assignment-info storm-id ))
+                              (get cached-assignment-info storm-id)
+                              (.assignment-info-with-version storm-cluster-state storm-id nil)) 
+	    storm-code-map (read-storm-code-locations assignment-info)
             master-code-dir (if (contains? storm-code-map :data) (storm-code-map :data))
             stormroot (supervisor-stormdist-root conf storm-id)]
-        (if-not (or (downloaded-storm-ids storm-id) (.exists (File. stormroot)))
+        (if-not (or (contains? downloaded-storm-ids storm-id) (.exists (File. stormroot)) (nil? master-code-dir))
           (download-storm-code conf storm-id master-code-dir download-lock))
         ))
 

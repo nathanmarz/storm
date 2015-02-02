@@ -37,6 +37,7 @@
  * STORM-630: Support for Clojure 1.6.0
  * STORM-629: Place Link to Source Code Repository on Webpage
  * STORM-632: New grouping for better load balancing
+ * STORM-527: update worker.clj -- delete "missing-tasks" checking
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

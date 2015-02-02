@@ -86,8 +86,8 @@ public class ReturnResults extends BaseRichBolt {
             try {
                 client.result(id, result);
                 _collector.ack(input);
-            } catch(TException e) {
-                LOG.error("Failed to return results to DRPC server", e);
+            } catch (AuthorizationException aze) {
+                LOG.error("Not authorized to return results to DRPC server", aze);
                 _collector.fail(input);
                 if (client instanceof DRPCInvocationsClient) {
                     try {
@@ -97,8 +97,8 @@ public class ReturnResults extends BaseRichBolt {
                         throw new RuntimeException(e2);
                     }
                 }
-            } catch (AuthorizationException aze) {
-                LOG.error("Not authorized to return results to DRPC server", aze);
+            } catch(TException e) {
+                LOG.error("Failed to return results to DRPC server", e);
                 _collector.fail(input);
                 if (client instanceof DRPCInvocationsClient) {
                     try {

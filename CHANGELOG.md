@@ -39,7 +39,8 @@
  * STORM-632: New grouping for better load balancing
  * STORM-527: update worker.clj -- delete "missing-tasks" checking
  * STORM-623: Generate latest javadocs
- * STORM-635. logviewer returns 404 if storm_home/logs is a symlinked dir.
+ * STORM-635: logviewer returns 404 if storm_home/logs is a symlinked dir.
+ * STORM-636: Faster, optional retrieval of last component error
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

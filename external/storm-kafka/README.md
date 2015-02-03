@@ -8,7 +8,7 @@ We support both trident and core storm spouts. For both spout implementation we 
 tracks kafka broker host to partition mapping and kafkaConfig that controls some kafka related parameters.
  
 ###BrokerHosts
-In order to initialize your kafka spout/emitter you need to construct and instance of the marker interface BrokerHosts. 
+In order to initialize your kafka spout/emitter you need to construct an instance of the marker interface BrokerHosts. 
 Currently we support following two implementations:
 
 ####ZkHosts
@@ -18,7 +18,7 @@ Kafka's zookeeper's entries to track brokerHost -> partition mapping. You can in
     public ZkHosts(String brokerZkStr, String brokerZkPath) 
     public ZkHosts(String brokerZkStr)
 ```
-Where brokerZkStr is just ip:port e.g. localhost:9092. brokerZkPath is the root directory under which all the topics and
+Where brokerZkStr is just ip:port e.g. localhost:2181. brokerZkPath is the root directory under which all the topics and
 partition information is stored. by Default this is /brokers which is what default kafka implementation uses.
 
 By default the broker-partition mapping is refreshed every 60 seconds from zookeeper. If you want to change it you
@@ -33,9 +33,9 @@ of this class you need to first construct an instance of GlobalPartitionInformat
     Broker brokerForPartition1 = new Broker("localhost", 9092);//localhost:9092 but we specified the port explicitly
     Broker brokerForPartition2 = new Broker("localhost:9092");//localhost:9092 specified as one string.
     GlobalPartitionInformation partitionInfo = new GlobalPartitionInformation();
-    partitionInfo.add(0, brokerForPartition0)//mapping form partition 0 to brokerForPartition0
-    partitionInfo.add(1, brokerForPartition1)//mapping form partition 1 to brokerForPartition1
-    partitionInfo.add(2, brokerForPartition2)//mapping form partition 2 to brokerForPartition2
+    partitionInfo.addPartition(0, brokerForPartition0);//mapping form partition 0 to brokerForPartition0
+    partitionInfo.addPartition(1, brokerForPartition1);//mapping form partition 1 to brokerForPartition1
+    partitionInfo.addPartition(2, brokerForPartition2);//mapping form partition 2 to brokerForPartition2
     StaticHosts hosts = new StaticHosts(partitionInfo);
 ```
 
@@ -46,22 +46,34 @@ The second thing needed for constructing a kafkaSpout is an instance of KafkaCon
     public KafkaConfig(BrokerHosts hosts, String topic, String clientId)
 ```
 
-The BorkerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
+The BrokerHosts can be any implementation of BrokerHosts interface as described above. the Topic is name of kafka topic.
 The optional ClientId is used as a part of the zookeeper path where the spout's current consumption offset is stored.
 
 There are 2 extensions of KafkaConfig currently in use.
 
-Spoutconfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
-as root to store your consumer's offset. The id should uniquely identify your spout.
+Spoutconfig is an extension of KafkaConfig that supports additional fields with ZooKeeper connection info and for controlling
+behavior specific to KafkaSpout. The Zkroot will be used as root to store your consumer's offset. The id should uniquely
+identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);
+public SpoutConfig(BrokerHosts hosts, String topic, String id);
+```
+In addition to these parameters, SpoutConfig contains the following fields that control how KafkaSpout behaves:
+```java
+    // setting for how often to save the current kafka offset to ZooKeeper
+    public long stateUpdateIntervalMs = 2000;
+
+    // Exponential back-off retry settings.  These are used when retrying messages after a bolt
+    // calls OutputCollector.fail().
+    // Note: be sure to set backtype.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
+    // resubmitting the message while still retrying.
+    public long retryInitialDelayMs = 0;
+    public double retryDelayMultiplier = 1.0;
+    public long retryDelayMaxMs = 60 * 1000;
 ```
 Core KafkaSpout only accepts an instance of SpoutConfig.
 
 TridentKafkaConfig is another extension of KafkaConfig.
-```java
-public SpoutConfig(BrokerHosts hosts, String topic, String id);
-```
 TridentKafkaEmitter only accepts TridentKafkaConfig.
 
 The KafkaConfig class also has bunch of public variables that controls your application's behavior. Here are defaults:
@@ -121,7 +133,6 @@ use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependen
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
             <version>0.8.1.1</version>
-            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>

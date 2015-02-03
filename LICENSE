@@ -206,7 +206,19 @@
 
 For jQuery 1.6.2 (storm-core/src/ui/public/js/jquery-1.6.2.min.js)
 
-Copyright (c) 2009 John Resig, http://jquery.com/
+jQuery JavaScript Library v1.6.2
+http://jquery.com/
+
+Copyright 2011, John Resig
+Dual licensed under the MIT or GPL Version 2 licenses.
+http://jquery.org/license
+
+Includes Sizzle.js
+http://sizzlejs.com/
+Copyright 2011, The Dojo Foundation
+Released under the MIT, BSD, and GPL Licenses.
+
+MIT license selected:
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -371,16 +383,6 @@ For Arbor Tween (storm-core/src/ui/public/js/arbor-tween.js)
 
 -----------------------------------------------------------------------
 
-For Purl (storm-core/src/ui/public/js/purl.js)
-
-Purl (A JavaScript URL parser) v2.3.1
-Developed and maintanined by Mark Perkins, mark@allmarkedup.com
-Source repository: https://github.com/allmarkedup/jQuery-URL-Parser
-Licensed under an MIT-style license. See https://github.com/allmarkedup/jQuery-URL-Parser/blob/master/LICENSE for details.
-
-
------------------------------------------------------------------------
-
 For mustache.js (storm-core/src/ui/public/js/jquery.mustache.js)
 
 The MIT License
@@ -432,4 +434,39 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
+
+
+-----------------------------------------------------------------------
+
+For Jquery url plugin (storm-core/src/ui/public/js/url.min.js)
+
+Jquery Url (A Jquery plugin for URL parser) v1.8.6
+Source repository: https://github.com/websanova/js-url
+Licensed under an MIT-style license. Seehttps://github.com/websanova/js-url#license for details.
+
+-----------------------------------------------------------------------
+
+
+For jquery.blockUI.min.js (storm-core/src/ui/public/js/jquery.blockUI.min.js)
+
+jQuery BlockUI; v20131009
+http://jquery.malsup.com/block/
+Copyright (c) 2013 M. Alsup; Dual licensed: MIT/GPL
+
+Copyright © 2007-2013 M. Alsup.
+
+MIT license selected:
+
+The BlockUI plugin is dual licensed under the MIT and GPL licenses.
+
+You may use either license. The MIT license is recommended for most projects
+because it is simple and easy to understand and it places almost no
+restrictions on what you can do with the plugin.
+
+If the GPL suits your project better you are also free to use the plugin
+under that license.
+
+You do not have to do anything special to choose one license or the other and
+you don't have to notify anyone which license you are using. You are free to
+use the BlockUI plugin in commercial projects as long as the copyright header is left intact.
 

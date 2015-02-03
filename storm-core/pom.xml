@@ -20,13 +20,18 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.9.3-incubating-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-core</artifactId>
     <packaging>jar</packaging>
     <name>Storm Core</name>
     <description>Storm Core Java API and Clojure implementation.</description>
+
+    <properties>
+        <worker-launcher.conf.dir>/etc/storm</worker-launcher.conf.dir>
+        <worker-launcher.additional_cflags></worker-launcher.additional_cflags>
+    </properties>
 
     <dependencies>
         <!--clojure-->
@@ -53,6 +58,26 @@
         <dependency>
             <groupId>ring</groupId>
             <artifactId>ring-jetty-adapter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>ring</groupId>
+            <artifactId>ring-anti-forgery</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlets</artifactId>
         </dependency>
         <dependency>
             <groupId>org.clojure</groupId>
@@ -74,6 +99,21 @@
         <dependency>
             <groupId>clojure-complete</groupId>
             <artifactId>clojure-complete</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.clojars.runa</groupId>
+            <artifactId>conjure</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.clojure</groupId>
+            <artifactId>clojure-contrib</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.clojure</groupId>
+            <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -142,7 +182,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.lmax</groupId>
+            <groupId>com.googlecode.disruptor</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>
@@ -177,9 +217,72 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-auth</artifactId>
+	  <version>2.4.0</version>
+          <exclusions>
+             <exclusion>
+               <groupId>junit</groupId>
+               <artifactId>junit</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.mockito</groupId>
+               <artifactId>mockito-all</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.mortbay.jetty</groupId>
+               <artifactId>jetty-util</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.mortbay.jetty</groupId>
+               <artifactId>jetty</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>javax.servlet</groupId>
+               <artifactId>servlet-api</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-api</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>commons-codec</groupId>
+               <artifactId>commons-codec</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>log4j</groupId>
+               <artifactId>log4j</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-log4j12</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.apache.hadoop</groupId>
+               <artifactId>hadoop-minikdc</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.apache.directory.server</groupId>
+               <artifactId>apacheds-kerberos-codec</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>log4j</groupId>
+               <artifactId>log4j</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-log4j12</artifactId>
+             </exclusion>
+             <exclusion>
+               <groupId>org.apache.httpcomponents</groupId>
+               <artifactId>httpclient</artifactId>
+             </exclusion>
+          </exclusions>
+        </dependency>
+        <dependency>
         	<groupId>junit</groupId>
         	<artifactId>junit</artifactId>
-        	<version>4.1</version>
+        	<version>4.11</version>
         	<scope>test</scope>
         </dependency>
     </dependencies>
@@ -202,7 +305,20 @@
                     <include>NOTICE</include>
                 </includes>
             </resource>
-
+            <resource>
+                <directory>${basedir}/src/resources</directory>
+                <excludes>
+                  <exclude>storm-core-version-info.properties</exclude>
+                </excludes>
+                <filtering>false</filtering>
+           </resource>
+           <resource>
+              <directory>${basedir}/src/resources</directory>
+              <includes>
+                <include>storm-core-version-info.properties</include>
+             </includes>
+             <filtering>true</filtering>
+         </resource>
         </resources>
         <testResources>
             <testResource>
@@ -245,7 +361,8 @@
                             <goal>test-with-junit</goal>
                         </goals>
                         <configuration>
-                            <vmargs>${test.extra.args}</vmargs>
+                            <!-- argLine is set by JaCoCo for code coverage -->
+                            <vmargs>${argLine} ${test.extra.args}</vmargs>
                         </configuration>
                     </execution>
                 </executions>
@@ -272,14 +389,18 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-                    <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
+                    <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+                    <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
                     <minimizeJar>false</minimizeJar>
                     <artifactSet>
                         <includes>
                             <include>org.apache.thrift:*</include>
-                            <include>org.apache.storm:*</include>
+                            <include>io.netty:netty</include>
+                            <include>com.google.guava:guava</include>
+                            <include>org.apache.httpcomponents:http*</include>
+                            <include>org.apache.zookeeper:zookeeper</include>
+                            <include>org.apache.curator:*</include>
                         </includes>
                     </artifactSet>
 
@@ -287,6 +408,30 @@
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
                             <shadedPattern>org.apache.thrift7</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.jboss.netty</pattern>
+                            <shadedPattern>org.apache.storm.netty</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.google.common</pattern>
+                            <shadedPattern>org.apache.storm.guava</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.google.thirdparty</pattern>
+                            <shadedPattern>org.apache.storm.guava.thirdparty</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.http</pattern>
+                            <shadedPattern>org.apache.storm.http</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.zookeeper</pattern>
+                            <shadedPattern>org.apache.storm.zookeeper</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.curator</pattern>
+                            <shadedPattern>org.apache.storm.curator</shadedPattern>
                         </relocation>
                     </relocations>
                     <transformers>
@@ -300,6 +445,27 @@
                                 <exclude>META-INF/NOTICE.txt</exclude>
                             </excludes>
                         </filter>
+                        <filter>
+                            <artifact>io.netty:netty</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>commons-httpclient:commons-httpclient</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                                <exclude>META-INF/README.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>org.apache.zookeeper:zookeeper</artifact>
+                            <excludes>
+                                <exclude>LICENSE.txt</exclude>
+                            </excludes>
+                        </filter>
                     </filters>
                 </configuration>
                 <dependencies>
@@ -310,7 +476,226 @@
                     </dependency>
                 </dependencies>
             </plugin>
-
+            <plugin>
+               <groupId>org.apache.storm</groupId>
+               <artifactId>storm-maven-plugins</artifactId>
+               <executions>
+                 <execution>
+                   <id>version-info</id>
+                   <phase>generate-resources</phase>
+                   <goals>
+                     <goal>version-info</goal>
+                   </goals>
+                   <configuration>
+                   <source>
+                      <directory>${basedir}/src/</directory>
+                      <includes>
+                        <include>jvm/**/*.java</include>
+                        <include>clj/**/*.clj</include>
+                      </includes>
+                  </source>
+                 </configuration>
+               </execution>
+             </executions>
+          </plugin>
+          <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.8</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <!-- avoid warning about recursion -->
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <activation><activeByDefault>true</activeByDefault></activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.7</version>
+                        <executions>
+                            <execution>
+                                <id>add-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources><!-- Allows JaCoCo to find the clojure source code -->
+                                        <source>src/clj</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.7</version>
+                        <executions>
+                            <execution>
+                                <id>pre-test-jacoco-clean</id>
+                                <phase>process-test-classes</phase>
+                                <configuration>
+                                    <tasks>
+                                        <delete file="target\jacoco.exec" />
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>0.7.2.201409121644</version>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                                <configuration>
+                                    <append>true</append>
+                                    <excludes>
+                                        <exclude>backtype/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
+                                        <exclude>backtype/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
+                                        <exclude>backtype/storm/testing/TestSerObjectFieldAccess</exclude>
+                                    </excludes>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                                <configuration>
+                                    <excludes>
+                                        <exclude>backtype/storm/generated/*</exclude> <!--Thrift generated code-->
+                                    </excludes>
+                                    <includes>
+                                        <include>backtype/*/*/*/*</include>
+                                        <include>backtype/*/*/*</include>
+                                        <include>backtype/*/*</include>
+                                        <include>backtype/*</include>
+                                        <include>zilch/*</include>
+                                        <include>storm/*/*/*/*</include>
+                                        <include>storm/*/*/*</include>
+                                        <include>storm/*/*</include>
+                                        <include>storm/*</include>
+                                    </includes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <phase>generate-sources</phase>
+                                <goals><goal>exec</goal></goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>sh</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>mkdir -p ${project.build.directory}/; cp -rufv ${basedir}/src/native/ ${project.build.directory}/</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>make-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>compile</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>autoreconf</goal>
+                                    <goal>configure</goal>
+                                    <goal>make-install</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>test</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- autoreconf settings -->
+                            <workDir>${project.build.directory}/native/worker-launcher</workDir>
+                            <arguments>
+                                <argument>-i</argument>
+                            </arguments>
+
+                            <!-- configure settings -->
+                            <configureEnvironment>
+                                <property>
+                                    <name>CFLAGS</name>
+                                    <value>-DEXEC_CONF_DIR=${worker-launcher.conf.dir} ${worker-launcher.additional_cflags}</value>
+                                </property>
+                            </configureEnvironment>
+                            <configureWorkDir>${project.build.directory}/native/worker-launcher</configureWorkDir>
+                            <prefix>/usr/local</prefix>
+
+                            <!-- configure & make settings -->
+                            <destDir>${project.build.directory}/native/target</destDir>
+
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+        </profile>
+    </profiles>
+
 </project>

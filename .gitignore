@@ -30,3 +30,5 @@ target
 .idea
 .*
 !/.gitignore
+_site
+storm-core/dependency-reduced-pom.xml

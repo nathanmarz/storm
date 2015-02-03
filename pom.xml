@@ -27,11 +27,11 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.9.3-incubating-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
-    <url>http://storm.incubator.apache.org</url>
+    <url>http://storm.apache.org</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -42,17 +42,17 @@
     <mailingLists>
         <mailingList>
             <name>Storm user mailing list</name>
-            <subscribe>user-subscribe@storm.incubator.apache.org</subscribe>
-            <unsubscribe>user-unsubscribe@storm.incubator.apache.org</unsubscribe>
-            <post>user@storm.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-storm-user/</archive>
+            <subscribe>user-subscribe@storm.apache.org</subscribe>
+            <unsubscribe>user-unsubscribe@storm.apache.org</unsubscribe>
+            <post>user@storm.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/storm-user/</archive>
         </mailingList>
         <mailingList>
             <name>Storm developer mailing list</name>
-            <subscribe>dev-subscribe@storm.incubator.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@storm.incubator.apache.org</unsubscribe>
-            <post>dev@storm.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-storm-dev/</archive>
+            <subscribe>dev-subscribe@storm.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@storm.apache.org</unsubscribe>
+            <post>dev@storm.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/storm-dev/</archive>
         </mailingList>
     </mailingLists>
 
@@ -156,17 +156,19 @@
 
     <modules>
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
+        <module>storm-buildtools/storm-maven-plugins</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
+        <module>external/storm-hbase</module>
     </modules>
 
     <scm>
-        <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-storm.git</connection>
-        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-storm.git</developerConnection>
+        <connection>scm:git:https://git-wip-us.apache.org/repos/asf/storm.git</connection>
+        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/storm.git</developerConnection>
         <tag>HEAD</tag>
-        <url>https://git-wip-us.apache.org/repos/asf/incubator-storm</url>
+        <url>https://git-wip-us.apache.org/repos/asf/storm</url>
     </scm>
 
     <issueManagement>
@@ -179,34 +181,37 @@
         <test.extra.args>-Djava.net.preferIPv4Stack=true</test.extra.args>
 
         <!-- dependency versions -->
-        <clojure.version>1.5.1</clojure.version>
+        <clojure.version>1.6.0</clojure.version>
         <compojure.version>1.1.3</compojure.version>
         <hiccup.version>0.3.6</hiccup.version>
         <commons-io.version>2.4</commons-io.version>
         <commons-lang.version>2.5</commons-lang.version>
         <commons-exec.version>1.1</commons-exec.version>
-        <clj-time.version>0.4.1</clj-time.version>
-        <curator.version>2.4.0</curator.version>
+        <clj-time.version>0.8.0</clj-time.version>
+        <curator.version>2.5.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
-        <ring.version>0.3.11</ring.version>
+        <ring.version>1.3.0</ring.version>
+        <jetty.version>7.6.13.v20130916</jetty.version>
         <clojure.tools.logging.version>0.2.3</clojure.tools.logging.version>
         <clojure.math.numeric-tower.version>0.0.1</clojure.math.numeric-tower.version>
         <carbonite.version>1.4.0</carbonite.version>
         <snakeyaml.version>1.11</snakeyaml.version>
         <httpclient.version>4.3.3</httpclient.version>
         <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
-        <disruptor.version>3.2.1</disruptor.version>
+        <disruptor.version>2.10.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
-        <guava.version>13.0</guava.version>
-        <logback-classic.version>1.0.6</logback-classic.version>
+        <guava.version>16.0.1</guava.version>
+        <logback-classic.version>1.0.13</logback-classic.version>
         <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
-        <netty.version>3.6.3.Final</netty.version>
+        <netty.version>3.9.0.Final</netty.version>
         <clojure.tools.nrepl.version>0.2.3</clojure.tools.nrepl.version>
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>
         <reply.version>0.3.0</reply.version>
         <conjure.version>2.1.3</conjure.version>
-        <zookeeper.version>3.4.5</zookeeper.version>
+        <zookeeper.version>3.4.6</zookeeper.version>
+        <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
+        <clojure-contrib.version>1.2.0</clojure-contrib.version>
 
     </properties>
 
@@ -254,12 +259,23 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/javadoc</outputDirectory>
+                            <reportOutputDirectory>./docs/javadoc</reportOutputDirectory>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
+                            </execution>
+                            <execution>
+                                <id>aggregate</id>
+                                <goals>
+                                    <goal>aggregate</goal>
+                                </goals>
+                                <phase>package</phase>
                             </execution>
                         </executions>
                     </plugin>
@@ -388,6 +404,16 @@
                 <version>${ring.version}</version>
             </dependency>
             <dependency>
+	      <groupId>org.eclipse.jetty</groupId>
+	      <artifactId>jetty-servlet</artifactId>
+	      <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+	      <groupId>org.eclipse.jetty</groupId>
+	      <artifactId>jetty-servlets</artifactId>
+	      <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.clojure</groupId>
                 <artifactId>tools.logging</artifactId>
                 <version>${clojure.tools.logging.version}</version>
@@ -418,7 +444,7 @@
                 <version>${clojure.tools.cli.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.lmax</groupId>
+                <groupId>com.googlecode.disruptor</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
             </dependency>
@@ -446,6 +472,23 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>${netty.version}</version>
+            </dependency>
+           <dependency>
+               <groupId>org.clojars.runa</groupId>
+               <artifactId>conjure</artifactId>
+               <version>${conjure.version}</version>
+               <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.clojure</groupId>
+                <artifactId>clojure-contrib</artifactId>
+                <version>${clojure-contrib.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.clojure</groupId>
+                <artifactId>data.codec</artifactId>
+                <version>${clojure-data-codec.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.clojure</groupId>
@@ -691,13 +734,9 @@
                 </configuration>
             </plugin>
             <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
-                <version>0.10</version>
+                <version>0.11</version>
                 <configuration>
                     <excludeSubProjects>false</excludeSubProjects>
                     <excludes>
@@ -711,16 +750,21 @@
                         <exclude>**/README.md</exclude>
                         <exclude>**/README.markdown</exclude>
                         <exclude>**/DEVELOPER.md</exclude>
+                        <exclude>**/BYLAWS.md</exclude>
+                        <exclude>**/STORM-UI-REST-API.md</exclude>
                         <exclude>SECURITY.md</exclude>
                         <exclude>VERSION</exclude>
                         <exclude>TODO</exclude>
                         <!-- thrift-generated code -->
                         <exclude>**/src/py/**</exclude>
 
-                        <!-- the following are in the NOTICE file -->
+                        <!-- the following are in the LICENSE file -->
                         <exclude>**/src/ui/public/js/jquery-1.6.2.min.js</exclude>
                         <exclude>**/src/ui/public/js/jquery.cookies.2.2.0.min.js</exclude>
                         <exclude>**/src/ui/public/js/jquery.tablesorter.min.js</exclude>
+                        <exclude>**/src/ui/public/js/moment.min.js</exclude>
+                        <exclude>**/src/ui/public/js/jquery.blockUI.min.js</exclude>
+                        <exclude>**/src/ui/public/js/url.min.js</exclude>
                         <exclude>**/src/ui/public/js/arbor.js</exclude>
                         <exclude>**/src/ui/public/js/arbor-graphics.js</exclude>
                         <exclude>**/src/ui/public/js/arbor-tween.js</exclude>

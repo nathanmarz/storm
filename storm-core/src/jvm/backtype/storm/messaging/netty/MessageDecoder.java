@@ -68,8 +68,38 @@ public class MessageDecoder extends FrameDecoder {
                     return ctrl_msg;
                 }
             }
+            
+            //case 2: SaslTokenMessageRequest
+            if(code==-500) {
+            	// Make sure that we have received at least an integer (length) 
+                if (buf.readableBytes() < 4) {
+                    //need more data
+                    buf.resetReaderIndex();
+                    return null;
+                }
+                
+                // Read the length field.
+                int length = buf.readInt();
+                if (length<=0) {
+                    return new SaslMessageToken(null);
+                }
+                
+                // Make sure if there's enough bytes in the buffer.
+                if (buf.readableBytes() < length) {
+                    // The whole bytes were not received yet - return null.
+                    buf.resetReaderIndex();
+                    return null;
+                }
+                
+                // There's enough bytes in the buffer. Read it.  
+                ChannelBuffer payload = buf.readBytes(length);
+                
+                // Successfully decoded a frame.
+                // Return a SaslTokenMessageRequest object
+                return new SaslMessageToken(payload.array());
+            }
 
-            // case 2: task Message
+            // case 3: task Message
             short task = code;
 
             // Make sure that we have received at least an integer (length)

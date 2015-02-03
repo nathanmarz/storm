@@ -89,6 +89,20 @@
                 <include>README.*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hbase/target</directory>
+            <outputDirectory>external/storm-hbase</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hbase</directory>
+            <outputDirectory>external/storm-hbase</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
 
 
     </fileSets>
@@ -117,17 +131,14 @@
         </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>
-            <source>${project.basedir}/../../VERSION</source>
-            <outputDirectory>/</outputDirectory>
-            <destName>RELEASE</destName>
-            <filtered>true</filtered>
-        </file>
-
-        <file>
             <source>${project.basedir}/../../logback/cluster.xml</source>
             <outputDirectory>/logback</outputDirectory>
         </file>
 
+        <file>
+            <source>${project.basedir}/../../logback/worker.xml</source>
+            <outputDirectory>/logback</outputDirectory>
+        </file>
 
         <file>
             <source>${project.basedir}/LICENSE</source>

@@ -16,6 +16,14 @@
 (ns backtype.storm.cluster-test
   (:import [java.util Arrays])
   (:import [backtype.storm.daemon.common Assignment StormBase SupervisorInfo])
+  (:import [org.apache.zookeeper ZooDefs ZooDefs$Ids])
+  (:import [org.mockito Mockito])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
+  (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
+  (:import [backtype.storm.utils Utils TestUtils ZookeeperAuthInfo])
+  (:require [backtype.storm [zookeeper :as zk]])
+  (:require [conjure.core])
+  (:use [conjure core])
   (:use [clojure test])
   (:use [backtype.storm cluster config util testing]))
 
@@ -25,7 +33,8 @@
           STORM-ZOOKEEPER-SERVERS ["localhost"]}))
 
 (defn mk-state
-  ([zk-port] (mk-distributed-cluster-state (mk-config zk-port)))
+  ([zk-port] (let [conf (mk-config zk-port)]
+               (mk-distributed-cluster-state conf :auth-conf conf)))
   ([zk-port cb]
      (let [ret (mk-state zk-port)]
        (.register ret cb)
@@ -36,16 +45,16 @@
 (deftest test-basics
   (with-inprocess-zookeeper zk-port
     (let [state (mk-state zk-port)]
-      (.set-data state "/root" (barr 1 2 3))
+      (.set-data state "/root" (barr 1 2 3) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (Arrays/equals (barr 1 2 3) (.get-data state "/root" false)))
       (is (= nil (.get-data state "/a" false)))
-      (.set-data state "/root/a" (barr 1 2))
-      (.set-data state "/root" (barr 1))
+      (.set-data state "/root/a" (barr 1 2) ZooDefs$Ids/OPEN_ACL_UNSAFE)
+      (.set-data state "/root" (barr 1) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (Arrays/equals (barr 1) (.get-data state "/root" false)))
       (is (Arrays/equals (barr 1 2) (.get-data state "/root/a" false)))
-      (.set-data state "/a/b/c/d" (barr 99))
+      (.set-data state "/a/b/c/d" (barr 99) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (Arrays/equals (barr 99) (.get-data state "/a/b/c/d" false)))
-      (.mkdirs state "/lalala")
+      (.mkdirs state "/lalala" ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= [] (.get-children state "/lalala" false)))
       (is (= #{"root" "a" "lalala"} (set (.get-children state "/" false))))
       (.delete-node state "/a")
@@ -58,7 +67,7 @@
   (with-inprocess-zookeeper zk-port
     (let [state1 (mk-state zk-port)
           state2 (mk-state zk-port)]
-      (.set-data state1 "/root" (barr 1))
+      (.set-data state1 "/root" (barr 1) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (Arrays/equals (barr 1) (.get-data state1 "/root" false)))
       (is (Arrays/equals (barr 1) (.get-data state2 "/root" false)))
       (.delete-node state2 "/root")
@@ -73,7 +82,7 @@
     (let [state1 (mk-state zk-port)
           state2 (mk-state zk-port)
           state3 (mk-state zk-port)]
-      (.set-ephemeral-node state1 "/a" (barr 1))
+      (.set-ephemeral-node state1 "/a" (barr 1) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (Arrays/equals (barr 1) (.get-data state1 "/a" false)))
       (is (Arrays/equals (barr 1) (.get-data state2 "/a" false)))
       (.close state3)
@@ -111,37 +120,37 @@
           state1 (mk-state zk-port state1-cb)
           [state2-last-cb state2-cb] (mk-callback-tester)
           state2 (mk-state zk-port state2-cb)]
-      (.set-data state1 "/root" (barr 1))
+      (.set-data state1 "/root" (barr 1) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (.get-data state2 "/root" true)
       (is (= nil @state1-last-cb))
       (is (= nil @state2-last-cb))
-      (.set-data state2 "/root" (barr 2))
+      (.set-data state2 "/root" (barr 2) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= {:type :node-data-changed :path "/root"} (read-and-reset! state2-last-cb)))
       (is (= nil @state1-last-cb))
 
-      (.set-data state2 "/root" (barr 3))
+      (.set-data state2 "/root" (barr 3) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= nil @state2-last-cb))
       (.get-data state2 "/root" true)
       (.get-data state2 "/root" false)
       (.delete-node state1 "/root")
       (is (= {:type :node-deleted :path "/root"} (read-and-reset! state2-last-cb)))
       (.get-data state2 "/root" true)
-      (.set-ephemeral-node state1 "/root" (barr 1 2 3 4))
+      (.set-ephemeral-node state1 "/root" (barr 1 2 3 4) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= {:type :node-created :path "/root"} (read-and-reset! state2-last-cb)))
 
       (.get-children state1 "/" true)
-      (.set-data state2 "/a" (barr 9))
+      (.set-data state2 "/a" (barr 9) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= nil @state2-last-cb))
       (is (= {:type :node-children-changed :path "/"} (read-and-reset! state1-last-cb)))
 
       (.get-data state2 "/root" true)
-      (.set-ephemeral-node state1 "/root" (barr 1 2))
+      (.set-ephemeral-node state1 "/root" (barr 1 2) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= {:type :node-data-changed :path "/root"} (read-and-reset! state2-last-cb)))
 
-      (.mkdirs state1 "/ccc")
+      (.mkdirs state1 "/ccc" ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (.get-children state1 "/ccc" true)
       (.get-data state2 "/ccc/b" true)
-      (.set-data state2 "/ccc/b" (barr 8))
+      (.set-data state2 "/ccc/b" (barr 8) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= {:type :node-created :path "/ccc/b"} (read-and-reset! state2-last-cb)))
       (is (= {:type :node-children-changed :path "/ccc"} (read-and-reset! state1-last-cb)))
 
@@ -150,7 +159,7 @@
       (.close state1)
 
       (is (= {:type :node-deleted :path "/root"} (read-and-reset! state2-last-cb)))
-      (.set-data state2 "/root2" (barr 9))
+      (.set-data state2 "/root2" (barr 9) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= {:type :node-created :path "/root2"} (read-and-reset! state2-last-cb)))
       (.close state2)
       )))
@@ -161,8 +170,8 @@
     (let [state (mk-storm-state zk-port)
           assignment1 (Assignment. "/aaa" {} {1 [2 2002 1]} {})
           assignment2 (Assignment. "/aaa" {} {1 [2 2002]} {})
-          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {})
-          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {})]
+          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "")
+          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "")]
       (is (= [] (.assignments state nil)))
       (.set-assignment! state "storm1" assignment1)
       (is (= assignment1 (.assignment-info state "storm1" nil)))
@@ -186,6 +195,11 @@
       (is (= base2 (.storm-base state "storm2" nil)))
       (is (= #{"storm2"} (set (.active-storms state))))
 
+      (is (nil? (.credentials state "storm1" nil)))
+      (.set-credentials! state "storm1" {"a" "a"} {})
+      (is (= {"a" "a"} (.credentials state "storm1" nil)))
+      (.set-credentials! state "storm1" {"b" "b"} {})
+      (is (= {"b" "b"} (.credentials state "storm1" nil)))
 
       ;; TODO add tests for task info and task heartbeat setting and getting
       (.disconnect state)
@@ -206,7 +220,7 @@
   (with-inprocess-zookeeper zk-port
     (with-simulated-time
       (let [state (mk-storm-state zk-port)]
-        (.report-error state "a" "1"(local-hostname) 6700  (RuntimeException.))
+        (.report-error state "a" "1" (local-hostname) 6700 (RuntimeException.))
         (validate-errors! state "a" "1" ["RuntimeException"])
         (advance-time-secs! 1)
         (.report-error state "a" "1" (local-hostname) 6700 (IllegalArgumentException.))
@@ -241,9 +255,44 @@
       (.disconnect state1)
       )))
 
+
+
+(deftest test-cluster-authentication
+  (with-inprocess-zookeeper zk-port
+    (let [builder (Mockito/mock CuratorFrameworkFactory$Builder)
+          conf (merge
+                (mk-config zk-port)
+                {STORM-ZOOKEEPER-CONNECTION-TIMEOUT 10
+                 STORM-ZOOKEEPER-SESSION-TIMEOUT 10
+                 STORM-ZOOKEEPER-RETRY-INTERVAL 5
+                 STORM-ZOOKEEPER-RETRY-TIMES 2
+                 STORM-ZOOKEEPER-RETRY-INTERVAL-CEILING 15
+                 STORM-ZOOKEEPER-AUTH-SCHEME "digest"
+                 STORM-ZOOKEEPER-AUTH-PAYLOAD "storm:thisisapoorpassword"})]
+      (. (Mockito/when (.connectString builder (Mockito/anyString))) (thenReturn builder))
+      (. (Mockito/when (.connectionTimeoutMs builder (Mockito/anyInt))) (thenReturn builder))
+      (. (Mockito/when (.sessionTimeoutMs builder (Mockito/anyInt))) (thenReturn builder))
+      (TestUtils/testSetupBuilder builder (str zk-port "/") conf (ZookeeperAuthInfo. conf))
+      (is (nil?
+           (try
+             (. (Mockito/verify builder) (authorization "digest" (.getBytes (conf STORM-ZOOKEEPER-AUTH-PAYLOAD))))
+             (catch MockitoAssertionError e
+               e)))))))
+
 (deftest test-storm-state-callbacks
   ;; TODO finish
   )
 
-
-
+(deftest test-cluster-state-default-acls
+  (testing "The default ACLs are empty."
+    (stubbing [zk/mkdirs nil
+               zk/mk-client (reify CuratorFramework (^void close [this] nil))]
+      (mk-distributed-cluster-state {})
+      (verify-call-times-for zk/mkdirs 1)
+      (verify-first-call-args-for-indices zk/mkdirs [2] nil))
+    (stubbing [mk-distributed-cluster-state nil
+               register nil
+               mkdirs nil]
+      (mk-storm-cluster-state {})
+      (verify-call-times-for mk-distributed-cluster-state 1)
+      (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))

@@ -16,23 +16,23 @@ Developers and contributors should also take a look at our [Developer documentat
 __NOTE:__ The google groups account storm-user@googlegroups.com is now officially deprecated in favor of the Apache-hosted user/dev mailing lists.
 
 ### Storm Users
-Storm users should send messages and subscribe to [user@storm.incubator.apache.org](mailto:user@storm.incubator.apache.org).
+Storm users should send messages and subscribe to [user@storm.apache.org](mailto:user@storm.apache.org).
 
-You can subscribe to this list by sending an email to [user-subscribe@storm.incubator.apache.org](mailto:user-subscribe@storm.incubator.apache.org). Likewise, you can cancel a subscription by sending an email to [user-unsubscribe@storm.incubator.apache.org](mailto:user-unsubscribe@storm.incubator.apache.org).
+You can subscribe to this list by sending an email to [user-subscribe@storm.apache.org](mailto:user-subscribe@storm.apache.org). Likewise, you can cancel a subscription by sending an email to [user-unsubscribe@storm.apache.org](mailto:user-unsubscribe@storm.apache.org).
 
-You can also [browse the archives of the storm-user mailing list](http://mail-archives.apache.org/mod_mbox/incubator-storm-user/).
+You can also [browse the archives of the storm-user mailing list](http://mail-archives.apache.org/mod_mbox/storm-user/).
 
 ### Storm Developers
-Storm developers should send messages and subscribe to [dev@storm.incubator.apache.org](mailto:dev@storm.incubator.apache.org).
+Storm developers should send messages and subscribe to [dev@storm.apache.org](mailto:dev@storm.apache.org).
 
-You can subscribe to this list by sending an email to [dev-subscribe@storm.incubator.apache.org](mailto:dev-subscribe@storm.incubator.apache.org). Likewise, you can cancel a subscription by sending an email to [dev-unsubscribe@storm.incubator.apache.org](mailto:dev-unsubscribe@storm.incubator.apache.org).
+You can subscribe to this list by sending an email to [dev-subscribe@storm.apache.org](mailto:dev-subscribe@storm.apache.org). Likewise, you can cancel a subscription by sending an email to [dev-unsubscribe@storm.apache.org](mailto:dev-unsubscribe@storm.apache.org).
 
-You can also [browse the archives of the storm-dev mailing list](http://mail-archives.apache.org/mod_mbox/incubator-storm-dev/).
+You can also [browse the archives of the storm-dev mailing list](http://mail-archives.apache.org/mod_mbox/storm-dev/).
 
 ### Which list should I send/subscribe to?
-If you are using a pre-built binary distribution of Storm, then chances are you should send questions, comments, storm-related announcements, etc. to [user@storm.apache.incubator.org](user@storm.apache.incubator.org). 
+If you are using a pre-built binary distribution of Storm, then chances are you should send questions, comments, storm-related announcements, etc. to [user@storm.apache.org](user@storm.apache.org).
 
-If you are building storm from source, developing new features, or otherwise hacking storm source code, then [dev@storm.incubator.apache.org](dev@storm.incubator.apache.org) is more appropriate. 
+If you are building storm from source, developing new features, or otherwise hacking storm source code, then [dev@storm.apache.org](dev@storm.apache.org) is more appropriate.
 
 ### What will happen with storm-user@googlegroups.com?
 All existing messages will remain archived there, and can be accessed/searched [here](https://groups.google.com/forum/#!forum/storm-user).
@@ -77,6 +77,9 @@ under the License.
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Robert Evans ([@revans2](https://github.com/revans2))
 * Michael G. Noll ([@miguno](https://github.com/miguno))
+* Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
+* Sriharsha Chintalapani([@harshach](https://github.com/harshach))
+* Sean Zhong ([@clockfly] (http://github.com/clockfly))
 
 ## Contributors
 
@@ -130,7 +133,6 @@ under the License.
 * Gangrui Li ([@davidlgr](https://github.com/davidlgr))
 * John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
 * Julien Nioche ([@jnioche](https://github.com/jnioche))
-* Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 * Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
 * Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
@@ -159,10 +161,32 @@ under the License.
 * Jo Liss ([@joliss](https://github.com/joliss))
 * averykhoo ([@averykhoo](https://github.com/averykhoo))
 * Curtis Allen ([@curtisallen](https://github.com/curtisallen))
+* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal)) 
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
-
+* Sean T Allen ([@SeanTAllen](https://github.com/SeanTAllen))
+* Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
+* wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
+* Marc Beitchman ([@mbeitchman](https://github.com/mbeitchman))
+* Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
+* Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
+* Dave Golombek ([@dgolombek](https://github.com/dgolombek))
+* Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
+* Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
+* Dane Hammer ([@danehammer](https://github.com/danehammer))
+* Christophe Carre' ([@chrisz](https://github.com/chrisz))
+* Anya Tchernishov ([@anyatch](https://github.com/anyatch))
+* Ahmet DAL ([@javrasya](https://github.com/javrasya))
+* Kai Sasaki ([@Lewuathe](https://github.com/Lewuathe))
+* Matthew Siegel ([@msiegel07](https://github.com/msiegel07))
+* Jun Xia ([@tedxia](https://github.com/tedxia))
+* caofangkun ([@caofangkun](https://github.com/caofangkun))
+* Mansheng Yang ([@lightyang](https://github.com/lightyang))
+* Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
+* 周向涛 ([@taojoe](https://github.com/taojoe))
+* Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
+* zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
 
 ## Acknowledgements
 

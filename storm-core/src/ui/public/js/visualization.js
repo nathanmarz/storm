@@ -389,20 +389,24 @@ function show_visualization(sys) {
 
     should_update = true;
     var update_freq_ms = 10000;
-    var update = function(should_rechoose){
+    var update = function(should_rechoose) {
+      if(should_update) {
         $.ajax({
-            url: "/api/v1/topology/"+$.url().param("id")+"/visualization",
-            success: function(data, status, jqXHR) {
+            url: "/api/v1/topology/"+$.url("?id")+"/visualization",
+            success: function (data, status, jqXHR) {
                 topology_data = data;
                 update_data(topology_data, sys);
                 sys.renderer.signal_update();
                 sys.renderer.redraw();
-                if(should_update)
+                if (should_update)
                     setTimeout(update, update_freq_ms);
-                if(should_rechoose)
-                    $(".stream-box").each(function () { rechoose(topology_data, sys, this) });
+                if (should_rechoose)
+                    $(".stream-box").each(function () {
+                        rechoose(topology_data, sys, this)
+                    });
             }
         });
+      }
     };
     
     update(true);

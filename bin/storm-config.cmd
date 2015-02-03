@@ -49,7 +49,7 @@ if not defined JAVA_HOME (
   set JAVA_HOME=c:\apps\java\openjdk7
 )
 
-if not exist %JAVA_HOME%\bin\java.exe (
+if not exist "%JAVA_HOME%\bin\java.exe" (
   echo Error: JAVA_HOME is incorrectly set.
   goto :eof
 )
@@ -82,10 +82,38 @@ if not defined STORM_LOG_DIR (
   set STORM_LOG_DIR=%STORM_HOME%\logs
 )
 
+@rem
+@rem retrieve storm.logback.conf.dir from conf file
+@rem
+
+"%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value storm.logback.conf.dir > temp.txt
+  
+FOR /F "delims=" %%i in (temp.txt) do (
+	FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
+		if %%a == VALUE: (
+			set STORM_LOGBACK_CONFIGURATION_DIR=%%b
+			del /F temp.txt)
+		)
+	)
+)		
+
+@rem
+@rem if STORM_LOGBACK_CONFIGURATION_DIR was defined, also set STORM_LOGBACK_CONFIGURATION_FILE
+@rem
+
+if not %STORM_LOGBACK_CONFIGURATION_DIR% == nil (
+	set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_LOGBACK_CONFIGURATION_DIR%\cluster.xml
+) 
+
+@rem
+@rem otherwise, fall back to default
+@rem
+
 if not defined STORM_LOGBACK_CONFIGURATION_FILE (
   set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_HOME%\logback\cluster.xml
 )
-%JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value java.library.path > temp.txt
+
+"%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value java.library.path > temp.txt
 
 FOR /F "delims=" %%i in (temp.txt) do (
     FOR /F "tokens=1,* delims= " %%a in ("%%i") do (

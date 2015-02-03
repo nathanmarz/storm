@@ -240,6 +240,17 @@ Alibaba is the leading B2B e-commerce website in the world. We use storm to proc
 
 <tr>
 <td>
+<a href="http://iQIYI.COM">iQIYI</a>
+</td>
+<td>
+<p>
+iQIYI is China`s largest online video platform. We are using Storm in our video advertising system, video recommendation system, log analysis system and many other scenarios. Now we have several standalone Storm clusters, and we also have Storm clusters on Mesos and on Yarn. Kafka-Storm integration and Storm–HBase integration are quite common in our production environment. We have great interests in the new development about integration of Storm with other applications, like HBase, HDFS and Kafka.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
 <a href="http://www.baidu.com/">Baidu</a>
 </td>
 <td>
@@ -694,11 +705,11 @@ PeerIndex is working to deliver influence at scale. PeerIndex does this by expos
 
 <tr>
 <td>
-<a href="http://eclick.vn/">eClick</a>
+<a href="http://ants.vn">ANTS.VN</a>
 </td>
 <td>
 <p>
-At eClick (an ad-network for most popular websites and publishers in Vietnam) we are building a real time platform on top of Storm which does parsing raw logs, crawling websites for social analytics, analyzing big data. This platform tracks impressions, clicks, conversions, user-behaviour, .. etc. in real time. We are using Kafka as message queue, and deploy in customized Storm Cluster.
+Big Data in Advertising is Vietnam's unique platform combines ad serving, a real-time bidding (RTB) exchange, Ad Server, Analytics, yield optimization, and content valuation to deliver the highest revenue across every desktop, tablet, and mobile screen. At ANTS.VN we use Storm to process large amounts of data to provide data real time, improve our Ad quality. This platform tracks impressions, clicks, conversions, bid requests etc. in real time. Together with Kafka, Redis, memcached and Cassandra based messaging, Storm enables us to build low-latency fault-tolerant distributed systems with ease.
 </p>
 </td>
 </tr>

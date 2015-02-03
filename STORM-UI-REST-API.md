@@ -220,6 +220,9 @@ Response fields:
 |bolts.emitted| Long |Number of tuples emitted|
 |antiForgeryToken| String | CSRF token|
 
+Caution: users need to unescape the antiForgeryToken value before using this token to make POST calls(simple-json escapes forward slashes)
+[ISSUE-8](https://code.google.com/p/json-simple/issues/detail?id=8)
+
 
 Examples:
 
@@ -562,6 +565,24 @@ Sample response:
     ]
 }
 ```
+
+### /api/v1/token (GET)
+
+Returns a anti forgery token to use in POST calls
+
+Response fields:
+
+|Field  |Value |Description|
+|antiForgeryToken| String | CSRF token|
+
+Sample response:
+
+```json
+{
+    "antiForgeryToken": "Dygf1UHQF7qL0syKLTKEGSX5y0rZhhQTxS2f/WWwI2PhN1zmRdh8MQ1KTd5CXRmjMVmAJ43eklqYmvD5"
+}
+```
+
 
 ## POST Operations
 

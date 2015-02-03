@@ -111,7 +111,9 @@ public class Monitor {
             throw new IllegalArgumentException("topology: " + topology + " not found");
         } else {
             String id = topologySummary.get_id();
-            TopologyInfo info = client.getTopologyInfo(id);
+            GetInfoOptions getInfoOpts = new GetInfoOptions();
+            getInfoOpts.set_num_err_choice(NumErrorsChoice.NONE);
+            TopologyInfo info = client.getTopologyInfoWithOpts(id, getInfoOpts);
             for (ExecutorSummary es: info.get_executors()) {
                 components.add(es.get_component_id());
             }
@@ -182,7 +184,9 @@ public class Monitor {
             throw new IllegalArgumentException("topology: " + _topology + " not found");
         } else {
             String id = topologySummary.get_id();
-            TopologyInfo info = client.getTopologyInfo(id);
+            GetInfoOptions getInfoOpts = new GetInfoOptions();
+            getInfoOpts.set_num_err_choice(NumErrorsChoice.NONE);
+            TopologyInfo info = client.getTopologyInfoWithOpts(id, getInfoOpts);
             for (ExecutorSummary es: info.get_executors()) {
                 if (_component.equals(es.get_component_id())) {
                     componentParallelism ++;

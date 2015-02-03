@@ -96,10 +96,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup1" 3]
-                           [4] ["sup1" 3]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup1" 3]
+                           [4 4] ["sup1" 3]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2 3])
@@ -147,10 +147,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup2" 1]
-                           [4] ["sup2" 1]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup2" 1]
+                           [4 4] ["sup2" 1]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2])
@@ -168,9 +168,9 @@
                           {1 "1"
                            2 "1"
                            3 "1"}
-                          {[1] ["sup1" 3]
-                           [2] ["sup1" 3]
-                           [3] ["sup2" 2]
+                          {[1 1] ["sup1" 3]
+                           [2 2] ["sup1" 3]
+                           [3 3] ["sup2" 2]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [3])
@@ -358,7 +358,7 @@
 (defn rm-r [f]
   (if (.isDirectory f)
     (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f) 
+    (.delete f)
   ))
 
 (deftest test-worker-launch-command-run-as-user
@@ -521,7 +521,7 @@
 (defn found? [sub-str input-str]
   (if (string? input-str)
     (contrib-str/substring? sub-str (str input-str))
-    (some? #(contrib-str/substring? sub-str %) input-str)))
+    (boolean (some #(contrib-str/substring? sub-str %) input-str))))
 
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))
@@ -611,8 +611,8 @@
                      topology1
                      {1 "1"
                       2 "1"}
-                     {[1] ["sup1" 1]
-                      [2] ["sup1" 2]
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]
                       })
                     (submit-mocked-assignment
                      (:nimbus cluster)
@@ -621,8 +621,8 @@
                      topology2
                      {1 "1"
                       2 "1"}
-                     {[1] ["sup1" 1]
-                      [2] ["sup1" 2]
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]
                       })
                     (advance-cluster-time cluster 10)
                     ))

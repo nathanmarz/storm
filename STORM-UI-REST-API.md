@@ -612,6 +612,12 @@ Activates a topology.
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 
+Sample Response:
+
+```json
+{"topologyOperation":"activate","topologyId":"wordcount-1-1420308665","status":"success"}
+```
+
 
 ### /api/v1/topology/:id/deactivate (POST)
 
@@ -620,6 +626,12 @@ Deactivates a topology.
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
+
+Sample Response:
+
+```json
+{"topologyOperation":"deactivate","topologyId":"wordcount-1-1420308665","status":"success"}
+```
 
 
 ### /api/v1/topology/:id/rebalance/:wait-time (POST)
@@ -630,6 +642,31 @@ Rebalances a topology.
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 |wait-time |String (required)| Wait time before rebalance happens |
+|rebalanceOptions| Json (optional) | topology rebalance options |
+
+
+Sample rebalancOptions json:
+
+```json
+{"rebalanceOptions" : {"numWorkers" : 2, "executors" : {"spout" :4, "count" : 10}}, "callback" : "foo"}
+```
+
+Examples:
+
+```no-highlight
+curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
+-H 'x-csrf-token:nRXggIDItGA/rxjPETo9ok65DM3rpQqOLoNwWXZWbGuaZZjtms5/tU+h36uQCR34z50DtFybkwh1ZB5e' 
+-H "Content-Type: application/json" 
+-d  '{"rebalanceOptions": {"numWorkers": 2, "executors": { "spout" : "5", "split": 7, "count": 5 }}, "callback":"foo"}' 
+http://localhost:8080/api/v1/topology/wordcount-1-1420308665/rebalance/0
+```
+
+Sample Response:
+
+```json
+{"topologyOperation":"rebalance","topologyId":"wordcount-1-1420308665","status":"success"}
+```
+
 
 
 ### /api/v1/topology/:id/kill/:wait-time (POST)
@@ -645,6 +682,11 @@ Caution: Small wait times (0-5 seconds) may increase the probability of triggeri
 [STORM-112](https://issues.apache.org/jira/browse/STORM-112), which may result in broker Supervisor
 daemons.
 
+Sample Response:
+
+```json
+{"topologyOperation":"kill","topologyId":"wordcount-1-1420308665","status":"success"}
+```
 
 ## API errors
 

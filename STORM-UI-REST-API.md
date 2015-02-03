@@ -73,7 +73,8 @@ Response fields:
 |---	|---	|---
 |stormVersion|String| Storm version|
 |nimbusUptime|String| Shows how long the cluster is running|
-|supervisors|Integer|  Number of supervisors running|
+|supervisors|Integer| Number of supervisors running|
+|topologies| Integer| Number of topologies running| 
 |slotsTotal| Integer|Total number of available worker slots|
 |slotsUsed| Integer| Number of worker slots used|
 |slotsFree| Integer |Number of worker slots available|

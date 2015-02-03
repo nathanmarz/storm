@@ -1252,8 +1252,8 @@ public class Config extends HashMap<String, Object> {
      * is allowed to perform topology activation tasks like setting up heartbeats/assignments
      * and marking the topology as active. default is 0.
      */
-    public static final String NIMBUS_MIN_REPLICATION_COUNT = "nimbus.min.replication.count";
-    public static final Object NIMBUS_MIN_REPLICATION_COUNT_SCHEMA = Number.class;
+    public static final String TOPOLOGY_MIN_REPLICATION_COUNT = "topology.min.replication.count";
+    public static final Object TOPOLOGY_MIN_REPLICATION_COUNT_SCHEMA = Number.class;
 
     /**
      * Maximum wait time for the nimbus host replication to achieve the nimbus.min.replication.count.
@@ -1261,8 +1261,8 @@ public class Config extends HashMap<String, Object> {
      * if required nimbus.min.replication.count is not achieved. The default is 0 seconds, a value of
      * -1 indicates to wait for ever.
      */
-    public static final String NIMBUS_MAX_REPLICATION_WAIT_TIME_SEC = "nimbus.max.replication.wait.time.sec";
-    public static final Object NIMBUS_MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
+    public static final String TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC = "nimbus.max.replication.wait.time.sec";
+    public static final Object TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
 
     /**
      * How often nimbus's background thread to sync code for missing topologies should run.

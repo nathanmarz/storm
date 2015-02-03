@@ -340,8 +340,8 @@
    ))
 
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
-  (let [min-replication-count (conf NIMBUS-MIN-REPLICATION-COUNT)
-        max-replication-wait-time (conf NIMBUS-MAX-REPLICATION-WAIT-TIME-SEC)
+  (let [min-replication-count (conf TOPOLOGY-MIN-REPLICATION-COUNT)
+        max-replication-wait-time (conf TOPOLOGY-MAX-REPLICATION-WAIT-TIME-SEC)
         total-wait-time (atom 0)
         current-replication-count (atom (if (:code-distributor nimbus) (.getReplicationCount (:code-distributor nimbus) storm-id) 0))]
   (if (:code-distributor nimbus)
@@ -1129,7 +1129,7 @@
               (.set-credentials! storm-cluster-state storm-id credentials storm-conf)
               (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-code-distributor! storm-cluster-state storm-id (:nimbus-host-port-info nimbus))
-              (wait-for-desired-code-replication nimbus conf storm-id)
+              (wait-for-desired-code-replication nimbus total-storm-conf storm-id)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]

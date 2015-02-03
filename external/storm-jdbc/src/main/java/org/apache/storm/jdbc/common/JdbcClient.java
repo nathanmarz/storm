@@ -64,9 +64,9 @@ public class JdbcClient {
             sb.append(placeHolders).append(")");
 
             String query = sb.toString();
-            if(LOG.isDebugEnabled()) {
-                LOG.debug("Executing query " + query);
-            }
+
+            LOG.debug("Executing query {}", query);
+
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
             preparedStatement.setQueryTimeout(queryTimeoutSecs);

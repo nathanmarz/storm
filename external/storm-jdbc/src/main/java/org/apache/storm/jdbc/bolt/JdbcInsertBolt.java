@@ -29,30 +29,29 @@ import java.util.List;
 /**
  * Basic bolt for writing to any Database table.
  * <p/>
- * Note: Each JdbcBolt defined in a topology is tied to a specific table.
+ * Note: Each JdbcInsertBolt defined in a topology is tied to a specific table.
  */
-public class JdbcBolt extends AbstractJdbcBolt {
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcBolt.class);
+public class JdbcInsertBolt extends AbstractJdbcBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcInsertBolt.class);
 
     private String tableName;
     private JdbcMapper jdbcMapper;
 
-    public JdbcBolt withConfigKey(String configKey) {
-        this.configKey = configKey;
-        return this;
+    public JdbcInsertBolt(String configKey) {
+        super(configKey);
     }
 
-    public JdbcBolt withTableName(String tableName) {
+    public JdbcInsertBolt withTableName(String tableName) {
         this.tableName = tableName;
         return this;
     }
 
-    public JdbcBolt withJdbcMapper(JdbcMapper jdbcMapper) {
+    public JdbcInsertBolt withJdbcMapper(JdbcMapper jdbcMapper) {
         this.jdbcMapper = jdbcMapper;
         return this;
     }
 
-    public JdbcBolt withQueryTimeoutSecs(int queryTimeoutSecs) {
+    public JdbcInsertBolt withQueryTimeoutSecs(int queryTimeoutSecs) {
         this.queryTimeoutSecs = queryTimeoutSecs;
         return this;
     }
@@ -65,9 +64,8 @@ public class JdbcBolt extends AbstractJdbcBolt {
             columnLists.add(columns);
             this.jdbcClient.insert(this.tableName, columnLists);
         } catch (Exception e) {
-            LOG.warn("Failing tuple.", e);
-            this.collector.fail(tuple);
             this.collector.reportError(e);
+            this.collector.fail(tuple);
             return;
         }
 

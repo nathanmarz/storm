@@ -53,8 +53,8 @@ List<Column> columnSchema = Lists.newArrayList(
     JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(columnSchema);
 ```
 
-### JdbcBolt
-To use the `JdbcBolt`, you construct an instance of it and specify a configuration key in your storm config that hold the 
+### JdbcInsertBolt
+To use the `JdbcInsertBolt`, you construct an instance of it and specify a configuration key in your storm config that hold the 
 hikari configuration map. In addition you must specify the JdbcMapper implementation to covert storm tuple to DB row and 
 the table name in which the rows will be inserted. You can optionally specify a query timeout seconds param that specifies 
 max seconds an insert query can take. The default is set to value of topology.message.timeout.secs.You should set this value 
@@ -63,8 +63,7 @@ to be <= topology.message.timeout.secs.
  ```java
 Config config = new Config();
 config.put("jdbc.conf", hikariConfigMap);
-JdbcBolt userPersistanceBolt = new JdbcBolt()
-                                    .withConfigKey("jdbc.conf")
+JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf")
                                     .withTableName("user_details")
                                     .withJdbcMapper(simpleJdbcMapper)
                                     .withQueryTimeoutSecs(30);
@@ -178,11 +177,39 @@ select dept_name from department, user_department where department.dept_id = use
 Run the `org.apache.storm.jdbc.topology.UserPersistanceTopology` class using storm jar command. The class expects 5 args
 storm jar org.apache.storm.jdbc.topology.UserPersistanceTopology <dataSourceClassName> <dataSource.url> <user> <password> [topology name]
 
+To make it work with Mysql, you can add the following to the pom.xml
+
+```
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>5.1.31</version>
+</dependency>
+```
+
+You can generate a single jar with dependencies using mvn assembly plugin. To use the plugin add the following to your pom.xml and execute 
+mvn clean compile assembly:single.
+
+```
+<plugin>
+    <artifactId>maven-assembly-plugin</artifactId>
+    <configuration>
+        <archive>
+            <manifest>
+                <mainClass>fully.qualified.MainClass</mainClass>
+            </manifest>
+        </archive>
+        <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+        </descriptorRefs>
+    </configuration>
+</plugin>
+```
+
 Mysql Example:
 ```
 storm jar ~/repo/incubator-storm/external/storm-jdbc/target/storm-jdbc-0.10.0-SNAPSHOT-jar-with-dependencies.jar 
-org.apache.storm.jdbc.topology.UserPersistanceTridentTopology  com.mysql.jdbc.jdbc2.optional.MysqlDataSource 
-jdbc:mysql://localhost/test root password UserPersistenceTopology
+org.apache.storm.jdbc.topology.UserPersistanceTopology  com.mysql.jdbc.jdbc2.optional.MysqlDataSource jdbc:mysql://localhost/test root password UserPersistenceTopology
 ```
 
 You can execute a select query against the user table which should show newly inserted rows:
@@ -212,5 +239,5 @@ specific language governing permissions and limitations
 under the License.
 
 ## Committer Sponsors
-* Parth Brahmbhatt ([brahmbhatt.parth@gmail.com](mailto:brahmbhatt.parth@gmail.com))
-* Sriharsha Chintalapani ([sriharsha@apache.org](mailto:sriharsha@apache.org)) 
+ * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))
+ * Sriharsha Chintalapani ([sriharsha@apache.org](mailto:sriharsha@apache.org)) 

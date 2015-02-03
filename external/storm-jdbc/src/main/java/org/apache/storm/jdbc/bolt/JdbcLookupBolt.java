@@ -37,9 +37,8 @@ public class JdbcLookupBolt extends AbstractJdbcBolt {
 
     private JdbcLookupMapper jdbcLookupMapper;
 
-    public JdbcLookupBolt withConfigKey(String configKey) {
-        this.configKey = configKey;
-        return this;
+    public JdbcLookupBolt(String configKey) {
+        super(configKey);
     }
 
     public JdbcLookupBolt withJdbcLookupMapper(JdbcLookupMapper jdbcLookupMapper) {
@@ -67,15 +66,14 @@ public class JdbcLookupBolt extends AbstractJdbcBolt {
                 for (List<Column> row : result) {
                     List<Values> values = jdbcLookupMapper.toTuple(tuple, row);
                     for (Values value : values) {
-                        collector.emit(value);
+                        collector.emit(tuple, value);
                     }
                 }
             }
             this.collector.ack(tuple);
         } catch (Exception e) {
-            LOG.warn("Failed to execute a select query {} on tuple {} ", this.selectQuery, tuple);
-            this.collector.fail(tuple);
             this.collector.reportError(e);
+            this.collector.fail(tuple);
         }
     }
 

@@ -19,7 +19,7 @@ package org.apache.storm.jdbc.topology;
 
 import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.TopologyBuilder;
-import org.apache.storm.jdbc.bolt.JdbcBolt;
+import org.apache.storm.jdbc.bolt.JdbcInsertBolt;
 import org.apache.storm.jdbc.bolt.JdbcLookupBolt;
 
 
@@ -34,12 +34,10 @@ public class UserPersistanceTopology extends AbstractUserTopology {
 
     @Override
     public StormTopology getTopology() {
-        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt()
-                .withConfigKey(JDBC_CONF)
+        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt(JDBC_CONF)
                 .withJdbcLookupMapper(this.jdbcLookupMapper)
                 .withSelectSql(SELECT_QUERY);
-        JdbcBolt userPersistanceBolt = new JdbcBolt()
-                .withConfigKey(JDBC_CONF)
+        JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(JDBC_CONF)
                 .withTableName(TABLE_NAME)
                 .withJdbcMapper(this.jdbcMapper);
 

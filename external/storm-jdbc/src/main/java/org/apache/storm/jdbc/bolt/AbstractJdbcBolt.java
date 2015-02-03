@@ -50,4 +50,8 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
 
         this.jdbcClient = new JdbcClient(conf, queryTimeoutSecs);
     }
+
+    public AbstractJdbcBolt(String configKey) {
+        this.configKey = configKey;
+    }
 }

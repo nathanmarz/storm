@@ -80,6 +80,7 @@ under the License.
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 * Sean Zhong ([@clockfly] (http://github.com/clockfly))
+* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 
 ## Contributors
 
@@ -133,7 +134,6 @@ under the License.
 * Gangrui Li ([@davidlgr](https://github.com/davidlgr))
 * John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
 * Julien Nioche ([@jnioche](https://github.com/jnioche))
-* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 * Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
 * Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
 * Padma Priya Chitturi ([PadmaCh](https://issues.apache.org/jira/secure/ViewProfile.jspa?name=PadmaCh))

@@ -29,7 +29,7 @@
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
-            KillOptions])
+            KillOptions GetInfoOptions NumErrorsChoice])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.security.auth AuthUtils])
@@ -466,7 +466,10 @@
           topology (.getTopology ^Nimbus$Client nimbus id)
           spouts (.get_spouts topology)
           bolts (.get_bolts topology)
-          summ (.getTopologyInfo ^Nimbus$Client nimbus id)
+          summ (->> (doto
+                      (GetInfoOptions.)
+                      (.set_num_err_choice NumErrorsChoice/NONE))
+                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
           execs (.get_executors summ)
           spout-summs (filter (partial spout-summary? topology) execs)
           bolt-summs (filter (partial bolt-summary? topology) execs)
@@ -643,7 +646,10 @@
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
-          summ (.getTopologyInfo ^Nimbus$Client nimbus id)
+          summ (->> (doto
+                      (GetInfoOptions.)
+                      (.set_num_err_choice NumErrorsChoice/ONE))
+                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
           topology (.getTopology ^Nimbus$Client nimbus id)
           topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))
           spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
@@ -892,9 +898,14 @@
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getTopology" (topology-config id))
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
+  (GET "/api/v1/token" [ & m]
+       (json-response (format "{\"antiForgeryToken\": \"%s\"}" *anti-forgery-token*) (:callback m) :serialize-fn identity))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)]
         (assert-authorized-user servlet-request "activate" (topology-config id))
         (.activate nimbus name)
@@ -902,7 +913,10 @@
     (resp/redirect (str "/api/v1/topology/" (url-encode id))))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)]
         (assert-authorized-user servlet-request "deactivate" (topology-config id))
         (.deactivate nimbus name)
@@ -910,7 +924,10 @@
     (resp/redirect (str "/api/v1/topology/" (url-encode id))))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             options (RebalanceOptions.)]
         (assert-authorized-user servlet-request "rebalance" (topology-config id))
@@ -920,7 +937,10 @@
     (resp/redirect (str "/api/v1/topology/" (url-encode id))))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
     (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             options (KillOptions.)]
         (assert-authorized-user servlet-request "killTopology" (topology-config id))

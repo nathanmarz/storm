@@ -17,9 +17,8 @@
   (:use [clojure test])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.testing TestWordSpout TestGlobalCount])
-  (:use [backtype.storm bootstrap testing util]))
-
-(bootstrap)
+  (:use [backtype.storm testing util config])
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-integration
   (with-simulated-time-local-cluster [cluster :supervisors 4 :supervisor-slot-port-min 6710

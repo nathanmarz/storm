@@ -22,7 +22,7 @@
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
-  (:import [backtype.storm.utils TransferDrainer ThriftTopologyUtils])
+  (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection])
   (:import [backtype.storm.daemon.common WorkerHeartbeat])

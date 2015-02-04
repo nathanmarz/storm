@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.daemon.drpc
-  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftConnectionType])
+  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext])
   (:import [backtype.storm.security.auth.authorizer DRPCAuthorizerBase])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface

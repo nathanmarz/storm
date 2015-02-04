@@ -20,14 +20,13 @@
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.nio ByteBuffer]
-           [java.util Collections])
+           [java.util Collections HashMap])
   (:import [java.io FileNotFoundException File FileOutputStream])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-<<<<<<< HEAD
   (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils
             BufferFileInputStream])
   (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo

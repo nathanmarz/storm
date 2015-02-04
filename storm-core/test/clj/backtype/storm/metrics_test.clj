@@ -25,12 +25,10 @@
   (:import [backtype.storm.metric.api.rpc CountShellMetric])
   (:import [backtype.storm.utils Utils])
   
-  (:use [backtype.storm bootstrap testing])
+  (:use [backtype.storm testing clojure config])
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm.metric testing]))
-
-
-(bootstrap)
+  (:use [backtype.storm.metric testing])
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (defbolt acking-bolt {} {:prepare true}
   [conf context collector]  

@@ -473,12 +473,6 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.version}</version>
             </dependency>
-           <dependency>
-               <groupId>org.clojars.runa</groupId>
-               <artifactId>conjure</artifactId>
-               <version>${conjure.version}</version>
-               <scope>test</scope>
-            </dependency>
             <dependency>
                 <groupId>org.clojure</groupId>
                 <artifactId>clojure-contrib</artifactId>

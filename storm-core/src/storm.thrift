@@ -145,6 +145,7 @@ struct TopologySummary {
   7: required string status;
 513: optional string sched_status;
 514: optional string owner;
+515: optional i32 replication_count;
 }
 
 struct SupervisorSummary {
@@ -218,6 +219,7 @@ struct TopologyInfo {
   6: required map<string, list<ErrorInfo>> errors;
 513: optional string sched_status;
 514: optional string owner;
+515: optional i32 replication_count;
 }
 
 struct KillOptions {

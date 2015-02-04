@@ -140,7 +140,7 @@ Response fields:
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
-
+|replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
 Sample response:
 
 ```json
@@ -153,7 +153,8 @@ Sample response:
             "uptime": "6m 5s",
             "tasksTotal": 28,
             "workersTotal": 3,
-            "executorsTotal": 28
+            "executorsTotal": 28,
+            "replicationCount": 1
         }
     ]
 }
@@ -219,6 +220,7 @@ Response fields:
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
 |antiForgeryToken| String | CSRF token|
+|replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
 
 
 Examples:
@@ -365,7 +367,8 @@ Sample response:
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
     },
-    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
+    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C",
+    "replicationCount": 1
 }
 ```
 

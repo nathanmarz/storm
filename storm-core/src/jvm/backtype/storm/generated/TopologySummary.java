@@ -50,6 +50,7 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
   private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.STRING, (short)7);
   private static final org.apache.thrift.protocol.TField SCHED_STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("sched_status", org.apache.thrift.protocol.TType.STRING, (short)513);
   private static final org.apache.thrift.protocol.TField OWNER_FIELD_DESC = new org.apache.thrift.protocol.TField("owner", org.apache.thrift.protocol.TType.STRING, (short)514);
+  private static final org.apache.thrift.protocol.TField REPLICATION_COUNT_FIELD_DESC = new org.apache.thrift.protocol.TField("replication_count", org.apache.thrift.protocol.TType.I32, (short)515);
 
   private String id; // required
   private String name; // required
@@ -60,6 +61,7 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
   private String status; // required
   private String sched_status; // required
   private String owner; // required
+  private int replication_count; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -71,7 +73,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     UPTIME_SECS((short)6, "uptime_secs"),
     STATUS((short)7, "status"),
     SCHED_STATUS((short)513, "sched_status"),
-    OWNER((short)514, "owner");
+    OWNER((short)514, "owner"),
+    REPLICATION_COUNT((short)515, "replication_count");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -104,6 +107,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
           return SCHED_STATUS;
         case 514: // OWNER
           return OWNER;
+        case 515: // REPLICATION_COUNT
+          return REPLICATION_COUNT;
         default:
           return null;
       }
@@ -148,7 +153,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
   private static final int __NUM_EXECUTORS_ISSET_ID = 1;
   private static final int __NUM_WORKERS_ISSET_ID = 2;
   private static final int __UPTIME_SECS_ISSET_ID = 3;
-  private BitSet __isset_bit_vector = new BitSet(4);
+  private static final int __REPLICATION_COUNT_ISSET_ID = 4;
+  private BitSet __isset_bit_vector = new BitSet(5);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -171,6 +177,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.OWNER, new org.apache.thrift.meta_data.FieldMetaData("owner", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.REPLICATION_COUNT, new org.apache.thrift.meta_data.FieldMetaData("replication_count", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TopologySummary.class, metaDataMap);
   }
@@ -226,6 +234,7 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     if (other.is_set_owner()) {
       this.owner = other.owner;
     }
+    this.replication_count = other.replication_count;
   }
 
   public TopologySummary deepCopy() {
@@ -247,6 +256,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     this.status = null;
     this.sched_status = null;
     this.owner = null;
+    set_replication_count_isSet(false);
+    this.replication_count = 0;
   }
 
   public String get_id() {
@@ -452,6 +463,28 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     }
   }
 
+  public int get_replication_count() {
+    return this.replication_count;
+  }
+
+  public void set_replication_count(int replication_count) {
+    this.replication_count = replication_count;
+    set_replication_count_isSet(true);
+  }
+
+  public void unset_replication_count() {
+    __isset_bit_vector.clear(__REPLICATION_COUNT_ISSET_ID);
+  }
+
+  /** Returns true if field replication_count is set (has been assigned a value) and false otherwise */
+  public boolean is_set_replication_count() {
+    return __isset_bit_vector.get(__REPLICATION_COUNT_ISSET_ID);
+  }
+
+  public void set_replication_count_isSet(boolean value) {
+    __isset_bit_vector.set(__REPLICATION_COUNT_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ID:
@@ -526,6 +559,14 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       }
       break;
 
+    case REPLICATION_COUNT:
+      if (value == null) {
+        unset_replication_count();
+      } else {
+        set_replication_count((Integer)value);
+      }
+      break;
+
     }
   }
 
@@ -558,6 +599,9 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     case OWNER:
       return get_owner();
 
+    case REPLICATION_COUNT:
+      return Integer.valueOf(get_replication_count());
+
     }
     throw new IllegalStateException();
   }
@@ -587,6 +631,8 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       return is_set_sched_status();
     case OWNER:
       return is_set_owner();
+    case REPLICATION_COUNT:
+      return is_set_replication_count();
     }
     throw new IllegalStateException();
   }
@@ -685,6 +731,15 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         return false;
     }
 
+    boolean this_present_replication_count = true && this.is_set_replication_count();
+    boolean that_present_replication_count = true && that.is_set_replication_count();
+    if (this_present_replication_count || that_present_replication_count) {
+      if (!(this_present_replication_count && that_present_replication_count))
+        return false;
+      if (this.replication_count != that.replication_count)
+        return false;
+    }
+
     return true;
   }
 
@@ -736,6 +791,11 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
     builder.append(present_owner);
     if (present_owner)
       builder.append(owner);
+
+    boolean present_replication_count = true && (is_set_replication_count());
+    builder.append(present_replication_count);
+    if (present_replication_count)
+      builder.append(replication_count);
 
     return builder.toHashCode();
   }
@@ -838,6 +898,16 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_replication_count()).compareTo(typedOther.is_set_replication_count());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_replication_count()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.replication_count, typedOther.replication_count);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -922,6 +992,14 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 515: // REPLICATION_COUNT
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
+            this.replication_count = iprot.readI32();
+            set_replication_count_isSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -975,6 +1053,11 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
         oprot.writeString(this.owner);
         oprot.writeFieldEnd();
       }
+    }
+    if (is_set_replication_count()) {
+      oprot.writeFieldBegin(REPLICATION_COUNT_FIELD_DESC);
+      oprot.writeI32(this.replication_count);
+      oprot.writeFieldEnd();
     }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
@@ -1042,6 +1125,12 @@ public class TopologySummary implements org.apache.thrift.TBase<TopologySummary,
       } else {
         sb.append(this.owner);
       }
+      first = false;
+    }
+    if (is_set_replication_count()) {
+      if (!first) sb.append(", ");
+      sb.append("replication_count:");
+      sb.append(this.replication_count);
       first = false;
     }
     sb.append(")");

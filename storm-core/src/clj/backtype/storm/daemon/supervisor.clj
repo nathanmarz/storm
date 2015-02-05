@@ -43,7 +43,7 @@
 
 (defn- assignments-snapshot [storm-cluster-state callback assignment-versions]
   (let [storm-ids (.assignments storm-cluster-state callback)]
-    (let [new-assignments 
+    (let [new-assignments
           (->>
            (dofor [sid storm-ids]
                   (let [recorded-version (:version (get assignment-versions sid))]
@@ -263,7 +263,7 @@
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
         (force-kill-process pid))
       (if as-user
-        (rmr-as-user conf id user (worker-pid-path conf id pid)) 
+        (rmr-as-user conf id user (worker-pid-path conf id pid))
         (try
           (rmpath (worker-pid-path conf id pid))
           (catch Exception e)))) ;; on windows, the supervisor may still holds the lock on the worker directory
@@ -271,7 +271,7 @@
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
-  [(first ZooDefs$Ids/CREATOR_ALL_ACL) 
+  [(first ZooDefs$Ids/CREATOR_ALL_ACL)
    (ACL. (bit-or ZooDefs$Perms/READ ZooDefs$Perms/CREATE) ZooDefs$Ids/ANYONE_ID_UNSAFE)])
 
 (defn supervisor-data [conf shared-context ^ISupervisor isupervisor]
@@ -360,7 +360,7 @@
             cached-assignment-info @(:assignment-versions supervisor)
             assignment-info (if (and (not-nil? cached-assignment-info) (contains? cached-assignment-info storm-id ))
                               (get cached-assignment-info storm-id)
-                              (.assignment-info-with-version storm-cluster-state storm-id nil)) 
+                              (.assignment-info-with-version storm-cluster-state storm-id nil))
 	    storm-code-map (read-storm-code-locations assignment-info)
             master-code-dir (if (contains? storm-code-map :data) (storm-code-map :data))
             stormroot (supervisor-stormdist-root conf storm-id)]
@@ -371,20 +371,27 @@
     (wait-for-workers-launch
      conf
      (dofor [[port assignment] reassign-executors]
-       (let [id (new-worker-ids port)]
-         (log-message "Launching worker with assignment "
-                      (pr-str assignment)
-                      " for this supervisor "
-                      (:supervisor-id supervisor)
-                      " on port "
-                      port
-                      " with id "
-                      id
-                      )
-         (launch-worker supervisor
-                        (:storm-id assignment)
-                        port
-                        id)
+            (let [id (new-worker-ids port)]
+              (try
+                (log-message "Launching worker with assignment "
+                             (pr-str assignment)
+                             " for this supervisor "
+                             (:supervisor-id supervisor)
+                             " on port "
+                             port
+                             " with id "
+                             id
+                             )
+                (launch-worker supervisor
+                               (:storm-id assignment)
+                               port
+                               id)
+                (catch java.io.FileNotFoundException e
+                  (log-message "Unable to launch worker due to "
+                               (.getMessage e)))
+                (catch java.io.IOException e
+                  (log-message "Unable to launch worker due to "
+                               (.getMessage e))))
          id)))
     ))
 

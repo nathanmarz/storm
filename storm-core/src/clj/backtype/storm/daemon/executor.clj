@@ -60,7 +60,7 @@
     ))
 
 (defn- mk-grouper
-  "returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
+  "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
   [^WorkerTopologyContext context component-id stream-id ^Fields out-fields thrift-grouping ^List target-tasks]
   (let [num-tasks (count target-tasks)
         random (Random.)

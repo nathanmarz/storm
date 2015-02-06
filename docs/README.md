@@ -1,6 +1,15 @@
 # Apache Storm Website and Documentation
 This is the source for the Storm website and documentation. It is statically generated using [jekyll](http://jekyllrb.com).
 
+## Generate Javadoc
+
+You have to generate javadoc on project root before generating document site.
+
+```
+mvn clean install -Pdist # you may skip tests with `-DskipTests=true` to save time
+```
+
+You need to create distribution package with gpg certificate. Please refer [here](https://github.com/apache/storm/blob/master/DEVELOPER.md#packaging).
 
 ## Site Generation
 First install jekyll (assuming you have ruby installed):

@@ -22,7 +22,8 @@
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-  (:import [backtype.storm.generated AuthorizationException])
+  (:import [backtype.storm.generated AuthorizationException GetInfoOptions
+                                     NumErrorsChoice])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
@@ -893,6 +894,13 @@
                    (.set_host (:host %))
                    (.set_port (:port %))))))
 
+(defn- get-last-error
+  [storm-cluster-state storm-id component-id]
+  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
+    (doto (ErrorInfo. (:error e) (:time-secs e))
+                      (.set_host (:host e))
+                      (.set_port (:port e)))))
+
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
@@ -1255,7 +1263,7 @@
                            topology-summaries)
           ))
       
-      (^TopologyInfo getTopologyInfo [this ^String storm-id]
+      (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               topology-conf (try-read-storm-conf conf storm-id)
               storm-name (topology-conf TOPOLOGY-NAME)
@@ -1266,8 +1274,22 @@
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (map-val :heartbeat (get @(:heartbeats-cache nimbus) storm-id))
               all-components (-> task->component reverse-map keys)
+              num-err-choice (or (.get_num_err_choice options)
+                                 NumErrorsChoice/ALL)
+              errors-fn (condp = num-err-choice
+                          NumErrorsChoice/NONE (fn [& _] ()) ;; empty list only
+                          NumErrorsChoice/ONE (comp #(remove nil? %)
+                                                    list
+                                                    get-last-error)
+                          NumErrorsChoice/ALL get-errors
+                          ;; Default
+                          (do
+                            (log-warn "Got invalid NumErrorsChoice '"
+                                      num-err-choice
+                                      "'")
+                            get-errors))
               errors (->> all-components
-                          (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
+                          (map (fn [c] [c (errors-fn storm-cluster-state storm-id c)]))
                           (into {}))
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
                                         (let [host (-> assignment :node->host (get node))
@@ -1294,7 +1316,12 @@
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
             topo-info
           ))
-      
+
+      (^TopologyInfo getTopologyInfo [this ^String storm-id]
+        (.getTopologyInfoWithOpts this
+                                  storm-id
+                                  (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
+
       Shutdownable
       (shutdown [this]
         (log-message "Shutting down master")

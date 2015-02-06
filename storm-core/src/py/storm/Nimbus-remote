@@ -58,6 +58,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  string getNimbusConf()')
   print('  ClusterSummary getClusterInfo()')
   print('  TopologyInfo getTopologyInfo(string id)')
+  print('  TopologyInfo getTopologyInfoWithOpts(string id, GetInfoOptions options)')
   print('  string getTopologyConf(string id)')
   print('  StormTopology getTopology(string id)')
   print('  StormTopology getUserTopology(string id)')
@@ -212,6 +213,12 @@ elif cmd == 'getTopologyInfo':
     print('getTopologyInfo requires 1 args')
     sys.exit(1)
   pp.pprint(client.getTopologyInfo(args[0],))
+
+elif cmd == 'getTopologyInfoWithOpts':
+  if len(args) != 2:
+    print('getTopologyInfoWithOpts requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.getTopologyInfoWithOpts(args[0],eval(args[1]),))
 
 elif cmd == 'getTopologyConf':
   if len(args) != 1:

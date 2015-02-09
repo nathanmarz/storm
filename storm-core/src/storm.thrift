@@ -293,6 +293,15 @@ struct ZKWorkerHeartbeat {
     2: required map<ExecutorInfo,ExecutorStats> executor_stats;
     3: required i32 time_secs;
 }
+enum NumErrorsChoice {
+  ALL,
+  NONE,
+  ONE
+}
+
+struct GetInfoOptions {
+  1: optional NumErrorsChoice num_err_choice;
+}
 
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -319,6 +328,7 @@ service Nimbus {
   // stats functions
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);

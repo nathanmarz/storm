@@ -37,6 +37,15 @@
  * STORM-630: Support for Clojure 1.6.0
  * STORM-629: Place Link to Source Code Repository on Webpage
  * STORM-632: New grouping for better load balancing
+ * STORM-527: update worker.clj -- delete "missing-tasks" checking
+ * STORM-623: Generate latest javadocs
+ * STORM-635: logviewer returns 404 if storm_home/logs is a symlinked dir.
+ * STORM-636: Faster, optional retrieval of last component error
+ * STORM-608: Storm UI CSRF escape characters not work correctly.
+ * STORM-626: Add script to print out the merge command for a given pull request.
+ * STORM-601: Make jira-github-join ignore case.
+ * STORM-667: Incorrect capitalization "SHell" in Multilang-protocol.md
+ * STORM-637: Integrate PartialKeyGrouping into storm API
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

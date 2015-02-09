@@ -312,11 +312,7 @@
                      #(HashMap. (apply dissoc (into {} %1) %&))
                      remove-connections)
               
-              (let [missing-tasks (->> needed-tasks
-                                       (filter (complement my-assignment)))]
-                (when-not (empty? missing-tasks)
-                  (log-warn "Missing assignment for following tasks: " (pr-str missing-tasks))
-                  )))))))
+           )))))
 
 (defn refresh-storm-active
   ([worker]

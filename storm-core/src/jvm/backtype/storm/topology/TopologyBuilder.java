@@ -28,6 +28,7 @@ import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
+import backtype.storm.grouping.PartialKeyGrouping;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -328,6 +329,16 @@ public class TopologyBuilder {
         private BoltDeclarer grouping(String componentId, String streamId, Grouping grouping) {
             _commons.get(_boltId).put_to_inputs(new GlobalStreamId(componentId, streamId), grouping);
             return this;
+        }
+
+        @Override
+        public BoltDeclarer partialKeyGrouping(String componentId, Fields fields) {
+            return customGrouping(componentId, new PartialKeyGrouping(fields));
+        }
+
+        @Override
+        public BoltDeclarer partialKeyGrouping(String componentId, String streamId, Fields fields) {
+            return customGrouping(componentId, streamId, new PartialKeyGrouping(fields));
         }
 
         @Override

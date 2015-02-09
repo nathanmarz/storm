@@ -64,7 +64,7 @@ A common continuous computation done on Storm is a "streaming top N" of some sor
 This approach obviously doesn't scale to large streams since the entire stream has to go through one task. A better way to do the computation is to do many top N's in parallel across partitions of the stream, and then merge those top N's together to get the global top N. The pattern looks like this:
 
 ```java
-builder.setBolt("rank", new RankObjects(), parallellism)
+builder.setBolt("rank", new RankObjects(), parallelism)
   .fieldsGrouping("objects", new Fields("value"));
 builder.setBolt("merge", new MergeObjects())
   .globalGrouping("rank");
@@ -72,6 +72,18 @@ builder.setBolt("merge", new MergeObjects())
 
 This pattern works because of the fields grouping done by the first bolt which gives the partitioning you need for this to be semantically correct. You can see an example of this pattern in storm-starter [here](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/RollingTopWords.java).
 
+If however you have a known skew in the data being processed it can be advantageous to use partialKeyGrouping instead of fieldsGrouping.  This will distribute the load for each key between two downstream bolts instead of a single one.
+
+```java
+builder.setBolt("count", new CountObjects(), parallelism)
+  .partialKeyGrouping("objects", new Fields("value"));
+builder.setBolt("rank" new AggregateCountsAndRank(), parallelism)
+  .fieldsGrouping("count", new Fields("key"))
+builder.setBolt("merge", new MergeRanksObjects())
+  .globalGrouping("rank");
+``` 
+
+The topology needs an extra layer of processing to aggregate the partial counts from the upstream bolts but this only processes aggregated values now so the bolt it is not subject to the load caused by the skewed data. You can see an example of this pattern in storm-starter [here](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/storm/starter/SkewedRollingTopWords.java).
 
 ### TimeCacheMap for efficiently keeping a cache of things that have been recently updated
 

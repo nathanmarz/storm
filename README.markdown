@@ -187,6 +187,7 @@ under the License.
 * 周向涛 ([@taojoe](https://github.com/taojoe))
 * Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
 * zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
+* Paul DelRe ([@pdelre](https://github.com/pdelre))
 
 ## Acknowledgements
 

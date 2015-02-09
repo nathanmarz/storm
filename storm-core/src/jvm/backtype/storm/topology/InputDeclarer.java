@@ -45,6 +45,9 @@ public interface InputDeclarer<T extends InputDeclarer> {
     public T directGrouping(String componentId);
     public T directGrouping(String componentId, String streamId);
 
+    public T partialKeyGrouping(String componentId, Fields fields);
+    public T partialKeyGrouping(String componentId, String streamId, Fields fields);
+
     public T customGrouping(String componentId, CustomStreamGrouping grouping);
     public T customGrouping(String componentId, String streamId, CustomStreamGrouping grouping);
     

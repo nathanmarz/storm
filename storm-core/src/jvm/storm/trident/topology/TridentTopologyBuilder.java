@@ -21,6 +21,7 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
+import backtype.storm.grouping.PartialKeyGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
 import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IRichSpout;
@@ -645,7 +646,17 @@ public class TridentTopologyBuilder {
             });
             return this;
         }
-        
+
+        @Override
+        public BoltDeclarer partialKeyGrouping(String componentId, Fields fields) {
+            return customGrouping(componentId, new PartialKeyGrouping(fields));
+        }
+
+        @Override
+        public BoltDeclarer partialKeyGrouping(String componentId, String streamId, Fields fields) {
+            return customGrouping(componentId, streamId, new PartialKeyGrouping(fields));
+        }
+
         @Override
         public BoltDeclarer customGrouping(final String component, final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {

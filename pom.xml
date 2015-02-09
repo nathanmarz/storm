@@ -521,12 +521,6 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.clojars.runa</groupId>
-                <artifactId>conjure</artifactId>
-                <version>${conjure.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.thrift</groupId>
                 <artifactId>libthrift</artifactId>
                 <version>0.7.0</version>

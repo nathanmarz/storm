@@ -42,6 +42,7 @@
  * STORM-635: logviewer returns 404 if storm_home/logs is a symlinked dir.
  * STORM-636: Faster, optional retrieval of last component error
  * STORM-608: Storm UI CSRF escape characters not work correctly.
+ * STORM-626: Add script to print out the merge command for a given pull request.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

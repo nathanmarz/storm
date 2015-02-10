@@ -33,9 +33,9 @@ public class SimpleJdbcMapper implements JdbcMapper {
 
     private List<Column> schemaColumns;
 
-    public SimpleJdbcMapper(String tableName, Map map) {
+    public SimpleJdbcMapper(String tableName, Map hikariConfigurationMap) {
         int queryTimeoutSecs = 30;
-        JdbcClient client = new JdbcClient(map, queryTimeoutSecs);
+        JdbcClient client = new JdbcClient(hikariConfigurationMap, queryTimeoutSecs);
         this.schemaColumns = client.getColumnSchema(tableName);
     }
 

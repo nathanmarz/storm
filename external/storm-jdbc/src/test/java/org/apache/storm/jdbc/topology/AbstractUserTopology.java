@@ -38,6 +38,9 @@ import java.util.Map;
 
 public abstract class AbstractUserTopology {
     private static final List<String> setupSqls = Lists.newArrayList(
+            "drop table if exists user",
+            "drop table if exists department",
+            "drop table if exists user_department",
             "create table if not exists user (user_id integer, user_name varchar(100), dept_name varchar(100), create_date date)",
             "create table if not exists department (dept_id integer, dept_name varchar(100))",
             "create table if not exists user_department (user_id integer, dept_id integer)",

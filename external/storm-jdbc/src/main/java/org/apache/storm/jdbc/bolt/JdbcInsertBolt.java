@@ -37,18 +37,10 @@ public class JdbcInsertBolt extends AbstractJdbcBolt {
     private String tableName;
     private JdbcMapper jdbcMapper;
 
-    public JdbcInsertBolt(String configKey) {
+    public JdbcInsertBolt(String configKey, String tableName, JdbcMapper jdbcMapper) {
         super(configKey);
-    }
-
-    public JdbcInsertBolt withTableName(String tableName) {
         this.tableName = tableName;
-        return this;
-    }
-
-    public JdbcInsertBolt withJdbcMapper(JdbcMapper jdbcMapper) {
         this.jdbcMapper = jdbcMapper;
-        return this;
     }
 
     public JdbcInsertBolt withQueryTimeoutSecs(int queryTimeoutSecs) {

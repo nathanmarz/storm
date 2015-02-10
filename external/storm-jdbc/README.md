@@ -63,9 +63,7 @@ to be <= topology.message.timeout.secs.
  ```java
 Config config = new Config();
 config.put("jdbc.conf", hikariConfigMap);
-JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf")
-                                    .withTableName("user_details")
-                                    .withJdbcMapper(simpleJdbcMapper)
+JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf","user_details",simpleJdbcMapper)
                                     .withQueryTimeoutSecs(30);
  ```
 ### JdbcTridentState
@@ -135,9 +133,9 @@ You can optionally specify a query timeout seconds param that specifies max seco
 The default is set to value of topology.message.timeout.secs. You should set this value to be <= topology.message.timeout.secs.
 
 ```java
-JdbcLookupBolt userNameLookupBolt = new JdbcLookupBolt("jdbc.conf")
-        .withJdbcLookupMapper(new SimpleJdbcLookupMapper(outputFields, queryParamColumns))
-        .withSelectSql("select user_name from user_details where user_id = ?")
+String selectSql = "select user_name from user_details where user_id = ?";
+SimpleJdbcLookupMapper lookupMapper = new SimpleJdbcLookupMapper(outputFields, queryParamColumns)
+JdbcLookupBolt userNameLookupBolt = new JdbcLookupBolt("jdbc.conf", selectSql, lookupMapper)
         .withQueryTimeoutSecs(30);
 ```
 
@@ -208,8 +206,7 @@ mvn clean compile assembly:single.
 
 Mysql Example:
 ```
-storm jar ~/repo/incubator-storm/external/storm-jdbc/target/storm-jdbc-0.10.0-SNAPSHOT-jar-with-dependencies.jar 
-org.apache.storm.jdbc.topology.UserPersistanceTopology  com.mysql.jdbc.jdbc2.optional.MysqlDataSource jdbc:mysql://localhost/test root password UserPersistenceTopology
+storm jar ~/repo/incubator-storm/external/storm-jdbc/target/storm-jdbc-0.10.0-SNAPSHOT-jar-with-dependencies.jar org.apache.storm.jdbc.topology.UserPersistanceTopology  com.mysql.jdbc.jdbc2.optional.MysqlDataSource jdbc:mysql://localhost/test root password UserPersistenceTopology
 ```
 
 You can execute a select query against the user table which should show newly inserted rows:

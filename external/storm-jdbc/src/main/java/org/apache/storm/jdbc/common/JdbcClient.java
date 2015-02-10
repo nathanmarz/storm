@@ -37,18 +37,23 @@ public class JdbcClient {
     private HikariDataSource dataSource;
     private int queryTimeoutSecs;
 
-    public JdbcClient(Map<String, Object> map, int queryTimeoutSecs) {
+    public JdbcClient(Map<String, Object> hikariConfigMap, int queryTimeoutSecs) {
         Properties properties = new Properties();
-        properties.putAll(map);
+        properties.putAll(hikariConfigMap);
         HikariConfig config = new HikariConfig(properties);
         this.dataSource = new HikariDataSource(config);
         this.queryTimeoutSecs = queryTimeoutSecs;
     }
 
-    public int insert(String tableName, List<List<Column>> columnLists) {
+    public void insert(String tableName, List<List<Column>> columnLists) {
         Connection connection = null;
         try {
             connection = this.dataSource.getConnection();
+            boolean autoCommit = connection.getAutoCommit();
+            if(autoCommit) {
+                connection.setAutoCommit(false);
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.append("Insert into ").append(tableName).append(" (");
             Collection<String> columnNames = Collections2.transform(columnLists.get(0), new Function<Column, String>() {
@@ -67,14 +72,24 @@ public class JdbcClient {
 
             LOG.debug("Executing query {}", query);
 
-
             PreparedStatement preparedStatement = connection.prepareStatement(query);
             preparedStatement.setQueryTimeout(queryTimeoutSecs);
             for(List<Column> columnList : columnLists) {
                 setPreparedStatementParams(preparedStatement, columnList);
+                preparedStatement.addBatch();
             }
 
-            return preparedStatement.executeUpdate();
+            int[] results = preparedStatement.executeBatch();
+            if(Arrays.asList(results).contains(Statement.EXECUTE_FAILED)) {
+                connection.rollback();
+                throw new RuntimeException("failed at least one sql statement in the batch, operation rolled back.");
+            } else {
+                try {
+                    connection.commit();
+                } catch (SQLException e) {
+                    throw new RuntimeException("Failed to commit inserts in table " + tableName, e);
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to insert in table " + tableName, e);
         } finally {

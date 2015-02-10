@@ -37,18 +37,10 @@ public class JdbcLookupBolt extends AbstractJdbcBolt {
 
     private JdbcLookupMapper jdbcLookupMapper;
 
-    public JdbcLookupBolt(String configKey) {
+    public JdbcLookupBolt(String configKey, String selectQuery, JdbcLookupMapper jdbcLookupMapper) {
         super(configKey);
-    }
-
-    public JdbcLookupBolt withJdbcLookupMapper(JdbcLookupMapper jdbcLookupMapper) {
-        this.jdbcLookupMapper = jdbcLookupMapper;
-        return this;
-    }
-
-    public JdbcLookupBolt withSelectSql(String selectQuery) {
         this.selectQuery = selectQuery;
-        return this;
+        this.jdbcLookupMapper = jdbcLookupMapper;
     }
 
     public JdbcLookupBolt withQueryTimeoutSecs(int queryTimeoutSecs) {

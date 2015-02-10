@@ -10,7 +10,7 @@ import java.util.List;
 public interface JdbcLookupMapper extends JdbcMapper {
 
     /**
-     * Covers a DB row to a list of storm values that can be emitted. This is done to allow a single
+     * Converts a DB row to a list of storm values that can be emitted. This is done to allow a single
      * storm input tuple and a single DB row to result in multiple output values.
      * @param input the input tuple.
      * @param columns list of columns that represents a row

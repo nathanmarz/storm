@@ -258,9 +258,9 @@
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -15 " pid))
         (kill-process-with-sig-term pid)))
-    (if-not (empty? pids) (do 
-                            (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
-                            (sleep-secs shutdown-sleep-secs)))
+    (when-not (empty? pids)  
+      (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
+      (sleep-secs shutdown-sleep-secs))
     (doseq [pid pids]
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))

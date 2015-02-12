@@ -18,17 +18,22 @@
 package backtype.storm.utils;
 
 
+import backtype.storm.Config;
+import backtype.storm.generated.ClusterSummary;
 import backtype.storm.generated.Nimbus;
+import backtype.storm.generated.NimbusSummary;
 import backtype.storm.nimbus.ILeaderElector;
 import backtype.storm.nimbus.NimbusInfo;
 import backtype.storm.security.auth.ThriftClient;
 import backtype.storm.security.auth.ThriftConnectionType;
 import clojure.lang.IFn;
 import clojure.lang.PersistentArrayMap;
+import com.google.common.base.Splitter;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 public class NimbusClient extends ThriftClient {
@@ -36,23 +41,30 @@ public class NimbusClient extends ThriftClient {
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 
     public static NimbusClient getConfiguredClient(Map conf) {
-        ILeaderElector zkLeaderElector = null;
-        try {
-            IFn zkLeaderElectorFn = Utils.loadClojureFn("backtype.storm.zookeeper", "zk-leader-elector");
-            zkLeaderElector = (ILeaderElector) zkLeaderElectorFn.invoke(PersistentArrayMap.create(conf));
-            NimbusInfo leaderInfo = zkLeaderElector.getLeader();
-            String nimbusHost = leaderInfo.getHost();
-            int nimbusPort = leaderInfo.getPort();
-            return new NimbusClient(conf, nimbusHost, nimbusPort);
-        } catch (TTransportException ex) {
-            throw new RuntimeException(ex);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            if(zkLeaderElector != null) {
-                zkLeaderElector.close();
+        List<String> seeds = (List<String>) conf.get(Config.NIMBUS_SEEDS);
+        for(String seed : seeds) {
+            String[] split = seed.split(":");
+            String host = split[0];
+            int port = Integer.parseInt(split[1]);
+            try {
+                NimbusClient client = new NimbusClient(conf,host,port);
+                ClusterSummary clusterInfo = client.getClient().getClusterInfo();
+                List<NimbusSummary> nimbuses = clusterInfo.get_nimbuses();
+                if(nimbuses != null) {
+                    for(NimbusSummary nimbusSummary : nimbuses) {
+                        if(nimbusSummary.is_isLeader()) {
+                            return new NimbusClient(conf, nimbusSummary.get_host(), nimbusSummary.get_port());
+                        }
+                    }
+                }
+                throw new RuntimeException("Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
+                        "again after some time.");
+            } catch (Exception e) {
+                LOG.warn("Ignoring exception while trying to get leader nimbus info from {}", seed);
             }
         }
+        throw new RuntimeException("Could not find leader nimbus from seed hosts " + seeds +". " +
+                "Did you specify a valid list of nimbus host:port for config " + Config.NIMBUS_SEEDS);
     }
 
     public NimbusClient(Map conf, String host, int port) throws TTransportException {

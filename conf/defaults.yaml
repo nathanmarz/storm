@@ -51,6 +51,7 @@ storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializ
 storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
 
 ### nimbus.* configs are for the master
+nimbus.seeds : ["localhost:6627"]
 nimbus.thrift.port: 6627
 nimbus.thrift.threads: 64
 nimbus.thrift.max_buffer_size: 1048576

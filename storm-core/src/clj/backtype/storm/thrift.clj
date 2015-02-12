@@ -84,13 +84,12 @@
 (defmacro with-configured-nimbus-connection
   [client-sym & body]
   `(let [conf# (read-storm-config)
-         zk-leader-elector# (zk-leader-elector conf#)
-         leader-nimbus# (.getLeader zk-leader-elector#)
-         host# (.getHost leader-nimbus#)
-         port# (.getPort leader-nimbus#)
-         no-op# (.close zk-leader-elector#)]
-     (with-nimbus-connection [~client-sym host# port#]
-       ~@body )))
+         ~client-sym (NimbusClient/getConfiguredClient conf#)
+         conn# (.transport ~client-sym)
+         ]
+     (try
+       ~@body
+     (finally (.close conn#)))))
 
 (defn direct-output-fields
   [fields]

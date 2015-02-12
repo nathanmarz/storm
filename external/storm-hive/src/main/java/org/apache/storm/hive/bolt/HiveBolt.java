@@ -111,9 +111,9 @@ public class HiveBolt extends  BaseRichBolt {
             }
             collector.ack(tuple);
         } catch(Exception e) {
+            this.collector.reportError(e);
             collector.fail(tuple);
             flushAndCloseWriters();
-            LOG.warn("hive streaming failed. ",e);
         }
     }
 

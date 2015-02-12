@@ -645,7 +645,7 @@ Rebalances a topology.
 |rebalanceOptions| Json (optional) | topology rebalance options |
 
 
-Sample rebalancOptions json:
+Sample rebalanceOptions json:
 
 ```json
 {"rebalanceOptions" : {"numWorkers" : 2, "executors" : {"spout" :4, "count" : 10}}, "callback" : "foo"}

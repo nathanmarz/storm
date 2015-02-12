@@ -72,7 +72,6 @@ Response fields:
 |Field  |Value|Description
 |---	|---	|---
 |stormVersion|String| Storm version|
-|nimbusUptime|String| Shows how long the cluster is running|
 |supervisors|Integer|  Number of supervisors running|
 |slotsTotal| Integer|Total number of available worker slots|
 |slotsUsed| Integer| Number of worker slots used|
@@ -120,6 +119,37 @@ Sample response:
             "uptime": "5m 58s",
             "slotsTotal": 4,
             "slotsUsed": 3
+        }
+    ]
+}
+```
+
+### /api/v1/nimbus/summary (GET)
+
+Returns summary information for all nimbus hosts.
+
+Response fields:
+
+|Field  |Value|Description|
+|---	|---	|---
+|host| String | Nimbus' host name|
+|port| int| Nimbus' port number|
+|nimbusUpTime| String| Shows since how long the nimbus has been running|
+|nimbusLogLink| String| Logviewer url to view the nimbus.log|
+|version| String| Version of storm this nimbus host is running|
+
+Sample response:
+
+```json
+{
+    "nimbuses":[
+        {
+            "host":"192.168.202.1",
+            "port":6627,
+            "nimbusLogLink":"http:\/\/192.168.202.1:8000\/log?file=nimbus.log",
+            "isLeader":true,
+            "version":"0.10.0-SNAPSHOT",
+            "nimbusUpTime":"3m 33s"
         }
     ]
 }

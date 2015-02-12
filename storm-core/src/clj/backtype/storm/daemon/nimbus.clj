@@ -105,7 +105,6 @@
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
-     :nimbuses-cache (atom {}) ;;TODO need to figure out how to keep the cache upto date, one more thread
      }))
 
 (defn inbox [nimbus]

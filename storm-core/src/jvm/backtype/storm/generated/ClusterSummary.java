@@ -42,18 +42,18 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ClusterSummary");
 
   private static final org.apache.thrift.protocol.TField SUPERVISORS_FIELD_DESC = new org.apache.thrift.protocol.TField("supervisors", org.apache.thrift.protocol.TType.LIST, (short)1);
-  private static final org.apache.thrift.protocol.TField NIMBUS_UPTIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("nimbus_uptime_secs", org.apache.thrift.protocol.TType.I32, (short)2);
   private static final org.apache.thrift.protocol.TField TOPOLOGIES_FIELD_DESC = new org.apache.thrift.protocol.TField("topologies", org.apache.thrift.protocol.TType.LIST, (short)3);
+  private static final org.apache.thrift.protocol.TField NIMBUSES_FIELD_DESC = new org.apache.thrift.protocol.TField("nimbuses", org.apache.thrift.protocol.TType.LIST, (short)4);
 
   private List<SupervisorSummary> supervisors; // required
-  private int nimbus_uptime_secs; // required
   private List<TopologySummary> topologies; // required
+  private List<NimbusSummary> nimbuses; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SUPERVISORS((short)1, "supervisors"),
-    NIMBUS_UPTIME_SECS((short)2, "nimbus_uptime_secs"),
-    TOPOLOGIES((short)3, "topologies");
+    TOPOLOGIES((short)3, "topologies"),
+    NIMBUSES((short)4, "nimbuses");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -70,10 +70,10 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       switch(fieldId) {
         case 1: // SUPERVISORS
           return SUPERVISORS;
-        case 2: // NIMBUS_UPTIME_SECS
-          return NIMBUS_UPTIME_SECS;
         case 3: // TOPOLOGIES
           return TOPOLOGIES;
+        case 4: // NIMBUSES
+          return NIMBUSES;
         default:
           return null;
       }
@@ -114,8 +114,6 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
   }
 
   // isset id assignments
-  private static final int __NIMBUS_UPTIME_SECS_ISSET_ID = 0;
-  private BitSet __isset_bit_vector = new BitSet(1);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -123,11 +121,12 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     tmpMap.put(_Fields.SUPERVISORS, new org.apache.thrift.meta_data.FieldMetaData("supervisors", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorSummary.class))));
-    tmpMap.put(_Fields.NIMBUS_UPTIME_SECS, new org.apache.thrift.meta_data.FieldMetaData("nimbus_uptime_secs", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.TOPOLOGIES, new org.apache.thrift.meta_data.FieldMetaData("topologies", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TopologySummary.class))));
+    tmpMap.put(_Fields.NIMBUSES, new org.apache.thrift.meta_data.FieldMetaData("nimbuses", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, NimbusSummary.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ClusterSummary.class, metaDataMap);
   }
@@ -137,22 +136,19 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
 
   public ClusterSummary(
     List<SupervisorSummary> supervisors,
-    int nimbus_uptime_secs,
-    List<TopologySummary> topologies)
+    List<TopologySummary> topologies,
+    List<NimbusSummary> nimbuses)
   {
     this();
     this.supervisors = supervisors;
-    this.nimbus_uptime_secs = nimbus_uptime_secs;
-    set_nimbus_uptime_secs_isSet(true);
     this.topologies = topologies;
+    this.nimbuses = nimbuses;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public ClusterSummary(ClusterSummary other) {
-    __isset_bit_vector.clear();
-    __isset_bit_vector.or(other.__isset_bit_vector);
     if (other.is_set_supervisors()) {
       List<SupervisorSummary> __this__supervisors = new ArrayList<SupervisorSummary>();
       for (SupervisorSummary other_element : other.supervisors) {
@@ -160,13 +156,19 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       }
       this.supervisors = __this__supervisors;
     }
-    this.nimbus_uptime_secs = other.nimbus_uptime_secs;
     if (other.is_set_topologies()) {
       List<TopologySummary> __this__topologies = new ArrayList<TopologySummary>();
       for (TopologySummary other_element : other.topologies) {
         __this__topologies.add(new TopologySummary(other_element));
       }
       this.topologies = __this__topologies;
+    }
+    if (other.is_set_nimbuses()) {
+      List<NimbusSummary> __this__nimbuses = new ArrayList<NimbusSummary>();
+      for (NimbusSummary other_element : other.nimbuses) {
+        __this__nimbuses.add(new NimbusSummary(other_element));
+      }
+      this.nimbuses = __this__nimbuses;
     }
   }
 
@@ -177,9 +179,8 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
   @Override
   public void clear() {
     this.supervisors = null;
-    set_nimbus_uptime_secs_isSet(false);
-    this.nimbus_uptime_secs = 0;
     this.topologies = null;
+    this.nimbuses = null;
   }
 
   public int get_supervisors_size() {
@@ -220,28 +221,6 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     }
   }
 
-  public int get_nimbus_uptime_secs() {
-    return this.nimbus_uptime_secs;
-  }
-
-  public void set_nimbus_uptime_secs(int nimbus_uptime_secs) {
-    this.nimbus_uptime_secs = nimbus_uptime_secs;
-    set_nimbus_uptime_secs_isSet(true);
-  }
-
-  public void unset_nimbus_uptime_secs() {
-    __isset_bit_vector.clear(__NIMBUS_UPTIME_SECS_ISSET_ID);
-  }
-
-  /** Returns true if field nimbus_uptime_secs is set (has been assigned a value) and false otherwise */
-  public boolean is_set_nimbus_uptime_secs() {
-    return __isset_bit_vector.get(__NIMBUS_UPTIME_SECS_ISSET_ID);
-  }
-
-  public void set_nimbus_uptime_secs_isSet(boolean value) {
-    __isset_bit_vector.set(__NIMBUS_UPTIME_SECS_ISSET_ID, value);
-  }
-
   public int get_topologies_size() {
     return (this.topologies == null) ? 0 : this.topologies.size();
   }
@@ -280,6 +259,44 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     }
   }
 
+  public int get_nimbuses_size() {
+    return (this.nimbuses == null) ? 0 : this.nimbuses.size();
+  }
+
+  public java.util.Iterator<NimbusSummary> get_nimbuses_iterator() {
+    return (this.nimbuses == null) ? null : this.nimbuses.iterator();
+  }
+
+  public void add_to_nimbuses(NimbusSummary elem) {
+    if (this.nimbuses == null) {
+      this.nimbuses = new ArrayList<NimbusSummary>();
+    }
+    this.nimbuses.add(elem);
+  }
+
+  public List<NimbusSummary> get_nimbuses() {
+    return this.nimbuses;
+  }
+
+  public void set_nimbuses(List<NimbusSummary> nimbuses) {
+    this.nimbuses = nimbuses;
+  }
+
+  public void unset_nimbuses() {
+    this.nimbuses = null;
+  }
+
+  /** Returns true if field nimbuses is set (has been assigned a value) and false otherwise */
+  public boolean is_set_nimbuses() {
+    return this.nimbuses != null;
+  }
+
+  public void set_nimbuses_isSet(boolean value) {
+    if (!value) {
+      this.nimbuses = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case SUPERVISORS:
@@ -287,14 +304,6 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
         unset_supervisors();
       } else {
         set_supervisors((List<SupervisorSummary>)value);
-      }
-      break;
-
-    case NIMBUS_UPTIME_SECS:
-      if (value == null) {
-        unset_nimbus_uptime_secs();
-      } else {
-        set_nimbus_uptime_secs((Integer)value);
       }
       break;
 
@@ -306,6 +315,14 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       }
       break;
 
+    case NIMBUSES:
+      if (value == null) {
+        unset_nimbuses();
+      } else {
+        set_nimbuses((List<NimbusSummary>)value);
+      }
+      break;
+
     }
   }
 
@@ -314,11 +331,11 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     case SUPERVISORS:
       return get_supervisors();
 
-    case NIMBUS_UPTIME_SECS:
-      return Integer.valueOf(get_nimbus_uptime_secs());
-
     case TOPOLOGIES:
       return get_topologies();
+
+    case NIMBUSES:
+      return get_nimbuses();
 
     }
     throw new IllegalStateException();
@@ -333,10 +350,10 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     switch (field) {
     case SUPERVISORS:
       return is_set_supervisors();
-    case NIMBUS_UPTIME_SECS:
-      return is_set_nimbus_uptime_secs();
     case TOPOLOGIES:
       return is_set_topologies();
+    case NIMBUSES:
+      return is_set_nimbuses();
     }
     throw new IllegalStateException();
   }
@@ -363,21 +380,21 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
         return false;
     }
 
-    boolean this_present_nimbus_uptime_secs = true;
-    boolean that_present_nimbus_uptime_secs = true;
-    if (this_present_nimbus_uptime_secs || that_present_nimbus_uptime_secs) {
-      if (!(this_present_nimbus_uptime_secs && that_present_nimbus_uptime_secs))
-        return false;
-      if (this.nimbus_uptime_secs != that.nimbus_uptime_secs)
-        return false;
-    }
-
     boolean this_present_topologies = true && this.is_set_topologies();
     boolean that_present_topologies = true && that.is_set_topologies();
     if (this_present_topologies || that_present_topologies) {
       if (!(this_present_topologies && that_present_topologies))
         return false;
       if (!this.topologies.equals(that.topologies))
+        return false;
+    }
+
+    boolean this_present_nimbuses = true && this.is_set_nimbuses();
+    boolean that_present_nimbuses = true && that.is_set_nimbuses();
+    if (this_present_nimbuses || that_present_nimbuses) {
+      if (!(this_present_nimbuses && that_present_nimbuses))
+        return false;
+      if (!this.nimbuses.equals(that.nimbuses))
         return false;
     }
 
@@ -393,15 +410,15 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     if (present_supervisors)
       builder.append(supervisors);
 
-    boolean present_nimbus_uptime_secs = true;
-    builder.append(present_nimbus_uptime_secs);
-    if (present_nimbus_uptime_secs)
-      builder.append(nimbus_uptime_secs);
-
     boolean present_topologies = true && (is_set_topologies());
     builder.append(present_topologies);
     if (present_topologies)
       builder.append(topologies);
+
+    boolean present_nimbuses = true && (is_set_nimbuses());
+    builder.append(present_nimbuses);
+    if (present_nimbuses)
+      builder.append(nimbuses);
 
     return builder.toHashCode();
   }
@@ -424,22 +441,22 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(is_set_nimbus_uptime_secs()).compareTo(typedOther.is_set_nimbus_uptime_secs());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (is_set_nimbus_uptime_secs()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.nimbus_uptime_secs, typedOther.nimbus_uptime_secs);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(is_set_topologies()).compareTo(typedOther.is_set_topologies());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (is_set_topologies()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.topologies, typedOther.topologies);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_nimbuses()).compareTo(typedOther.is_set_nimbuses());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_nimbuses()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.nimbuses, typedOther.nimbuses);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -479,14 +496,6 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 2: // NIMBUS_UPTIME_SECS
-          if (field.type == org.apache.thrift.protocol.TType.I32) {
-            this.nimbus_uptime_secs = iprot.readI32();
-            set_nimbus_uptime_secs_isSet(true);
-          } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
         case 3: // TOPOLOGIES
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
@@ -498,6 +507,24 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
                 _elem42 = new TopologySummary();
                 _elem42.read(iprot);
                 this.topologies.add(_elem42);
+              }
+              iprot.readListEnd();
+            }
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 4: // NIMBUSES
+          if (field.type == org.apache.thrift.protocol.TType.LIST) {
+            {
+              org.apache.thrift.protocol.TList _list43 = iprot.readListBegin();
+              this.nimbuses = new ArrayList<NimbusSummary>(_list43.size);
+              for (int _i44 = 0; _i44 < _list43.size; ++_i44)
+              {
+                NimbusSummary _elem45; // required
+                _elem45 = new NimbusSummary();
+                _elem45.read(iprot);
+                this.nimbuses.add(_elem45);
               }
               iprot.readListEnd();
             }
@@ -522,24 +549,33 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       oprot.writeFieldBegin(SUPERVISORS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.supervisors.size()));
-        for (SupervisorSummary _iter43 : this.supervisors)
+        for (SupervisorSummary _iter46 : this.supervisors)
         {
-          _iter43.write(oprot);
+          _iter46.write(oprot);
         }
         oprot.writeListEnd();
       }
       oprot.writeFieldEnd();
     }
-    oprot.writeFieldBegin(NIMBUS_UPTIME_SECS_FIELD_DESC);
-    oprot.writeI32(this.nimbus_uptime_secs);
-    oprot.writeFieldEnd();
     if (this.topologies != null) {
       oprot.writeFieldBegin(TOPOLOGIES_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.topologies.size()));
-        for (TopologySummary _iter44 : this.topologies)
+        for (TopologySummary _iter47 : this.topologies)
         {
-          _iter44.write(oprot);
+          _iter47.write(oprot);
+        }
+        oprot.writeListEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    if (this.nimbuses != null) {
+      oprot.writeFieldBegin(NIMBUSES_FIELD_DESC);
+      {
+        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.nimbuses.size()));
+        for (NimbusSummary _iter48 : this.nimbuses)
+        {
+          _iter48.write(oprot);
         }
         oprot.writeListEnd();
       }
@@ -562,15 +598,19 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("nimbus_uptime_secs:");
-    sb.append(this.nimbus_uptime_secs);
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("topologies:");
     if (this.topologies == null) {
       sb.append("null");
     } else {
       sb.append(this.topologies);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("nimbuses:");
+    if (this.nimbuses == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.nimbuses);
     }
     first = false;
     sb.append(")");
@@ -583,12 +623,12 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'supervisors' is unset! Struct:" + toString());
     }
 
-    if (!is_set_nimbus_uptime_secs()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'nimbus_uptime_secs' is unset! Struct:" + toString());
-    }
-
     if (!is_set_topologies()) {
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'topologies' is unset! Struct:" + toString());
+    }
+
+    if (!is_set_nimbuses()) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'nimbuses' is unset! Struct:" + toString());
     }
 
   }
@@ -603,8 +643,6 @@ public class ClusterSummary implements org.apache.thrift.TBase<ClusterSummary, C
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-      __isset_bit_vector = new BitSet(1);
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);

@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
   (:import [java.nio ByteBuffer]
-           [java.util Collections])
+           [java.util Collections]
+           [backtype.storm.generated NimbusSummary])
   (:import [java.io FileNotFoundException])
   (:import [java.net InetAddress])
   (:import [java.nio.channels Channels WritableByteChannel])
@@ -104,6 +105,7 @@
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
+     :nimbuses-cache (atom {}) ;;TODO need to figure out how to keep the cache upto date, one more thread
      }))
 
 (defn inbox [nimbus]
@@ -1030,6 +1032,17 @@
   (let [nimbus (nimbus-data conf inimbus)
        principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)]
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
+
+    ;add to nimbuses
+    (.add-nimbus-host! (:storm-cluster-state nimbus)
+      (.toHostPortString (:nimbus-host-port-info nimbus))
+      {
+        :host (.getHost (:nimbus-host-port-info nimbus))
+        :port (.getPort (:nimbus-host-port-info nimbus))
+        :start-time-secs (current-time-secs)
+        :version (read-storm-version)
+        })
+
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (cleanup-corrupt-topologies! nimbus)
     ;register call back for code-distributor
@@ -1287,8 +1300,14 @@
                                                                 (count (:used-ports info))
                                                                 id )
                                             ))
-              nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
+              nimbuses (.nimbuses storm-cluster-state)
+              nimbuses (map #(NimbusSummary. (:host %1) (:port %1) (time-delta (:start-time-secs %1))
+                               (let [leader (.getLeader (:leader-elector nimbus))]
+                                 (and (= (.getHost leader) (:host %1)) (= (.getPort leader) (:port %1))))
+                               (:version %1))
+                         nimbuses
+                         )
               topology-summaries (dofor [[id base] bases :when base]
 	                                  (let [assignment (.assignment-info storm-cluster-state id nil)
                                                 topo-summ (TopologySummary. id
@@ -1312,8 +1331,8 @@
                                                topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries
-                           nimbus-uptime
-                           topology-summaries)
+                           topology-summaries
+                           nimbuses)
           ))
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]

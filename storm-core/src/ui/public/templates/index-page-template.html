@@ -24,11 +24,6 @@
         </span>
       </th>
       <th>
-        <span class="tip right" title="The duration the current Nimbus instance has been running. (Note that the storm cluster may have been deployed and available for a much longer period than the current Nimbus process has been running.)">
-          Nimbus uptime
-        </span>
-      </th>
-      <th>
         <span class="tip above" title="The number of nodes in the cluster currently.">
           Supervisors
       </span>
@@ -63,7 +58,6 @@
   <tbody>
     <tr>
       <td>{{stormVersion}}</td>
-      <td>{{nimbusUptime}}</td>
       <td>{{supervisors}}</td>
       <td>{{slotsUsed}}</td>
       <td>{{slotsFree}}</td>
@@ -80,19 +74,19 @@
         <thead>
         <tr>
             <th>
-                    <span class="tip right" title="nimbus host name.">
-                        Host
-                    </span>
+                <span class="tip right" title="nimbus host name.">Host</span>
             </th>
             <th>
-        <span class="tip above" title="Nimbus Thrift port number.">
-          Port
-        </span>
+                <span class="tip above" title="Nimbus Thrift port number.">Port</span>
             </th>
             <th>
-        <span class="tip above" title="True if this host is leader, false otherwise.">
-          IsLeader
-        </span>
+                <span class="tip above" title="True if this host is leader, false otherwise.">IsLeader</span>
+            </th>
+            <th>
+                <span class="tip left" title="Storm version that this nimbus host is running.">Version</span>
+            </th>
+            <th>
+                <span class="tip left" title="Number of seconds this nimbus host has been running the nimbus process.">UpTime Seconds</span>
             </th>
         </tr>
         </thead>
@@ -102,6 +96,8 @@
             <td>{{host}}</td>
             <td><a href="{{nimbusLogLink}}">{{port}}</a></td>
             <td>{{isLeader}}</td>
+            <td>{{version}}</td>
+            <td>{{nimbusUpTime}}</td>
         </tr>
         {{/nimbuses}}
         </tbody>

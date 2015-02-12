@@ -282,3 +282,13 @@
 (defn ^LocalState worker-state
   [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
+
+(defn read-storm-version
+  "Returns a string containing the Storm version or 'Unknown'."
+  []
+  (let [storm-home (System/getProperty "storm.home")
+        release-path (format "%s/RELEASE" storm-home)
+        release-file (File. release-path)]
+    (if (and (.exists release-file) (.isFile release-file))
+      (str/trim (slurp release-path))
+      "Unknown")))

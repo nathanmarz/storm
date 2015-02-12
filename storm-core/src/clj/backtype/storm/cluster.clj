@@ -146,6 +146,12 @@
   (code-distributor [this callback])
   ;returns lits of nimbusinfos under /stormroot/code-distributor/storm-id
   (code-distributor-info [this storm-id])
+
+  ;returns list of nimbus summaries stored under /stormroot/nimbuses/<nimbus-ids> -> <data>
+  (nimbuses [this])
+  ;adds the NimbusSummary to /stormroot/nimbuses/nimbus-id
+  (add-nimbus-host! [this nimbus-id nimbus-summary])
+
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
@@ -180,7 +186,9 @@
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
 (def CODE-DISTRIBUTOR-ROOT "code-distributor")
+(def NIMBUSES-ROOT "nimbuses")
 (def CREDENTIALS-ROOT "credentials")
+
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
@@ -188,6 +196,7 @@
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
 (def CODE-DISTRIBUTOR-SUBTREE (str "/" CODE-DISTRIBUTOR-ROOT))
+(def NIMBUSES-SUBTREE (str "/" NIMBUSES-ROOT))
 (def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 
 (defn supervisor-path
@@ -201,6 +210,10 @@
 (defn code-distributor-path
   [id]
   (str CODE-DISTRIBUTOR-SUBTREE "/" id))
+
+(defn nimbus-path
+  [id]
+  (str NIMBUSES-SUBTREE "/" id))
 
 (defn storm-path
   [id]
@@ -292,7 +305,7 @@
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
-    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE NIMBUSES-SUBTREE]]
       (mkdirs cluster-state p acls))
     (reify
       StormClusterState
@@ -329,6 +342,15 @@
         (when callback
           (reset! code-distributor-callback callback))
         (get-children cluster-state CODE-DISTRIBUTOR-SUBTREE (not-nil? callback)))
+
+      (nimbuses
+        [this]
+        (map #(maybe-deserialize (get-data cluster-state (nimbus-path %1) false))
+          (get-children cluster-state NIMBUSES-SUBTREE false)))
+
+      (add-nimbus-host!
+        [this nimbus-id nimbus-summary]
+        (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))
 
       (code-distributor-info
         [this storm-id]

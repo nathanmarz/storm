@@ -78,16 +78,6 @@
        (map #(.get_stats ^ExecutorSummary %))
        (filter not-nil?)))
 
-(defn read-storm-version
-  "Returns a string containing the Storm version or 'Unknown'."
-  []
-  (let [storm-home (System/getProperty "storm.home")
-        release-path (format "%s/RELEASE" storm-home)
-        release-file (File. release-path)]
-    (if (and (.exists release-file) (.isFile release-file))
-      (trim (slurp release-path))
-      "Unknown")))
-
 (defn component-type
   "Returns the component type (either :bolt or :spout) for a given
   topology and component id. Returns nil if not found."
@@ -520,7 +510,6 @@
                              (reduce +))]
        {"user" user
         "stormVersion" (read-storm-version)
-        "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "supervisors" (count sups)
         "slotsTotal" total-slots
         "slotsUsed"  used-slots
@@ -530,18 +519,19 @@
 
 (defn nimbus-summary
   ([]
-    (let [leader-elector (zk-leader-elector *STORM-CONF*)
-          nimbus-hosts (.getAllNimbuses leader-elector)
-          no-op (.close leader-elector)]
-      (nimbus-summary nimbus-hosts)))
+    (with-nimbus nimbus
+      (nimbus-summary
+        (.get_nimbuses (.getClusterInfo ^Nimbus$Client nimbus)))))
   ([nimbuses]
     {"nimbuses"
      (for [^NimbusInfo n nimbuses]
        {
-        "host" (.getHost n)
-        "port" (.getPort n)
-        "nimbusLogLink" (nimbus-log-link (.getHost n) (.getPort n))
-        "isLeader" (.isLeader n)})}))
+        "host" (.get_host n)
+        "port" (.get_port n)
+        "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
+        "isLeader" (.is_isLeader n)
+        "version" (.get_version n)
+        "nimbusUpTime" (pretty-uptime-sec (.get_uptimeSecs n))})}))
 
 (defn supervisor-summary
   ([]

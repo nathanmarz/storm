@@ -156,10 +156,18 @@ struct SupervisorSummary {
   5: required string supervisor_id;
 }
 
+struct NimbusSummary {
+  1: required string host;
+  2: required i32 port;
+  3: required i32 uptime_secs;
+  4: required bool isLeader;
+  5: required string version;
+}
+
 struct ClusterSummary {
   1: required list<SupervisorSummary> supervisors;
-  2: required i32 nimbus_uptime_secs;
   3: required list<TopologySummary> topologies;
+  4: required list<NimbusSummary> nimbuses;
 }
 
 struct ErrorInfo {

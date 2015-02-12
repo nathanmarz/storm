@@ -84,8 +84,9 @@
 (defmacro with-configured-nimbus-connection
   [client-sym & body]
   `(let [conf# (read-storm-config)
-         ~client-sym (NimbusClient/getConfiguredClient conf#)
-         conn# (.transport ~client-sym)
+         nimbusClient# (NimbusClient/getConfiguredClient conf#)
+         ~client-sym (.getClient nimbusClient#)
+         conn# (.transport nimbusClient#)
          ]
      (try
        ~@body

@@ -1327,7 +1327,9 @@
                                                             (extract-status-str base))]
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
-                                               (.set_replication_count topo-summ (.getReplicationCount (:code-distributor nimbus) id))
+                                               (.set_replication_count topo-summ (if (:code-distributor nimbus)
+                                                                                   (.getReplicationCount (:code-distributor nimbus) id)
+                                                                                   1))
                                                topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries

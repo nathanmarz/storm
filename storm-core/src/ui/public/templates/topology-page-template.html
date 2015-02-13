@@ -346,9 +346,9 @@
 <script id="topology-actions-template" type="text/html">
   <h2>Topology actions</h2>
   <p id="topology-actions">
-    <input {{activateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate">
-    <input {{deactivateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate">
-    <input {{rebalanceStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance">
-    <input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
+    <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate">
+    <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate">
+    <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance">
+    <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill">
   </p>
 </script>

@@ -570,28 +570,34 @@
                                              (:topology tracked))
             storm-id (get-storm-id state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
+
+        (is (nil? (.last-error state storm-id "2")))
+
         ;; so it launches the topology
         (advance-cluster-time cluster 2)
         (.feed feeder [6])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
+        (is (.last-error state storm-id "2"))
         
         (advance-time-secs! 5)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
+        (is (.last-error state storm-id "2"))
         
         (advance-time-secs! 6)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 6 (errors-count)))
+        (is (.last-error state storm-id "2"))
         
         (advance-time-secs! 6)
         (.feed feeder [3])
         (tracked-wait tracked 1)
         (is (= 8 (errors-count)))
-        
-        ))))
+        (is (.last-error state storm-id "2"))))))
+
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

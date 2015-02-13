@@ -622,6 +622,8 @@
       (is (= 4 (.size assigned-slots)))
       (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     )
+    ;;The text can be off for a bit until we schedule again
+    (.scheduleAsNeeded isolated-pool (into-array NodePool [free-pool]))
     (is (= "Max Nodes(2) for this user would be exceeded. 1 more nodes needed to run topology." (.get (.getStatusMap cluster) "topology1")))
     (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
 ))

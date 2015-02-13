@@ -233,7 +233,7 @@ One thing you have to take care of is, don't let subprocess sleep too much from 
 
 * Bolt
 
-SHell bolts are asynchronous, so ShellBolt will send heartbeat tuple periodically.
+Shell bolts are asynchronous, so ShellBolt will send heartbeat tuple periodically.
 Heartbeat tuple looks like:
 
 ```

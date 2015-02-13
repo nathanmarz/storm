@@ -107,7 +107,7 @@ public class HBaseState implements State {
                 LOG.warn("No 'hbase.rootdir' value found in configuration! Using HBase defaults.");
             }
             for (String key : conf.keySet()) {
-                hbConfig.set(key, String.valueOf(map.get(key)));
+                hbConfig.set(key, String.valueOf(conf.get(key)));
             }
         }
 

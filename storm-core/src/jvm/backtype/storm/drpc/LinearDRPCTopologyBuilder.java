@@ -28,6 +28,7 @@ import backtype.storm.coordination.IBatchBolt;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.grouping.CustomStreamGrouping;
+import backtype.storm.grouping.PartialKeyGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
 import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.BoltDeclarer;
@@ -347,7 +348,17 @@ public class LinearDRPCTopologyBuilder {
             });
             return this;
         }
-        
+
+        @Override
+        public LinearDRPCInputDeclarer partialKeyGrouping(Fields fields) {
+            return customGrouping(new PartialKeyGrouping(fields));
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer partialKeyGrouping(String streamId, Fields fields) {
+            return customGrouping(streamId, new PartialKeyGrouping(fields));
+        }
+
         @Override
         public LinearDRPCInputDeclarer customGrouping(final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {

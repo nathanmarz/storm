@@ -213,6 +213,12 @@
       (.remove-storm! state "storm1")
       (is (= [] (.code-distributor state nil)))
 
+      (is (= [] (.nimbuses state)))
+      (.add-nimbus-host! state "host:port" nimbusInfo1)
+      (is (= [nimbusInfo1] (.nimbuses state)))
+      (.add-nimbus-host! state "host1:port" nimbusInfo2)
+      (is (= #{nimbusInfo1 nimbusInfo2} (set (.nimbuses state))))
+
       ;; TODO add tests for task info and task heartbeat setting and getting
       (.disconnect state)
       )))

@@ -35,6 +35,25 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
 import org.apache.commons.lang.StringUtils;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
+import java.util.*;
+
+import org.apache.curator.ensemble.exhibitor.DefaultExhibitorRestClient;
+import org.apache.curator.ensemble.exhibitor.ExhibitorEnsembleProvider;
+import org.apache.curator.ensemble.exhibitor.Exhibitors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.thrift.TBase;
@@ -621,6 +640,22 @@ public class Utils {
         throw new IllegalArgumentException("Could not find component with id " + id);
     }
 
+    public static List<String> getStrings(final Object o) {
+        if (o == null) {
+            return Collections.emptyList();
+        } else if (o instanceof String) {
+            return new ArrayList<String>() {{ add((String) o); }};
+        } else if (o instanceof Collection) {
+            List<String> answer = new ArrayList<String>();
+            for (Object v : (Collection) o) {
+                answer.add(v.toString());
+            }
+            return answer;
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert to string list");
+        }
+    }
+
     public static Integer getInt(Object o) {
         Integer result = getInt(o, null);
         if (null == result) {
@@ -982,12 +1017,33 @@ public class Utils {
         return builder.build();
     }
 
-    protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
+    protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, final String zkStr, Map conf, ZookeeperAuthInfo auth)
     {
-        builder.connectString(zkStr)
-                .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                .retryPolicy(new StormBoundedExponentialBackoffRetry(
+        List<String> exhibitorServers = getStrings(conf.get(Config.STORM_EXHIBITOR_SERVERS));
+        if (!exhibitorServers.isEmpty()) {
+            // use exhibitor servers
+            builder.ensembleProvider(new ExhibitorEnsembleProvider(
+                new Exhibitors(exhibitorServers, Utils.getInt(conf.get(Config.STORM_EXHIBITOR_PORT), 8080),
+                    new Exhibitors.BackupConnectionStringProvider() {
+                        @Override
+                        public String getBackupConnectionString() throws Exception {
+                            // use zk servers as backup if they exist
+                            return zkStr;
+                        }}),
+                new DefaultExhibitorRestClient(),
+                (String) Utils.get(conf, Config.STORM_EXHIBITOR_URIPATH, "/exhibitor/v1/cluster/list"),
+                Utils.getInt(conf.get(Config.STORM_EXHIBITOR_POLL)),
+                new StormBoundedExponentialBackoffRetry(
+                    Utils.getInt(conf.get(Config.STORM_EXHIBITOR_RETRY_INTERVAL)),
+                    Utils.getInt(conf.get(Config.STORM_EXHIBITOR_RETRY_INTERVAL_CEILING)),
+                    Utils.getInt(conf.get(Config.STORM_EXHIBITOR_RETRY_TIMES)))));
+        } else {
+            builder.connectString(zkStr);
+        }
+        builder
+            .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+            .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+            .retryPolicy(new StormBoundedExponentialBackoffRetry(
                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));

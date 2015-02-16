@@ -61,7 +61,7 @@
     (:topology worker))
    tid))
 
-(defn- get-task-object [^TopologyContext topology component-id]
+(defn- get-task-object [^StormTopology topology component-id]
   (let [spouts (.get_spouts topology)
         bolts (.get_bolts topology)
         state-spouts (.get_state_spouts topology)

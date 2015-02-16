@@ -358,7 +358,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     public synchronized void send(Iterator<TaskMessage> msgs) {
         if (closing) {
             int numMessages = iteratorSize(msgs);
-            LOG.warn("discarding {} messages because the Netty client to {} is being closed", numMessages,
+            LOG.error("discarding {} messages because the Netty client to {} is being closed", numMessages,
                 dstAddressPrefixedName);
             return;
         }
@@ -475,7 +475,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
                     messagesSent.getAndAdd(batch.size());
                 }
                 else {
-                    LOG.warn("failed to send {} messages to {}: {}", numMessages, dstAddressPrefixedName,
+                    LOG.error("failed to send {} messages to {}: {}", numMessages, dstAddressPrefixedName,
                         future.getCause());
                     closeChannelAndReconnect(future.getChannel());
                     messagesLost.getAndAdd(numMessages);

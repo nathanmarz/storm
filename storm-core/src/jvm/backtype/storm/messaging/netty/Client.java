@@ -431,14 +431,14 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      */
     private void handleMessagesWhenConnectionIsUnavailable(Iterator<TaskMessage> msgs) {
         LOG.error("connection to {} is unavailable", dstAddressPrefixedName);
-        dropPendingMessages(msgs);
+        dropMessages(msgs);
     }
 
-    private void dropPendingMessages(Iterator<TaskMessage> msgs) {
+    private void dropMessages(Iterator<TaskMessage> msgs) {
         // We consume the iterator by traversing and thus "emptying" it.
         int msgCount = iteratorSize(msgs);
         messagesLost.getAndAdd(msgCount);
-        LOG.error("dropping {} pending message(s) destined for {}", msgCount, dstAddressPrefixedName);
+        LOG.error("dropping {} message(s) destined for {}", msgCount, dstAddressPrefixedName);
     }
 
     private int iteratorSize(Iterator<TaskMessage> msgs) {

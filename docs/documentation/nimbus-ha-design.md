@@ -169,35 +169,31 @@ The following sequence diagram describes the communication between different com
 ![Nimbus HA Topology Submission](images/nimbus_ha_topology_submission.png)
 
 ##Thrift and Rest API 
+In order to avoid workers/supervisors/ui talking to zookeeper for getting master nimbus address we are going to modify the 
+`getClusterInfo` API so it can also return nimbus information. getClusterInfo currently returns `ClusterSummary` instance
+which has a list of `supervisorSummary` and a list of 'topologySummary` instances. We will add a list of `NimbusSummary` 
+to the `ClusterSummary`. See the structures below:
 
-This section only exists to track and document how we can reduce the added load on zookeeper for nimbus discovery if the 
-performance numbers indicated any degradation. The actual implementation will not be part of nimbus HA unless we have 
-performance tests to indicate degradation.  
+```thrift
+struct ClusterSummary {
+  1: required list<SupervisorSummary> supervisors;
+  3: required list<TopologySummary> topologies;
+  4: required list<NimbusSummary> nimbuses;
+}
 
-In order to avoid workers/supervisors/ui talking to zookeeper for getting master nimbus address we can add following new API:
-
-```java
-/**
-* Returns list of all nimbus hosts that are either currently in queue or has
-* the leadership lock.
-*/
-List<NimbusInfo> getNimbusHosts();
-
-/**
-* NimbusInfo
-*/
-Class NimbusInfo {
-	String host;
-	short port;
-	boolean isLeader;
+struct NimbusSummary {
+  1: required string host;
+  2: required i32 port;
+  3: required i32 uptime_secs;
+  4: required bool isLeader;
+  5: required string version;
 }
 ```
 
-These apis will be used by StormSubmitter, Nimbus clients,supervisors and ui to discover the current leaders and participating 
+This will be used by StormSubmitter, Nimbus clients,supervisors and ui to discover the current leaders and participating 
 nimbus hosts. Any nimbus host will be able to respond to these requests. The nimbus hosts can read this information once 
-from zookeeper and cache it and keep updating the cache when the watchers are fired to indicate any changes,which should be 
-rare in general case. In addition we should update all the existing thrift and rest apis’s to throw redirect 
-exceptions when a non leader receives a request that only a leader should serve.
+from zookeeper and cache it and keep updating the cache when the watchers are fired to indicate any changes,which should 
+be rare in general case.
 
 ## Configuration
 You can use nimbus ha with default configuration , however the default configuration assumes a single nimbus host so it
@@ -210,14 +206,12 @@ actual code/config and to get the current replication count. An alternative is t
 "org.apache.storm.hdfs.ha.codedistributor.HDFSCodeDistributor" which relies on HDFS but does not add extra load on zookeeper and will 
 make topology submission faster.
 * topology.min.replication.count : Minimum number of nimbus hosts where the code must be replicated before leader nimbus
-can mark the topology as active and create assignments. Default is 1. in case of HDFSCodeDistributor this represents number
-of data nodes instead of nimbus hosts where code must be replicated before activating topology.
+can mark the topology as active and create assignments. Default is 1.
 * topology.max.replication.wait.time.sec: Maximum wait time for the nimbus host replication to achieve the nimbus.min.replication.count.
 Once this time is elapsed nimbus will go ahead and perform topology activation tasks even if required nimbus.min.replication.count is not achieved. 
 The default is 60 seconds, a value of -1 indicates to wait for ever.
-*nimbus.code.sync.freq.secs: frequency at which the background thread which syncs code for locally missing topologies will run. default is 5 minutes.
+*nimbus.code.sync.freq.secs: frequency at which the background thread on nimbus which syncs code for locally missing topologies will run. default is 5 minutes.
 
 Note: Even though all nimbus hosts have watchers on zookeeper to be notified immediately as soon as a new topology is available for code
-download, due to eventual consistency of zookeeper the callback pretty much never results in code download. In practice we have observed that
-the desired replication is only achieved once the background-thread runs. So you should expect your topology submission time to be somewhere between
-0 to (2 * nimbus.code.sync.freq.secs) for any nimbus.min.replication.count > 0.
+download, the callback pretty much never results in code download. In practice we have observed that the desired replication is only achieved once the background-thread runs. 
+So you should expect your topology submission time to be somewhere between 0 to (2 * nimbus.code.sync.freq.secs) for any nimbus.min.replication.count > 1.

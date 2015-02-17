@@ -60,7 +60,7 @@ public class NimbusClient extends ThriftClient {
                 throw new RuntimeException("Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
                         "again after some time.");
             } catch (Exception e) {
-                LOG.warn("Ignoring exception while trying to get leader nimbus info from {}", seed);
+                LOG.warn("Ignoring exception while trying to get leader nimbus info from " + seed, e);
             }
         }
         throw new RuntimeException("Could not find leader nimbus from seed hosts " + seeds +". " +

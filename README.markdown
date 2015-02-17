@@ -188,6 +188,7 @@ under the License.
 * Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
 * zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
 * Paul DelRe ([@pdelre](https://github.com/pdelre))
+* Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
 
 ## Acknowledgements
 

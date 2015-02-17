@@ -189,6 +189,7 @@ under the License.
 * zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
 * Paul DelRe ([@pdelre](https://github.com/pdelre))
 * Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
+* Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
 
 ## Acknowledgements
 

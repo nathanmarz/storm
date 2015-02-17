@@ -187,12 +187,12 @@ public class DRPCSpout extends BaseRichSpout {
                         _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), i));
                         break;
                     }
-                } catch (TException e) {
-                    reconnect(client);
-                    LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 } catch (AuthorizationException aze) {
                     reconnect(client);
                     LOG.error("Not authorized to fetch DRPC result from DRPC server", aze);
+                } catch (TException e) {
+                    reconnect(client);
+                    LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 } catch (Exception e) {
                     LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 }
@@ -211,10 +211,10 @@ public class DRPCSpout extends BaseRichSpout {
                         gotRequest = true;
                         _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), 0));
                     }
-                } catch (TException e) {
-                    throw new RuntimeException(e);
                 } catch (AuthorizationException aze) {
                     throw new RuntimeException(aze);
+                } catch (TException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -239,10 +239,10 @@ public class DRPCSpout extends BaseRichSpout {
         }
         try {
             client.failRequest(did.id);
-        } catch (TException e) {
-            LOG.error("Failed to fail request", e);
         } catch (AuthorizationException aze) {
             LOG.error("Not authorized to failREquest from DRPC server", aze);
+        } catch (TException e) {
+            LOG.error("Failed to fail request", e);
         }
     }
 

@@ -48,6 +48,7 @@
  * STORM-637: Integrate PartialKeyGrouping into storm API
  * STORM-672: Typo in Trident documentation example
  * STORM-400: Thrift upgrade to thrift-0.9.2
+ * STORM-673: Typo 'deamon' in security documentation
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

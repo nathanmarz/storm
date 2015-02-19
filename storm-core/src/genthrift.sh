@@ -17,6 +17,16 @@
 rm -rf gen-javabean gen-py py
 rm -rf jvm/backtype/storm/generated
 thrift7 --gen java:beans,hashcode,nocamel --gen py:utf8strings storm.thrift
+for file in gen-javabean/backtype/storm/generated/* ; do
+  cat java_license_header.txt ${file} > ${file}.tmp
+  mv ${file}.tmp ${file}
+done
+cat py_license_header.txt gen-py/__init__.py > gen-py/__init__.py.tmp
+mv gen-py/__init__.py.tmp gen-py/__init__.py
+for file in gen-py/storm/* ; do
+  cat py_license_header.txt ${file} > ${file}.tmp
+  mv ${file}.tmp ${file}
+done
 mv gen-javabean/backtype/storm/generated jvm/backtype/storm/generated
 mv gen-py py
 rm -rf gen-javabean

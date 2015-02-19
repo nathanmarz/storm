@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.security.Principal;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +30,8 @@ import java.util.concurrent.TimeUnit;
 import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 import javax.security.sasl.SaslServer;
+
+import backtype.storm.utils.ExtendedThreadPoolExecutor;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -78,11 +82,13 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         if (serverTransportFactory != null) {
             server_args.transportFactory(serverTransportFactory);
         }
-
-        //if (queueSize != null) {
-        //    server_args.executorService(new ThreadPoolExecutor(numWorkerThreads, numWorkerThreads, 
-        //                           60, TimeUnit.SECONDS, new ArrayBlockingQueue(queueSize)));
-        //}
+        BlockingQueue workQueue = new SynchronousQueue();
+        if (queueSize != null) {
+          workQueue = new ArrayBlockingQueue(queueSize);
+        }
+        ThreadPoolExecutor executorService = new ExtendedThreadPoolExecutor(numWorkerThreads, numWorkerThreads,
+        60, TimeUnit.SECONDS, workQueue);
+        server_args.executorService(executorService);
 
         return new TThreadPoolServer(server_args);
     }

@@ -1031,3 +1031,12 @@
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
+
+(defn setup-default-uncaught-exception-handler
+  "Set a default uncaught exception handler to handle exceptions not caught in other threads."
+  []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (proxy [Thread$UncaughtExceptionHandler] []
+      (uncaughtException [thread thrown]
+        (Utils/handleUncaughtException thrown)))))
+

@@ -533,4 +533,15 @@ public class Utils {
         delegate.prepare(stormConf);
         return delegate;
     }
+
+  public static void handleUncaughtException(Throwable t) {
+    if(t!= null && t instanceof OutOfMemoryError) {
+      try {
+        System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
+      } catch (Throwable err) {
+             //Again we done want to exit because of logging issues.
+      }
+      Runtime.getRuntime().halt(-1);
+    }
+  }
 }

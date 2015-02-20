@@ -67,8 +67,9 @@ public class BasicDRPCTopology {
         System.out.println("Result for \"" + word + "\": " + drpc.execute("exclamation", word));
       }
 
-      cluster.shutdown();
+      Thread.sleep(10000);
       drpc.shutdown();
+      cluster.shutdown();
     }
     else {
       conf.setNumWorkers(3);

@@ -543,5 +543,4 @@ public class Utils {
       }
       Runtime.getRuntime().halt(-1);
     }
-  }
 }

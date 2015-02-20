@@ -84,12 +84,11 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         }
         BlockingQueue workQueue = new SynchronousQueue();
         if (queueSize != null) {
-          workQueue = new ArrayBlockingQueue(queueSize);
+            workQueue = new ArrayBlockingQueue(queueSize);
         }
         ThreadPoolExecutor executorService = new ExtendedThreadPoolExecutor(numWorkerThreads, numWorkerThreads,
-        60, TimeUnit.SECONDS, workQueue);
+            60, TimeUnit.SECONDS, workQueue);
         server_args.executorService(executorService);
-
         return new TThreadPoolServer(server_args);
     }
 

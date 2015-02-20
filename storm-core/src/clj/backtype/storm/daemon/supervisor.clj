@@ -97,8 +97,11 @@
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (worker-state conf id)]
-    (.get local-state LS-WORKER-HEARTBEAT)
-    ))
+    (try
+      (.get local-state LS-WORKER-HEARTBEAT)
+      (catch IOException e
+        (log-warn e "Failed to read local heartbeat for workerId : " id ",Ignoring exception.")
+        nil))))
 
 
 (defn my-worker-ids [conf]

@@ -52,6 +52,7 @@
  * STORM-400: Thrift upgrade to thrift-0.9.2
  * STORM-673: Typo 'deamon' in security documentation
  * STORM-441: Remove bootstrap macro from Clojure codebase
+ * STORM-609: Add storm-redis to storm external
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

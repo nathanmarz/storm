@@ -162,6 +162,7 @@
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
         <module>external/storm-hbase</module>
+        <module>external/storm-redis</module>
     </modules>
 
     <scm>

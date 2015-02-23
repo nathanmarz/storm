@@ -56,7 +56,7 @@ public class ExtendedThreadPoolExecutor extends ThreadPoolExecutor{
       } catch (ExecutionException ee) {
         t = ee.getCause();
       } catch (InterruptedException ie) {
-        // If future got interrupted exception, we want to main parent thread itself.
+        // If future got interrupted exception, we want to interrupt parent thread itself.
         Thread.currentThread().interrupt();
       }
     }

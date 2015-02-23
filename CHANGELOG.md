@@ -53,6 +53,7 @@
  * STORM-673: Typo 'deamon' in security documentation
  * STORM-441: Remove bootstrap macro from Clojure codebase
  * STORM-609: Add storm-redis to storm external
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

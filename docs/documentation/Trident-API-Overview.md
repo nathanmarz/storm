@@ -59,7 +59,7 @@ The resulting tuples would have fields ["a", "b", "c", "d"] and look like this:
 Filters take in a tuple as input and decide whether or not to keep that tuple or not. Suppose you had this filter:
 
 ```java
-public class MyFilter extends BaseFunction {
+public class MyFilter extends BaseFilter {
     public boolean isKeep(TridentTuple tuple) {
         return tuple.getInteger(0) == 1 && tuple.getInteger(1) == 2;
     }

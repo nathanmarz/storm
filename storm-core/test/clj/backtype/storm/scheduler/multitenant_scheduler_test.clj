@@ -15,15 +15,13 @@
 ;; limitations under the License.
 (ns backtype.storm.scheduler.multitenant-scheduler-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing log])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [backtype.storm.scheduler.multitenant Node NodePool FreePool DefaultPool
             IsolatedPool MultitenantScheduler]))
-
-(bootstrap)
 
 (defn gen-supervisors [count]
   (into {} (for [id (range count)

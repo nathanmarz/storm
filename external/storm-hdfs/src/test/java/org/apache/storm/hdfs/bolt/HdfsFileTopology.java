@@ -68,10 +68,8 @@ public class HdfsFileTopology {
         FileRotationPolicy rotationPolicy = new TimedRotationPolicy(1.0f, TimedRotationPolicy.TimeUnit.MINUTES);
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
-                .withPath("/foo/")
+                .withPath("/tmp/foo/")
                 .withExtension(".txt");
-
-
 
         // use "|" instead of "," for field delimiter
         RecordFormat format = new DelimitedRecordFormat()
@@ -90,7 +88,7 @@ public class HdfsFileTopology {
                 .withRecordFormat(format)
                 .withRotationPolicy(rotationPolicy)
                 .withSyncPolicy(syncPolicy)
-                .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
+                .addRotationAction(new MoveFileAction().toDestination("/tmp/dest2/"));
 
         TopologyBuilder builder = new TopologyBuilder();
 

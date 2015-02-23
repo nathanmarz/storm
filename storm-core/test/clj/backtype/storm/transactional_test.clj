@@ -15,10 +15,16 @@
 ;; limitations under the License.
 (ns backtype.storm.transactional-test
   (:use [clojure test])
+  (:import [backtype.storm Constants])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState TestTransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
+  (:import [backtype.storm.spout SpoutOutputCollector ISpoutOutputCollector])
+  (:import [backtype.storm.task OutputCollector IOutputCollector])
+  (:import [backtype.storm.coordination BatchBoltExecutor])
+  (:import [backtype.storm.utils RegisteredGlobalState])
+  (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
             KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
             IdentityBolt CountingCommitBolt OpaqueMemoryTransactionalSpout])
@@ -28,11 +34,9 @@
   (:import [org.apache.zookeeper CreateMode ZooDefs ZooDefs$Ids])
   (:import [org.mockito Matchers Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
-  (:use [backtype.storm bootstrap testing])
-  (:use [backtype.storm.daemon common])  
-  )
-
-(bootstrap)
+  (:import [java.util HashMap Collections ArrayList])
+  (:use [backtype.storm testing util config clojure])
+  (:use [backtype.storm.daemon common]))
 
 ;; Testing TODO:
 ;; * Test that it repeats the meta for a partitioned state (test partitioned emitter on its own)

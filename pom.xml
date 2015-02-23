@@ -162,7 +162,8 @@
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
         <module>external/storm-hbase</module>
-        <module>external/storm-hive</module>
+        <module>external/storm-jdbc</module>
+        <module>external/storm-redis</module>
     </modules>
 
     <scm>
@@ -475,12 +476,6 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.version}</version>
             </dependency>
-           <dependency>
-               <groupId>org.clojars.runa</groupId>
-               <artifactId>conjure</artifactId>
-               <version>${conjure.version}</version>
-               <scope>test</scope>
-            </dependency>
             <dependency>
                 <groupId>org.clojure</groupId>
                 <artifactId>clojure-contrib</artifactId>
@@ -531,7 +526,7 @@
             <dependency>
                 <groupId>org.apache.thrift</groupId>
                 <artifactId>libthrift</artifactId>
-                <version>0.7.0</version>
+                <version>0.9.2</version>
                 <scope>compile</scope>
             </dependency>
 			<!-- used by examples/storm-starter -->

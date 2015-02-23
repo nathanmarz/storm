@@ -1,4 +1,9 @@
 ## 0.10.0
+ * STORM-616: Storm JDBC Connector.
+ * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages
+ * STORM-641: Add total number of topologies to api/v1/cluster/summary.
+ * STORM-640: Storm UI vulnerable to poodle attack.
+ * STORM-651: improvements to storm.cmd
  * STORM-456: Storm UI: cannot navigate to topology page when name contains spaces.
  * STORM-627: Storm-hbase configuration error.
  * STORM-248: cluster.xml location is hardcoded for workers
@@ -46,6 +51,15 @@
  * STORM-601: Make jira-github-join ignore case.
  * STORM-667: Incorrect capitalization "SHell" in Multilang-protocol.md
  * STORM-637: Integrate PartialKeyGrouping into storm API
+ * STORM-672: Typo in Trident documentation example
+ * STORM-400: Thrift upgrade to thrift-0.9.2
+ * STORM-673: Typo 'deamon' in security documentation
+ * STORM-441: Remove bootstrap macro from Clojure codebase
+ * STORM-609: Add storm-redis to storm external
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+ * STORM-684: In RichSpoutBatchExecutor: underlying spout is not closed when emitter is closed
+ * STORM-683: Make false in a conf really evaluate to false in clojure.
+ * STORM-685: wrong output in log when committed offset is too far behind latest offset
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

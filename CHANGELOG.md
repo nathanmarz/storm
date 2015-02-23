@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-641: Add total number of topologies to api/v1/cluster/summary.
  * STORM-640: Storm UI vulnerable to poodle attack.
  * STORM-651: improvements to storm.cmd
  * STORM-456: Storm UI: cannot navigate to topology page when name contains spaces.

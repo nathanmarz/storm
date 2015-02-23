@@ -93,36 +93,6 @@
     (.close server)
     (.term context)))
 
-(deftest test-server-delayed
-    (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
-       storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
-                    STORM-MESSAGING-NETTY-AUTHENTICATION false
-                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
-                    STORM-MESSAGING-NETTY-MAX-RETRIES 10
-                    STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
-                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
-                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
-                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                    }
-        context (TransportFactory/makeContext storm-conf)
-        client (.connect context nil "localhost" port)
-
-        server (Thread.
-                (fn []
-                  (Thread/sleep 1000)
-                  (let [server (.bind context nil port)
-                        iter (.recv server 0 0)
-                        resp (.next iter)]
-                    (is (= task (.task resp)))
-                    (is (= req_msg (String. (.message resp))))
-                    (.close server)
-                  )))
-        _ (.start server)
-        _ (.send client task (.getBytes req_msg))
-        ]
-    (.close client)
-    (.join server)
-    (.term context)))
 
 (deftest test-batch
   (let [num-messages 100000

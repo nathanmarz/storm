@@ -15,12 +15,11 @@
 ;; limitations under the License.
 (ns backtype.storm.clojure-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordSpout])
-  (:use [backtype.storm bootstrap testing])
+  (:import [backtype.storm.testing TestWordSpout TestPlannerSpout]
+           [backtype.storm.tuple Fields])
+  (:use [backtype.storm testing clojure config])
   (:use [backtype.storm.daemon common])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 
 (defbolt lalala-bolt1 ["word"] [[val :as tuple] collector]

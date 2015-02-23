@@ -15,16 +15,22 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.task
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm config util log])
   (:import [backtype.storm.hooks ITaskHook])
-  (:import [backtype.storm.tuple Tuple])
+  (:import [backtype.storm.tuple Tuple TupleImpl])
   (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
-  (:require [backtype.storm [tuple :as tuple]])
+  (:import [backtype.storm.task TopologyContext ShellBolt WorkerTopologyContext])
+  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.generated ShellComponent JavaObject])
+  (:import [backtype.storm.spout ShellSpout])
+  (:import [java.util Collection List ArrayList])
+  (:require [backtype.storm
+             [tuple :as tuple]
+             [thrift :as thrift]
+             [stats :as stats]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
-
-(bootstrap)
 
 (defn mk-topology-context-builder [worker executor-data topology]
   (let [conf (:conf worker)]

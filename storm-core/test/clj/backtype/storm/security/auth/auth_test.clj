@@ -28,12 +28,11 @@
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping 
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm util config])
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap testing])
-  (:import [backtype.storm.generated Nimbus Nimbus$Client]))
-
-(bootstrap)
+  (:use [backtype.storm testing])
+  (:import [backtype.storm.generated Nimbus Nimbus$Client Nimbus$Iface StormTopology SubmitOptions
+            KillOptions RebalanceOptions ClusterSummary TopologyInfo Nimbus$Processor]))
 
 (defn mk-principal [name]
   (reify Principal

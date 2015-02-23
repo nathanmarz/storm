@@ -16,18 +16,24 @@
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [backtype.storm.scheduler ISupervisor]
+           [backtype.storm.utils LocalState Time Utils]
+           [backtype.storm.daemon Shutdownable]
+           [backtype.storm.daemon.common SupervisorInfo]
+           [backtype.storm Constants]
            [java.net JarURLConnection]
-           [java.net URI])
-  (:use [backtype.storm bootstrap])
+           [java.net URI]
+           [org.apache.commons.io FileUtils]
+           [java.io File])
+  (:use [backtype.storm config util log timer])
   (:use [backtype.storm.daemon common])
-  (:require [backtype.storm.daemon [worker :as worker]])
+  (:require [backtype.storm.daemon [worker :as worker]]
+            [backtype.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
+            [clojure.set :as set])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
-
-(bootstrap)
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))

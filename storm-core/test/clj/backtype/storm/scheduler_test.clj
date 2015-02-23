@@ -15,14 +15,12 @@
 ;; limitations under the License.
 (ns backtype.storm.scheduler-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing])
   (:use [backtype.storm.scheduler EvenScheduler])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))
-
-(bootstrap)
 
 (defn clojurify-executor->slot [executorToSlot]
   (into {} (for [[executor slot] executorToSlot]

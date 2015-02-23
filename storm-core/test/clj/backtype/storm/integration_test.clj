@@ -15,15 +15,15 @@
 ;; limitations under the License.
 (ns backtype.storm.integration-test
   (:use [clojure test])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
-              TestAggregatesCounter TestConfBolt AckFailMapTracker])
-  (:use [backtype.storm bootstrap testing])
+            TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
+  (:import [backtype.storm.tuple Fields])
+  (:use [backtype.storm testing config clojure util])
   (:use [backtype.storm.daemon common])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-basic-topology
   (doseq [zmq-on? [true false]]

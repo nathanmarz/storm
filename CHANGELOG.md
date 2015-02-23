@@ -51,6 +51,7 @@
  * STORM-672: Typo in Trident documentation example
  * STORM-400: Thrift upgrade to thrift-0.9.2
  * STORM-673: Typo 'deamon' in security documentation
+ * STORM-441: Remove bootstrap macro from Clojure codebase
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

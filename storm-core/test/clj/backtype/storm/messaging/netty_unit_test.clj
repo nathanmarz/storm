@@ -16,9 +16,8 @@
 (ns backtype.storm.messaging.netty-unit-test
   (:use [clojure test])
   (:import [backtype.storm.messaging TransportFactory])
-  (:use [backtype.storm bootstrap testing util]))
-
-(bootstrap)
+  (:use [backtype.storm testing util config])
+  (:import [java.util ArrayList]))
 
 (def port 6700)
 (def task 1)

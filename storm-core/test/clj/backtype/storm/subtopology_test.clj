@@ -18,11 +18,8 @@
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.testing TestWordSpout PrepareBatchBolt BatchRepeatA BatchProcessWord BatchNumberList])
   (:import [backtype.storm.coordination BatchSubtopologyBuilder])
-  (:use [backtype.storm bootstrap testing])
-  (:use [backtype.storm.daemon common])  
-  )
-
-(bootstrap)
+  (:use [backtype.storm testing])
+  (:use [backtype.storm.daemon common]))
 
 ;; todo: need to configure coordinatedbolt with streams that aren't subscribed to, should auto-anchor those to the final
 ;; coordination tuple... find all streams that aren't subscribed to

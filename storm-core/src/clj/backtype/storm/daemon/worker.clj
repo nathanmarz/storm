@@ -15,19 +15,27 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm config log util timer])
   (:require [backtype.storm.daemon [executor :as executor]])
+  (:require [backtype.storm [disruptor :as disruptor] [cluster :as cluster]])
+  (:require [clojure.set :as set])
+  (:require [backtype.storm.messaging.loader :as msg-loader])
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
-  (:import [backtype.storm.utils TransferDrainer])
+  (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection])
+  (:import [backtype.storm.daemon.common WorkerHeartbeat])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:import [backtype.storm.serialization KryoTupleSerializer])
+  (:import [backtype.storm.generated StormTopology])
+  (:import [backtype.storm.tuple Fields])
+  (:import [backtype.storm.task WorkerTopologyContext])
+  (:import [backtype.storm Constants])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
   (:gen-class))
-
-(bootstrap)
 
 (defmulti mk-suicide-fn cluster-mode)
 
@@ -122,7 +130,7 @@
         local-transfer (:transfer-local-fn worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)
         task->node+port (:cached-task->node+port worker)
-        try-serialize-local ((:conf worker) TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE)
+        try-serialize-local ((:storm-conf worker) TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE)
         transfer-fn
           (fn [^KryoTupleSerializer serializer tuple-batch]
             (let [local (ArrayList.)

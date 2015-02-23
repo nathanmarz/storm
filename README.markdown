@@ -80,6 +80,7 @@ under the License.
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 * Sean Zhong ([@clockfly] (http://github.com/clockfly))
+* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 
 ## Contributors
 
@@ -133,7 +134,6 @@ under the License.
 * Gangrui Li ([@davidlgr](https://github.com/davidlgr))
 * John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
 * Julien Nioche ([@jnioche](https://github.com/jnioche))
-* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 * Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
 * Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
 * Padma Priya Chitturi ([PadmaCh](https://issues.apache.org/jira/secure/ViewProfile.jspa?name=PadmaCh))
@@ -144,7 +144,7 @@ under the License.
 * Steven Phung ([@stphung](https://github.com/stphung))
 * Suresh Srinivas ([@sureshms](https://github.com/sureshms))
 * thinker0 ([@thinker0](https://github.com/thinker0))
-* Troy Ding ([@troyding](https://github.com/troyding)) 
+* Troy Ding ([@troyding](https://github.com/troyding))
 * Aaron Zimmerman ([@aaronzimmerman](https://github.com/aaronzimmerman))
 * Albert Chu ([@chu11](https://github.com/chu11))
 * Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
@@ -161,7 +161,7 @@ under the License.
 * Jo Liss ([@joliss](https://github.com/joliss))
 * averykhoo ([@averykhoo](https://github.com/averykhoo))
 * Curtis Allen ([@curtisallen](https://github.com/curtisallen))
-* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal)) 
+* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal))
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
@@ -187,6 +187,10 @@ under the License.
 * 周向涛 ([@taojoe](https://github.com/taojoe))
 * Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
 * zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
+* Paul DelRe ([@pdelre](https://github.com/pdelre))
+* Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
+* Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
+* iBuddha ([@iBuddha](https://github.com/iBuddha))
 
 ## Acknowledgements
 

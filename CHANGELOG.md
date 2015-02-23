@@ -56,6 +56,7 @@
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
  * STORM-684: In RichSpoutBatchExecutor: underlying spout is not closed when emitter is closed
  * STORM-683: Make false in a conf really evaluate to false in clojure.
+ * STORM-685: wrong output in log when committed offset is too far behind latest offset
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

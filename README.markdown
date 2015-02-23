@@ -190,6 +190,7 @@ under the License.
 * Paul DelRe ([@pdelre](https://github.com/pdelre))
 * Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
 * Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
+* iBuddha ([@iBuddha](https://github.com/iBuddha))
 
 ## Acknowledgements
 

@@ -52,7 +52,6 @@ $(document).ajaxStart(function(){
 });
 $(document).ready(function() {
     $.ajaxSetup({
-        "cache": false,
         "error":function(jqXHR,textStatus,response) {
             var errorJson = jQuery.parseJSON(jqXHR.responseText);
             $.get("/templates/json-error-template.html", function(template) {

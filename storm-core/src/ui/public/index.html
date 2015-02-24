@@ -45,12 +45,14 @@
 <div id="json-response-error"></div>
 </body>
 <script>
+
 $(document).ajaxStop($.unblockUI);
 $(document).ajaxStart(function(){
     $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading summary...</h3>'});
 });
 $(document).ready(function() {
     $.ajaxSetup({
+        "cache": false,
         "error":function(jqXHR,textStatus,response) {
             var errorJson = jQuery.parseJSON(jqXHR.responseText);
             $.get("/templates/json-error-template.html", function(template) {

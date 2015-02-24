@@ -1,6 +1,6 @@
 ## 0.10.0
  * STORM-616: Storm JDBC Connector.
- * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages
+ * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
  * STORM-641: Add total number of topologies to api/v1/cluster/summary.
  * STORM-640: Storm UI vulnerable to poodle attack.
  * STORM-651: improvements to storm.cmd

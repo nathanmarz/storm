@@ -117,6 +117,20 @@
                 <include>README.*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hive/target</directory>
+            <outputDirectory>external/storm-hive</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hive</directory>
+            <outputDirectory>external/storm-hive</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
     </fileSets>
 
     <files>

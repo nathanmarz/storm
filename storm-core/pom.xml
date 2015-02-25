@@ -70,7 +70,11 @@
             <artifactId>ring-anti-forgery</artifactId>
             <version>1.0.0</version>
         </dependency>
-
+        <dependency>
+            <groupId>ring</groupId>
+            <artifactId>ring-json</artifactId>
+            <version>0.3.1</version>
+        </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>

@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-539: Storm Hive Connector.
  * STORM-616: Storm JDBC Connector.
  * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
  * STORM-641: Add total number of topologies to api/v1/cluster/summary.

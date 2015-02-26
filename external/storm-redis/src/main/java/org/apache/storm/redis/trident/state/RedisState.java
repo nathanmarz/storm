@@ -77,7 +77,7 @@ public class RedisState implements State {
      * The state updater and querier return the Jedis instance
      * */
     public void returnJedis(Jedis jedis) {
-        this.jedisPool.returnResource(jedis);
+        jedis.close();
     }
 
 }

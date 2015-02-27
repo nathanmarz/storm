@@ -24,16 +24,12 @@
   (:import [backtype.storm.generated NotAliveException])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext ThriftConnectionType])
-  (:use [backtype.storm bootstrap cluster util])
+  (:use [backtype.storm cluster util config log])
   (:use [backtype.storm.daemon common nimbus])
-  (:use [backtype.storm bootstrap])
-  (:import [backtype.storm.generated Nimbus Nimbus$Client 
+  (:import [backtype.storm.generated Nimbus Nimbus$Client Nimbus$Processor 
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])
   (:require [conjure.core])
-  (:use [conjure core])
-  )
-
-(bootstrap)
+  (:use [conjure core]))
 
 (def nimbus-timeout (Integer. 30))
 

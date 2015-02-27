@@ -15,11 +15,9 @@
 ;; limitations under the License.
 (ns backtype.storm.multilang-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap testing])
+  (:use [backtype.storm testing config])
   (:use [backtype.storm.daemon common])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 ;; (deftest test-multilang-fy
 ;;   (with-local-cluster [cluster :supervisors 4]

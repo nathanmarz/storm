@@ -141,7 +141,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
                     new PrivilegedExceptionAction<Void>() {
                 public Void run() {
                     try {
-                        LOG.info("do as:"+ principal);
+                        LOG.debug("do as:"+ principal);
                         sasalTransport.open();
                     }
                     catch (Exception e) {

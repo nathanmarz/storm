@@ -50,7 +50,6 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     protected Set<String> _supervisors;
     protected IPrincipalToLocal _ptol;
     protected IGroupMappingServiceProvider _groupMappingProvider;
-    protected ImpersonationAuthorizer _impersonationAuthorizer;
     /**
      * Invoked once immediately after construction
      * @param conf Storm configuration
@@ -69,8 +68,6 @@ public class SimpleACLAuthorizer implements IAuthorizer {
 
         _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
         _groupMappingProvider = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
-        _impersonationAuthorizer = new ImpersonationAuthorizer();
-        _impersonationAuthorizer.prepare(conf);
     }
 
     /**
@@ -90,10 +87,6 @@ public class SimpleACLAuthorizer implements IAuthorizer {
 
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
-
-        if(!_impersonationAuthorizer.permit(context, operation, topology_conf)) {
-            return false;
-        }
 
         if (_admins.contains(principal) || _admins.contains(user)) {
             return true;

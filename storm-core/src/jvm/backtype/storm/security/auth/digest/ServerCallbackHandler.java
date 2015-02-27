@@ -112,7 +112,7 @@ public class ServerCallbackHandler implements CallbackHandler {
 
     private void handleAuthorizeCallback(AuthorizeCallback ac) {
         String authenticationID = ac.getAuthenticationID();
-        LOG.info("Successfully authenticated client: authenticationID=" + authenticationID + " authorizationID= " + ac.getAuthorizationID());
+        LOG.info("Successfully authenticated client: authenticationID = " + authenticationID + " authorizationID = " + ac.getAuthorizationID());
 
         //if authorizationId is not set, set it to authenticationId.
         if(ac.getAuthorizationID() == null) {
@@ -122,6 +122,7 @@ public class ServerCallbackHandler implements CallbackHandler {
         //When authNid and authZid are not equal , authNId is attempting to impersonate authZid, We
         //add the authNid as the real user in reqContext's subject which will be used during authorization.
         if(!authenticationID.equals(ac.getAuthorizationID())) {
+            LOG.info("Impersonation attempt  authenticationID = " + ac.getAuthenticationID() + " authorizationID = " + ac.getAuthorizationID());
             ReqContext.context().setRealPrincipal(new SaslTransportPlugin.User(ac.getAuthenticationID()));
         }
 

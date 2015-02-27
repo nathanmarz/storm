@@ -13,6 +13,7 @@ import java.util.*;
 
 public class ImpersonationAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(ImpersonationAuthorizer.class);
+    protected static final String WILD_CARD = "*";
 
     protected Map<String, ImpersonationACL> userImpersonationACL;
     protected IPrincipalToLocal _ptol;
@@ -97,12 +98,17 @@ public class ImpersonationAuthorizer implements IAuthorizer {
     }
 
     private boolean isAllowedToImpersonateFromHost(Set<String> authorizedHosts, InetAddress remoteAddress) {
-        return authorizedHosts.contains(remoteAddress.getCanonicalHostName()) ||
+        return authorizedHosts.contains(WILD_CARD) ||
+                authorizedHosts.contains(remoteAddress.getCanonicalHostName()) ||
                 authorizedHosts.contains(remoteAddress.getHostName()) ||
                 authorizedHosts.contains(remoteAddress.getHostAddress());
     }
 
     private boolean isAllowedToImpersonateUser(Set<String> authorizedGroups, String userBeingImpersonated) {
+        if(authorizedGroups.contains(WILD_CARD)) {
+            return true;
+        }
+
         Set<String> groups = null;
         try {
             groups = _groupMappingProvider.getGroups(userBeingImpersonated);

@@ -1,6 +1,7 @@
 ## 0.10.0
+ * STORM-539: Storm Hive Connector.
  * STORM-616: Storm JDBC Connector.
- * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages
+ * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
  * STORM-641: Add total number of topologies to api/v1/cluster/summary.
  * STORM-640: Storm UI vulnerable to poodle attack.
  * STORM-651: improvements to storm.cmd
@@ -60,6 +61,8 @@
  * STORM-684: In RichSpoutBatchExecutor: underlying spout is not closed when emitter is closed
  * STORM-683: Make false in a conf really evaluate to false in clojure.
  * STORM-685: wrong output in log when committed offset is too far behind latest offset
+ * STORM-688: update Util to compile under JDK8
+ * STORM-687: Storm UI does not display up to date information despite refreshes in IE
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

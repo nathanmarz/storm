@@ -162,6 +162,7 @@
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
         <module>external/storm-hbase</module>
+        <module>external/storm-hive</module>
         <module>external/storm-jdbc</module>
         <module>external/storm-redis</module>
     </modules>
@@ -214,7 +215,8 @@
         <zookeeper.version>3.4.6</zookeeper.version>
         <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
-
+        <hive.version>0.14.0</hive.version>
+        <hadoop.version>2.6.0</hadoop.version>
     </properties>
 
     <profiles>
@@ -532,7 +534,7 @@
 		    <dependency>
 		      <groupId>junit</groupId>
 		      <artifactId>junit</artifactId>
-		      <version>3.8.1</version>
+		      <version>4.11</version>
 		      <scope>test</scope>
 		    </dependency>
         </dependencies>

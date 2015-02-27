@@ -59,7 +59,13 @@
                 <exclude>**/target/**</exclude>
             </excludes>
         </fileSet>
-
+        <fileSet>
+          <directory>${project.basedir}/../../storm-core/target/native/target/usr/local/bin/</directory>
+          <includes>
+            <include>worker-launcher</include>
+          </includes>
+          <outputDirectory>bin</outputDirectory>
+        </fileSet>
         <!-- EXTERNAL -->
         <fileSet>
             <directory>${project.basedir}/../../external/storm-kafka/target</directory>
@@ -113,6 +119,20 @@
         <fileSet>
             <directory>${project.basedir}/../../external/storm-jdbc</directory>
             <outputDirectory>external/storm-jdbc</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hive/target</directory>
+            <outputDirectory>external/storm-hive</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hive</directory>
+            <outputDirectory>external/storm-hive</outputDirectory>
             <includes>
                 <include>README.*</include>
             </includes>

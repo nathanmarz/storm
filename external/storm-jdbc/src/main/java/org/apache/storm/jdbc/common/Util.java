@@ -24,10 +24,11 @@ import java.sql.Timestamp;
 import java.sql.Types;
 
 public class Util {
-    public static String getSqlTypeName(int sqlType) {
+    private static String getSqlTypeName(int sqlType) {
         try {
+            Integer val = new Integer(sqlType);
             for (Field field : Types.class.getFields()) {
-                if (sqlType == field.get(null)) {
+                if (val.equals(field.get(null))) {
                     return field.getName();
                 }
             }

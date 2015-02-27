@@ -1,6 +1,5 @@
-# [DRAFT] Apache Storm Project Bylaws
+# Apache Storm Project Bylaws
 
-NOTE: This document is a work in progress and has not yet been formally adopted by the Storm (P)PMC. It is expected that a final version of this DRAFT be adopted once Storm has graduated to an Apache TLP. Until that time any guidelines listed below are subject to change.
 
 ## Roles and Responsibilities
 
@@ -45,7 +44,7 @@ The chair of the PMC is rotated annually. When the chair is rotated or if the cu
 
 ## Voting
 
-Decisions regarding the project are made by votes on the primary project development mailing list (dev@storm.incubator.apache.org). Where necessary, PMC voting may take place on the private Storm PMC mailing list. Votes are clearly indicated by subject line starting with [VOTE]. Votes may contain multiple items for approval and these should be clearly separated. Voting is carried out by replying to the vote mail. Voting may take four flavors:
+Decisions regarding the project are made by votes on the primary project development mailing list (dev@storm.apache.org). Where necessary, PMC voting may take place on the private Storm PMC mailing list. Votes are clearly indicated by subject line starting with [VOTE]. Votes may contain multiple items for approval and these should be clearly separated. Voting is carried out by replying to the vote mail. Voting may take four flavors:
 	
 | Vote | Meaning |
 |------|---------|
@@ -67,9 +66,9 @@ These are the types of approvals that can be sought. Different actions require d
 | Approval Type | Criteria |
 |---------------|----------|
 | Consensus Approval | Consensus approval requires 3 binding +1 votes and no binding vetoes. |
+| Majority Approval | Majority approval requires at least 3 binding +1 votes and more +1 votes than -1 votes. |
 | Lazy Consensus | Lazy consensus requires no -1 votes ('silence gives assent'). |
-| Lazy Majority | A lazy majority vote requires 3 binding +1 votes and more binding +1 votes than -1 votes. |
-| Lazy 2/3 Majority | Lazy 2/3 majority votes requires at least 3 votes and twice as many +1 votes as -1 votes. |
+| 2/3 Majority | 2/3 majority votes requires at least 3 votes and twice as many +1 votes as -1 votes. |
 
 ### Vetoes
 
@@ -83,14 +82,14 @@ This section describes the various actions which are undertaken within the proje
 
 | Actions | Description | Approval | Binding Votes | Minimum Length | Mailing List |
 |---------|-------------|----------|---------------|----------------|--------------|
-| Code Change | A change made to a source code of the project and committed by a Committer. | One +1 from a Committer other than the one who authored the patch, and no -1s. Code changes to a release require a re-vote on that release, but non-code changes do not require a re-vote. | Active Committers | 2 days from initial patch |JIRA or Github pull ( with notification sent to dev@storm.incubator.apache.org) |
-| Non-Code Change | A change made to a repository of the project and committed by a Committer. This includes documentation, website content, etc., but not source code, unless only comments are being modified. | Lazy Consensus | Active Committers | At the discression of the Committer |JIRA or Github pull (with notification sent to dev@storm.incubator.apache.org) |
-| Product Release | A vote is required to accept a proposed release as an official release of the project. Any Committer may call for a release vote at any point in time. | Lazy Majority | Active PMC members | 7 days | dev@storm.incubator.apache.org |
-| Adoption of New Codebase | When the codebase for an existing, released product is to be replaced with an alternative codebase. If such a vote fails to gain approval, the existing code base will continue. This also covers the creation of new sub-projects and submodules within the project. | Lazy 2/3 majority | Active PMC members | 7 days | dev@storm.incubator.apache.org |
-| New Committer | When a new Committer is proposed for the project. | Lazy consensus | Active PMC members | 7 days | private@storm.incubator.apache.org |
-| New PMC Member | When a Committer is proposed for the PMC. | Consensus Approval | Active PMC members | 7 days | private@storm.incubator.apache.org |
-| Emeritus PMC Member re-instatement | When an emeritus PMC member requests to be re-instated as an active PMC member. | Consensus Approval | Active PMC members | 7 days | private@storm.incubator.apache.org |
-| Emeritus Committer re-instatement | When an emeritus Committer requests to be re-instated as an active Committer. | Consensus Approval | Active PMC members | 7 days | private@storm.incubator.apache.org |
-| Committer Removal | When removal of commit privileges is sought. Note: Such actions will also be referred to the ASF board by the PMC chair. | Consensus Approval | Active PMC members (excluding the Committer in question if a member of the PMC). | 7 Days | private@storm.incubator.apache.org |
-| PMC Member Removal | When removal of a PMC member is sought. Note: Such actions will also be referred to the ASF board by the PMC chair. | Consensus Approval | Active PMC members (excluding the member in question). | 7 Days | private@storm.incubator.apache.org |
-| Modifying Bylaws | Modifying this document. | Lazy 2/3 majority | Active PMC members | 7 Days | dev@storm.incubator.apache.org |
+| Code Change | A change made to a source code of the project and committed by a Committer. | A minimum of one +1 from a Committer other than the one who authored the patch, and no -1s. The code can be committed after the first +1. If a -1 is received to the patch within 7 days after the patch was posted, it may be reverted immediately if it was already merged. | Active Committers | 1 day from initial patch (**Note:** Committers should consider allowing more time for review based on the complexity and/or impact of the patch in question.)|JIRA or Github pull ( with notification sent to dev@storm.apache.org) |
+| Non-Code Change | A change made to a repository of the project and committed by a Committer. This includes documentation, website content, etc., but not source code, unless only comments are being modified. | Lazy Consensus | Active Committers | At the discression of the Committer |JIRA or Github pull (with notification sent to dev@storm.apache.org) |
+| Product Release | A vote is required to accept a proposed release as an official release of the project. Any Committer may call for a release vote at any point in time. | Majority Approval | Active PMC members | 3 days | dev@storm.apache.org |
+| Adoption of New Codebase | When the codebase for an existing, released product is to be replaced with an alternative codebase. If such a vote fails to gain approval, the existing code base will continue. This also covers the creation of new sub-projects and submodules within the project as well as merging of feature branches. | 2/3 Majority | Active PMC members | 6 days | dev@storm.apache.org |
+| New Committer | When a new Committer is proposed for the project. | Consensus Approval | Active PMC members | 3 days | private@storm.incubator.apache.org |
+| New PMC Member | When a member is proposed for the PMC. | Consensus Approval | Active PMC members | 3 days | private@storm.incubator.apache.org |
+| Emeritus PMC Member re-instatement | When an emeritus PMC member requests to be re-instated as an active PMC member. | Consensus Approval | Active PMC members | 6 days | private@storm.incubator.apache.org |
+| Emeritus Committer re-instatement | When an emeritus Committer requests to be re-instated as an active Committer. | Consensus Approval | Active PMC members | 6 days | private@storm.incubator.apache.org |
+| Committer Removal | When removal of commit privileges is sought. Note: Such actions will also be referred to the ASF board by the PMC chair. | 2/3 Majority | Active PMC members (excluding the Committer in question if a member of the PMC). | 6 Days | private@storm.incubator.apache.org |
+| PMC Member Removal | When removal of a PMC member is sought. Note: Such actions will also be referred to the ASF board by the PMC chair. | 2/3 Majority | Active PMC members (excluding the member in question). | 6 Days | private@storm.incubator.apache.org |
+| Modifying Bylaws | Modifying this document. | 2/3 Majority | Active PMC members | 6 Days | dev@storm.apache.org |

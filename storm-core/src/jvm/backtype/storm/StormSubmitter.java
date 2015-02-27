@@ -175,22 +175,19 @@ public class StormSubmitter {
     }
 
     /**
-     * Submits a topology to run on the cluster. A topology runs forever or until
-     * explicitly killed.
      *
-     *
-     * @param name the name of the storm.
-     * @param stormConf the topology-specific configuration. See {@link Config}.
-     * @param topology the processing to execute.
-     * @param opts to manipulate the starting of the topology
-     * @param progressListener to track the progress of the jar upload process
-     * @throws AlreadyAliveException if a topology with this name is already running
-     * @throws InvalidTopologyException if an invalid topology was submitted
-     * @throws AuthorizationException if authorization is failed
+     * @param name
+     * @param stormConf
+     * @param topology
+     * @param opts
+     * @param progressListener
+     * @param asUser The user as which this topology should be submitted.
+     * @throws AlreadyAliveException
+     * @throws InvalidTopologyException
+     * @throws AuthorizationException
      */
-    @SuppressWarnings("unchecked")
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
-             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopologyAs(String name, Map stormConf, StormTopology topology, SubmitOptions opts, ProgressListener progressListener, String asUser)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
@@ -218,25 +215,25 @@ public class StormSubmitter {
             if(localNimbus!=null) {
                 LOG.info("Submitting topology " + name + " in local mode");
                 if(opts!=null) {
-                    localNimbus.submitTopologyWithOpts(name, stormConf, topology, opts);                    
+                    localNimbus.submitTopologyWithOpts(name, stormConf, topology, opts);
                 } else {
                     // this is for backwards compatibility
-                    localNimbus.submitTopology(name, stormConf, topology);                                            
+                    localNimbus.submitTopology(name, stormConf, topology);
                 }
             } else {
                 String serConf = JSONValue.toJSONString(stormConf);
-                NimbusClient client = NimbusClient.getConfiguredClient(conf);
-                if(topologyNameExists(conf, name)) {
+                NimbusClient client = NimbusClient.getConfiguredClientAs(conf, asUser);
+                if(topologyNameExists(conf, name, asUser)) {
                     throw new RuntimeException("Topology with name `" + name + "` already exists on cluster");
                 }
-                String jar = submitJar(conf, progressListener);
+                String jar = submitJarAs(conf, System.getProperty("storm.jar"), progressListener, asUser);
                 try {
                     LOG.info("Submitting topology " +  name + " in distributed mode with conf " + serConf);
                     if(opts!=null) {
-                        client.getClient().submitTopologyWithOpts(name, jar, serConf, topology, opts);                    
+                        client.getClient().submitTopologyWithOpts(name, jar, serConf, topology, opts);
                     } else {
                         // this is for backwards compatibility
-                        client.getClient().submitTopology(name, jar, serConf, topology);                                            
+                        client.getClient().submitTopology(name, jar, serConf, topology);
                     }
                 } catch(InvalidTopologyException e) {
                     LOG.warn("Topology submission exception: "+e.get_msg());
@@ -252,6 +249,26 @@ public class StormSubmitter {
         } catch(TException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Submits a topology to run on the cluster. A topology runs forever or until
+     * explicitly killed.
+     *
+     *
+     * @param name the name of the storm.
+     * @param stormConf the topology-specific configuration. See {@link Config}.
+     * @param topology the processing to execute.
+     * @param opts to manipulate the starting of the topology
+     * @param progressListener to track the progress of the jar upload process
+     * @throws AlreadyAliveException if a topology with this name is already running
+     * @throws InvalidTopologyException if an invalid topology was submitted
+     * @throws AuthorizationException if authorization is failed
+     */
+    @SuppressWarnings("unchecked")
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
+             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+
     }
 
     /**
@@ -310,8 +327,8 @@ public class StormSubmitter {
         });
     }
 
-    private static boolean topologyNameExists(Map conf, String name) {
-        NimbusClient client = NimbusClient.getConfiguredClient(conf);
+    private static boolean topologyNameExists(Map conf, String name, String asUser) {
+        NimbusClient client = NimbusClient.getConfiguredClientAs(conf, asUser);
         try {
             ClusterSummary summary = client.getClient().getClusterInfo();
             for(TopologySummary s : summary.get_topologies()) {
@@ -342,19 +359,13 @@ public class StormSubmitter {
         return submitJar(conf, localJar, null);
     }
 
-    /**
-     * Submit jar file
-     * @param conf the topology-specific configuration. See {@link Config}.
-     * @param localJar file path of the jar file to submit
-     * @param listener progress listener to track the jar file upload
-     * @return the remote location of the submitted jar
-     */
-    public static String submitJar(Map conf, String localJar, ProgressListener listener) {
+
+    public static String submitJarAs(Map conf, String localJar, ProgressListener listener, String asUser) {
         if (localJar == null) {
             throw new RuntimeException("Must submit topologies using the 'storm' client script so that StormSubmitter knows which jar to upload.");
         }
 
-        NimbusClient client = NimbusClient.getConfiguredClient(conf);
+        NimbusClient client = NimbusClient.getConfiguredClientAs(conf, asUser);
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
@@ -385,10 +396,21 @@ public class StormSubmitter {
             LOG.info("Successfully uploaded topology jar to assigned location: " + uploadLocation);
             return uploadLocation;
         } catch(Exception e) {
-            throw new RuntimeException(e);            
+            throw new RuntimeException(e);
         } finally {
             client.close();
         }
+    }
+
+    /**
+     * Submit jar file
+     * @param conf the topology-specific configuration. See {@link Config}.
+     * @param localJar file path of the jar file to submit
+     * @param listener progress listener to track the jar file upload
+     * @return the remote location of the submitted jar
+     */
+    public static String submitJar(Map conf, String localJar, ProgressListener listener) {
+        return submitJarAs(conf,localJar, listener, null);
     }
 
     /**

@@ -50,6 +50,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     protected Set<String> _supervisors;
     protected IPrincipalToLocal _ptol;
     protected IGroupMappingServiceProvider _groupMappingProvider;
+    protected ImpersonationAuthorizer _impersonationAuthorizer;
     /**
      * Invoked once immediately after construction
      * @param conf Storm configuration
@@ -68,25 +69,32 @@ public class SimpleACLAuthorizer implements IAuthorizer {
 
         _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
         _groupMappingProvider = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
+        _impersonationAuthorizer = new ImpersonationAuthorizer();
+        _impersonationAuthorizer.prepare(conf);
     }
 
     /**
      * permit() method is invoked for each incoming Thrift request
      * @param context request context includes info about
      * @param operation operation name
-     * @param topology_storm configuration of targeted topology
+     * @param topology_conf configuration of targeted topology
      * @return true if the request is authorized, false if reject
      */
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
-        LOG.info("[req "+ context.requestID()+ "] Access "
-                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
-                 + (context.principal() == null? "" : (" principal:"+ context.principal()))
-                 +" op:"+operation
-                 + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
+        LOG.info("[req " + context.requestID() + "] Access "
+                + " from: " + (context.remoteAddress() == null ? "null" : context.remoteAddress().toString())
+                + (context.principal() == null ? "" : (" principal:" + context.principal()))
+                + " op:" + operation
+                + (topology_conf == null ? "" : (" topoology:" + topology_conf.get(Config.TOPOLOGY_NAME))));
 
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
+
+        if(!_impersonationAuthorizer.permit(context, operation, topology_conf)) {
+            return false;
+        }
+
         if (_admins.contains(principal) || _admins.contains(user)) {
             return true;
         }

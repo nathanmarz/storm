@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.redis.trident.mapper;
+package org.apache.storm.redis.common.mapper;
 
-import storm.trident.tuple.TridentTuple;
+import backtype.storm.tuple.ITuple;
 
 import java.io.Serializable;
 
-public interface TridentTupleMapper extends Serializable {
-    public String getKeyFromTridentTuple(TridentTuple tuple);
-    public String getValueFromTridentTuple(TridentTuple tuple);
+public interface TupleMapper extends Serializable {
+    public String getKeyFromTuple(ITuple tuple);
+    public String getValueFromTuple(ITuple tuple);
 }

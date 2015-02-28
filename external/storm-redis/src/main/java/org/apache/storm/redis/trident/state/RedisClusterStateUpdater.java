@@ -17,7 +17,7 @@
  */
 package org.apache.storm.redis.trident.state;
 
-import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
+import org.apache.storm.redis.common.mapper.TupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisCluster;
@@ -31,10 +31,10 @@ public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState
     private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
 
     private final String redisKeyPrefix;
-    private final TridentTupleMapper tupleMapper;
+    private final TupleMapper tupleMapper;
     private final int expireIntervalSec;
 
-    public RedisClusterStateUpdater(String redisKeyPrefix, TridentTupleMapper tupleMapper, int expireIntervalSec) {
+    public RedisClusterStateUpdater(String redisKeyPrefix, TupleMapper tupleMapper, int expireIntervalSec) {
         this.redisKeyPrefix = redisKeyPrefix;
         this.tupleMapper = tupleMapper;
         if (expireIntervalSec > 0) {
@@ -52,12 +52,12 @@ public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState
         try {
             jedisCluster = redisClusterState.getJedisCluster();
             for (TridentTuple input : inputs) {
-                String key = this.tupleMapper.getKeyFromTridentTuple(input);
+                String key = this.tupleMapper.getKeyFromTuple(input);
                 String redisKey = key;
                 if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
                     redisKey = redisKeyPrefix + redisKey;
                 }
-                String value = this.tupleMapper.getValueFromTridentTuple(input);
+                String value = this.tupleMapper.getValueFromTuple(input);
 
                 logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
 

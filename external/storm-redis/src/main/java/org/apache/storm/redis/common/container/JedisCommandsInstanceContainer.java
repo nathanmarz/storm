@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.redis.util.container;
+package org.apache.storm.redis.common.container;
 
 import redis.clients.jedis.JedisCommands;
 

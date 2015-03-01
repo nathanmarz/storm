@@ -45,28 +45,46 @@
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 (def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
+(def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defmacro with-nimbus
   [nimbus-sym & body]
-  `(thrift/with-nimbus-connection
-     [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
-     ~@body))
+  `(let [context# (ReqContext/context)
+         user# (if (.principal context#) (.getName (.principal context#)))]
+    (thrift/with-nimbus-connection-as-user
+       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT) user#]
+       ~@body)))
 
 (defn assert-authorized-user
   ([servlet-request op]
     (assert-authorized-user servlet-request op nil))
   ([servlet-request op topology-conf]
-     (if http-creds-handler (.populateContext http-creds-handler (ReqContext/context) servlet-request))
-     (if *UI-ACL-HANDLER*
-       (let [context (ReqContext/context)]
-         (if-not (.permit *UI-ACL-HANDLER* context op topology-conf)
-           (let [principal (.principal context)
-                 user (if principal (.getName principal) "unknown")]
-             (throw (AuthorizationException.
-                     (str "UI request '" op "' for '"
-                          user "' user is not authorized")))))))))
+    (let [context (ReqContext/context)]
+      (if http-creds-handler (.populateContext http-creds-handler context servlet-request))
+
+      (if (.isImpersonating context)
+        (if *UI-IMPERSONATION-HANDLER*
+            (if-not (.permit *UI-IMPERSONATION-HANDLER* context op topology-conf)
+              (let [principal (.principal context)
+                    real-principal (.realPrincipal context)
+                    user (if principal (.getName principal) "unknown")
+                    real-user (if real-principal (.getName real-principal) "unknown")
+                    remote-address (.remoteAddress context)]
+                (throw (AuthorizationException.
+                         (str "user '" real-user "' is not authorized to impersonate user '" user "' from host '" remote-address "'. Please
+                         see SECURITY.MD to learn how to configure impersonation ACL.")))))
+          (log-warn " principal " (.realPrincipal context) " is trying to impersonate " (.principal context) " but "
+            NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. This is a potential security hole.
+            Please see SECURITY.MD to learn how to configure an impersonation authorizer.")))
+
+      (if *UI-ACL-HANDLER*
+       (if-not (.permit *UI-ACL-HANDLER* context op topology-conf)
+         (let [principal (.principal context)
+               user (if principal (.getName principal) "unknown")]
+           (throw (AuthorizationException.
+                   (str "UI request '" op "' for '" user "' user is not authorized")))))))))
 
 (defn get-filled-stats
   [summs]
@@ -911,28 +929,29 @@
   (GET "/api/v1/token" [ & m]
        (json-response (format "{\"antiForgeryToken\": \"%s\"}" *anti-forgery-token*) (:callback m) :serialize-fn identity))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "activate" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)]
-        (assert-authorized-user servlet-request "activate" (topology-config id))
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
     (json-response (topology-op-response id "deactivate") (m "callback")))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "deactivate" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)]
-        (assert-authorized-user servlet-request "deactivate" (topology-config id))
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
     (json-response (topology-op-response id "deactivate") (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (assert-authorized-user servlet-request "rebalance" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
@@ -941,7 +960,6 @@
             name (.get_name tplg)
             rebalance-options (m "rebalanceOptions")
             options (RebalanceOptions.)]
-        (assert-authorized-user servlet-request "rebalance" (topology-config id))
         (.set_wait_secs options (Integer/parseInt wait-time))
         (if (and (not-nil? rebalance-options) (contains? rebalance-options "numWorkers"))
           (.set_num_workers options (Integer/parseInt (.toString (rebalance-options "numWorkers")))))
@@ -952,6 +970,7 @@
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "rebalance") (m "callback")))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (assert-authorized-user servlet-request "killTopology" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
@@ -959,7 +978,6 @@
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             options (KillOptions.)]
-        (assert-authorized-user servlet-request "killTopology" (topology-config id))
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))

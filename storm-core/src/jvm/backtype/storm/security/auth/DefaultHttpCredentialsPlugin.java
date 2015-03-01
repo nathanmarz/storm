@@ -72,16 +72,24 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
     public ReqContext populateContext(ReqContext context,
             HttpServletRequest req) {
         String userName = getUserName(req);
-        Principal p = null;
-        if (userName != null) {
-            p = new SingleUserPrincipal(userName);
+
+        String doAsUser = req.getHeader("doAsUser");
+        if(doAsUser == null) {
+            doAsUser = req.getParameter("doAsUser");
         }
-        Set<Principal> principals = new HashSet<Principal>(1);
-        if (p != null) {
-            principals.add(p);
+
+        if(doAsUser != null) {
+            context.setRealPrincipal(new SingleUserPrincipal(userName));
+            userName = doAsUser;
         }
-        Subject s = new Subject(true, principals, new HashSet(), new HashSet());
-        context.setSubject(s);
+
+        if(userName != null) {
+            Subject s = new Subject();
+            Principal p = new SingleUserPrincipal(userName);
+            s.getPrincipals().add(p);
+            context.setSubject(s);
+        }
+
         return context;
     }
 }

@@ -25,7 +25,8 @@
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler]]])
   (:use [ring.middleware.anti-forgery])
   (:use [clojure.string :only [blank? lower-case trim]])
-  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.utils Utils]
+           [backtype.storm.generated NimbusSummary])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -41,7 +42,6 @@
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
   (:import [org.apache.commons.lang StringEscapeUtils])
-  (:import [backtype.storm.nimbus NimbusInfo])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
@@ -520,14 +520,14 @@
         (.get_nimbuses (.getClusterInfo ^Nimbus$Client nimbus)))))
   ([nimbuses]
     {"nimbuses"
-     (for [^NimbusInfo n nimbuses]
+     (for [^NimbusSummary n nimbuses]
        {
         "host" (.get_host n)
         "port" (.get_port n)
         "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
         "isLeader" (.is_isLeader n)
         "version" (.get_version n)
-        "nimbusUpTime" (pretty-uptime-sec (.get_uptimeSecs n))})}))
+        "nimbusUpTime" (pretty-uptime-sec (.get_uptime_secs n))})}))
 
 (defn supervisor-summary
   ([]

@@ -63,6 +63,7 @@
  * STORM-685: wrong output in log when committed offset is too far behind latest offset
  * STORM-688: update Util to compile under JDK8
  * STORM-687: Storm UI does not display up to date information despite refreshes in IE
+ * STORM-557: High Quality Images for presentations
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

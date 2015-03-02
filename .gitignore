@@ -31,4 +31,6 @@ target
 .*
 !/.gitignore
 _site
-storm-core/dependency-reduced-pom.xml
+dependency-reduced-pom.xml
+derby.log
+metastore_db

@@ -146,9 +146,8 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
     }
 
     private void getSASLCredentials() throws IOException {
-        topologyName = (String) this.client.storm_conf
-                .get(Config.TOPOLOGY_NAME);
-        String secretKey = SaslUtils.getSecretKey(this.client.storm_conf);
+        topologyName = (String) this.client.stormConf.get(Config.TOPOLOGY_NAME);
+        String secretKey = SaslUtils.getSecretKey(this.client.stormConf);
         if (secretKey != null) {
             token = secretKey.getBytes();
         }

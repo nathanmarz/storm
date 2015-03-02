@@ -25,12 +25,9 @@
   (:import [backtype.storm.drpc DRPCInvocationsClient])
   (:import [java.util.concurrent TimeUnit])
   (:import [javax.security.auth Subject])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm util config log])
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap testing])
-  )
-
-(bootstrap)
+  (:use [backtype.storm testing]))
 
 (def drpc-timeout (Integer. 30))
 

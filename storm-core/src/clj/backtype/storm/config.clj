@@ -222,8 +222,7 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)
         topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
-    ))
+    (merge conf (clojurify-structure (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path)))))))
 
 (defn read-supervisor-topology
   [conf storm-id]

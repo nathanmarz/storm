@@ -17,18 +17,24 @@
   (:use [clojure test])
   (:require [backtype.storm [util :as util]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
+            TestAggregatesCounter TestPlannerSpout TestPlannerBolt])
   (:import [backtype.storm.scheduler INimbus])
-  (:use [backtype.storm bootstrap testing zookeeper])
   (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
+  (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
+            TopologyInitialStatus AlreadyAliveException KillOptions RebalanceOptions
+            InvalidTopologyException AuthorizationException])
+  (:import [java.util HashMap])
+  (:import [java.io File])
+  (:import [backtype.storm.utils Time])
+  (:import [org.apache.commons.io FileUtils])
+  (:use [backtype.storm testing MockAutoCred util config log timer zookeeper])
   (:use [backtype.storm.daemon common])
-  (:import [backtype.storm.generated Credentials])
-  (:use [backtype.storm bootstrap testing MockAutoCred])
   (:require [conjure.core])
-  (:use [conjure core])
-  )
-
-(bootstrap)
+  (:require [backtype.storm
+             [thrift :as thrift]
+             [cluster :as cluster]])
+  (:use [conjure core]))
 
 (defn storm-component->task-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)

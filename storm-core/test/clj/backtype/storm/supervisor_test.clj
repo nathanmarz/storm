@@ -18,19 +18,17 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:require [clojure.contrib [string :as contrib-str]])
-  (:require [clojure [string :as string]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:require [clojure [string :as string] [set :as set]])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [backtype.storm.scheduler ISupervisor])
+  (:import [backtype.storm.generated RebalanceOptions])
   (:import [java.util UUID])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing util timer])
   (:use [backtype.storm.daemon common])
-  (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]])
+  (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]]
+            [backtype.storm [thrift :as thrift] [cluster :as cluster]])
   (:use [conjure core])
-  (:require [clojure.java.io :as io])
-  )
-
-(bootstrap)
-
+  (:require [clojure.java.io :as io]))
 
 (defn worker-assignment
   "Return [storm-id executors]"

@@ -14,28 +14,38 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift.exception])
+  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.commons.io FileUtils])
   (:import [java.nio ByteBuffer]
-           [java.util Collections]
+           [java.util Collections HashMap]
            [backtype.storm.generated NimbusSummary])
-  (:import [java.io FileNotFoundException])
+  (:import [java.io FileNotFoundException File FileOutputStream])
   (:import [java.net InetAddress])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-  (:use [backtype.storm bootstrap util zookeeper])
   (:import [backtype.storm.nimbus NimbusInfo])
-  (:import [backtype.storm.generated AuthorizationException GetInfoOptions
-                                     NumErrorsChoice])
-  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
+  (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils
+            BufferFileInputStream])
+  (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
+            ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
+            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
+            ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:use [backtype.storm util config log timer zookeeper])
+  (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
+  (:require [clojure.set :as set])
+  (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils VersionInfo])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
-
-(bootstrap)
 
 (defn file-cache-map [conf]
   (TimeCacheMap.

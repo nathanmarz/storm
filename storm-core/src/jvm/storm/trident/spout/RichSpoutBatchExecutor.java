@@ -140,6 +140,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         
         @Override
         public void close() {
+            _spout.close();
         }
         
     }

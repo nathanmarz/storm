@@ -17,6 +17,7 @@
 (ns backtype.storm.ui.core
   (:use compojure.core)
   (:use ring.middleware.reload)
+  (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log zookeeper])
   (:use [backtype.storm.ui helpers])
@@ -492,18 +493,20 @@
         (cluster-summary (.getClusterInfo ^Nimbus$Client nimbus) user)))
   ([^ClusterSummary summ user]
      (let [sups (.get_supervisors summ)
-        used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
-        total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
-        free-slots (- total-slots used-slots)
-        total-tasks (->> (.get_topologies summ)
-                         (map #(.get_num_tasks ^TopologySummary %))
-                         (reduce +))
-        total-executors (->> (.get_topologies summ)
-                             (map #(.get_num_executors ^TopologySummary %))
-                             (reduce +))]
+           used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
+           total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
+           free-slots (- total-slots used-slots)
+           topologies (.get_topologies_size summ)
+           total-tasks (->> (.get_topologies summ)
+                            (map #(.get_num_tasks ^TopologySummary %))
+                            (reduce +))
+           total-executors (->> (.get_topologies summ)
+                                (map #(.get_num_executors ^TopologySummary %))
+                                (reduce +))]
        {"user" user
         "stormVersion" (str (VersionInfo/getVersion))
         "supervisors" (count sups)
+        "topologies" topologies
         "slotsTotal" total-slots
         "slotsUsed"  used-slots
         "slotsFree" free-slots
@@ -872,6 +875,12 @@
   (thrift/with-configured-nimbus-connection nimbus
      (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
 
+(defn topology-op-response [topology-id op]
+  {"topologyOperation" op,
+   "topologyId" topology-id,
+   "status" "success"
+   })
+
 (defn check-include-sys?
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
@@ -882,8 +891,9 @@
 (defnk json-response
   [data callback :serialize-fn to-json :status 200]
      {:status status
-      :headers (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
-                {"Content-Type" "application/json;charset=utf-8"})
+      :headers (merge {"Cache-Control" "no-cache, no-store"}
+                      (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
+                          {"Content-Type" "application/json;charset=utf-8"}))
       :body (if (not-nil? callback)
               (wrap-json-in-callback callback (serialize-fn data))
               (serialize-fn data))})
@@ -920,7 +930,7 @@
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
   (GET "/api/v1/token" [ & m]
        (json-response (format "{\"antiForgeryToken\": \"%s\"}" *anti-forgery-token*) (:callback m) :serialize-fn identity))
-  (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
+  (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
     (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
@@ -930,8 +940,8 @@
         (assert-authorized-user servlet-request "activate" (topology-config id))
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
-  (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id]
+    (json-response (topology-op-response id "activate") (m "callback")))
+  (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
     (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
@@ -941,21 +951,27 @@
         (assert-authorized-user servlet-request "deactivate" (topology-config id))
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
-  (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
+    (json-response (topology-op-response id "deactivate") (m "callback")))
+  (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
+            rebalance-options (m "rebalanceOptions")
             options (RebalanceOptions.)]
         (assert-authorized-user servlet-request "rebalance" (topology-config id))
         (.set_wait_secs options (Integer/parseInt wait-time))
+        (if (and (not-nil? rebalance-options) (contains? rebalance-options "numWorkers"))
+          (.set_num_workers options (Integer/parseInt (.toString (rebalance-options "numWorkers")))))
+        (if (and (not-nil? rebalance-options) (contains? rebalance-options "executors"))
+          (doseq [keyval (rebalance-options "executors")]
+            (.put_to_num_executors options (key keyval) (Integer/parseInt (.toString (val keyval))))))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
-  (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
+    (json-response (topology-op-response id "rebalance") (m "callback")))
+  (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
@@ -967,7 +983,7 @@
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
+    (json-response (topology-op-response id "kill") (m "callback")))
 
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))
@@ -997,9 +1013,10 @@
 
 (def app
   (handler/site (-> main-routes
-                  (wrap-reload '[backtype.storm.ui.core])
-                  (wrap-anti-forgery {:error-response csrf-error-response})
-                  catch-errors)))
+                    (wrap-json-params)
+                    (wrap-reload '[backtype.storm.ui.core])
+                    (wrap-anti-forgery {:error-response csrf-error-response})
+                    catch-errors)))
 
 (defn start-server!
   []

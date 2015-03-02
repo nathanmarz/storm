@@ -28,12 +28,11 @@
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping 
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm util config])
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap testing])
-  (:import [backtype.storm.generated Nimbus Nimbus$Client]))
-
-(bootstrap)
+  (:use [backtype.storm testing])
+  (:import [backtype.storm.generated Nimbus Nimbus$Client Nimbus$Iface StormTopology SubmitOptions
+            KillOptions RebalanceOptions ClusterSummary TopologyInfo Nimbus$Processor]))
 
 (defn mk-principal [name]
   (reify Principal
@@ -166,7 +165,7 @@
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
                                STORM-NIMBUS-RETRY-TIMES 0})]
         (testing "(Negative authentication) Server: Simple vs. Client: Digest"
-          (is (thrown-cause?  java.net.SocketTimeoutException
+          (is (thrown-cause?  org.apache.thrift.transport.TTransportException
                               (NimbusClient. storm-conf "localhost" a-port nimbus-timeout))))))))
   
 (deftest negative-whitelist-authorization-test 
@@ -361,7 +360,7 @@
             client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
             nimbus_client (.getClient client)]
         (testing "(Negative authentication) Server: Digest vs. Client: Simple"
-          (is (thrown-cause? java.net.SocketTimeoutException
+          (is (thrown-cause? org.apache.thrift.transport.TTransportException
                              (.activate nimbus_client "security_auth_test_topology"))))
         (.close client))
       

@@ -48,6 +48,7 @@
 <div id="json-response-error"></div>
 </body>
 <script>
+
 $(document).ajaxStop($.unblockUI);
 $(document).ajaxStart(function(){
     $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading summary...</h3>'});

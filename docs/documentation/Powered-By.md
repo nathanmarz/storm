@@ -926,6 +926,46 @@ Polecat uses Storm to run an application we've called the 'Data Munger'.  We run
 
 <tr>
 <td>
+<a href="http://www.akazoo.com/en">Akazoo</a>
+</td>
+<td>
+<p>
+Akazoo is a platform providing music streaming services.  Storm is the backbone of all our real-time analytical processing. We use it for tracking and analyzing application events and for various other stuff, including recommendations and parallel task execution.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="http://www.mapillary.com">Mapillary</a>
+</td>
+<td>
+<p>
+At Mapillary we use storm for a wide variety of tasks. Having a system which is 100% based on kafka input storm and trident makes reasoning about our data a breeze.  
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="http://www.gutscheinrausch.de/">Gutscheinrausch.de</a>
+</td>
+<td>
+<p>
+We recently upgraded our existing IT infrastructure, using Storm as one of our main tools.
+Each day we collect sales, clicks, visits and various ecommerce metrics from various different systems (webpages, affiliate reportings, networks, tracking-scripts etc). We process this continually generated data using Storm before entering it into the backend systems for further use.
+</p>
+<p>
+Using Storm we were able to decouple our heterogeneous frontend-systems from our backends and take load off the data warehouse applications by inputting pre-processed data. This way we can easy collect and process all data and then do realtime OLAP queries using our propietary data warehouse technology.
+</p>
+<p>
+We are mostly impressed by the high speed, low maintenance approach Storm has provided us with. Also being able to easily scale up the system using more machines is a big plus. Since we're a small team it allows us to focus more on our core business instead of the underlying technology. You could say it has taken our hearts by storm!
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
 <a href="http://www.mercadolibre.com/">MercadoLibre</a>
 </td>
 <td>

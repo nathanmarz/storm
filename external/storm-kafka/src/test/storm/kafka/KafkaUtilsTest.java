@@ -176,7 +176,7 @@ public class KafkaUtilsTest {
         String value = "value";
         Partition mockPartition = Mockito.mock(Partition.class);
         mockPartition.partition = 0;
-        int offset = 0;
+        long offset = 0L;
         
         config.scheme = new MessageMetadataSchemeAsMultiScheme(new StringMessageAndMetadataScheme());
         config.tupleMetaData = true;
@@ -187,8 +187,8 @@ public class KafkaUtilsTest {
             Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), mockPartition, offset);
             List<Object> values = lists.iterator().next(); 
             assertEquals("Message is incorrect", value, values.get(0));
-            assertEquals("Offset is incorrect", offset, values.get(1));
-            assertEquals("Partition is incorrect", mockPartition.partition, values.get(2));
+            assertEquals("Partition is incorrect", mockPartition.partition, values.get(1));
+            assertEquals("Offset is incorrect", offset, values.get(2));
         }
     }
     
@@ -197,7 +197,7 @@ public class KafkaUtilsTest {
         String value = "value";
         Partition mockPartition = Mockito.mock(Partition.class);
         mockPartition.partition = 0;
-        int offset = 0;
+        Long offset = 0L;
         
         config.scheme = new SchemeAsMultiScheme(new StringScheme());
         config.tupleMetaData = true;

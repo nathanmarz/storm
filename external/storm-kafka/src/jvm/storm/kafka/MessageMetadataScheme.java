@@ -21,5 +21,5 @@ import backtype.storm.spout.Scheme;
  * limitations under the License.
  */
 public interface MessageMetadataScheme extends Scheme {
-    public List<Object> deserializeMessageWithMetadata(byte[] message, Partition partition, int offset);
+    public List<Object> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset);
 }

@@ -14,7 +14,7 @@ public class MessageMetadataSchemeAsMultiScheme extends SchemeAsMultiScheme {
     }
 
     @SuppressWarnings("unchecked")
-    public Iterable<List<Object>> deserializeMessageWithMetadata(byte[] message, Partition partition, int offset) {
+    public Iterable<List<Object>> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset) {
         List<Object> o = ((MessageMetadataScheme) scheme).deserializeMessageWithMetadata(message, partition, offset);
         if (o == null) {
             return null;

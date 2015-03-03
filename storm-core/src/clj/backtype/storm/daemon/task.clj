@@ -18,7 +18,7 @@
   (:use [backtype.storm bootstrap])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
+  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec StormTopology])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
   (:require [backtype.storm [tuple :as tuple]])

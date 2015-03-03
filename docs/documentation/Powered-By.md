@@ -238,6 +238,7 @@ Alibaba is the leading B2B e-commerce website in the world. We use storm to proc
 </td>
 </tr>
 
+
 <tr>
 <td>
 <a href="http://iQIYI.COM">iQIYI</a>
@@ -249,6 +250,7 @@ iQIYI is China`s largest online video platform. We are using Storm in our video 
 </td>
 </tr>
 
+
 <tr>
 <td>
 <a href="http://www.baidu.com/">Baidu</a>
@@ -257,6 +259,17 @@ iQIYI is China`s largest online video platform. We are using Storm in our video 
 <p>
 Baidu offers top searching technology services for websites, audio files and images, my group using Storm to process the searching logs to supply realtime stats for accounting pv, ar-time and so on.
 This project helps Ops to determine and monitor services status and can do great things in the future.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="http://www.yelp.com/">Yelp</a>
+</td>
+<td>
+<p>
+Yelp is using Storm with <a href="http://pyleus.org/">Pyleus</a> to build a platform for developers to consume and process high throughput streams of data in real time. We have ongoing projects to use Storm and Pyleus for overhauling our internal application metrics pipeline, building an automated Python profile analysis system, and for general ETL operations. As its support for non-JVM components matures, we hope to make Storm the standard way of processing streaming data at Yelp.
 </p>
 </td>
 </tr>
@@ -920,6 +933,36 @@ scaling up basically just by throwing more machines at it.</p>
 <p>Polecat's digital analyisis platform, MeaningMine, allows users to search all on-line news, blogs and social media in real-time and run bespoke analysis in order to inform corporate strategy and decision making for some of the world largest companies and governmental organisations.</p>
 <p>
 Polecat uses Storm to run an application we've called the 'Data Munger'.  We run many different topologies on a multi host storm cluster to process tens of millions of online articles and posts that we collect each day.  Storm handles our analysis of these documents so that we can provide insight on realtime data to our clients.  We output our results from Storm into one of many large Apache Solr clusters for our end user applications to query (Polecat is also a contributor to Solr).  We first starting developing our app to run on storm back in June 2012 and it has been live since roughly September 2012.  We've found Storm to be an excellent fit for our needs here, and we've always found it extremely robust and fast.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="https://www.skylight.io/">Skylight by Tilde</a>
+</td>
+<td>
+<p>Skylight is a production profiler for Ruby on Rails apps that focuses on providing detailed information about your running application that you can explore in an intuitive way. We use Storm to process traces from our agent into data structures that we can slice and dice for you in our web app.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="http://www.ad4game.com/">Ad4Game</a>
+</td>
+<td>
+<p>We are an advertising network and we use Storm to calculate priorities in real time to know which ads to show for which website, visitor and country.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="http://www.impetus.com/">Impetus Technologies</a>
+</td>
+<td>
+<p>StreamAnalytix, a product of Impetus Technologies enables enterprises to analyze and respond to events in real-time at Big Data scale. Based on Apache Storm, StreamAnalytix is designed to rapidly build and deploy streaming analytics applications for any industry vertical, any data format, and any use case. This high-performance scalable platform comes with a pre-integrated package of components like Cassandra, Storm, Kafka and more. In addition, it also brings together the proven open source technology stack with Hadoop and NoSQL to provide massive scalability, dynamic data pipelines, and a visual designer for rapid application development.</p>
+<p>
+Through StreamAnalytix, the users can ingest, store and analyze millions of events per second and discover exceptions, patterns, and trends through live dashboards. It also provides seamless integration with indexing store (ElasticSearch) and NoSQL database (HBase, Cassandra, and Oracle NoSQL) for writing data in real-time. With the use of Storm, the product delivers high business value solutions such as log analytics, streaming ETL, deep social listening, Real-time marketing, business process acceleration and predictive maintenance.
 </p>
 </td>
 </tr>

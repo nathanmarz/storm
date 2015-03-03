@@ -210,6 +210,21 @@ public class KafkaUtils {
         }
         return tups;
     }
+    
+    public static Iterable<List<Object>> generateTuples(KafkaConfig kafkaConfig, Message msg, Partition partition, int offset) {
+        Iterable<List<Object>> tups;
+        ByteBuffer payload = msg.payload();
+        if (payload == null) {
+            return null;
+        }
+        
+        if (kafkaConfig.scheme instanceof MessageMetadataSchemeAsMultiScheme) {
+            tups = ((MessageMetadataSchemeAsMultiScheme) kafkaConfig.scheme).deserializeMessageWithMetadata(Utils.toByteArray(payload), partition, offset);
+        } else {
+            tups = kafkaConfig.scheme.deserialize(Utils.toByteArray(payload));
+        }
+        return tups;
+    }
 
 
     public static List<Partition> calculatePartitionsForTask(GlobalPartitionInformation partitionInformation, int totalTasks, int taskIndex) {

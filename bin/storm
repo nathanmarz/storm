@@ -165,6 +165,32 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
+def handle_exception(output):
+    """
+    Handle exception which is thrown by thrift interface
+    by extracting its stdout and stderr
+    :param output:
+    :return:
+    """
+    re_exception = re.compile('^Exception in thread "main" ([^:(]+)[:(](.+)$')
+    lines = output.split('\n')
+    matches = None
+    for line in lines:
+        matches = re_exception.search(line)
+        if matches:
+            break
+    if matches:
+        exception_classname = matches.group(1)
+        exception_message   = matches.group(2)
+        if exception_classname == "java.lang.RuntimeException":
+            print("{0}: A nimbus exception is occurred.{1}"
+                  .format(exception_classname, exception_message))
+            sys.exit(1)
+        elif exception_classname == "NotAliveException":
+            print("{}: Topology is not alive".format(exception_classname))
+            sys.exit(2)
+
+
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
     global CONFFILE
     storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
@@ -183,7 +209,16 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
     else:
         # handling whitespaces in JAVA_CMD
-        sub.call(all_args)
+        try:
+            ret = sub.check_output(all_args, stderr=sub.STDOUT)
+            print(ret)
+        except sub.CalledProcessError as e:
+            # Handling exception with stdout and stderr
+            if e.returncode != 0:
+                handle_exception(e.output)
+
+
+
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]

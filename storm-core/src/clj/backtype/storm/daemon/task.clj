@@ -18,7 +18,7 @@
   (:use [backtype.storm config util log])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple TupleImpl])
-  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
+  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec StormTopology])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
   (:import [backtype.storm.task TopologyContext ShellBolt WorkerTopologyContext])
@@ -67,7 +67,7 @@
     (:topology worker))
    tid))
 
-(defn- get-task-object [^TopologyContext topology component-id]
+(defn- get-task-object [^StormTopology topology component-id]
   (let [spouts (.get_spouts topology)
         bolts (.get_bolts topology)
         state-spouts (.get_state_spouts topology)

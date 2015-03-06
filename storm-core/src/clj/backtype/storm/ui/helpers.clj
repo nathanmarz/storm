@@ -156,6 +156,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn- mk-ssl-connector [port ks-path ks-password ks-type]
   (doto (SslSocketConnector.)
     (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
+    (.setExcludeProtocols (into-array String ["SSLv3"]))
     (.setAllowRenegotiate false)
     (.setKeystore ks-path)
     (.setKeystoreType ks-type)

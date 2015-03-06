@@ -101,9 +101,10 @@ public class PartitionManager {
 
         if (currentOffset - _committedTo > spoutConfig.maxOffsetBehind || _committedTo <= 0) {
             LOG.info("Last commit offset from zookeeper: " + _committedTo);
+            Long lastCommittedOffset = _committedTo;
             _committedTo = currentOffset;
-            LOG.info("Commit offset " + _committedTo + " is more than " +
-                    spoutConfig.maxOffsetBehind + " behind, resetting to startOffsetTime=" + spoutConfig.startOffsetTime);
+            LOG.info("Commit offset " + lastCommittedOffset + " is more than " +
+                    spoutConfig.maxOffsetBehind + " behind latest offset " + currentOffset + ", resetting to startOffsetTime=" + spoutConfig.startOffsetTime);
         }
 
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);

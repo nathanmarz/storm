@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-675: Allow users to have storm-env.sh under config dir to set custom JAVA_HOME and other env variables.
  * STORM-539: Storm Hive Connector.
  * STORM-616: Storm JDBC Connector.
  * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)

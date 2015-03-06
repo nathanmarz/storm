@@ -19,7 +19,7 @@
   (:import [org.apache.thrift.exception])
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [org.apache.commons.io FileUtils])
-  (:import [java.nio ByteBuffer])
+  (:import [java.nio ByteBuffer]
            [java.util Collections HashMap])
   (:import [java.io FileNotFoundException File FileOutputStream])
   (:import [java.nio.channels Channels WritableByteChannel])

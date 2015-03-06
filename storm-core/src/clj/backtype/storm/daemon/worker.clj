@@ -25,7 +25,6 @@
   (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
-  (:import [backtype.storm.daemon.common WorkerHeartbeat])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.serialization KryoTupleSerializer])
   (:import [backtype.storm.generated StormTopology])

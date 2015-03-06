@@ -168,10 +168,11 @@
     {}))
 
 (defn thriftify-zk-worker-hb [worker-hb]
-  (doto (ZKWorkerHeartbeat.)
-    (.set_storm_id (:storm-id worker-hb))
-    (.set_executor_stats (thriftify-stats (:executor-stats worker-hb)))
-    (.set_time_secs (:time-secs worker-hb))))
+  (if (not-empty (filter second (:executor-stats worker-hb)))
+    (doto (ZKWorkerHeartbeat.)
+      (.set_storm_id (:storm-id worker-hb))
+      (.set_executor_stats (thriftify-stats (filter second (:executor-stats worker-hb))))
+      (.set_time_secs (:time-secs worker-hb)))))
 
 (defn clojurify-error [^ErrorInfo error]
   (if error

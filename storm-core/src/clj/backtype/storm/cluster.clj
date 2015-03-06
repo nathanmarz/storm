@@ -336,10 +336,11 @@
 
       (get-worker-heartbeat
         [this storm-id node port]
-        (-> cluster-state
-            (get-data (workerbeat-path storm-id node port) false)
-          (maybe-deserialize ZKWorkerHeartbeat)
-          clojurify-zk-worker-hb))
+        (let [worker-hb (get-data cluster-state (workerbeat-path storm-id node port) false)]
+          (if worker-hb
+            (-> worker-hb
+              (maybe-deserialize ZKWorkerHeartbeat)
+              clojurify-zk-worker-hb))))
 
 
       (executor-beats
@@ -368,7 +369,8 @@
       (worker-heartbeat!
         [this storm-id node port info]
         (let [thrift-worker-hb (thriftify-zk-worker-hb info)]
-          (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize thrift-worker-hb) acls)))
+          (if thrift-worker-hb
+            (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize thrift-worker-hb) acls))))
 
       (remove-worker-heartbeat!
         [this storm-id node port]

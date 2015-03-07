@@ -1,0 +1,52 @@
+# YAML configuration to serve as a basic smoke test for what is supported.
+#
+# We should support comments, so if we've failed so far, things aren't good.
+
+# we shouldn't choke if we see a document separator...
+---
+
+# topology definition
+# name to be used when submitting
+name: "yaml-topology"
+
+
+
+# topology configuration
+# this will be passed to the submitter as a map of config options
+#
+config:
+  topology.workers: 1
+  # ...
+
+# spout definitions
+spouts:
+  - id: "spout-1"
+    className: "backtype.storm.testing.TestWordSpout"
+    parallelism: 1
+    # ...
+
+# bolt definitions
+bolts:
+  - id: "bolt-1"
+    className: "backtype.storm.testing.TestWordCounter"
+    parallelism: 1
+    # ...
+
+#stream definitions
+# stream definitions define connections between spouts and bolts.
+# note that such connections can be cyclical
+streams:
+  - name: "spout-1-bolt-1" # name isn't used (placeholder for potential UI)
+#    id: "connection-1"
+    from: "spout-1"
+    to: "bolt-1"
+    grouping:
+      type: fields
+      args: ["word"]
+
+
+
+
+
+
+

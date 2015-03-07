@@ -35,7 +35,7 @@ public class UserPersistanceTopology extends AbstractUserTopology {
     @Override
     public StormTopology getTopology() {
         JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt(JDBC_CONF, SELECT_QUERY, this.jdbcLookupMapper);
-        JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(JDBC_CONF, TABLE_NAME, this.jdbcMapper);
+        JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(JDBC_CONF, this.jdbcMapper).withInsertQuery("insert into user (create_date, dept_name, user_id, user_name) values (?,?,?,?)");
 
         // userSpout ==> jdbcBolt
         TopologyBuilder builder = new TopologyBuilder();

@@ -12,7 +12,7 @@
 
   <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <storm.version>0.9.4-SNAPSHOT</storm.version>
+      <storm.version>0.9.3</storm.version>
   </properties>
 
   <dependencies>
@@ -25,10 +25,10 @@
       </dependency>
 
       <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+          <version>4.11</version>
+          <scope>test</scope>
+      </dependency>
   </dependencies>
 </project>

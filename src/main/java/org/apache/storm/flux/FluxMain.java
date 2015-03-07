@@ -3,6 +3,7 @@ package org.apache.storm.flux;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
+import backtype.storm.generated.StormTopology;
 import backtype.storm.spout.ISpout;
 import backtype.storm.topology.*;
 import backtype.storm.tuple.Fields;
@@ -17,15 +18,34 @@ import java.util.Map;
 public class FluxMain {
     public static void main(String[] args) throws Exception {
 
-
         TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/tck.yaml");
 
+        // merge contents of `config` into topology config
+        Config conf = buildConfig(topologyDef);
+        StormTopology topology = buildTopology(topologyDef);
+
+
+        LocalCluster cluster = new LocalCluster();
+        cluster.submitTopology("test", conf, topology);
+        Utils.sleep(60000);
+        cluster.killTopology("test");
+        cluster.shutdown();
+
+    }
+
+    public static Config buildConfig(TopologyDef topologyDef){
+        // merge contents of `config` into topology config
+        Config conf = new Config();
+        conf.putAll(topologyDef.getConfig());
+        return conf;
+    }
+
+    static StormTopology buildTopology(TopologyDef topologyDef) throws IllegalAccessException, InstantiationException, ClassNotFoundException {
         TopologyBuilder builder = new TopologyBuilder();
-
-
 
         // create spouts
         for(SpoutDef sd : topologyDef.getSpouts()){
+            // TODO deal with spouts with non-default constructors
             builder.setSpout(sd.getId(), buildSpout(sd), sd.getParallelism());
         }
 
@@ -57,29 +77,15 @@ public class FluxMain {
                 throw new UnsupportedOperationException("unsupported grouping type: " + grouping.getStreamId());
             }
         }
-
-        builder.createTopology();
-
-        Config conf = new Config();
-        conf.putAll(topologyDef.getConfig());
-
-        LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology("test", conf, builder.createTopology());
-        Utils.sleep(60000);
-        cluster.killTopology("test");
-        cluster.shutdown();
-
+        return builder.createTopology();
     }
 
 
 
     public static IRichSpout buildSpout(SpoutDef def) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         Class clazz = Class.forName(def.getClassName());
-
         //TODO Deal with constructor args
         IRichSpout spout = (IRichSpout)clazz.newInstance();
-
-
         return spout;
     }
 
@@ -90,7 +96,6 @@ public class FluxMain {
             // TODO deal with constructor args
             retval.put(bd.getId(), clazz.newInstance());
         }
-
         return retval;
     }
 }

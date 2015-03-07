@@ -32,17 +32,28 @@ bolts:
     parallelism: 1
     # ...
 
+  - id: "bolt-2"
+    className: "org.apache.storm.flux.test.LogInfoBolt"
+    parallelism: 1
+    # ...
+
 #stream definitions
 # stream definitions define connections between spouts and bolts.
 # note that such connections can be cyclical
 streams:
-  - name: "spout-1-bolt-1" # name isn't used (placeholder for potential UI)
+  - name: "spout-1 --> bolt-1" # name isn't used (placeholder for logging, UI, etc.)
 #    id: "connection-1"
     from: "spout-1"
     to: "bolt-1"
     grouping:
       type: fields
       args: ["word"]
+
+  - name: "bolt-1 --> bolt2"
+    from: "bolt-1"
+    to: "bolt-2"
+    grouping:
+      type: shuffle
 
 
 

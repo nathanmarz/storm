@@ -31,6 +31,7 @@ IPsec to encrypt all traffic being sent between the hosts in the cluster.
 | 8000 | `logviewer.port` | Client Web Browsers | Logviewer |
 | 3772 | `drpc.port` | External DRPC Clients | DRPC |
 | 3773 | `drpc.invocations.port` | Worker Processes | DRPC |
+| 3774 | `drpc.http.port` | External HTTP DRPC Clients | DRPC |
 | 670{0,1,2,3} | `supervisor.slots.ports` | Worker Processes | Worker Processes |
 
 ### UI/Logviewer

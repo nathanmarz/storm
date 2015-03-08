@@ -18,7 +18,7 @@
   (:use [backtype.storm config util log])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple TupleImpl])
-  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
+  (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec StormTopology])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
   (:import [backtype.storm.task TopologyContext ShellBolt WorkerTopologyContext])
@@ -67,7 +67,7 @@
     (:topology worker))
    tid))
 
-(defn- get-task-object [^TopologyContext topology component-id]
+(defn- get-task-object [^StormTopology topology component-id]
   (let [spouts (.get_spouts topology)
         bolts (.get_bolts topology)
         state-spouts (.get_state_spouts topology)
@@ -132,9 +132,12 @@
         emit-sampler (mk-stats-sampler storm-conf)
         stream->component->grouper (:stream->component->grouper executor-data)
         user-context (:user-context task-data)
-        executor-stats (:stats executor-data)]
+        executor-stats (:stats executor-data)
+        debug? (= true (storm-conf TOPOLOGY-DEBUG))]
         
     (fn ([^Integer out-task-id ^String stream ^List values]
+          (when debug?
+            (log-message "Emitting direct: " out-task-id "; " component-id " " stream " " values))
           (let [target-component (.getComponentId worker-context out-task-id)
                 component->grouping (get stream->component->grouper stream)
                 grouping (get component->grouping target-component)
@@ -151,6 +154,8 @@
             (if out-task-id [out-task-id])
             ))
         ([^String stream ^List values]
+           (when debug?
+             (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
              (fast-map-iter [[out-component grouper] (get stream->component->grouper stream)]
                (when (= :direct grouper)

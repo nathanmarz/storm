@@ -268,7 +268,7 @@ public class StormSubmitter {
     @SuppressWarnings("unchecked")
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
              ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
-
+        submitTopologyAs(name, stormConf, topology, opts, progressListener, null);
     }
 
     /**

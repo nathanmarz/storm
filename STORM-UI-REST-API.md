@@ -38,6 +38,13 @@ In a secure environment an authenticated user can impersonate another user. To i
 to learn more about how to setup impersonation ACLs and authorization. The rest API uses the same configs and acls that
 are used by nimbus.
 
+Examples:
+
+```no-highlight
+ 1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1425844354\?doAsUser=testUSer1
+ 2. curl 'http://localhost:8080/api/v1/topology/wordcount-1-1425844354/activate' -X POST -H 'doAsUser:testUSer1'
+```
+
 ## GET Operations
 
 ### /api/v1/cluster/configuration (GET)

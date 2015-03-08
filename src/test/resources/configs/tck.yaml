@@ -9,7 +9,18 @@
 # name to be used when submitting
 name: "yaml-topology"
 
+# Components
+# Components are analagous to Spring beans. They are meant to be used as constructor,
+# property(setter), and builder arguments.
+#components:
+#  - id: "myComponent"
+#    className: "com.foo.bar.MyComponent"
+#    properties:
+#      foo: "bar"
+#      bar: "foo"
 
+# NOTE: We may want to consider some level of spring integration. For example, allowing component references
+# to a spring `ApplicationContext`.
 
 # topology configuration
 # this will be passed to the submitter as a map of config options

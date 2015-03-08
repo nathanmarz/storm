@@ -18,6 +18,6 @@ public class TCKTest {
         Config conf = FluxMain.buildConfig(topologyDef);
         StormTopology topology = FluxMain.buildTopology(topologyDef);
         assertNotNull(topology);
-
+        topology.validate();
     }
 }

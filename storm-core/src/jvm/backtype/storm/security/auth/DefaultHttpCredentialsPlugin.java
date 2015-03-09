@@ -83,12 +83,13 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
             userName = doAsUser;
         }
 
+        Set<Principal> principals = new HashSet<Principal>();
         if(userName != null) {
-            Subject s = new Subject();
             Principal p = new SingleUserPrincipal(userName);
-            s.getPrincipals().add(p);
-            context.setSubject(s);
+            principals.add(p);
         }
+        Subject s = new Subject(true, principals, new HashSet(), new HashSet());
+        context.setSubject(s);
 
         return context;
     }

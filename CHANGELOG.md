@@ -1,4 +1,7 @@
 ## 0.10.0
+ * STORM-659: return grep matches each on its own line.
+ * STORM-693: KafkaBolt exception handling improvement.
+ * STORM-675: Allow users to have storm-env.sh under config dir to set custom JAVA_HOME and other env variables.
  * STORM-539: Storm Hive Connector.
  * STORM-616: Storm JDBC Connector.
  * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
@@ -64,6 +67,7 @@
  * STORM-688: update Util to compile under JDK8
  * STORM-687: Storm UI does not display up to date information despite refreshes in IE
  * STORM-557: High Quality Images for presentations
+ * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

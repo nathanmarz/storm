@@ -37,7 +37,10 @@ spouts:
   - id: "spout-1"
     className: "org.apache.storm.flux.spouts.GenericShellSpout"
     constructorArgs:
+      # command line
       - ["node", "randomsentence.js"]
+      # output fields
+      - ["word"]
     parallelism: 1
     # ...
 
@@ -67,11 +70,11 @@ streams:
       type: fields
       args: ["word"]
 
-  - name: "bolt-1 --> bolt2"
-    from: "bolt-1"
-    to: "bolt-2"
-    grouping:
-      type: shuffle
+#  - name: "bolt-1 --> bolt2"
+#    from: "bolt-1"
+#    to: "bolt-2"
+#    grouping:
+#      type: shuffle
 
 
 

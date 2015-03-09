@@ -20,4 +20,15 @@ public class TCKTest {
         assertNotNull(topology);
         topology.validate();
     }
+
+    @Test
+    public void testShellComponents() throws Exception {
+        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/shell_components.yaml");
+
+        // merge contents of `config` into topology config
+        Config conf = FluxMain.buildConfig(topologyDef);
+        StormTopology topology = FluxMain.buildTopology(topologyDef);
+        assertNotNull(topology);
+        topology.validate();
+    }
 }

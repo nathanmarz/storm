@@ -10,12 +10,19 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import org.apache.storm.flux.model.*;
 import org.apache.storm.flux.parser.FluxParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class FluxMain {
+    private static Logger LOG = LoggerFactory.getLogger(FluxMain.class);
     public static void main(String[] args) throws Exception {
 
         TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/tck.yaml");
@@ -40,7 +47,7 @@ public class FluxMain {
         return conf;
     }
 
-    static StormTopology buildTopology(TopologyDef topologyDef) throws IllegalAccessException, InstantiationException, ClassNotFoundException {
+    static StormTopology buildTopology(TopologyDef topologyDef) throws IllegalAccessException, InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
         TopologyBuilder builder = new TopologyBuilder();
 
         // create spouts
@@ -82,10 +89,22 @@ public class FluxMain {
 
 
 
-    public static IRichSpout buildSpout(SpoutDef def) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public static IRichSpout buildSpout(SpoutDef def) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class clazz = Class.forName(def.getClassName());
+        IRichSpout spout = null;
         //TODO Deal with constructor args
-        IRichSpout spout = (IRichSpout)clazz.newInstance();
+        if(def.hasConstructorArgs()){
+            LOG.info("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+            Constructor con = findCompatibleConstructor(def.getConstructorArgs(), clazz);
+            if(con != null){
+                LOG.info("Found something seemingly compatible, attempting invocation...");
+                spout = (IRichSpout) con.newInstance(getConstructorArgsWithListCoercian(def.getConstructorArgs(), con));
+            } else {
+                throw new IllegalArgumentException("Couldn't find a suitable Spout constructor.");
+            }
+        } else {
+            spout = (IRichSpout) clazz.newInstance();
+        }
         return spout;
     }
 
@@ -98,5 +117,115 @@ public class FluxMain {
         }
         return retval;
     }
+
+    public static Constructor findCompatibleConstructor(List<Object> args, Class target) throws NoSuchMethodException {
+        Constructor retval = null;
+        int eligibleCount= 0;
+
+        LOG.info("Target class: {}", target.getName());
+        Constructor[] cons = target.getDeclaredConstructors();
+
+        for(Constructor con : cons){
+            Class[] paramClasses = con.getParameterTypes();
+            if(paramClasses.length == args.size()) {
+                LOG.info("found constructor with same number of args..");
+                boolean invokable = canInvokeConstructorWithArgs(args, con);
+                if(invokable){
+                    retval = con;
+                    eligibleCount++;
+                }
+                LOG.info("** invokable --> {}", invokable);
+            } else {
+                LOG.debug("Skipping constructor with wrong number of arguments.");
+            }
+        }
+        if(eligibleCount > 1){
+            LOG.warn("Found multiple invokable constructors for class {}, given arguments {}. Using the last one found.",
+                    target, args);
+        }
+        return retval;
+    }
+
+
+    private static Object[] getConstructorArgsWithListCoercian(List<Object> args, Constructor constructor){
+        Class[] parameterTypes = constructor.getParameterTypes();
+        if(parameterTypes.length != args.size()) {
+            throw new IllegalArgumentException("Contructor parameter count does not egual argument size.");
+        }
+        Object[] constructorParams = new Object[args.size()];
+
+        // loop through the arguments, if we hit a list that has to be convered to an array,
+        // perform the conversion
+        for(int i = 0;i < args.size(); i++){
+            Object obj = args.get(i);
+            Class paramType = parameterTypes[i];
+            Class objectType = obj.getClass();
+            LOG.info("Comparing parameter class {} to object class {} to see if assignment is possible.", paramType, objectType);
+            if(paramType.equals(objectType)){
+                LOG.info("They are the same class.");
+                constructorParams[i] = args.get(i);
+                continue;
+            }
+            if(paramType.isAssignableFrom(objectType)){
+                LOG.info("Assignment is possible.");
+                constructorParams[i] = args.get(i);
+                continue;
+            }
+            if(paramType.isArray() && List.class.isAssignableFrom(objectType)){ // TODO more collection content type checking
+                LOG.info("Conversion appears possible...");
+                List list = (List)obj;
+                LOG.info("Array Type: {}, List type: {}", paramType.getComponentType(), list.get(0).getClass());
+
+                // create an array of the right type
+                Object newArrayObj = Array.newInstance(paramType.getComponentType(),list.size());
+                for(int j = 0; j < list.size();j++){
+                    Array.set(newArrayObj, j, list.get(j));
+
+                }
+
+                constructorParams[i] = newArrayObj;
+
+                LOG.debug("After conversion: {}", constructorParams[i]);
+                continue;
+            }
+        }
+        return constructorParams;
+    }
+
+    private static boolean canInvokeConstructorWithArgs(List<Object> args, Constructor constructor) {
+        Class[] parameterTypes = constructor.getParameterTypes();
+        if(parameterTypes.length != args.size()) {
+            LOG.warn("parameter types were the wrong size");
+            return false;
+        }
+
+        for(int i = 0;i < args.size(); i++){
+            Object obj = args.get(i);
+            Class paramType = parameterTypes[i];
+            Class objectType = obj.getClass();
+            LOG.info("Comparing parameter class {} to object class {} to see if assignment is possible.", paramType, objectType);
+            if(paramType.equals(objectType)){
+                LOG.info("Yes, they are the same class.");
+                return true;
+            }
+            if(paramType.isAssignableFrom(objectType)){
+                LOG.info("Yes, assignment is possible.");
+                return true;
+            }
+            if(paramType.isArray() && List.class.isAssignableFrom(objectType)){ // TODO more collection content type checking
+                LOG.info("I think so. If we convert a List to an array.");
+                LOG.info("Array Type: {}, List type: {}", paramType.getComponentType(), ((List)obj).get(0).getClass());
+
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+
+
 }
 

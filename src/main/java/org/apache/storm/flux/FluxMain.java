@@ -4,7 +4,6 @@ package org.apache.storm.flux;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.spout.ISpout;
 import backtype.storm.topology.*;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,11 +86,9 @@ public class FluxMain {
     }
 
 
-
     public static IRichSpout buildSpout(SpoutDef def) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class clazz = Class.forName(def.getClassName());
         IRichSpout spout = null;
-        //TODO Deal with constructor args
         if(def.hasConstructorArgs()){
             LOG.info("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
             Constructor con = findCompatibleConstructor(def.getConstructorArgs(), clazz);
@@ -108,12 +104,26 @@ public class FluxMain {
         return spout;
     }
 
-    public static Map<String, Object> buildBoltMap(List<BoltDef> boltDefs) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public static Map<String, Object> buildBoltMap(List<BoltDef> boltDefs) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Map<String, Object> retval= new HashMap<String, Object>();
-        for(BoltDef bd : boltDefs){
-            Class clazz = Class.forName(bd.getClassName());
-            // TODO deal with constructor args
-            retval.put(bd.getId(), clazz.newInstance());
+        for(BoltDef def : boltDefs){
+
+            Class clazz = Class.forName(def.getClassName());
+            Object bolt = null;
+            LOG.info("Attempting to instantiate bolt: {}", def.getClassName());
+            if(def.hasConstructorArgs()){
+                LOG.info("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+                Constructor con = findCompatibleConstructor(def.getConstructorArgs(), clazz);
+                if(con != null){
+                    LOG.info("Found something seemingly compatible, attempting invocation...");
+                    bolt = con.newInstance(getConstructorArgsWithListCoercian(def.getConstructorArgs(), con));
+                } else {
+                    throw new IllegalArgumentException("Couldn't find a suitable Spout constructor.");
+                }
+            } else {
+                bolt = clazz.newInstance();
+            }
+            retval.put(def.getId(), bolt);
         }
         return retval;
     }
@@ -186,7 +196,6 @@ public class FluxMain {
                 constructorParams[i] = newArrayObj;
 
                 LOG.debug("After conversion: {}", constructorParams[i]);
-                continue;
             }
         }
         return constructorParams;

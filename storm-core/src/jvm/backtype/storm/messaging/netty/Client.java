@@ -510,7 +510,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     public void close() {
         if (!closing) {
             LOG.info("closing Netty Client {}", dstAddressPrefixedName);
-            context.removeClient(this);
+            context.removeClient(dstAddress.getHostName(),dstAddress.getPort());
             context = null;
             // Set closing to true to prevent any further reconnection attempts.
             closing = true;

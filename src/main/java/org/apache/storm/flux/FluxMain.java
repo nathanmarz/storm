@@ -23,7 +23,7 @@ public class FluxMain {
     private static Logger LOG = LoggerFactory.getLogger(FluxMain.class);
     public static void main(String[] args) throws Exception {
 
-        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/tck.yaml");
+        TopologyDef topologyDef = FluxParser.parse(args[0]);
 
         // merge contents of `config` into topology config
         Config conf = buildConfig(topologyDef);

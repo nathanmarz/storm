@@ -25,7 +25,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
-import java.util.Vector;
+import java.util.Set;
+import java.util.HashSet;
 
 import backtype.storm.Config;
 import backtype.storm.messaging.IConnection;
@@ -37,7 +38,7 @@ public class Context implements IContext {
         
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
-    private volatile Vector<IConnection> connections;
+    private Set<IConnection> connections;
     private NioClientSocketChannelFactory clientChannelFactory;
     
     private ScheduledExecutorService clientScheduleService;
@@ -49,7 +50,7 @@ public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     public void prepare(Map storm_conf) {
         this.storm_conf = storm_conf;
-        connections = new Vector<IConnection>();
+        connections = new HashSet<IConnection>();
 
         //each context will have a single client channel factory
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS));
@@ -71,7 +72,7 @@ public class Context implements IContext {
     /**
      * establish a server with a binding port
      */
-    public IConnection bind(String storm_id, int port) {
+    public synchronized IConnection bind(String storm_id, int port) {
         IConnection server = new Server(storm_conf, port);
         connections.add(server);
         return server;
@@ -80,20 +81,24 @@ public class Context implements IContext {
     /**
      * establish a connection to a remote server
      */
-    public IConnection connect(String storm_id, String host, int port) {        
+    public synchronized IConnection connect(String storm_id, String host, int port) {
         IConnection client =  new Client(storm_conf, clientChannelFactory, 
-                clientScheduleService, host, port);
+                clientScheduleService, host, port, this);
         connections.add(client);
         return client;
+    }
+
+    synchronized void removeClient(Client c) {
+        connections.remove(c);
     }
 
     /**
      * terminate this context
      */
-    public void term() {
+    public synchronized void term() {
         clientScheduleService.shutdown();        
         
-        for (IConnection conn : connections) {
+        for (IConnection conn : new HashSet<IConnection>(connections)) {
             conn.close();
         }
         

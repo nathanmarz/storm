@@ -10,6 +10,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * Sanity checks to make sure we can at least invoke the shells used.
+ */
 public class MultilangEnvirontmentTest{
     private static final Logger LOG = LoggerFactory.getLogger(MultilangEnvirontmentTest.class);
 

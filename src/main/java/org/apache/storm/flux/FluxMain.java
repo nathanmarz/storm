@@ -21,7 +21,9 @@ import java.util.Map;
 
 public class FluxMain {
     private static Logger LOG = LoggerFactory.getLogger(FluxMain.class);
+
     public static void main(String[] args) throws Exception {
+        // TODO parse args, and run local or remote
 
         TopologyDef topologyDef = FluxParser.parse(args[0]);
 
@@ -84,7 +86,7 @@ public class FluxMain {
             // if the streamId is defined, use it for the grouping, otherwise assume storm's default stream
             String streamId = (grouping.getStreamId() == null ? Utils.DEFAULT_STREAM_ID : grouping.getStreamId());
 
-            // todo make grouping types an enum
+            // TODO make grouping types an enum
             if(grouping.getType().equals("shuffle")){
                 declarer.shuffleGrouping(stream.getFrom(), streamId);
             } else if(grouping.getType().equals("fields")){

@@ -23,7 +23,7 @@ public class TCKTest {
 
     @Test
     public void testShellComponents() throws Exception {
-        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/shell_components.yaml");
+        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/shell_test.yaml");
 
         // merge contents of `config` into topology config
         Config conf = FluxMain.buildConfig(topologyDef);

@@ -15,13 +15,6 @@ name: "shell-topology"
 #      foo: "bar"
 #      bar: "foo"
 
-#components:
-#  - id: shellSpoutArgs
-#    value: ["node", "randomsentence.js"]
-#
-#  - id: shellBoltArgs
-#    value: ["python", "splitsentence.py"]
-
 # NOTE: We may want to consider some level of spring integration. For example, allowing component references
 # to a spring `ApplicationContext`.
 
@@ -34,7 +27,7 @@ config:
 
 # spout definitions
 spouts:
-  - id: "spout-1"
+  - id: "sentence-spout"
     className: "org.apache.storm.flux.spouts.GenericShellSpout"
     constructorArgs:
       # command line
@@ -46,15 +39,23 @@ spouts:
 
 # bolt definitions
 bolts:
-  - id: "bolt-1"
+  - id: "splitsentence"
     className: "org.apache.storm.flux.bolts.GenericShellBolt"
     constructorArgs:
+      # command line
       - ["python", "splitsentence.py"]
+      # output fields
+      - ["word"]
     parallelism: 1
     # ...
 
-  - id: "bolt-2"
+  - id: "log"
     className: "org.apache.storm.flux.test.LogInfoBolt"
+    parallelism: 1
+    # ...
+
+  - id: "count"
+    className: "backtype.storm.testing.TestWordCounter"
     parallelism: 1
     # ...
 
@@ -62,19 +63,24 @@ bolts:
 # stream definitions define connections between spouts and bolts.
 # note that such connections can be cyclical
 streams:
-  - name: "spout-1 --> bolt-1" # name isn't used (placeholder for logging, UI, etc.)
-#    id: "connection-1"
-    from: "spout-1"
-    to: "bolt-1"
+  - name: "spout --> split" # name isn't used (placeholder for logging, UI, etc.)
+    from: "sentence-spout"
+    to: "splitsentence"
+    grouping:
+      type: shuffle
+
+  - name: "split --> count"
+    from: "splitsentence"
+    to: "count"
     grouping:
       type: fields
       args: ["word"]
 
-#  - name: "bolt-1 --> bolt2"
-#    from: "bolt-1"
-#    to: "bolt-2"
-#    grouping:
-#      type: shuffle
+  - name: "count --> log"
+    from: "count"
+    to: "log"
+    grouping:
+      type: shuffle
 
 
 

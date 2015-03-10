@@ -11,14 +11,6 @@ import java.io.FileInputStream;
 
 public class FluxParser {
 
-    public static void main(String[] args) throws Exception {
-
-        TopologyDef topology = FluxParser.parse("src/test/resources/configs/tck.yaml");
-
-
-    }
-
-
     public static TopologyDef parse(String inputFile) throws Exception {
         Constructor constructor = new Constructor(TopologyDef.class);
 

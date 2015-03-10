@@ -45,7 +45,18 @@ public class FluxMain {
         return conf;
     }
 
-    static StormTopology buildTopology(TopologyDef topologyDef) throws IllegalAccessException, InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
+    /**
+     * Given a topology definition, return a Storm topology that can be run either locally or remotely.
+     *
+     * @param topologyDef
+     * @return
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     * @throws ClassNotFoundException
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
+     */
+    public static StormTopology buildTopology(TopologyDef topologyDef) throws IllegalAccessException, InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
         TopologyBuilder builder = new TopologyBuilder();
 
         // create spouts
@@ -86,7 +97,7 @@ public class FluxMain {
     }
 
 
-    public static IRichSpout buildSpout(SpoutDef def) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    private static IRichSpout buildSpout(SpoutDef def) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class clazz = Class.forName(def.getClassName());
         IRichSpout spout = null;
         if(def.hasConstructorArgs()){
@@ -104,7 +115,7 @@ public class FluxMain {
         return spout;
     }
 
-    public static Map<String, Object> buildBoltMap(List<BoltDef> boltDefs) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    private static Map<String, Object> buildBoltMap(List<BoltDef> boltDefs) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Map<String, Object> retval= new HashMap<String, Object>();
         for(BoltDef def : boltDefs){
 
@@ -128,7 +139,7 @@ public class FluxMain {
         return retval;
     }
 
-    public static Constructor findCompatibleConstructor(List<Object> args, Class target) throws NoSuchMethodException {
+    private static Constructor findCompatibleConstructor(List<Object> args, Class target) throws NoSuchMethodException {
         Constructor retval = null;
         int eligibleCount= 0;
 

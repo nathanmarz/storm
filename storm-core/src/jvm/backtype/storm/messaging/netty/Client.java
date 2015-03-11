@@ -246,10 +246,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     private synchronized void connect(long delayMs) {
         try {
             if (closing) {
+                LOG.info("not connecting to {} because this client is being closed", dstAddressPrefixedName);
                 return;
             }
 
             if (connectionEstablished(channelRef.get())) {
+                LOG.info("not connecting to {} because the connection is already established", dstAddressPrefixedName);
                 return;
             }
 

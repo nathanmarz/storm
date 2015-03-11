@@ -487,8 +487,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
 
     private synchronized void closeChannelAndReconnect(Channel channel) {
         if (channel != null) {
+            LOG.info("closing channel {} to {}", channel.toString(), dstAddressPrefixedName);
             channel.close();
             if (channelRef.compareAndSet(channel, null)) {
+                LOG.info("triggering reconnect to {}", dstAddressPrefixedName);
                 connect(NO_DELAY_MS);
             }
         }

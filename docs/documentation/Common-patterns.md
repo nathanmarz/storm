@@ -39,7 +39,7 @@ If you want reliability in your data processing, the right way to do this is to 
 If the bolt emits tuples, then you may want to use multi-anchoring to ensure reliability. It all depends on the specific application. See [Guaranteeing message processing](Guaranteeing-message-processing.html) for more details on how reliability works.
 
 ### BasicBolt
-Many bolts follow a similar pattern of reading an input tuple, emitting zero or more tuples based on that input tuple, and then acking that input tuple immediately at the end of the execute method. Bolts that match this pattern are things like functions and filters. This is such a common pattern that Storm exposes an interface called [IBasicBolt](/apidocs/backtype/storm/topology/IBasicBolt.html) that automates this pattern for you. See [Guaranteeing message processing](Guaranteeing-message-processing.html) for more information.
+Many bolts follow a similar pattern of reading an input tuple, emitting zero or more tuples based on that input tuple, and then acking that input tuple immediately at the end of the execute method. Bolts that match this pattern are things like functions and filters. This is such a common pattern that Storm exposes an interface called [IBasicBolt](/javadoc/apidocs/backtype/storm/topology/IBasicBolt.html) that automates this pattern for you. See [Guaranteeing message processing](Guaranteeing-message-processing.html) for more information.
 
 ### In-memory caching + fields grouping combo
 
@@ -87,11 +87,11 @@ The topology needs an extra layer of processing to aggregate the partial counts 
 
 ### TimeCacheMap for efficiently keeping a cache of things that have been recently updated
 
-You sometimes want to keep a cache in memory of items that have been recently "active" and have items that have been inactive for some time be automatically expires. [TimeCacheMap](/apidocs/backtype/storm/utils/TimeCacheMap.html) is an efficient data structure for doing this and provides hooks so you can insert callbacks whenever an item is expired.
+You sometimes want to keep a cache in memory of items that have been recently "active" and have items that have been inactive for some time be automatically expires. [TimeCacheMap](/javadoc/apidocs/backtype/storm/utils/TimeCacheMap.html) is an efficient data structure for doing this and provides hooks so you can insert callbacks whenever an item is expired.
 
 ### CoordinatedBolt and KeyedFairBolt for Distributed RPC
 
-When building distributed RPC applications on top of Storm, there are two common patterns that are usually needed. These are encapsulated by [CoordinatedBolt](/apidocs/backtype/storm/task/CoordinatedBolt.html) and [KeyedFairBolt](/apidocs/backtype/storm/task/KeyedFairBolt.html) which are part of the "standard library" that ships with the Storm codebase.
+When building distributed RPC applications on top of Storm, there are two common patterns that are usually needed. These are encapsulated by [CoordinatedBolt](/javadoc/apidocs/backtype/storm/task/CoordinatedBolt.html) and [KeyedFairBolt](/javadoc/apidocs/backtype/storm/task/KeyedFairBolt.html) which are part of the "standard library" that ships with the Storm codebase.
 
 `CoordinatedBolt` wraps the bolt containing your logic and figures out when your bolt has received all the tuples for any given request. It makes heavy use of direct streams to do this.
 

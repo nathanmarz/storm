@@ -734,6 +734,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * How many seconds to sleep for before shutting down threads on worker
+     */
+    public static final String SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS = "supervisor.worker.shutdown.sleep.secs";
+    public static final Object SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
      * How long a worker can go without heartbeating during the initial launch before
      * the supervisor tries to restart the worker process. This value override
      * supervisor.worker.timeout.secs during launch because there is additional

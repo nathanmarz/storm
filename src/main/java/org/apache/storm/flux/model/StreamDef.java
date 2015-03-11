@@ -1,8 +1,14 @@
 package org.apache.storm.flux.model;
 
+/**
+ * Represents a stream of tuples from one Storm component (Spout or Bolt) to another (an edge in the topology DAG).
+ *
+ * Required fields are `from` and `to`, which define the source and destination, and the stream `grouping`.
+ *
+ */
 public class StreamDef {
 
-    private String name;
+    private String name; // not used, placeholder for GUI, etc.
     private String from;
     private String to;
     private GroupingDef grouping;

@@ -7,8 +7,19 @@ import backtype.storm.tuple.Fields;
 
 import java.util.Map;
 
+/**
+ * A generic `ShellBolt` implementation that allows you specify output fields
+ * without having to subclass `ShellBolt` to do so.
+ *
+ */
 public class GenericShellBolt extends ShellBolt implements IRichBolt{
     private String[] outputFields;
+
+    /**
+     * Create a ShellBolt with command line arguments and output fields
+     * @param command Command line arguments for the bolt
+     * @param outputFields Names of fields the bolt will emit (if any).
+     */
 
     public GenericShellBolt(String[] command, String[] outputFields){
         super(command);

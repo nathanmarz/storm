@@ -7,6 +7,10 @@ import backtype.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Simple bolt that does nothing other than LOG.info() every tuple recieveed.
+ *
+ */
 public class LogInfoBolt extends BaseBasicBolt {
     private static final Logger LOG = LoggerFactory.getLogger(LogInfoBolt.class);
 

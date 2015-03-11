@@ -3,6 +3,17 @@ package org.apache.storm.flux.model;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Bean represenation of a topology.
+ *
+ * It consists of the following:
+ *   1. The topology name
+ *   2. A `java.util.Map` representing the `backtype.storm.config` for the topology
+ *   3. A list of spout definitions
+ *   4. A list of bolt definitions
+ *   5. A list of stream definitions that define the flow between spouts and bolts.
+ *
+ */
 public class TopologyDef {
 
     private String name;

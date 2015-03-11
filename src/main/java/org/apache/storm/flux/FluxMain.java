@@ -22,6 +22,11 @@ import java.util.Map;
 public class FluxMain {
     private static Logger LOG = LoggerFactory.getLogger(FluxMain.class);
 
+    /**
+     *
+     * @param args
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
         // TODO parse args, and run local or remote
 
@@ -40,6 +45,12 @@ public class FluxMain {
 
     }
 
+    /**
+     * Given a topology definition, return a populated `backtype.storm.Config` instance.
+     *
+     * @param topologyDef
+     * @return
+     */
     public static Config buildConfig(TopologyDef topologyDef){
         // merge contents of `config` into topology config
         Config conf = new Config();

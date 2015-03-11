@@ -52,7 +52,6 @@ public class Utils {
     public static final String DEFAULT_STREAM_ID = "default";
 
     private static SerializationDelegate serializationDelegate;
-    private static final DefaultSerializationDelegate javaSerializationDelegate = new DefaultSerializationDelegate();
 
     static {
         Map conf = readStormConfig();
@@ -77,11 +76,29 @@ public class Utils {
     }
 
     public static byte[] javaSerialize(Object obj) {
-        return javaSerializationDelegate.serialize(obj);
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <T> T javaDeserialize(byte[] serialized, Class<T> clazz) {
-        return javaSerializationDelegate.deserialize(serialized, clazz);
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            Object ret = ois.readObject();
+            ois.close();
+            return (T)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {

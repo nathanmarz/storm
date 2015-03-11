@@ -20,6 +20,7 @@ package backtype.storm.serialization;
 import java.io.*;
 import java.util.Map;
 
+@Deprecated
 public class DefaultSerializationDelegate implements SerializationDelegate {
 
     @Override

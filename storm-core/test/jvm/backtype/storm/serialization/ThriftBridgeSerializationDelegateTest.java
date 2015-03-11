@@ -32,27 +32,8 @@ public class ThriftBridgeSerializationDelegateTest {
 
     @Before
     public void setUp() throws Exception {
-        testDelegate = new ThriftSerializationDelegateBridge();
+        testDelegate = new ThriftSerializationDelegate();
         testDelegate.prepare(null);
-    }
-
-    @Test
-    public void testNonThriftInstance() throws Exception {
-        TestPojo pojo = new TestPojo();
-        pojo.name = "foo";
-        pojo.age = 100;
-
-        byte[] serialized = new DefaultSerializationDelegate().serialize(pojo);
-
-        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized, TestPojo.class);
-
-        assertEquals(pojo2.name, pojo.name);
-        assertEquals(pojo2.age, pojo.age);
-
-        serialized = testDelegate.serialize(pojo);
-        pojo2 = (TestPojo) new DefaultSerializationDelegate().deserialize(serialized, Serializable.class);
-        assertEquals(pojo2.name, pojo.name);
-        assertEquals(pojo2.age, pojo.age);
     }
 
     @Test

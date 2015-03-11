@@ -348,7 +348,7 @@ public class TopologyBuilder {
 
         @Override
         public BoltDeclarer customGrouping(String componentId, String streamId, CustomStreamGrouping grouping) {
-            return grouping(componentId, streamId, Grouping.custom_serialized(Utils.serialize(grouping)));
+            return grouping(componentId, streamId, Grouping.custom_serialized(Utils.javaSerialize(grouping)));
         }
 
         @Override

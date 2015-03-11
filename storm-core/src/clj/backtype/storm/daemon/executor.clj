@@ -96,7 +96,7 @@
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :custom-serialized
-        (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping) Serializable)]
+        (let [grouping (Utils/javaDeserialize (.get_custom_serialized thrift-grouping) Serializable)]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :direct
         :direct

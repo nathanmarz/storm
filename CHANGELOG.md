@@ -69,6 +69,7 @@
  * STORM-557: High Quality Images for presentations
  * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
  * STORM-469: Storm UI Last Error Detail Insufficient for debugging
+ * STORM-656: Document "external" modules and "Committer Sponsors"
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

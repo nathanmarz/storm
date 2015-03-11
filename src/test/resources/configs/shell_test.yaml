@@ -11,6 +11,8 @@ name: "shell-topology"
 #components:
 #  - id: "myComponent"
 #    className: "com.foo.bar.MyComponent"
+#    constructorArgs:
+#      - ...
 #    properties:
 #      foo: "bar"
 #      bar: "foo"
@@ -29,6 +31,7 @@ config:
 spouts:
   - id: "sentence-spout"
     className: "org.apache.storm.flux.spouts.GenericShellSpout"
+    # shell spout constructor takes 2 arguments: String[], String[]
     constructorArgs:
       # command line
       - ["node", "randomsentence.js"]
@@ -62,25 +65,27 @@ bolts:
 #stream definitions
 # stream definitions define connections between spouts and bolts.
 # note that such connections can be cyclical
+# custom stream groupings are also supported
+
 streams:
   - name: "spout --> split" # name isn't used (placeholder for logging, UI, etc.)
     from: "sentence-spout"
     to: "splitsentence"
     grouping:
-      type: shuffle
+      type: SHUFFLE
 
   - name: "split --> count"
     from: "splitsentence"
     to: "count"
     grouping:
-      type: fields
+      type: FIELDS
       args: ["word"]
 
   - name: "count --> log"
     from: "count"
     to: "log"
     grouping:
-      type: shuffle
+      type: SHUFFLE
 
 
 

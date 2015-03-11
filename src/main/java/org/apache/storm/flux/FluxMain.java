@@ -87,9 +87,9 @@ public class FluxMain {
             String streamId = (grouping.getStreamId() == null ? Utils.DEFAULT_STREAM_ID : grouping.getStreamId());
 
             // TODO make grouping types an enum
-            if(grouping.getType().equals("shuffle")){
+            if(grouping.getType() == GroupingDef.Type.SHUFFLE){
                 declarer.shuffleGrouping(stream.getFrom(), streamId);
-            } else if(grouping.getType().equals("fields")){
+            } else if(grouping.getType() == GroupingDef.Type.FIELDS){
                 declarer.fieldsGrouping(stream.getFrom(), streamId, new Fields(grouping.getArgs()));
             } else {
                 throw new UnsupportedOperationException("unsupported grouping type: " + grouping.getStreamId());

@@ -57,14 +57,14 @@ streams:
     from: "spout-1"
     to: "bolt-1"
     grouping:
-      type: fields
+      type: FIELDS
       args: ["word"]
 
   - name: "bolt-1 --> bolt2"
     from: "bolt-1"
     to: "bolt-2"
     grouping:
-      type: shuffle
+      type: SHUFFLE
 
 
 

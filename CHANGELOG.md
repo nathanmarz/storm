@@ -74,6 +74,7 @@
  * STORM-663: Create javadocs for BoltDeclarer
  * STORM-690: Return Jedis into JedisPool with marking 'broken' if connection is broken
  * STORM-669: Replace links with ones to latest api document
+ * STORM-670: restore java 1.6 compatibility (storm-kafka)
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

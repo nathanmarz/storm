@@ -86,6 +86,9 @@ public class RedisLookupBolt extends AbstractRedisBolt {
                 case HYPER_LOG_LOG:
                     lookupValue = jedisCommand.pfcount(key);
                     break;
+
+                default:
+                    throw new IllegalArgumentException("Cannot process such data type: " + dataType);
             }
 
             List<Values> values = lookupMapper.toTuple(input, lookupValue);

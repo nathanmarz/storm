@@ -80,6 +80,9 @@ public class RedisStoreBolt extends AbstractRedisBolt {
                 case HYPER_LOG_LOG:
                     jedisCommand.pfadd(key, value);
                     break;
+
+                default:
+                    throw new IllegalArgumentException("Cannot process such data type: " + dataType);
             }
 
             collector.ack(input);

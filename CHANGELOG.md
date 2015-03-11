@@ -72,6 +72,7 @@
  * STORM-656: Document "external" modules and "Committer Sponsors"
  * STORM-657: make the shutdown-worker sleep time before kill -9 configurable
  * STORM-663: Create javadocs for BoltDeclarer
+ * STORM-690: Return Jedis into JedisPool with marking 'broken' if connection is broken
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

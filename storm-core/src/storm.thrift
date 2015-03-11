@@ -288,11 +288,12 @@ struct StormBase {
     8: optional TopologyStatus prev_status;//currently only used during rebalance action.
 }
 
-struct ZKWorkerHeartbeat {
+struct ClusterWorkerHeartbeat {
     1: required string storm_id;
     2: required map<ExecutorInfo,ExecutorStats> executor_stats;
     3: required i32 time_secs;
 }
+
 enum NumErrorsChoice {
   ALL,
   NONE,

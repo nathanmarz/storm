@@ -16,7 +16,7 @@
 
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat ACL Id]
-           [backtype.storm.generated SupervisorInfo Assignment StormBase ZKWorkerHeartbeat ErrorInfo Credentials]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials]
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
@@ -339,7 +339,7 @@
         (let [worker-hb (get-data cluster-state (workerbeat-path storm-id node port) false)]
           (if worker-hb
             (-> worker-hb
-              (maybe-deserialize ZKWorkerHeartbeat)
+              (maybe-deserialize ClusterWorkerHeartbeat)
               clojurify-zk-worker-hb))))
 
 

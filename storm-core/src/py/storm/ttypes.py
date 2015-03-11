@@ -5249,7 +5249,7 @@ class StormBase:
   def __ne__(self, other):
     return not (self == other)
 
-class ZKWorkerHeartbeat:
+class ClusterWorkerHeartbeat:
   """
   Attributes:
    - storm_id
@@ -5310,7 +5310,7 @@ class ZKWorkerHeartbeat:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('ZKWorkerHeartbeat')
+    oprot.writeStructBegin('ClusterWorkerHeartbeat')
     if self.storm_id is not None:
       oprot.writeFieldBegin('storm_id', TType.STRING, 1)
       oprot.writeString(self.storm_id.encode('utf-8'))

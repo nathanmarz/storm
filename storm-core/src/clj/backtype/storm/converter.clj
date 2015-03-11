@@ -1,6 +1,6 @@
 (ns backtype.storm.converter
   (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
-            StormBase TopologyStatus ZKWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
+            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
   (:use [backtype.storm util stats log])
   (:require [backtype.storm.daemon [common :as common]]))
 
@@ -158,7 +158,7 @@
         stats))
     {}))
 
-(defn clojurify-zk-worker-hb [^ZKWorkerHeartbeat worker-hb]
+(defn clojurify-zk-worker-hb [^ClusterWorkerHeartbeat worker-hb]
   (if worker-hb
     {:storm-id (.get_storm_id worker-hb)
      :executor-stats (clojurify-stats (into {} (.get_executor_stats worker-hb)))
@@ -169,7 +169,7 @@
 
 (defn thriftify-zk-worker-hb [worker-hb]
   (if (not-empty (filter second (:executor-stats worker-hb)))
-    (doto (ZKWorkerHeartbeat.)
+    (doto (ClusterWorkerHeartbeat.)
       (.set_storm_id (:storm-id worker-hb))
       (.set_executor_stats (thriftify-stats (filter second (:executor-stats worker-hb))))
       (.set_time_secs (:time-secs worker-hb)))))

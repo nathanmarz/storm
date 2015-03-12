@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,10 @@ public class FluxMain {
 
         // merge contents of `config` into topology config
         Config conf = buildConfig(topologyDef);
-        StormTopology topology = buildTopology(topologyDef);
+
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+
+        StormTopology topology = buildTopology(context);
 
 
         LocalCluster cluster = new LocalCluster();
@@ -61,7 +65,7 @@ public class FluxMain {
     /**
      * Given a topology definition, return a Storm topology that can be run either locally or remotely.
      *
-     * @param topologyDef
+     * @param context
      * @return
      * @throws IllegalAccessException
      * @throws InstantiationException
@@ -69,20 +73,39 @@ public class FluxMain {
      * @throws NoSuchMethodException
      * @throws InvocationTargetException
      */
-    public static StormTopology buildTopology(TopologyDef topologyDef) throws IllegalAccessException, InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
+    public static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException, InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
         TopologyBuilder builder = new TopologyBuilder();
 
+        TopologyDef topologyDef = context.getTopologyDef();
+
+        // build components that may be referenced by spouts, bolts, etc.
+        // the map will be a String --> Object where the object is a fully
+        // constructed class instance
+        buildComponents(context);
+
         // create spouts
-        for(SpoutDef sd : topologyDef.getSpouts()){
-            builder.setSpout(sd.getId(), buildSpout(sd), sd.getParallelism());
-        }
+        buildSpouts(context, builder);
 
         // we need to be able to lookup bolts by id, then switch based
         // on whether they are IBasicBolt or IRichBolt instances
-        Map<String, Object> boltMap = buildBoltMap(topologyDef.getBolts());
+        buildBolts(context);
 
+        // process stream definitions
+        buildStreamDefinitions(context, builder);
+
+        return builder.createTopology();
+    }
+
+    /**
+     *
+     * @param context
+     * @param builder
+     */
+    private static void buildStreamDefinitions(ExecutionContext context, TopologyBuilder builder){
+        TopologyDef topologyDef = context.getTopologyDef();
+        // process stream definitions
         for(StreamDef stream : topologyDef.getStreams()){
-            Object boltObj = boltMap.get(stream.getTo());
+            Object boltObj = context.getBolt(stream.getTo());
             BoltDeclarer declarer = null;
             if(boltObj instanceof  IRichBolt) {
                 declarer = builder.setBolt(stream.getTo(), (IRichBolt) boltObj, topologyDef.parallelismForBolt(stream.getTo()));
@@ -125,9 +148,78 @@ public class FluxMain {
                     throw new UnsupportedOperationException("unsupported grouping type: " + grouping);
             }
         }
-        return builder.createTopology();
     }
 
+
+    /**
+     * Given a topology definition, resolve and instantiate all components found and return a map
+     * keyed by the component id.
+     *
+     * @param context
+     * @return
+     * @throws ClassNotFoundException
+     * @throws NoSuchMethodException
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     * @throws InstantiationException
+     */
+    private static void buildComponents(ExecutionContext context) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        List<BeanDef> cDefs = context.getTopologyDef().getComponents();
+        if(cDefs != null) {
+            for (BeanDef bean : cDefs) {
+                Class clazz = Class.forName(bean.getClassName());
+                Object obj = null;
+                if (bean.hasConstructorArgs()) {
+                    LOG.info("Found constructor arguments in bean definition: " + bean.getConstructorArgs().getClass().getName());
+                    LOG.info("Checking arguments for references.");
+                    List<Object> cArgs;
+                    // resolve references
+                    if(bean.hasReferences()){
+                        cArgs = new ArrayList<Object>();
+                        for(Object arg : bean.getConstructorArgs()){
+                            if(arg instanceof BeanReference){
+                                cArgs.add(context.getComponent(((BeanReference)arg).getId()));
+                            } else {
+                                cArgs.add(arg);
+                            }
+                        }
+                    } else {
+                        cArgs = bean.getConstructorArgs();
+                    }
+
+                    Constructor con = findCompatibleConstructor(cArgs, clazz);
+                    if (con != null) {
+                        LOG.info("Found something seemingly compatible, attempting invocation...");
+                        obj = con.newInstance(getConstructorArgsWithListCoercian(bean.getConstructorArgs(), con));
+                    } else {
+                        throw new IllegalArgumentException("Couldn't find a suitable constructor.");
+                    }
+                } else {
+                    obj = clazz.newInstance();
+                }
+                context.addComponent(bean.getId(), obj);
+            }
+        }
+    }
+
+
+    /**
+     *
+     * @param context
+     * @param builder
+     * @throws ClassNotFoundException
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    private static void buildSpouts(ExecutionContext context, TopologyBuilder builder) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        for(SpoutDef sd : context.getTopologyDef().getSpouts()){
+            IRichSpout spout = buildSpout(sd);
+            builder.setSpout(sd.getId(), spout, sd.getParallelism());
+            context.addSpout(sd.getId(), spout);
+        }
+    }
 
     /**
      * Given a spout definition, return a Storm spout implementation by attempting to find a matching constructor
@@ -162,7 +254,7 @@ public class FluxMain {
     /**
      * Given a list of bolt definitions, build a map of Storm bolts with the bolt definition id as the key.
      * Attempt to coerce the given constructor arguments to a matching bolt constructor as much as possible.
-     * @param boltDefs
+     * @param context
      * @return
      * @throws ClassNotFoundException
      * @throws IllegalAccessException
@@ -170,9 +262,9 @@ public class FluxMain {
      * @throws NoSuchMethodException
      * @throws InvocationTargetException
      */
-    private static Map<String, Object> buildBoltMap(List<BoltDef> boltDefs) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-        Map<String, Object> retval= new HashMap<String, Object>();
-        for(BoltDef def : boltDefs){
+    private static void buildBolts(ExecutionContext context) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+//        Map<String, Object> retval= new HashMap<String, Object>();
+        for(BoltDef def : context.getTopologyDef().getBolts()){
 
             Class clazz = Class.forName(def.getClassName());
             Object bolt = null;
@@ -184,14 +276,13 @@ public class FluxMain {
                     LOG.info("Found something seemingly compatible, attempting invocation...");
                     bolt = con.newInstance(getConstructorArgsWithListCoercian(def.getConstructorArgs(), con));
                 } else {
-                    throw new IllegalArgumentException("Couldn't find a suitable Spout constructor.");
+                    throw new IllegalArgumentException("Couldn't find a suitable Bolt constructor.");
                 }
             } else {
                 bolt = clazz.newInstance();
             }
-            retval.put(def.getId(), bolt);
+            context.addBolt(def.getId(), bolt);
         }
-        return retval;
     }
 
     /**
@@ -287,6 +378,7 @@ public class FluxMain {
     /**
      * Determine if the given constructor can be invoked with the given arguments List. Consider if
      * list coercian can make it possible.
+     *
      * @param args
      * @param constructor
      * @return
@@ -320,11 +412,7 @@ public class FluxMain {
 
             return false;
         }
-
         return false;
     }
-
-
-
 }
 

@@ -1,5 +1,6 @@
 package org.apache.storm.flux.parser;
 
+import org.apache.storm.flux.model.BeanReference;
 import org.apache.storm.flux.model.BoltDef;
 import org.apache.storm.flux.model.SpoutDef;
 import org.apache.storm.flux.model.TopologyDef;
@@ -18,7 +19,9 @@ public class FluxParser {
         topologyDescription.putListPropertyType("spouts", SpoutDef.class);
         topologyDescription.putListPropertyType("bolts", BoltDef.class);
 
+        TypeDescription beanRefDescription = new TypeDescription(BeanReference.class, "ref");
 
+        constructor.addTypeDescription(beanRefDescription);
         constructor.addTypeDescription(topologyDescription);
         Yaml  yaml = new Yaml(constructor);
 

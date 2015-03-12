@@ -1,5 +1,6 @@
 package org.apache.storm.flux.model;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,9 @@ import java.util.Map;
 public class TopologyDef {
 
     private String name;
+
+    private List<BeanDef> components;
+    private Map<String, BeanDef> componentMap;
 
     private Map<String, Object> config;
 
@@ -68,6 +72,18 @@ public class TopologyDef {
         this.config = config;
     }
 
+    public List<BeanDef> getComponents() {
+        return components;
+    }
+
+    public void setComponents(List<BeanDef> components) {
+        this.components = components;
+        this.componentMap = new HashMap<String, BeanDef>();
+        for(BeanDef component : this.components){
+            this.componentMap.put(component.getId(), component);
+        }
+    }
+
     // utility methods
     public int parallelismForBolt(String boltId){
         for(BoltDef bd : this.bolts){
@@ -76,5 +92,9 @@ public class TopologyDef {
             }
         }
         return -1;
+    }
+
+    public BeanDef getComponent(String id){
+        return this.componentMap.get(id);
     }
 }

@@ -12,6 +12,8 @@ import java.io.FileInputStream;
 
 public class FluxParser {
 
+    private FluxParser(){}
+
     public static TopologyDef parse(String inputFile) throws Exception {
         Constructor constructor = new Constructor(TopologyDef.class);
 
@@ -19,9 +21,6 @@ public class FluxParser {
         topologyDescription.putListPropertyType("spouts", SpoutDef.class);
         topologyDescription.putListPropertyType("bolts", BoltDef.class);
 
-        TypeDescription beanRefDescription = new TypeDescription(BeanReference.class, "ref");
-
-        constructor.addTypeDescription(beanRefDescription);
         constructor.addTypeDescription(topologyDescription);
         Yaml  yaml = new Yaml(constructor);
 

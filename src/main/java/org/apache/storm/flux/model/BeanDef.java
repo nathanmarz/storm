@@ -39,7 +39,6 @@ public class BeanDef {
             if(obj instanceof LinkedHashMap){
                 Map map = (Map)obj;
                 if(map.containsKey("ref") && map.size() == 1){
-                    System.out.println("found bean reference");
                     newVal.add(new BeanReference((String)map.get("ref")));
                     this.hasReferences = true;
                 }

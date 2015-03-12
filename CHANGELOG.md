@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-446: Allow superusers to impersonate other users in secure mode.
  * STORM-659: return grep matches each on its own line.
  * STORM-693: KafkaBolt exception handling improvement.
  * STORM-675: Allow users to have storm-env.sh under config dir to set custom JAVA_HOME and other env variables.

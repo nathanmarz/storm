@@ -361,5 +361,28 @@ The Logviewer daemon now is also responsible for cleaning up old log files for d
 | logviewer.cleanup.interval.secs | Interval of time in seconds that the logviewer cleans up worker logs. |
 
 
+### Allowing specific users or groups to access storm
+
+ With SimpleACLAuthorizer any user with valid kerberos ticket can deploy a topology or do further operations such as activate, deactivate , access cluster information.
+ One can restrict this access by specifying nimbus.users or nimbus.groups. If nimbus.users configured only the users in the list can deploy a topology or access cluster.
+ Similarly nimbus.groups restrict storm cluster access to users who belong to those groups.
+ 
+ To configure specify the following config in storm.yaml
+
+```yaml
+nimbus.users: 
+   - "testuser"
+```
+
+or 
+
+```yaml
+nimbus.groups: 
+   - "storm"
+```
+ 
+
 ### DRPC
 Hopefully more on this soon
+
+

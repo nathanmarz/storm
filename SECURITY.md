@@ -31,6 +31,7 @@ IPsec to encrypt all traffic being sent between the hosts in the cluster.
 | 8000 | `logviewer.port` | Client Web Browsers | Logviewer |
 | 3772 | `drpc.port` | External DRPC Clients | DRPC |
 | 3773 | `drpc.invocations.port` | Worker Processes | DRPC |
+| 3774 | `drpc.http.port` | External HTTP DRPC Clients | DRPC |
 | 670{0,1,2,3} | `supervisor.slots.ports` | Worker Processes | Worker Processes |
 
 ### UI/Logviewer
@@ -309,7 +310,7 @@ multitenant.scheduler.user.pools:
     "derek": 10
 ```
 
-### Run as User
+### Run worker processes as user who submitted the topology
 By default storm runs workers as the user that is running the supervisor.  This is not ideal for security.  To make storm run the topologies as the user that launched them set.
 
 ```yaml
@@ -328,6 +329,39 @@ min.user.id=$(min_user_id)
 ```
 where worker_launcher_group is the same group the supervisor is a part of, and min.user.id is set to the first real user id on the system.
 This config file also needs to be owned by root and not have world or group write permissions.
+
+### Impersonating a user
+A storm client may submit requests on behalf of another user. For example, if a `userX` submits an oozie workflow and as part of workflow execution if user `oozie` wants to submit a topology on behalf of `userX`
+it can do so by leveraging the impersonation feature.In order to submit topology as some other user , you can use `StormSubmitter.submitTopologyAs` API. Alternatively you can use `NimbusClient.getConfiguredClientAs` 
+to get a nimbus client as some other user and perform any nimbus action(i.e. kill/rebalance/activate/deactivate) using this client. 
+
+To ensure only authorized users can perform impersonation you should start nimbus with `nimbus.impersonation.authorizer` set to `backtype.storm.security.auth.authorizer.ImpersonationAuthorizer`. 
+The `ImpersonationAuthorizer` uses `nimbus.impersonation.acl` as the acl to authorize users. Following is a sample nimbus config for supporting impersonation:
+
+```yaml
+nimbus.impersonation.authorizer: backtype.storm.security.auth.authorizer.ImpersonationAuthorizer
+nimbus.impersonation.acl:
+    impersonating_user1:
+        hosts:
+            [comma separated list of hosts from which impersonating_user1 is allowed to impersonate other users]
+        groups:
+            [comma separated list of groups whose users impersonating_user1 is allowed to impersonate]
+    impersonating_user2:
+        hosts:
+            [comma separated list of hosts from which impersonating_user2 is allowed to impersonate other users]
+        groups:
+            [comma separated list of groups whose users impersonating_user2 is allowed to impersonate]
+```
+
+To support the oozie use case following config can be supplied:
+```yaml
+nimbus.impersonation.acl:
+    oozie:
+        hosts:
+            [oozie-host1, oozie-host2, 127.0.0.1]
+        groups:
+            [some-group-that-userX-is-part-of]
+```
 
 ### Automatic Credentials Push and Renewal
 Individual topologies have the ability to push credentials (tickets and tokens) to workers so that they can access secure services.  Exposing this to all of the users can be a pain for them.

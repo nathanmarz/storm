@@ -1,4 +1,8 @@
 ## 0.10.0
+ * STORM-446: Allow superusers to impersonate other users in secure mode.
+ * STORM-659: return grep matches each on its own line.
+ * STORM-693: KafkaBolt exception handling improvement.
+ * STORM-675: Allow users to have storm-env.sh under config dir to set custom JAVA_HOME and other env variables.
  * STORM-539: Storm Hive Connector.
  * STORM-616: Storm JDBC Connector.
  * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
@@ -63,6 +67,16 @@
  * STORM-685: wrong output in log when committed offset is too far behind latest offset
  * STORM-688: update Util to compile under JDK8
  * STORM-687: Storm UI does not display up to date information despite refreshes in IE
+ * STORM-557: High Quality Images for presentations
+ * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
+ * STORM-469: Storm UI Last Error Detail Insufficient for debugging
+ * STORM-656: Document "external" modules and "Committer Sponsors"
+ * STORM-657: make the shutdown-worker sleep time before kill -9 configurable
+ * STORM-663: Create javadocs for BoltDeclarer
+ * STORM-690: Return Jedis into JedisPool with marking 'broken' if connection is broken
+ * STORM-669: Replace links with ones to latest api document
+ * STORM-670: restore java 1.6 compatibility (storm-kafka)
+ * STORM-696: Single Namespace Test Launching
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

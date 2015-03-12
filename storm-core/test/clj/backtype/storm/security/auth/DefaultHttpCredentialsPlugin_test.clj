@@ -30,7 +30,21 @@
             req (Mockito/mock HttpServletRequest)]
         (. (Mockito/when (. req getUserPrincipal))
            thenReturn princ)
-        (is (.equals exp-name (.getUserName handler req)))))))
+        (is (.equals exp-name (.getUserName handler req)))))
+
+    (testing "returns doAsUser from requests principal when Header has doAsUser param set"
+      (let [exp-name "Alice"
+            do-as-user-name "Bob"
+            princ (SingleUserPrincipal. exp-name)
+            req (Mockito/mock HttpServletRequest)
+            _ (. (Mockito/when (. req getUserPrincipal))
+              thenReturn princ)
+            _ (. (Mockito/when (. req getHeader "doAsUser"))
+              thenReturn do-as-user-name)
+            context (.populateContext handler (ReqContext/context) req)]
+        (is (= true (.isImpersonating context)))
+        (is (.equals exp-name (.getName (.realPrincipal context))))
+        (is (.equals do-as-user-name (.getName (.principal context))))))))
 
 (deftest test-populate-req-context-on-null-user
   (let [req (Mockito/mock HttpServletRequest)

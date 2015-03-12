@@ -66,13 +66,15 @@
     (if-not (.is_set_parallelism_hint component-common) 1 phint)))
 
 (defn nimbus-client-and-conn
-  [host port]
-  (log-message "Connecting to Nimbus at " host ":" port)
+  ([host port]
+    (nimbus-client-and-conn host port nil))
+  ([host port as-user]
+  (log-message "Connecting to Nimbus at " host ":" port " as user: " as-user)
   (let [conf (read-storm-config)
-        nimbusClient (NimbusClient. conf host port nil)
+        nimbusClient (NimbusClient. conf host port nil as-user)
         client (.getClient nimbusClient)
         transport (.transport nimbusClient)]
-        [client transport] ))
+        [client transport] )))
 
 (defmacro with-nimbus-connection
   [[client-sym host port] & body]
@@ -80,6 +82,13 @@
     (try
       ~@body
     (finally (.close conn#)))))
+
+(defmacro with-nimbus-connection-as-user
+  [[client-sym host port as-user] & body]
+  `(let [[^Nimbus$Client ~client-sym ^TTransport conn#] (nimbus-client-and-conn ~host ~port ~as-user)]
+     (try
+       ~@body
+       (finally (.close conn#)))))
 
 (defmacro with-configured-nimbus-connection
   [client-sym & body]

@@ -12,9 +12,7 @@ import org.apache.storm.flux.parser.FluxParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -176,7 +174,7 @@ public class FluxMain {
                     Constructor con = findCompatibleConstructor(cArgs, clazz);
                     if (con != null) {
                         LOG.info("Found something seemingly compatible, attempting invocation...");
-                        obj = con.newInstance(getConstructorArgsWithListCoercian(bean.getConstructorArgs(), con));
+                        obj = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
                     } else {
                         throw new IllegalArgumentException("Couldn't find a suitable constructor.");
                     }
@@ -184,6 +182,7 @@ public class FluxMain {
                     obj = clazz.newInstance();
                 }
                 context.addComponent(bean.getId(), obj);
+                applyProperties(bean, obj, context);
             }
         }
     }
@@ -207,6 +206,61 @@ public class FluxMain {
         return cArgs;
 }
 
+
+    public static void applyProperties(BeanDef bean, Object instance, ExecutionContext context) throws IllegalAccessException, InvocationTargetException {
+        List<PropertyDef> props = bean.getProperties();
+        Class clazz = instance.getClass();
+        if(props != null){
+            for(PropertyDef prop : props){
+                Object value = prop.isReference() ? context.getComponent(prop.getRef()) : prop.getValue();
+                Method setter = findSetter(clazz, prop.getName(), value);
+                if(setter != null){
+                    LOG.debug("found setter, attempting to invoke");
+                    // invoke setter
+                    setter.invoke(instance, new Object[]{value});
+                } else {
+                    // look for a public instance variable
+                    LOG.debug("no setter found. Looking for a public instance variable...");
+                    Field field = findPublicField(clazz, prop.getName(), value);
+                    if(field != null) {
+                        field.set(instance, value);
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+
+    public static Field findPublicField(Class clazz, String property, Object arg){
+        Field field = null;
+        try{
+            field = clazz.getField(property);
+        } catch (NoSuchFieldException e){
+            LOG.warn("Could not find setter or public variable for property: " + property, e);
+        }
+        return field;
+    }
+
+    public static Method findSetter(Class clazz, String property, Object arg){
+        String setterName = toSetterName(property);
+
+        Method retval = null;
+        Method[] methods = clazz.getMethods();
+        for(Method method : methods){
+            if(setterName.equals(method.getName())) {
+                LOG.info("Found setter method: " + method.getName());
+                retval = method;
+            }
+        }
+        return retval;
+    }
+
+    public static String toSetterName(String name){
+        return "set" + name.substring(0,1).toUpperCase() + name.substring(1, name.length());
+    }
 
     /**
      *

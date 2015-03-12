@@ -8,31 +8,31 @@ name: "shell-topology"
 # Components
 # Components are analagous to Spring beans. They are meant to be used as constructor,
 # property(setter), and builder arguments.
-#components:
-#  - id: "myComponent"
-#    className: "com.foo.bar.MyComponent"
-#    constructorArgs:
-#      - ...
-#    properties:
-#      foo: "bar"
-#      bar: "foo"
 #
 # for the time being, components must be declared in the order they are referenced
 components:
+  - id: "stringScheme"
+    className: "storm.kafka.StringScheme"
+
+  - id: "stringMultiScheme"
+    className: "backtype.storm.spout.SchemeAsMultiScheme"
+    constructorArgs:
+      - ref: "stringScheme"
+
   - id: "zkHosts"
     className: "storm.kafka.ZkHosts"
     constructorArgs:
       - "localhost:2181"
 
-  - id: "kafkaConfig"
-    className: "storm.kafka.KafkaConfig"
-    constructorArgs:
-      # brokerHosts
-      - ref: "zkHosts"
-      # topic
-      - "myKafkaTopic"
-      # clientId (optional)
-      - "myKafkaClientId"
+#  - id: "kafkaConfig"
+#    className: "storm.kafka.KafkaConfig"
+#    constructorArgs:
+#      # brokerHosts
+#      - ref: "zkHosts"
+#      # topic
+#      - "myKafkaTopic"
+#      # clientId (optional)
+#      - "myKafkaClientId"
 
   - id: "spoutConfig"
     className: "storm.kafka.SpoutConfig"
@@ -45,6 +45,11 @@ components:
       - "/kafkaSpout"
       # id
       - "myId"
+    properties:
+      - name: "forceFromStart"
+        value: true
+      - name: "scheme"
+        ref: "stringMultiScheme"
 
 
 
@@ -121,10 +126,4 @@ streams:
     to: "log"
     grouping:
       type: SHUFFLE
-
-
-
-
-
-
 

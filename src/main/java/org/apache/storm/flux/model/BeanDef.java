@@ -11,6 +11,7 @@ public class BeanDef {
     private String className;
     private List<Object> constructorArgs;
     private boolean hasReferences;
+    private List<PropertyDef> properties;
 
     public String getId() {
         return id;
@@ -55,5 +56,13 @@ public class BeanDef {
 
     public boolean hasReferences(){
         return this.hasReferences;
+    }
+
+    public List<PropertyDef> getProperties() {
+        return properties;
+    }
+
+    public void setProperties(List<PropertyDef> properties) {
+        this.properties = properties;
     }
 }

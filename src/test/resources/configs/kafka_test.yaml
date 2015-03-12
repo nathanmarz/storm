@@ -23,6 +23,7 @@ components:
     className: "storm.kafka.ZkHosts"
     constructorArgs:
       - "localhost:2181"
+
   - id: "kafkaConfig"
     className: "storm.kafka.KafkaConfig"
     constructorArgs:
@@ -32,6 +33,19 @@ components:
       - "myKafkaTopic"
       # clientId (optional)
       - "myKafkaClientId"
+
+  - id: "spoutConfig"
+    className: "storm.kafka.SpoutConfig"
+    constructorArgs:
+      # brokerHosts
+      - ref: "zkHosts"
+      # topic
+      - "myKafkaTopic"
+      # zkRoot
+      - "/kafkaSpout"
+      # id
+      - "myId"
+
 
 
 # NOTE: We may want to consider some level of spring integration. For example, allowing component references
@@ -56,6 +70,10 @@ spouts:
       - ["word"]
     parallelism: 1
     # ...
+  - id: "kafkaSpout"
+    className: "storm.kafka.KafkaSpout"
+    constructorArgs:
+      - ref: "spoutConfig"
 
 # bolt definitions
 bolts:

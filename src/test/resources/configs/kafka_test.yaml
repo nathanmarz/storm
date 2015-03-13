@@ -24,6 +24,7 @@ components:
     constructorArgs:
       - "localhost:2181"
 
+# Alternative kafka config
 #  - id: "kafkaConfig"
 #    className: "storm.kafka.KafkaConfig"
 #    constructorArgs:
@@ -65,17 +66,7 @@ config:
 
 # spout definitions
 spouts:
-  - id: "sentence-spout"
-    className: "org.apache.storm.flux.spouts.GenericShellSpout"
-    # shell spout constructor takes 2 arguments: String[], String[]
-    constructorArgs:
-      # command line
-      - ["node", "randomsentence.js"]
-      # output fields
-      - ["word"]
-    parallelism: 1
-    # ...
-  - id: "kafkaSpout"
+  - id: "kafka-spout"
     className: "storm.kafka.KafkaSpout"
     constructorArgs:
       - ref: "spoutConfig"
@@ -108,8 +99,8 @@ bolts:
 # custom stream groupings are also supported
 
 streams:
-  - name: "spout --> split" # name isn't used (placeholder for logging, UI, etc.)
-    from: "sentence-spout"
+  - name: "kafka --> split" # name isn't used (placeholder for logging, UI, etc.)
+    from: "kafka-spout"
     to: "splitsentence"
     grouping:
       type: SHUFFLE

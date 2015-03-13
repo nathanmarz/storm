@@ -14,39 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class FluxMain {
-    private static Logger LOG = LoggerFactory.getLogger(FluxMain.class);
-
-    /**
-     *
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        // TODO parse args, and run local or remote
-
-        TopologyDef topologyDef = FluxParser.parse(args[0]);
-
-        // merge contents of `config` into topology config
-        Config conf = buildConfig(topologyDef);
-
-        ExecutionContext context = new ExecutionContext(topologyDef, conf);
-
-        StormTopology topology = buildTopology(context);
-
-
-        LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology("test", conf, topology);
-        Utils.sleep(60000);
-        cluster.killTopology("test");
-        cluster.shutdown();
-
-    }
-
+public class FluxBuilder {
+    private static Logger LOG = LoggerFactory.getLogger(FluxBuilder.class);
+    
     /**
      * Given a topology definition, return a populated `backtype.storm.Config` instance.
      *

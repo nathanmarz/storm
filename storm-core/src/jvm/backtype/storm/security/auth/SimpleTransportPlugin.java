@@ -76,7 +76,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
         THsHaServer.Args server_args = new THsHaServer.Args(serverTransport).
                 processor(new SimpleWrapProcessor(processor)).
                 workerThreads(numWorkerThreads).
-                protocolFactory(new TBinaryProtocol.Factory(false, true, maxBufferSize));
+                protocolFactory(new TBinaryProtocol.Factory(false, true, maxBufferSize, -1));
 
         if (queueSize != null) {
             server_args.executorService(new ThreadPoolExecutor(numWorkerThreads, numWorkerThreads, 
@@ -90,8 +90,11 @@ public class SimpleTransportPlugin implements ITransportPlugin {
     /**
      * Connect to the specified server via framed transport 
      * @param transport The underlying Thrift transport.
+     * @param serverHost unused.
+     * @param asUser unused.
      */
-    public TTransport connect(TTransport transport, String serverHost) throws TTransportException {
+    @Override
+    public TTransport connect(TTransport transport, String serverHost, String asUser) throws TTransportException {
         //create a framed transport
         TTransport conn = new TFramedTransport(transport);
 

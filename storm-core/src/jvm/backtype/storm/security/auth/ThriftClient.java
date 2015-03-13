@@ -39,12 +39,17 @@ public class ThriftClient {
     private Integer _timeout;
     private Map _conf;
     private ThriftConnectionType _type;
+    private String _asUser;
 
     public ThriftClient(Map storm_conf, ThriftConnectionType type, String host) {
-        this(storm_conf, type, host, null, null);
+        this(storm_conf, type, host, null, null, null);
     }
 
-    public ThriftClient(Map storm_conf, ThriftConnectionType type, String host, Integer port, Integer timeout) {
+    public ThriftClient(Map storm_conf, ThriftConnectionType type, String host, Integer port, Integer timeout){
+        this(storm_conf, type, host, port, timeout, null);
+    }
+
+    public ThriftClient(Map storm_conf, ThriftConnectionType type, String host, Integer port, Integer timeout, String asUser) {
         //create a socket with server
         if (host==null) {
             throw new IllegalArgumentException("host is not set");
@@ -63,6 +68,7 @@ public class ThriftClient {
         _timeout = timeout;
         _conf = storm_conf;
         _type = type;
+        _asUser = asUser;
         reconnect();
     }
 
@@ -94,7 +100,7 @@ public class ThriftClient {
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_TIMES)),
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL)),
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL_CEILING)));
-            _transport = connectionRetry.doConnectWithRetry(transportPlugin, underlyingTransport, _host);
+            _transport = connectionRetry.doConnectWithRetry(transportPlugin, underlyingTransport, _host, _asUser);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }

@@ -42,16 +42,16 @@ Note that the structure spouts also have a `ComponentCommon` field, and so spout
 
 The interfaces for Storm are generally specified as Java interfaces. The main interfaces are:
 
-1. [IRichBolt](/apidocs/backtype/storm/topology/IRichBolt.html)
-2. [IRichSpout](/apidocs/backtype/storm/topology/IRichSpout.html)
-3. [TopologyBuilder](/apidocs/backtype/storm/topology/TopologyBuilder.html)
+1. [IRichBolt](/javadoc/apidocs/backtype/storm/topology/IRichBolt.html)
+2. [IRichSpout](/javadoc/apidocs/backtype/storm/topology/IRichSpout.html)
+3. [TopologyBuilder](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
 
 The strategy for the majority of the interfaces is to:
 
 1. Specify the interface using a Java interface
 2. Provide a base class that provides default implementations when appropriate
 
-You can see this strategy at work with the [BaseRichSpout](/apidocs/backtype/storm/topology/base/BaseRichSpout.html) class. 
+You can see this strategy at work with the [BaseRichSpout](/javadoc/apidocs/backtype/storm/topology/base/BaseRichSpout.html) class.
 
 Spouts and bolts are serialized into the Thrift definition of the topology as described above. 
 

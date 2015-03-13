@@ -14,24 +14,34 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift.exception])
+  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.commons.io FileUtils])
   (:import [java.nio ByteBuffer]
-           [java.util Collections])
-  (:import [java.io FileNotFoundException])
+           [java.util Collections HashMap])
+  (:import [java.io FileNotFoundException File FileOutputStream])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-  (:import [backtype.storm.generated AuthorizationException GetInfoOptions
-                                     NumErrorsChoice])
-  (:use [backtype.storm bootstrap util])
-  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
+  (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils
+            BufferFileInputStream])
+  (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
+            ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
+            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
+            ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:use [backtype.storm util config log timer])
+  (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
+  (:require [clojure.set :as set])
+  (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
-
-(bootstrap)
 
 (defn file-cache-map [conf]
   (TimeCacheMap.
@@ -69,6 +79,7 @@
     {:conf conf
      :inimbus inimbus
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
+     :impersonation-authorization-handler (mk-authorization-handler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
@@ -768,9 +779,22 @@
 (defn check-authorization! 
   ([nimbus storm-name storm-conf operation context]
      (let [aclHandler (:authorization-handler nimbus)
+           impersonation-authorizer (:impersonation-authorization-handler nimbus)
            ctx (or context (ReqContext/context))
            check-conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
        (log-message "[req " (.requestID ctx) "] Access from: " (.remoteAddress ctx) " principal:" (.principal ctx) " op:" operation)
+
+       (if (.isImpersonating ctx)
+         (do
+          (log-warn "principal: " (.realPrincipal ctx) " is trying to impersonate principal: " (.principal ctx))
+          (if impersonation-authorizer
+           (if-not (.permit impersonation-authorizer ctx operation check-conf)
+             (throw (AuthorizationException. (str "principal " (.realPrincipal ctx) " is not authorized to impersonate
+                        principal " (.principal ctx) " from host " (.remoteAddress ctx) " Please see SECURITY.MD to learn
+                        how to configure impersonation acls."))))
+           (log-warn "impersonation attempt but " NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. potential
+                      security risk, please see SECURITY.MD to learn how to configure impersonation authorizer."))))
+
        (if aclHandler
          (if-not (.permit aclHandler ctx operation check-conf)
            (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))

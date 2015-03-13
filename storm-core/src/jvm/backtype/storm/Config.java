@@ -441,6 +441,20 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_AUTHORIZER = "nimbus.authorizer";
     public static final Object NIMBUS_AUTHORIZER_SCHEMA = String.class;
 
+
+    /**
+     * Impersonation user ACL config entries.
+     */
+    public static final String NIMBUS_IMPERSONATION_AUTHORIZER = "nimbus.impersonation.authorizer";
+    public static final Object NIMBUS_IMPERSONATION_AUTHORIZER_SCHEMA = String.class;
+
+
+    /**
+     * Impersonation user ACL config entries.
+     */
+    public static final String NIMBUS_IMPERSONATION_ACL = "nimbus.impersonation.acl";
+    public static final Object NIMBUS_IMPERSONATION_ACL_SCHEMA = ConfigValidation.MapOfStringToMapValidator;
+
     /**
      * How often nimbus should wake up to renew credentials if needed.
      */
@@ -732,6 +746,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_WORKER_TIMEOUT_SECS = "supervisor.worker.timeout.secs";
     public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
+     * How many seconds to sleep for before shutting down threads on worker
+     */
+    public static final String SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS = "supervisor.worker.shutdown.sleep.secs";
+    public static final Object SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * How long a worker can go without heartbeating during the initial launch before

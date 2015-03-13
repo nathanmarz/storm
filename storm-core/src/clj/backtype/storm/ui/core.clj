@@ -17,6 +17,7 @@
 (ns backtype.storm.ui.core
   (:use compojure.core)
   (:use ring.middleware.reload)
+  (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log])
   (:use [backtype.storm.ui helpers])
@@ -44,28 +45,46 @@
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 (def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
+(def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defmacro with-nimbus
   [nimbus-sym & body]
-  `(thrift/with-nimbus-connection
-     [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
-     ~@body))
+  `(let [context# (ReqContext/context)
+         user# (if (.principal context#) (.getName (.principal context#)))]
+    (thrift/with-nimbus-connection-as-user
+       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT) user#]
+       ~@body)))
 
 (defn assert-authorized-user
   ([servlet-request op]
     (assert-authorized-user servlet-request op nil))
   ([servlet-request op topology-conf]
-     (if http-creds-handler (.populateContext http-creds-handler (ReqContext/context) servlet-request))
-     (if *UI-ACL-HANDLER*
-       (let [context (ReqContext/context)]
-         (if-not (.permit *UI-ACL-HANDLER* context op topology-conf)
-           (let [principal (.principal context)
-                 user (if principal (.getName principal) "unknown")]
-             (throw (AuthorizationException.
-                     (str "UI request '" op "' for '"
-                          user "' user is not authorized")))))))))
+    (let [context (ReqContext/context)]
+      (if http-creds-handler (.populateContext http-creds-handler context servlet-request))
+
+      (if (.isImpersonating context)
+        (if *UI-IMPERSONATION-HANDLER*
+            (if-not (.permit *UI-IMPERSONATION-HANDLER* context op topology-conf)
+              (let [principal (.principal context)
+                    real-principal (.realPrincipal context)
+                    user (if principal (.getName principal) "unknown")
+                    real-user (if real-principal (.getName real-principal) "unknown")
+                    remote-address (.remoteAddress context)]
+                (throw (AuthorizationException.
+                         (str "user '" real-user "' is not authorized to impersonate user '" user "' from host '" remote-address "'. Please
+                         see SECURITY.MD to learn how to configure impersonation ACL.")))))
+          (log-warn " principal " (.realPrincipal context) " is trying to impersonate " (.principal context) " but "
+            NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. This is a potential security hole.
+            Please see SECURITY.MD to learn how to configure an impersonation authorizer.")))
+
+      (if *UI-ACL-HANDLER*
+       (if-not (.permit *UI-ACL-HANDLER* context op topology-conf)
+         (let [principal (.principal context)
+               user (if principal (.getName principal) "unknown")]
+           (throw (AuthorizationException.
+                   (str "UI request '" op "' for '" user "' user is not authorized")))))))))
 
 (defn get-filled-stats
   [summs]
@@ -494,19 +513,21 @@
         (cluster-summary (.getClusterInfo ^Nimbus$Client nimbus) user)))
   ([^ClusterSummary summ user]
      (let [sups (.get_supervisors summ)
-        used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
-        total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
-        free-slots (- total-slots used-slots)
-        total-tasks (->> (.get_topologies summ)
-                         (map #(.get_num_tasks ^TopologySummary %))
-                         (reduce +))
-        total-executors (->> (.get_topologies summ)
-                             (map #(.get_num_executors ^TopologySummary %))
-                             (reduce +))]
+           used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
+           total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
+           free-slots (- total-slots used-slots)
+           topologies (.get_topologies_size summ)
+           total-tasks (->> (.get_topologies summ)
+                            (map #(.get_num_tasks ^TopologySummary %))
+                            (reduce +))
+           total-executors (->> (.get_topologies summ)
+                                (map #(.get_num_executors ^TopologySummary %))
+                                (reduce +))]
        {"user" user
         "stormVersion" (str (VersionInfo/getVersion))
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "supervisors" (count sups)
+        "topologies" topologies
         "slotsTotal" total-slots
         "slotsUsed"  used-slots
         "slotsFree" free-slots
@@ -853,7 +874,13 @@
 
 (defn topology-config [topology-id]
   (with-nimbus nimbus
-     (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
+    (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
+
+(defn topology-op-response [topology-id op]
+  {"topologyOperation" op,
+   "topologyId" topology-id,
+   "status" "success"
+   })
 
 (defn check-include-sys?
   [sys?]
@@ -865,8 +892,9 @@
 (defnk json-response
   [data callback :serialize-fn to-json :status 200]
      {:status status
-      :headers (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
-                {"Content-Type" "application/json;charset=utf-8"})
+      :headers (merge {"Cache-Control" "no-cache, no-store"}
+                      (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
+                          {"Content-Type" "application/json;charset=utf-8"}))
       :body (if (not-nil? callback)
               (wrap-json-in-callback callback (serialize-fn data))
               (serialize-fn data))})
@@ -900,42 +928,49 @@
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
   (GET "/api/v1/token" [ & m]
        (json-response (format "{\"antiForgeryToken\": \"%s\"}" *anti-forgery-token*) (:callback m) :serialize-fn identity))
-  (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
+  (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "activate" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)]
-        (assert-authorized-user servlet-request "activate" (topology-config id))
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
-  (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id]
+    (json-response (topology-op-response id "deactivate") (m "callback")))
+  (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "deactivate" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)]
-        (assert-authorized-user servlet-request "deactivate" (topology-config id))
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
-  (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
+    (json-response (topology-op-response id "deactivate") (m "callback")))
+  (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (assert-authorized-user servlet-request "rebalance" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
+            rebalance-options (m "rebalanceOptions")
             options (RebalanceOptions.)]
-        (assert-authorized-user servlet-request "rebalance" (topology-config id))
         (.set_wait_secs options (Integer/parseInt wait-time))
+        (if (and (not-nil? rebalance-options) (contains? rebalance-options "numWorkers"))
+          (.set_num_workers options (Integer/parseInt (.toString (rebalance-options "numWorkers")))))
+        (if (and (not-nil? rebalance-options) (contains? rebalance-options "executors"))
+          (doseq [keyval (rebalance-options "executors")]
+            (.put_to_num_executors options (key keyval) (Integer/parseInt (.toString (val keyval))))))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
-  (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
+    (json-response (topology-op-response id "rebalance") (m "callback")))
+  (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (assert-authorized-user servlet-request "killTopology" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
@@ -943,11 +978,10 @@
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             options (KillOptions.)]
-        (assert-authorized-user servlet-request "killTopology" (topology-config id))
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" (url-encode id))))
+    (json-response (topology-op-response id "kill") (m "callback")))
 
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))
@@ -977,9 +1011,10 @@
 
 (def app
   (handler/site (-> main-routes
-                  (wrap-reload '[backtype.storm.ui.core])
-                  (wrap-anti-forgery {:error-response csrf-error-response})
-                  catch-errors)))
+                    (wrap-json-params)
+                    (wrap-reload '[backtype.storm.ui.core])
+                    (wrap-anti-forgery {:error-response csrf-error-response})
+                    catch-errors)))
 
 (defn start-server!
   []

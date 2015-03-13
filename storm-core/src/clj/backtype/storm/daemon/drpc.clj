@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.daemon.drpc
-  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftConnectionType])
+  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext])
   (:import [backtype.storm.security.auth.authorizer DRPCAuthorizerBase])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
@@ -25,15 +25,13 @@
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
   (:import [backtype.storm.generated AuthorizationException])
-  (:use [backtype.storm bootstrap config log])
+  (:use [backtype.storm config log util])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm.ui helpers])
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:require [compojure.handler :as handler])
   (:gen-class))
-
-(bootstrap)
 
 (defn timeout-check-secs [] 5)
 

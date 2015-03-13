@@ -1,4 +1,15 @@
 ## 0.10.0
+ * STORM-682: supervisor should handle worker state corruption gracefully.
+ * STORM-446: Allow superusers to impersonate other users in secure mode.
+ * STORM-659: return grep matches each on its own line.
+ * STORM-693: KafkaBolt exception handling improvement.
+ * STORM-675: Allow users to have storm-env.sh under config dir to set custom JAVA_HOME and other env variables.
+ * STORM-539: Storm Hive Connector.
+ * STORM-616: Storm JDBC Connector.
+ * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
+ * STORM-641: Add total number of topologies to api/v1/cluster/summary.
+ * STORM-640: Storm UI vulnerable to poodle attack.
+ * STORM-651: improvements to storm.cmd
  * STORM-456: Storm UI: cannot navigate to topology page when name contains spaces.
  * STORM-627: Storm-hbase configuration error.
  * STORM-248: cluster.xml location is hardcoded for workers
@@ -42,6 +53,31 @@
  * STORM-635: logviewer returns 404 if storm_home/logs is a symlinked dir.
  * STORM-636: Faster, optional retrieval of last component error
  * STORM-608: Storm UI CSRF escape characters not work correctly.
+ * STORM-626: Add script to print out the merge command for a given pull request.
+ * STORM-601: Make jira-github-join ignore case.
+ * STORM-667: Incorrect capitalization "SHell" in Multilang-protocol.md
+ * STORM-637: Integrate PartialKeyGrouping into storm API
+ * STORM-672: Typo in Trident documentation example
+ * STORM-400: Thrift upgrade to thrift-0.9.2
+ * STORM-673: Typo 'deamon' in security documentation
+ * STORM-441: Remove bootstrap macro from Clojure codebase
+ * STORM-609: Add storm-redis to storm external
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+ * STORM-684: In RichSpoutBatchExecutor: underlying spout is not closed when emitter is closed
+ * STORM-683: Make false in a conf really evaluate to false in clojure.
+ * STORM-685: wrong output in log when committed offset is too far behind latest offset
+ * STORM-688: update Util to compile under JDK8
+ * STORM-687: Storm UI does not display up to date information despite refreshes in IE
+ * STORM-557: High Quality Images for presentations
+ * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
+ * STORM-469: Storm UI Last Error Detail Insufficient for debugging
+ * STORM-656: Document "external" modules and "Committer Sponsors"
+ * STORM-657: make the shutdown-worker sleep time before kill -9 configurable
+ * STORM-663: Create javadocs for BoltDeclarer
+ * STORM-690: Return Jedis into JedisPool with marking 'broken' if connection is broken
+ * STORM-669: Replace links with ones to latest api document
+ * STORM-670: restore java 1.6 compatibility (storm-kafka)
+ * STORM-696: Single Namespace Test Launching
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

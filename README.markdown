@@ -191,6 +191,7 @@ under the License.
 * Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
 * Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
 * iBuddha ([@iBuddha](https://github.com/iBuddha))
+* Rekha Joshi ([@rekhajoshm](https://github.com/rekhajoshm))
 
 ## Acknowledgements
 

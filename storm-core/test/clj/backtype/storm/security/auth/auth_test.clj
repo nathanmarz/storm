@@ -16,7 +16,9 @@
 (ns backtype.storm.security.auth.auth-test
   (:use [clojure test])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [org.apache.thrift TException])
+  (:import [org.apache.thrift TException]
+           [backtype.storm.security.auth.authorizer ImpersonationAuthorizer]
+           [java.net Inet4Address])
   (:import [org.apache.thrift.transport TTransportException])
   (:import [java.nio ByteBuffer])
   (:import [java.security Principal AccessController])
@@ -64,7 +66,7 @@
      :scheduler nil
      }))
 
-(defn dummy-service-handler 
+(defn dummy-service-handler
   ([conf inimbus auth-context]
      (let [nimbus-d (nimbus-data conf inimbus)
            topo-conf (atom nil)]
@@ -73,55 +75,55 @@
                                         ^SubmitOptions submitOptions]
            (if (not (nil? serializedConf)) (swap! topo-conf (fn [prev new] new) (from-json serializedConf)))
            (nimbus/check-authorization! nimbus-d storm-name @topo-conf "submitTopology" auth-context))
-         
+
          (^void killTopology [this ^String storm-name]
            (nimbus/check-authorization! nimbus-d storm-name @topo-conf "killTopology" auth-context))
-         
+
          (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
            (nimbus/check-authorization! nimbus-d storm-name @topo-conf "killTopology" auth-context))
-         
+
          (^void rebalance [this ^String storm-name ^RebalanceOptions options]
            (nimbus/check-authorization! nimbus-d storm-name @topo-conf "rebalance" auth-context))
-         
+
          (activate [this storm-name]
            (nimbus/check-authorization! nimbus-d storm-name @topo-conf "activate" auth-context))
-         
+
          (deactivate [this storm-name]
            (nimbus/check-authorization! nimbus-d storm-name @topo-conf "deactivate" auth-context))
 
          (uploadNewCredentials [this storm-name creds]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "uploadNewCredentials" auth-context)) 
-         
+           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "uploadNewCredentials" auth-context))
+
          (beginFileUpload [this])
-         
+
          (^void uploadChunk [this ^String location ^ByteBuffer chunk])
-         
+
          (^void finishFileUpload [this ^String location])
-         
+
          (^String beginFileDownload [this ^String file]
            (nimbus/check-authorization! nimbus-d nil nil "fileDownload" auth-context)
            "Done!")
-         
+
          (^ByteBuffer downloadChunk [this ^String id])
-         
+
          (^String getNimbusConf [this])
-         
+
          (^String getTopologyConf [this ^String id])
-         
+
          (^StormTopology getTopology [this ^String id])
-         
+
          (^StormTopology getUserTopology [this ^String id])
-         
+
          (^ClusterSummary getClusterInfo [this])
-         
+
          (^TopologyInfo getTopologyInfo [this ^String storm-id]))))
   ([conf inimbus]
      (dummy-service-handler conf inimbus nil)))
-     
 
-(defn launch-server [server-port login-cfg aznClass transportPluginClass serverConf] 
+
+(defn launch-server [server-port login-cfg aznClass transportPluginClass serverConf]
   (let [conf1 (merge (read-storm-config)
-                     {NIMBUS-AUTHORIZER aznClass 
+                     {NIMBUS-AUTHORIZER aznClass
                       NIMBUS-HOST "localhost"
                       NIMBUS-THRIFT-PORT server-port
                       STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
@@ -129,9 +131,9 @@
         conf (if serverConf (merge conf2 serverConf) conf2)
         nimbus (nimbus/standalone-nimbus)
         service-handler (dummy-service-handler conf nimbus)
-        server (ThriftServer. 
-                conf 
-                (Nimbus$Processor. service-handler) 
+        server (ThriftServer.
+                conf
+                (Nimbus$Processor. service-handler)
                 ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
     (.start (Thread. #(.serve server)))
@@ -160,7 +162,7 @@
             nimbus_client (.getClient client)]
         (.activate nimbus_client "security_auth_test_topology")
         (.close client))
-      
+
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
@@ -168,11 +170,11 @@
         (testing "(Negative authentication) Server: Simple vs. Client: Digest"
           (is (thrown-cause?  org.apache.thrift.transport.TTransportException
                               (NimbusClient. storm-conf "localhost" a-port nimbus-timeout))))))))
-  
-(deftest negative-whitelist-authorization-test 
+
+(deftest negative-whitelist-authorization-test
   (let [a-port (available-port)]
     (with-server [a-port nil
-                  "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer" 
+                  "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer"
                   "backtype.storm.testing.SingleUserSimpleTransport" nil]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
@@ -183,10 +185,10 @@
                              (.activate nimbus_client "security_auth_test_topology"))))
         (.close client)))))
 
-(deftest positive-whitelist-authorization-test 
+(deftest positive-whitelist-authorization-test
     (let [a-port (available-port)]
       (with-server [a-port nil
-                    "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer" 
+                    "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer"
                     "backtype.storm.testing.SingleUserSimpleTransport" {SimpleWhitelistAuthorizer/WHITELIST_USERS_CONF ["user"]}]
         (let [storm-conf (merge (read-storm-config)
                                 {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
@@ -205,7 +207,7 @@
         supervisor-user (mk-subject "supervisor")
         user-a (mk-subject "user-a")
         user-b (mk-subject "user-b")]
-  (.prepare authorizer cluster-conf) 
+  (.prepare authorizer cluster-conf)
   (is (= true (.permit authorizer (ReqContext. user-a) "submitTopology" {})))
   (is (= true (.permit authorizer (ReqContext. user-b) "submitTopology" {})))
   (is (= true (.permit authorizer (ReqContext. admin-user) "submitTopology" {})))
@@ -292,7 +294,7 @@
                         NIMBUS-SUPERVISOR-USERS ["admin"]})
         authorizer (SimpleACLAuthorizer. )
         admin-user (mk-subject "admin")]
-  (.prepare authorizer cluster-conf) 
+  (.prepare authorizer cluster-conf)
   (is (= true (.permit authorizer (ReqContext. admin-user) "submitTopology" {})))
   (is (= true (.permit authorizer (ReqContext. admin-user) "fileUpload" nil)))
   (is (= true (.permit authorizer (ReqContext. admin-user) "getNimbusConf" nil)))
@@ -310,10 +312,10 @@
 ))
 
 
-(deftest positive-authorization-test 
+(deftest positive-authorization-test
   (let [a-port (available-port)]
     (with-server [a-port nil
-                  "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
+                  "backtype.storm.security.auth.authorizer.NoopAuthorizer"
                   "backtype.storm.security.auth.SimpleTransportPlugin" nil]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
@@ -323,10 +325,10 @@
           (.activate nimbus_client "security_auth_test_topology"))
         (.close client)))))
 
-(deftest deny-authorization-test 
+(deftest deny-authorization-test
   (let [a-port (available-port)]
     (with-server [a-port nil
-                  "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
+                  "backtype.storm.security.auth.authorizer.DenyAuthorizer"
                   "backtype.storm.security.auth.SimpleTransportPlugin" nil]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
@@ -343,7 +345,7 @@
 (deftest digest-authentication-test
   (let [a-port (available-port)]
     (with-server [a-port
-                  "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
+                  "test/clj/backtype/storm/security/auth/jaas_digest.conf"
                   nil
                   "backtype.storm.security.auth.digest.DigestSaslTransportPlugin" nil]
       (let [storm-conf (merge (read-storm-config)
@@ -355,7 +357,7 @@
         (testing "(Positive authentication) valid digest authentication"
           (.activate nimbus_client "security_auth_test_topology"))
         (.close client))
-      
+
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
                                STORM-NIMBUS-RETRY-TIMES 0})
@@ -365,7 +367,7 @@
           (is (thrown-cause? org.apache.thrift.transport.TTransportException
                              (.activate nimbus_client "security_auth_test_topology"))))
         (.close client))
-      
+
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf"
@@ -373,13 +375,13 @@
         (testing "(Negative authentication) Invalid  password"
           (is (thrown-cause? TTransportException
                              (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)))))
-      
+
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_unknown_user.conf"
                                STORM-NIMBUS-RETRY-TIMES 0})]
         (testing "(Negative authentication) Unknown user"
-          (is (thrown-cause? TTransportException 
+          (is (thrown-cause? TTransportException
                              (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)))))
 
       (let [storm-conf (merge (read-storm-config)
@@ -387,9 +389,9 @@
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/nonexistent.conf"
                                STORM-NIMBUS-RETRY-TIMES 0})]
         (testing "(Negative authentication) nonexistent configuration file"
-          (is (thrown-cause? RuntimeException 
+          (is (thrown-cause? RuntimeException
                              (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)))))
-      
+
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_missing_client.conf"
@@ -397,8 +399,46 @@
         (testing "(Negative authentication) Missing client"
           (is (thrown-cause? java.io.IOException
                              (NimbusClient. storm-conf "localhost" a-port nimbus-timeout))))))))
-        
+
 (deftest test-GetTransportPlugin-throws-RuntimeException
   (let [conf (merge (read-storm-config)
                     {Config/STORM_THRIFT_TRANSPORT_PLUGIN "null.invalid"})]
     (is (thrown-cause? RuntimeException (AuthUtils/GetTransportPlugin conf nil nil)))))
+
+(defn mk-impersonating-req-context [impersonating-user user-being-impersonated remote-address]
+  (let [impersonating-principal (mk-principal impersonating-user)
+        principal-being-impersonated (mk-principal user-being-impersonated)
+        subject (Subject. true #{principal-being-impersonated} #{} #{})
+        req_context (ReqContext. subject)]
+    (.setRemoteAddress req_context remote-address)
+    (.setRealPrincipal req_context impersonating-principal)
+    req_context))
+
+(deftest impersonation-authorizer-test
+  (let [impersonating-user "admin"
+        user-being-impersonated (System/getProperty "user.name")
+        groups (ShellBasedGroupsMapping.)
+        _ (.prepare groups (read-storm-config))
+        groups (.getGroups groups user-being-impersonated)
+        cluster-conf (merge (read-storm-config)
+                       {Config/NIMBUS_IMPERSONATION_ACL {impersonating-user {"hosts" [ (.getHostName (InetAddress/getLocalHost))]
+                                                                            "groups" groups}}})
+        authorizer (ImpersonationAuthorizer. )
+        unauthorized-host (com.google.common.net.InetAddresses/forString "10.10.10.10")
+        ]
+
+    (.prepare authorizer cluster-conf)
+    ;;non impersonating request, should be permitted.
+    (is (= true (.permit authorizer (ReqContext. (mk-subject "anyuser")) "fileUpload" nil)))
+
+    ;;user with no impersonation acl should be reject
+    (is (= false (.permit authorizer (mk-impersonating-req-context "user-with-no-acl" user-being-impersonated (InetAddress/getLocalHost)) "someOperation" nil)))
+
+    ;;request from hosts that are not authorized should be rejected, commented because
+    (is (= false (.permit authorizer (mk-impersonating-req-context impersonating-user user-being-impersonated unauthorized-host) "someOperation" nil)))
+
+    ;;request to impersonate users from unauthroized groups should be rejected.
+    (is (= false (.permit authorizer (mk-impersonating-req-context impersonating-user "unauthroized-user" (InetAddress/getLocalHost)) "someOperation" nil)))
+
+    ;;request from authorized hosts and group should be allowed.
+    (is (= true (.permit authorizer (mk-impersonating-req-context impersonating-user user-being-impersonated (InetAddress/getLocalHost)) "someOperation" nil)))))

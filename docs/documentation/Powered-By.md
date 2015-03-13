@@ -147,6 +147,16 @@ Health Market Science (HMS) provides data management as a service for the health
 </td>
 </tr>
 
+<tr>
+<td>
+<a href="https://www.verisigninc.com/">Verisign</a>
+</td>
+<td>
+<p>
+Verisign, a global leader in domain names and Internet security, enables Internet navigation for many of the world's most recognized domain names and provides protection for enterprises around the world.  Ensuring the security, stability, and resiliency of key Internet infrastructure and services, including the .COM and .NET top level domains and two of the Internet's DNS root servers, is at the heart of Verisign’s mission.  Storm is a component of our data analytics stack that powers a variety of real-time applications.  One example is security monitoring where we are leveraging Storm to analyze the network telemetry data of our globally distributed infrastructure in order to detect and mitigate cyber attacks.
+</p>
+</td>
+</tr>
 
 <tr>
 <td>

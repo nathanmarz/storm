@@ -18,7 +18,7 @@ import java.util.List;
 
 public class FluxBuilder {
     private static Logger LOG = LoggerFactory.getLogger(FluxBuilder.class);
-    
+
     /**
      * Given a topology definition, return a populated `backtype.storm.Config` instance.
      *

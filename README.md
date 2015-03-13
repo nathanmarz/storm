@@ -27,15 +27,19 @@ public static void main(String[] args) throws Exception {
 Wouldn't something like this be easier:
 
 ```bash
-storm jar mytopology.jar --local config.yaml
+storm jar mytopology.jar org.apache.storm.flux.Flux --local config.yaml
 ```
 
 or:
 
 ```bash
-storm jar mytopology.jar --remote config.yaml
+storm jar mytopology.jar org.apache.storm.flux.Flux --remote config.yaml
 ```
 
+Another pain point often mentioned is the fact that the wiring for a Topology graph is often tied up in Java code,
+and that any changes require recompilation and repackaging of the topology jar file. Flux aims to eliminate that
+pain by allowing you to package all your Storm components in a single jar, and use an external text file to define
+the layout and configuration of your topologies.
 
 ## Disclaimer
 
@@ -45,10 +49,11 @@ of truth.
 
 ## Usage
 
-`storm jar flux-xxx.jar <config.yaml>`
+To use Flux, add it as a dependency and package all your Storm components in a fat jar, then create a YAML document
+to define your topology (see below).
 
 ```
-usage: storm jar <my_topology_uber_jar.jar> [options]
+usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux [options]
              <topology-config.yaml>
  -l,--local           Run the topology in local mode.
  -r,--remote          Deploy the topology to a remote cluster.
@@ -123,7 +128,26 @@ components:
     className: "storm.kafka.StringScheme"
 ```
 
-To specify constructor arguments, you would do somthing like this:
+### Contructor Arguments, References and Properties
+
+####Constructor Arguments
+Arguments to a class constructor can be configured by adding `contructorArgs` to a components. `constructorArgs` is a
+list of objects that will be passed to the class' constructor. The following example creates an object by calling
+the constructor that takes a single string as an argument:
+
+```yaml
+  - id: "zkHosts"
+    className: "storm.kafka.ZkHosts"
+    constructorArgs:
+      - "localhost:2181"
+```
+
+####References
+Each component instance is identified by a unique id that allows it to be used/reused by other components. To
+reference an existing components, you specify the id of the component with the `ref` tag.
+
+In the following example, a component with the id `"stringScheme"` is created, and later referenced as a an argument
+to another component's constructor:
 
 ```yaml
 components:
@@ -133,17 +157,62 @@ components:
   - id: "stringMultiScheme"
     className: "backtype.storm.spout.SchemeAsMultiScheme"
     constructorArgs:
-      - ref: "stringScheme"
+      - ref: "stringScheme" # component with id "stringScheme" must be declared above.
+```
+**N.B.:** References can only be used after (below) the object they point to has been declared.
+
+####Properties
+In addition to calling contructors with different arguments, Flux also allows you to configure components using
+JavaBean-like setter methods and fields declared as `public`:
+
+```yaml
+  - id: "spoutConfig"
+    className: "storm.kafka.SpoutConfig"
+    constructorArgs:
+      # brokerHosts
+      - ref: "zkHosts"
+      # topic
+      - "myKafkaTopic"
+      # zkRoot
+      - "/kafkaSpout"
+      # id
+      - "myId"
+    properties:
+      - name: "forceFromStart"
+        value: true
+      - name: "scheme"
+        ref: "stringMultiScheme"
 ```
 
-In this example the `stringScheme` object is used as a reference in the arguments to the
-`backtype.storm.spout.SchemeAsMultiStream` constructor.
+In the example above, the `properties` declaration will cause Flux to look for a public method in the `SpoutConfig` with the
+signature `setForceFromStart(boolean b)` and attempt to invoke it. If a setter method is not found, Flux will then
+look for a public instance variable with the name `forceFromStart` and attempt to set its value.
 
-## Spouts
+References may also be used as property values.
+
+
+
+
+## Topology Config
+The `config` section is simply a map of Storm topology configuration parameters that will be passed to the
+`backtype.storm.StormSubmitter` as an instance of the `backtype.storm.Config` class:
+
+```yaml
+config:
+  topology.workers: 4
+  topology.max.spout.pending: 1000
+  topology.message.timeout.secs: 30
+```
+
+## Spouts and Bolts
+Spout and Bolts are configured in their own respective section of the YAML configuration. Spout and Bolt defintions
+are extensions to the `component` definition that add a `parallelism` parameter that sets the parallelism to be
+used when the topology is deployed on a cluster. Because spout and bolt definitions extend `component` they support
+constructor arguments, references, and properties as well.
 
 Shell spout example:
 
-```
+```yaml
 spouts:
   - id: "sentence-spout"
     className: "org.apache.storm.flux.spouts.GenericShellSpout"
@@ -213,7 +282,7 @@ spouts:
 
 ```
 
-## Bolts
+Bolt Examples:
 
 ```yaml
 # bolt definitions
@@ -238,7 +307,36 @@ bolts:
     parallelism: 1
     # ...
 ```
-## Streams
+## Streams and Stream Groupings
+Streams in Flux are represented as a list of connections (data flow) between the Spouts and Bolts in a topology, and an associated
+Grouping definition.
+
+A Stream definition has the following properties:
+
+**`name`:** A name for the connection (optional, currently unused)
+
+**`from`:** The `id` of a Spout or Bolt that is the source (publisher)
+
+**`to`:** The `id` of a Spout or Bolt that is the destination (subscriber)
+
+**`grouping`:** The stream grouping definition for the Stream
+
+A Grouping definition has the following properties:
+
+**`type`:** The type of grouping. One of `ALL`,`CUSTOM`,`DIRECT`,`SHUFFLE`,`LOCAL_OR_SHUFFLE`,`FIELDS`,`GLOBAL`, or `NONE`.
+
+**`streamId`:** The Storm stream ID (Optional. If unspecified will use the default stream)
+
+**`args`:** For the `FIELDS` grouping, a list of field names.
+
+**`className`"** For the `CUSTOM` grouping, the name of the custom grouping class
+
+The `streams` definition example below sets up a topology with the following wiring:
+
+```
+    kafka-spout --> splitsentence --> count --> log
+```
+
 
 ```yaml
 #stream definitions
@@ -336,21 +434,5 @@ streams:
       type: SHUFFLE
 ```
 
-## How do you deal with a spout or bolt that has custom constructor?
-
-Define a list of arguments that should be passed to the constuctor:
-
-```yaml
-# spout definitions
-spouts:
-  - id: "sentence-spout"
-    className: "org.apache.storm.flux.spouts.GenericShellSpout"
-    # shell spout constructor takes 2 arguments: String[], String[]
-    constructorArgs:
-      # command line
-      - ["node", "randomsentence.js"]
-      # output fields
-      - ["word"]
-    parallelism: 1
-```
-
+## Trident Support
+Currenty Flux only supports the Core Storm API, but support for Trident is planned.

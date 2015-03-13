@@ -65,7 +65,9 @@ public class Flux {
 
     private static void usage(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("storm jar <my_topology_uber_jar.jar> [options] <topology-config.yaml>", options);
+        formatter.printHelp("storm jar <my_topology_uber_jar.jar> " +
+                Flux.class.getName() +
+                " [options] <topology-config.yaml>", options);
     }
 
     private static void runCli(CommandLine cmd)throws Exception {

@@ -146,13 +146,13 @@ public class FluxBuilder {
                 Class clazz = Class.forName(bean.getClassName());
                 Object obj = null;
                 if (bean.hasConstructorArgs()) {
-                    LOG.info("Found constructor arguments in bean definition: " +
+                    LOG.debug("Found constructor arguments in bean definition: " +
                             bean.getConstructorArgs().getClass().getName());
                     List<Object> cArgs = resolveReferences(bean, context);
 
                     Constructor con = findCompatibleConstructor(cArgs, clazz);
                     if (con != null) {
-                        LOG.info("Found something seemingly compatible, attempting invocation...");
+                        LOG.debug("Found something seemingly compatible, attempting invocation...");
                         obj = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
                     } else {
                         throw new IllegalArgumentException("Couldn't find a suitable constructor.");
@@ -167,7 +167,7 @@ public class FluxBuilder {
     }
 
     public static List<Object> resolveReferences(BeanDef bean, ExecutionContext context) {
-        LOG.info("Checking arguments for references.");
+        LOG.debug("Checking arguments for references.");
         List<Object> cArgs;
         // resolve references
         if (bean.hasReferences()) {
@@ -227,7 +227,7 @@ public class FluxBuilder {
         Method[] methods = clazz.getMethods();
         for (Method method : methods) {
             if (setterName.equals(method.getName())) {
-                LOG.info("Found setter method: " + method.getName());
+                LOG.debug("Found setter method: " + method.getName());
                 retval = method;
             }
         }
@@ -273,11 +273,11 @@ public class FluxBuilder {
         Class clazz = Class.forName(def.getClassName());
         IRichSpout spout = null;
         if (def.hasConstructorArgs()) {
-            LOG.info("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
             List<Object> cArgs = resolveReferences(def, context);
             Constructor con = findCompatibleConstructor(cArgs, clazz);
             if (con != null) {
-                LOG.info("Found something seemingly compatible, attempting invocation...");
+                LOG.debug("Found something seemingly compatible, attempting invocation...");
                 spout = (IRichSpout) con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
             } else {
                 throw new IllegalArgumentException("Couldn't find a suitable Spout constructor.");
@@ -307,13 +307,13 @@ public class FluxBuilder {
         for (BoltDef def : context.getTopologyDef().getBolts()) {
             Class clazz = Class.forName(def.getClassName());
             Object bolt = null;
-            LOG.info("Attempting to instantiate bolt: {}", def.getClassName());
+            LOG.debug("Attempting to instantiate bolt: {}", def.getClassName());
             if (def.hasConstructorArgs()) {
-                LOG.info("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+                LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
                 List<Object> cArgs = resolveReferences(def, context);
                 Constructor con = findCompatibleConstructor(cArgs, clazz);
                 if (con != null) {
-                    LOG.info("Found something seemingly compatible, attempting invocation...");
+                    LOG.debug("Found something seemingly compatible, attempting invocation...");
                     bolt = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
                 } else {
                     throw new IllegalArgumentException("Couldn't find a suitable Bolt constructor.");
@@ -337,19 +337,19 @@ public class FluxBuilder {
         Constructor retval = null;
         int eligibleCount = 0;
 
-        LOG.info("Target class: {}", target.getName());
+        LOG.debug("Target class: {}", target.getName());
         Constructor[] cons = target.getDeclaredConstructors();
 
         for (Constructor con : cons) {
             Class[] paramClasses = con.getParameterTypes();
             if (paramClasses.length == args.size()) {
-                LOG.info("found constructor with same number of args..");
+                LOG.debug("found constructor with same number of args..");
                 boolean invokable = canInvokeConstructorWithArgs(args, con);
                 if (invokable) {
                     retval = con;
                     eligibleCount++;
                 }
-                LOG.info("** invokable --> {}", invokable);
+                LOG.debug("** invokable --> {}", invokable);
             } else {
                 LOG.debug("Skipping constructor with wrong number of arguments.");
             }
@@ -384,23 +384,23 @@ public class FluxBuilder {
             Object obj = args.get(i);
             Class paramType = parameterTypes[i];
             Class objectType = obj.getClass();
-            LOG.info("Comparing parameter class {} to object class {} to see if assignment is possible.",
+            LOG.debug("Comparing parameter class {} to object class {} to see if assignment is possible.",
                     paramType, objectType);
             if (paramType.equals(objectType)) {
-                LOG.info("They are the same class.");
+                LOG.debug("They are the same class.");
                 constructorParams[i] = args.get(i);
                 continue;
             }
             if (paramType.isAssignableFrom(objectType)) {
-                LOG.info("Assignment is possible.");
+                LOG.debug("Assignment is possible.");
                 constructorParams[i] = args.get(i);
                 continue;
             }
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
-                LOG.info("Conversion appears possible...");
+                LOG.debug("Conversion appears possible...");
                 List list = (List) obj;
-                LOG.info("Array Type: {}, List type: {}", paramType.getComponentType(), list.get(0).getClass());
+                LOG.debug("Array Type: {}, List type: {}", paramType.getComponentType(), list.get(0).getClass());
 
                 // create an array of the right type
                 Object newArrayObj = Array.newInstance(paramType.getComponentType(), list.size());

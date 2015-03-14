@@ -19,12 +19,10 @@ public class ExecutionContext {
     private Config config;
 
     // components
-    // list
     private List<Object> compontents;
     // indexed by id
     private Map<String, Object> componentMap = new HashMap<String, Object>();
 
-//    private List<IRichSpout> spouts;
     private Map<String, IRichSpout> spoutMap = new HashMap<String, IRichSpout>();
 
     private List<IBolt> bolts;

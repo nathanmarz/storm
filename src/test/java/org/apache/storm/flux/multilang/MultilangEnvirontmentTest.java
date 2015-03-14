@@ -2,7 +2,6 @@ package org.apache.storm.flux.multilang;
 
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,10 +9,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Sanity checks to make sure we can at least invoke the shells used.
  */
-public class MultilangEnvirontmentTest{
+public class MultilangEnvirontmentTest {
     private static final Logger LOG = LoggerFactory.getLogger(MultilangEnvirontmentTest.class);
 
     @Test
@@ -29,7 +30,6 @@ public class MultilangEnvirontmentTest{
         int exitVal = invokeCommand(command);
         assertEquals("Exit value for node is 0.", 0, exitVal);
     }
-
 
     private static class StreamRedirect implements Runnable {
         private InputStream in;
@@ -54,7 +54,6 @@ public class MultilangEnvirontmentTest{
             }
         }
     }
-
 
     private int invokeCommand(String[] args) throws Exception {
         LOG.debug("Invoking command: {}", args);

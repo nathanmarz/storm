@@ -18,18 +18,12 @@ import java.util.Map;
 public class TopologyDef {
 
     private String name;
-
     private List<BeanDef> components;
     private Map<String, BeanDef> componentMap;
-
     private Map<String, Object> config;
-
     private List<SpoutDef> spouts;
-
     private List<BoltDef> bolts;
-
     private List<StreamDef> streams;
-
 
     public String getName() {
         return name;
@@ -62,7 +56,6 @@ public class TopologyDef {
     public void setStreams(List<StreamDef> streams) {
         this.streams = streams;
     }
-
 
     public Map<String, Object> getConfig() {
         return config;

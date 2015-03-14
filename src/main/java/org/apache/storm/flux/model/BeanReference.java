@@ -1,6 +1,5 @@
 package org.apache.storm.flux.model;
 
-
 public class BeanReference {
     public String id;
 

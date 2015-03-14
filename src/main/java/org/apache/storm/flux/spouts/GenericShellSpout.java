@@ -4,7 +4,6 @@ import backtype.storm.spout.ShellSpout;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
-
 import java.util.Map;
 
 /**
@@ -23,7 +22,6 @@ public class GenericShellSpout extends ShellSpout implements IRichSpout {
     public GenericShellSpout(String[] args, String[] outputFields){
         super(args);
         this.outputFields = outputFields;
-
     }
 
     @Override

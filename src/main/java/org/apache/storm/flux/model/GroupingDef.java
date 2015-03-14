@@ -9,7 +9,7 @@ import java.util.List;
 public class GroupingDef {
 
     /**
-     * Types of stream groupings Storm allows.
+     * Types of stream groupings Storm allows
      */
     public static enum Type {
         ALL,

@@ -26,7 +26,8 @@
   (:import [org.eclipse.jetty.server Server]
            [org.eclipse.jetty.server.nio SelectChannelConnector]
            [org.eclipse.jetty.server.ssl SslSocketConnector]
-           [org.eclipse.jetty.servlet ServletHolder FilterMapping])
+           [org.eclipse.jetty.servlet ServletHolder FilterMapping]
+           [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
@@ -168,12 +169,20 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   (when (> port 0)
     (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
 
+(defn cors-filter-handler
+  []
+  (doto (org.eclipse.jetty.servlet.FilterHolder. (CrossOriginFilter.))
+    (.setInitParameter CrossOriginFilter/ALLOWED_ORIGINS_PARAM "*")
+    (.setInitParameter CrossOriginFilter/ALLOWED_METHODS_PARAM "GET, POST, PUT")
+    (.setInitParameter CrossOriginFilter/ALLOWED_HEADERS_PARAM "*")))
+
 (defn config-filter [server handler filters-confs]
   (if filters-confs
     (let [servlet-holder (ServletHolder.
                            (ring.util.servlet/servlet handler))
           context (doto (org.eclipse.jetty.servlet.ServletContextHandler. server "/")
                     (.addServlet servlet-holder "/"))]
+      (.addFilter context (cors-filter-handler) "/*" FilterMapping/ALL)
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
         (if filter-class
           (let [filter-holder (doto (org.eclipse.jetty.servlet.FilterHolder.)

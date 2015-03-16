@@ -248,10 +248,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     private synchronized void connect(long delayMs) {
         try {
             if (closing) {
+                LOG.info("not connecting to {} because this client is being closed", dstAddressPrefixedName);
                 return;
             }
 
             if (connectionEstablished(channelRef.get())) {
+                LOG.info("not connecting to {} because the connection is already established", dstAddressPrefixedName);
                 return;
             }
 
@@ -489,8 +491,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
 
     private synchronized void closeChannelAndReconnect(Channel channel) {
         if (channel != null) {
+            LOG.info("closing channel {} to {}", channel.toString(), dstAddressPrefixedName);
             channel.close();
             if (channelRef.compareAndSet(channel, null)) {
+                LOG.info("triggering reconnect to {}", dstAddressPrefixedName);
                 connect(NO_DELAY_MS);
             }
         }

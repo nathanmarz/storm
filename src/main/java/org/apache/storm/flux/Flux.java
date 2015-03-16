@@ -86,11 +86,14 @@ public class Flux {
     }
 
     private static void runCli(CommandLine cmd)throws Exception {
+        boolean dumpYaml = cmd.hasOption("dump-yaml");
+
+
         TopologyDef topologyDef = null;
         if(cmd.hasOption("resource")){
-            topologyDef = FluxParser.parseResource((String)cmd.getArgList().get(0));
+            topologyDef = FluxParser.parseResource((String)cmd.getArgList().get(0), dumpYaml);
         } else {
-            topologyDef = FluxParser.parseFile((String)cmd.getArgList().get(0));
+            topologyDef = FluxParser.parseFile((String)cmd.getArgList().get(0), dumpYaml);
         }
 
 

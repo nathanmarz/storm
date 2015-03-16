@@ -18,27 +18,30 @@ public class FluxParser {
 
     private FluxParser(){}
 
-    public static TopologyDef parseFile(String inputFile) throws IOException {
+    public static TopologyDef parseFile(String inputFile, boolean dumpYaml) throws IOException {
         Yaml yaml = yaml();
-
         FileInputStream in = new FileInputStream(inputFile);
         TopologyDef topology = (TopologyDef)yaml.load(in);
-
         in.close();
-        LOG.debug("Configuration (interpreted): \n" + yaml.dump(topology));
+        if(dumpYaml){
+            dumpYaml(topology, yaml);
+        }
         return topology;
     }
 
-    public static TopologyDef parseResource(String resource) throws IOException {
+    public static TopologyDef parseResource(String resource, boolean dumpYaml) throws IOException {
         Yaml yaml = yaml();
-
         InputStream in = FluxParser.class.getResourceAsStream(resource);
-
         TopologyDef topology = (TopologyDef)yaml.load(in);
-
         in.close();
-        LOG.debug("Configuration (interpreted): \n" + yaml.dump(topology));
+        if(dumpYaml){
+            dumpYaml(topology, yaml);
+        }
         return topology;
+    }
+
+    private static void dumpYaml(TopologyDef topology, Yaml yaml){
+        System.out.println("Configuration (interpreted): \n" + yaml.dump(topology));
     }
 
     private static Yaml yaml(){

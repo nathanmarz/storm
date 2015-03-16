@@ -1,5 +1,13 @@
 # [flux] (http://en.wikipedia.org/wiki/Flux)
 
+## Definition
+**flux** |fləks| _noun_
+
+1. The action or process of flowing or flowing out
+2. Continuous change
+3. In physics, the rate of flow of a fluid, radiant energy, or particles across a given area
+4. A substance mixed with a solid to lower its melting point
+
 ## About
 What is "flux"?
 

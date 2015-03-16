@@ -1,6 +1,7 @@
 package org.apache.storm.flux.parser;
 
 import org.apache.storm.flux.model.BoltDef;
+import org.apache.storm.flux.model.IncludeDef;
 import org.apache.storm.flux.model.SpoutDef;
 import org.apache.storm.flux.model.TopologyDef;
 import org.slf4j.Logger;
@@ -26,7 +27,7 @@ public class FluxParser {
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
-        return topology;
+        return processIncludes(yaml, topology);
     }
 
     public static TopologyDef parseResource(String resource, boolean dumpYaml) throws IOException {
@@ -37,7 +38,7 @@ public class FluxParser {
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
-        return topology;
+        return processIncludes(yaml, topology);
     }
 
     private static TopologyDef loadYaml(Yaml yaml, InputStream in){
@@ -54,9 +55,19 @@ public class FluxParser {
         TypeDescription topologyDescription = new TypeDescription(TopologyDef.class);
         topologyDescription.putListPropertyType("spouts", SpoutDef.class);
         topologyDescription.putListPropertyType("bolts", BoltDef.class);
+        topologyDescription.putListPropertyType("includes", IncludeDef.class);
         constructor.addTypeDescription(topologyDescription);
 
         Yaml  yaml = new Yaml(constructor);
         return yaml;
+    }
+
+    private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef){
+
+        //TODO load referenced YAML file/resource
+
+        // remove includes from topo def after processing
+
+        return topologyDef;
     }
 }

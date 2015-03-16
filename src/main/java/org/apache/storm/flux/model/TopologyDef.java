@@ -28,6 +28,7 @@ public class TopologyDef {
     private List<SpoutDef> spouts;
     private List<BoltDef> bolts;
     private List<StreamDef> streams;
+    private List<IncludeDef> includes;
 
     public String getName() {
         return name;
@@ -89,6 +90,14 @@ public class TopologyDef {
         }
     }
 
+    public List<IncludeDef> getIncludes() {
+        return includes;
+    }
+
+    public void setIncludes(List<IncludeDef> includes) {
+        this.includes = includes;
+    }
+
     // utility methods
     public int parallelismForBolt(String boltId){
         for(BoltDef bd : this.bolts){
@@ -106,8 +115,6 @@ public class TopologyDef {
     public SpoutDef getSpoutDef(String id){
         return this.spoutMap.get(id);
     }
-
-
 
     public BeanDef getComponent(String id){
         return this.componentMap.get(id);

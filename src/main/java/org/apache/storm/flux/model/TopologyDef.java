@@ -1,5 +1,7 @@
 package org.apache.storm.flux.model;
 
+import backtype.storm.generated.Bolt;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,8 @@ public class TopologyDef {
     private String name;
     private List<BeanDef> components;
     private Map<String, BeanDef> componentMap;
+    private Map<String, BoltDef> boltMap;
+    private Map<String, SpoutDef> spoutMap;
     private Map<String, Object> config;
     private List<SpoutDef> spouts;
     private List<BoltDef> bolts;
@@ -39,6 +43,10 @@ public class TopologyDef {
 
     public void setSpouts(List<SpoutDef> spouts) {
         this.spouts = spouts;
+        this.spoutMap = new HashMap<String, SpoutDef>();
+        for(SpoutDef spout : this.spouts){
+            this.spoutMap.put(spout.getId(), spout);
+        }
     }
 
     public List<BoltDef> getBolts() {
@@ -47,6 +55,10 @@ public class TopologyDef {
 
     public void setBolts(List<BoltDef> bolts) {
         this.bolts = bolts;
+        this.boltMap = new HashMap<String, BoltDef>();
+        for(BoltDef bolt : this.bolts){
+            this.boltMap.put(bolt.getId(), bolt);
+        }
     }
 
     public List<StreamDef> getStreams() {
@@ -86,6 +98,16 @@ public class TopologyDef {
         }
         return -1;
     }
+
+    public BoltDef getBoltDef(String id){
+        return this.boltMap.get(id);
+    }
+
+    public SpoutDef getSpoutDef(String id){
+        return this.spoutMap.get(id);
+    }
+
+
 
     public BeanDef getComponent(String id){
         return this.componentMap.get(id);

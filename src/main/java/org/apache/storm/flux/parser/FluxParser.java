@@ -10,13 +10,38 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class FluxParser {
     private static final Logger LOG = LoggerFactory.getLogger(FluxParser.class);
 
     private FluxParser(){}
 
-    public static TopologyDef parse(String inputFile) throws Exception {
+    public static TopologyDef parseFile(String inputFile) throws IOException {
+        Yaml yaml = yaml();
+
+        FileInputStream in = new FileInputStream(inputFile);
+        TopologyDef topology = (TopologyDef)yaml.load(in);
+
+        in.close();
+        LOG.debug("Configuration (interpreted): \n" + yaml.dump(topology));
+        return topology;
+    }
+
+    public static TopologyDef parseResource(String resource) throws IOException {
+        Yaml yaml = yaml();
+
+        InputStream in = FluxParser.class.getResourceAsStream(resource);
+
+        TopologyDef topology = (TopologyDef)yaml.load(in);
+
+        in.close();
+        LOG.debug("Configuration (interpreted): \n" + yaml.dump(topology));
+        return topology;
+    }
+
+    private static Yaml yaml(){
         Constructor constructor = new Constructor(TopologyDef.class);
 
         TypeDescription topologyDescription = new TypeDescription(TopologyDef.class);
@@ -25,12 +50,6 @@ public class FluxParser {
         constructor.addTypeDescription(topologyDescription);
 
         Yaml  yaml = new Yaml(constructor);
-
-        FileInputStream in = new FileInputStream(inputFile);
-        TopologyDef topology = (TopologyDef)yaml.load(in);
-
-        in.close();
-        LOG.debug("Configuration (interpreted): \n" + yaml.dump(topology));
-        return topology;
+        return yaml;
     }
 }

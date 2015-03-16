@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 public class TCKTest {
     @Test
     public void testTCK() throws Exception {
-        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/tck.yaml");
+        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/tck.yaml");
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -21,7 +21,7 @@ public class TCKTest {
 
     @Test
     public void testShellComponents() throws Exception {
-        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/shell_test.yaml");
+        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/shell_test.yaml");
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -31,11 +31,33 @@ public class TCKTest {
 
     @Test
     public void testKafkaSpoutConfig() throws Exception {
-        TopologyDef topologyDef = FluxParser.parse("src/test/resources/configs/kafka_test.yaml");
+        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/kafka_test.yaml");
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
         assertNotNull(topology);
         topology.validate();
     }
+
+    @Test
+    public void testLoadFromResource() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/kafka_test.yaml");
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
+
+//    @Test
+//    public void testLoadFromAbsoluteResource() throws Exception {
+//        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/kafka_test.yaml");
+//        Config conf = FluxBuilder.buildConfig(topologyDef);
+//        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+//        StormTopology topology = FluxBuilder.buildTopology(context);
+//        assertNotNull(topology);
+//        topology.validate();
+//    }
+
+
 }

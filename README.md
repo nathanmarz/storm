@@ -53,9 +53,12 @@ To use Flux, add it as a dependency and package all your Storm components in a f
 to define your topology (see below).
 
 ```
-usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux [options]
-             <topology-config.yaml>
+usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
+             [options] <topology-config.yaml>
+ -d,--dry-run         Do not run or deploy the topology. Just build,
+                      validate, print information about the topology.
  -l,--local           Run the topology in local mode.
+ -q,--no-detail       Supress the printing of topology details.
  -r,--remote          Deploy the topology to a remote cluster.
  -R,--resource        Treat the supplied path as a classpath resource
                       instead of a file. (not implemented)

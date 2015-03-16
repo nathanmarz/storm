@@ -1,4 +1,5 @@
 ## 0.10.0
+ * STORM-699: storm-jdbc should support custom insert queries. 
  * STORM-625: Don't leak netty clients when worker moves or reuse netty client.	
  * STORM-682: supervisor should handle worker state corruption gracefully.
  * STORM-446: Allow superusers to impersonate other users in secure mode.

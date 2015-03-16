@@ -147,9 +147,11 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     private MessageBatch messageBatch = null;
     private final ListeningScheduledExecutorService scheduler;
     protected final Map stormConf;
+    private Context context;
 
     @SuppressWarnings("rawtypes")
-    Client(Map stormConf, ChannelFactory factory, ScheduledExecutorService scheduler, String host, int port) {
+    Client(Map stormConf, ChannelFactory factory, ScheduledExecutorService scheduler, String host, int port, Context context) {
+        this.context = context;
         closing = false;
         this.stormConf = stormConf;
         this.scheduler =  MoreExecutors.listeningDecorator(scheduler);
@@ -508,6 +510,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     public void close() {
         if (!closing) {
             LOG.info("closing Netty Client {}", dstAddressPrefixedName);
+            context.removeClient(dstAddress.getHostName(),dstAddress.getPort());
+            context = null;
             // Set closing to true to prevent any further reconnection attempts.
             closing = true;
             flushPendingMessages();

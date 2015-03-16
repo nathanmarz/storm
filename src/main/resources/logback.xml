@@ -23,7 +23,7 @@
   </appender>
   <logger name="org.apache.storm.zookeeper" level="WARN"/>
     <logger name="org.apache.storm.curator" level="WARN"/>
-    <logger name="org.apache.storm.flux" level="DEBUG"/>
+    <logger name="org.apache.storm.flux" level="INFO"/>
   <root level="DEBUG">
     <appender-ref ref="A1"/>
   </root>

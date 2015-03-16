@@ -436,20 +436,20 @@ public class FluxBuilder {
             Object obj = args.get(i);
             Class paramType = parameterTypes[i];
             Class objectType = obj.getClass();
-            LOG.info("Comparing parameter class {} to object class {} to see if assignment is possible.",
+            LOG.debug("Comparing parameter class {} to object class {} to see if assignment is possible.",
                     paramType, objectType);
             if (paramType.equals(objectType)) {
-                LOG.info("Yes, they are the same class.");
+                LOG.debug("Yes, they are the same class.");
                 return true;
             }
             if (paramType.isAssignableFrom(objectType)) {
-                LOG.info("Yes, assignment is possible.");
+                LOG.debug("Yes, assignment is possible.");
                 return true;
             }
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
-                LOG.info("I think so. If we convert a List to an array.");
-                LOG.info("Array Type: {}, List type: {}", paramType.getComponentType(), ((List) obj).get(0).getClass());
+                LOG.debug("I think so. If we convert a List to an array.");
+                LOG.debug("Array Type: {}, List type: {}", paramType.getComponentType(), ((List) obj).get(0).getClass());
 
                 return true;
             }

@@ -21,7 +21,7 @@ public class FluxParser {
     public static TopologyDef parseFile(String inputFile, boolean dumpYaml) throws IOException {
         Yaml yaml = yaml();
         FileInputStream in = new FileInputStream(inputFile);
-        TopologyDef topology = (TopologyDef)yaml.load(in);
+        TopologyDef topology = loadYaml(yaml, in);
         in.close();
         if(dumpYaml){
             dumpYaml(topology, yaml);
@@ -32,12 +32,16 @@ public class FluxParser {
     public static TopologyDef parseResource(String resource, boolean dumpYaml) throws IOException {
         Yaml yaml = yaml();
         InputStream in = FluxParser.class.getResourceAsStream(resource);
-        TopologyDef topology = (TopologyDef)yaml.load(in);
+        TopologyDef topology = loadYaml(yaml, in);
         in.close();
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
         return topology;
+    }
+
+    private static TopologyDef loadYaml(Yaml yaml, InputStream in){
+        return (TopologyDef)yaml.load(in);
     }
 
     private static void dumpYaml(TopologyDef topology, Yaml yaml){

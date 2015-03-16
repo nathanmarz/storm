@@ -2,9 +2,7 @@ package org.apache.storm.flux.model;
 
 import backtype.storm.generated.Bolt;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Bean represenation of a topology.
@@ -20,13 +18,10 @@ import java.util.Map;
 public class TopologyDef {
 
     private String name;
-    private List<BeanDef> components;
-    private Map<String, BeanDef> componentMap;
+    private Map<String, BeanDef> componentMap = new LinkedHashMap<String, BeanDef>(); // not required
     private Map<String, BoltDef> boltMap;
     private Map<String, SpoutDef> spoutMap;
     private Map<String, Object> config;
-    private List<SpoutDef> spouts;
-    private List<BoltDef> bolts;
     private List<StreamDef> streams;
     private List<IncludeDef> includes;
 
@@ -39,25 +34,27 @@ public class TopologyDef {
     }
 
     public List<SpoutDef> getSpouts() {
-        return spouts;
+        ArrayList<SpoutDef> retval = new ArrayList<SpoutDef>();
+        retval.addAll(this.spoutMap.values());
+        return retval;
     }
 
     public void setSpouts(List<SpoutDef> spouts) {
-        this.spouts = spouts;
-        this.spoutMap = new HashMap<String, SpoutDef>();
-        for(SpoutDef spout : this.spouts){
+        this.spoutMap = new LinkedHashMap<String, SpoutDef>();
+        for(SpoutDef spout : spouts){
             this.spoutMap.put(spout.getId(), spout);
         }
     }
 
     public List<BoltDef> getBolts() {
-        return bolts;
+        ArrayList<BoltDef> retval = new ArrayList<BoltDef>();
+        retval.addAll(this.boltMap.values());
+        return retval;
     }
 
     public void setBolts(List<BoltDef> bolts) {
-        this.bolts = bolts;
-        this.boltMap = new HashMap<String, BoltDef>();
-        for(BoltDef bolt : this.bolts){
+        this.boltMap = new LinkedHashMap<String, BoltDef>();
+        for(BoltDef bolt : bolts){
             this.boltMap.put(bolt.getId(), bolt);
         }
     }
@@ -79,13 +76,14 @@ public class TopologyDef {
     }
 
     public List<BeanDef> getComponents() {
-        return components;
+        ArrayList<BeanDef> retval = new ArrayList<BeanDef>();
+        retval.addAll(this.componentMap.values());
+        return retval;
     }
 
     public void setComponents(List<BeanDef> components) {
-        this.components = components;
-        this.componentMap = new HashMap<String, BeanDef>();
-        for(BeanDef component : this.components){
+        this.componentMap = new LinkedHashMap<String, BeanDef>();
+        for(BeanDef component : components){
             this.componentMap.put(component.getId(), component);
         }
     }
@@ -100,12 +98,7 @@ public class TopologyDef {
 
     // utility methods
     public int parallelismForBolt(String boltId){
-        for(BoltDef bd : this.bolts){
-            if(bd.getId().equals(boltId)){
-                return bd.getParallelism();
-            }
-        }
-        return -1;
+        return this.boltMap.get(boltId).getParallelism();
     }
 
     public BoltDef getBoltDef(String id){

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class FluxBuilder {
@@ -140,7 +141,7 @@ public class FluxBuilder {
      */
     private static void buildComponents(ExecutionContext context) throws ClassNotFoundException, NoSuchMethodException,
             IllegalAccessException, InvocationTargetException, InstantiationException {
-        List<BeanDef> cDefs = context.getTopologyDef().getComponents();
+        Collection<BeanDef> cDefs = context.getTopologyDef().getComponents();
         if (cDefs != null) {
             for (BeanDef bean : cDefs) {
                 Class clazz = Class.forName(bean.getClassName());

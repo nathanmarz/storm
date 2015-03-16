@@ -62,9 +62,17 @@ public class FluxParser {
         return yaml;
     }
 
+    /**
+     *
+     * @param yaml the yaml parser for parsing the include file(s)
+     * @param topologyDef the topology definition containing (possibly zero) includes
+     * @return The TopologyDef with includes resolved.
+     */
     private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef){
 
+//        for()
         //TODO load referenced YAML file/resource
+
 
         // remove includes from topo def after processing
 

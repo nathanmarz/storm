@@ -22,6 +22,7 @@ import backtype.storm.topology.FailedException;
 import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.common.JdbcClient;
 import org.apache.storm.jdbc.mapper.JdbcMapper;
@@ -55,6 +56,7 @@ public class JdbcState implements State {
         private JdbcLookupMapper jdbcLookupMapper;
         private String configKey;
         private String tableName;
+        private String insertQuery;
         private String selectQuery;
         private Integer queryTimeoutSecs;
 
@@ -65,6 +67,11 @@ public class JdbcState implements State {
 
         public Options withTableName(String tableName) {
             this.tableName = tableName;
+            return this;
+        }
+
+        public Options withInsertQuery(String insertQuery) {
+            this.insertQuery = insertQuery;
             return this;
         }
 
@@ -93,6 +100,11 @@ public class JdbcState implements State {
         Map<String, Object> conf = (Map<String, Object>) map.get(options.configKey);
         Validate.notEmpty(conf, "Hikari configuration not found using key '" + options.configKey + "'");
 
+        if(StringUtils.isBlank(options.insertQuery) && StringUtils.isBlank(options.tableName) && StringUtils.isBlank(options.selectQuery)) {
+            throw new IllegalArgumentException("If you are trying to insert into DB you must supply either insertQuery or tableName." +
+                    "If you are attempting to user a query state you must supply a select query.");
+        }
+
         if(options.queryTimeoutSecs == null) {
             options.queryTimeoutSecs = Integer.parseInt(map.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS).toString());
         }
@@ -118,7 +130,11 @@ public class JdbcState implements State {
         }
 
         try {
-            jdbcClient.insert(options.tableName, columnsLists);
+            if(!StringUtils.isBlank(options.tableName)) {
+                jdbcClient.insert(options.tableName, columnsLists);
+            } else {
+                jdbcClient.executeInsertQuery(options.insertQuery, columnsLists);
+            }
         } catch (Exception e) {
             LOG.warn("Batch write failed but some requests might have succeeded. Triggering replay.", e);
             throw new FailedException(e);

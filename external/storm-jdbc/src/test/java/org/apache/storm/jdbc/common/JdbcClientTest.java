@@ -51,34 +51,39 @@ public class JdbcClientTest {
 
     @Test
     public void testInsertAndSelect() {
-        int id1 = 1;
-        String name1 = "bob";
-        Timestamp createDate1 = new Timestamp(System.currentTimeMillis());
 
-        List<Column> row1 = Lists.newArrayList(
-                new Column("ID",id1, Types.INTEGER),
-                new Column("USER_NAME",name1, Types.VARCHAR),
-                new Column("CREATED_TIMESTAMP", createDate1 , Types.TIMESTAMP));
-
-        int id2 = 2;
-        String name2 = "alice";
-        Timestamp createDate2 = new Timestamp(System.currentTimeMillis());
-        List<Column> row2 = Lists.newArrayList(
-                new Column("ID",id2, Types.INTEGER),
-                new Column("USER_NAME",name2, Types.VARCHAR),
-                new Column("CREATED_TIMESTAMP", createDate2 , Types.TIMESTAMP));
+        List<Column> row1 = createRow(1, "bob");
+        List<Column> row2 = createRow(2, "alice");
 
         List<List<Column>> rows = Lists.newArrayList(row1, row2);
         client.insert(tableName, rows);
 
-        List<List<Column>> selectedRows = client.select("select * from user_details where id = ?", Lists.newArrayList(new Column("id", id1, Types.INTEGER)));
+        List<List<Column>> selectedRows = client.select("select * from user_details where id = ?", Lists.newArrayList(new Column("id", 1, Types.INTEGER)));
         List<List<Column>> expectedRows = Lists.newArrayList();
         expectedRows.add(row1);
-
         Assert.assertEquals(expectedRows, selectedRows);
 
+        List<Column> row3 = createRow(3, "frank");
+        List<List<Column>> moreRows  = new ArrayList<List<Column>>();
+        moreRows.add(row3);
+        client.executeInsertQuery("insert into user_details values(?,?,?)", moreRows);
+
+        selectedRows = client.select("select * from user_details where id = ?", Lists.newArrayList(new Column("id", 3, Types.INTEGER)));
+        expectedRows = Lists.newArrayList();
+        expectedRows.add(row3);
+        Assert.assertEquals(expectedRows, selectedRows);
+
+
         selectedRows = client.select("select * from user_details order by id", Lists.<Column>newArrayList());
+        rows.add(row3);
         Assert.assertEquals(rows, selectedRows);
+    }
+
+    private List<Column> createRow(int id, String name) {
+        return Lists.newArrayList(
+                new Column("ID", id, Types.INTEGER),
+                new Column("USER_NAME", name, Types.VARCHAR),
+                new Column("CREATED_TIMESTAMP",  new Timestamp(System.currentTimeMillis()) , Types.TIMESTAMP));
     }
 
     @After

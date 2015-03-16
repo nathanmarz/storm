@@ -67,6 +67,34 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
                       down the local cluster.
 ```
 
+### Sample output
+```
+███████╗██╗     ██╗   ██╗██╗  ██╗
+██╔════╝██║     ██║   ██║╚██╗██╔╝
+█████╗  ██║     ██║   ██║ ╚███╔╝
+██╔══╝  ██║     ██║   ██║ ██╔██╗
+██║     ███████╗╚██████╔╝██╔╝ ██╗
+╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝
++-         Apache Storm        -+
++-  data FLow User eXperience  -+
+Version: 1.0-SNAPSHOT
+Parsing classpath resource: /Users/hsimpson/Projects/donut_domination/storm/shell_test.yaml
+---------- TOPOLOGY DETAILS ----------
+Name: shell-topology
+--------------- SPOUTS ---------------
+sentence-spout[1](org.apache.storm.flux.spouts.GenericShellSpout)
+---------------- BOLTS ---------------
+splitsentence[1](org.apache.storm.flux.bolts.GenericShellBolt)
+log[1](org.apache.storm.flux.test.LogInfoBolt)
+count[1](backtype.storm.testing.TestWordCounter)
+--------------- STREAMS ---------------
+sentence-spout --SHUFFLE--> splitsentence
+splitsentence --FIELDS--> count
+count --SHUFFLE--> log
+--------------------------------------
+Submitting topology: 'shell-topology' to remote cluster...
+```
+
 ## YAML Configuration
 Flux topologies are defined in a YAML file that describes a topology. A Flux topology
 definition consists of the following:

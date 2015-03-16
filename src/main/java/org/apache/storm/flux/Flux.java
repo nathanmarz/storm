@@ -11,6 +11,8 @@ import org.apache.storm.flux.parser.FluxParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.*;
+
 /**
  * Flux entry point.
  *
@@ -86,14 +88,21 @@ public class Flux {
     }
 
     private static void runCli(CommandLine cmd)throws Exception {
+        printSplash();
+
+
         boolean dumpYaml = cmd.hasOption("dump-yaml");
 
 
         TopologyDef topologyDef = null;
+        String filePath = (String)cmd.getArgList().get(0);
         if(cmd.hasOption("resource")){
-            topologyDef = FluxParser.parseResource((String)cmd.getArgList().get(0), dumpYaml);
+            printf("Parsing classpath resource: %s", filePath);
+            topologyDef = FluxParser.parseResource(filePath, dumpYaml);
         } else {
-            topologyDef = FluxParser.parseFile((String)cmd.getArgList().get(0), dumpYaml);
+            printf("Parsing classpath resource: %s",
+                    new File(filePath).getAbsolutePath());
+            topologyDef = FluxParser.parseFile(filePath, dumpYaml);
         }
 
 
@@ -165,5 +174,17 @@ public class Flux {
 
     private static void print(String string){
         System.out.println(string);
+    }
+
+    private static void printSplash() throws IOException {
+        // banner
+        InputStream is = Flux.class.getResourceAsStream("/splash.txt");
+        if(is != null){
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            while((line = br.readLine()) != null){
+                System.out.println(line);
+            }
+        }
     }
 }

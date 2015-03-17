@@ -9,8 +9,6 @@
 4. A substance mixed with a solid to lower its melting point
 
 ## About
-What is "flux"?
-
 Flux is a framework and set of utilities that make defining and deploying Apache Storm topologies less painful and
 deveoper-intensive.
 

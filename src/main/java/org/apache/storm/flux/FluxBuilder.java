@@ -19,6 +19,7 @@ package org.apache.storm.flux;
 
 import backtype.storm.Config;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.*;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -63,8 +64,6 @@ public class FluxBuilder {
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        TopologyDef topologyDef = context.getTopologyDef();
-
         // build components that may be referenced by spouts, bolts, etc.
         // the map will be a String --> Object where the object is a fully
         // constructed class instance
@@ -87,7 +86,7 @@ public class FluxBuilder {
      * @param context
      * @param builder
      */
-    private static void buildStreamDefinitions(ExecutionContext context, TopologyBuilder builder) {
+    private static void buildStreamDefinitions(ExecutionContext context, TopologyBuilder builder) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         TopologyDef topologyDef = context.getTopologyDef();
         // process stream definitions
         for (StreamDef stream : topologyDef.getStreams()) {
@@ -135,11 +134,34 @@ public class FluxBuilder {
                 case NONE:
                     declarer.noneGrouping(stream.getFrom(), streamId);
                     break;
-                // TODO custom groupings
+                case CUSTOM:
+                    declarer.customGrouping(stream.getFrom(), streamId,
+                            buildCustomStreamGrouping(stream.getGrouping().getCustomClass(), context));
+                    break;
                 default:
                     throw new UnsupportedOperationException("unsupported grouping type: " + grouping);
             }
         }
+    }
+
+    private static CustomStreamGrouping buildCustomStreamGrouping(ObjectDef def, ExecutionContext context) throws ClassNotFoundException,
+            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+        Class clazz = Class.forName(def.getClassName());
+        CustomStreamGrouping grouping = null;
+        if (def.hasConstructorArgs()) {
+            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+            List<Object> cArgs = resolveReferences(def, context);
+            Constructor con = findCompatibleConstructor(cArgs, clazz);
+            if (con != null) {
+                LOG.debug("Found something seemingly compatible, attempting invocation...");
+                grouping = (CustomStreamGrouping) con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
+            } else {
+                throw new IllegalArgumentException("Couldn't find a suitable StreamGroping constructor.");
+            }
+        } else {
+            grouping = (CustomStreamGrouping) clazz.newInstance();
+        }
+        return grouping;
     }
 
 
@@ -183,7 +205,7 @@ public class FluxBuilder {
         }
     }
 
-    public static List<Object> resolveReferences(BeanDef bean, ExecutionContext context) {
+    public static List<Object> resolveReferences(ObjectDef bean, ExecutionContext context) {
         LOG.debug("Checking arguments for references.");
         List<Object> cArgs;
         // resolve references
@@ -203,7 +225,7 @@ public class FluxBuilder {
     }
 
 
-    public static void applyProperties(BeanDef bean, Object instance, ExecutionContext context) throws
+    public static void applyProperties(ObjectDef bean, Object instance, ExecutionContext context) throws
             IllegalAccessException, InvocationTargetException {
         List<PropertyDef> props = bean.getProperties();
         Class clazz = instance.getClass();
@@ -413,6 +435,11 @@ public class FluxBuilder {
                 constructorParams[i] = args.get(i);
                 continue;
             }
+            if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
+                constructorParams[i] = args.get(i);
+                continue;
+            }
+
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
                 LOG.debug("Conversion appears possible...");
@@ -461,6 +488,9 @@ public class FluxBuilder {
                 LOG.debug("Yes, assignment is possible.");
                 return true;
             }
+            if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
+                return true;
+            }
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
                 LOG.debug("I think so. If we convert a List to an array.");
@@ -471,6 +501,10 @@ public class FluxBuilder {
             return false;
         }
         return false;
+    }
+
+    public static boolean isPrimitiveNumber(Class clazz){
+        return clazz.isPrimitive() && !clazz.equals(boolean.class);
     }
 }
 

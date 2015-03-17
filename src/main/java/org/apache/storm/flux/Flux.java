@@ -123,7 +123,7 @@ public class Flux {
             printf("Parsing classpath resource: %s", filePath);
             topologyDef = FluxParser.parseResource(filePath, dumpYaml, true);
         } else {
-            printf("Parsing classpath resource: %s",
+            printf("Parsing file: %s",
                     new File(filePath).getAbsolutePath());
             topologyDef = FluxParser.parseFile(filePath, dumpYaml, true);
         }
@@ -149,14 +149,13 @@ public class Flux {
                 }
             } else {
                 LOG.info("Running in local mode...");
-                LOG.debug("Sleep time: {}", cmd.getOptionValue("sleep"));
-                String sleepStr = cmd.getOptionValue("sleep");
-                Long sleepTime = Long.parseLong(sleepStr);
-                if (sleepTime == null) {
-                    sleepTime = DEFAULT_LOCAL_SLEEP_TIME;
-                    LOG.debug("Using default sleep time of: " + sleepTime);
 
+                String sleepStr = cmd.getOptionValue("sleep");
+                Long sleepTime = DEFAULT_LOCAL_SLEEP_TIME;
+                if (sleepStr != null) {
+                    sleepTime = Long.parseLong(sleepStr);
                 }
+                LOG.debug("Sleep time: {}", sleepTime);
                 LocalCluster cluster = new LocalCluster();
                 cluster.submitTopology(topologyName, conf, topology);
 

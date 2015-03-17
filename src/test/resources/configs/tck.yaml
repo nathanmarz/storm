@@ -81,7 +81,11 @@ streams:
     from: "bolt-1"
     to: "bolt-2"
     grouping:
-      type: SHUFFLE
+      type: CUSTOM
+      customClass:
+        className: "backtype.storm.testing.NGrouping"
+        constructorArgs:
+          - 1
 
 
 

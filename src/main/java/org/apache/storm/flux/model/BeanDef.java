@@ -26,12 +26,8 @@ import java.util.Map;
  * A representation of a Java object that is uniquely identifyable, and given a className, constructor arguments,
  * and properties, can be instantiated.
  */
-public class BeanDef {
+public class BeanDef extends ObjectDef {
     private String id;
-    private String className;
-    private List<Object> constructorArgs;
-    private boolean hasReferences;
-    private List<PropertyDef> properties;
 
     public String getId() {
         return id;
@@ -39,50 +35,5 @@ public class BeanDef {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    public List<Object> getConstructorArgs() {
-        return constructorArgs;
-    }
-
-    public void setConstructorArgs(List<Object> constructorArgs) {
-
-        List<Object> newVal = new ArrayList<Object>();
-        for(Object obj : constructorArgs){
-            if(obj instanceof LinkedHashMap){
-                Map map = (Map)obj;
-                if(map.containsKey("ref") && map.size() == 1){
-                    newVal.add(new BeanReference((String)map.get("ref")));
-                    this.hasReferences = true;
-                }
-            } else {
-                newVal.add(obj);
-            }
-        }
-        this.constructorArgs = newVal;
-    }
-
-    public boolean hasConstructorArgs(){
-        return this.constructorArgs != null && this.constructorArgs.size() > 0;
-    }
-
-    public boolean hasReferences(){
-        return this.hasReferences;
-    }
-
-    public List<PropertyDef> getProperties() {
-        return properties;
-    }
-
-    public void setProperties(List<PropertyDef> properties) {
-        this.properties = properties;
     }
 }

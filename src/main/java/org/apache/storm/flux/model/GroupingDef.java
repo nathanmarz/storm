@@ -41,7 +41,7 @@ public class GroupingDef {
     private Type type;
     private String streamId;
     private List<String> args;
-    private String customClass;
+    private ObjectDef customClass;
 
     public List<String> getArgs() {
         return args;
@@ -67,11 +67,11 @@ public class GroupingDef {
         this.streamId = streamId;
     }
 
-    public String getCustomClass() {
+    public ObjectDef getCustomClass() {
         return customClass;
     }
 
-    public void setCustomClass(String customClass) {
+    public void setCustomClass(ObjectDef customClass) {
         this.customClass = customClass;
     }
 }

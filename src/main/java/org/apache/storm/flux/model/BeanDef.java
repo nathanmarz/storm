@@ -5,6 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A representation of a Java object that is uniquely identifyable, and given a className, constructor arguments,
+ * and properties, can be instantiated.
+ */
 public class BeanDef {
     private String id;
     private String className;

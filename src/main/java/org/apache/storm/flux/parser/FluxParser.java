@@ -13,6 +13,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 public class FluxParser {
     private static final Logger LOG = LoggerFactory.getLogger(FluxParser.class);
@@ -79,54 +80,61 @@ public class FluxParser {
     private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef) throws IOException {
         //TODO support multiple levels of includes
         if(topologyDef.getIncludes() != null) {
-            for (IncludeDef include : topologyDef.getIncludes()) {
-                //TODO load referenced YAML file/resource
-                TopologyDef td = null;
+            for (IncludeDef include : topologyDef.getIncludes()){
+                TopologyDef includeTopologyDef = null;
                 if (include.isResource()) {
                     LOG.info("Loading includes from resource: {}", include.getFile());
-                    td = parseResource(include.getFile(), true, false);
+                    includeTopologyDef = parseResource(include.getFile(), true, false);
                 } else {
                     LOG.info("Loading includes from file: {}", include.getFile());
-                    td = parseFile(include.getFile(), true, false);
+                    includeTopologyDef = parseFile(include.getFile(), true, false);
                 }
+
+                // if overrides are disabled, we won't replace anything that already exists
                 boolean override = include.isOverride();
                 // name
-                if(td.getName() != null){
-                    topologyDef.setName(td.getName(), override);
+                if(includeTopologyDef.getName() != null){
+                    topologyDef.setName(includeTopologyDef.getName(), override);
                 }
 
                 // config
-                //TODO deal with config overrides
-                if(td.getConfig() != null) {
-                    topologyDef.getConfig().putAll(td.getConfig());
+                if(includeTopologyDef.getConfig() != null) {
+                    //TODO move this logic to the model class
+                    Map<String, Object> config = topologyDef.getConfig();
+                    Map<String, Object> includeConfig = includeTopologyDef.getConfig();
+                    if(override) {
+                        config.putAll(includeTopologyDef.getConfig());
+                    } else {
+                        for(String key : includeConfig.keySet()){
+                            if(config.containsKey(key)){
+                                LOG.warn("Ignoring attempt to set topology config property '{}' with override == false", key);
+                            }
+                            else {
+                                config.put(key, includeConfig.get(key));
+                            }
+                        }
+                    }
                 }
 
-                //TODO deal with component overrides
-                if(td.getComponents() != null){
-                    topologyDef.addAllComponents(td.getComponents(), override);
+                //component overrides
+                if(includeTopologyDef.getComponents() != null){
+                    topologyDef.addAllComponents(includeTopologyDef.getComponents(), override);
                 }
-
-                //TODO deal with bolt overrides
-                if(td.getBolts() != null){
-                    topologyDef.addAllBolts(td.getBolts(), override);
+                //bolt overrides
+                if(includeTopologyDef.getBolts() != null){
+                    topologyDef.addAllBolts(includeTopologyDef.getBolts(), override);
                 }
-
-                //TODO deal with spout overrides
-                if(td.getSpouts() != null) {
-                    topologyDef.addAllSpouts(td.getSpouts(), override);
+                //spout overrides
+                if(includeTopologyDef.getSpouts() != null) {
+                    topologyDef.addAllSpouts(includeTopologyDef.getSpouts(), override);
                 }
-
-                //TODO deal with stream overrides
+                //stream overrides
                 //TODO streams should be uniquely identifiable
-                if(td.getStreams() != null) {
-                    topologyDef.addAllStreams(td.getStreams(), override);
+                if(includeTopologyDef.getStreams() != null) {
+                    topologyDef.addAllStreams(includeTopologyDef.getStreams(), override);
                 }
-            }
+            } // end include processing
         }
-
-
-        // remove includes from topo def after processing
-
         return topologyDef;
     }
 }

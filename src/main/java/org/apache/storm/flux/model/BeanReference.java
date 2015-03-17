@@ -1,5 +1,8 @@
 package org.apache.storm.flux.model;
 
+/**
+ * A bean reference is simply a string pointer to another id.
+ */
 public class BeanReference {
     public String id;
 

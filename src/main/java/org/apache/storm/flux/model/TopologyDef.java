@@ -1,6 +1,5 @@
 package org.apache.storm.flux.model;
 
-import backtype.storm.generated.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,28 +125,41 @@ public class TopologyDef {
 
     // used by includes implementation
     public void addAllBolts(List<BoltDef> bolts, boolean override){
-        //TODO respect override
         for(BoltDef bolt : bolts){
-            this.boltMap.put(bolt.getId(), bolt);
+            String id = bolt.getId();
+            if(this.boltMap.get(id) == null || override) {
+                this.boltMap.put(bolt.getId(), bolt);
+            } else {
+                LOG.warn("Ignoring attempt to create bolt '{}' with override == false.", id);
+            }
         }
     }
 
     public void addAllSpouts(List<SpoutDef> spouts, boolean override){
-        //TODO respect override
         for(SpoutDef spout : spouts){
-            this.spoutMap.put(spout.getId(), spout);
+            String id = spout.getId();
+            if(this.spoutMap.get(id) == null || override) {
+                this.spoutMap.put(spout.getId(), spout);
+            } else {
+                LOG.warn("Ignoring attempt to create spout '{}' with override == false.", id);
+            }
         }
     }
 
     public void addAllComponents(List<BeanDef> components, boolean override) {
-        //TODO respect override
         for(BeanDef bean : components){
-            this.componentMap.put(bean.getId(), bean);
+            String id = bean.getId();
+            if(this.componentMap.get(id) == null || override) {
+                this.componentMap.put(bean.getId(), bean);
+            } else {
+                LOG.warn("Ignoring attempt to create component '{}' with override == false.", id);
+            }
         }
     }
 
     public void addAllStreams(List<StreamDef> streams, boolean override) {
-        //TODO respect override
+        //TODO figure out how we want to deal with overrides. Users may want to add streams even when overriding other
+        // properties. For now we just add them blindly which could lead to a potentially invalid topology.
         this.streams.addAll(streams);
     }
 }

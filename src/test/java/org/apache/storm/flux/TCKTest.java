@@ -57,7 +57,7 @@ public class TCKTest {
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
         assertNotNull(topology);
-        assertTrue(topologyDef.getName().equals("yaml-topology"));
+        assertTrue(topologyDef.getName().equals("include-topology"));
         assertTrue(topologyDef.getBolts().size() > 0);
         assertTrue(topologyDef.getSpouts().size() > 0);
         topology.validate();

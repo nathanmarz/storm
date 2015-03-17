@@ -116,8 +116,6 @@ public class Flux {
             printTopologyInfo(context);
         }
 
-
-
         if(!cmd.hasOption("dry-run")) {
             if (cmd.hasOption("remote")) {
                 LOG.info("Running remotely...");
@@ -150,7 +148,7 @@ public class Flux {
         TopologyDef t = ctx.getTopologyDef();
         print("---------- TOPOLOGY DETAILS ----------");
 
-        printf("Name: %s", t.getName());
+        printf("Topology Name: %s", t.getName());
         print("--------------- SPOUTS ---------------");
         for(SpoutDef s : t.getSpouts()){
             printf("%s[%d](%s)", s.getId(), s.getParallelism(), s.getClassName());

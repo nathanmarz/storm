@@ -1,9 +1,9 @@
 # Test includes by defining nothing, and simply override the topology name
 ---
 
-name: "yaml-topology"
+name: "include-topology"
 
 includes:
   - resource: false
     file: "src/test/resources/configs/shell_test.yaml"
-    override: false
+    override: false #otherwise subsequent includes that define 'name' would override

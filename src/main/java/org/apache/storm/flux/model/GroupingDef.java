@@ -4,7 +4,7 @@ package org.apache.storm.flux.model;
 import java.util.List;
 
 /**
- * Bean representation of a Storm stream grouoing.
+ * Bean representation of a Storm stream grouping.
  */
 public class GroupingDef {
 

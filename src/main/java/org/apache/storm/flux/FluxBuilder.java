@@ -1,6 +1,5 @@
 package org.apache.storm.flux;
 
-
 import backtype.storm.Config;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.*;
@@ -409,9 +408,7 @@ public class FluxBuilder {
                     Array.set(newArrayObj, j, list.get(j));
 
                 }
-
                 constructorParams[i] = newArrayObj;
-
                 LOG.debug("After conversion: {}", constructorParams[i]);
             }
         }
@@ -454,7 +451,6 @@ public class FluxBuilder {
 
                 return true;
             }
-
             return false;
         }
         return false;

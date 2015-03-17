@@ -117,4 +117,3 @@ streams:
     to: "log"
     grouping:
       type: SHUFFLE
-

@@ -81,6 +81,7 @@
  * STORM-669: Replace links with ones to latest api document
  * STORM-670: restore java 1.6 compatibility (storm-kafka)
  * STORM-696: Single Namespace Test Launching
+ * STORM-689: SimpleACLAuthorizer should provide a way to restrict who can submit topologies.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

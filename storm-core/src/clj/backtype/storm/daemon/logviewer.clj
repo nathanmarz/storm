@@ -377,5 +377,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn -main []
   (let [conf (read-storm-config)
         log-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
+    (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
     (start-logviewer! conf log-root)))

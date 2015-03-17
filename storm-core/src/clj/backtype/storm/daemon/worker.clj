@@ -544,6 +544,7 @@
 
 (defn -main [storm-id assignment-id port-str worker-id]  
   (let [conf (read-storm-config)]
+    (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown worker)))))

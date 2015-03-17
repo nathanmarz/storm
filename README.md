@@ -64,12 +64,13 @@ to define your topology (see below).
 usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
              [options] <topology-config.yaml>
  -d,--dry-run         Do not run or deploy the topology. Just build,
-                      validate, print information about the topology.
+                      validate, and print information about the topology.
  -l,--local           Run the topology in local mode.
+ -n,--no-splash       Supress the printing of the splash screen.
  -q,--no-detail       Supress the printing of topology details.
  -r,--remote          Deploy the topology to a remote cluster.
  -R,--resource        Treat the supplied path as a classpath resource
-                      instead of a file. (not implemented)
+                      instead of a file.
  -s,--sleep <sleep>   When running locally, the amount of time to sleep
                       (in ms.) before killing the topology and shutting
                       down the local cluster.
@@ -85,7 +86,7 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
 ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝
 +-         Apache Storm        -+
 +-  data FLow User eXperience  -+
-Version: 1.0-SNAPSHOT
+Version: 0.1.0-SNAPSHOT
 Parsing classpath resource: /Users/hsimpson/Projects/donut_domination/storm/shell_test.yaml
 ---------- TOPOLOGY DETAILS ----------
 Name: shell-topology

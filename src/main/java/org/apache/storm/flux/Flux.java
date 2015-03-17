@@ -86,6 +86,12 @@ public class Flux {
                 .create("q");
         options.addOption(noDetailOpt);
 
+        Option noSplashOpt = OptionBuilder.hasArgs(0)
+                .withArgName("no-splash")
+                .withLongOpt("no-splash")
+                .withDescription("Supress the printing of the splash screen.")
+                .create("n");
+        options.addOption(noSplashOpt);
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -105,11 +111,11 @@ public class Flux {
     }
 
     private static void runCli(CommandLine cmd)throws Exception {
-        printSplash();
-
+        if(!cmd.hasOption("no-splash")) {
+            printSplash();
+        }
 
         boolean dumpYaml = cmd.hasOption("dump-yaml");
-
 
         TopologyDef topologyDef = null;
         String filePath = (String)cmd.getArgList().get(0);

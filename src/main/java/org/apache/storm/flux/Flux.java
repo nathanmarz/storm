@@ -98,11 +98,11 @@ public class Flux {
         String filePath = (String)cmd.getArgList().get(0);
         if(cmd.hasOption("resource")){
             printf("Parsing classpath resource: %s", filePath);
-            topologyDef = FluxParser.parseResource(filePath, dumpYaml);
+            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true);
         } else {
             printf("Parsing classpath resource: %s",
                     new File(filePath).getAbsolutePath());
-            topologyDef = FluxParser.parseFile(filePath, dumpYaml);
+            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true);
         }
 
 

@@ -19,7 +19,7 @@ public class FluxParser {
 
     private FluxParser(){}
 
-    public static TopologyDef parseFile(String inputFile, boolean dumpYaml) throws IOException {
+    public static TopologyDef parseFile(String inputFile, boolean dumpYaml, boolean processIncludes) throws IOException {
         Yaml yaml = yaml();
         FileInputStream in = new FileInputStream(inputFile);
         TopologyDef topology = loadYaml(yaml, in);
@@ -27,10 +27,14 @@ public class FluxParser {
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
-        return processIncludes(yaml, topology);
+        if(processIncludes) {
+            return processIncludes(yaml, topology);
+        } else {
+            return topology;
+        }
     }
 
-    public static TopologyDef parseResource(String resource, boolean dumpYaml) throws IOException {
+    public static TopologyDef parseResource(String resource, boolean dumpYaml, boolean processIncludes) throws IOException {
         Yaml yaml = yaml();
         InputStream in = FluxParser.class.getResourceAsStream(resource);
         TopologyDef topology = loadYaml(yaml, in);
@@ -38,7 +42,11 @@ public class FluxParser {
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
-        return processIncludes(yaml, topology);
+        if(processIncludes) {
+            return processIncludes(yaml, topology);
+        } else {
+            return topology;
+        }
     }
 
     private static TopologyDef loadYaml(Yaml yaml, InputStream in){
@@ -68,10 +76,53 @@ public class FluxParser {
      * @param topologyDef the topology definition containing (possibly zero) includes
      * @return The TopologyDef with includes resolved.
      */
-    private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef){
+    private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef) throws IOException {
+        //TODO support multiple levels of includes
+        if(topologyDef.getIncludes() != null) {
+            for (IncludeDef include : topologyDef.getIncludes()) {
+                //TODO load referenced YAML file/resource
+                TopologyDef td = null;
+                if (include.isResource()) {
+                    LOG.info("Loading includes from resource: {}", include.getFile());
+                    td = parseResource(include.getFile(), true, false);
+                } else {
+                    LOG.info("Loading includes from file: {}", include.getFile());
+                    td = parseFile(include.getFile(), true, false);
+                }
+                boolean override = include.isOverride();
+                // name
+                if(td.getName() != null){
+                    topologyDef.setName(td.getName(), override);
+                }
 
-//        for()
-        //TODO load referenced YAML file/resource
+                // config
+                //TODO deal with config overrides
+                if(td.getConfig() != null) {
+                    topologyDef.getConfig().putAll(td.getConfig());
+                }
+
+                //TODO deal with component overrides
+                if(td.getComponents() != null){
+                    topologyDef.addAllComponents(td.getComponents(), override);
+                }
+
+                //TODO deal with bolt overrides
+                if(td.getBolts() != null){
+                    topologyDef.addAllBolts(td.getBolts(), override);
+                }
+
+                //TODO deal with spout overrides
+                if(td.getSpouts() != null) {
+                    topologyDef.addAllSpouts(td.getSpouts(), override);
+                }
+
+                //TODO deal with stream overrides
+                //TODO streams should be uniquely identifiable
+                if(td.getStreams() != null) {
+                    topologyDef.addAllStreams(td.getStreams(), override);
+                }
+            }
+        }
 
 
         // remove includes from topo def after processing

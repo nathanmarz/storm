@@ -1,6 +1,8 @@
 package org.apache.storm.flux.model;
 
 import backtype.storm.generated.Bolt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -16,13 +18,14 @@ import java.util.*;
  *
  */
 public class TopologyDef {
+    private static Logger LOG = LoggerFactory.getLogger(TopologyDef.class);
 
     private String name;
     private Map<String, BeanDef> componentMap = new LinkedHashMap<String, BeanDef>(); // not required
-    private Map<String, BoltDef> boltMap;
-    private Map<String, SpoutDef> spoutMap;
-    private Map<String, Object> config;
-    private List<StreamDef> streams;
+    private Map<String, BoltDef> boltMap = new LinkedHashMap<String, BoltDef>();
+    private Map<String, SpoutDef> spoutMap = new LinkedHashMap<String, SpoutDef>();
+    private Map<String, Object> config = new HashMap<String, Object>();
+    private List<StreamDef> streams = new ArrayList<StreamDef>();
     private List<IncludeDef> includes;
 
     public String getName() {
@@ -31,6 +34,14 @@ public class TopologyDef {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setName(String name, boolean override){
+        if(this.name == null || override){
+            this.name = name;
+        } else {
+            LOG.warn("Ignoring attempt to set property 'name' with override == false.");
+        }
     }
 
     public List<SpoutDef> getSpouts() {
@@ -111,5 +122,32 @@ public class TopologyDef {
 
     public BeanDef getComponent(String id){
         return this.componentMap.get(id);
+    }
+
+    // used by includes implementation
+    public void addAllBolts(List<BoltDef> bolts, boolean override){
+        //TODO respect override
+        for(BoltDef bolt : bolts){
+            this.boltMap.put(bolt.getId(), bolt);
+        }
+    }
+
+    public void addAllSpouts(List<SpoutDef> spouts, boolean override){
+        //TODO respect override
+        for(SpoutDef spout : spouts){
+            this.spoutMap.put(spout.getId(), spout);
+        }
+    }
+
+    public void addAllComponents(List<BeanDef> components, boolean override) {
+        //TODO respect override
+        for(BeanDef bean : components){
+            this.componentMap.put(bean.getId(), bean);
+        }
+    }
+
+    public void addAllStreams(List<StreamDef> streams, boolean override) {
+        //TODO respect override
+        this.streams.addAll(streams);
     }
 }

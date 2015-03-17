@@ -1,15 +1,9 @@
-# YAML configuration to serve as a basic smoke test for what is supported.
-#
-# We should support comments, so if we've failed so far, things aren't good.
-
-# we shouldn't choke if we see a document separator...
+# Test includes by defining nothing, and simply override the topology name
 ---
 
-# topology definition
-# name to be used when submitting
 name: "yaml-topology"
 
 includes:
   - resource: false
-    file: "src/test/resources/shell_test.yaml"
-    override: true
+    file: "src/test/resources/configs/shell_test.yaml"
+    override: false

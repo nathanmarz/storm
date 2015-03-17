@@ -60,11 +60,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_MESSAGING_NETTY_BUFFER_SIZE = "storm.messaging.netty.buffer_size";
     public static final Object STORM_MESSAGING_NETTY_BUFFER_SIZE_SCHEMA = ConfigValidation.IntegerValidator;
-    
+
     /**
      * Netty based messaging: Sets the backlog value to specify when the channel binds to a local address
      */
-    public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog"; 
+    public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog";
     public static final Object STORM_MESSAGING_NETTY_SOCKET_BACKLOG_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
@@ -339,6 +339,20 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_ADMINS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of users that are the only ones allowed to run user operation on storm cluster.
+     * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    public static final String NIMBUS_USERS = "nimbus.users";
+    public static final Object NIMBUS_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of groups , users belong to these groups are the only ones allowed to run user operation on storm cluster.
+     * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    public static final String NIMBUS_GROUPS = "nimbus.groups";
+    public static final Object NIMBUS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * A list of users that run the supervisors and should be authorized to interact with
      * nimbus as a supervisor would.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
@@ -479,7 +493,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_HOST = "ui.host";
     public static final Object UI_HOST_SCHEMA = String.class;
-    
+
     /**
      * Storm UI binds to this port.
      */

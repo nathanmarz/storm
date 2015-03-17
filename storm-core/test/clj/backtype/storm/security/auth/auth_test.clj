@@ -279,6 +279,22 @@
   (is (= false (.permit authorizer (ReqContext. supervisor-user) "getTopologyInfo" {TOPOLOGY-USERS ["user-a"]})))
 ))
 
+(deftest simple-acl-nimbus-users-auth-test
+  (let [cluster-conf (merge (read-storm-config)
+                            {NIMBUS-ADMINS ["admin"]
+                             NIMBUS-SUPERVISOR-USERS ["supervisor"]
+                             NIMBUS-USERS ["user-a"]})
+        authorizer (SimpleACLAuthorizer. )
+        admin-user (mk-subject "admin")
+        supervisor-user (mk-subject "supervisor")
+        user-a (mk-subject "user-a")
+        user-b (mk-subject "user-b")]
+    (.prepare authorizer cluster-conf)
+    (is (= true (.permit authorizer (ReqContext. user-a) "submitTopology" {})))
+    (is (= false (.permit authorizer (ReqContext. user-b) "submitTopology" {})))
+    (is (= true (.permit authorizer (ReqContext. admin-user) "fileUpload" nil)))
+    (is (= true (.permit authorizer (ReqContext. supervisor-user) "fileDownload" nil)))))
+
 (deftest shell-based-groups-mapping-test
   (let [cluster-conf (read-storm-config)
         groups (ShellBasedGroupsMapping. )

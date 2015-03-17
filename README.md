@@ -49,9 +49,7 @@ the layout and configuration of your topologies.
 
 ## Disclaimer
 
-This is an experimental project that is rapidly changing. Documentation may be out of date. Code is the ultimate source
-of truth.
-
+This is an experimental project that is rapidly changing. Documentation may be out of date.
 
 ## Usage
 
@@ -85,7 +83,7 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
 +-         Apache Storm        -+
 +-  data FLow User eXperience  -+
 Version: 0.1.0-SNAPSHOT
-Parsing classpath resource: /Users/hsimpson/Projects/donut_domination/storm/shell_test.yaml
+Parsing file: /Users/hsimpson/Projects/donut_domination/storm/shell_test.yaml
 ---------- TOPOLOGY DETAILS ----------
 Name: shell-topology
 --------------- SPOUTS ---------------
@@ -367,7 +365,7 @@ A Grouping definition has the following properties:
 
 **`args`:** For the `FIELDS` grouping, a list of field names.
 
-**`className`"** For the `CUSTOM` grouping, the name of the custom grouping class
+**`customClass`"** For the `CUSTOM` grouping, a definition of custom grouping class instance
 
 The `streams` definition example below sets up a topology with the following wiring:
 
@@ -402,6 +400,27 @@ streams:
     grouping:
       type: SHUFFLE
 ```
+
+### Custom Stream Groupings
+Custom stream groupings are defined by setting the grouping type to `CUSTOM` and defining a `customClass` parameter
+that tells Flux how to instantiate the custom class. The `customClass` definition extends `component`, so it supports
+constructor arguments, references, and properties as well.
+
+The example below creates a Stream with an instance of the `backtype.storm.testing.NGrouping` custom stream grouping
+class.
+
+```yaml
+  - name: "bolt-1 --> bolt2"
+    from: "bolt-1"
+    to: "bolt-2"
+    grouping:
+      type: CUSTOM
+      customClass:
+        className: "backtype.storm.testing.NGrouping"
+        constructorArgs:
+          - 1
+```
+
 ## Includes and Overrides
 Flux allows you to include the contents of other YAML files, and have them treated as though they were defined in the
 same file. Includes may be either files, or classpath resources.

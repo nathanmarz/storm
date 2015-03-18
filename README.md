@@ -1,4 +1,4 @@
-# [flux] (http://en.wikipedia.org/wiki/Flux)
+# flux
 
 ## Definition
 **flux** |fləks| _noun_
@@ -121,7 +121,7 @@ The example below illustrates Flux usage with the Maven shade plugin:
  ```
 
 ### Deploying and Running a Flux Topology
-Once your topology components are packaged with the Flux dependency, you are can run different topologies either locally
+Once your topology components are packaged with the Flux dependency, you can run different topologies either locally
 or remotely using the `storm jar` command. For example, if your fat jar is named `myTopology-0.1.0-SNAPSHOT.jar` you
 could run it locally with the command:
 
@@ -243,9 +243,9 @@ components:
 ### Contructor Arguments, References and Properties
 
 ####Constructor Arguments
-Arguments to a class constructor can be configured by adding `contructorArgs` to a components. `constructorArgs` is a
-list of objects that will be passed to the class' constructor. The following example creates an object by calling
-the constructor that takes a single string as an argument:
+Arguments to a class constructor can be configured by adding a `contructorArgs` element to a components.
+`constructorArgs` is a list of objects that will be passed to the class' constructor. The following example creates an
+object by calling the constructor that takes a single string as an argument:
 
 ```yaml
   - id: "zkHosts"
@@ -256,9 +256,9 @@ the constructor that takes a single string as an argument:
 
 ####References
 Each component instance is identified by a unique id that allows it to be used/reused by other components. To
-reference an existing components, you specify the id of the component with the `ref` tag.
+reference an existing component, you specify the id of the component with the `ref` tag.
 
-In the following example, a component with the id `"stringScheme"` is created, and later referenced as a an argument
+In the following example, a component with the id `"stringScheme"` is created, and later referenced, as a an argument
 to another component's constructor:
 
 ```yaml
@@ -274,7 +274,7 @@ components:
 **N.B.:** References can only be used after (below) the object they point to has been declared.
 
 ####Properties
-In addition to calling contructors with different arguments, Flux also allows you to configure components using
+In addition to calling constructors with different arguments, Flux also allows you to configure components using
 JavaBean-like setter methods and fields declared as `public`:
 
 ```yaml
@@ -296,13 +296,11 @@ JavaBean-like setter methods and fields declared as `public`:
         ref: "stringMultiScheme"
 ```
 
-In the example above, the `properties` declaration will cause Flux to look for a public method in the `SpoutConfig` with the
-signature `setForceFromStart(boolean b)` and attempt to invoke it. If a setter method is not found, Flux will then
+In the example above, the `properties` declaration will cause Flux to look for a public method in the `SpoutConfig` with
+the signature `setForceFromStart(boolean b)` and attempt to invoke it. If a setter method is not found, Flux will then
 look for a public instance variable with the name `forceFromStart` and attempt to set its value.
 
 References may also be used as property values.
-
-
 
 
 ## Topology Config
@@ -317,10 +315,12 @@ config:
 ```
 
 ## Spouts and Bolts
-Spout and Bolts are configured in their own respective section of the YAML configuration. Spout and Bolt defintions
-are extensions to the `component` definition that add a `parallelism` parameter that sets the parallelism to be
-used when the topology is deployed on a cluster. Because spout and bolt definitions extend `component` they support
-constructor arguments, references, and properties as well.
+Spout and Bolts are configured in their own respective section of the YAML configuration. Spout and Bolt definitions
+are extensions to the `component` definition that add a `parallelism` parameter that sets the parallelism  for a
+component when the topology is deployed.
+
+Because spout and bolt definitions extend `component` they support constructor arguments, references, and properties as
+well.
 
 Shell spout example:
 
@@ -420,8 +420,8 @@ bolts:
     # ...
 ```
 ## Streams and Stream Groupings
-Streams in Flux are represented as a list of connections (data flow) between the Spouts and Bolts in a topology, and an associated
-Grouping definition.
+Streams in Flux are represented as a list of connections (Graph edges, data flow, etc.) between the Spouts and Bolts in
+a topology, with an associated Grouping definition.
 
 A Stream definition has the following properties:
 

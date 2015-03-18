@@ -441,7 +441,7 @@ A Grouping definition has the following properties:
 
 **`args`:** For the `FIELDS` grouping, a list of field names.
 
-**`customClass`"** For the `CUSTOM` grouping, a definition of custom grouping class instance
+**`customClass`** For the `CUSTOM` grouping, a definition of custom grouping class instance
 
 The `streams` definition example below sets up a topology with the following wiring:
 

@@ -64,7 +64,7 @@ public class LocalState {
             if (serialized.length == 0) {
                 LOG.warn("LocalState file '{}' contained no data, resetting state", latestPath);
             } else {
-                result = (Map<Object, Object>) Utils.deserialize(serialized);
+                result = Utils.javaDeserialize(serialized, Map.class);
             }
         }
         return result;
@@ -99,7 +99,7 @@ public class LocalState {
     }
     
     private void persist(Map<Object, Object> val, boolean cleanup) throws IOException {
-        byte[] toWrite = Utils.serialize(val);
+        byte[] toWrite = Utils.javaSerialize(val);
         String newPath = _vs.createVersion();
         File file = new File(newPath);
         FileUtils.writeByteArrayToFile(file, toWrite);

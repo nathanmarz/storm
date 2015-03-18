@@ -25,7 +25,6 @@
   (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
-  (:import [backtype.storm.daemon.common WorkerHeartbeat])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.serialization KryoTupleSerializer])
   (:import [backtype.storm.generated StormTopology])
@@ -69,7 +68,7 @@
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        hb (WorkerHeartbeat.
+        hb (mk-local-worker-heartbeat
              (current-time-secs)
              (:storm-id worker)
              (:executors worker)

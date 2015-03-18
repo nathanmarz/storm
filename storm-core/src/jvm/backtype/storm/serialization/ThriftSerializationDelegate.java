@@ -17,31 +17,24 @@
  */
 package backtype.storm.serialization;
 
-import java.io.*;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 
-/**
- * Note, this assumes it's deserializing a gzip byte stream, and will err if it encounters any other serialization.
- */
-public class GzipSerializationDelegate implements SerializationDelegate {
+import java.util.Map;
+
+public class ThriftSerializationDelegate implements SerializationDelegate {
 
     @Override
     public void prepare(Map stormConf) {
-        // No-op
     }
 
     @Override
     public byte[] serialize(Object object) {
         try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            GZIPOutputStream gos = new GZIPOutputStream(bos);
-            ObjectOutputStream oos = new ObjectOutputStream(gos);
-            oos.writeObject(object);
-            oos.close();
-            return bos.toByteArray();
-        } catch (IOException e) {
+            return  new TSerializer().serialize((TBase) object);
+        } catch (TException e) {
             throw new RuntimeException(e);
         }
     }
@@ -49,15 +42,10 @@ public class GzipSerializationDelegate implements SerializationDelegate {
     @Override
     public <T> T deserialize(byte[] bytes, Class<T> clazz) {
         try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            GZIPInputStream gis = new GZIPInputStream(bis);
-            ObjectInputStream ois = new ObjectInputStream(gis);
-            Object ret = ois.readObject();
-            ois.close();
-            return (T)ret;
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        } catch(ClassNotFoundException e) {
+            TBase instance = (TBase) clazz.newInstance();
+            new TDeserializer().deserialize(instance, bytes);
+            return (T)instance;
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

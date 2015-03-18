@@ -13,14 +13,39 @@ public interface JdbcMapper  extends Serializable {
 }
 ```
 
-The `getColumns()` method defines how a storm tuple maps to a list of columns representing a row in a database.
+The `getColumns()` method defines how a storm tuple maps to a list of columns representing a row in a database. 
+**The order of the returned list is important. The place holders in the supplied queries are resolved in the same order as returned list.**
+For example if the user supplied insert query is `insert into user(user_id, user_name, create_date) values (?,?, now())` the 1st item 
+of the returned list of `getColumns` method will map to the 1st place holder and the 2nd to the 2nd and so on. We do not parse
+the supplied queries to try and resolve place holder by column names. 
+
+### JdbcInsertBolt
+To use the `JdbcInsertBolt`, you construct an instance of it and specify a configuration key in your storm config that holds the 
+hikari configuration map and a `JdbcMapper` implementation that coverts storm tuple to DB row. In addition, you must either supply 
+a table name  using `withTableName` method or an insert query using `withInsertQuery`. 
+If you specify a insert query you should ensure that your `JdbcMapper` implementation will return a list of columns in the same order as in your insert query.
+You can optionally specify a query timeout seconds param that specifies max seconds an insert query can take. 
+The default is set to value of topology.message.timeout.secs and a value of -1 will indicate not to set any query timeout.
+You should set the query timeout value to be <= topology.message.timeout.secs.
+
+ ```java
+Config config = new Config();
+config.put("jdbc.conf", hikariConfigMap);
+JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf",simpleJdbcMapper)
+                                    .withTableName("user")
+                                    .withQueryTimeoutSecs(30);
+                                    Or
+JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf",simpleJdbcMapper)
+                                    .withInsertQuery("insert into user values (?,?)")
+                                    .withQueryTimeoutSecs(30);                                    
+ ```
 
 ### SimpleJdbcMapper
 `storm-jdbc` includes a general purpose `JdbcMapper` implementation called `SimpleJdbcMapper` that can map Storm
 tuple to a Database row. `SimpleJdbcMapper` assumes that the storm tuple has fields with same name as the column name in 
 the database table that you intend to write to.
 
-To use `SimpleJdbcMapper`, you simply tell it the tableName that you want to write to and provide a hikari configuration map.
+To use `SimpleJdbcMapper`, you simply tell it the tableName that you want to write to and provide a hikari configuration map. 
 
 The following code creates a `SimpleJdbcMapper` instance that:
 
@@ -38,34 +63,30 @@ hikariConfigMap.put("dataSource.password","password");
 String tableName = "user_details";
 JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, map);
 ```
-The mapper initialized in the example above assumes a storm tuple has value for all the columns. 
-If your storm tuple only has fields for a subset of columns i.e. if some of the columns in your table have default values 
-and you want to only insert values for columns with no default values you can enforce the behavior by initializing the 
-`SimpleJdbcMapper` with explicit columnschema. For example, if you have a user_details table 
-`create table if not exists user_details (user_id integer, user_name varchar(100), dept_name varchar(100), create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
+The mapper initialized in the example above assumes a storm tuple has value for all the columns of the table you intend to insert data into and its `getColumn`
+method will return the columns in the order in which Jdbc connection instance's `connection.getMetaData().getColumns();` method returns them.
+
+**If you specified your own insert query to `JdbcInsertBolt` you must initialize `SimpleJdbcMapper` with explicit columnschema such that the schema has columns in the same order as your insert queries.**
+For example if your insert query is `Insert into user (user_id, user_name) values (?,?)` then your `SimpleJdbcMapper` should be initialized with the following statements:
+```java
+List<Column> columnSchema = Lists.newArrayList(
+    new Column("user_id", java.sql.Types.INTEGER),
+    new Column("user_name", java.sql.Types.VARCHAR));
+JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(columnSchema);
+```
+
+If your storm tuple only has fields for a subset of columns i.e. if some of the columns in your table have default values and you want to only insert values for columns with no default values you can enforce the behavior by initializing the 
+`SimpleJdbcMapper` with explicit columnschema. For example, if you have a user_details table `create table if not exists user_details (user_id integer, user_name varchar(100), dept_name varchar(100), create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
 In this table the create_time column has a default value. To ensure only the columns with no default values are inserted 
 you can initialize the `jdbcMapper` as below:
 
 ```java
 List<Column> columnSchema = Lists.newArrayList(
     new Column("user_id", java.sql.Types.INTEGER),
-    new Column("user_name", java.sql.Types.VARCHAR));
-    JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(columnSchema);
+    new Column("user_name", java.sql.Types.VARCHAR),
+    new Column("dept_name", java.sql.Types.VARCHAR));
+JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(columnSchema);
 ```
-
-### JdbcInsertBolt
-To use the `JdbcInsertBolt`, you construct an instance of it and specify a configuration key in your storm config that hold the 
-hikari configuration map. In addition you must specify the JdbcMapper implementation to covert storm tuple to DB row and 
-the table name in which the rows will be inserted. You can optionally specify a query timeout seconds param that specifies 
-max seconds an insert query can take. The default is set to value of topology.message.timeout.secs.You should set this value 
-to be <= topology.message.timeout.secs.
-
- ```java
-Config config = new Config();
-config.put("jdbc.conf", hikariConfigMap);
-JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf","user_details",simpleJdbcMapper)
-                                    .withQueryTimeoutSecs(30);
- ```
 ### JdbcTridentState
 We also support a trident persistent state that can be used with trident topologies. To create a jdbc persistent trident
 state you need to initialize it with the table name, the JdbcMapper instance and name of storm config key that holds the
@@ -77,9 +98,9 @@ JdbcState.Options options = new JdbcState.Options()
         .withMapper(jdbcMapper)
         .withTableName("user_details")
         .withQueryTimeoutSecs(30);
-
 JdbcStateFactory jdbcStateFactory = new JdbcStateFactory(options);
 ```
+similar to `JdbcInsertBolt` you can specify a custom insert query using `withInsertQuery` instead of specifying a table name.
 
 ## Lookup from Database
 We support `select` queries from databases to allow enrichment of storm tuples in a topology. The main API for 
@@ -88,21 +109,24 @@ executing select queries against a database using JDBC is the `org.apache.storm.
 ```java
     void declareOutputFields(OutputFieldsDeclarer declarer);
     List<Column> getColumns(ITuple tuple);
-    public List<Values> toTuple(ITuple input, List<Column> columns);
+    List<Values> toTuple(ITuple input, List<Column> columns);
 ```
 
 The `declareOutputFields` method is used to indicate what fields will be emitted as part of output tuple of processing a storm 
 tuple. 
+
 The `getColumns` method specifies the place holder columns in a select query and their SQL type and the value to use.
 For example in the user_details table mentioned above if you were executing a query `select user_name from user_details where
 user_id = ? and create_time > ?` the `getColumns` method would take a storm input tuple and return a List containing two items.
 The first instance of `Column` type's `getValue()` method will be used as the value of `user_id` to lookup for and the
-second instance of `Column` type's `getValue()` method will be used as the value of `create_time`.Note: the order in the
-returned list determines the place holder's value. In other words the first item in the list maps to first `?` in select
-query, the second item to second `?` in query and so on. 
+second instance of `Column` type's `getValue()` method will be used as the value of `create_time`.
+**Note: the order in the returned list determines the place holder's value. In other words the first item in the list maps 
+to first `?` in select query, the second item to second `?` in query and so on.** 
+
 The `toTuple` method takes in the input tuple and a list of columns representing a DB row as a result of the select query
-and returns a list of values to be emitted. Please note that it returns a list of `Values` and not just a single instance
-of `Values`. This allows a for a single DB row to be mapped to multiple output storm tuples.
+and returns a list of values to be emitted. 
+**Please note that it returns a list of `Values` and not just a single instance of `Values`.** 
+This allows a for a single DB row to be mapped to multiple output storm tuples.
 
 ###SimpleJdbcLookupMapper
 `storm-jdbc` includes a general purpose `JdbcLookupMapper` implementation called `SimpleJdbcLookupMapper`. 
@@ -113,7 +137,7 @@ that declares `user_id,user_name,create_date` as output fields and `user_id` as 
 SimpleJdbcMapper assumes the field name in your tuple is equal to the place holder column name, i.e. in our example 
 `SimpleJdbcMapper` will look for a field `use_id` in the input tuple and use its value as the place holder's value in the
 select query. For constructing output tuples, it looks for fields specified in `outputFields` in the input tuple first, 
-and if it is not found in input tuple then it looks at select queries output row for a column with same name as field name. 
+and if it is not found in input tuple then it looks at select query's output row for a column with same name as field name. 
 So in the example below if the input tuple had fields `user_id, create_date` and the select query was 
 `select user_name from user_details where user_id = ?`, For each input tuple `SimpleJdbcLookupMapper.getColumns(tuple)` 
 will return the value of `tuple.getValueByField("user_id")` which will be used as the value in `?` of select query. 

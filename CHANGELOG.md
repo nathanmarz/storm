@@ -1,4 +1,7 @@
 ## 0.10.0
+ * STORM-681: Auto insert license header with genthrift.sh
+ * STORM-707: Client (Netty): improve logging to help troubleshooting connection woes
+ * STORM-699: storm-jdbc should support custom insert queries. 
  * STORM-625: Don't leak netty clients when worker moves or reuse netty client.	
  * STORM-682: supervisor should handle worker state corruption gracefully.
  * STORM-446: Allow superusers to impersonate other users in secure mode.
@@ -79,6 +82,8 @@
  * STORM-669: Replace links with ones to latest api document
  * STORM-670: restore java 1.6 compatibility (storm-kafka)
  * STORM-696: Single Namespace Test Launching
+ * STORM-689: SimpleACLAuthorizer should provide a way to restrict who can submit topologies.
+ * STORM-541: Build produces maven warnings
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

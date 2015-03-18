@@ -28,7 +28,7 @@ public class SimpleJdbcLookupMapper extends SimpleJdbcMapper implements JdbcLook
                 values.add(input.getValueByField(field));
             } else {
                 for(Column column : columns) {
-                    if(column.getColumnName().equals(field)) {
+                    if(column.getColumnName().equalsIgnoreCase(field)) {
                         values.add(column.getVal());
                     }
                 }

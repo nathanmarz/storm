@@ -48,6 +48,8 @@ public class SimpleACLAuthorizer implements IAuthorizer {
 
     protected Set<String> _admins;
     protected Set<String> _supervisors;
+    protected Set<String> _nimbusUsers;
+    protected Set<String> _nimbusGroups;
     protected IPrincipalToLocal _ptol;
     protected IGroupMappingServiceProvider _groupMappingProvider;
     /**
@@ -58,12 +60,21 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     public void prepare(Map conf) {
         _admins = new HashSet<String>();
         _supervisors = new HashSet<String>();
+        _nimbusUsers = new HashSet<String>();
+        _nimbusGroups = new HashSet<String>();
 
         if (conf.containsKey(Config.NIMBUS_ADMINS)) {
             _admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
         }
         if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
             _supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
+        }
+        if (conf.containsKey(Config.NIMBUS_USERS)) {
+            _nimbusUsers.addAll((Collection<String>)conf.get(Config.NIMBUS_USERS));
+        }
+
+        if (conf.containsKey(Config.NIMBUS_GROUPS)) {
+            _nimbusGroups.addAll((Collection<String>)conf.get(Config.NIMBUS_GROUPS));
         }
 
         _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
@@ -87,6 +98,15 @@ public class SimpleACLAuthorizer implements IAuthorizer {
 
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
+        Set<String> userGroups = new HashSet<String>();
+
+        if (_groupMappingProvider != null) {
+            try {
+                userGroups = _groupMappingProvider.getGroups(user);
+            } catch(IOException e) {
+                LOG.warn("Error while trying to fetch user groups",e);
+            }
+        }
 
         if (_admins.contains(principal) || _admins.contains(user)) {
             return true;
@@ -97,7 +117,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
         }
 
         if (_userCommands.contains(operation)) {
-            return true;
+            return _nimbusUsers.size() == 0 || _nimbusUsers.contains(user) || checkUserGroupAllowed(userGroups, _nimbusGroups);
         }
 
         if (_topoCommands.contains(operation)) {
@@ -115,16 +135,16 @@ public class SimpleACLAuthorizer implements IAuthorizer {
                 topoGroups.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_GROUPS));
             }
 
-            if(_groupMappingProvider != null && topoGroups.size() > 0) {
-                try {
-                    Set<String> userGroups = _groupMappingProvider.getGroups(user);
-                    for (String tgroup : topoGroups) {
-                        if(userGroups.contains(tgroup))
-                            return true;
-                    }
-                } catch(IOException e) {
-                    LOG.warn("Error while trying to fetch user groups",e);
-                }
+            if (checkUserGroupAllowed(userGroups, topoGroups)) return true;
+        }
+        return false;
+    }
+
+    private Boolean checkUserGroupAllowed(Set<String> userGroups, Set<String> configuredGroups) {
+        if(userGroups.size() > 0 && configuredGroups.size() > 0) {
+            for (String tgroup : configuredGroups) {
+                if(userGroups.contains(tgroup))
+                    return true;
             }
         }
         return false;

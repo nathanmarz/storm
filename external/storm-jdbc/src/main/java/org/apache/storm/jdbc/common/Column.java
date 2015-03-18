@@ -42,6 +42,7 @@ import java.io.Serializable;
  * rows.add(row2)
  *
  * </pre>
+ *
  * @param <T>
  */
 public class Column<T> implements Serializable {
@@ -50,7 +51,7 @@ public class Column<T> implements Serializable {
     private T val;
 
     /**
-     * The sql type(e.g. varchar, date, int) Idealy we would have an enum but java's jdbc API uses integer.
+     * The sql type(e.g. varchar, date, int) Ideally we would have an enum but java's jdbc API uses integer.
      * See {@link java.sql.Types}
      */
     private int sqlType;

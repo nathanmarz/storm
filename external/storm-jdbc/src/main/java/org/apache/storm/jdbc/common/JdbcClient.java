@@ -46,6 +46,11 @@ public class JdbcClient {
     }
 
     public void insert(String tableName, List<List<Column>> columnLists) {
+        String query = constructInsertQuery(tableName, columnLists);
+        executeInsertQuery(query, columnLists);
+    }
+
+    public void executeInsertQuery(String query, List<List<Column>> columnLists) {
         Connection connection = null;
         try {
             connection = this.dataSource.getConnection();
@@ -54,26 +59,13 @@ public class JdbcClient {
                 connection.setAutoCommit(false);
             }
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("Insert into ").append(tableName).append(" (");
-            Collection<String> columnNames = Collections2.transform(columnLists.get(0), new Function<Column, String>() {
-                @Override
-                public String apply(Column input) {
-                    return input.getColumnName();
-                }
-            });
-            String columns = Joiner.on(",").join(columnNames);
-            sb.append(columns).append(") values ( ");
-
-            String placeHolders = StringUtils.chop(StringUtils.repeat("?,", columnNames.size()));
-            sb.append(placeHolders).append(")");
-
-            String query = sb.toString();
-
             LOG.debug("Executing query {}", query);
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setQueryTimeout(queryTimeoutSecs);
+            if(queryTimeoutSecs > 0) {
+                preparedStatement.setQueryTimeout(queryTimeoutSecs);
+            }
+
             for(List<Column> columnList : columnLists) {
                 setPreparedStatementParams(preparedStatement, columnList);
                 preparedStatement.addBatch();
@@ -87,14 +79,32 @@ public class JdbcClient {
                 try {
                     connection.commit();
                 } catch (SQLException e) {
-                    throw new RuntimeException("Failed to commit inserts in table " + tableName, e);
+                    throw new RuntimeException("Failed to commit insert query " + query, e);
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to insert in table " + tableName, e);
+            throw new RuntimeException("Failed to execute insert query " + query, e);
         } finally {
             closeConnection(connection);
         }
+    }
+
+    private String constructInsertQuery(String tableName, List<List<Column>> columnLists) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Insert into ").append(tableName).append(" (");
+        Collection<String> columnNames = Collections2.transform(columnLists.get(0), new Function<Column, String>() {
+            @Override
+            public String apply(Column input) {
+                return input.getColumnName();
+            }
+        });
+        String columns = Joiner.on(",").join(columnNames);
+        sb.append(columns).append(") values ( ");
+
+        String placeHolders = StringUtils.chop(StringUtils.repeat("?,", columnNames.size()));
+        sb.append(placeHolders).append(")");
+
+        return sb.toString();
     }
 
     public List<List<Column>> select(String sqlQuery, List<Column> queryParams) {
@@ -102,7 +112,9 @@ public class JdbcClient {
         try {
             connection = this.dataSource.getConnection();
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
-            preparedStatement.setQueryTimeout(queryTimeoutSecs);
+            if(queryTimeoutSecs > 0) {
+                preparedStatement.setQueryTimeout(queryTimeoutSecs);
+            }
             setPreparedStatementParams(preparedStatement, queryParams);
             ResultSet resultSet = preparedStatement.executeQuery();
             List<List<Column>> rows = Lists.newArrayList();

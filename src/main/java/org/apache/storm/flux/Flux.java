@@ -39,56 +39,64 @@ public class Flux {
 
     private static final Long DEFAULT_LOCAL_SLEEP_TIME = 60000l;
 
+    private static final String OPTION_LOCAL = "local";
+    private static final String OPTION_REMOTE = "remote";
+    private static final String OPTION_RESOURCE = "resource";
+    private static final String OPTION_SLEEP = "sleep";
+    private static final String OPTION_DRY_RUN = "dry-run";
+    private static final String OPTION_NO_DETAIL = "no-detail";
+    private static final String OPTION_NO_SPLASH = "no-splash";
+
     public static void main(String[] args) throws Exception {
         Options options = new Options();
 
         Option localOpt = OptionBuilder.hasArgs(0)
-                .withArgName("local")
-                .withLongOpt("local")
+                .withArgName(OPTION_LOCAL)
+                .withLongOpt(OPTION_LOCAL)
                 .withDescription("Run the topology in local mode.")
                 .create("l");
         options.addOption(localOpt);
 
         Option remoteOpt = OptionBuilder.hasArgs(0)
-                .withArgName("remote")
-                .withLongOpt("remote")
+                .withArgName(OPTION_REMOTE)
+                .withLongOpt(OPTION_REMOTE)
                 .withDescription("Deploy the topology to a remote cluster.")
                 .create("r");
         options.addOption(remoteOpt);
 
         Option resourceOpt = OptionBuilder.hasArgs(0)
-                .withArgName("resource")
-                .withLongOpt("resource")
+                .withArgName(OPTION_RESOURCE)
+                .withLongOpt(OPTION_RESOURCE)
                 .withDescription("Treat the supplied path as a classpath resource instead of a file.")
                 .create("R");
         options.addOption(resourceOpt);
 
         Option localSleepOpt = OptionBuilder.hasArgs(1)
-                .withArgName("sleep")
-                .withLongOpt("sleep")
+                .withArgName(OPTION_SLEEP)
+                .withLongOpt(OPTION_SLEEP)
                 .withDescription("When running locally, the amount of time to sleep (in ms.) before killing the " +
                         "topology and shutting down the local cluster.")
                 .create("s");
         options.addOption(localSleepOpt);
 
         Option dryRunOpt = OptionBuilder.hasArgs(0)
-                .withArgName("dry-run")
-                .withLongOpt("dry-run")
+                .withArgName(OPTION_DRY_RUN)
+                .withLongOpt(OPTION_DRY_RUN)
                 .withDescription("Do not run or deploy the topology. Just build, validate, and print information about " +
                         "the topology.")
                 .create("d");
         options.addOption(dryRunOpt);
 
         Option noDetailOpt = OptionBuilder.hasArgs(0)
-                .withArgName("no-detail")
-                .withLongOpt("no-detail")
+                .withArgName(OPTION_NO_DETAIL)
+                .withLongOpt(OPTION_NO_DETAIL)
                 .withDescription("Supress the printing of topology details.")
                 .create("q");
         options.addOption(noDetailOpt);
 
         Option noSplashOpt = OptionBuilder.hasArgs(0)
-                .withArgName("no-splash")
-                .withLongOpt("no-splash")
+                .withArgName(OPTION_NO_SPLASH)
+                .withLongOpt(OPTION_NO_SPLASH)
                 .withDescription("Supress the printing of the splash screen.")
                 .create("n");
         options.addOption(noSplashOpt);
@@ -111,7 +119,7 @@ public class Flux {
     }
 
     private static void runCli(CommandLine cmd)throws Exception {
-        if(!cmd.hasOption("no-splash")) {
+        if(!cmd.hasOption(OPTION_NO_SPLASH)) {
             printSplash();
         }
 
@@ -119,7 +127,7 @@ public class Flux {
 
         TopologyDef topologyDef = null;
         String filePath = (String)cmd.getArgList().get(0);
-        if(cmd.hasOption("resource")){
+        if(cmd.hasOption(OPTION_RESOURCE)){
             printf("Parsing classpath resource: %s", filePath);
             topologyDef = FluxParser.parseResource(filePath, dumpYaml, true);
         } else {
@@ -135,12 +143,12 @@ public class Flux {
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
 
-        if(!cmd.hasOption("no-detail")){
+        if(!cmd.hasOption(OPTION_NO_DETAIL)){
             printTopologyInfo(context);
         }
 
-        if(!cmd.hasOption("dry-run")) {
-            if (cmd.hasOption("remote")) {
+        if(!cmd.hasOption(OPTION_DRY_RUN)) {
+            if (cmd.hasOption(OPTION_REMOTE)) {
                 LOG.info("Running remotely...");
                 try {
                     StormSubmitter.submitTopologyWithProgressBar(topologyName, conf, topology);
@@ -150,7 +158,7 @@ public class Flux {
             } else {
                 LOG.info("Running in local mode...");
 
-                String sleepStr = cmd.getOptionValue("sleep");
+                String sleepStr = cmd.getOptionValue(OPTION_SLEEP);
                 Long sleepTime = DEFAULT_LOCAL_SLEEP_TIME;
                 if (sleepStr != null) {
                     sleepTime = Long.parseLong(sleepStr);
@@ -173,11 +181,11 @@ public class Flux {
         printf("Topology Name: %s", t.getName());
         print("--------------- SPOUTS ---------------");
         for(SpoutDef s : t.getSpouts()){
-            printf("%s[%d](%s)", s.getId(), s.getParallelism(), s.getClassName());
+            printf("%s [%d] (%s)", s.getId(), s.getParallelism(), s.getClassName());
         }
         print("---------------- BOLTS ---------------");
         for(BoltDef b : t.getBolts()){
-            printf("%s[%d](%s)", b.getId(), b.getParallelism(), b.getClassName());
+            printf("%s [%d] (%s)", b.getId(), b.getParallelism(), b.getClassName());
         }
 
         print("--------------- STREAMS ---------------");

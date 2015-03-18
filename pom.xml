@@ -48,14 +48,30 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <storm.version>0.9.3</storm.version>
+        <!-- see comment below... This fixes an annoyance with intellij -->
+        <provided.scope>provided</provided.scope>
     </properties>
+
+    <profiles>
+        <!--
+            Hack to make intellij behave.
+            If you use intellij, enable this profile in your IDE.
+            It should make life easier.
+        -->
+        <profile>
+            <id>intellij</id>
+            <properties>
+                <provided.scope>compile</provided.scope>
+            </properties>
+        </profile>
+    </profiles>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
             <version>${storm.version}</version>
-            <scope>provided</scope>
+            <scope>${provided.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>

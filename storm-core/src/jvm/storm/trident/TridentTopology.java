@@ -28,6 +28,8 @@ import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -664,7 +666,7 @@ public class TridentTopology {
     private static boolean isIdentityPartition(PartitionNode n) {
         Grouping g = n.thriftGrouping;
         if(g.is_set_custom_serialized()) {
-            CustomStreamGrouping csg = (CustomStreamGrouping) Utils.deserialize(g.get_custom_serialized());
+            CustomStreamGrouping csg = (CustomStreamGrouping) Utils.javaDeserialize(g.get_custom_serialized(), Serializable.class);
             return csg instanceof IdentityGrouping;
         }
         return false;
@@ -723,7 +725,7 @@ public class TridentTopology {
     
     private static PartitionNode makeIdentityPartition(Node basis) {
         return new PartitionNode(basis.streamId, basis.name, basis.allOutputFields,
-            Grouping.custom_serialized(Utils.serialize(new IdentityGrouping())));
+            Grouping.custom_serialized(Utils.javaSerialize(new IdentityGrouping())));
     }
     
     

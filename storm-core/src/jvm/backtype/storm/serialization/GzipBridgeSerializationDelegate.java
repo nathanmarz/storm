@@ -25,6 +25,7 @@ import java.util.zip.GZIPInputStream;
  * {@link backtype.storm.serialization.DefaultSerializationDelegate} to deserialize. Any logic needing to be enabled
  * via {@link #prepare(java.util.Map)} is passed through to both delegates.
  */
+@Deprecated
 public class GzipBridgeSerializationDelegate implements SerializationDelegate {
 
     private DefaultSerializationDelegate defaultDelegate = new DefaultSerializationDelegate();
@@ -42,11 +43,11 @@ public class GzipBridgeSerializationDelegate implements SerializationDelegate {
     }
 
     @Override
-    public Object deserialize(byte[] bytes) {
+    public <T> T deserialize(byte[] bytes, Class<T> clazz) {
         if (isGzipped(bytes)) {
-            return gzipDelegate.deserialize(bytes);
+            return gzipDelegate.deserialize(bytes, clazz);
         } else {
-            return defaultDelegate.deserialize(bytes);
+            return defaultDelegate.deserialize(bytes,clazz);
         }
     }
 

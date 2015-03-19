@@ -84,6 +84,7 @@
  * STORM-696: Single Namespace Test Launching
  * STORM-689: SimpleACLAuthorizer should provide a way to restrict who can submit topologies.
  * STORM-541: Build produces maven warnings
+ * STORM-634: Storm serialization changed to thrift to support rolling upgrade.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

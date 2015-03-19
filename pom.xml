@@ -24,7 +24,7 @@
     <packaging>jar</packaging>
 
     <name>flux</name>
-    <url>http://maven.apache.org</url>
+    <url>https://github.com/ptgoetz/flux</url>
 
     <parent>
         <groupId>org.sonatype.oss</groupId>

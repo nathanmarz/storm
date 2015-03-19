@@ -592,3 +592,5 @@ streams:
 
 ## Trident Support
 Currenty Flux only supports the Core Storm API, but support for Trident is planned.
+
+## Contributing

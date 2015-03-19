@@ -46,60 +46,29 @@ public class Flux {
     private static final String OPTION_DRY_RUN = "dry-run";
     private static final String OPTION_NO_DETAIL = "no-detail";
     private static final String OPTION_NO_SPLASH = "no-splash";
+    private static final String OPTION_INACTIVE = "inactive";
 
     public static void main(String[] args) throws Exception {
         Options options = new Options();
 
-        Option localOpt = OptionBuilder.hasArgs(0)
-                .withArgName(OPTION_LOCAL)
-                .withLongOpt(OPTION_LOCAL)
-                .withDescription("Run the topology in local mode.")
-                .create("l");
-        options.addOption(localOpt);
+        options.addOption(option(0, "l", OPTION_LOCAL, "Run the topology in local mode."));
 
-        Option remoteOpt = OptionBuilder.hasArgs(0)
-                .withArgName(OPTION_REMOTE)
-                .withLongOpt(OPTION_REMOTE)
-                .withDescription("Deploy the topology to a remote cluster.")
-                .create("r");
-        options.addOption(remoteOpt);
+        options.addOption(option(0, "r", OPTION_REMOTE, "Deploy the topology to a remote cluster."));
 
-        Option resourceOpt = OptionBuilder.hasArgs(0)
-                .withArgName(OPTION_RESOURCE)
-                .withLongOpt(OPTION_RESOURCE)
-                .withDescription("Treat the supplied path as a classpath resource instead of a file.")
-                .create("R");
-        options.addOption(resourceOpt);
+        options.addOption(option(0, "R", OPTION_RESOURCE, "Treat the supplied path as a classpath resource instead of a file."));
 
-        Option localSleepOpt = OptionBuilder.hasArgs(1)
-                .withArgName(OPTION_SLEEP)
-                .withLongOpt(OPTION_SLEEP)
-                .withDescription("When running locally, the amount of time to sleep (in ms.) before killing the " +
-                        "topology and shutting down the local cluster.")
-                .create("s");
-        options.addOption(localSleepOpt);
+        options.addOption(option(1, "s", OPTION_SLEEP, "When running locally, the amount of time to sleep (in ms.) " +
+                "before killing the topology and shutting down the local cluster."));
 
-        Option dryRunOpt = OptionBuilder.hasArgs(0)
-                .withArgName(OPTION_DRY_RUN)
-                .withLongOpt(OPTION_DRY_RUN)
-                .withDescription("Do not run or deploy the topology. Just build, validate, and print information about " +
-                        "the topology.")
-                .create("d");
-        options.addOption(dryRunOpt);
+        options.addOption(option(0, "d", OPTION_DRY_RUN, "Do not run or deploy the topology. Just build, validate, " +
+                "and print information about the topology."));
 
-        Option noDetailOpt = OptionBuilder.hasArgs(0)
-                .withArgName(OPTION_NO_DETAIL)
-                .withLongOpt(OPTION_NO_DETAIL)
-                .withDescription("Supress the printing of topology details.")
-                .create("q");
-        options.addOption(noDetailOpt);
+        options.addOption(option(0, "q", OPTION_NO_DETAIL, "Suppress the printing of topology details."));
 
-        Option noSplashOpt = OptionBuilder.hasArgs(0)
-                .withArgName(OPTION_NO_SPLASH)
-                .withLongOpt(OPTION_NO_SPLASH)
-                .withDescription("Supress the printing of the splash screen.")
-                .create("n");
-        options.addOption(noSplashOpt);
+        options.addOption(option(0, "n", OPTION_NO_SPLASH, "Suppress the printing of the splash screen."));
+
+        options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it. " +
+                "(not implemented)"));
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -109,6 +78,15 @@ public class Flux {
             System.exit(1);
         }
         runCli(cmd);
+    }
+
+    private static Option option(int argCount, String shortName, String longName, String description){
+        Option option = OptionBuilder.hasArgs(argCount)
+                .withArgName(longName)
+                .withLongOpt(longName)
+                .withDescription(description)
+                .create(shortName);
+       return option;
     }
 
     private static void usage(Options options) {

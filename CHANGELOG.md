@@ -85,6 +85,7 @@
  * STORM-689: SimpleACLAuthorizer should provide a way to restrict who can submit topologies.
  * STORM-541: Build produces maven warnings
  * STORM-634: Storm serialization changed to thrift to support rolling upgrade.
+ * STORM-570: Switch from tablesorter to datatables jquery plugin.
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

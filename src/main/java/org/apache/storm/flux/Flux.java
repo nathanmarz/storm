@@ -21,6 +21,8 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.SubmitOptions;
+import backtype.storm.generated.TopologyInitialStatus;
 import backtype.storm.utils.Utils;
 import org.apache.commons.cli.*;
 import org.apache.storm.flux.model.*;
@@ -67,8 +69,7 @@ public class Flux {
 
         options.addOption(option(0, "n", OPTION_NO_SPLASH, "Suppress the printing of the splash screen."));
 
-        options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it. " +
-                "(not implemented)"));
+        options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it."));
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -129,7 +130,16 @@ public class Flux {
             if (cmd.hasOption(OPTION_REMOTE)) {
                 LOG.info("Running remotely...");
                 try {
-                    StormSubmitter.submitTopologyWithProgressBar(topologyName, conf, topology);
+                    // should the topology be active or inactive
+                    SubmitOptions submitOptions = null;
+                    if(cmd.hasOption(OPTION_INACTIVE)){
+                        LOG.info("Deploying topology in an INACTIVE state...");
+                        submitOptions = new SubmitOptions(TopologyInitialStatus.INACTIVE);
+                    } else {
+                        LOG.info("Deploying topology in an ACTIVE state...");
+                        submitOptions = new SubmitOptions(TopologyInitialStatus.ACTIVE);
+                    }
+                    StormSubmitter.submitTopology(topologyName, conf, topology, submitOptions);
                 } catch (Exception e) {
                     LOG.warn("Unable to deploy topology tp remote cluster.", e);
                 }

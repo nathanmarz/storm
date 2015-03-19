@@ -137,9 +137,10 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
              [options] <topology-config.yaml>
  -d,--dry-run         Do not run or deploy the topology. Just build,
                       validate, and print information about the topology.
+ -i,--inactive        Deploy the topology, but do not activate it.
  -l,--local           Run the topology in local mode.
- -n,--no-splash       Supress the printing of the splash screen.
- -q,--no-detail       Supress the printing of topology details.
+ -n,--no-splash       Suppress the printing of the splash screen.
+ -q,--no-detail       Suppress the printing of topology details.
  -r,--remote          Deploy the topology to a remote cluster.
  -R,--resource        Treat the supplied path as a classpath resource
                       instead of a file.

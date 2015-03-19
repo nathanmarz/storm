@@ -156,7 +156,7 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
 
         @Override
         public int compare(MessageRetryRecord record1, MessageRetryRecord record2) {
-            return Long.compare(record1.retryTimeUTC, record2.retryTimeUTC);
+            return Long.valueOf(record1.retryTimeUTC).compareTo(Long.valueOf(record2.retryTimeUTC));
         }
 
         @Override

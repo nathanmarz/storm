@@ -237,6 +237,13 @@ The following commands must be run from the top-level directory.
     # Build the code but skip the tests
     $ mvn clean install -DskipTests=true
 
+In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
+
+```sh
+cd storm-core/src
+sh genthrift.sh
+```
+
 You can also run tests selectively via the Clojure REPL.  The following example runs the tests in
 [auth_test.clj](storm-core/test/clj/backtype/storm/security/auth/auth_test.clj), which has the namespace
 `backtype.storm.security.auth.auth-test`.

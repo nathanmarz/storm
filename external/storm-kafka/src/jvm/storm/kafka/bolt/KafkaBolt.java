@@ -101,11 +101,10 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
             } else {
                 LOG.warn("skipping key = " + key + ", topic selector returned null.");
             }
-        } catch (Exception ex) {
-            LOG.error("Could not send message with key = " + key
-                    + " and value = " + message + " to topic = " + topic, ex);
-        } finally {
             collector.ack(input);
+        } catch (Exception ex) {
+            collector.reportError(ex);
+            collector.fail(input);
         }
     }
 

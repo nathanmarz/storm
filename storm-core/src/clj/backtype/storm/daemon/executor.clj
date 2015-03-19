@@ -15,6 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
+  (:import [backtype.storm.generated Grouping]
+           [java.io Serializable])
   (:use [backtype.storm util config log timer stats])
   (:import [java.util List Random HashMap ArrayList LinkedList Map])
   (:import [backtype.storm ICredentialsListener])
@@ -94,7 +96,7 @@
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :custom-serialized
-        (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping))]
+        (let [grouping (Utils/javaDeserialize (.get_custom_serialized thrift-grouping) Serializable)]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :direct
         :direct

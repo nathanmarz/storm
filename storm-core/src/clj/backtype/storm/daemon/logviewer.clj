@@ -273,8 +273,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
           (if grep
             (html [:pre#logContent
                    (if grep
-                     (filter #(.contains % grep)
-                             (.split log-string "\n"))
+                     (->> (.split log-string "\n")
+                          (filter #(.contains % grep))
+                          (string/join "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
               (html (concat pager-data

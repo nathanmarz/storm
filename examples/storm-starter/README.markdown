@@ -146,6 +146,7 @@ The following instructions will import storm-starter as a new project in Intelli
 * Select _Import project from external model_, select "Maven", and click _Next_.
 * In the following screen, enable the checkbox _Import Maven projects automatically_.  Leave all other values at their
   defaults.  Click _Next_.
+* Make sure to select the *intellij* profile in the profiles screen.  This is important for making sure dependencies set correctly. 
 * Click _Next_ on the following screen about selecting Maven projects to import.
 * Select the JDK to be used by IDEA for storm-starter, then click _Next_.
     * At the time of this writing you should use JDK 6.

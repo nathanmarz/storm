@@ -30,6 +30,19 @@
 
   <name>storm-starter</name>
 
+  <properties>
+     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+     <!-- see comment below... This fixes an annoyance with intellij -->
+     <provided.scope>provided</provided.scope>
+  </properties>
+  <profiles>
+    <profile>
+        <id>intellij</id>
+        <properties>
+            <provided.scope>compile</provided.scope>
+        </properties>
+    </profile>
+  </profiles>
 
   <dependencies>
     <dependency>
@@ -69,8 +82,11 @@
       <groupId>org.apache.storm</groupId>
       <artifactId>storm-core</artifactId>
       <version>${project.version}</version>
-      <!-- keep storm out of the jar-with-dependencies -->
-      <scope>provided</scope>
+      <!--
+        Use "provided" scope to keep storm out of the jar-with-dependencies
+        For IntelliJ dev, intellij will load properly.
+      -->
+        <scope>${provided.scope}</scope>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>

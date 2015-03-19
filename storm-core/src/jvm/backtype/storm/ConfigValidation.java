@@ -168,11 +168,17 @@ public class ConfigValidation {
      * Validates a list of Strings.
      */
     public static Object StringsValidator = listFv(String.class, true);
-    
+
     /**
      * Validates a map of Strings to Numbers.
      */
     public static Object MapOfStringToNumberValidator = mapFv(String.class, Number.class, true);
+
+    /**
+     * Validates a map of Strings to a map of Strings to a list.
+     * {str -> {str -> [str,str]}
+     */
+    public static Object MapOfStringToMapValidator = mapFv(fv(String.class, false), mapFv(fv(String.class, false), listFv(String.class, false), false), true);
 
     /**
      * Validates is a list of Maps.

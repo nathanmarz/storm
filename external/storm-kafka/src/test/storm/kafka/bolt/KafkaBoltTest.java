@@ -143,7 +143,7 @@ public class KafkaBoltTest {
         String message = "value-234";
         Tuple tuple = generateTestTuple(message);
         bolt.execute(tuple);
-        verify(collector).ack(tuple);
+        verify(collector).fail(tuple);
     }
 
 

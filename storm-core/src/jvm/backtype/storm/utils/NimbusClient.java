@@ -40,7 +40,12 @@ public class NimbusClient extends ThriftClient {
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 
+
     public static NimbusClient getConfiguredClient(Map conf) {
+        return getConfiguredClientAs(conf, null);
+    }
+
+    public static NimbusClient getConfiguredClientAs(Map conf, String asUser) {
         List<String> seeds = (List<String>) conf.get(Config.NIMBUS_SEEDS);
         for(String seed : seeds) {
             String[] split = seed.split(":");
@@ -53,7 +58,7 @@ public class NimbusClient extends ThriftClient {
                 if(nimbuses != null) {
                     for(NimbusSummary nimbusSummary : nimbuses) {
                         if(nimbusSummary.is_isLeader()) {
-                            return new NimbusClient(conf, nimbusSummary.get_host(), nimbusSummary.get_port());
+                            return new NimbusClient(conf, nimbusSummary.get_host(), nimbusSummary.get_port(), null, asUser);
                         }
                     }
                 }
@@ -72,12 +77,17 @@ public class NimbusClient extends ThriftClient {
     }
 
     public NimbusClient(Map conf, String host, int port, Integer timeout) throws TTransportException {
-        super(conf, ThriftConnectionType.NIMBUS, host, port, timeout);
+        super(conf, ThriftConnectionType.NIMBUS, host, port, timeout, null);
+        _client = new Nimbus.Client(_protocol);
+    }
+
+    public NimbusClient(Map conf, String host, Integer port, Integer timeout, String asUser) throws TTransportException {
+        super(conf, ThriftConnectionType.NIMBUS, host, port, timeout, asUser);
         _client = new Nimbus.Client(_protocol);
     }
 
     public NimbusClient(Map conf, String host) throws TTransportException {
-        super(conf, ThriftConnectionType.NIMBUS, host, null, null);
+        super(conf, ThriftConnectionType.NIMBUS, host, null, null, null);
         _client = new Nimbus.Client(_protocol);
     }
 

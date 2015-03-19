@@ -30,25 +30,25 @@ The following sections give an overview of the various configuration options and
 ### Number of worker processes
 
 * Description: How many worker processes to create _for the topology_ across machines in the cluster.
-* Configuration option: [TOPOLOGY_WORKERS](/apidocs/backtype/storm/Config.html#TOPOLOGY_WORKERS)
+* Configuration option: [TOPOLOGY_WORKERS](/javadoc/apidocs/backtype/storm/Config.html#TOPOLOGY_WORKERS)
 * How to set in your code (examples):
-    * [Config#setNumWorkers](/apidocs/backtype/storm/Config.html)
+    * [Config#setNumWorkers](/javadoc/apidocs/backtype/storm/Config.html)
 
 ### Number of executors (threads)
 
 * Description: How many executors to spawn _per component_.
 * Configuration option: ?
 * How to set in your code (examples):
-    * [TopologyBuilder#setSpout()](/apidocs/backtype/storm/topology/TopologyBuilder.html)
-    * [TopologyBuilder#setBolt()](/apidocs/backtype/storm/topology/TopologyBuilder.html)
+    * [TopologyBuilder#setSpout()](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
+    * [TopologyBuilder#setBolt()](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
     * Note that as of Storm 0.8 the ``parallelism_hint`` parameter now specifies the initial number of executors (not tasks!) for that bolt.
 
 ### Number of tasks
 
 * Description: How many tasks to create _per component_.
-* Configuration option: [TOPOLOGY_TASKS](/apidocs/backtype/storm/Config.html#TOPOLOGY_TASKS)
+* Configuration option: [TOPOLOGY_TASKS](/javadoc/apidocs/backtype/storm/Config.html#TOPOLOGY_TASKS)
 * How to set in your code (examples):
-    * [ComponentConfigurationDeclarer#setNumTasks()](/apidocs/backtype/storm/topology/ComponentConfigurationDeclarer.html)
+    * [ComponentConfigurationDeclarer#setNumTasks()](/javadoc/apidocs/backtype/storm/topology/ComponentConfigurationDeclarer.html)
 
 
 Here is an example code snippet to show these settings in practice:
@@ -91,7 +91,7 @@ StormSubmitter.submitTopology(
 
 And of course Storm comes with additional configuration settings to control the parallelism of a topology, including:
 
-* [TOPOLOGY_MAX_TASK_PARALLELISM](/apidocs/backtype/storm/Config.html#TOPOLOGY_MAX_TASK_PARALLELISM): This setting puts a ceiling on the number of executors that can be spawned for a single component. It is typically used during testing to limit the number of threads spawned when running a topology in local mode. You can set this option via e.g. [Config#setMaxTaskParallelism()](/apidocs/backtype/storm/Config.html).
+* [TOPOLOGY_MAX_TASK_PARALLELISM](/javadoc/apidocs/backtype/storm/Config.html#TOPOLOGY_MAX_TASK_PARALLELISM): This setting puts a ceiling on the number of executors that can be spawned for a single component. It is typically used during testing to limit the number of threads spawned when running a topology in local mode. You can set this option via e.g. [Config#setMaxTaskParallelism()](/javadoc/apidocs/backtype/storm/Config.html#setMaxTaskParallelism(int)).
 
 ## How to change the parallelism of a running topology
 
@@ -119,5 +119,5 @@ $ storm rebalance mytopology -n 5 -e blue-spout=3 -e yellow-bolt=10
 * [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html)]
 * [Local mode](Local-mode.html)
 * [Tutorial](Tutorial.html)
-* [Storm API documentation](/apidocs/), most notably the class ``Config``
+* [Storm API documentation](/javadoc/apidocs/), most notably the class ``Config``
 

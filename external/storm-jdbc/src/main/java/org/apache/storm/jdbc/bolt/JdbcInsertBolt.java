@@ -16,8 +16,11 @@
  * limitations under the License.
  */
 package org.apache.storm.jdbc.bolt;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.mapper.JdbcMapper;
 import org.slf4j.Logger;
@@ -25,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Basic bolt for writing to any Database table.
@@ -35,12 +39,22 @@ public class JdbcInsertBolt extends AbstractJdbcBolt {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcInsertBolt.class);
 
     private String tableName;
+    private String insertQuery;
     private JdbcMapper jdbcMapper;
 
-    public JdbcInsertBolt(String configKey, String tableName, JdbcMapper jdbcMapper) {
+    public JdbcInsertBolt(String configKey, JdbcMapper jdbcMapper) {
         super(configKey);
-        this.tableName = tableName;
         this.jdbcMapper = jdbcMapper;
+    }
+
+    public JdbcInsertBolt withTableName(String tableName) {
+        this.tableName = tableName;
+        return this;
+    }
+
+    public JdbcInsertBolt withInsertQuery(String insertQuery) {
+        this.insertQuery = insertQuery;
+        return this;
     }
 
     public JdbcInsertBolt withQueryTimeoutSecs(int queryTimeoutSecs) {
@@ -49,19 +63,29 @@ public class JdbcInsertBolt extends AbstractJdbcBolt {
     }
 
     @Override
+    public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
+        super.prepare(map, topologyContext, collector);
+        if(StringUtils.isBlank(tableName) && StringUtils.isBlank(insertQuery)) {
+            throw new IllegalArgumentException("You must supply either a tableName or an insert Query.");
+        }
+    }
+
+    @Override
     public void execute(Tuple tuple) {
         try {
             List<Column> columns = jdbcMapper.getColumns(tuple);
             List<List<Column>> columnLists = new ArrayList<List<Column>>();
             columnLists.add(columns);
-            this.jdbcClient.insert(this.tableName, columnLists);
+            if(!StringUtils.isBlank(tableName)) {
+                this.jdbcClient.insert(this.tableName, columnLists);
+            } else {
+                this.jdbcClient.executeInsertQuery(this.insertQuery, columnLists);
+            }
+            this.collector.ack(tuple);
         } catch (Exception e) {
             this.collector.reportError(e);
             this.collector.fail(tuple);
-            return;
         }
-
-        this.collector.ack(tuple);
     }
 
     @Override

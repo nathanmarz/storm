@@ -24,8 +24,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Vector;
 
 import backtype.storm.Config;
 import backtype.storm.messaging.IConnection;
@@ -37,7 +37,7 @@ public class Context implements IContext {
         
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
-    private volatile Vector<IConnection> connections;
+    private Map<String, IConnection> connections;
     private NioClientSocketChannelFactory clientChannelFactory;
     
     private ScheduledExecutorService clientScheduleService;
@@ -49,7 +49,7 @@ public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     public void prepare(Map storm_conf) {
         this.storm_conf = storm_conf;
-        connections = new Vector<IConnection>();
+        connections = new HashMap<String, IConnection>();
 
         //each context will have a single client channel factory
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS));
@@ -71,29 +71,38 @@ public class Context implements IContext {
     /**
      * establish a server with a binding port
      */
-    public IConnection bind(String storm_id, int port) {
+    public synchronized IConnection bind(String storm_id, int port) {
         IConnection server = new Server(storm_conf, port);
-        connections.add(server);
+        connections.put(key(storm_id, port), server);
         return server;
     }
 
     /**
      * establish a connection to a remote server
      */
-    public IConnection connect(String storm_id, String host, int port) {        
+    public synchronized IConnection connect(String storm_id, String host, int port) {
+        IConnection connection = connections.get(key(host,port));
+        if(connection !=null)
+        {
+            return connection;
+        }
         IConnection client =  new Client(storm_conf, clientChannelFactory, 
-                clientScheduleService, host, port);
-        connections.add(client);
+                clientScheduleService, host, port, this);
+        connections.put(key(host, port), client);
         return client;
+    }
+
+    synchronized void removeClient(String host, int port) {
+        connections.remove(key(host, port));
     }
 
     /**
      * terminate this context
      */
-    public void term() {
+    public synchronized void term() {
         clientScheduleService.shutdown();        
         
-        for (IConnection conn : connections) {
+        for (IConnection conn : connections.values()) {
             conn.close();
         }
         
@@ -108,5 +117,9 @@ public class Context implements IContext {
         //we need to release resources associated with client channel factory
         clientChannelFactory.releaseExternalResources();
 
+    }
+
+    private String key(String host, int port) {
+        return String.format("%s:%d", host, port);
     }
 }

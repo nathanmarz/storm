@@ -15,14 +15,17 @@
 ;; limitations under the License.
 
 (ns backtype.storm.thrift
-  (:import [java.util HashMap])
+  (:import [java.util HashMap]
+           [java.io Serializable]
+           [backtype.storm.generated NodeInfo Assignment])
   (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology
             StormTopology$_Fields Bolt Nimbus$Client Nimbus$Iface
             ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
             GlobalStreamId ComponentObject ComponentObject$_Fields
-            ShellComponent])
+            ShellComponent SupervisorInfo])
   (:import [backtype.storm.utils Utils NimbusClient])
   (:import [backtype.storm Constants])
+  (:import [backtype.storm.security.auth ReqContext])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
@@ -66,13 +69,15 @@
     (if-not (.is_set_parallelism_hint component-common) 1 phint)))
 
 (defn nimbus-client-and-conn
-  [host port]
-  (log-message "Connecting to Nimbus at " host ":" port)
+  ([host port]
+    (nimbus-client-and-conn host port nil))
+  ([host port as-user]
+  (log-message "Connecting to Nimbus at " host ":" port " as user: " as-user)
   (let [conf (read-storm-config)
-        nimbusClient (NimbusClient. conf host port nil)
+        nimbusClient (NimbusClient. conf host port nil as-user)
         client (.getClient nimbusClient)
         transport (.transport nimbusClient)]
-        [client transport] ))
+        [client transport] )))
 
 (defmacro with-nimbus-connection
   [[client-sym host port] & body]
@@ -84,7 +89,9 @@
 (defmacro with-configured-nimbus-connection
   [client-sym & body]
   `(let [conf# (read-storm-config)
-         nimbusClient# (NimbusClient/getConfiguredClient conf#)
+         context# (ReqContext/context)
+         user# (if (.principal context#) (.getName (.principal context#)))
+         nimbusClient# (NimbusClient/getConfiguredClientAs conf# user#)
          ~client-sym (.getClient nimbusClient#)
          conn# (.transport nimbusClient#)
          ]
@@ -123,7 +130,7 @@
 
 (defnk mk-spout-spec*
   [spout outputs :p nil :conf nil]
-  (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
+  (SpoutSpec. (ComponentObject/serialized_java (Utils/javaSerialize spout))
               (mk-plain-component-common {} outputs p :conf conf)))
 
 (defn mk-shuffle-grouping
@@ -158,11 +165,11 @@
   [^ComponentObject obj]
   (when (not= (.getSetField obj) ComponentObject$_Fields/SERIALIZED_JAVA)
     (throw (RuntimeException. "Cannot deserialize non-java-serialized object")))
-  (Utils/deserialize (.get_serialized_java obj)))
+  (Utils/javaDeserialize (.get_serialized_java obj) Serializable))
 
 (defn serialize-component-object
   [obj]
-  (ComponentObject/serialized_java (Utils/serialize obj)))
+  (ComponentObject/serialized_java (Utils/javaSerialize obj)))
 
 (defn- mk-grouping
   [grouping-spec]
@@ -173,7 +180,7 @@
         grouping-spec
 
         (instance? CustomStreamGrouping grouping-spec)
-        (Grouping/custom_serialized (Utils/serialize grouping-spec))
+        (Grouping/custom_serialized (Utils/javaSerialize grouping-spec))
 
         (instance? JavaObject grouping-spec)
         (Grouping/custom_object grouping-spec)
@@ -213,7 +220,7 @@
 (defnk mk-bolt-spec*
   [inputs bolt outputs :p nil :conf nil]
   (let [common (mk-plain-component-common (mk-inputs inputs) outputs p :conf conf)]
-    (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
+    (Bolt. (ComponentObject/serialized_java (Utils/javaSerialize bolt))
            common)))
 
 (defnk mk-spout-spec
@@ -274,3 +281,4 @@
 (def SPOUT-FIELDS
   [StormTopology$_Fields/SPOUTS
    StormTopology$_Fields/STATE_SPOUTS])
+

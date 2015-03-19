@@ -104,8 +104,11 @@
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (worker-state conf id)]
-    (.get local-state LS-WORKER-HEARTBEAT)
-    ))
+    (try
+      (.get local-state LS-WORKER-HEARTBEAT)
+      (catch IOException e
+        (log-warn e "Failed to read local heartbeat for workerId : " id ",Ignoring exception.")
+        nil))))
 
 
 (defn my-worker-ids [conf]
@@ -256,6 +259,7 @@
   (let [conf (:conf supervisor)
         pids (read-dir-contents (worker-pids-root conf id))
         thread-pid (@(:worker-thread-pids-atom supervisor) id)
+        shutdown-sleep-secs (conf SUPERVISOR-WORKER-SHUTDOWN-SLEEP-SECS)
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
         user (get-worker-user conf id)]
     (when thread-pid
@@ -264,7 +268,9 @@
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -15 " pid))
         (kill-process-with-sig-term pid)))
-    (if-not (empty? pids) (sleep-secs 1)) ;; allow 1 second for execution of cleanup threads on worker.
+    (when-not (empty? pids)  
+      (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
+      (sleep-secs shutdown-sleep-secs))
     (doseq [pid pids]
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
@@ -376,7 +382,7 @@
             master-code-dir (if (contains? storm-code-map :data) (storm-code-map :data))
             stormroot (supervisor-stormdist-root conf storm-id)]
         (if-not (or (contains? downloaded-storm-ids storm-id) (.exists (File. stormroot)) (nil? master-code-dir))
-          (download-storm-code conf storm-id master-code-dir download-lock))
+          (download-storm-code conf storm-id master-code-dir supervisor download-lock))
         ))
 
     (wait-for-workers-launch
@@ -725,7 +731,7 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir download-lock]
+    :local [conf storm-id master-code-dir supervisor download-lock]
     (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (locking download-lock
             (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))

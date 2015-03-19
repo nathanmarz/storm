@@ -38,11 +38,11 @@ The maps of spout and bolt specs are maps from the component id to the correspon
 
 #### spout-spec
 
-`spout-spec` takes as arguments the spout implementation (an object that implements [IRichSpout](/apidocs/backtype/storm/topology/IRichSpout.html)) and optional keyword arguments. The only option that exists currently is the `:p` option, which specifies the parallelism for the spout. If you omit `:p`, the spout will execute as a single task.
+`spout-spec` takes as arguments the spout implementation (an object that implements [IRichSpout](/javadoc/apidocs/backtype/storm/topology/IRichSpout.html)) and optional keyword arguments. The only option that exists currently is the `:p` option, which specifies the parallelism for the spout. If you omit `:p`, the spout will execute as a single task.
 
 #### bolt-spec
 
-`bolt-spec` takes as arguments the input declaration for the bolt, the bolt implementation (an object that implements [IRichBolt](/apidocs/backtype/storm/topology/IRichBolt.html)), and optional keyword arguments.
+`bolt-spec` takes as arguments the input declaration for the bolt, the bolt implementation (an object that implements [IRichBolt](/javadoc/apidocs/backtype/storm/topology/IRichBolt.html)), and optional keyword arguments.
 
 The input declaration is a map from stream ids to stream groupings. A stream id can have one of two forms:
 

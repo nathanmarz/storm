@@ -21,6 +21,7 @@
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
         <version>0.10.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-core</artifactId>
@@ -225,7 +226,6 @@
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
@@ -494,6 +494,7 @@
             <plugin>
                <groupId>org.apache.storm</groupId>
                <artifactId>storm-maven-plugins</artifactId>
+               <version>${project.version}</version>
                <executions>
                  <execution>
                    <id>version-info</id>

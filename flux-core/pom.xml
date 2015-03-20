@@ -19,10 +19,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.ptgoetz</groupId>
-    <artifactId>flux-parent</artifactId>
+    <artifactId>flux-core</artifactId>
     <version>0.1.1-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <name>flux</name>
+    <packaging>jar</packaging>
+
+    <name>flux-core</name>
     <url>https://github.com/ptgoetz/flux</url>
 
     <parent>
@@ -64,10 +65,6 @@
             </properties>
         </profile>
     </profiles>
-	
-	<modules>
-		<module>flux-core</module>
-	</modules>
 
     <dependencies>
         <dependency>
@@ -112,10 +109,36 @@
     </dependencies>
     <build>
         <resources>
-
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
         </resources>
         <plugins>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>1.4</version>
+                <configuration>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.apache.storm.flux.Flux</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

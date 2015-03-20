@@ -91,7 +91,7 @@ spouts:
 # bolt definitions
 bolts:
   - id: "splitsentence"
-    className: "org.apache.storm.flux.bolts.GenericShellBolt"
+    className: "org.apache.storm.flux.wrappers.bolts.FluxShellBolt"
     constructorArgs:
       # command line
       - ["python", "splitsentence.py"]

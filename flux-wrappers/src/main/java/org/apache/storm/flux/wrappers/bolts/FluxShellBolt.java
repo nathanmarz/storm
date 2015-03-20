@@ -15,29 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.flux.spouts;
+package org.apache.storm.flux.wrappers.bolts;
 
-import backtype.storm.spout.ShellSpout;
-import backtype.storm.topology.IRichSpout;
+import backtype.storm.task.ShellBolt;
+import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
+
 import java.util.Map;
 
 /**
- * A generic `ShellSpout` implementation that allows you specify output fields
- * without having to subclass `ShellSpout` to do so.
+ * A generic `ShellBolt` implementation that allows you specify output fields
+ * without having to subclass `ShellBolt` to do so.
  *
  */
-public class GenericShellSpout extends ShellSpout implements IRichSpout {
+public class FluxShellBolt extends ShellBolt implements IRichBolt{
     private String[] outputFields;
 
     /**
-     * Create a ShellSpout with command line arguments and output fields
-     * @param args Command line arguments for the spout
-     * @param outputFields Names of fields the spout will emit.
+     * Create a ShellBolt with command line arguments and output fields
+     * @param command Command line arguments for the bolt
+     * @param outputFields Names of fields the bolt will emit (if any).
      */
-    public GenericShellSpout(String[] args, String[] outputFields){
-        super(args);
+
+    public FluxShellBolt(String[] command, String[] outputFields){
+        super(command);
         this.outputFields = outputFields;
     }
 

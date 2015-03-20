@@ -20,7 +20,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.ptgoetz</groupId>
-    <artifactId>flux-parent</artifactId>
+    <artifactId>flux</artifactId>
     <version>0.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>flux</name>
@@ -67,9 +67,9 @@
     </profiles>
 
     <modules>
-        <module>flux-core</module>
         <module>flux-wrappers</module>
-        <module>flux-ui</module>
+        <module>flux-core</module>
+        <module>flux-all</module>
     </modules>
 
     <dependencies>

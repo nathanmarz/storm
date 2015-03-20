@@ -46,7 +46,7 @@ config:
 # spout definitions
 spouts:
   - id: "sentence-spout"
-    className: "org.apache.storm.flux.spouts.GenericShellSpout"
+    className: "org.apache.storm.flux.wrappers.spouts.FluxShellSpout"
     # shell spout constructor takes 2 arguments: String[], String[]
     constructorArgs:
       # command line
@@ -59,7 +59,7 @@ spouts:
 # bolt definitions
 bolts:
   - id: "splitsentence"
-    className: "org.apache.storm.flux.bolts.GenericShellBolt"
+    className: "org.apache.storm.flux.wrappers.bolts.FluxShellBolt"
     constructorArgs:
       # command line
       - ["python", "splitsentence.py"]

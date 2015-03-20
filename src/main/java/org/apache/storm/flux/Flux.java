@@ -141,7 +141,7 @@ public class Flux {
                     }
                     StormSubmitter.submitTopology(topologyName, conf, topology, submitOptions);
                 } catch (Exception e) {
-                    LOG.warn("Unable to deploy topology tp remote cluster.", e);
+                    LOG.warn("Unable to deploy topology to remote cluster.", e);
                 }
             } else {
                 LOG.info("Running in local mode...");

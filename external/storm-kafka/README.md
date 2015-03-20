@@ -213,7 +213,7 @@ For the bolt :
         props.put("metadata.broker.list", "localhost:9092");
         props.put("request.required.acks", "1");
         props.put("serializer.class", "kafka.serializer.StringEncoder");
-        conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
+        conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         
         StormSubmitter.submitTopology("kafkaboltTest", conf, builder.createTopology());
 ```

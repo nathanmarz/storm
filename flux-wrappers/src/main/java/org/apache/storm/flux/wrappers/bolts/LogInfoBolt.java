@@ -1,4 +1,4 @@
-package org.apache.storm.flux.test;
+package org.apache.storm.flux.wrappers.bolts;
 
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;

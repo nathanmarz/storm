@@ -109,7 +109,7 @@ bolts:
     # ...
 
   - id: "log"
-    className: "org.apache.storm.flux.test.LogInfoBolt"
+    className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
     parallelism: 1
     # ...
 

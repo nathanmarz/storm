@@ -167,7 +167,7 @@ Name: shell-topology
 sentence-spout[1](org.apache.storm.flux.spouts.GenericShellSpout)
 ---------------- BOLTS ---------------
 splitsentence[1](org.apache.storm.flux.bolts.GenericShellBolt)
-log[1](org.apache.storm.flux.test.LogInfoBolt)
+log[1](org.apache.storm.flux.wrappers.bolts.LogInfoBolt)
 count[1](backtype.storm.testing.TestWordCounter)
 --------------- STREAMS ---------------
 sentence-spout --SHUFFLE--> splitsentence
@@ -206,7 +206,7 @@ bolts:
     className: "backtype.storm.testing.TestWordCounter"
     parallelism: 1
   - id: "bolt-2"
-    className: "org.apache.storm.flux.test.LogInfoBolt"
+    className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
     parallelism: 1
 
 #stream definitions
@@ -411,7 +411,7 @@ bolts:
     # ...
 
   - id: "log"
-    className: "org.apache.storm.flux.test.LogInfoBolt"
+    className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
     parallelism: 1
     # ...
 
@@ -557,7 +557,7 @@ bolts:
     parallelism: 1
 
   - id: "log"
-    className: "org.apache.storm.flux.test.LogInfoBolt"
+    className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
     parallelism: 1
 
   - id: "count"

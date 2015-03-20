@@ -17,6 +17,7 @@
   (:import [java.util Arrays]
            [backtype.storm.nimbus NimbusInfo])
   (:import [backtype.storm.daemon.common Assignment StormBase SupervisorInfo])
+  (:import [backtype.storm.generated NimbusSummary])
   (:import [org.apache.zookeeper ZooDefs ZooDefs$Ids])
   (:import [org.mockito Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])

@@ -108,7 +108,7 @@ the byte[] to String.
 ```java
 BrokerHosts hosts = new ZkHosts(zkConnString);
 SpoutConfig spoutConfig = new SpoutConfig(hosts, topicName, "/" + topicName, UUID.randomUUID().toString());
-spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
+spoutConfig.scheme = new SchemeAsMultiScheme(new StringScheme());
 KafkaSpout kafkaSpout = new KafkaSpout(spoutConfig);
 ```
 ####Trident Spout

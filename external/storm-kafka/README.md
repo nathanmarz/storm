@@ -203,8 +203,8 @@ For the bolt :
         spout.setCycle(true);
         builder.setSpout("spout", spout, 5);
         KafkaBolt bolt = new KafkaBolt()
-                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
+                .withTopicSelector(new DefaultTopicSelector("test"))
+                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
         builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
         
         Config conf = new Config();

@@ -892,7 +892,8 @@
 (defnk json-response
   [data callback :serialize-fn to-json :status 200]
      {:status status
-      :headers (merge {"Cache-Control" "no-cache, no-store"}
+      :headers (merge {"Cache-Control" "no-cache, no-store"
+                       "Access-Control-Allow-Origin" "*"}
                       (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
                           {"Content-Type" "application/json;charset=utf-8"}))
       :body (if (not-nil? callback)

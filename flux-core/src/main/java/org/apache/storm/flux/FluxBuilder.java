@@ -161,6 +161,7 @@ public class FluxBuilder {
         } else {
             grouping = (CustomStreamGrouping) clazz.newInstance();
         }
+        applyProperties(def, grouping, context);
         return grouping;
     }
 
@@ -324,6 +325,7 @@ public class FluxBuilder {
         } else {
             spout = (IRichSpout) clazz.newInstance();
         }
+        applyProperties(def, spout, context);
         return spout;
     }
 
@@ -361,6 +363,7 @@ public class FluxBuilder {
                 bolt = clazz.newInstance();
             }
             context.addBolt(def.getId(), bolt);
+            applyProperties(def, bolt, context);
         }
     }
 

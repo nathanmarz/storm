@@ -135,18 +135,22 @@ storm jar myTopology-0.1.0-SNAPSHOT.jar org.apache.storm.flux.Flux --local my_co
 ```
 usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
              [options] <topology-config.yaml>
- -d,--dry-run         Do not run or deploy the topology. Just build,
-                      validate, and print information about the topology.
- -i,--inactive        Deploy the topology, but do not activate it.
- -l,--local           Run the topology in local mode.
- -n,--no-splash       Suppress the printing of the splash screen.
- -q,--no-detail       Suppress the printing of topology details.
- -r,--remote          Deploy the topology to a remote cluster.
- -R,--resource        Treat the supplied path as a classpath resource
-                      instead of a file.
- -s,--sleep <sleep>   When running locally, the amount of time to sleep
-                      (in ms.) before killing the topology and shutting
-                      down the local cluster.
+ -d,--dry-run                 Do not run or deploy the topology. Just
+                              build, validate, and print information about
+                              the topology.
+ -i,--inactive                Deploy the topology, but do not activate it.
+ -l,--local                   Run the topology in local mode.
+ -n,--no-splash               Suppress the printing of the splash screen.
+ -q,--no-detail               Suppress the printing of topology details.
+ -r,--remote                  Deploy the topology to a remote cluster.
+ -R,--resource                Treat the supplied path as a classpath
+                              resource instead of a file.
+ -s,--sleep <sleep>           When running locally, the amount of time to
+                              sleep (in ms.) before killing the topology
+                              and shutting down the local cluster.
+ -z,--zookeeper <zookeeper>   When running in local mode, use the
+                              ZooKeeper at the specified <host>:<port>
+                              instead of the in-process ZooKeeper.
 ```
 
 ### Sample output

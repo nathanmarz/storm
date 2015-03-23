@@ -41,6 +41,8 @@ public class Flux {
 
     private static final Long DEFAULT_LOCAL_SLEEP_TIME = 60000l;
 
+    private static final Long DEFAULT_ZK_PORT = 2181l;
+
     private static final String OPTION_LOCAL = "local";
     private static final String OPTION_REMOTE = "remote";
     private static final String OPTION_RESOURCE = "resource";
@@ -49,6 +51,7 @@ public class Flux {
     private static final String OPTION_NO_DETAIL = "no-detail";
     private static final String OPTION_NO_SPLASH = "no-splash";
     private static final String OPTION_INACTIVE = "inactive";
+    private static final String OPTION_ZOOKEEPER = "zookeeper";
 
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -70,6 +73,9 @@ public class Flux {
         options.addOption(option(0, "n", OPTION_NO_SPLASH, "Suppress the printing of the splash screen."));
 
         options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it."));
+
+        options.addOption(option(1, "z", OPTION_ZOOKEEPER, "When running in local mode, use the ZooKeeper at the " +
+                "specified <host>:<port> instead of the in-process ZooKeeper."));
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -152,7 +158,26 @@ public class Flux {
                     sleepTime = Long.parseLong(sleepStr);
                 }
                 LOG.debug("Sleep time: {}", sleepTime);
-                LocalCluster cluster = new LocalCluster();
+                LocalCluster cluster = null;
+
+                // in-process or external zookeeper
+                if(cmd.hasOption(OPTION_ZOOKEEPER)){
+                    String zkStr = cmd.getOptionValue(OPTION_ZOOKEEPER);
+                    LOG.info("Using ZooKeeper at '{}' instead of in-process one.", zkStr);
+                    long zkPort = DEFAULT_ZK_PORT;
+                    String zkHost = null;
+                    if(zkStr.contains(":")){
+                        String[] hostPort = zkStr.split(":");
+                        zkHost = hostPort[0];
+                        zkPort = hostPort.length > 1 ? Long.parseLong(hostPort[1]) : DEFAULT_ZK_PORT;
+
+                    } else {
+                        zkHost = zkStr;
+                    }
+                    cluster = new LocalCluster(zkHost, zkPort);
+                } else {
+                    cluster = new LocalCluster();
+                }
                 cluster.submitTopology(topologyName, conf, topology);
 
                 Utils.sleep(sleepTime);

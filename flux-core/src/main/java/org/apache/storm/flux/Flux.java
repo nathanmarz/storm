@@ -189,23 +189,25 @@ public class Flux {
 
     static void printTopologyInfo(ExecutionContext ctx){
         TopologyDef t = ctx.getTopologyDef();
-        print("---------- TOPOLOGY DETAILS ----------");
+        if(t.isDslTopology()) {
+            print("---------- TOPOLOGY DETAILS ----------");
 
-        printf("Topology Name: %s", t.getName());
-        print("--------------- SPOUTS ---------------");
-        for(SpoutDef s : t.getSpouts()){
-            printf("%s [%d] (%s)", s.getId(), s.getParallelism(), s.getClassName());
-        }
-        print("---------------- BOLTS ---------------");
-        for(BoltDef b : t.getBolts()){
-            printf("%s [%d] (%s)", b.getId(), b.getParallelism(), b.getClassName());
-        }
+            printf("Topology Name: %s", t.getName());
+            print("--------------- SPOUTS ---------------");
+            for (SpoutDef s : t.getSpouts()) {
+                printf("%s [%d] (%s)", s.getId(), s.getParallelism(), s.getClassName());
+            }
+            print("---------------- BOLTS ---------------");
+            for (BoltDef b : t.getBolts()) {
+                printf("%s [%d] (%s)", b.getId(), b.getParallelism(), b.getClassName());
+            }
 
-        print("--------------- STREAMS ---------------");
-        for(StreamDef sd : t.getStreams()){
-            printf("%s --%s--> %s", sd.getFrom(), sd.getGrouping().getType(), sd.getTo());
+            print("--------------- STREAMS ---------------");
+            for (StreamDef sd : t.getStreams()) {
+                printf("%s --%s--> %s", sd.getFrom(), sd.getGrouping().getType(), sd.getTo());
+            }
+            print("--------------------------------------");
         }
-        print("--------------------------------------");
     }
 
     // save a little typing

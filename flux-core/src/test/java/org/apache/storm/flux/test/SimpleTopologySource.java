@@ -9,6 +9,13 @@ import org.apache.storm.flux.wrappers.spouts.FluxShellSpout;
 import java.util.Map;
 
 public class SimpleTopologySource implements TopologySource {
+
+
+    public SimpleTopologySource(){}
+
+    public SimpleTopologySource(String foo, String bar){}
+
+
     @Override
     public StormTopology getTopology(Map<String, Object> config) {
         TopologyBuilder builder = new TopologyBuilder();

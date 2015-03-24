@@ -62,6 +62,10 @@ You can join streams with join, merge or multiReduce.
 
 At time of writing, you can't emit to multiple output streams from Trident -- see [STORM-68](https://issues.apache.org/jira/browse/STORM-68)
 
+### Why am I getting a NotSerializableException/IllegalStateException when my topology is being started up?
+
+Within the Storm lifecycle, the topology is instantiated and then serialized to byte format to be stored in ZooKeeper, prior to the topology being executed. Within this step, if a spout or bolt within the topology has an initialized unserializable property, serialization will fail. If there is a need for a field that is unserializable, initialize it within the bolt or spout's prepare method, which is run after the topology is delivered to the worker.
+
 ## Spouts
 
 ### What is a coordinator, and why are there several?

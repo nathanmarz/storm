@@ -23,6 +23,7 @@ import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.*;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+import org.apache.storm.flux.api.TopologySource;
 import org.apache.storm.flux.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,31 +63,75 @@ public class FluxBuilder {
     public static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException,
             InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
 
-        TopologyBuilder builder = new TopologyBuilder();
+        StormTopology topology = null;
 
         // build components that may be referenced by spouts, bolts, etc.
         // the map will be a String --> Object where the object is a fully
         // constructed class instance
         buildComponents(context);
 
-        // create spouts
-        buildSpouts(context, builder);
+        if(context.getTopologyDef().isDslTopology()) {
+            // This is a DSL (YAML, etc.) topology...
+            LOG.info("Detected DSL topology...");
 
-        // we need to be able to lookup bolts by id, then switch based
-        // on whether they are IBasicBolt or IRichBolt instances
-        buildBolts(context);
+            TopologyBuilder builder = new TopologyBuilder();
 
-        // process stream definitions
-        buildStreamDefinitions(context, builder);
+            // create spouts
+            buildSpouts(context, builder);
 
-        return builder.createTopology();
+            // we need to be able to lookup bolts by id, then switch based
+            // on whether they are IBasicBolt or IRichBolt instances
+            buildBolts(context);
+
+            // process stream definitions
+            buildStreamDefinitions(context, builder);
+
+            topology = builder.createTopology();
+        } else {
+            // user class supplied...
+            // this also provides a bridge to Trident...
+            LOG.info("A topology source has been specified...");
+            ObjectDef def = context.getTopologyDef().getTopologySource();
+            topology = buildExternalTopology(def, context);
+        }
+
+        return topology;
+    }
+
+    private static StormTopology buildExternalTopology(ObjectDef def, ExecutionContext context)
+            throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException,
+            InvocationTargetException {
+        Class clazz = Class.forName(def.getClassName());
+        StormTopology topology = null;
+        Object topologySource = null;
+        if (def.hasConstructorArgs()) {
+            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+            List<Object> cArgs = resolveReferences(def, context);
+            Constructor con = findCompatibleConstructor(cArgs, clazz);
+            if (con != null) {
+                LOG.debug("Found something seemingly compatible, attempting invocation...");
+                topologySource =  con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
+            } else {
+                throw new IllegalArgumentException("Couldn't find a suitable TopologySource constructor.");
+            }
+        } else {
+            //grouping = (CustomStreamGrouping) clazz.newInstance();
+            topologySource = clazz.newInstance();
+
+        }
+        applyProperties(def, topologySource, context);
+
+        // TODO use reflection instead of assuming the source implements TopologySource
+        return ((TopologySource)topologySource).getTopology(context.getTopologyDef().getConfig());
     }
 
     /**
      * @param context
      * @param builder
      */
-    private static void buildStreamDefinitions(ExecutionContext context, TopologyBuilder builder) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    private static void buildStreamDefinitions(ExecutionContext context, TopologyBuilder builder)
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException,
+            IllegalAccessException {
         TopologyDef topologyDef = context.getTopologyDef();
         // process stream definitions
         for (StreamDef stream : topologyDef.getStreams()) {
@@ -144,7 +189,8 @@ public class FluxBuilder {
         }
     }
 
-    private static CustomStreamGrouping buildCustomStreamGrouping(ObjectDef def, ExecutionContext context) throws ClassNotFoundException,
+    private static CustomStreamGrouping buildCustomStreamGrouping(ObjectDef def, ExecutionContext context)
+            throws ClassNotFoundException,
             IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class clazz = Class.forName(def.getClassName());
         CustomStreamGrouping grouping = null;

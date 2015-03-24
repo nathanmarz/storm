@@ -94,16 +94,36 @@ public class TCKTest {
         topology.validate();
     }
 
+    @Test
+    public void testTopologySourceWithReflection() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection.yaml", false, true);
+        assertTrue(topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
 
     @Test
+    public void testTopologySourceWithConfigParam() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection-config.yaml", false, true);
+        assertTrue(topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
     public void testInvalidTopologySource() throws Exception {
         TopologyDef topologyDef = FluxParser.parseResource("/configs/invalid-existing-topology.yaml", false, true);
         assertFalse("Topology config is invalid.", topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
-        assertNotNull(topology);
-        topology.validate();
     }
 
 }

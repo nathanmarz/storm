@@ -32,6 +32,7 @@ import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class FluxBuilder {
     private static Logger LOG = LoggerFactory.getLogger(FluxBuilder.class);
@@ -64,13 +65,21 @@ public class FluxBuilder {
             InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
 
         StormTopology topology = null;
+        TopologyDef topologyDef = context.getTopologyDef();
+
+        if(!topologyDef.validate()){
+            throw new IllegalArgumentException("Invalid topology config. Spouts, bolts and streams cannot be " +
+                    "defined in the same configuration as a topologySource.");
+        }
 
         // build components that may be referenced by spouts, bolts, etc.
         // the map will be a String --> Object where the object is a fully
         // constructed class instance
         buildComponents(context);
 
-        if(context.getTopologyDef().isDslTopology()) {
+
+
+        if(topologyDef.isDslTopology()) {
             // This is a DSL (YAML, etc.) topology...
             LOG.info("Detected DSL topology...");
 
@@ -91,10 +100,9 @@ public class FluxBuilder {
             // user class supplied...
             // this also provides a bridge to Trident...
             LOG.info("A topology source has been specified...");
-            ObjectDef def = context.getTopologyDef().getTopologySource();
+            ObjectDef def = topologyDef.getTopologySource();
             topology = buildExternalTopology(def, context);
         }
-
         return topology;
     }
 
@@ -102,7 +110,6 @@ public class FluxBuilder {
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException,
             InvocationTargetException {
         Class clazz = Class.forName(def.getClassName());
-        StormTopology topology = null;
         Object topologySource = null;
         if (def.hasConstructorArgs()) {
             LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
@@ -115,14 +122,49 @@ public class FluxBuilder {
                 throw new IllegalArgumentException("Couldn't find a suitable TopologySource constructor.");
             }
         } else {
-            //grouping = (CustomStreamGrouping) clazz.newInstance();
             topologySource = clazz.newInstance();
-
         }
         applyProperties(def, topologySource, context);
 
-        // TODO use reflection instead of assuming the source implements TopologySource
-        return ((TopologySource)topologySource).getTopology(context.getTopologyDef().getConfig());
+        Method getTopology = findGetTopologyMethod(topologySource);
+        if(getTopology.getParameterTypes()[0].equals(Config.class)){
+            Config config = new Config();
+            config.putAll(context.getTopologyDef().getConfig());
+            return (StormTopology) getTopology.invoke(topologySource, config);
+        } else {
+            return (StormTopology) getTopology.invoke(topologySource, context.getTopologyDef().getConfig());
+        }
+    }
+
+    private static Method findGetTopologyMethod(Object topologySource) throws NoSuchMethodException {
+        //TODO we may want to allow other method names besides "getTopology"
+        Class clazz = topologySource.getClass();
+        Method[] methods =  clazz.getMethods();
+        ArrayList<Method> candidates = new ArrayList<Method>();
+        for(Method method : methods){
+            if(!method.getName().equals("getTopology")){
+                continue;
+            }
+            if(!method.getReturnType().equals(StormTopology.class)){
+                continue;
+            }
+            Class[] paramTypes = method.getParameterTypes();
+            if(paramTypes.length != 1){
+                continue;
+            }
+            if(paramTypes[0].isAssignableFrom(Map.class) || paramTypes[0].isAssignableFrom(Config.class)){
+                candidates.add(method);
+            }
+        }
+
+        if(candidates.size() == 0){
+            throw new IllegalArgumentException("Unable to find 'getTopology()' method in class: " + clazz.getName());
+        } else if (candidates.size() > 1){
+            LOG.warn("Found multiple candidate methods in class '" + clazz.getName() + "'. Using the first one found");
+        }
+
+        Method retval = candidates.get(0);
+        return retval;
     }
 
     /**

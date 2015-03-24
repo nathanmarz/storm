@@ -1,0 +1,10 @@
+---
+
+name: "existing-topology"
+topologySource:
+  className: "org.apache.storm.flux.test.SimpleTopologySource"
+  constructorArgs:
+    # command line
+    - ["node", "randomsentence.js"]
+    # output fields
+    - ["word"]

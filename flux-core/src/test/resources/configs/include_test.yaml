@@ -20,6 +20,6 @@
 name: "include-topology"
 
 includes:
-  - resource: false
-    file: "src/test/resources/configs/shell_test.yaml"
+  - resource: true
+    file: "/configs/shell_test.yaml"
     override: false #otherwise subsequent includes that define 'name' would override

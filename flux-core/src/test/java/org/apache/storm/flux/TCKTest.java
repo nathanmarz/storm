@@ -23,12 +23,15 @@ import org.apache.storm.flux.model.ExecutionContext;
 import org.apache.storm.flux.model.TopologyDef;
 import org.apache.storm.flux.parser.FluxParser;
 import org.junit.Test;
+
+import java.io.File;
+
 import static org.junit.Assert.*;
 
 public class TCKTest {
     @Test
     public void testTCK() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/tck.yaml", false, true);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/tck.yaml", false, true);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -38,7 +41,7 @@ public class TCKTest {
 
     @Test
     public void testShellComponents() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/shell_test.yaml", false, true);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/shell_test.yaml", false, true);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -48,7 +51,7 @@ public class TCKTest {
 
     @Test
     public void testKafkaSpoutConfig() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/kafka_test.yaml", false, true);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/kafka_test.yaml", false, true);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -69,7 +72,7 @@ public class TCKTest {
 
     @Test
     public void testIncludes() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseFile("src/test/resources/configs/include_test.yaml", false, true);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/include_test.yaml", false, true);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -77,6 +80,29 @@ public class TCKTest {
         assertTrue(topologyDef.getName().equals("include-topology"));
         assertTrue(topologyDef.getBolts().size() > 0);
         assertTrue(topologyDef.getSpouts().size() > 0);
+        topology.validate();
+    }
+
+    @Test
+    public void testTopologySource() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology.yaml", false, true);
+        assertTrue(topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
+
+
+    @Test
+    public void testInvalidTopologySource() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/invalid-existing-topology.yaml", false, true);
+        assertFalse("Topology config is invalid.", topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
         topology.validate();
     }
 }

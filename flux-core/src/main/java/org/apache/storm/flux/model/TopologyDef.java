@@ -38,11 +38,18 @@ public class TopologyDef {
 
     private String name;
     private Map<String, BeanDef> componentMap = new LinkedHashMap<String, BeanDef>(); // not required
+    private List<IncludeDef> includes; // not required
+    private Map<String, Object> config = new HashMap<String, Object>();
+
+    // a "topology source" is a class that can produce a `StormTopology` thrift object.
+    private ObjectDef topologySource;
+
+    // the following are required if we're defining a core storm topology DAG in YAML, etc.
+    //TODO if any of these are specified and `topologySource != null` it should be considered an error.
     private Map<String, BoltDef> boltMap = new LinkedHashMap<String, BoltDef>();
     private Map<String, SpoutDef> spoutMap = new LinkedHashMap<String, SpoutDef>();
-    private Map<String, Object> config = new HashMap<String, Object>();
     private List<StreamDef> streams = new ArrayList<StreamDef>();
-    private List<IncludeDef> includes;
+
 
     public String getName() {
         return name;
@@ -178,5 +185,26 @@ public class TopologyDef {
         //TODO figure out how we want to deal with overrides. Users may want to add streams even when overriding other
         // properties. For now we just add them blindly which could lead to a potentially invalid topology.
         this.streams.addAll(streams);
+    }
+
+    public ObjectDef getTopologySource() {
+        return topologySource;
+    }
+
+    public void setTopologySource(ObjectDef topologySource) {
+        this.topologySource = topologySource;
+    }
+
+
+    public boolean validate(){
+        // we can't have a topology source and spout/bolt/stream definitions at the same time
+        boolean hasSpouts = this.spoutMap != null && this.spoutMap.size() > 0;
+        boolean hasBolts = this.boltMap != null && this.boltMap.size() > 0;
+        boolean hasStreams = this.streams != null && this.streams.size() > 0;
+        boolean isDslTopology = hasSpouts || hasBolts || hasStreams;
+
+        boolean isTopologySource = this.topologySource != null;
+
+        return !(isDslTopology && isTopologySource);
     }
 }

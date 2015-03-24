@@ -1,5 +1,8 @@
-# Apache Storm Project Bylaws
-
+---
+title: Apache Storm Project Bylaws
+layout: documentation
+documentation: true
+---
 
 ## Roles and Responsibilities
 

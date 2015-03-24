@@ -203,15 +203,7 @@
 
 -----------------------------------------------------------------------
 
-
-For jQuery 1.6.2 (storm-core/src/ui/public/js/jquery-1.6.2.min.js)
-
-jQuery JavaScript Library v1.6.2
-http://jquery.com/
-
-Copyright 2011, John Resig
-Dual licensed under the MIT or GPL Version 2 licenses.
-http://jquery.org/license
+For jQuery 1.11.1 (storm-core/src/ui/public/js/jquery-1.11.1.min.js)
 
 Includes Sizzle.js
 http://sizzlejs.com/
@@ -220,6 +212,8 @@ Released under the MIT, BSD, and GPL Licenses.
 
 MIT license selected:
 
+Copyright 2014 jQuery Foundation and other contributors
+http://jquery.com/
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -227,10 +221,8 @@ without limitation the rights to use, copy, modify, merge, publish,
 distribute, sublicense, and/or sell copies of the Software, and to
 permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
-
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -266,35 +258,16 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -----------------------------------------------------------------------
 
-For jQuery TableSorter 2.17.3 (storm-core/src/ui/public/js/jquery.tablesorter.min.js)
+Copyright (c) 2008-2010, Allan Jardine
+All rights reserved.
 
-Copyright (c) 2007 Christian Bach
-Examples and docs at: http://tablesorter.com
-Dual licensed under the MIT and GPL licenses:
-http://www.opensource.org/licenses/mit-license.php
-http://www.gnu.org/licenses/gpl.html
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-MIT license selected:
+    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    * Neither the name of Allan Jardine nor SpryMedia UK may be used to endorse or promote products derived from this software without specific prior written permission.
 
-Copyright (c) 2007 Christian Bach
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 
 -----------------------------------------------------------------------
 
@@ -469,4 +442,74 @@ under that license.
 You do not have to do anything special to choose one license or the other and
 you don't have to notify anyone which license you are using. You are free to
 use the BlockUI plugin in commercial projects as long as the copyright header is left intact.
+
+-----------------------------------------------------------------------
+
+For jquery dataTables v1.10.4
+
+(storm-core/src/ui/public/js/jquery.dataTables.1.10.4.min.js
+storm-core/src/ui/public/css/jquery.dataTables.1.10.4.min.css
+storm-core/src/ui/public/images/{{back, forward}_{disabled, enabled, enabled_hover}}.png
+storm-core/src/ui/public/images/{sort_{asc, asc_disabled, both, desc, desc_disabled}}.png)
+
+Copyright (c) 2008-2013 SpryMedia Limited
+http://datatables.net
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+-----------------------------------------------------------------------
+
+For jquery dataTables bootstrap integration
+
+(storm-core/src/ui/public/js/dataTables.bootstrap.min.js
+storm-core/src/ui/public/css/dataTables.bootstrap.css)
+
+Copyright (c) 2013-2014 SpryMedia Limited
+http://datatables.net/license
+https://github.com/DataTables/Plugins/tree/master/integration/bootstrap/3
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+-----------------------------------------------------------------------
+
+For bootstrap v3.3.1
+(storm-core/src/ui/public/js/bootstrap-3.3.1.min.js
+storm-core/src/ui/public/css/bootstrap-3.3.1.min.css)
+
+Bootstrap v3.3.1 (http://getbootstrap.com)
+Copyright 2011-2014 Twitter, Inc.
+Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
 

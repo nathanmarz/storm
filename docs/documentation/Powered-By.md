@@ -3,7 +3,7 @@ title: Companies Using Apache Storm
 layout: documentation
 documentation: true
 ---
-Want to be added to this page? Send an email [here](mailto:nathan.marz@gmail.com).
+Want to be added to this page? Send an email [here](mailto:dev@storm.apache.org).
 
 <table class="table table-striped">
 

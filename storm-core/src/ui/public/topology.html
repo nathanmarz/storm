@@ -18,43 +18,68 @@
 
 <html><head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Storm UI</title>
-<link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
+<link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
+<link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
+<link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
 <link href="/css/style.css" rel="stylesheet" type="text/css">
-<script src="/js/jquery-1.6.2.min.js" type="text/javascript"></script>
-<script src="/js/jquery.tablesorter.min.js" type="text/javascript"></script>
+<script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
 <script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
 <script src="/js/jquery.mustache.js" type="text/javascript"></script>
 <script src="/js/url.min.js" type="text/javascript"></script>
-<script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
+<script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
 <script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
 <script src="/js/visualization.js" type="text/javascript"></script>
 <script src="/js/arbor.js" type="text/javascript"></script>
 <script src="/js/arbor-graphics.js" type="text/javascript"></script>
+<script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
 </head>
 <body>
-<div id="ui-user">
-</div>
-<h1><a href="/">Storm UI</a></h1>
-<h2>Topology summary</h2>
-<div id="topology-summary">
-</div>
-<div id="topology-actions">
-</div>
-<div id="topology-stats"></div>
-<div id="spout-stats">
-</div>
-<div id="bolt-stats">
-</div>
-<div id="topology-visualization">
-</div>
-<div id="topology-configuration">
-</div>
-<p id="toggle-switch" style="display: block;" class="js-only"></p>
-<div id="json-response-error">
-</div>
-<div id="anti-forgery-token" class="anti-forgery-token">
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-11">
+      <h1><a href="/">Storm UI</a></h1>
+    </div>
+    <div id="ui-user" class="col-md-1"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Topology summary</h2>
+      <div id="topology-summary"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div id="topology-actions" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="topology-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="spout-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="bolt-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="topology-visualization" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="topology-configuration" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <p id="toggle-switch" style="display: block;" class="js-only"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div id="json-response-error" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="anti-forgery-token" class="anti-forgery-token col-md-12"></div>
+  </div>
 </div>
 </body>
 <script>
@@ -66,10 +91,23 @@ $(document).ajaxStart(function(){
 });
 $(document).ready(function() {
     var topologyId = $.url("?id");
+    var tableStateKey = ":".concat(topologyId);
     var window = $.url("?window");
     var sys = $.cookies.get("sys") || "false";
     var url = "/api/v1/topology/"+topologyId+"?sys="+sys;
     if(window) url += "&window="+window;
+    $.extend( $.fn.dataTable.defaults, {
+      stateSave: true,
+      stateSaveCallback: function (oSettings, oData) {
+        sessionStorage.setItem( oSettings.sTableId.concat(tableStateKey), JSON.stringify(oData) );
+      },
+      stateLoadCallback: function (oSettings) {
+        return JSON.parse( sessionStorage.getItem(oSettings.sTableId.concat(tableStateKey)) );
+      },
+      lengthMenu: [[20,40,60,100,-1], [20, 40, 60, 100, "All"]],
+      pageLength: 20
+    });
+
     renderToggleSys($("#toggle-switch"));
     $.ajaxSetup({
         "error":function(jqXHR,textStatus,response) {
@@ -84,6 +122,7 @@ $(document).ready(function() {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+            $('#ui-user [data-toggle="tooltip"]').tooltip();
         });
 
         var antiForgeryToken = $("#anti-forgery-token");
@@ -104,23 +143,39 @@ $(document).ready(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
-            if(response["topologyStats"].length > 0) {
-                $("#topology-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-            }
+            //window, emitted, transferred, complete latency, acked, failed
+            $("#topology-stats-table").DataTable({
+              paging: false,
+              info: false,
+              searching: false,
+              columnDefs: [
+                {type: "num", targets: [1, 2, 3, 4, 5]},
+                {type: "time-str", targets: [0]}
+              ]
+            });
+
             spoutStats.append(Mustache.render($(template).filter("#spout-stats-template").html(),response));
-            if(response["spouts"].length > 0) {
-                $("#spout-stats-table").tablesorter({sortList: [[0,0]], headers:{}});
-            }
+            //id, executors, tasks, emitted, transferred, complete latency, acked, failed, Last error
+            dtAutoPage("#spout-stats-table", {
+              columnDefs: [
+                {type: "num", targets: [1, 2, 3, 4, 5, 6, 7]}
+              ]
+            });
+
             boltStats.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
-            if(response["bolts"].length > 0) {
-                $("#bolt-stats-table").tablesorter({sortList: [[0,0]], headers:{}});
-            }
+            //id, executors, tasks, emitted, transferred, capacity, execute latency, executed, process latency, acked, failed, last error
+            dtAutoPage("#bolt-stats-table", {
+              columnDefs: [
+                {type: "num", targets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+              ]
+            });
 
             topologyVisualization.append(Mustache.render($(template).filter("#topology-visualization-template").html(), response));
             $("#show-hide-visualization").click(function () { show_visualization(null) });
 
             config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
-            $("#topology-configuration-table").tablesorter({ sortList: [[0,0]], headers: {}});
+            //key, value
+            dtAutoPage("#topology-configuration-table", {});
 
             var errorCells = document.getElementsByClassName("errorSpan");
             for (i =0; i < errorCells.length; i++)
@@ -131,6 +186,13 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
+            $('#topology-summary [data-toggle="tooltip"]').tooltip();
+            $('#topology-stats [data-toggle="tooltip"]').tooltip();
+            $('#spout-stats [data-toggle="tooltip"]').tooltip();
+            $('#bolt-stats [data-toggle="tooltip"]').tooltip();
+            $('#topology-configuration [data-toggle="tooltip"]').tooltip();
+            $('#topology-actions [data-toggle="tooltip"]').tooltip();
+            $('#topology-visualization [data-toggle="tooltip"]').tooltip();
         });
     });
  });

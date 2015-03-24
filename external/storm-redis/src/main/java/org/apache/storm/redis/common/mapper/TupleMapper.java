@@ -15,11 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.redis.util.container;
+package org.apache.storm.redis.common.mapper;
 
-import redis.clients.jedis.JedisCommands;
+import backtype.storm.tuple.ITuple;
 
-public interface JedisCommandsInstanceContainer {
-    JedisCommands getInstance();
-    void returnInstance(JedisCommands jedisCommands);
+import java.io.Serializable;
+
+public interface TupleMapper extends Serializable {
+    public String getKeyFromTuple(ITuple tuple);
+    public String getValueFromTuple(ITuple tuple);
 }

@@ -23,10 +23,14 @@ import backtype.storm.StormSubmitter;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.redis.bolt.AbstractRedisBolt;
-import org.apache.storm.redis.util.config.JedisClusterConfig;
-import org.apache.storm.redis.util.config.JedisPoolConfig;
+import org.apache.storm.redis.bolt.RedisStoreBolt;
+import org.apache.storm.redis.common.config.JedisClusterConfig;
+import org.apache.storm.redis.common.config.JedisPoolConfig;
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
+import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisCommands;
@@ -36,7 +40,7 @@ import redis.clients.jedis.exceptions.JedisException;
 public class PersistentWordCount {
     private static final String WORD_SPOUT = "WORD_SPOUT";
     private static final String COUNT_BOLT = "COUNT_BOLT";
-    private static final String REDIS_BOLT = "REDIS_BOLT";
+    private static final String STORE_BOLT = "STORE_BOLT";
 
     private static final String TEST_REDIS_HOST = "127.0.0.1";
     private static final int TEST_REDIS_PORT = 6379;
@@ -92,14 +96,15 @@ public class PersistentWordCount {
 
         WordSpout spout = new WordSpout();
         WordCounter bolt = new WordCounter();
-        StoreCountRedisBolt redisBolt = new StoreCountRedisBolt(poolConfig);
+        RedisStoreMapper storeMapper = setupStoreMapper();
+        RedisStoreBolt storeBolt = new RedisStoreBolt(poolConfig, storeMapper);
 
         // wordSpout ==> countBolt ==> RedisBolt
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout(WORD_SPOUT, spout, 1);
-        builder.setBolt(COUNT_BOLT, bolt, 1).shuffleGrouping(WORD_SPOUT);
-        builder.setBolt(REDIS_BOLT, redisBolt, 1).fieldsGrouping(COUNT_BOLT, new Fields("word"));
+        builder.setBolt(COUNT_BOLT, bolt, 1).fieldsGrouping(WORD_SPOUT, new Fields("word"));
+        builder.setBolt(STORE_BOLT, storeBolt, 1).shuffleGrouping(COUNT_BOLT);
 
         if (args.length == 2) {
             LocalCluster cluster = new LocalCluster();
@@ -112,6 +117,35 @@ public class PersistentWordCount {
             StormSubmitter.submitTopology(args[2], config, builder.createTopology());
         } else {
             System.out.println("Usage: PersistentWordCount <redis host> <redis port> (topology name)");
+        }
+    }
+
+    private static RedisStoreMapper setupStoreMapper() {
+        return new WordCountStoreMapper();
+    }
+
+    private static class WordCountStoreMapper implements RedisStoreMapper {
+        private RedisDataTypeDescription description;
+        private final String hashKey = "wordCount";
+
+        public WordCountStoreMapper() {
+            description = new RedisDataTypeDescription(
+                    RedisDataTypeDescription.RedisDataType.HASH, hashKey);
+        }
+
+        @Override
+        public RedisDataTypeDescription getDataTypeDescription() {
+            return description;
+        }
+
+        @Override
+        public String getKeyFromTuple(ITuple tuple) {
+            return tuple.getStringByField("word");
+        }
+
+        @Override
+        public String getValueFromTuple(ITuple tuple) {
+            return tuple.getStringByField("count");
         }
     }
 }

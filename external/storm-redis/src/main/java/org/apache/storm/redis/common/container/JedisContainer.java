@@ -15,33 +15,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.redis.util.container;
+package org.apache.storm.redis.common.container;
 
-import redis.clients.jedis.JedisCluster;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
 
 import java.io.Closeable;
+import java.io.IOException;
 
-public class JedisClusterContainer implements JedisCommandsInstanceContainer, Closeable {
+public class JedisContainer implements JedisCommandsInstanceContainer, Closeable {
+    private static final Logger LOG = LoggerFactory.getLogger(JedisContainer.class);
 
-    private JedisCluster jedisCluster;
+    private JedisPool jedisPool;
 
-    public JedisClusterContainer(JedisCluster jedisCluster) {
-        this.jedisCluster = jedisCluster;
+    public JedisContainer(JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
     }
 
     @Override
     public JedisCommands getInstance() {
-        return this.jedisCluster;
+        return jedisPool.getResource();
     }
 
     @Override
     public void returnInstance(JedisCommands jedisCommands) {
-        // do nothing
+        if (jedisCommands == null) {
+            return;
+        }
+
+        try {
+            ((Closeable) jedisCommands).close();
+        } catch (IOException e) {
+            LOG.warn("Failed to close (return) instance to pool");
+            try {
+                jedisPool.returnBrokenResource((Jedis) jedisCommands);
+            } catch (Exception e2) {
+                LOG.error("Failed to discard instance from pool");
+            }
+        }
     }
 
     @Override
     public void close() {
-        this.jedisCluster.close();
+        jedisPool.close();
     }
 }

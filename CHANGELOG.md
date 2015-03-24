@@ -1,3 +1,6 @@
+## 0.11.0
+ * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
+
 ## 0.10.0
  * STORM-681: Auto insert license header with genthrift.sh
  * STORM-707: Client (Netty): improve logging to help troubleshooting connection woes

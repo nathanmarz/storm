@@ -195,16 +195,20 @@ public class TopologyDef {
         this.topologySource = topologySource;
     }
 
-
-    public boolean validate(){
-        // we can't have a topology source and spout/bolt/stream definitions at the same time
+    public boolean isDslTopology(){
         boolean hasSpouts = this.spoutMap != null && this.spoutMap.size() > 0;
         boolean hasBolts = this.boltMap != null && this.boltMap.size() > 0;
         boolean hasStreams = this.streams != null && this.streams.size() > 0;
         boolean isDslTopology = hasSpouts || hasBolts || hasStreams;
 
-        boolean isTopologySource = this.topologySource != null;
+        return isDslTopology;
+    }
 
+
+    public boolean validate(){
+        // we can't have a topology source and spout/bolt/stream definitions at the same time
+        boolean isDslTopology = isDslTopology();
+        boolean isTopologySource = this.topologySource != null;
         return !(isDslTopology && isTopologySource);
     }
 }

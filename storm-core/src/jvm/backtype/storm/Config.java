@@ -567,6 +567,39 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
 
     /**
+     * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
+     */
+    public static final String UI_HTTPS_PORT = "ui.https.port";
+    public static final Object UI_HTTPS_PORT_SCHEMA = Number.class;
+
+    /**
+     * Path to the keystore used by Storm UI for setting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEYSTORE_PATH = "ui.https.keystore.path";
+    public static final Object UI_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the keystore used by Storm UI for setting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEYSTORE_PASSWORD = "ui.https.keystore.password";
+    public static final Object UI_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of keystore used by Storm UI for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String UI_HTTPS_KEYSTORE_TYPE = "ui.https.keystore.type";
+    public static final Object UI_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEY_PASSWORD = "ui.https.key.password";
+    public static final Object UI_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+
+
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static final String DRPC_SERVERS = "drpc.servers";
@@ -602,6 +635,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DRPC_HTTPS_KEYSTORE_TYPE = "drpc.https.keystore.type";
     public static final Object DRPC_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_KEY_PASSWORD = "drpc.https.key.password";
+    public static final Object DRPC_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
 
     /**
      * The DRPC transport plug-in for Thrift client/server communication

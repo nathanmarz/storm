@@ -200,7 +200,7 @@
           drpc-port (int (conf DRPC-PORT))
           drpc-service-handler (service-handler conf)
           ;; requests and returns need to be on separate thread pools, since calls to
-          ;; "execute" don't unblock until other thrift methods are called. So if 
+          ;; "execute" don't unblock until other thrift methods are called. So if
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
           handler-server (when (> drpc-port 0)
@@ -210,7 +210,7 @@
           invoke-server (ThriftServer. conf
                           (DistributedRPCInvocations$Processor. drpc-service-handler)
                           ThriftConnectionType/DRPC_INVOCATIONS)
-          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)] 
+          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
       (add-shutdown-hook-with-force-kill-in-1-sec (fn []
                                                     (if handler-server (.stop handler-server))
                                                     (.stop invoke-server)))
@@ -225,7 +225,8 @@
               https-port (int (conf DRPC-HTTPS-PORT))
               https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
-              https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)]
+              https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)
+              https-key-password (conf DRPC-HTTPS-KEY-PASSWORD)]
 
           (storm-run-jetty
            {:port drpc-http-port
@@ -234,7 +235,8 @@
                                         https-port
                                         https-ks-path
                                         https-ks-password
-                                        https-ks-type)
+                                        https-ks-type
+                                        https-key-password)
                             (config-filter server app filters-confs))})))
       (when handler-server
         (.serve handler-server)))))

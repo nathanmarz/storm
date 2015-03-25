@@ -9,6 +9,9 @@ A framework for creating and deploying Apache Storm streaming computations with 
 3. In physics, the rate of flow of a fluid, radiant energy, or particles across a given area
 4. A substance mixed with a solid to lower its melting point
 
+## Rationale
+Bad things happen when configuration is embedded in code.
+
 ## About
 Flux is a framework and set of utilities that make defining and deploying Apache Storm topologies less painful and
 deveoper-intensive.

@@ -126,7 +126,8 @@ public class FluxBuilder {
         }
         applyProperties(def, topologySource, context);
 
-        Method getTopology = findGetTopologyMethod(topologySource);
+        String methodName = "getTopology";
+        Method getTopology = findGetTopologyMethod(topologySource, methodName);
         if(getTopology.getParameterTypes()[0].equals(Config.class)){
             Config config = new Config();
             config.putAll(context.getTopologyDef().getConfig());
@@ -136,13 +137,21 @@ public class FluxBuilder {
         }
     }
 
-    private static Method findGetTopologyMethod(Object topologySource) throws NoSuchMethodException {
-        //TODO we may want to allow other method names besides "getTopology"
+    /**
+     * Given a `java.lang.Object` instance and a method name, attempt to find a method that matches the input
+     * parameter: `java.util.Map` or `backtype.storm.Config`.
+     *
+     * @param topologySource object to inspect for the specified method
+     * @param methodName name of the method to look for
+     * @return
+     * @throws NoSuchMethodException
+     */
+    private static Method findGetTopologyMethod(Object topologySource, String methodName) throws NoSuchMethodException {
         Class clazz = topologySource.getClass();
         Method[] methods =  clazz.getMethods();
         ArrayList<Method> candidates = new ArrayList<Method>();
         for(Method method : methods){
-            if(!method.getName().equals("getTopology")){
+            if(!method.getName().equals(methodName)){
                 continue;
             }
             if(!method.getReturnType().equals(StormTopology.class)){

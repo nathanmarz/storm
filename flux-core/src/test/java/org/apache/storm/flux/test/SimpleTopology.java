@@ -19,6 +19,10 @@ public class SimpleTopology{
 
     public SimpleTopology(String foo, String bar){}
 
+    public StormTopology getTopologyWithDifferentMethodName(Map<String, Object> config){
+        return getTopology(config);
+    }
+
 
     public StormTopology getTopology(Map<String, Object> config) {
         TopologyBuilder builder = new TopologyBuilder();

@@ -126,7 +126,7 @@ public class FluxBuilder {
         }
         applyProperties(def, topologySource, context);
 
-        String methodName = "getTopology";
+        String methodName = context.getTopologyDef().getTopologySource().getMethodName();//"getTopology";
         Method getTopology = findGetTopologyMethod(topologySource, methodName);
         if(getTopology.getParameterTypes()[0].equals(Config.class)){
             Config config = new Config();
@@ -167,7 +167,7 @@ public class FluxBuilder {
         }
 
         if(candidates.size() == 0){
-            throw new IllegalArgumentException("Unable to find 'getTopology()' method in class: " + clazz.getName());
+            throw new IllegalArgumentException("Unable to find method '" + methodName + "' method in class: " + clazz.getName());
         } else if (candidates.size() > 1){
             LOG.warn("Found multiple candidate methods in class '" + clazz.getName() + "'. Using the first one found");
         }

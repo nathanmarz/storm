@@ -42,7 +42,7 @@ public class TopologyDef {
     private Map<String, Object> config = new HashMap<String, Object>();
 
     // a "topology source" is a class that can produce a `StormTopology` thrift object.
-    private ObjectDef topologySource;
+    private TopologySourceDef topologySource;
 
     // the following are required if we're defining a core storm topology DAG in YAML, etc.
     //TODO if any of these are specified and `topologySource != null` it should be considered an error.
@@ -187,11 +187,11 @@ public class TopologyDef {
         this.streams.addAll(streams);
     }
 
-    public ObjectDef getTopologySource() {
+    public TopologySourceDef getTopologySource() {
         return topologySource;
     }
 
-    public void setTopologySource(ObjectDef topologySource) {
+    public void setTopologySource(TopologySourceDef topologySource) {
         this.topologySource = topologySource;
     }
 

@@ -68,7 +68,6 @@
     <modules>
         <module>flux-wrappers</module>
         <module>flux-core</module>
-        <module>flux-all</module>
     </modules>
 
     <dependencies>

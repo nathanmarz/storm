@@ -37,7 +37,6 @@
             <groupId>com.github.ptgoetz</groupId>
             <artifactId>flux-wrappers</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>

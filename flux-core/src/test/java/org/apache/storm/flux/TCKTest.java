@@ -128,6 +128,17 @@ public class TCKTest {
     }
 
 
+    @Test
+    public void testTridentTopologySource() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-trident.yaml", false, true);
+        assertTrue(topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidTopologySource() throws Exception {
         TopologyDef topologyDef = FluxParser.parseResource("/configs/invalid-existing-topology.yaml", false, true);

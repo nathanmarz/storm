@@ -43,7 +43,7 @@ storm jar mytopology.jar org.apache.storm.flux.Flux --remote config.yaml
 ```
 
 Another pain point often mentioned is the fact that the wiring for a Topology graph is often tied up in Java code,
-and that any changes require recompilation and repackaging of the topology jar file. Flux aims to eliminate that
+and that any changes require recompilation and repackaging of the topology jar file. Flux aims to alleviate that
 pain by allowing you to package all your Storm components in a single jar, and use an external text file to define
 the layout and configuration of your topologies.
 
@@ -67,7 +67,7 @@ The current version of Flux is available in Maven Central at the following coord
 <dependency>
     <groupId>com.github.ptgoetz</groupId>
     <artifactId>flux</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -187,11 +187,16 @@ definition consists of the following:
 
   1. A topology name
   2. A list of topology "components" (named Java objects that will be made available in the environment)
-  3. A list of spouts, each identified by a unique ID
-  4. A list of bolts, each identified by a unique ID
-  5. A list of "stream" objects representing a flow of tuples between spouts and bolts
+  3. Either (A DSL topology definition):
+      * A list of spouts, each identified by a unique ID
+      * A list of bolts, each identified by a unique ID
+      * A list of "stream" objects representing a flow of tuples between spouts and bolts
+  4. Or (A JVM class that can produce a `backtype.storm.generated.StormTopology` instance:
+      * A `topologySource` definition.
 
-For reference, a simple example of a wordcount topology is listed below:
+
+
+For example, here is a simple definition of a wordcount topology using the YAML DSL:
 
 ```yaml
 name: "yaml-topology"
@@ -319,6 +324,45 @@ config:
   topology.message.timeout.secs: 30
 ```
 
+# Existing Topologies
+If you have existing Storm topologies, you can still use Flux to deploy/run/test them. This feature allows you to
+leverage Flux Constructor Arguments, References, Properties, and Topology Config declarations for existing topology
+classes.
+
+The easiest way to use an existing topology class is to define
+a `getTopology()` instance method with one of the following signatures:
+
+```java
+public StormTopology getTopology(Map<String, Object> config)
+```
+or:
+
+```java
+public StormTopology getTopology(Config config)
+```
+
+You could then use the following YAML to configure your topology:
+
+```yaml
+name: "existing-topology"
+topologySource:
+  className: "org.apache.storm.flux.test.SimpleTopology"
+```
+
+If the class you would like to use as a topology source has a different method name (i.e. not `getTopology`), you can
+override it:
+
+```yaml
+name: "existing-topology"
+topologySource:
+  className: "org.apache.storm.flux.test.SimpleTopology"
+  methodName: "getTopologyWithDifferentMethodName"
+```
+
+__N.B.:__ The specified method must accept a single argument of type `java.util.Map<String, Object>` or
+`backtype.storm.Config`, and return a `backtype.storm.generated.StormTopology` object.
+
+# YAML DSL
 ## Spouts and Bolts
 Spout and Bolts are configured in their own respective section of the YAML configuration. Spout and Bolt definitions
 are extensions to the `component` definition that add a `parallelism` parameter that sets the parallelism  for a
@@ -595,8 +639,22 @@ streams:
 ```
 
 
-## Trident Support
-Currenty Flux only supports the Core Storm API, but support for Trident is planned.
+## Trident(Micro-Batching API) Support
+Currenty, the Flux YAML DSL only supports the Core Storm API, but support for Trident is planned.
+
+To use Flux with a Trident topology, define a topology getter method and reference it in your YAML config:
+
+```yaml
+name: "my-trident-topology"
+
+config:
+  topology.workers: 1
+
+topologySource:
+  className: "org.apache.storm.flux.test.TridentTopologySource"
+  # Flux will look for "getTopology", this will override that.
+  methodName: "getTopologyWithDifferentMethodName"
+```
 
 ## Contributing
 

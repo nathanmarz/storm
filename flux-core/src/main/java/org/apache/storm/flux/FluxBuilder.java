@@ -139,8 +139,7 @@ public class FluxBuilder {
             LOG.warn("Found multiple candidate methods in class '" + clazz.getName() + "'. Using the first one found");
         }
 
-        Method retval = candidates.get(0);
-        return retval;
+        return candidates.get(0);
     }
 
     /**
@@ -207,26 +206,6 @@ public class FluxBuilder {
         }
     }
 
-    public static List<Object> resolveReferences(ObjectDef bean, ExecutionContext context) {
-        LOG.debug("Checking arguments for references.");
-        List<Object> cArgs;
-        // resolve references
-        if (bean.hasReferences()) {
-            cArgs = new ArrayList<Object>();
-            for (Object arg : bean.getConstructorArgs()) {
-                if (arg instanceof BeanReference) {
-                    cArgs.add(context.getComponent(((BeanReference) arg).getId()));
-                } else {
-                    cArgs.add(arg);
-                }
-            }
-        } else {
-            cArgs = bean.getConstructorArgs();
-        }
-        return cArgs;
-    }
-
-
     public static void applyProperties(ObjectDef bean, Object instance, ExecutionContext context) throws
             IllegalAccessException, InvocationTargetException {
         List<PropertyDef> props = bean.getProperties();
@@ -263,7 +242,6 @@ public class FluxBuilder {
 
     public static Method findSetter(Class clazz, String property, Object arg) {
         String setterName = toSetterName(property);
-
         Method retval = null;
         Method[] methods = clazz.getMethods();
         for (Method method : methods) {
@@ -279,17 +257,34 @@ public class FluxBuilder {
         return "set" + name.substring(0, 1).toUpperCase() + name.substring(1, name.length());
     }
 
+    public static List<Object> resolveReferences(List<Object> args, ExecutionContext context) {
+        LOG.debug("Checking arguments for references.");
+        List<Object> cArgs = new ArrayList<Object>();
+        // resolve references
+        for (Object arg : args) {
+            if (arg instanceof BeanReference) {
+                cArgs.add(context.getComponent(((BeanReference) arg).getId()));
+            } else {
+                cArgs.add(arg);
+            }
+        }
+        return cArgs;
+    }
+
     private static Object buildObject(ObjectDef def, ExecutionContext context) throws ClassNotFoundException,
             IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class clazz = Class.forName(def.getClassName());
         Object obj = null;
         if (def.hasConstructorArgs()) {
             LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
-            List<Object> cArgs = resolveReferences(def, context);
+            List<Object> cArgs = def.getConstructorArgs();
+            if(def.hasReferences()){
+                cArgs = resolveReferences(cArgs, context);
+            }
             Constructor con = findCompatibleConstructor(cArgs, clazz);
             if (con != null) {
                 LOG.debug("Found something seemingly compatible, attempting invocation...");
-                obj = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
+                obj = con.newInstance(getArgsWithListCoercian(cArgs, con.getParameterTypes()));
             } else {
                 throw new IllegalArgumentException("Couldn't find a suitable constructor.");
             }
@@ -386,7 +381,7 @@ public class FluxBuilder {
             Class[] paramClasses = con.getParameterTypes();
             if (paramClasses.length == args.size()) {
                 LOG.debug("found constructor with same number of args..");
-                boolean invokable = canInvokeConstructorWithArgs(args, con);
+                boolean invokable = canInvokeWithArgs(args, con.getParameterTypes());
                 if (invokable) {
                     retval = con;
                     eligibleCount++;
@@ -405,12 +400,12 @@ public class FluxBuilder {
 
 
     /**
-     * Given a java.util.List of contructor arguments, and a java.lang.Constructor instance, attempt to convert the
-     * list to an java.lang.Object array that can be used to invoke the constructor. If a constructor argument needs
+     * Given a java.util.List of contructor/method arguments, and a list of parameter types, attempt to convert the
+     * list to an java.lang.Object array that can be used to invoke the constructor. If an argument needs
      * to be coerced from a List to an Array, do so.
      */
-    private static Object[] getConstructorArgsWithListCoercian(List<Object> args, Constructor constructor) {
-        Class[] parameterTypes = constructor.getParameterTypes();
+    private static Object[] getArgsWithListCoercian(List<Object> args, Class[] parameterTypes) {
+//        Class[] parameterTypes = constructor.getParameterTypes();
         if (parameterTypes.length != args.size()) {
             throw new IllegalArgumentException("Contructor parameter count does not egual argument size.");
         }
@@ -458,16 +453,16 @@ public class FluxBuilder {
         return constructorParams;
     }
 
+
     /**
-     * Determine if the given constructor can be invoked with the given arguments List. Consider if
+     * Determine if the given constructor/method parameter types are compatible given arguments List. Consider if
      * list coercian can make it possible.
      *
      * @param args
-     * @param constructor
+     * @param parameterTypes
      * @return
      */
-    private static boolean canInvokeConstructorWithArgs(List<Object> args, Constructor constructor) {
-        Class[] parameterTypes = constructor.getParameterTypes();
+    private static boolean canInvokeWithArgs(List<Object> args, Class[] parameterTypes) {
         if (parameterTypes.length != args.size()) {
             LOG.warn("parameter types were the wrong size");
             return false;
@@ -492,7 +487,7 @@ public class FluxBuilder {
             }
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
-                LOG.debug("I think so. If we convert a List to an array.");
+                LOG.debug("Assignment is possible if we convert a List to an array.");
                 LOG.debug("Array Type: {}, List type: {}", paramType.getComponentType(), ((List) obj).get(0).getClass());
 
                 return true;

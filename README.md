@@ -1,4 +1,5 @@
 # flux
+A framework for creating and deploying Apache Storm streaming computations with less friction.
 
 ## Definition
 **flux** |fləks| _noun_
@@ -187,11 +188,11 @@ definition consists of the following:
 
   1. A topology name
   2. A list of topology "components" (named Java objects that will be made available in the environment)
-  3. Either (A DSL topology definition):
+  3. **EITHER** (A DSL topology definition):
       * A list of spouts, each identified by a unique ID
       * A list of bolts, each identified by a unique ID
       * A list of "stream" objects representing a flow of tuples between spouts and bolts
-  4. Or (A JVM class that can produce a `backtype.storm.generated.StormTopology` instance:
+  4. **OR** (A JVM class that can produce a `backtype.storm.generated.StormTopology` instance:
       * A `topologySource` definition.
 
 
@@ -639,7 +640,7 @@ streams:
 ```
 
 
-## Trident(Micro-Batching API) Support
+## Trident (Micro-Batching API) Support
 Currenty, the Flux YAML DSL only supports the Core Storm API, but support for Trident is planned.
 
 To use Flux with a Trident topology, define a topology getter method and reference it in your YAML config:

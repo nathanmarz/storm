@@ -77,8 +77,6 @@ public class FluxBuilder {
         // constructed class instance
         buildComponents(context);
 
-
-
         if(topologyDef.isDslTopology()) {
             // This is a DSL (YAML, etc.) topology...
             LOG.info("Detected DSL topology...");
@@ -104,37 +102,6 @@ public class FluxBuilder {
             topology = buildExternalTopology(def, context);
         }
         return topology;
-    }
-
-    private static StormTopology buildExternalTopology(ObjectDef def, ExecutionContext context)
-            throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException,
-            InvocationTargetException {
-        Class clazz = Class.forName(def.getClassName());
-        Object topologySource = null;
-        if (def.hasConstructorArgs()) {
-            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
-            List<Object> cArgs = resolveReferences(def, context);
-            Constructor con = findCompatibleConstructor(cArgs, clazz);
-            if (con != null) {
-                LOG.debug("Found something seemingly compatible, attempting invocation...");
-                topologySource =  con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
-            } else {
-                throw new IllegalArgumentException("Couldn't find a suitable TopologySource constructor.");
-            }
-        } else {
-            topologySource = clazz.newInstance();
-        }
-        applyProperties(def, topologySource, context);
-
-        String methodName = context.getTopologyDef().getTopologySource().getMethodName();//"getTopology";
-        Method getTopology = findGetTopologyMethod(topologySource, methodName);
-        if(getTopology.getParameterTypes()[0].equals(Config.class)){
-            Config config = new Config();
-            config.putAll(context.getTopologyDef().getConfig());
-            return (StormTopology) getTopology.invoke(topologySource, config);
-        } else {
-            return (StormTopology) getTopology.invoke(topologySource, context.getTopologyDef().getConfig());
-        }
     }
 
     /**
@@ -240,69 +207,6 @@ public class FluxBuilder {
         }
     }
 
-    private static CustomStreamGrouping buildCustomStreamGrouping(ObjectDef def, ExecutionContext context)
-            throws ClassNotFoundException,
-            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-        Class clazz = Class.forName(def.getClassName());
-        CustomStreamGrouping grouping = null;
-        if (def.hasConstructorArgs()) {
-            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
-            List<Object> cArgs = resolveReferences(def, context);
-            Constructor con = findCompatibleConstructor(cArgs, clazz);
-            if (con != null) {
-                LOG.debug("Found something seemingly compatible, attempting invocation...");
-                grouping = (CustomStreamGrouping) con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
-            } else {
-                throw new IllegalArgumentException("Couldn't find a suitable StreamGroping constructor.");
-            }
-        } else {
-            grouping = (CustomStreamGrouping) clazz.newInstance();
-        }
-        applyProperties(def, grouping, context);
-        return grouping;
-    }
-
-
-    /**
-     * Given a topology definition, resolve and instantiate all components found and return a map
-     * keyed by the component id.
-     *
-     * @param context
-     * @return
-     * @throws ClassNotFoundException
-     * @throws NoSuchMethodException
-     * @throws IllegalAccessException
-     * @throws InvocationTargetException
-     * @throws InstantiationException
-     */
-    private static void buildComponents(ExecutionContext context) throws ClassNotFoundException, NoSuchMethodException,
-            IllegalAccessException, InvocationTargetException, InstantiationException {
-        Collection<BeanDef> cDefs = context.getTopologyDef().getComponents();
-        if (cDefs != null) {
-            for (BeanDef bean : cDefs) {
-                Class clazz = Class.forName(bean.getClassName());
-                Object obj = null;
-                if (bean.hasConstructorArgs()) {
-                    LOG.debug("Found constructor arguments in bean definition: " +
-                            bean.getConstructorArgs().getClass().getName());
-                    List<Object> cArgs = resolveReferences(bean, context);
-
-                    Constructor con = findCompatibleConstructor(cArgs, clazz);
-                    if (con != null) {
-                        LOG.debug("Found something seemingly compatible, attempting invocation...");
-                        obj = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
-                    } else {
-                        throw new IllegalArgumentException("Couldn't find a suitable constructor.");
-                    }
-                } else {
-                    obj = clazz.newInstance();
-                }
-                context.addComponent(bean.getId(), obj);
-                applyProperties(bean, obj, context);
-            }
-        }
-    }
-
     public static List<Object> resolveReferences(ObjectDef bean, ExecutionContext context) {
         LOG.debug("Checking arguments for references.");
         List<Object> cArgs;
@@ -375,15 +279,67 @@ public class FluxBuilder {
         return "set" + name.substring(0, 1).toUpperCase() + name.substring(1, name.length());
     }
 
+    private static Object buildObject(ObjectDef def, ExecutionContext context) throws ClassNotFoundException,
+            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+        Class clazz = Class.forName(def.getClassName());
+        Object obj = null;
+        if (def.hasConstructorArgs()) {
+            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
+            List<Object> cArgs = resolveReferences(def, context);
+            Constructor con = findCompatibleConstructor(cArgs, clazz);
+            if (con != null) {
+                LOG.debug("Found something seemingly compatible, attempting invocation...");
+                obj = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
+            } else {
+                throw new IllegalArgumentException("Couldn't find a suitable constructor.");
+            }
+        } else {
+            obj = clazz.newInstance();
+        }
+        applyProperties(def, obj, context);
+        return obj;
+    }
+
+    private static StormTopology buildExternalTopology(ObjectDef def, ExecutionContext context)
+            throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException,
+            InvocationTargetException {
+
+        Object topologySource = buildObject(def, context);
+
+        String methodName = context.getTopologyDef().getTopologySource().getMethodName();
+        Method getTopology = findGetTopologyMethod(topologySource, methodName);
+        if(getTopology.getParameterTypes()[0].equals(Config.class)){
+            Config config = new Config();
+            config.putAll(context.getTopologyDef().getConfig());
+            return (StormTopology) getTopology.invoke(topologySource, config);
+        } else {
+            return (StormTopology) getTopology.invoke(topologySource, context.getTopologyDef().getConfig());
+        }
+    }
+
+    private static CustomStreamGrouping buildCustomStreamGrouping(ObjectDef def, ExecutionContext context)
+            throws ClassNotFoundException,
+            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+        Object grouping = buildObject(def, context);
+        return (CustomStreamGrouping)grouping;
+    }
+
     /**
-     * @param context
-     * @param builder
-     * @throws ClassNotFoundException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
-     * @throws InstantiationException
-     * @throws IllegalAccessException
+     * Given a topology definition, resolve and instantiate all components found and return a map
+     * keyed by the component id.
      */
+    private static void buildComponents(ExecutionContext context) throws ClassNotFoundException, NoSuchMethodException,
+            IllegalAccessException, InvocationTargetException, InstantiationException {
+        Collection<BeanDef> cDefs = context.getTopologyDef().getComponents();
+        if (cDefs != null) {
+            for (BeanDef bean : cDefs) {
+                Object obj = buildObject(bean, context);
+                context.addComponent(bean.getId(), obj);
+            }
+        }
+    }
+
+
     private static void buildSpouts(ExecutionContext context, TopologyBuilder builder) throws ClassNotFoundException,
             NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         for (SpoutDef sd : context.getTopologyDef().getSpouts()) {
@@ -396,81 +352,28 @@ public class FluxBuilder {
     /**
      * Given a spout definition, return a Storm spout implementation by attempting to find a matching constructor
      * in the given spout class. Perform list to array conversion as necessary.
-     *
-     * @param def
-     * @return
-     * @throws ClassNotFoundException
-     * @throws IllegalAccessException
-     * @throws InstantiationException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
      */
     private static IRichSpout buildSpout(SpoutDef def, ExecutionContext context) throws ClassNotFoundException,
             IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-        Class clazz = Class.forName(def.getClassName());
-        IRichSpout spout = null;
-        if (def.hasConstructorArgs()) {
-            LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
-            List<Object> cArgs = resolveReferences(def, context);
-            Constructor con = findCompatibleConstructor(cArgs, clazz);
-            if (con != null) {
-                LOG.debug("Found something seemingly compatible, attempting invocation...");
-                spout = (IRichSpout) con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
-            } else {
-                throw new IllegalArgumentException("Couldn't find a suitable Spout constructor.");
-            }
-        } else {
-            spout = (IRichSpout) clazz.newInstance();
-        }
-        applyProperties(def, spout, context);
-        return spout;
+        return (IRichSpout)buildObject(def, context);
     }
-
 
     /**
      * Given a list of bolt definitions, build a map of Storm bolts with the bolt definition id as the key.
      * Attempt to coerce the given constructor arguments to a matching bolt constructor as much as possible.
-     *
-     * @param context
-     * @return
-     * @throws ClassNotFoundException
-     * @throws IllegalAccessException
-     * @throws InstantiationException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
      */
     private static void buildBolts(ExecutionContext context) throws ClassNotFoundException, IllegalAccessException,
             InstantiationException, NoSuchMethodException, InvocationTargetException {
-//        Map<String, Object> retval= new HashMap<String, Object>();
         for (BoltDef def : context.getTopologyDef().getBolts()) {
             Class clazz = Class.forName(def.getClassName());
-            Object bolt = null;
-            LOG.debug("Attempting to instantiate bolt: {}", def.getClassName());
-            if (def.hasConstructorArgs()) {
-                LOG.debug("Found constructor arguments in definition: " + def.getConstructorArgs().getClass().getName());
-                List<Object> cArgs = resolveReferences(def, context);
-                Constructor con = findCompatibleConstructor(cArgs, clazz);
-                if (con != null) {
-                    LOG.debug("Found something seemingly compatible, attempting invocation...");
-                    bolt = con.newInstance(getConstructorArgsWithListCoercian(cArgs, con));
-                } else {
-                    throw new IllegalArgumentException("Couldn't find a suitable Bolt constructor.");
-                }
-            } else {
-                bolt = clazz.newInstance();
-            }
+            Object bolt = buildObject(def, context);
             context.addBolt(def.getId(), bolt);
-            applyProperties(def, bolt, context);
         }
     }
 
     /**
      * Given a list of constructor arguments, and a target class, attempt to find a suitable constructor.
      *
-     * @param args
-     * @param target
-     * @return
-     * @throws NoSuchMethodException
      */
     private static Constructor findCompatibleConstructor(List<Object> args, Class target) throws NoSuchMethodException {
         Constructor retval = null;
@@ -505,10 +408,6 @@ public class FluxBuilder {
      * Given a java.util.List of contructor arguments, and a java.lang.Constructor instance, attempt to convert the
      * list to an java.lang.Object array that can be used to invoke the constructor. If a constructor argument needs
      * to be coerced from a List to an Array, do so.
-     *
-     * @param args
-     * @param constructor
-     * @return
      */
     private static Object[] getConstructorArgsWithListCoercian(List<Object> args, Constructor constructor) {
         Class[] parameterTypes = constructor.getParameterTypes();

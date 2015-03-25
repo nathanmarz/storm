@@ -82,7 +82,7 @@ The example below illustrates Flux usage with the Maven shade plugin:
     <dependency>
         <groupId>com.github.ptgoetz</groupId>
         <artifactId>flux</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
     </dependency>
 
     <!-- add user dependencies here... -->

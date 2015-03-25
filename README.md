@@ -70,8 +70,8 @@ The current version of Flux is available in Maven Central at the following coord
 ```xml
 <dependency>
     <groupId>com.github.ptgoetz</groupId>
-    <artifactId>flux-all</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <artifactId>flux-core</artifactId>
+    <version>0.1.3</version>
 </dependency>
 ```
 
@@ -84,8 +84,8 @@ The example below illustrates Flux usage with the Maven shade plugin:
     <!-- Flux include -->
     <dependency>
         <groupId>com.github.ptgoetz</groupId>
-        <artifactId>flux</artifactId>
-        <version>0.1.1</version>
+        <artifactId>flux-core</artifactId>
+        <version>0.1.3</version>
     </dependency>
 
     <!-- add user dependencies here... -->

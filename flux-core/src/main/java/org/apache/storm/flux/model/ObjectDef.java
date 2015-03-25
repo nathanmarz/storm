@@ -17,6 +17,8 @@
  */
 package org.apache.storm.flux.model;
 
+import backtype.storm.Config;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +33,7 @@ public class ObjectDef {
     private List<Object> constructorArgs;
     private boolean hasReferences;
     private List<PropertyDef> properties;
+    private List<ConfigMethodDef> configMethods;
 
     public String getClassName() {
         return className;
@@ -75,5 +78,13 @@ public class ObjectDef {
 
     public void setProperties(List<PropertyDef> properties) {
         this.properties = properties;
+    }
+
+    public List<ConfigMethodDef> getConfigMethods() {
+        return configMethods;
+    }
+
+    public void setConfigMethods(List<ConfigMethodDef> configMethods) {
+        this.configMethods = configMethods;
     }
 }

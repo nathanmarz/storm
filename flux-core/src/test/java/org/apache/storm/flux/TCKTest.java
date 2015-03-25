@@ -22,6 +22,7 @@ import backtype.storm.generated.StormTopology;
 import org.apache.storm.flux.model.ExecutionContext;
 import org.apache.storm.flux.model.TopologyDef;
 import org.apache.storm.flux.parser.FluxParser;
+import org.apache.storm.flux.test.TestBolt;
 import org.junit.Test;
 
 import java.io.File;
@@ -160,4 +161,20 @@ public class TCKTest {
         topology.validate();
     }
 
+    @Test
+    public void testTopologySourceWithConfigMethods() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/config-methods-test.yaml", false, true);
+        assertTrue(topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+
+        // make sure the property was actually set
+        TestBolt bolt = (TestBolt)context.getBolt("bolt-1");
+        assertTrue(bolt.getFoo().equals("foo"));
+        assertTrue(bolt.getBar().equals("bar"));
+        assertTrue(bolt.getFooBar().equals("foobar"));
+    }
 }

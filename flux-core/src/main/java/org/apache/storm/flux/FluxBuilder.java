@@ -292,6 +292,7 @@ public class FluxBuilder {
             obj = clazz.newInstance();
         }
         applyProperties(def, obj, context);
+        invokeConfigMethods(def, obj, context);
         return obj;
     }
 
@@ -398,6 +399,59 @@ public class FluxBuilder {
         return retval;
     }
 
+
+    public static void invokeConfigMethods(ObjectDef bean, Object instance, ExecutionContext context)
+            throws InvocationTargetException, IllegalAccessException {
+
+        List<ConfigMethodDef> methodDefs = bean.getConfigMethods();
+        if(methodDefs == null || methodDefs.size() == 0){
+            return;
+        }
+        Class clazz = instance.getClass();
+        for(ConfigMethodDef methodDef : methodDefs){
+            List<Object> args = methodDef.getArgs();
+            if(methodDef.hasReferences()){
+                args = resolveReferences(args, context);
+            }
+            String methodName = methodDef.getName();
+            Method method = findCompatibleMethod(args, clazz, methodName);
+            if(method != null) {
+                Object[] methodArgs = getArgsWithListCoercian(args, method.getParameterTypes());
+                method.invoke(instance, methodArgs);
+            } else {
+                LOG.warn("Unable to find method '{}' in class '{}' with arguments {}.", methodName, clazz.getName(), args);
+                // TODO throw?
+            }
+        }
+    }
+
+    private static Method findCompatibleMethod(List<Object> args, Class target, String methodName){
+        Method retval = null;
+        int eligibleCount = 0;
+
+        LOG.debug("Target class: {}", target.getName());
+        Method[] methods = target.getMethods();
+
+        for (Method method : methods) {
+            Class[] paramClasses = method.getParameterTypes();
+            if (paramClasses.length == args.size() && method.getName().equals(methodName)) {
+                LOG.debug("found constructor with same number of args..");
+                boolean invokable = canInvokeWithArgs(args, method.getParameterTypes());
+                if (invokable) {
+                    retval = method;
+                    eligibleCount++;
+                }
+                LOG.debug("** invokable --> {}", invokable);
+            } else {
+                LOG.debug("Skipping method with wrong number of arguments.");
+            }
+        }
+        if (eligibleCount > 1) {
+            LOG.warn("Found multiple invokable methods for class {}, method {}, given arguments {}. Using the last one found.",
+                    target, methodName, args);
+        }
+        return retval;
+    }
 
     /**
      * Given a java.util.List of contructor/method arguments, and a list of parameter types, attempt to convert the

@@ -45,41 +45,6 @@ public class PersistentWordCount {
     private static final String TEST_REDIS_HOST = "127.0.0.1";
     private static final int TEST_REDIS_PORT = 6379;
 
-    public static class StoreCountRedisBolt extends AbstractRedisBolt {
-        private static final Logger LOG = LoggerFactory.getLogger(StoreCountRedisBolt.class);
-
-        public StoreCountRedisBolt(JedisPoolConfig config) {
-            super(config);
-        }
-
-        public StoreCountRedisBolt(JedisClusterConfig config) {
-            super(config);
-        }
-
-        @Override
-        public void execute(Tuple input) {
-            String word = input.getStringByField("word");
-            int count = input.getIntegerByField("count");
-
-            JedisCommands commands = null;
-            try {
-                commands = getInstance();
-                commands.incrBy(word, count);
-            } catch (JedisConnectionException e) {
-                throw new RuntimeException("Unfortunately, this test requires redis-server running", e);
-            } catch (JedisException e) {
-                LOG.error("Exception occurred from Jedis/Redis", e);
-            } finally {
-                returnInstance(commands);
-                this.collector.ack(input);
-            }
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        }
-    }
-
     public static void main(String[] args) throws Exception {
         Config config = new Config();
 

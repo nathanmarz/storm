@@ -66,7 +66,7 @@ The current version of Flux is available in Maven Central at the following coord
 ```xml
 <dependency>
     <groupId>com.github.ptgoetz</groupId>
-    <artifactId>flux</artifactId>
+    <artifactId>flux-all</artifactId>
     <version>0.1.1-SNAPSHOT</version>
 </dependency>
 ```

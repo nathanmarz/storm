@@ -42,6 +42,7 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+
     //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
     private static final long serialVersionUID = -1550278723792864455L;
 
@@ -316,14 +317,15 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
 
     /**
-     * The host that the master server is running on, only here for backward compatibility.
+     * The host that the master server is running on, added only for backward compatibility,
+     * the usage deprecated in favor of nimbus.seeds config.
      */
     @Deprecated
     public static final String NIMBUS_HOST = "nimbus.host";
     public static final Object NIMBUS_HOST_SCHEMA = String.class;
 
     /**
-     * List of seed nimbus hosts:port to use for leader nimbus discovery.
+     * List of seed nimbus hosts to use for leader nimbus discovery.
      */
     public static final String NIMBUS_SEEDS = "nimbus.seeds";
     public static final Object NIMBUS_SEEDS_SCHEMA = ConfigValidation.StringsValidator;

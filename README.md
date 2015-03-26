@@ -10,7 +10,8 @@ A framework for creating and deploying Apache Storm streaming computations with 
 4. A substance mixed with a solid to lower its melting point
 
 ## Rationale
-Bad things happen when configuration is embedded in code.
+Bad things happen when configuration is hard-coded. No one should have to recompile or repackage an application in
+order to change configuration.
 
 ## About
 Flux is a framework and set of utilities that make defining and deploying Apache Storm topologies less painful and
@@ -254,7 +255,7 @@ components:
     className: "storm.kafka.StringScheme"
 ```
 
-### Contructor Arguments, References and Properties
+### Contructor Arguments, References, Properties and Configuration Methods
 
 ####Constructor Arguments
 Arguments to a class constructor can be configured by adding a `contructorArgs` element to a components.
@@ -315,6 +316,43 @@ the signature `setForceFromStart(boolean b)` and attempt to invoke it. If a sett
 look for a public instance variable with the name `forceFromStart` and attempt to set its value.
 
 References may also be used as property values.
+
+####Configuration Methods
+Conceptually, configuration methods are similar to Properties and Constructor Args -- they allow you to invoke an
+arbitrary method on an object after it is constructed. Configuration methods are useful for working with classes that
+don't expose JavaBean methods or have constructors that can fully configure the object. Common examples include classes
+that use the builder pattern for configuration/composition.
+
+The following YAML example creates a bolt and configures it by calling several methods:
+
+```yaml
+bolts:
+  - id: "bolt-1"
+    className: "org.apache.storm.flux.test.TestBolt"
+    parallelism: 1
+    configMethods:
+      - name: "withFoo"
+        args:
+          - "foo"
+      - name: "withBar"
+        args:
+          - "bar"
+      - name: "withFooBar"
+        args:
+          - "foo"
+          - "bar"
+```
+
+The signatures of the corresponding methods are as follows:
+
+```java
+    public void withFoo(String foo);
+    public void withBar(String bar);
+    public void withFooBar(String foo, String bar);
+```
+
+Arguments passed to configuration methods work much the same way as constructor arguments, and support references as
+well.
 
 
 ## Topology Config

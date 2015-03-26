@@ -90,6 +90,7 @@
  * STORM-541: Build produces maven warnings
  * STORM-634: Storm serialization changed to thrift to support rolling upgrade.
  * STORM-570: Switch from tablesorter to datatables jquery plugin.
+ * STORM-723: Remove RedisStateSetUpdater / RedisStateSetCountQuerier which didn't tested and have a bug
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

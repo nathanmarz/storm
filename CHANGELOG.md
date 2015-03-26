@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-714: Make CSS more consistent with self, prev release
  * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
  * STORM-691: Add basic lookup / persist bolts
 

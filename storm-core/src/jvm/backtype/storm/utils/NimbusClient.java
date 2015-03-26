@@ -29,6 +29,7 @@ import backtype.storm.security.auth.ThriftConnectionType;
 import clojure.lang.IFn;
 import clojure.lang.PersistentArrayMap;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,13 @@ public class NimbusClient extends ThriftClient {
         }
 
         List<String> seeds = (List<String>) conf.get(Config.NIMBUS_SEEDS);
-        for (String seed : seeds) {
+
+        if(seeds == null  || seeds.isEmpty()) {
+            LOG.warn("config {} has no value. Failing over to deprecated config {}. ", Config.NIMBUS_SEEDS, Config.NIMBUS_HOST);
+            seeds = Lists.newArrayList(conf.get(Config.NIMBUS_HOST) + ":" + conf.get(Config.NIMBUS_THRIFT_PORT));
+        }
+
+        for(String seed : seeds) {
             String[] split = seed.split(":");
             String host = split[0];
             int port = Integer.parseInt(split[1]);

@@ -63,7 +63,7 @@ public class WordCountTridentRedisCluster {
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisClusterStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisClusterStateUpdater("test_", tupleMapper).withExpire(86400000),
                                 new Fields());
 
         TridentState state = topology.newStaticState(factory);

@@ -72,6 +72,16 @@ public class TCKTest {
 
 
     @Test
+    public void testHdfs() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/hdfs_test.yaml", false, true);
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
+
+    @Test
     public void testIncludes() throws Exception {
         TopologyDef topologyDef = FluxParser.parseResource("/configs/include_test.yaml", false, true);
         Config conf = FluxBuilder.buildConfig(topologyDef);

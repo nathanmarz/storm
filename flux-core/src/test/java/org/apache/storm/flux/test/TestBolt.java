@@ -15,6 +15,18 @@ public class TestBolt extends BaseBasicBolt {
     private String bar;
     private String fooBar;
 
+    public static enum TestEnum {
+        FOO,
+        BAR
+    }
+
+    public TestBolt(TestEnum te){
+
+    }
+
+    public TestBolt(TestEnum te, float f){
+
+    }
 
     @Override
     public void execute(Tuple tuple, BasicOutputCollector basicOutputCollector) {

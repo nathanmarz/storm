@@ -420,7 +420,7 @@ public class FluxBuilder {
                 method.invoke(instance, methodArgs);
             } else {
                 LOG.warn("Unable to find method '{}' in class '{}' with arguments {}.", methodName, clazz.getName(), args);
-                // TODO throw?
+                throw new IllegalArgumentException("Configuration method not found.");
             }
         }
     }
@@ -484,10 +484,34 @@ public class FluxBuilder {
                 continue;
             }
             if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
-                constructorParams[i] = args.get(i);
+                LOG.debug("Its a primitive number.");
+                Number num = (Number)args.get(i);
+                if(paramType == Float.TYPE){
+                    constructorParams[i] = num.floatValue();
+                } else if (paramType == Double.TYPE) {
+                    constructorParams[i] = num.doubleValue();
+                } else if (paramType == Long.TYPE) {
+                    constructorParams[i] = num.longValue();
+                } else if (paramType == Integer.TYPE) {
+                    constructorParams[i] = num.intValue();
+                } else if (paramType == Short.TYPE) {
+                    constructorParams[i] = num.shortValue();
+                } else if (paramType == Byte.TYPE) {
+                    constructorParams[i] = num.byteValue();
+                } else {
+                    constructorParams[i] = args.get(i);
+                }
                 continue;
             }
 
+            // enum conversion
+            if(paramType.isEnum() && objectType.equals(String.class)){
+                LOG.debug("Yes, will convert a String to enum");
+                constructorParams[i] = Enum.valueOf(paramType, (String)args.get(i));
+                continue;
+            }
+
+            // List to array conversion
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
                 LOG.debug("Conversion appears possible...");
@@ -537,6 +561,10 @@ public class FluxBuilder {
                 return true;
             }
             if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
+                return true;
+            }
+            if(paramType.isEnum() && objectType.equals(String.class)){
+                LOG.debug("Yes, will convert a String to enum");
                 return true;
             }
             if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {

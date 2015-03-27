@@ -68,6 +68,7 @@
     <modules>
         <module>flux-wrappers</module>
         <module>flux-core</module>
+        <module>flux-examples</module>
     </modules>
 
     <dependencies>
@@ -76,12 +77,6 @@
             <artifactId>storm-core</artifactId>
             <version>${storm.version}</version>
             <scope>${provided.scope}</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.storm</groupId>
-            <artifactId>storm-kafka</artifactId>
-            <version>${storm.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-cli</groupId>

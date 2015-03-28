@@ -68,8 +68,6 @@ spouts:
 #                .withRotationPolicy(rotationPolicy)
 #                .withSyncPolicy(syncPolicy)
 #                .addRotationAction(new MoveFileAction().toDestination("/tmp/dest2/"));
-
-
 bolts:
   - id: "bolt-1"
     className: "org.apache.storm.hdfs.bolt.HdfsBolt"
@@ -84,6 +82,8 @@ bolts:
         args: [ref: "recordFormat"]
       - name: "withRotationPolicy"
         args: [ref: "rotationPolicy"]
+      - name: "withSyncPolicy"
+        args: [ref: "syncPolicy"]
     parallelism: 1
     # ...
 

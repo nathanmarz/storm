@@ -231,6 +231,8 @@ public class HBaseMapState<T> implements IBackingMap<T> {
             throw new FailedException("Interrupted while writing to HBase", e);
         } catch (RetriesExhaustedWithDetailsException e) {
             throw new FailedException("Retries exhaused while writing to HBase", e);
+        } catch (IOException e) {
+            throw new FailedException("IOException while writing to HBase", e);
         }
     }
 

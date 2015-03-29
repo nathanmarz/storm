@@ -62,7 +62,7 @@ public class Flux {
 
         options.addOption(option(0, "R", OPTION_RESOURCE, "Treat the supplied path as a classpath resource instead of a file."));
 
-        options.addOption(option(1, "s", OPTION_SLEEP, "When running locally, the amount of time to sleep (in ms.) " +
+        options.addOption(option(1, "s", OPTION_SLEEP, "ms", "When running locally, the amount of time to sleep (in ms.) " +
                 "before killing the topology and shutting down the local cluster."));
 
         options.addOption(option(0, "d", OPTION_DRY_RUN, "Do not run or deploy the topology. Just build, validate, " +
@@ -74,7 +74,7 @@ public class Flux {
 
         options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it."));
 
-        options.addOption(option(1, "z", OPTION_ZOOKEEPER, "When running in local mode, use the ZooKeeper at the " +
+        options.addOption(option(1, "z", OPTION_ZOOKEEPER, "host:port", "When running in local mode, use the ZooKeeper at the " +
                 "specified <host>:<port> instead of the in-process ZooKeeper."));
 
         CommandLineParser parser = new BasicParser();
@@ -88,12 +88,16 @@ public class Flux {
     }
 
     private static Option option(int argCount, String shortName, String longName, String description){
+       return option(argCount, shortName, longName, longName, description);
+    }
+
+    private static Option option(int argCount, String shortName, String longName, String argName, String description){
         Option option = OptionBuilder.hasArgs(argCount)
-                .withArgName(longName)
+                .withArgName(argName)
                 .withLongOpt(longName)
                 .withDescription(description)
                 .create(shortName);
-       return option;
+        return option;
     }
 
     private static void usage(Options options) {

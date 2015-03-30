@@ -31,6 +31,7 @@ import java.util.Map;
  */
 public class FluxShellBolt extends ShellBolt implements IRichBolt{
     private String[] outputFields;
+    private Map<String, Object> componentConfig;
 
     /**
      * Create a ShellBolt with command line arguments and output fields
@@ -50,6 +51,6 @@ public class FluxShellBolt extends ShellBolt implements IRichBolt{
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return null;
+        return this.componentConfig;
     }
 }

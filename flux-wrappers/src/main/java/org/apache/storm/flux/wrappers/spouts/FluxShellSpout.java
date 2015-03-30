@@ -31,6 +31,7 @@ import java.util.Map;
  */
 public class FluxShellSpout extends ShellSpout implements IRichSpout {
     private String[] outputFields;
+    private Map<String, Object> componentConfig;
 
     /**
      * Create a ShellSpout with command line arguments and output fields
@@ -49,6 +50,6 @@ public class FluxShellSpout extends ShellSpout implements IRichSpout {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return null;
+        return this.componentConfig;
     }
 }

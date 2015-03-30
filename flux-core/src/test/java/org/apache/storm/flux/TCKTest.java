@@ -187,4 +187,17 @@ public class TCKTest {
         assertTrue(bolt.getBar().equals("bar"));
         assertTrue(bolt.getFooBar().equals("foobar"));
     }
+
+    @Test
+    public void testVariableSubstitution() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/substitution-test.yaml", false, true, "src/test/resources/configs/test.properties");
+        assertTrue(topologyDef.validate());
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+
+        assertTrue(context.getTopologyDef().getName().equals("substitution-topology"));
+    }
 }

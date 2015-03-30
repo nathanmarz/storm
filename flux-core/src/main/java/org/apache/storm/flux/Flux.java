@@ -124,19 +124,18 @@ public class Flux {
         String filePath = (String)cmd.getArgList().get(0);
 
         // TODO conditionally load properties from a file our resource
-        Properties props = new Properties();
+        String filterProps = null;
         if(cmd.hasOption(OPTION_FILTER)){
-//            InputStream in = new FileInputStream();
-            props.load((InputStream)null);
+            filterProps = cmd.getOptionValue(OPTION_FILTER);
         }
 
         if(cmd.hasOption(OPTION_RESOURCE)){
             printf("Parsing classpath resource: %s", filePath);
-            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, props);
+            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, filterProps);
         } else {
             printf("Parsing file: %s",
                     new File(filePath).getAbsolutePath());
-            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, props);
+            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, filterProps);
         }
 
 

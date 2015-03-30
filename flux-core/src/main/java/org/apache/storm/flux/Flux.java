@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Flux entry point.
@@ -52,6 +54,7 @@ public class Flux {
     private static final String OPTION_NO_SPLASH = "no-splash";
     private static final String OPTION_INACTIVE = "inactive";
     private static final String OPTION_ZOOKEEPER = "zookeeper";
+    private static final String OPTION_FILTER = "filter";
 
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -76,6 +79,9 @@ public class Flux {
 
         options.addOption(option(1, "z", OPTION_ZOOKEEPER, "host:port", "When running in local mode, use the ZooKeeper at the " +
                 "specified <host>:<port> instead of the in-process ZooKeeper."));
+
+        options.addOption(option(1, "f", OPTION_FILTER, "file", "Use the specified file as a source of properties, and " +
+                "perform variable substitution."));
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -116,13 +122,21 @@ public class Flux {
 
         TopologyDef topologyDef = null;
         String filePath = (String)cmd.getArgList().get(0);
+
+        // TODO conditionally load properties from a file our resource
+        Properties props = new Properties();
+        if(cmd.hasOption(OPTION_FILTER)){
+//            InputStream in = new FileInputStream();
+            props.load((InputStream)null);
+        }
+
         if(cmd.hasOption(OPTION_RESOURCE)){
             printf("Parsing classpath resource: %s", filePath);
-            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true);
+            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, props);
         } else {
             printf("Parsing file: %s",
                     new File(filePath).getAbsolutePath());
-            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true);
+            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, props);
         }
 
 

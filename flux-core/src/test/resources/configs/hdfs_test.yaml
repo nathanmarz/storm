@@ -51,6 +51,12 @@ components:
       - name: "withFieldDelimiter"
         args: ["|"]
 
+  - id: "rotationAction"
+    className: "org.apache.storm.hdfs.common.rotation.MoveFileAction"
+    configMethods:
+      - name: "toDestination"
+        args: ["/tmp/dest2"]
+
 # spout definitions
 spouts:
   - id: "spout-1"
@@ -84,6 +90,8 @@ bolts:
         args: [ref: "rotationPolicy"]
       - name: "withSyncPolicy"
         args: [ref: "syncPolicy"]
+      - name: "addRotationAction"
+        args: [ref: "rotationAction"]
     parallelism: 1
     # ...
 

@@ -1,3 +1,8 @@
+## 0.11.0
+ * STORM-714: Make CSS more consistent with self, prev release
+ * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
+ * STORM-691: Add basic lookup / persist bolts
+
 ## 0.10.0
  * STORM-681: Auto insert license header with genthrift.sh
  * STORM-707: Client (Netty): improve logging to help troubleshooting connection woes
@@ -86,6 +91,7 @@
  * STORM-541: Build produces maven warnings
  * STORM-634: Storm serialization changed to thrift to support rolling upgrade.
  * STORM-570: Switch from tablesorter to datatables jquery plugin.
+ * STORM-723: Remove RedisStateSetUpdater / RedisStateSetCountQuerier which didn't tested and have a bug
 
 ## 0.9.3-rc2
  * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor

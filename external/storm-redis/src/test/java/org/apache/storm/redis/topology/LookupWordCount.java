@@ -20,72 +20,65 @@ package org.apache.storm.redis.topology;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import org.apache.storm.redis.bolt.AbstractRedisBolt;
-import org.apache.storm.redis.util.config.JedisClusterConfig;
-import org.apache.storm.redis.util.config.JedisPoolConfig;
+import com.google.common.collect.Lists;
+import org.apache.storm.redis.bolt.RedisLookupBolt;
+import org.apache.storm.redis.common.config.JedisPoolConfig;
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
+import org.apache.storm.redis.common.mapper.RedisLookupMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisCommands;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class LookupWordCount {
     private static final String WORD_SPOUT = "WORD_SPOUT";
     private static final String LOOKUP_BOLT = "LOOKUP_BOLT";
+    private static final String PRINT_BOLT = "PRINT_BOLT";
 
     private static final String TEST_REDIS_HOST = "127.0.0.1";
     private static final int TEST_REDIS_PORT = 6379;
 
-    public static class LookupWordTotalCountBolt extends AbstractRedisBolt {
-        private static final Logger LOG = LoggerFactory.getLogger(LookupWordTotalCountBolt.class);
+    public static class PrintWordTotalCountBolt extends BaseRichBolt {
+        private static final Logger LOG = LoggerFactory.getLogger(PrintWordTotalCountBolt.class);
         private static final Random RANDOM = new Random();
+        private OutputCollector collector;
 
-        public LookupWordTotalCountBolt(JedisPoolConfig config) {
-            super(config);
-        }
-
-        public LookupWordTotalCountBolt(JedisClusterConfig config) {
-            super(config);
+        @Override
+        public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
+            this.collector = collector;
         }
 
         @Override
         public void execute(Tuple input) {
-            JedisCommands jedisCommands = null;
-            try {
-                jedisCommands = getInstance();
-                String wordName = input.getStringByField("word");
-                String countStr = jedisCommands.get(wordName);
-                if (countStr != null) {
-                    int count = Integer.parseInt(countStr);
-                    this.collector.emit(new Values(wordName, count));
+            String wordName = input.getStringByField("wordName");
+            String countStr = input.getStringByField("count");
 
-                    // print lookup result with low probability
-                    if(RANDOM.nextInt(1000) > 995) {
-                        LOG.info("Lookup result - word : " + wordName + " / count : " + count);
-                    }
-                } else {
-                    // skip
-                    LOG.warn("Word not found in Redis - word : " + wordName);
+            // print lookup result with low probability
+            if(RANDOM.nextInt(1000) > 995) {
+                int count = 0;
+                if (countStr != null) {
+                    count = Integer.parseInt(countStr);
                 }
-            } finally {
-                if (jedisCommands != null) {
-                    returnInstance(jedisCommands);
-                }
-                this.collector.ack(input);
+                LOG.info("Lookup result - word : " + wordName + " / count : " + count);
             }
+
+            collector.ack(input);
         }
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            // wordName, count
-            declarer.declare(new Fields("wordName", "count"));
         }
     }
 
@@ -104,12 +97,16 @@ public class LookupWordCount {
                 .setHost(host).setPort(port).build();
 
         WordSpout spout = new WordSpout();
-        LookupWordTotalCountBolt redisLookupBolt = new LookupWordTotalCountBolt(poolConfig);
+        RedisLookupMapper lookupMapper = setupLookupMapper();
+        RedisLookupBolt lookupBolt = new RedisLookupBolt(poolConfig, lookupMapper);
+
+        PrintWordTotalCountBolt printBolt = new PrintWordTotalCountBolt();
 
         //wordspout -> lookupbolt
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout(WORD_SPOUT, spout, 1);
-        builder.setBolt(LOOKUP_BOLT, redisLookupBolt, 1).shuffleGrouping(WORD_SPOUT);
+        builder.setBolt(LOOKUP_BOLT, lookupBolt, 1).shuffleGrouping(WORD_SPOUT);
+        builder.setBolt(PRINT_BOLT, printBolt, 1).shuffleGrouping(LOOKUP_BOLT);
 
         if (args.length == 2) {
             LocalCluster cluster = new LocalCluster();
@@ -122,6 +119,48 @@ public class LookupWordCount {
             StormSubmitter.submitTopology(args[2], config, builder.createTopology());
         } else{
             System.out.println("Usage: LookupWordCount <redis host> <redis port> (topology name)");
+        }
+    }
+
+    private static RedisLookupMapper setupLookupMapper() {
+        return new WordCountRedisLookupMapper();
+    }
+
+    private static class WordCountRedisLookupMapper implements RedisLookupMapper {
+        private RedisDataTypeDescription description;
+        private final String hashKey = "wordCount";
+
+        public WordCountRedisLookupMapper() {
+            description = new RedisDataTypeDescription(
+                    RedisDataTypeDescription.RedisDataType.HASH, hashKey);
+        }
+
+        @Override
+        public List<Values> toTuple(ITuple input, Object value) {
+            String member = getKeyFromTuple(input);
+            List<Values> values = Lists.newArrayList();
+            values.add(new Values(member, value));
+            return values;
+        }
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("wordName", "count"));
+        }
+
+        @Override
+        public RedisDataTypeDescription getDataTypeDescription() {
+            return description;
+        }
+
+        @Override
+        public String getKeyFromTuple(ITuple tuple) {
+            return tuple.getStringByField("word");
+        }
+
+        @Override
+        public String getValueFromTuple(ITuple tuple) {
+            return null;
         }
     }
 }

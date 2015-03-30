@@ -177,6 +177,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
     (.setInitParameter CrossOriginFilter/ALLOWED_ORIGINS_PARAM "*")
     (.setInitParameter CrossOriginFilter/ALLOWED_METHODS_PARAM "GET, POST, PUT")
     (.setInitParameter CrossOriginFilter/ALLOWED_HEADERS_PARAM "X-Requested-With, X-Requested-By, Access-Control-Allow-Origin, Content-Type, Content-Length, Accept, Origin")
+    (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
     ))
 
 (defn config-filter [server handler filters-confs]

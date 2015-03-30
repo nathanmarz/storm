@@ -100,7 +100,7 @@ public class TridentKafkaEmitter {
             if (lastTopoMeta != null) {
                 lastInstanceId = (String) lastTopoMeta.get("id");
             }
-            if (_config.forceFromStart && !_topologyInstanceId.equals(lastInstanceId)) {
+            if (_config.ignoreZkOffsets && !_topologyInstanceId.equals(lastInstanceId)) {
                 offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config.startOffsetTime);
             } else {
                 offset = (Long) lastMeta.get("nextOffset");
@@ -157,7 +157,7 @@ public class TridentKafkaEmitter {
     private void reEmitPartitionBatch(TransactionAttempt attempt, TridentCollector collector, Partition partition, Map meta) {
         LOG.info("re-emitting batch, attempt " + attempt);
         String instanceId = (String) meta.get("instanceId");
-        if (!_config.forceFromStart || instanceId.equals(_topologyInstanceId)) {
+        if (!_config.ignoreZkOffsets || instanceId.equals(_topologyInstanceId)) {
             SimpleConsumer consumer = _connections.register(partition);
             long offset = (Long) meta.get("offset");
             long nextOffset = (Long) meta.get("nextOffset");

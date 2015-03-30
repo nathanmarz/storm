@@ -83,7 +83,7 @@ The KafkaConfig class also has bunch of public variables that controls your appl
     public int fetchMaxWait = 10000;
     public int bufferSizeBytes = 1024 * 1024;
     public MultiScheme scheme = new RawMultiScheme();
-    public boolean forceFromStart = false;
+    public boolean ignoreZkOffsets = false;
     public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
     public long maxOffsetBehind = Long.MAX_VALUE;
     public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
@@ -119,6 +119,23 @@ TridentKafkaConfig spoutConf = new TridentKafkaConfig(zk, "test-topic");
 spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 OpaqueTridentKafkaSpout spout = new OpaqueTridentKafkaSpout(spoutConf);
 ```
+
+### How KafkaSpout stores offsets of a kafka topic and recovers incase of failures
+
+As shown in the above KafkaConfig properties , user can control where in the topic they can start reading by setting **KafkaConfig.startOffsetTime.**
+
+There are two options **kafka.api.OffsetRequest.EarliestTime()** which makes the KafkaSpout to read from the begining of the topic and 
+**kafka.api.OffsetRequest.LatestTime()** which starts at the end of the topic (or any new messsages that are being written to the topic).
+
+When user first deploys a KakfaSpout based topology they can use one of the above two options. As the topology runs 
+KafkaSpout keeps track of the offsets its reading and writes these offset information under **SpoutConfig.zkRoot+ "/" + SpoutConfig.id**
+Incase of failures it recovers from the last written offset from zookeeper. 
+
+If users deployed a topology , later killed and re-deploying should make sure that **SpoutConfig.id** and **SpoutConfig.zkRoot** 
+remains the same otherwise Kafkaspout won't be able to start from stored zookeeper offsets.
+
+Users can set **KafkaConfig.ignoreZkOffsets** to **true** to make KafkaSpout ignore any zookeeper based offsets 
+and start from configured **KafkaConfig.startOffsetTime**.
 
 ## Using storm-kafka with different versions of Scala
 

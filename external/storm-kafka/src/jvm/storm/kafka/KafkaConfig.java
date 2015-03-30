@@ -33,7 +33,7 @@ public class KafkaConfig implements Serializable {
     public int fetchMaxWait = 10000;
     public int bufferSizeBytes = 1024 * 1024;
     public MultiScheme scheme = new RawMultiScheme();
-    public boolean forceFromStart = false;
+    public boolean ignoreZkOffsets = false;
     public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
     public long maxOffsetBehind = Long.MAX_VALUE;
     public boolean useStartOffsetTimeIfOffsetOutOfRange = true;

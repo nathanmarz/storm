@@ -321,9 +321,11 @@ public class ShellBolt implements IBolt {
                     if (command == null) {
                         throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
                     }
-                    if (command.equals("sync")) {
-                        setHeartbeat();
-                    } else if(command.equals("ack")) {
+
+                    setHeartbeat();
+
+                    // We don't need to take care of sync, cause we're always updating heartbeat
+                    if(command.equals("ack")) {
                         handleAck(shellMsg.getId());
                     } else if (command.equals("fail")) {
                         handleFail(shellMsg.getId());

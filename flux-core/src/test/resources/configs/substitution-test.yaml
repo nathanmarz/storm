@@ -41,6 +41,8 @@ name: "${topology.name}"
 #
 config:
   topology.workers: 1
+  # test environent variable substitution
+  test.env.value: ${ENV-PATH}
   # ...
 
 # spout definitions

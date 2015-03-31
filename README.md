@@ -149,9 +149,15 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
  -d,--dry-run                 Do not run or deploy the topology. Just
                               build, validate, and print information about
                               the topology.
- -f,--filter <file>           Use the specified file as a source of
-                              properties, and perform variable
-                              substitution.
+ -e,--env-filter              Perform environment variable substitution.
+                              Replace keysidentified with `${ENV-[NAME]}`
+                              will be replaced with the corresponding
+                              `NAME` environment value
+ -f,--filter <file>           Perform property substitution. Use the
+                              specified file as a source of properties,
+                              and replace keys identified with {$[property
+                              name]} with the value defined in the
+                              properties file.
  -i,--inactive                Deploy the topology, but do not activate it.
  -l,--local                   Run the topology in local mode.
  -n,--no-splash               Suppress the printing of the splash screen.
@@ -165,6 +171,16 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
  -z,--zookeeper <host:port>   When running in local mode, use the
                               ZooKeeper at the specified <host>:<port>
                               instead of the in-process ZooKeeper.
+```
+
+**NOTE:** Flux tries to avoid command line switch collision with the `storm` command, and allows any other command line
+switches to pass through to the `storm` command.
+
+For example, you can use the `storm` command switch `-c` to override a topology configuration property. The following
+example command will run Flux and override the `nimus.host` configuration:
+
+```bash
+storm jar myTopology-0.1.0-SNAPSHOT.jar org.apache.storm.flux.Flux --remote my_config.yaml -c nimbus.host=localhost
 ```
 
 ### Sample output
@@ -281,6 +297,13 @@ You would then be able to reference those properties by key in your `.yaml` file
 
 In this case, Flux would replace `${kafka.zookeeper.hosts}` with `localhost:2181` before parsing the YAML contents.
 
+### Environment Variable Substitution/Filtering
+Flux also allows environment variable substitution. For example, if an environment variable named `ZK_HOSTS` if defined,
+you can reference it in a Flux YAML file with the following syntax:
+
+```
+${ENV-ZK_HOSTS}
+```
 
 ## Components
 Components are essentially named object instances that are made available as configuration options for spouts and
@@ -771,6 +794,12 @@ topologySource:
   # Flux will look for "getTopology", this will override that.
   methodName: "getTopologyWithDifferentMethodName"
 ```
+
+## Author
+P. Taylor Goetz
+
+## Contributors
+
 
 ## Contributing
 

@@ -32,7 +32,7 @@ import static org.junit.Assert.*;
 public class TCKTest {
     @Test
     public void testTCK() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/tck.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/tck.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -42,7 +42,7 @@ public class TCKTest {
 
     @Test
     public void testShellComponents() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/shell_test.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/shell_test.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -52,7 +52,7 @@ public class TCKTest {
 
     @Test
     public void testKafkaSpoutConfig() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/kafka_test.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/kafka_test.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -62,7 +62,7 @@ public class TCKTest {
 
     @Test
     public void testLoadFromResource() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/kafka_test.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/kafka_test.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -73,7 +73,7 @@ public class TCKTest {
 
     @Test
     public void testHdfs() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/hdfs_test.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/hdfs_test.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -83,7 +83,7 @@ public class TCKTest {
 
     @Test
     public void testIncludes() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/include_test.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/include_test.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
@@ -96,7 +96,7 @@ public class TCKTest {
 
     @Test
     public void testTopologySource() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -107,7 +107,7 @@ public class TCKTest {
 
     @Test
     public void testTopologySourceWithReflection() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -118,7 +118,7 @@ public class TCKTest {
 
     @Test
     public void testTopologySourceWithConfigParam() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection-config.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection-config.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -129,7 +129,7 @@ public class TCKTest {
 
     @Test
     public void testTopologySourceWithMethodName() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-method-override.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-method-override.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -141,7 +141,7 @@ public class TCKTest {
 
     @Test
     public void testTridentTopologySource() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-trident.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-trident.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -152,7 +152,7 @@ public class TCKTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidTopologySource() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/invalid-existing-topology.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/invalid-existing-topology.yaml", false, true, null, false);
         assertFalse("Topology config is invalid.", topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -162,7 +162,7 @@ public class TCKTest {
 
     @Test
     public void testTopologySourceWithGetMethodName() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/existing-topology-reflection.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -173,7 +173,7 @@ public class TCKTest {
 
     @Test
     public void testTopologySourceWithConfigMethods() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/config-methods-test.yaml", false, true, null);
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/config-methods-test.yaml", false, true, null, false);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -190,7 +190,7 @@ public class TCKTest {
 
     @Test
     public void testVariableSubstitution() throws Exception {
-        TopologyDef topologyDef = FluxParser.parseResource("/configs/substitution-test.yaml", false, true, "src/test/resources/configs/test.properties");
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/substitution-test.yaml", false, true, "src/test/resources/configs/test.properties", true);
         assertTrue(topologyDef.validate());
         Config conf = FluxBuilder.buildConfig(topologyDef);
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
@@ -198,6 +198,17 @@ public class TCKTest {
         assertNotNull(topology);
         topology.validate();
 
-        assertTrue(context.getTopologyDef().getName().equals("substitution-topology"));
+        // test basic substitution
+        assertEquals("Property not replaced.",
+                "substitution-topology",
+                context.getTopologyDef().getName());
+
+        // test environment variable substitution
+        // $PATH should be defined on most systems
+        String envPath = System.getenv().get("PATH");
+        assertEquals("ENV variable not replaced.",
+                envPath,
+                context.getTopologyDef().getConfig().get("test.env.value"));
+
     }
 }

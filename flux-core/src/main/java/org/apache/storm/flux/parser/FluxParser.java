@@ -43,46 +43,49 @@ public class FluxParser {
 
     // TODO refactor input stream processing (see parseResource() method).
     public static TopologyDef parseFile(String inputFile, boolean dumpYaml, boolean processIncludes,
-                                        String propertiesFile) throws IOException {
+                                        String propertiesFile, boolean envSub) throws IOException {
         Yaml yaml = yaml();
         FileInputStream in = new FileInputStream(inputFile);
         // TODO process properties, etc.
-        TopologyDef topology = loadYaml(yaml, in, propertiesFile);
+        TopologyDef topology = loadYaml(yaml, in, propertiesFile, envSub);
         in.close();
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
         if(processIncludes) {
-            return processIncludes(yaml, topology, propertiesFile);
+            return processIncludes(yaml, topology, propertiesFile, envSub);
         } else {
             return topology;
         }
     }
 
     public static TopologyDef parseResource(String resource, boolean dumpYaml, boolean processIncludes,
-                                            String propertiesFile) throws IOException {
+                                            String propertiesFile, boolean envSub) throws IOException {
         Yaml yaml = yaml();
         InputStream in = FluxParser.class.getResourceAsStream(resource);
-        TopologyDef topology = loadYaml(yaml, in, propertiesFile);
+        TopologyDef topology = loadYaml(yaml, in, propertiesFile, envSub);
         in.close();
         if(dumpYaml){
             dumpYaml(topology, yaml);
         }
         if(processIncludes) {
-            return processIncludes(yaml, topology, propertiesFile);
+            return processIncludes(yaml, topology, propertiesFile, envSub);
         } else {
             return topology;
         }
     }
 
-    private static TopologyDef loadYaml(Yaml yaml, InputStream in, String propsFile) throws IOException {
+    private static TopologyDef loadYaml(Yaml yaml, InputStream in, String propsFile, boolean envSubstitution) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         LOG.info("loading YAML from input stream...");
         int b = -1;
         while((b = in.read()) != -1){
             bos.write(b);
         }
+
+        // TODO substitution implementation is not exactly efficient or kind to memory...
         String str = bos.toString();
+        // properties file substitution
         if(propsFile != null){
             LOG.info("Performing property substitution.");
             InputStream propsIn = new FileInputStream(propsFile);
@@ -93,6 +96,17 @@ public class FluxParser {
             }
         } else {
             LOG.info("Not performing property substitution.");
+        }
+
+        // environment variable substitution
+        if(envSubstitution){
+            LOG.info("Performing environment variable substitution...");
+            Map<String, String> envs = System.getenv();
+            for(String key : envs.keySet()){
+                str = str.replace("${ENV-" + key + "}", envs.get(key));
+            }
+        } else {
+            LOG.info("Not performing environment variable substitution.");
         }
         return (TopologyDef)yaml.load(str);
     }
@@ -120,17 +134,18 @@ public class FluxParser {
      * @param topologyDef the topology definition containing (possibly zero) includes
      * @return The TopologyDef with includes resolved.
      */
-    private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef, String propsFile) throws IOException {
+    private static TopologyDef processIncludes(Yaml yaml, TopologyDef topologyDef, String propsFile, boolean envSub)
+            throws IOException {
         //TODO support multiple levels of includes
         if(topologyDef.getIncludes() != null) {
             for (IncludeDef include : topologyDef.getIncludes()){
                 TopologyDef includeTopologyDef = null;
                 if (include.isResource()) {
                     LOG.info("Loading includes from resource: {}", include.getFile());
-                    includeTopologyDef = parseResource(include.getFile(), true, false, propsFile);
+                    includeTopologyDef = parseResource(include.getFile(), true, false, propsFile, envSub);
                 } else {
                     LOG.info("Loading includes from file: {}", include.getFile());
-                    includeTopologyDef = parseFile(include.getFile(), true, false, propsFile);
+                    includeTopologyDef = parseFile(include.getFile(), true, false, propsFile, envSub);
                 }
 
                 // if overrides are disabled, we won't replace anything that already exists

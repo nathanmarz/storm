@@ -55,6 +55,7 @@ public class Flux {
     private static final String OPTION_INACTIVE = "inactive";
     private static final String OPTION_ZOOKEEPER = "zookeeper";
     private static final String OPTION_FILTER = "filter";
+    private static final String OPTION_ENV_FILTER = "env-filter";
 
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -80,8 +81,12 @@ public class Flux {
         options.addOption(option(1, "z", OPTION_ZOOKEEPER, "host:port", "When running in local mode, use the ZooKeeper at the " +
                 "specified <host>:<port> instead of the in-process ZooKeeper."));
 
-        options.addOption(option(1, "f", OPTION_FILTER, "file", "Use the specified file as a source of properties, and " +
-                "perform variable substitution."));
+        options.addOption(option(1, "f", OPTION_FILTER, "file", "Perform property substitution. Use the specified file " +
+                "as a source of properties, and replace keys identified with {$[property name]} with the value defined " +
+                "in the properties file."));
+
+        options.addOption(option(0, "e", OPTION_ENV_FILTER, "Perform environment variable substitution. Replace keys" +
+                "identified with `${ENV-[NAME]}` will be replaced with the corresponding `NAME` environment value"));
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -129,13 +134,15 @@ public class Flux {
             filterProps = cmd.getOptionValue(OPTION_FILTER);
         }
 
+
+        boolean envFilter = cmd.hasOption(OPTION_ENV_FILTER);
         if(cmd.hasOption(OPTION_RESOURCE)){
             printf("Parsing classpath resource: %s", filePath);
-            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, filterProps);
+            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, filterProps, envFilter);
         } else {
             printf("Parsing file: %s",
                     new File(filePath).getAbsolutePath());
-            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, filterProps);
+            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, filterProps, envFilter);
         }
 
 

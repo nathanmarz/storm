@@ -24,7 +24,6 @@ Have you ever found yourself repeating this pattern?:
 public static void main(String[] args) throws Exception {
     // logic to determine if we're running locally or not...
     // create necessary config options...
-
     boolean runLocal = shouldRunLocal();
     if(runLocal){
         LocalCluster cluster = new LocalCluster();
@@ -52,9 +51,16 @@ and that any changes require recompilation and repackaging of the topology jar f
 pain by allowing you to package all your Storm components in a single jar, and use an external text file to define
 the layout and configuration of your topologies.
 
-## Disclaimer
+## Features
 
-This is an experimental project that is rapidly changing. Documentation may be out of date.
+ * Easily configure and deploy Storm topologies (Both Storm core and Microbatch API) without embedding configuration
+   in your topology code
+ * Support for existing topology code (see below)
+ * Define Storm Core API (Spouts/Bolts) using a flexible YAML DSL
+ * YAML DSL support for most Storm components (storm-kafka, storm-hdfs, storm-hbase, etc.)
+ * Convenient support for multi-lang components
+ * External property substitution/filtering for easily switching between configurations/environments (similar to Maven-style
+   `${variable.name}` substitution)
 
 ## Usage
 
@@ -749,8 +755,8 @@ streams:
 ```
 
 
-## Trident (Micro-Batching API) Support
-Currenty, the Flux YAML DSL only supports the Core Storm API, but support for Trident is planned.
+## Micro-Batching (Trident) API Support
+Currenty, the Flux YAML DSL only supports the Core Storm API, but support for Storm's micro-batching API is planned.
 
 To use Flux with a Trident topology, define a topology getter method and reference it in your YAML config:
 

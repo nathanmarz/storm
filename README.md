@@ -143,6 +143,9 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
  -d,--dry-run                 Do not run or deploy the topology. Just
                               build, validate, and print information about
                               the topology.
+ -f,--filter <file>           Use the specified file as a source of
+                              properties, and perform variable
+                              substitution.
  -i,--inactive                Deploy the topology, but do not activate it.
  -l,--local                   Run the topology in local mode.
  -n,--no-splash               Suppress the printing of the splash screen.
@@ -150,10 +153,10 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
  -r,--remote                  Deploy the topology to a remote cluster.
  -R,--resource                Treat the supplied path as a classpath
                               resource instead of a file.
- -s,--sleep <sleep>           When running locally, the amount of time to
+ -s,--sleep <ms>              When running locally, the amount of time to
                               sleep (in ms.) before killing the topology
                               and shutting down the local cluster.
- -z,--zookeeper <zookeeper>   When running in local mode, use the
+ -z,--zookeeper <host:port>   When running in local mode, use the
                               ZooKeeper at the specified <host>:<port>
                               instead of the in-process ZooKeeper.
 ```
@@ -240,6 +243,38 @@ streams:
 
 
 ```
+## Property Substitution/Filtering
+It's common for developers to want to easily switch between configurations, for example switching deployment between
+a development environment and a production environment. This can be accomplished by using separate YAML configuration
+files, but that approach would lead to unnecessary duplication, especially in situations where the Storm topology
+does not change, but configuration settings such as host names, ports, and parallelism paramters do.
+
+For this case, Flux offers properties filtering to allow you two externalize values to a `.properties` file and have
+them substituted before the `.yaml` file is parsed.
+
+To enable property filtering, use the `--filter` command line option and specify a `.properties` file. For example,
+if you invoked flux like so:
+
+```bash
+storm jar myTopology-0.1.0-SNAPSHOT.jar org.apache.storm.flux.Flux --local my_config.yaml --filter dev.properties
+```
+With the following `dev.properties` file:
+
+```properties
+kafka.zookeeper.hosts: localhost:2181
+```
+
+You would then be able to reference those properties by key in your `.yaml` file using `${}` syntax:
+
+```yaml
+  - id: "zkHosts"
+    className: "storm.kafka.ZkHosts"
+    constructorArgs:
+      - "${kafka.zookeeper.hosts}"
+```
+
+In this case, Flux would replace `${kafka.zookeeper.hosts}` with `localhost:2181` before parsing the YAML contents.
+
 
 ## Components
 Components are essentially named object instances that are made available as configuration options for spouts and

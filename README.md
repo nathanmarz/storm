@@ -78,7 +78,7 @@ The current version of Flux is available in Maven Central at the following coord
 <dependency>
     <groupId>com.github.ptgoetz</groupId>
     <artifactId>flux-core</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -92,7 +92,7 @@ The example below illustrates Flux usage with the Maven shade plugin:
     <dependency>
         <groupId>com.github.ptgoetz</groupId>
         <artifactId>flux-core</artifactId>
-        <version>0.2.1</version>
+        <version>0.2.2-SNAPSHOT</version>
     </dependency>
 
     <!-- add user dependencies here... -->
@@ -193,7 +193,7 @@ storm jar myTopology-0.1.0-SNAPSHOT.jar org.apache.storm.flux.Flux --remote my_c
 ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝
 +-         Apache Storm        -+
 +-  data FLow User eXperience  -+
-Version: 0.2.1
+Version: 0.2.2-SNAPSHOT
 Parsing file: /Users/hsimpson/Projects/donut_domination/storm/shell_test.yaml
 ---------- TOPOLOGY DETAILS ----------
 Name: shell-topology

@@ -81,6 +81,7 @@ under the License.
 * Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 * Sean Zhong ([@clockfly] (http://github.com/clockfly))
 * Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
+* Parth Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 
 ## Contributors
 

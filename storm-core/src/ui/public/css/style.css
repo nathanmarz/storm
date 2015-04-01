@@ -27,3 +27,65 @@
 .anti-forgery-token {
     visibility:hidden;
 }
+
+body,
+.dataTables_wrapper label,
+div.dataTables_info[role="status"],
+.btn-default
+{
+    color: #6d6d6d;
+}
+
+table.dataTable thead th,
+table.dataTable.no-footer
+{
+    border-color: #d5d5d5;
+}
+
+.table > tbody > tr > td {
+    border-top-width: 1px;
+}
+
+table.dataTable {
+    border-collapse: collapse;
+}
+
+td {
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-color: #d5d5d5;
+}
+
+a {
+    color: #0069d6;
+}
+
+a:hover {
+    color: #0050a3;
+}
+
+h1
+{
+    font-weight: bold;
+}
+
+h2
+{
+    color: #404040;
+    font-weight: bold;
+}
+
+table.dataTable thead .sorting_asc,
+table.dataTable thead .sorting_desc {
+    background-color: rgba(141, 192, 219, 0.25);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button:active {
+    background: none;
+    background-image: none;
+    border-color: transparent;
+    box-shadow: none;
+}

@@ -1228,6 +1228,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TRANSACTIONAL_ZOOKEEPER_PORT_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * The user as which the nimbus client should be acquired to perform the operation.
+     */
+    public static final String STORM_DO_AS_USER="storm.doAsUser";
+    public static final Object STORM_DO_AS_USER_SCHEMA = String.class;
+
+    /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static final String ZMQ_THREADS = "zmq.threads";

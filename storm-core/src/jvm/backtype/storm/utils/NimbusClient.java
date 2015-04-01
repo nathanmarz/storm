@@ -46,34 +46,43 @@ public class NimbusClient extends ThriftClient {
     }
 
     public static NimbusClient getConfiguredClientAs(Map conf, String asUser) {
+        if (conf.containsKey(Config.STORM_DO_AS_USER)) {
+            if (asUser != null && !asUser.isEmpty()) {
+                LOG.warn("You have specified a doAsUser as param {} and a doAsParam as config, config will take precedence."
+                        , asUser, conf.get(Config.STORM_DO_AS_USER));
+            }
+            asUser = (String) conf.get(Config.STORM_DO_AS_USER);
+        }
+
         List<String> seeds = (List<String>) conf.get(Config.NIMBUS_SEEDS);
-        for(String seed : seeds) {
+        for (String seed : seeds) {
             String[] split = seed.split(":");
             String host = split[0];
             int port = Integer.parseInt(split[1]);
             try {
-                NimbusClient client = new NimbusClient(conf,host,port);
+                NimbusClient client = new NimbusClient(conf, host, port);
                 ClusterSummary clusterInfo = client.getClient().getClusterInfo();
                 List<NimbusSummary> nimbuses = clusterInfo.get_nimbuses();
-                if(nimbuses != null) {
-                    for(NimbusSummary nimbusSummary : nimbuses) {
-                        if(nimbusSummary.is_isLeader()) {
+                if (nimbuses != null) {
+                    for (NimbusSummary nimbusSummary : nimbuses) {
+                        if (nimbusSummary.is_isLeader()) {
                             return new NimbusClient(conf, nimbusSummary.get_host(), nimbusSummary.get_port(), null, asUser);
                         }
                     }
+                    throw new RuntimeException("Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
+                            "again after some time.");
                 }
-                throw new RuntimeException("Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
-                        "again after some time.");
             } catch (Exception e) {
-                LOG.warn("Ignoring exception while trying to get leader nimbus info from " + seed, e);
+                LOG.warn("Ignoring exception while trying to get leader nimbus info from " + seed
+                        + ". will retry with a different seed host.", e);
             }
         }
-        throw new RuntimeException("Could not find leader nimbus from seed hosts " + seeds +". " +
+        throw new RuntimeException("Could not find leader nimbus from seed hosts " + seeds + ". " +
                 "Did you specify a valid list of nimbus host:port for config " + Config.NIMBUS_SEEDS);
     }
 
     public NimbusClient(Map conf, String host, int port) throws TTransportException {
-        this(conf, host, port, null);
+        this(conf, host, port, null, null);
     }
 
     public NimbusClient(Map conf, String host, int port, Integer timeout) throws TTransportException {

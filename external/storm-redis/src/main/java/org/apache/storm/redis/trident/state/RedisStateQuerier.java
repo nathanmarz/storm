@@ -19,7 +19,7 @@ package org.apache.storm.redis.trident.state;
 
 import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
-import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
+import org.apache.storm.redis.common.mapper.TupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -33,9 +33,9 @@ public class RedisStateQuerier extends BaseQueryFunction<RedisState, String> {
     private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
 
     private final String redisKeyPrefix;
-    private final TridentTupleMapper tupleMapper;
+    private final TupleMapper tupleMapper;
 
-    public RedisStateQuerier(String redisKeyPrefix, TridentTupleMapper tupleMapper) {
+    public RedisStateQuerier(String redisKeyPrefix, TupleMapper tupleMapper) {
         this.redisKeyPrefix = redisKeyPrefix;
         this.tupleMapper = tupleMapper;
     }
@@ -44,7 +44,7 @@ public class RedisStateQuerier extends BaseQueryFunction<RedisState, String> {
     public List<String> batchRetrieve(RedisState redisState, List<TridentTuple> inputs) {
         List<String> keys = Lists.newArrayList();
         for (TridentTuple input : inputs) {
-            String key = this.tupleMapper.getKeyFromTridentTuple(input);
+            String key = this.tupleMapper.getKeyFromTuple(input);
             if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
                 key = redisKeyPrefix + key;
             }
@@ -64,7 +64,7 @@ public class RedisStateQuerier extends BaseQueryFunction<RedisState, String> {
 
     @Override
     public void execute(TridentTuple tuple, String s, TridentCollector collector) {
-        String key = this.tupleMapper.getKeyFromTridentTuple(tuple);
+        String key = this.tupleMapper.getKeyFromTuple(tuple);
         collector.emit(new Values(key, s));
     }
 }

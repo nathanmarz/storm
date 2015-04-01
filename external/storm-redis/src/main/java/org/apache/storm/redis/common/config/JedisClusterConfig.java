@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.redis.util.config;
+package org.apache.storm.redis.common.config;
 
 import com.google.common.base.Preconditions;
 import redis.clients.jedis.HostAndPort;

@@ -78,7 +78,7 @@ The current version of Flux is available in Maven Central at the following coord
 <dependency>
     <groupId>com.github.ptgoetz</groupId>
     <artifactId>flux-core</artifactId>
-    <version>0.2.2-SNAPSHOT</version>
+    <version>0.2.2</version>
 </dependency>
 ```
 
@@ -92,7 +92,7 @@ The example below illustrates Flux usage with the Maven shade plugin:
     <dependency>
         <groupId>com.github.ptgoetz</groupId>
         <artifactId>flux-core</artifactId>
-        <version>0.2.2-SNAPSHOT</version>
+        <version>0.2.2</version>
     </dependency>
 
     <!-- add user dependencies here... -->
@@ -171,6 +171,7 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
  -z,--zookeeper <host:port>   When running in local mode, use the
                               ZooKeeper at the specified <host>:<port>
                               instead of the in-process ZooKeeper.
+                              (requires Storm 0.9.3 or later)
 ```
 
 **NOTE:** Flux tries to avoid command line switch collision with the `storm` command, and allows any other command line
@@ -193,7 +194,7 @@ storm jar myTopology-0.1.0-SNAPSHOT.jar org.apache.storm.flux.Flux --remote my_c
 ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝
 +-         Apache Storm        -+
 +-  data FLow User eXperience  -+
-Version: 0.2.2-SNAPSHOT
+Version: 0.2.2
 Parsing file: /Users/hsimpson/Projects/donut_domination/storm/shell_test.yaml
 ---------- TOPOLOGY DETAILS ----------
 Name: shell-topology

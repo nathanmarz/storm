@@ -138,7 +138,7 @@ public class Utils {
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
         InputStream in = null;
-        Boolean confFileEmpty = false;
+        boolean confFileEmpty = false;
         try {
             in = getConfigFileInputStream(name);
             if (null != in) {

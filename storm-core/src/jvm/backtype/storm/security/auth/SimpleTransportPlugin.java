@@ -95,8 +95,9 @@ public class SimpleTransportPlugin implements ITransportPlugin {
      */
     @Override
     public TTransport connect(TTransport transport, String serverHost, String asUser) throws TTransportException {
+        int maxBufferSize = type.getMaxBufferSize(storm_conf);
         //create a framed transport
-        TTransport conn = new TFramedTransport(transport);
+        TTransport conn = new TFramedTransport(transport, maxBufferSize);
 
         //connect
         conn.open();

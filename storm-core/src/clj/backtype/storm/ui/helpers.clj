@@ -136,7 +136,8 @@
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn- mk-ssl-connector [port ks-path ks-password ks-type key-password]
+(defn- mk-ssl-connector [port ks-path ks-password ks-type key-password
+                         ts-path ts-password ts-type need-client-auth want-client-auth]
   (let [sslContextFactory (doto (SslContextFactory.)
                             (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
                             (.setExcludeProtocols (into-array String ["SSLv3"]))
@@ -145,13 +146,21 @@
                             (.setKeyStoreType ks-type)
                             (.setKeyStorePassword ks-password)
                             (.setKeyManagerPassword key-password))]
+    (if (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
+      ((.setTrustStore sslContextFactory ts-path)
+       (.setTrustStoreType sslContextFactory ts-type)
+       (.setTrustStoreType sslContextFactory ts-password)))
+    (if (need-client-auth) (.setNeedClientAuth sslContextFactory true)
+        (if (want-client-auth) (.setWantClientAuth sslContextFactory true)))
     (doto (SslSocketConnector. sslContextFactory)
       (.setPort port))))
 
 
-(defn config-ssl [server port ks-path ks-password ks-type key-password]
+(defn config-ssl [server port ks-path ks-password ks-type key-password
+                  ts-path ts-password ts-type need-client-auth want-client-auth]
   (when (> port 0)
-    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type key-password))))
+    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type key-password
+                                            ts-path ts-password ts-type need-client-auth want-client-auth))))
 
 (defn cors-filter-handler
   []

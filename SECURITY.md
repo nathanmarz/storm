@@ -34,6 +34,7 @@ IPsec to encrypt all traffic being sent between the hosts in the cluster.
 | 3774 | `drpc.http.port` | External HTTP DRPC Clients | DRPC |
 | 670{0,1,2,3} | `supervisor.slots.ports` | Worker Processes | Worker Processes |
 
+
 ### UI/Logviewer
 
 The UI and logviewer processes provide a way to not only see what a cluster is
@@ -77,6 +78,32 @@ curl  -i --negotiate -u:anyUser  -b ~/cookiejar.txt -c ~/cookiejar.txt  http://s
 3. IE:  Configure trusted websites to include "storm-ui-hostname" and allow negotiation for that website 
 
 **Caution**: In AD MIT Keberos setup the key size is bigger than the default UI jetty server request header size. Make sure you set ui.header.buffer.bytes to 65536 in storm.yaml. More details are on [STORM-633](https://issues.apache.org/jira/browse/STORM-633)
+
+
+## UI / DRPC SSL 
+
+Both UI and DRPC allows users to configure ssl .
+
+### UI
+
+For UI users needs to set following config in storm.yaml. Generating keystores with proper keys and certs should be taken care by the user before this step.
+
+1. ui.https.port 
+2. ui.https.keystore.type (example "jks")
+3. ui.https.keystore.path (example "/etc/ssl/storm_keystore.jks")
+4. ui.https.keystore.password (keystore password)
+5. ui.https.key.password (private key password)
+
+### DRPC
+similarly to UI users need to configure following 
+
+1. drpc.https.port 
+2. drpc.https.keystore.type (example "jks")
+3. drpc.https.keystore.path (example "/etc/ssl/storm_keystore.jks")
+4. drpc.https.keystore.password (keystore password)
+5. drpc.https.key.password (private key password)
+
+
 
 ## Authentication (Kerberos)
 

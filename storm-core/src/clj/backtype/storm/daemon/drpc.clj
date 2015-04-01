@@ -226,7 +226,12 @@
               https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
               https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)
-              https-key-password (conf DRPC-HTTPS-KEY-PASSWORD)]
+              https-key-password (conf DRPC-HTTPS-KEY-PASSWORD)
+              https-ts-path (conf DRPC-HTTPS-TRUSTSTORE-PATH)
+              https-ts-password (conf DRPC-HTTPS-TRUSTSTORE-PASSWORD)
+              https-ts-type (conf DRPC-HTTPS-TRUSTSTORE-TYPE)
+              https-want-client-auth (conf DRPC-HTTPS-WANT-CLIENT-AUTH)
+              https-need-client-auth (conf DRPC-HTTPS-NEED-CLIENT-AUTH)]
 
           (storm-run-jetty
            {:port drpc-http-port
@@ -236,7 +241,12 @@
                                         https-ks-path
                                         https-ks-password
                                         https-ks-type
-                                        https-key-password)
+                                        https-key-password
+                                        https-ts-path
+                                        https-ts-password
+                                        https-ts-type
+                                        https-need-client-auth
+                                        https-want-client-auth)
                             (config-filter server app filters-confs))})))
       (when handler-server
         (.serve handler-server)))))

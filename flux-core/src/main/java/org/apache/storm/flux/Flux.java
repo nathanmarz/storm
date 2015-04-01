@@ -79,7 +79,7 @@ public class Flux {
         options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it."));
 
         options.addOption(option(1, "z", OPTION_ZOOKEEPER, "host:port", "When running in local mode, use the ZooKeeper at the " +
-                "specified <host>:<port> instead of the in-process ZooKeeper."));
+                "specified <host>:<port> instead of the in-process ZooKeeper. (requires Storm 0.9.3 or later)"));
 
         options.addOption(option(1, "f", OPTION_FILTER, "file", "Perform property substitution. Use the specified file " +
                 "as a source of properties, and replace keys identified with {$[property name]} with the value defined " +
@@ -169,7 +169,7 @@ public class Flux {
                         LOG.info("Deploying topology in an ACTIVE state...");
                         submitOptions = new SubmitOptions(TopologyInitialStatus.ACTIVE);
                     }
-                    StormSubmitter.submitTopology(topologyName, conf, topology, submitOptions);
+                    StormSubmitter.submitTopology(topologyName, conf, topology, submitOptions, null);
                 } catch (Exception e) {
                     LOG.warn("Unable to deploy topology to remote cluster.", e);
                 }
@@ -198,7 +198,13 @@ public class Flux {
                     } else {
                         zkHost = zkStr;
                     }
-                    cluster = new LocalCluster(zkHost, zkPort);
+                    // the following constructor is only available in 0.9.3 and later
+                    try {
+                        cluster = new LocalCluster(zkHost, zkPort);
+                    } catch (NoSuchMethodError e){
+                        LOG.error("The --zookeeper option can only be used with Apache Storm 0.9.3 and later.");
+                        System.exit(1);
+                    }
                 } else {
                     cluster = new LocalCluster();
                 }

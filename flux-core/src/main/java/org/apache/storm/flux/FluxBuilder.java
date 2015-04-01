@@ -419,7 +419,8 @@ public class FluxBuilder {
                 Object[] methodArgs = getArgsWithListCoercian(args, method.getParameterTypes());
                 method.invoke(instance, methodArgs);
             } else {
-                LOG.warn("Unable to find method '{}' in class '{}' with arguments {}.", methodName, clazz.getName(), args);
+                LOG.warn("Unable to find method '{}' in class '{}' with arguments {}.",
+                        new Object[]{methodName, clazz.getName(), args});
                 throw new IllegalArgumentException("Configuration method not found.");
             }
         }
@@ -447,8 +448,9 @@ public class FluxBuilder {
             }
         }
         if (eligibleCount > 1) {
-            LOG.warn("Found multiple invokable methods for class {}, method {}, given arguments {}. Using the last one found.",
-                    target, methodName, args);
+            LOG.warn("Found multiple invokable methods for class {}, method {}, given arguments {}. " +
+                            "Using the last one found.",
+                            new Object[]{target, methodName, args});
         }
         return retval;
     }

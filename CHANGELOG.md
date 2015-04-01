@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-713: Include topic information with Kafka metrics.
  * STORM-708: CORS support for STORM UI.
  * STORM-615: Add REST API to upload topology.
  * STORM-741: Allow users to pass a config value to perform impersonation.

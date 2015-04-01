@@ -23,11 +23,14 @@
   (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode not-nil?]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:import [java.util EnumSet])
   (:import [org.eclipse.jetty.server Server]
            [org.eclipse.jetty.server.nio SelectChannelConnector]
            [org.eclipse.jetty.server.ssl SslSocketConnector]
            [org.eclipse.jetty.servlet ServletHolder FilterMapping]
-           [org.eclipse.jetty.util.ssl SslContextFactory])
+	   [org.eclipse.jetty.util.ssl SslContextFactory]
+           [org.eclipse.jetty.server DispatcherType]
+           [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
@@ -150,12 +153,22 @@
   (when (> port 0)
     (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type key-password))))
 
+(defn cors-filter-handler
+  []
+  (doto (org.eclipse.jetty.servlet.FilterHolder. (CrossOriginFilter.))
+    (.setInitParameter CrossOriginFilter/ALLOWED_ORIGINS_PARAM "*")
+    (.setInitParameter CrossOriginFilter/ALLOWED_METHODS_PARAM "GET, POST, PUT")
+    (.setInitParameter CrossOriginFilter/ALLOWED_HEADERS_PARAM "X-Requested-With, X-Requested-By, Access-Control-Allow-Origin, Content-Type, Content-Length, Accept, Origin")
+    (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
+    ))
+
 (defn config-filter [server handler filters-confs]
   (if filters-confs
     (let [servlet-holder (ServletHolder.
                            (ring.util.servlet/servlet handler))
           context (doto (org.eclipse.jetty.servlet.ServletContextHandler. server "/")
                     (.addServlet servlet-holder "/"))]
+      (.addFilter context (cors-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
         (if filter-class
           (let [filter-holder (doto (org.eclipse.jetty.servlet.FilterHolder.)

@@ -61,7 +61,7 @@ public class FluxBuilder {
      * @throws NoSuchMethodException
      * @throws InvocationTargetException
      */
-    public static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException,
+    static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException,
             InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
 
         StormTopology topology = null;
@@ -206,7 +206,7 @@ public class FluxBuilder {
         }
     }
 
-    public static void applyProperties(ObjectDef bean, Object instance, ExecutionContext context) throws
+    private static void applyProperties(ObjectDef bean, Object instance, ExecutionContext context) throws
             IllegalAccessException, InvocationTargetException {
         List<PropertyDef> props = bean.getProperties();
         Class clazz = instance.getClass();
@@ -230,7 +230,7 @@ public class FluxBuilder {
         }
     }
 
-    public static Field findPublicField(Class clazz, String property, Object arg) {
+    private static Field findPublicField(Class clazz, String property, Object arg) {
         Field field = null;
         try {
             field = clazz.getField(property);
@@ -240,7 +240,7 @@ public class FluxBuilder {
         return field;
     }
 
-    public static Method findSetter(Class clazz, String property, Object arg) {
+    private static Method findSetter(Class clazz, String property, Object arg) {
         String setterName = toSetterName(property);
         Method retval = null;
         Method[] methods = clazz.getMethods();
@@ -253,11 +253,11 @@ public class FluxBuilder {
         return retval;
     }
 
-    public static String toSetterName(String name) {
+    private static String toSetterName(String name) {
         return "set" + name.substring(0, 1).toUpperCase() + name.substring(1, name.length());
     }
 
-    public static List<Object> resolveReferences(List<Object> args, ExecutionContext context) {
+    private static List<Object> resolveReferences(List<Object> args, ExecutionContext context) {
         LOG.debug("Checking arguments for references.");
         List<Object> cArgs = new ArrayList<Object>();
         // resolve references

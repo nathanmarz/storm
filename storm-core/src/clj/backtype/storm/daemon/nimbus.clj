@@ -1353,6 +1353,7 @@
                       leader-host (.getHost leader)
                       leader-port (.getPort leader)]
                   (doseq [nimbus-summary nimbuses]
+                    (.set_uptime_secs nimbus-summary (time-delta (.get_uptime_secs nimbus-summary)))
                     (.set_isLeader nimbus-summary (and (= leader-host (.get_host nimbus-summary)) (= leader-port (.get_port nimbus-summary))))))
 
               topology-summaries (dofor [[id base] bases :when base]

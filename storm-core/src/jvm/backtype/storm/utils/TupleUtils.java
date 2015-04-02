@@ -15,19 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.starter.util;
+package backtype.storm.utils;
 
 import backtype.storm.Constants;
 import backtype.storm.tuple.Tuple;
 
-public final class TupleHelpers {
+public final class TupleUtils {
 
-  private TupleHelpers() {
+  private TupleUtils() {
+    // No instantiation
   }
 
-  public static boolean isTickTuple(Tuple tuple) {
-    return tuple.getSourceComponent().equals(Constants.SYSTEM_COMPONENT_ID) && tuple.getSourceStreamId().equals(
-        Constants.SYSTEM_TICK_STREAM_ID);
+  public static boolean isTick(Tuple tuple) {
+    return tuple != null
+           && Constants.SYSTEM_COMPONENT_ID  .equals(tuple.getSourceComponent())
+           && Constants.SYSTEM_TICK_STREAM_ID.equals(tuple.getSourceStreamId());
   }
 
 }

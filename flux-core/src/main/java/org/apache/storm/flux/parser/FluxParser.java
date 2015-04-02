@@ -63,6 +63,10 @@ public class FluxParser {
                                             String propertiesFile, boolean envSub) throws IOException {
         Yaml yaml = yaml();
         InputStream in = FluxParser.class.getResourceAsStream(resource);
+        if(in == null){
+            LOG.error("Unable to load classpath resource: " + resource);
+            System.exit(1);
+        }
         TopologyDef topology = loadYaml(yaml, in, propertiesFile, envSub);
         in.close();
         if(dumpYaml){

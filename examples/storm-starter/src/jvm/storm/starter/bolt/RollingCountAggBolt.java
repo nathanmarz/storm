@@ -28,7 +28,6 @@ import backtype.storm.tuple.Values;
 import org.apache.log4j.Logger;
 import storm.starter.tools.NthLastModifiedTimeTracker;
 import storm.starter.tools.SlidingWindowCounter;
-import storm.starter.util.TupleHelpers;
 
 import java.util.HashMap;
 import java.util.Map;

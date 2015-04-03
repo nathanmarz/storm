@@ -9,6 +9,9 @@
  * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
  * STORM-691: Add basic lookup / persist bolts
  * STORM-727: Storm tests should succeed even if a storm process is running locally.
+ * STORM-512: KafkaBolt doesn't handle ticks properly
+ * STORM-188: Allow user to specifiy full configuration path when running storm command
+ * STORM-740: Simple Transport Client cannot configure thrift buffer size
 
 ## 0.10.0
  * STORM-681: Auto insert license header with genthrift.sh

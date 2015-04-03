@@ -10,6 +10,7 @@
  * STORM-691: Add basic lookup / persist bolts
  * STORM-727: Storm tests should succeed even if a storm process is running locally.
  * STORM-512: KafkaBolt doesn't handle ticks properly
+ * STORM-188: Allow user to specifiy full configuration path when running storm command
 
 ## 0.10.0
  * STORM-681: Auto insert license header with genthrift.sh

@@ -1,4 +1,8 @@
 ## 0.11.0
+ * STORM-713: Include topic information with Kafka metrics.
+ * STORM-708: CORS support for STORM UI.
+ * STORM-615: Add REST API to upload topology.
+ * STORM-741: Allow users to pass a config value to perform impersonation.
  * STORM-724: Document RedisStoreBolt and RedisLookupBolt which is missed.
  * STORM-711: All connectors should use collector.reportError and tuple anchoring.
  * STORM-714: Make CSS more consistent with self, prev release

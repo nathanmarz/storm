@@ -375,8 +375,7 @@ Sample response:
         "storm.zookeeper.retry.intervalceiling.millis": 30000,
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
-    },
-    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
+    }
 }
 ```
 

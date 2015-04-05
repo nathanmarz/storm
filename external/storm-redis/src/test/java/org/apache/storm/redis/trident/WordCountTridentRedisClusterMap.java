@@ -56,7 +56,6 @@ public class WordCountTridentRedisClusterMap {
         }
         JedisClusterConfig clusterConfig = new JedisClusterConfig.Builder().setNodes(nodes)
                                         .build();
-        TupleMapper tupleMapper = new WordCountTupleMapper();
         StateFactory factory = RedisClusterMapState.transactional(clusterConfig);
 
         TridentTopology topology = new TridentTopology();

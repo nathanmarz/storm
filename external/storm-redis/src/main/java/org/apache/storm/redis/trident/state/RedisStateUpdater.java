@@ -17,6 +17,8 @@
  */
 package org.apache.storm.redis.trident.state;
 
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
+import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import org.apache.storm.redis.common.mapper.TupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +32,13 @@ import java.util.List;
 public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
     private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
 
-    private final String redisKeyPrefix;
-    private final TupleMapper tupleMapper;
+    private final RedisStoreMapper storeMapper;
     private final int expireIntervalSec;
 
-    public RedisStateUpdater(String redisKeyPrefix, TupleMapper tupleMapper, int expireIntervalSec) {
-        this.redisKeyPrefix = redisKeyPrefix;
-        this.tupleMapper = tupleMapper;
+    public RedisStateUpdater(RedisStoreMapper storeMapper, int expireIntervalSec) {
+        this.storeMapper = storeMapper;
+        assertDataType(storeMapper.getDataTypeDescription());
+
         if (expireIntervalSec > 0) {
             this.expireIntervalSec = expireIntervalSec;
         } else {
@@ -51,25 +53,27 @@ public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
         try {
             jedis = redisState.getJedis();
             for (TridentTuple input : inputs) {
-                String key = this.tupleMapper.getKeyFromTuple(input);
-                String redisKey = key;
-                if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
-                    redisKey = redisKeyPrefix + redisKey;
-                }
-                String value = this.tupleMapper.getValueFromTuple(input);
+                String key = storeMapper.getKeyFromTuple(input);
+                String value = storeMapper.getValueFromTuple(input);
 
-                logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
+                logger.debug("update key[" + key + "] redisKey[" + key+ "] value[" + value + "]");
 
                 if (this.expireIntervalSec > 0) {
-                    jedis.setex(redisKey, expireIntervalSec, value);
+                    jedis.setex(key, expireIntervalSec, value);
                 } else {
-                    jedis.set(redisKey, value);
+                    jedis.set(key, value);
                 }
             }
         } finally {
             if (jedis != null) {
                 redisState.returnJedis(jedis);
             }
+        }
+    }
+
+    private void assertDataType(RedisDataTypeDescription storeMapper) {
+        if (storeMapper.getDataType() != RedisDataTypeDescription.RedisDataType.STRING) {
+            throw new IllegalArgumentException("State should be STRING type");
         }
     }
 }

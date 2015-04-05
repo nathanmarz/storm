@@ -48,7 +48,6 @@ public class WordCountTridentRedisMap {
         JedisPoolConfig poolConfig = new JedisPoolConfig.Builder()
                                         .setHost(redisHost).setPort(redisPort)
                                         .build();
-        TupleMapper tupleMapper = new WordCountTupleMapper();
         StateFactory factory = RedisMapState.transactional(poolConfig);
 
         TridentTopology topology = new TridentTopology();

@@ -19,6 +19,7 @@ package org.apache.storm.redis.trident.state;
 
 import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
+import org.apache.storm.redis.common.mapper.RedisLookupMapper;
 import org.apache.storm.redis.common.mapper.TupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,37 +30,30 @@ import storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 
-public class RedisClusterStateQuerier extends BaseQueryFunction<RedisClusterState, String> {
+public class RedisClusterStateQuerier extends BaseQueryFunction<RedisClusterState, List<Values>> {
     private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
 
-    private final String redisKeyPrefix;
-    private final TupleMapper tupleMapper;
+    private final RedisLookupMapper lookupMapper;
 
-    public RedisClusterStateQuerier(String redisKeyPrefix, TupleMapper tupleMapper) {
-        this.redisKeyPrefix = redisKeyPrefix;
-        this.tupleMapper = tupleMapper;
+    public RedisClusterStateQuerier(RedisLookupMapper lookupMapper) {
+        this.lookupMapper = lookupMapper;
     }
 
     @Override
-    public List<String> batchRetrieve(RedisClusterState redisClusterState, List<TridentTuple> inputs) {
-        List<String> ret = Lists.newArrayList();
-
-        List<String> keys = Lists.newArrayList();
+    public List<List<Values>> batchRetrieve(RedisClusterState redisClusterState, List<TridentTuple> inputs) {
+        List<List<Values>> ret = Lists.newArrayList();
 
         JedisCluster jedisCluster = null;
         try {
             jedisCluster = redisClusterState.getJedisCluster();
 
+            for (int i = 0 ; i < inputs.size() ; i++) {
+                TridentTuple input = inputs.get(i);
 
-            for (TridentTuple input : inputs) {
-                String key = this.tupleMapper.getKeyFromTuple(input);
-                if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
-                    key = redisKeyPrefix + key;
-                }
+                String key = lookupMapper.getKeyFromTuple(input);
                 String value = jedisCluster.get(key);
-                ret.add(value);
-
-                logger.debug("redis get key[" + key + "] count[" + value + "]");
+                ret.add(lookupMapper.toTuple(input, value));
+                logger.debug("redis get key[" + key + "] value [" + value + "]");
             }
         } finally {
             if (jedisCluster != null) {
@@ -71,8 +65,9 @@ public class RedisClusterStateQuerier extends BaseQueryFunction<RedisClusterStat
     }
 
     @Override
-    public void execute(TridentTuple tuple, String s, TridentCollector collector) {
-        String key = this.tupleMapper.getKeyFromTuple(tuple);
-        collector.emit(new Values(key, s));
+    public void execute(TridentTuple tuple, List<Values> values, TridentCollector collector) {
+        for (Values value : values) {
+            collector.emit(value);
+        }
     }
 }

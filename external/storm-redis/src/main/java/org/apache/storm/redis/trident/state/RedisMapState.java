@@ -20,67 +20,16 @@ package org.apache.storm.redis.trident.state;
 import backtype.storm.task.IMetricsContext;
 import backtype.storm.tuple.Values;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import org.apache.storm.redis.common.config.JedisPoolConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import storm.trident.state.JSONNonTransactionalSerializer;
-import storm.trident.state.JSONOpaqueSerializer;
-import storm.trident.state.JSONTransactionalSerializer;
-import storm.trident.state.OpaqueValue;
-import storm.trident.state.Serializer;
-import storm.trident.state.State;
-import storm.trident.state.StateFactory;
-import storm.trident.state.StateType;
-import storm.trident.state.TransactionalValue;
-import storm.trident.state.map.CachedMap;
-import storm.trident.state.map.IBackingMap;
-import storm.trident.state.map.MapState;
-import storm.trident.state.map.NonTransactionalMap;
-import storm.trident.state.map.OpaqueMap;
-import storm.trident.state.map.SnapshottableMap;
-import storm.trident.state.map.TransactionalMap;
+import storm.trident.state.*;
+import storm.trident.state.map.*;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RedisMapState<T> implements IBackingMap<T> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisMapState.class);
-
-    private static final EnumMap<StateType, Serializer> DEFAULT_SERIALIZERS = Maps.newEnumMap(ImmutableMap.of(
-            StateType.NON_TRANSACTIONAL, new JSONNonTransactionalSerializer(),
-            StateType.TRANSACTIONAL, new JSONTransactionalSerializer(),
-            StateType.OPAQUE, new JSONOpaqueSerializer()
-    ));
-
-    public static class DefaultKeyFactory implements KeyFactory {
-        public String build(List<Object> key) {
-            if (key.size() != 1)
-                throw new RuntimeException("Default KeyFactory does not support compound keys");
-            return (String) key.get(0);
-        }
-    };
-
-    public static class Options<T> implements Serializable {
-        public int localCacheSize = 1000;
-        public String globalKey = "$REDIS-MAP-STATE-GLOBAL";
-        KeyFactory keyFactory = null;
-        public Serializer<T> serializer = null;
-        public String hkey = null;
-    }
-
-    public static interface KeyFactory extends Serializable {
-        String build(List<Object> key);
-    }
-
+public class RedisMapState<T> extends AbstractRedisMapState<T> {
     /**
      * OpaqueTransactional for redis.
      * */
@@ -167,7 +116,7 @@ public class RedisMapState<T> implements IBackingMap<T> {
 
             this.keyFactory = options.keyFactory;
             if (this.keyFactory == null) {
-                this.keyFactory = new DefaultKeyFactory();
+                this.keyFactory = new KeyFactory.DefaultKeyFactory();
             }
             this.serializer = options.serializer;
             if (this.serializer == null) {
@@ -219,96 +168,64 @@ public class RedisMapState<T> implements IBackingMap<T> {
         this.keyFactory = keyFactory;
     }
 
-    public List<T> multiGet(List<List<Object>> keys) {
-        if (keys.size() == 0) {
-            return Collections.emptyList();
-        }
-
-        String[] stringKeys = buildKeys(keys);
-
-        if (Strings.isNullOrEmpty(this.options.hkey)) {
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
-                List<String> values = jedis.mget(stringKeys);
-                return deserializeValues(keys, values);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
-                }
-            }
-        } else {
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
-                List<String> values = jedis.hmget(this.options.hkey, stringKeys);
-                return deserializeValues(keys, values);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
-                }
-            }
-        }
+    @Override
+    protected Serializer getSerializer() {
+        return serializer;
     }
 
-    private List<T> deserializeValues(List<List<Object>> keys, List<String> values) {
-        List<T> result = new ArrayList<T>(keys.size());
-        for (String value : values) {
-            if (value != null) {
-                result.add((T) serializer.deserialize(value.getBytes()));
+    @Override
+    protected KeyFactory getKeyFactory() {
+        return keyFactory;
+    }
+
+    @Override
+    protected List<String> retrieveValuesFromRedis(List<String> keys) {
+        String[] stringKeys = keys.toArray(new String[keys.size()]);
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+
+            if (Strings.isNullOrEmpty(this.options.hkey)) {
+                return jedis.mget(stringKeys);
             } else {
-                result.add(null);
+                return jedis.hmget(this.options.hkey, stringKeys);
+            }
+        } finally {
+            if (jedis != null) {
+                jedis.close();
             }
         }
-        return result;
     }
 
-    private String[] buildKeys(List<List<Object>> keys) {
-        String[] stringKeys = new String[keys.size()];
-        int index = 0;
-        for (List<Object> key : keys)
-            stringKeys[index++] = keyFactory.build(key);
-        return stringKeys;
-    }
+    @Override
+    protected void updateStatesToRedis(Map<String, String> keyValues) {
+        Jedis jedis = null;
 
-    public void multiPut(List<List<Object>> keys, List<T> vals) {
-        if (keys.size() == 0) {
-            return;
-        }
+        try {
+            jedis = jedisPool.getResource();
 
-        if (Strings.isNullOrEmpty(this.options.hkey)) {
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
-                String[] keyValue = buildKeyValuesList(keys, vals);
+            if (Strings.isNullOrEmpty(this.options.hkey)) {
+                String[] keyValue = buildKeyValuesList(keyValues);
                 jedis.mset(keyValue);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
-                }
-            }
-        } else {
-            Jedis jedis = jedisPool.getResource();
-            try {
-                Map<String, String> keyValues = new HashMap<String, String>();
-                for (int i = 0; i < keys.size(); i++) {
-                    String val = new String(serializer.serialize(vals.get(i)));
-                    keyValues.put(keyFactory.build(keys.get(i)), val);
-                }
+            } else {
                 jedis.hmset(this.options.hkey, keyValues);
-
-            } finally {
-                jedisPool.returnResource(jedis);
+            }
+        } finally {
+            if (jedis != null) {
+                jedis.close();
             }
         }
     }
 
-    private String[] buildKeyValuesList(List<List<Object>> keys, List<T> vals) {
-        String[] keyValues = new String[keys.size() * 2];
-        for (int i = 0; i < keys.size(); i++) {
-            keyValues[i * 2] = keyFactory.build(keys.get(i));
-            keyValues[i * 2 + 1] = new String(serializer.serialize(vals.get(i)));
+    private String[] buildKeyValuesList(Map<String, String> keyValues) {
+        String[] keyValueLists = new String[keyValues.size() * 2];
+
+        int idx = 0;
+        for (Map.Entry<String, String> kvEntry : keyValues.entrySet()) {
+            keyValueLists[idx++] = kvEntry.getKey();
+            keyValueLists[idx++] = kvEntry.getValue();
         }
-        return keyValues;
+
+        return keyValueLists;
     }
 }

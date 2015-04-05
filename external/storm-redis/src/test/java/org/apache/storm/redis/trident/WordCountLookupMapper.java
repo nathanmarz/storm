@@ -25,7 +25,7 @@ public class WordCountLookupMapper implements RedisLookupMapper {
 
     @Override
     public RedisDataTypeDescription getDataTypeDescription() {
-        return new RedisDataTypeDescription(RedisDataTypeDescription.RedisDataType.STRING);
+        return new RedisDataTypeDescription(RedisDataTypeDescription.RedisDataType.HASH, "test");
     }
 
     @Override

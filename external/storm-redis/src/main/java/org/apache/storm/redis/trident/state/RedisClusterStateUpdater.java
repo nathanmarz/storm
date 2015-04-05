@@ -19,51 +19,46 @@ package org.apache.storm.redis.trident.state;
 
 import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import org.apache.storm.redis.common.mapper.RedisStoreMapper;
-import org.apache.storm.redis.common.mapper.TupleMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisCluster;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
 
-import java.util.List;
+import java.util.Map;
 
-public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
-
-    private final RedisStoreMapper storeMapper;
-    private final int expireIntervalSec;
-
+public class RedisClusterStateUpdater extends AbstractRedisStateUpdater<RedisClusterState> {
     public RedisClusterStateUpdater(RedisStoreMapper storeMapper, int expireIntervalSec) {
-        this.storeMapper = storeMapper;
-        assertDataType(storeMapper.getDataTypeDescription());
-
-        if (expireIntervalSec > 0) {
-            this.expireIntervalSec = expireIntervalSec;
-        } else {
-            this.expireIntervalSec = 0;
-        }
+        super(storeMapper, expireIntervalSec);
     }
 
     @Override
-    public void updateState(RedisClusterState redisClusterState, List<TridentTuple> inputs,
-                            TridentCollector collector) {
-
+    protected void updateStatesToRedis(RedisClusterState redisClusterState, Map<String, String> keyToValue) {
         JedisCluster jedisCluster = null;
         try {
             jedisCluster = redisClusterState.getJedisCluster();
-            for (TridentTuple input : inputs) {
-                String key = storeMapper.getKeyFromTuple(input);
-                String value = storeMapper.getValueFromTuple(input);
 
-                logger.debug("update key[" + key + "] redisKey[" + key + "] value[" + value + "]");
+            for (Map.Entry<String, String> kvEntry : keyToValue.entrySet()) {
+                String key = kvEntry.getKey();
+                String value = kvEntry.getValue();
 
-                if (this.expireIntervalSec > 0) {
-                    jedisCluster.setex(key, expireIntervalSec, value);
-                } else {
-                    jedisCluster.set(key, value);
+                switch (dataType) {
+                case STRING:
+                    if (this.expireIntervalSec > 0) {
+                        jedisCluster.setex(key, expireIntervalSec, value);
+                    } else {
+                        jedisCluster.set(key, value);
+                    }
+                    break;
+                case HASH:
+                    jedisCluster.hset(additionalKey, key, value);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Cannot process such data type: " + dataType);
                 }
+            }
+
+            // send expire command for hash only once
+            // it expires key itself entirely, so use it with caution
+            if (dataType == RedisDataTypeDescription.RedisDataType.HASH &&
+                    this.expireIntervalSec > 0) {
+                jedisCluster.expire(additionalKey, expireIntervalSec);
             }
         } finally {
             if (jedisCluster != null) {
@@ -71,11 +66,4 @@ public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState
             }
         }
     }
-
-    private void assertDataType(RedisDataTypeDescription storeMapper) {
-        if (storeMapper.getDataType() != RedisDataTypeDescription.RedisDataType.STRING) {
-            throw new IllegalArgumentException("State should be STRING type");
-        }
-    }
-
 }

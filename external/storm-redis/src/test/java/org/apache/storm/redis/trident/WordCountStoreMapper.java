@@ -7,7 +7,7 @@ import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 public class WordCountStoreMapper implements RedisStoreMapper {
     @Override
     public RedisDataTypeDescription getDataTypeDescription() {
-        return new RedisDataTypeDescription(RedisDataTypeDescription.RedisDataType.STRING);
+        return new RedisDataTypeDescription(RedisDataTypeDescription.RedisDataType.HASH, "test");
     }
 
     @Override

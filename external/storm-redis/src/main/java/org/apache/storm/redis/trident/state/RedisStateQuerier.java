@@ -17,62 +17,40 @@
  */
 package org.apache.storm.redis.trident.state;
 
-import backtype.storm.tuple.Values;
-import com.google.common.collect.Lists;
-import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import org.apache.storm.redis.common.mapper.RedisLookupMapper;
 import redis.clients.jedis.Jedis;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseQueryFunction;
-import storm.trident.tuple.TridentTuple;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class RedisStateQuerier extends BaseQueryFunction<RedisState, List<Values>> {
-    private final RedisLookupMapper lookupMapper;
-
+public class RedisStateQuerier extends AbstractRedisStateQuerier<RedisState> {
     public RedisStateQuerier(RedisLookupMapper lookupMapper) {
-        this.lookupMapper = lookupMapper;
-        assertDataType(lookupMapper.getDataTypeDescription());
+        super(lookupMapper);
     }
 
     @Override
-    public List<List<Values>> batchRetrieve(RedisState redisState, List<TridentTuple> inputs) {
-        List<List<Values>> values = new ArrayList<List<Values>>();
-
-        List<String> keys = Lists.newArrayList();
-        for (TridentTuple input : inputs) {
-            keys.add(lookupMapper.getKeyFromTuple(input));
-        }
-
+    protected List<String> retrieveValuesFromRedis(RedisState redisState, List<String> keys) {
         Jedis jedis = null;
         try {
             jedis = redisState.getJedis();
-            List<String> redisVals = jedis.mget(keys.toArray(new String[keys.size()]));
+            List<String> redisVals;
 
-            for (int i = 0 ; i < redisVals.size() ; i++) {
-                values.add(lookupMapper.toTuple(inputs.get(i), redisVals.get(i)));
+            String[] keysForRedis = keys.toArray(new String[keys.size()]);
+            switch (dataType) {
+            case STRING:
+                redisVals = jedis.mget(keysForRedis);
+                break;
+            case HASH:
+                redisVals = jedis.hmget(additionalKey, keysForRedis);
+                break;
+            default:
+                throw new IllegalArgumentException("Cannot process such data type: " + dataType);
             }
 
-            return values;
+            return redisVals;
         } finally {
             if (jedis != null) {
                 redisState.returnJedis(jedis);
             }
-        }
-    }
-
-    @Override
-    public void execute(TridentTuple tuple, List<Values> values, TridentCollector collector) {
-        for (Values value : values) {
-            collector.emit(value);
-        }
-    }
-
-    private void assertDataType(RedisDataTypeDescription lookupMapper) {
-        if (lookupMapper.getDataType() != RedisDataTypeDescription.RedisDataType.STRING) {
-            throw new IllegalArgumentException("State should be STRING type");
         }
     }
 }

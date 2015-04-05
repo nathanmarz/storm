@@ -19,51 +19,51 @@ package org.apache.storm.redis.trident.state;
 
 import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import org.apache.storm.redis.common.mapper.RedisStoreMapper;
-import org.apache.storm.redis.common.mapper.TupleMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
+import redis.clients.jedis.Pipeline;
 
-import java.util.List;
+import java.util.Map;
 
-public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
-
-    private final RedisStoreMapper storeMapper;
-    private final int expireIntervalSec;
-
+public class RedisStateUpdater extends AbstractRedisStateUpdater<RedisState> {
     public RedisStateUpdater(RedisStoreMapper storeMapper, int expireIntervalSec) {
-        this.storeMapper = storeMapper;
-        assertDataType(storeMapper.getDataTypeDescription());
-
-        if (expireIntervalSec > 0) {
-            this.expireIntervalSec = expireIntervalSec;
-        } else {
-            this.expireIntervalSec = 0;
-        }
+        super(storeMapper, expireIntervalSec);
     }
 
     @Override
-    public void updateState(RedisState redisState, List<TridentTuple> inputs,
-                            TridentCollector collector) {
+    protected void updateStatesToRedis(RedisState redisState, Map<String, String> keyToValue) {
         Jedis jedis = null;
         try {
             jedis = redisState.getJedis();
-            for (TridentTuple input : inputs) {
-                String key = storeMapper.getKeyFromTuple(input);
-                String value = storeMapper.getValueFromTuple(input);
+            Pipeline pipeline = jedis.pipelined();
 
-                logger.debug("update key[" + key + "] redisKey[" + key+ "] value[" + value + "]");
+            for (Map.Entry<String, String> kvEntry : keyToValue.entrySet()) {
+                String key = kvEntry.getKey();
+                String value = kvEntry.getValue();
 
-                if (this.expireIntervalSec > 0) {
-                    jedis.setex(key, expireIntervalSec, value);
-                } else {
-                    jedis.set(key, value);
+                switch (dataType) {
+                case STRING:
+                    if (this.expireIntervalSec > 0) {
+                        pipeline.setex(key, expireIntervalSec, value);
+                    } else {
+                        pipeline.set(key, value);
+                    }
+                    break;
+                case HASH:
+                    pipeline.hset(additionalKey, key, value);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Cannot process such data type: " + dataType);
                 }
             }
+
+            // send expire command for hash only once
+            // it expires key itself entirely, so use it with caution
+            if (dataType == RedisDataTypeDescription.RedisDataType.HASH &&
+                    this.expireIntervalSec > 0) {
+                pipeline.expire(additionalKey, expireIntervalSec);
+            }
+
+            pipeline.sync();
         } finally {
             if (jedis != null) {
                 redisState.returnJedis(jedis);
@@ -71,9 +71,4 @@ public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
         }
     }
 
-    private void assertDataType(RedisDataTypeDescription storeMapper) {
-        if (storeMapper.getDataType() != RedisDataTypeDescription.RedisDataType.STRING) {
-            throw new IllegalArgumentException("State should be STRING type");
-        }
-    }
 }

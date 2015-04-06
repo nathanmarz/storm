@@ -157,9 +157,9 @@
     <modules>
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-buildtools/storm-maven-plugins</module>
-        <module>storm-multilang/multilang-javascript</module>
-        <module>storm-multilang/multilang-python</module>
-        <module>storm-multilang/multilang-ruby</module>
+        <module>storm-multilang/javascript</module>
+        <module>storm-multilang/python</module>
+        <module>storm-multilang/ruby</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>

@@ -42,7 +42,7 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
-    //DO NOT CHANGE UNLESS WE ADD IN STATE NOTE STORED IN THE PARENT CLASS
+    //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
     private static final long serialVersionUID = -1550278723792864455L;
 
     /**

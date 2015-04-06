@@ -26,7 +26,7 @@
   (:import [java.net InetAddress])
   (:import [backtype.storm Config])
   (:import [backtype.storm.generated AuthorizationException])
-  (:import [backtype.storm.utils NimbusClient])
+  (:import [backtype.storm.utils NimbusClient Time])
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping 
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
@@ -137,7 +137,7 @@
                 ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
     (.start (Thread. #(.serve server)))
-    (wait-for-condition #(.isServing server))
+    (while-timeout 5000 (.isServing server) (Time/sleep 100))
     server ))
 
 (defmacro with-server [args & body]

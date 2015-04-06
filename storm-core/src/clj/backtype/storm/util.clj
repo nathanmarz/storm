@@ -615,11 +615,6 @@
          ~@body
          (finally (.unlock wlock#))))))
 
-(defn wait-for-condition
-  [apredicate]
-  (while (not (apredicate))
-    (Time/sleep 100)))
-
 (defn time-delta
   [time-secs]
   (- (current-time-secs) time-secs))

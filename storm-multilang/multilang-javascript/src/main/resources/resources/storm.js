@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
+ /**
  * Base classes in node-js for storm Bolt and Spout.
  * Implements the storm multilang protocol for nodejs.
  */
@@ -261,12 +260,6 @@ BasicBolt.prototype.__emit = function(commandDetails) {
 BasicBolt.prototype.handleNewCommand = function(command) {
     var self = this;
     var tup = new Tuple(command["id"], command["comp"], command["stream"], command["task"], command["tuple"]);
-
-    if (tup.task === -1 && tup.stream === "__heartbeat") {
-        self.sync();
-        return;
-    }
-
     var callback = function(err) {
           if (err) {
               self.fail(tup, err);

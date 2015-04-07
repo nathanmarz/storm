@@ -137,7 +137,7 @@
                 ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
     (.start (Thread. #(.serve server)))
-    (while-timeout 5000 (.isServing server) (Time/sleep 100))
+    (while-timeout 5000 (not (.isServing server)) (Time/sleep 100))
     server ))
 
 (defmacro with-server [args & body]

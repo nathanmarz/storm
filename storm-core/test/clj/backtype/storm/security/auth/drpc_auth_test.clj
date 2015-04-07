@@ -48,10 +48,10 @@
     (log-message "storm conf:" conf)
     (log-message "Starting DRPC invocation server ...")
     (.start (Thread. #(.serve invoke-server)))
-    (while-timeout 5000 (.isServing invoke-server) (Time/sleep 100))
+    (while-timeout 5000 (not (.isServing invoke-server)) (Time/sleep 100))
     (log-message "Starting DRPC handler server ...")
     (.start (Thread. #(.serve handler-server)))
-    (while-timeout 5000 (.isServing handler-server) (Time/sleep 100))
+    (while-timeout 5000 (not (.isServing handler-server)) (Time/sleep 100))
     [handler-server invoke-server]))
 
 (defmacro with-server [args & body]

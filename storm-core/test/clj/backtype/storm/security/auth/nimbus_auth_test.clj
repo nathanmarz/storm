@@ -46,7 +46,7 @@
                                      ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop nimbus-server))))
     (.start (Thread. #(.serve nimbus-server)))
-    (testing/while-timeout 5000 (.isServing nimbus-server) (Time/sleep 100))
+    (testing/while-timeout 5000 (not (.isServing nimbus-server)) (Time/sleep 100))
     [cluster-map nimbus-server]))
 
 (defmacro with-test-cluster [args & body]

@@ -32,16 +32,16 @@ components:
     constructorArgs:
       - 1000
   - id: "rotationPolicy"
-    className: "org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy"
+    className: "org.apache.storm.hdfs.bolt.rotation.TimedRotationPolicy"
     constructorArgs:
-      - 5.0
-      - MB
+      - 30
+      - SECONDS
 
   - id: "fileNameFormat"
     className: "org.apache.storm.hdfs.bolt.format.DefaultFileNameFormat"
     configMethods:
       - name: "withPath"
-        args: ["/tmp/foo/"]
+        args: [${hdfs.write.dir}]
       - name: "withExtension"
         args: [".txt"]
 
@@ -55,7 +55,7 @@ components:
     className: "org.apache.storm.hdfs.common.rotation.MoveFileAction"
     configMethods:
       - name: "toDestination"
-        args: ["/tmp/dest2"]
+        args: [${hdfs.dest.dir}]
 
 # spout definitions
 spouts:
@@ -66,14 +66,6 @@ spouts:
 
 # bolt definitions
 
-#        HdfsBolt bolt = new HdfsBolt()
-#                .withConfigKey("hdfs.config")
-#                .withFsUrl(args[0])
-#                .withFileNameFormat(fileNameFormat)
-#                .withRecordFormat(format)
-#                .withRotationPolicy(rotationPolicy)
-#                .withSyncPolicy(syncPolicy)
-#                .addRotationAction(new MoveFileAction().toDestination("/tmp/dest2/"));
 bolts:
   - id: "bolt-1"
     className: "org.apache.storm.hdfs.bolt.HdfsBolt"
@@ -81,7 +73,7 @@ bolts:
       - name: "withConfigKey"
         args: ["hdfs.config"]
       - name: "withFsUrl"
-        args: ["hdfs://localhost:1234"]
+        args: [${hdfs.url}]
       - name: "withFileNameFormat"
         args: [ref: "fileNameFormat"]
       - name: "withRecordFormat"
@@ -95,3 +87,19 @@ bolts:
     parallelism: 1
     # ...
 
+  - id: "bolt-2"
+    className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
+    parallelism: 1
+
+streams:
+  - name: "" # name isn't used (placeholder for logging, UI, etc.)
+    from: "spout-1"
+    to: "bolt-1"
+    grouping:
+      type: SHUFFLE
+
+  - name: "" # name isn't used (placeholder for logging, UI, etc.)
+    from: "spout-1"
+    to: "bolt-2"
+    grouping:
+      type: SHUFFLE

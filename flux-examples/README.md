@@ -23,6 +23,34 @@ The example YAML files are also packaged in the examples jar, so they can also b
 command line switch:
 
 ```bash
-storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local --resource /sime_wordcount.yaml
+storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local --resource /simple_wordcount.yaml
+```
+
+## Available Examples
+
+### simple_wordcount.yaml
+
+This is a very basic wordcount example using Java spouts and bolts. It simply logs the running count of each word
+received.
+
+### multilang.yaml
+
+Another wordcount example that uses a spout written in JavaScript (node.js), a bolt written in Python, and two bolts
+written in java.
+
+### kafka_spout.yaml
+This example illustrates how to configure Storm's `storm-kafka` spout using Flux YAML DSL `components`, `references`,
+and `constructor arguments` constructs.
+
+### simple_hdfs.yaml
+
+This example demonstrates using Flux to setup a storm-hdfs bolt to write to an HDFS cluster. It also demonstrates Flux's
+variable substitution/filtering feature.
+
+To run the `simple_hdfs.yaml` example, copy the `hdfs_bolt.properties` file to a convenient location and change, at
+least, the property `hdfs.url` to point to a HDFS cluster. Then you can run the example something like:
+
+```bash
+storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_hdfs.yaml --filter my_hdfs_bolt.properties
 ```
 

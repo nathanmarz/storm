@@ -17,14 +17,17 @@
  */
 package org.apache.storm.redis.trident.state;
 
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import storm.trident.state.Serializer;
 
 import java.io.Serializable;
 
 public class Options<T> implements Serializable {
+	private static final RedisDataTypeDescription DEFAULT_REDIS_DATATYPE = new RedisDataTypeDescription(RedisDataTypeDescription.RedisDataType.STRING);
+
 	public int localCacheSize = 1000;
 	public String globalKey = "$REDIS-MAP-STATE-GLOBAL";
 	KeyFactory keyFactory = null;
 	public Serializer<T> serializer = null;
-	public String hkey = null;
+	public RedisDataTypeDescription dataTypeDescription = DEFAULT_REDIS_DATATYPE;
 }

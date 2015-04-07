@@ -21,6 +21,7 @@ import backtype.storm.task.IMetricsContext;
 import backtype.storm.tuple.Values;
 import com.google.common.base.Strings;
 import org.apache.storm.redis.common.config.JedisPoolConfig;
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import storm.trident.state.*;
@@ -37,9 +38,9 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         return opaque(jedisPoolConfig, new Options());
     }
 
-    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, String hkey) {
+    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
-        opts.hkey = hkey;
+        opts.dataTypeDescription = dataTypeDescription;
         return opaque(jedisPoolConfig, opts);
     }
 
@@ -60,9 +61,9 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         return transactional(jedisPoolConfig, new Options());
     }
 
-    public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, String hkey) {
+    public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
-        opts.hkey = hkey;
+        opts.dataTypeDescription = dataTypeDescription;
         return transactional(jedisPoolConfig, opts);
     }
 
@@ -83,9 +84,9 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         return nonTransactional(jedisPoolConfig, new Options());
     }
 
-    public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, String hkey) {
+    public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
-        opts.hkey = hkey;
+        opts.dataTypeDescription = dataTypeDescription;
         return nonTransactional(jedisPoolConfig, opts);
     }
 
@@ -181,15 +182,23 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
     @Override
     protected List<String> retrieveValuesFromRedis(List<String> keys) {
         String[] stringKeys = keys.toArray(new String[keys.size()]);
+
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
 
-            if (Strings.isNullOrEmpty(this.options.hkey)) {
+            RedisDataTypeDescription description = this.options.dataTypeDescription;
+            switch (description.getDataType()) {
+            case STRING:
                 return jedis.mget(stringKeys);
-            } else {
-                return jedis.hmget(this.options.hkey, stringKeys);
+
+            case HASH:
+                return jedis.hmget(description.getAdditionalKey(), stringKeys);
+
+            default:
+                throw new IllegalArgumentException("Cannot process such data type: " + description.getDataType());
             }
+
         } finally {
             if (jedis != null) {
                 jedis.close();
@@ -204,12 +213,21 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         try {
             jedis = jedisPool.getResource();
 
-            if (Strings.isNullOrEmpty(this.options.hkey)) {
+            RedisDataTypeDescription description = this.options.dataTypeDescription;
+            switch (description.getDataType()) {
+            case STRING:
                 String[] keyValue = buildKeyValuesList(keyValues);
                 jedis.mset(keyValue);
-            } else {
-                jedis.hmset(this.options.hkey, keyValues);
+                break;
+
+            case HASH:
+                jedis.hmset(description.getAdditionalKey(), keyValues);
+                break;
+
+            default:
+                throw new IllegalArgumentException("Cannot process such data type: " + description.getDataType());
             }
+
         } finally {
             if (jedis != null) {
                 jedis.close();

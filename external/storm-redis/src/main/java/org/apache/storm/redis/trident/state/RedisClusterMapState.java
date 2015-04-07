@@ -22,6 +22,7 @@ import backtype.storm.tuple.Values;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.storm.redis.common.config.JedisClusterConfig;
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import redis.clients.jedis.JedisCluster;
 import storm.trident.state.*;
 import storm.trident.state.map.*;
@@ -37,9 +38,9 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         return opaque(jedisClusterConfig, new Options());
     }
 
-    public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, String hkey) {
+    public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
-        opts.hkey = hkey;
+        opts.dataTypeDescription = dataTypeDescription;
         return opaque(jedisClusterConfig, opts);
     }
 
@@ -60,9 +61,9 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         return transactional(jedisClusterConfig, new Options());
     }
 
-    public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, String hkey) {
+    public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
-        opts.hkey = hkey;
+        opts.dataTypeDescription = dataTypeDescription;
         return transactional(jedisClusterConfig, opts);
     }
 
@@ -83,9 +84,9 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         return nonTransactional(jedisClusterConfig, new Options());
     }
 
-    public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, String hkey) {
+    public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
-        opts.hkey = hkey;
+        opts.dataTypeDescription = dataTypeDescription;
         return nonTransactional(jedisClusterConfig, opts);
     }
 
@@ -180,7 +181,9 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
     @Override
     protected List<String> retrieveValuesFromRedis(List<String> keys) {
         String[] stringKeys = keys.toArray(new String[keys.size()]);
-        if (Strings.isNullOrEmpty(this.options.hkey)) {
+        RedisDataTypeDescription description = this.options.dataTypeDescription;
+        switch (description.getDataType()) {
+        case STRING:
             List<String> values = Lists.newArrayList();
 
             for (String stringKey : keys) {
@@ -189,19 +192,31 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
             }
 
             return values;
-        } else {
-            return jedisCluster.hmget(this.options.hkey, stringKeys);
+
+        case HASH:
+            return jedisCluster.hmget(description.getAdditionalKey(), stringKeys);
+
+        default:
+            throw new IllegalArgumentException("Cannot process such data type: " + description.getDataType());
         }
     }
 
     @Override
     protected void updateStatesToRedis(Map<String, String> keyValues) {
-        if (Strings.isNullOrEmpty(this.options.hkey)) {
+        RedisDataTypeDescription description = this.options.dataTypeDescription;
+        switch (description.getDataType()) {
+        case STRING:
             for (Map.Entry<String, String> kvEntry : keyValues.entrySet()) {
                 jedisCluster.set(kvEntry.getKey(), kvEntry.getValue());
             }
-        } else {
-            jedisCluster.hmset(this.options.hkey, keyValues);
+            break;
+
+        case HASH:
+            jedisCluster.hmset(description.getAdditionalKey(), keyValues);
+            break;
+
+        default:
+            throw new IllegalArgumentException("Cannot process such data type: " + description.getDataType());
         }
     }
 }

@@ -28,21 +28,21 @@ storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux -
 
 ## Available Examples
 
-### simple_wordcount.yaml
+### [simple_wordcount.yaml](src/main/resources/simple_wordcount.yaml)
 
 This is a very basic wordcount example using Java spouts and bolts. It simply logs the running count of each word
 received.
 
-### multilang.yaml
+### [multilang.yaml](src/main/resources/multilang.yaml)
 
 Another wordcount example that uses a spout written in JavaScript (node.js), a bolt written in Python, and two bolts
 written in java.
 
-### kafka_spout.yaml
+### [kafka_spout.yaml](src/main/resources/kafka_spout.yaml)
 This example illustrates how to configure Storm's `storm-kafka` spout using Flux YAML DSL `components`, `references`,
 and `constructor arguments` constructs.
 
-### simple_hdfs.yaml
+### [simple_hdfs.yaml](src/main/resources/simple_hdfs.yaml)
 
 This example demonstrates using Flux to setup a storm-hdfs bolt to write to an HDFS cluster. It also demonstrates Flux's
 variable substitution/filtering feature.

@@ -527,7 +527,7 @@
                                                                         overflow-buffer)
                                                            ))
                                          (if (and rooted?
-                                                  (seq out-ids)) ;; not empty
+                                                  (not (.isEmpty out-ids)))
                                            (do
                                              (.put pending root-id [task-id
                                                                     message-id

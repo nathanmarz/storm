@@ -94,14 +94,37 @@ For UI users needs to set following config in storm.yaml. Generating keystores w
 4. ui.https.keystore.password (keystore password)
 5. ui.https.key.password (private key password)
 
+optional config 
+6. ui.https.truststore.path (example "/etc/ssl/storm_truststore.jks")
+7. ui.https.truststore.password (truststore password)
+8. ui.https.truststore.type (example "jks")
+
+If users want to setup 2-way auth
+9. ui.https.want.client.auth (If this set to true server requests for client certifcate authentication, but keeps the connection if no authentication provided)
+10. ui.https.need.client.auth (If this set to true server requires client to provide authentication)
+
+
+
+
 ### DRPC
-similarly to UI users need to configure following 
+similarly to UI , users need to configure following for DRPC
 
 1. drpc.https.port 
 2. drpc.https.keystore.type (example "jks")
 3. drpc.https.keystore.path (example "/etc/ssl/storm_keystore.jks")
 4. drpc.https.keystore.password (keystore password)
 5. drpc.https.key.password (private key password)
+
+optional config 
+6. drpc.https.truststore.path (example "/etc/ssl/storm_truststore.jks")
+7. drpc.https.truststore.password (truststore password)
+8. drpc.https.truststore.type (example "jks")
+
+If users want to setup 2-way auth
+9. drpc.https.want.client.auth (If this set to true server requests for client certifcate authentication, but keeps the connection if no authentication provided)
+10. drpc.https.need.client.auth (If this set to true server requires client to provide authentication)
+
+
 
 
 

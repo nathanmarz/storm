@@ -72,7 +72,7 @@ public class RedisMapState<T> implements IBackingMap<T> {
     public static class Options<T> implements Serializable {
         public int localCacheSize = 1000;
         public String globalKey = "$REDIS-MAP-STATE-GLOBAL";
-        KeyFactory keyFactory = null;
+        public KeyFactory keyFactory = null;
         public Serializer<T> serializer = null;
         public String hkey = null;
     }

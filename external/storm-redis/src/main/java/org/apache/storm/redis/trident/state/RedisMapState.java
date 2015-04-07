@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Pipeline;
 import storm.trident.state.JSONNonTransactionalSerializer;
 import storm.trident.state.JSONOpaqueSerializer;
 import storm.trident.state.JSONTransactionalSerializer;
@@ -75,6 +76,7 @@ public class RedisMapState<T> implements IBackingMap<T> {
         public KeyFactory keyFactory = null;
         public Serializer<T> serializer = null;
         public String hkey = null;
+        public int expireIntervalSec = 0;
     }
 
     public static interface KeyFactory extends Serializable {
@@ -276,30 +278,31 @@ public class RedisMapState<T> implements IBackingMap<T> {
             return;
         }
 
-        if (Strings.isNullOrEmpty(this.options.hkey)) {
-            Jedis jedis = null;
-            try {
-                jedis = jedisPool.getResource();
+        Jedis jedis = jedisPool.getResource();
+        try {
+            if (Strings.isNullOrEmpty(this.options.hkey)) {
                 String[] keyValue = buildKeyValuesList(keys, vals);
                 jedis.mset(keyValue);
-            } finally {
-                if (jedis != null) {
-                    jedisPool.returnResource(jedis);
+                if (this.options.expireIntervalSec > 0) {
+                    Pipeline pipe = jedis.pipelined();
+                    for(int i = 0; i < keyValue.length; i += 2) {
+                        pipe.expire(keyValue[i], this.options.expireIntervalSec);
+                    }
+                    pipe.sync();
                 }
-            }
-        } else {
-            Jedis jedis = jedisPool.getResource();
-            try {
+            } else {
                 Map<String, String> keyValues = new HashMap<String, String>();
                 for (int i = 0; i < keys.size(); i++) {
                     String val = new String(serializer.serialize(vals.get(i)));
                     keyValues.put(keyFactory.build(keys.get(i)), val);
                 }
                 jedis.hmset(this.options.hkey, keyValues);
-
-            } finally {
-                jedisPool.returnResource(jedis);
+                if (this.options.expireIntervalSec > 0) {
+                    jedis.expire(this.options.hkey, this.options.expireIntervalSec);
+                }
             }
+        } finally {
+            jedisPool.returnResource(jedis);
         }
     }
 

@@ -42,6 +42,9 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+    //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
+    private static final long serialVersionUID = -1550278723792864455L;
+
     /**
      * This is part of a temporary workaround to a ZK bug, it is the 'scheme:acl' for
      * the user Nimbus and Supervisors use to authenticate with ZK.

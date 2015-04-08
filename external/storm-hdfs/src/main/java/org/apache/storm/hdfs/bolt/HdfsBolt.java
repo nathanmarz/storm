@@ -112,7 +112,7 @@ public class HdfsBolt extends AbstractHdfsBolt{
                 this.rotationPolicy.reset();
             }
         } catch (IOException e) {
-            LOG.warn("write/sync failed.", e);
+            this.collector.reportError(e);
             this.collector.fail(tuple);
         }
     }

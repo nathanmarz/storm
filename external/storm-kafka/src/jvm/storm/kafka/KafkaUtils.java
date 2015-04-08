@@ -121,19 +121,19 @@ public class KafkaUtils {
                         }
                         long latestEmittedOffset = e.getValue();
                         long spoutLag = latestTimeOffset - latestEmittedOffset;
-                        ret.put(partition.getId() + "/" + "spoutLag", spoutLag);
-                        ret.put(partition.getId() + "/" + "earliestTimeOffset", earliestTimeOffset);
-                        ret.put(partition.getId() + "/" + "latestTimeOffset", latestTimeOffset);
-                        ret.put(partition.getId() + "/" + "latestEmittedOffset", latestEmittedOffset);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "spoutLag", spoutLag);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "earliestTimeOffset", earliestTimeOffset);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "latestTimeOffset", latestTimeOffset);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "latestEmittedOffset", latestEmittedOffset);
                         totalSpoutLag += spoutLag;
                         totalEarliestTimeOffset += earliestTimeOffset;
                         totalLatestTimeOffset += latestTimeOffset;
                         totalLatestEmittedOffset += latestEmittedOffset;
                     }
-                    ret.put("totalSpoutLag", totalSpoutLag);
-                    ret.put("totalEarliestTimeOffset", totalEarliestTimeOffset);
-                    ret.put("totalLatestTimeOffset", totalLatestTimeOffset);
-                    ret.put("totalLatestEmittedOffset", totalLatestEmittedOffset);
+                    ret.put(_topic + "/" + "totalSpoutLag", totalSpoutLag);
+                    ret.put(_topic + "/" + "totalEarliestTimeOffset", totalEarliestTimeOffset);
+                    ret.put(_topic + "/" + "totalLatestTimeOffset", totalLatestTimeOffset);
+                    ret.put(_topic + "/" + "totalLatestEmittedOffset", totalLatestEmittedOffset);
                     return ret;
                 } else {
                     LOG.info("Metrics Tick: Not enough data to calculate spout lag.");

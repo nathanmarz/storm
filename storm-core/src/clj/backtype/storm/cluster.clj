@@ -483,8 +483,11 @@
 
       (setup-code-distributor!
         [this storm-id nimbusInfo]
+        (let [path (str (code-distributor-path storm-id) "/" (.toHostPortString nimbusInfo))]
         (mkdirs cluster-state (code-distributor-path storm-id) acls)
-        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" (.toHostPortString nimbusInfo)) acls))
+        ;we delete the node first to ensure the node gets created as part of this session only.
+        (delete-node cluster-state path)
+        (set-ephemeral-node cluster-state path nil acls)))
 
       (remove-storm!
         [this storm-id]

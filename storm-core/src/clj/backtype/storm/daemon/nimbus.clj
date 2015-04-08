@@ -957,6 +957,15 @@
         )))
   (log-message "not a leader, skipping cleanup-corrupt-topologies"))
 
+;;setsup code distributor entries for all current topologies for which code is available locally.
+(defn setup-code-distributor [nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        locally-available-storm-ids (set (code-ids (:conf nimbus)))
+        active-topologies (set (.active-storms storm-cluster-state))
+        locally-available-active-storm-ids (set/intersection locally-available-storm-ids active-topologies)]
+    (doseq [storm-id locally-available-active-storm-ids]
+      (.setup-code-distributor! storm-cluster-state storm-id (:nimbus-host-port-info nimbus)))))
+
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)
        (map #(doto (ErrorInfo. (:error %) (:time-secs %))
@@ -1074,6 +1083,8 @@
 
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (cleanup-corrupt-topologies! nimbus)
+    (setup-code-distributor nimbus)
+
     ;register call back for code-distributor
     (.code-distributor (:storm-cluster-state nimbus) (fn [] (sync-code conf nimbus)))
     (when (is-leader nimbus :throw-exception false)

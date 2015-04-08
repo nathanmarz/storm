@@ -54,3 +54,15 @@ least, the property `hdfs.url` to point to a HDFS cluster. Then you can run the 
 storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_hdfs.yaml --filter my_hdfs_bolt.properties
 ```
 
+### [simple_hbase.yaml](src/main/resources/simple_hbase.yaml)
+
+This example illustrates how to use Flux to setup a storm-hbase bolt to write to HBase.
+
+In order to use this example, you will need to edit the `src/main resrouces/hbase-site.xml` file to reflect your HBase
+environment, and then rebuild the topology jar.
+
+You can do so by running the following Maven command in the `flux-examples` directory:
+
+```bash
+mvn clean install
+```

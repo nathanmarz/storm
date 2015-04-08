@@ -669,7 +669,7 @@
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
-          classpath (-> (current-classpath)
+          classpath (-> (worker-classpath)
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)

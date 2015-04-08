@@ -20,7 +20,7 @@
 
 # topology definition
 # name to be used when submitting
-name: "shell-topology"
+name: "kafka-topology"
 
 # Components
 # Components are analagous to Spring beans. They are meant to be used as constructor,

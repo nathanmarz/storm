@@ -75,6 +75,7 @@ public class RedisClusterMapState<T> implements IBackingMap<T> {
         public KeyFactory keyFactory = null;
         public Serializer<T> serializer = null;
         public String hkey = null;
+        public int expireIntervalSec = 0;
     }
 
     public static interface KeyFactory extends Serializable {
@@ -276,11 +277,16 @@ public class RedisClusterMapState<T> implements IBackingMap<T> {
             return;
         }
 
+        final int expireIntervalSec = this.options.expireIntervalSec;
         if (Strings.isNullOrEmpty(this.options.hkey)) {
             for (int i = 0; i < keys.size(); i++) {
                 String val = new String(serializer.serialize(vals.get(i)));
                 String redisKey = keyFactory.build(keys.get(i));
-                jedisCluster.set(redisKey, val);
+                if (expireIntervalSec > 0) {
+                    jedisCluster.setex(redisKey, expireIntervalSec, val);
+                } else {
+                    jedisCluster.set(redisKey, val);
+                }
             }
         } else {
             Map<String, String> keyValues = new HashMap<String, String>();
@@ -289,6 +295,9 @@ public class RedisClusterMapState<T> implements IBackingMap<T> {
                 keyValues.put(keyFactory.build(keys.get(i)), val);
             }
             jedisCluster.hmset(this.options.hkey, keyValues);
+            if (expireIntervalSec > 0) {
+                jedisCluster.expire(this.options.hkey, expireIntervalSec);
+            }
         }
     }
 }

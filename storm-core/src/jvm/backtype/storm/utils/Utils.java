@@ -48,6 +48,8 @@ import java.nio.channels.WritableByteChannel;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
@@ -99,6 +101,36 @@ public class Utils {
         } catch(IOException ioe) {
             throw new RuntimeException(ioe);
         } catch(ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] gzip(byte[] data) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            GZIPOutputStream out = new GZIPOutputStream(bos);
+            out.write(data);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] gunzip(byte[] data) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ByteArrayInputStream bis = new ByteArrayInputStream(data);
+            GZIPInputStream in = new GZIPInputStream(bis);
+            byte[] buffer = new byte[1024];
+            int len = 0;
+            while ((len = in.read(buffer)) >= 0) {
+                bos.write(buffer, 0, len);
+            }
+            in.close();
+            bos.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

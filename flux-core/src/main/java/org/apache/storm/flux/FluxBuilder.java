@@ -286,7 +286,10 @@ public class FluxBuilder {
                 LOG.debug("Found something seemingly compatible, attempting invocation...");
                 obj = con.newInstance(getArgsWithListCoercian(cArgs, con.getParameterTypes()));
             } else {
-                throw new IllegalArgumentException("Couldn't find a suitable constructor.");
+                String msg = String.format("Couldn't find a suitable constructor for class '%s' with arguments '%s'.",
+                        clazz.getName(),
+                        cArgs);
+                throw new IllegalArgumentException(msg);
             }
         } else {
             obj = clazz.newInstance();
@@ -419,9 +422,9 @@ public class FluxBuilder {
                 Object[] methodArgs = getArgsWithListCoercian(args, method.getParameterTypes());
                 method.invoke(instance, methodArgs);
             } else {
-                LOG.warn("Unable to find method '{}' in class '{}' with arguments {}.",
+                String msg = String.format("Unable to find configuration method '%s' in class '%s' with arguments %s.",
                         new Object[]{methodName, clazz.getName(), args});
-                throw new IllegalArgumentException("Configuration method not found.");
+                throw new IllegalArgumentException(msg);
             }
         }
     }

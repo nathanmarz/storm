@@ -24,6 +24,9 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.io.FileInputStream;
+import java.util.Properties;
+
 /**
  * Connects to the 'WordCount' HBase table and prints counts for each word.
  *
@@ -39,8 +42,17 @@ public class WordCountClient {
 
     public static void main(String[] args) throws Exception {
         Configuration config = HBaseConfiguration.create();
-        if(args.length > 0){
-            config.set("hbase.rootdir", args[0]);
+        if(args.length == 1){
+            Properties props = new Properties();
+            props.load(new FileInputStream(args[0]));
+            System.out.println("HBase configuration:");
+            for(Object key : props.keySet()) {
+                System.out.println(key + "=" + props.get(key));
+                config.set((String)key, props.getProperty((String)key));
+            }
+        } else {
+            System.out.println("Usage: WordCountClient <hbase_config.properties>");
+            System.exit(1);
         }
 
         HTable table = new HTable(config, "WordCount");
@@ -54,7 +66,6 @@ public class WordCountClient {
             byte[] wordBytes = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("word"));
 
             String wordStr = Bytes.toString(wordBytes);
-            System.out.println(wordStr);
             long count = Bytes.toLong(countBytes);
             System.out.println("Word: '" + wordStr + "', Count: " + count);
         }

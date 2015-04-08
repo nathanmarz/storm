@@ -51,7 +51,8 @@ components:
 config:
   topology.workers: 1
   hbase.conf:
-    hbase.rootdir: "hdfs://hadoop:54310/hbase"
+    hbase.rootdir: "${hbase.rootdir}"
+    hbase.zookeeper.quorum: "${hbase.zookeeper.quorum}"
 
 # spout definitions
 spouts:

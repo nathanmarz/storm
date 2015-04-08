@@ -41,7 +41,7 @@ components:
     className: "org.apache.storm.hdfs.bolt.format.DefaultFileNameFormat"
     configMethods:
       - name: "withPath"
-        args: [${hdfs.write.dir}]
+        args: ["${hdfs.write.dir}"]
       - name: "withExtension"
         args: [".txt"]
 
@@ -55,7 +55,7 @@ components:
     className: "org.apache.storm.hdfs.common.rotation.MoveFileAction"
     configMethods:
       - name: "toDestination"
-        args: [${hdfs.dest.dir}]
+        args: ["${hdfs.dest.dir}"]
 
 # spout definitions
 spouts:
@@ -73,7 +73,7 @@ bolts:
       - name: "withConfigKey"
         args: ["hdfs.config"]
       - name: "withFsUrl"
-        args: [${hdfs.url}]
+        args: ["${hdfs.url}"]
       - name: "withFileNameFormat"
         args: [ref: "fileNameFormat"]
       - name: "withRecordFormat"

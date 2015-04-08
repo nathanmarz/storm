@@ -50,6 +50,11 @@
             <artifactId>storm-hdfs</artifactId>
             <version>${storm.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-hbase</artifactId>
+            <version>${storm.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

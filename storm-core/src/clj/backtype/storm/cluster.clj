@@ -366,6 +366,8 @@
 
       (add-nimbus-host!
         [this nimbus-id nimbus-summary]
+        ;explicit delete for ephmeral node to ensure this session creates the entry.
+        (delete-node cluster-state (nimbus-path nimbus-id))
         (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))
 
       (code-distributor-info

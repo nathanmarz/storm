@@ -80,7 +80,8 @@
                 <span data-toggle="tooltip" data-placement="above" title="Nimbus Thrift port number.">Port</span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="above" title="True if this host is leader, false otherwise.">IsLeader</span>
+                <span data-toggle="tooltip" data-placement="above" title="Leader if this host is leader, Not a Leader for all other live hosts,
+                note that these hosts may or may not be in leader lock queue, and Dead for hosts that are part of nimbus.seeds list but are not alive.">Status</span>
             </th>
             <th>
                 <span data-toggle="tooltip" data-placement="above" title="Storm version this nimbus host is running.">Version</span>
@@ -95,7 +96,7 @@
         <tr>
             <td>{{host}}</td>
             <td><a href="{{nimbusLogLink}}">{{port}}</a></td>
-            <td>{{isLeader}}</td>
+            <td>{{status}}</td>
             <td>{{version}}</td>
             <td>{{nimbusUpTime}}</td>
         </tr>

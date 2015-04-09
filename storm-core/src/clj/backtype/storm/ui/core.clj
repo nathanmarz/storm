@@ -570,21 +570,37 @@
         "executorsTotal" total-executors
         "tasksTotal" total-tasks })))
 
+(defn convert-to-nimbus-summary[nimbus-seed]
+  (let [[host port] (.split nimbus-seed ":")]
+    {
+      "host" host
+      "port" port
+      "nimbusLogLink" (nimbus-log-link host port)
+      "status" "Offline"
+      "version" "Not applicable"
+      "nimbusUpTime" "Not applicable"}
+    ))
+
 (defn nimbus-summary
   ([]
     (thrift/with-configured-nimbus-connection nimbus
       (nimbus-summary
         (.get_nimbuses (.getClusterInfo ^Nimbus$Client nimbus)))))
   ([nimbuses]
-    {"nimbuses"
-     (for [^NimbusSummary n nimbuses]
-       {
-        "host" (.get_host n)
-        "port" (.get_port n)
-        "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
-        "isLeader" (.is_isLeader n)
-        "version" (.get_version n)
-        "nimbusUpTime" (pretty-uptime-sec (.get_uptime_secs n))})}))
+    (let [nimbus-seeds (set (*STORM-CONF* NIMBUS-SEEDS))
+          alive-nimbuses (set (map #(str (.get_host %1) ":" (.get_port %1)) nimbuses))
+          dead-nimbuses (clojure.set/difference nimbus-seeds alive-nimbuses)
+          dead-nimbuses-summary (map #(convert-to-nimbus-summary %1) dead-nimbuses)]
+      {"nimbuses"
+       (concat dead-nimbuses-summary
+       (for [^NimbusSummary n nimbuses]
+         {
+          "host" (.get_host n)
+          "port" (.get_port n)
+          "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
+          "status" (if (.is_isLeader n) "Leader" "Not a Leader")
+          "version" (.get_version n)
+          "nimbusUpTime" (pretty-uptime-sec (.get_uptime_secs n))}))})))
 
 (defn supervisor-summary
   ([]

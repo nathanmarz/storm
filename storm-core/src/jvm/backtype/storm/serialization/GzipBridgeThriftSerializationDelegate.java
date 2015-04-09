@@ -22,10 +22,9 @@ import java.util.zip.GZIPInputStream;
 
 /**
  * Always writes gzip out, but tests incoming to see if it's gzipped. If it is, deserializes with gzip. If not, uses
- * {@link backtype.storm.serialization.DefaultSerializationDelegate} to deserialize. Any logic needing to be enabled
+ * {@link backtype.storm.serialization.ThriftSerializationDelegate} to deserialize. Any logic needing to be enabled
  * via {@link #prepare(java.util.Map)} is passed through to both delegates.
  */
-@Deprecated
 public class GzipBridgeThriftSerializationDelegate implements SerializationDelegate {
 
     private ThriftSerializationDelegate defaultDelegate = new ThriftSerializationDelegate();

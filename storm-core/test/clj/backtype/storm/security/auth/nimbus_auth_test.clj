@@ -20,7 +20,7 @@
   (:require [backtype.storm [zookeeper :as zk]])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.utils NimbusClient Time])
+  (:import [backtype.storm.utils NimbusClient])
   (:import [backtype.storm.generated NotAliveException])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext ThriftConnectionType])
@@ -46,7 +46,7 @@
                                      ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop nimbus-server))))
     (.start (Thread. #(.serve nimbus-server)))
-    (testing/while-timeout 5000 (not (.isServing nimbus-server)) (Time/sleep 100))
+    (testing/wait-for-condition #(.isServing nimbus-server))
     [cluster-map nimbus-server]))
 
 (defmacro with-test-cluster [args & body]

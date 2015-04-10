@@ -203,6 +203,13 @@
        ~@body)
      (log-debug "Condition met " '~condition)))
 
+(defn wait-for-condition
+  ([apredicate]
+    (wait-for-condition TEST-TIMEOUT-MS apredicate))
+  ([timeout-ms apredicate]
+    (while-timeout timeout-ms (not (apredicate))
+      (Time/sleep 100))))
+
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
   ([cluster-map] (wait-until-cluster-waiting cluster-map TEST-TIMEOUT-MS))

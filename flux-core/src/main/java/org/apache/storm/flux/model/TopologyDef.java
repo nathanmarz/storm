@@ -196,19 +196,22 @@ public class TopologyDef {
     }
 
     public boolean isDslTopology(){
-        boolean hasSpouts = this.spoutMap != null && this.spoutMap.size() > 0;
-        boolean hasBolts = this.boltMap != null && this.boltMap.size() > 0;
-        boolean hasStreams = this.streams != null && this.streams.size() > 0;
-        boolean isDslTopology = hasSpouts || hasBolts || hasStreams;
-
-        return isDslTopology;
+        return this.topologySource == null;
     }
 
 
     public boolean validate(){
-        // we can't have a topology source and spout/bolt/stream definitions at the same time
-        boolean isDslTopology = isDslTopology();
-        boolean isTopologySource = this.topologySource != null;
-        return !(isDslTopology && isTopologySource);
+        boolean hasSpouts = this.spoutMap != null && this.spoutMap.size() > 0;
+        boolean hasBolts = this.boltMap != null && this.boltMap.size() > 0;
+        boolean hasStreams = this.streams != null && this.streams.size() > 0;
+        boolean hasSpoutsBoltsStreams = hasStreams && hasBolts && hasSpouts;
+        // you cant define a topologySource and a DSL topology at the same time...
+        if (!isDslTopology() && ((hasSpouts || hasBolts || hasStreams))) {
+            return false;
+        }
+        if(isDslTopology() && (hasSpouts && hasBolts && hasStreams)) {
+            return true;
+        }
+        return true;
     }
 }

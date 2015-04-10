@@ -23,7 +23,8 @@ package org.apache.storm.flux.model;
  */
 public abstract class VertexDef extends BeanDef {
 
-    private int parallelism;
+    // default parallelism to 1 so if it's ommitted, the topology will still function.
+    private int parallelism = 1;
 
     public int getParallelism() {
         return parallelism;

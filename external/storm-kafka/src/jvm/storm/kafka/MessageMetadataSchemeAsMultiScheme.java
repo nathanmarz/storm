@@ -3,13 +3,12 @@ package storm.kafka;
 import java.util.Arrays;
 import java.util.List;
 
-import backtype.storm.spout.Scheme;
 import backtype.storm.spout.SchemeAsMultiScheme;
 
 public class MessageMetadataSchemeAsMultiScheme extends SchemeAsMultiScheme {
     private static final long serialVersionUID = -7172403703813625116L;
 
-    public MessageMetadataSchemeAsMultiScheme(Scheme scheme) {
+    public MessageMetadataSchemeAsMultiScheme(MessageMetadataScheme scheme) {
         super(scheme);
     }
 

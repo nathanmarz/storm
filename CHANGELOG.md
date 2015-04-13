@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-762: uptime for worker heartbeats is lost when converted to thrift
  * STORM-757: Simulated time can leak out on errors
  * STORM-694: java.lang.ClassNotFoundException: backtype.storm.daemon.common.SupervisorInfo
  * STORM-750: Set Config serialVersionUID

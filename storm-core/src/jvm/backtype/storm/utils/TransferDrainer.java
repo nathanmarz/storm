@@ -26,10 +26,10 @@ import backtype.storm.messaging.TaskMessage;
 
 public class TransferDrainer {
 
-  private HashMap<String, ArrayList<ArrayList<TaskMessage>>> bundles = new HashMap();
+  private HashMap<Integer, ArrayList<ArrayList<TaskMessage>>> bundles = new HashMap();
   
-  public void add(HashMap<String, ArrayList<TaskMessage>> workerTupleSetMap) {
-    for (String key : workerTupleSetMap.keySet()) {
+  public void add(HashMap<Integer, ArrayList<TaskMessage>> taskTupleSetMap) {
+    for (Integer key : taskTupleSetMap.keySet()) {
       
       ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(key);
       if (null == bundle) {
@@ -37,24 +37,27 @@ public class TransferDrainer {
         bundles.put(key, bundle);
       }
       
-      ArrayList tupleSet = workerTupleSetMap.get(key);
+      ArrayList tupleSet = taskTupleSetMap.get(key);
       if (null != tupleSet && tupleSet.size() > 0) {
         bundle.add(tupleSet);
       }
     } 
   }
   
-  public void send(HashMap<String, IConnection> connections) {
-    for (String hostPort : bundles.keySet()) {
-      IConnection connection = connections.get(hostPort);
-      if (null != connection) { 
-        ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(hostPort);
-        Iterator<TaskMessage> iter = getBundleIterator(bundle);
-        if (null != iter && iter.hasNext()) {
-          connection.send(iter);
+  public void send(HashMap<Integer, String> taskToNode, HashMap<String, IConnection> connections) {
+    for (Integer task : bundles.keySet()) {
+      String hostPort = taskToNode.get(task);
+      if (hostPort != null) {
+        IConnection connection = connections.get(hostPort);
+        if (null != connection) {
+          ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(task);
+          Iterator<TaskMessage> iter = getBundleIterator(bundle);
+          if (null != iter && iter.hasNext()) {
+            connection.send(iter);
+          }
         }
       }
-    } 
+    }
   }
   
   private Iterator<TaskMessage> getBundleIterator(final ArrayList<ArrayList<TaskMessage>> bundle) {

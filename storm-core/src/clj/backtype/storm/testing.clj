@@ -42,7 +42,7 @@
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
-  (:use [backtype.storm cluster util thrift config log]))
+  (:use [backtype.storm cluster util thrift config log local-state]))
 
 (defn feeder-spout
   [fields]
@@ -302,13 +302,13 @@
 (defn find-worker-id
   [supervisor-conf port]
   (let [supervisor-state (supervisor-state supervisor-conf)
-        worker->port (.get supervisor-state common/LS-APPROVED-WORKERS)]
+        worker->port (ls-approved-workers supervisor-state)]
     (first ((reverse-map worker->port) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
   (let [supervisor-state (supervisor-state supervisor-conf)
-        worker->port (.get supervisor-state common/LS-APPROVED-WORKERS)]
+        worker->port (ls-approved-workers supervisor-state)]
     (worker->port worker-id)))
 
 (defn mk-capture-shutdown-fn

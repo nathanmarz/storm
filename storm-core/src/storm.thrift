@@ -292,6 +292,7 @@ struct ClusterWorkerHeartbeat {
     1: required string storm_id;
     2: required map<ExecutorInfo,ExecutorStats> executor_stats;
     3: required i32 time_secs;
+    4: required i32 uptime_secs;
 }
 
 enum NumErrorsChoice {

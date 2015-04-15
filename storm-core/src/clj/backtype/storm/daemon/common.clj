@@ -58,19 +58,6 @@
 (defprotocol DaemonCommon
   (waiting? [this]))
 
-(def LS-WORKER-HEARTBEAT "worker-heartbeat")
-
-;; LocalState constants
-(def LS-ID "supervisor-id")
-(def LS-LOCAL-ASSIGNMENTS "local-assignments")
-(def LS-APPROVED-WORKERS "approved-workers")
-
-(defn mk-local-worker-heartbeat [time-secs storm-id executors port]
-  {:time-secs time-secs
-   :storm-id storm-id
-   :executors executors
-   :port port})
-
 (defrecord ExecutorStats [^long processed
                           ^long acked
                           ^long emitted

@@ -295,6 +295,39 @@ struct ClusterWorkerHeartbeat {
     4: required i32 uptime_secs;
 }
 
+struct ThriftSerializedObject {
+  1: required string name;
+  2: required binary bits;
+}
+
+struct LocalStateData {
+   1: required map<string, ThriftSerializedObject> serialized_parts;
+}
+
+struct LocalAssignment {
+  1: required string topology_id;
+  2: required list<ExecutorInfo> executors;
+}
+
+struct LSSupervisorId {
+   1: required string supervisor_id;
+}
+
+struct LSApprovedWorkers {
+   1: required map<string, i32> approved_workers;
+}
+
+struct LSSupervisorAssignments {
+   1: required map<i32, LocalAssignment> assignments; 
+}
+
+struct LSWorkerHeartbeat {
+   1: required i32 time_secs;
+   2: required string topology_id;
+   3: required list<ExecutorInfo> executors
+   4: required i32 port;
+}
+
 enum NumErrorsChoice {
   ALL,
   NONE,

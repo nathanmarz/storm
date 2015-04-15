@@ -18,7 +18,6 @@
   (:import [backtype.storm.scheduler ISupervisor]
            [backtype.storm.utils LocalState Time Utils]
            [backtype.storm.daemon Shutdownable]
-           [backtype.storm.daemon.common SupervisorInfo]
            [backtype.storm Constants]
            [java.net JarURLConnection]
            [java.net URI]
@@ -506,14 +505,14 @@
         heartbeat-fn (fn [] (.supervisor-heartbeat!
                                (:storm-cluster-state supervisor)
                                (:supervisor-id supervisor)
-                               (SupervisorInfo. (current-time-secs)
-                                                (:my-hostname supervisor)
-                                                (:assignment-id supervisor)
-                                                (keys @(:curr-assignment supervisor))
-                                                ;; used ports
-                                                (.getMetadata isupervisor)
-                                                (conf SUPERVISOR-SCHEDULER-META)
-                                                ((:uptime supervisor)))))]
+                               (->SupervisorInfo (current-time-secs)
+                                                 (:my-hostname supervisor)
+                                                 (:assignment-id supervisor)
+                                                 (keys @(:curr-assignment supervisor))
+                                                 ;; used ports
+                                                 (.getMetadata isupervisor)
+                                                 (conf SUPERVISOR-SCHEDULER-META)
+                                                 ((:uptime supervisor)))))]
     (heartbeat-fn)
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
     (schedule-recurring (:heartbeat-timer supervisor)

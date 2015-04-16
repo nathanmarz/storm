@@ -34,6 +34,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.RotatingMap;
+import backtype.storm.utils.TupleUtils;
 import backtype.storm.utils.Utils;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -299,7 +300,7 @@ public class TridentBoltExecutor implements IRichBolt {
     
     @Override
     public void execute(Tuple tuple) {
-        if(tuple.getSourceStreamId().equals(Constants.SYSTEM_TICK_STREAM_ID)) {
+        if(TupleUtils.isTick(tuple)) {
             long now = System.currentTimeMillis();
             if(now - _lastRotate > _messageTimeoutMs) {
                 _batches.rotate();

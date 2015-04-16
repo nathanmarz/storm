@@ -1,4 +1,9 @@
 ## 0.11.0
+ * STORM-765: Thrift serialization for local state
+ * STORM-762: uptime for worker heartbeats is lost when converted to thrift
+ * STORM-757: Simulated time can leak out on errors
+ * STORM-694: java.lang.ClassNotFoundException: backtype.storm.daemon.common.SupervisorInfo
+ * STORM-750: Set Config serialVersionUID
  * STORM-713: Include topic information with Kafka metrics.
  * STORM-708: CORS support for STORM UI.
  * STORM-615: Add REST API to upload topology.
@@ -9,6 +14,10 @@
  * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
  * STORM-691: Add basic lookup / persist bolts
  * STORM-727: Storm tests should succeed even if a storm process is running locally.
+ * STORM-512: KafkaBolt doesn't handle ticks properly
+ * STORM-188: Allow user to specifiy full configuration path when running storm command
+ * STORM-740: Simple Transport Client cannot configure thrift buffer size
+ * STORM-749: Remove CSRF check from the REST API.
 
 ## 0.10.0
  * STORM-681: Auto insert license header with genthrift.sh

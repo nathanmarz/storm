@@ -162,7 +162,7 @@
   (if worker-hb
     {:storm-id (.get_storm_id worker-hb)
      :executor-stats (clojurify-stats (into {} (.get_executor_stats worker-hb)))
-     :uptime (time-delta (.get_time_secs worker-hb))
+     :uptime (.get_uptime_secs worker-hb)
      :time-secs (.get_time_secs worker-hb)
      }
     {}))
@@ -170,6 +170,7 @@
 (defn thriftify-zk-worker-hb [worker-hb]
   (if (not-empty (filter second (:executor-stats worker-hb)))
     (doto (ClusterWorkerHeartbeat.)
+      (.set_uptime_secs (:uptime worker-hb))
       (.set_storm_id (:storm-id worker-hb))
       (.set_executor_stats (thriftify-stats (filter second (:executor-stats worker-hb))))
       (.set_time_secs (:time-secs worker-hb)))))

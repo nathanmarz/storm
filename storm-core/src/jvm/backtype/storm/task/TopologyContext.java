@@ -55,7 +55,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     private Map<Integer,Map<Integer, Map<String, IMetric>>> _registeredMetrics;
     private clojure.lang.Atom _openOrPrepareWasCalled;
 
-    
+
     public TopologyContext(StormTopology topology, Map stormConf,
             Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
             Map<String, Map<String, Fields>> componentToStreamToFields,
@@ -75,7 +75,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     /**
      * All state from all subscribed state spouts streams will be synced with
      * the provided object.
-     * 
+     *
      * <p>It is recommended that your ISubscribedState object is kept as an instance
      * variable of this object. The recommended usage of this method is as follows:</p>
      *
@@ -129,7 +129,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
 
     /**
      * Gets the task id of this task.
-     * 
+     *
      * @return the task id
      */
     public int getThisTaskId() {
@@ -154,6 +154,18 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     }
 
     /**
+     * Gets the declared output fields for the specified stream id for the component
+     * this task is a part of.
+     */
+    public Map<String, List<String>> getThisOutputFieldsForStreams() {
+    	Map<String, List<String>> streamToFields = new HashMap<String, List<String>>();
+    	for (String stream : this.getThisStreams()) {
+    		streamToFields.put(stream, this.getThisOutputFields(stream).toList());
+    	}
+    	return streamToFields;
+    }
+
+    /**
      * Gets the set of streams declared for the component of this task.
      */
     public Set<String> getThisStreams() {
@@ -175,10 +187,10 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         }
         throw new RuntimeException("Fatal: could not find this task id in this component");
     }
-    
+
     /**
      * Gets the declared inputs to this component.
-     * 
+     *
      * @return A map from subscribed component/stream to the grouping subscribed with.
      */
     public Map<GlobalStreamId, Grouping> getThisSources() {
@@ -193,11 +205,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     public Map<String, Map<String, Grouping>> getThisTargets() {
         return getTargets(getThisComponentId());
     }
-    
+
     public void setTaskData(String name, Object data) {
         _taskData.put(name, data);
     }
-    
+
     public Object getTaskData(String name) {
         return _taskData.get(name);
     }
@@ -205,18 +217,26 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     public void setExecutorData(String name, Object data) {
         _executorData.put(name, data);
     }
-    
+
     public Object getExecutorData(String name) {
         return _executorData.get(name);
-    }    
-    
+    }
+
     public void addTaskHook(ITaskHook hook) {
         hook.prepare(_stormConf, this);
         _hooks.add(hook);
     }
-    
+
     public Collection<ITaskHook> getHooks() {
         return _hooks;
+    }
+
+    public Object groupingToJSONableObject(Grouping grouping) {
+    	if (grouping.is_set_fields()) {
+    		return grouping.get_fields();
+    	} else {
+    		return grouping.getSetField().toString();
+    	}
     }
     
     @Override
@@ -224,13 +244,33 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         Map obj = new HashMap();
         obj.put("task->component", this.getTaskToComponent());
         obj.put("taskid", this.getThisTaskId());
-        // TODO: jsonify StormTopology
-        // at the minimum should send source info
+        obj.put("componentid", this.getThisComponentId());
+        List<String> streamList = new ArrayList<String>();
+        streamList.addAll(this.getThisStreams());
+        obj.put("streams", streamList);
+        obj.put("stream->outputfields", this.getThisOutputFieldsForStreams());
+        // Convert targets to a JSON serializable format
+        Map<String, Map> stringTargets = new HashMap<String, Map>();
+        for (Map.Entry<String, Map<String, Grouping>> entry : this.getThisTargets().entrySet()) {
+        	Map stringTargetMap = new HashMap<String, Object>();
+        	for (Map.Entry<String, Grouping> innerEntry : entry.getValue().entrySet()) {
+        		stringTargetMap.put(innerEntry.getKey(), groupingToJSONableObject(innerEntry.getValue()));
+        	}
+        	stringTargets.put(entry.getKey(), stringTargetMap);
+        }
+        obj.put("stream->target->grouping", stringTargets);
+        // Convert sources to a JSON serializable format
+        Map<String, String> stringSources = new HashMap<String, String>();
+        for (Map.Entry<GlobalStreamId, Grouping> entry : this.getThisSources().entrySet()) {
+        	Map stringSourceMap = new HashMap<String, Object>();
+        	stringSourceMap.put(entry.getKey().toString(), groupingToJSONableObject(entry.getValue()));
+        }
+        obj.put("sources->grouping", stringSources);
         return JSONValue.toJSONString(obj);
     }
 
     /*
-     * Register a IMetric instance. 
+     * Register a IMetric instance.
      * Storm will then call getValueAndReset on the metric every timeBucketSizeInSecs
      * and the returned value is sent to all metrics consumers.
      * You must call this during IBolt::prepare or ISpout::open.
@@ -238,7 +278,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
      */
     public <T extends IMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs) {
         if((Boolean)_openOrPrepareWasCalled.deref() == true) {
-            throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " + 
+            throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " +
                                        "IBolt::prepare() or ISpout::open() method.");
         }
 
@@ -250,7 +290,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             throw new IllegalArgumentException("TopologyContext.registerMetric can only be called with timeBucketSizeInSecs " +
                                                "greater than or equal to 1 second.");
         }
-        
+
         if (getRegisteredMetricByName(name) != null) {
             throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
         }
@@ -278,7 +318,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     /**
      * Get component's metric from registered metrics by name.
      * Notice: Normally, one component can only register one metric name once.
-     *         But now registerMetric has a bug(https://issues.apache.org/jira/browse/STORM-254) 
+     *         But now registerMetric has a bug(https://issues.apache.org/jira/browse/STORM-254)
      *         cause the same metric name can register twice.
      *         So we just return the first metric we meet.
      */
@@ -291,14 +331,14 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
                 metric = nameToMetric.get(name);
                 if (metric != null) {
                     //we just return the first metric we meet
-                    break;  
+                    break;
                 }
             }
-        } 
-        
+        }
+
         return metric;
-    }   
- 
+    }
+
     /*
      * Convinience method for registering ReducedMetric.
      */

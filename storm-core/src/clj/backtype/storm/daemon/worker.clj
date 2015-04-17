@@ -133,8 +133,10 @@
                     (when (not (.get remoteMap node+port))
                       (.put remoteMap node+port (ArrayList.)))
                     (let [remote (.get remoteMap node+port)]
-                      (.add remote (TaskMessage. task (.serialize serializer tuple)))
-                     )))) 
+                      (if (not-nil? task)
+                        (.add remote (TaskMessage. task (.serialize serializer tuple)))
+                        (log-warn "Can't transfer tuple - task value is null. tuple information: " tuple))
+                     ))))
                 (local-transfer local)
                 (disruptor/publish transfer-queue remoteMap)
               ))]

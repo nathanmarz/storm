@@ -5,14 +5,17 @@
   (:require [backtype.storm.daemon [common :as common]]))
 
 (defn thriftify-supervisor-info [supervisor-info]
-  (doto (SupervisorInfo.)
+  (log-message "supervisor-version " (:version supervisor-info))
+  (doto (SupervisorInfo.);;log
     (.set_time_secs (long (:time-secs supervisor-info)))
     (.set_hostname (:hostname supervisor-info))
     (.set_assignment_id (:assignment-id supervisor-info))
     (.set_used_ports (map long (:used-ports supervisor-info)))
     (.set_meta (map long (:meta supervisor-info)))
     (.set_scheduler_meta (:scheduler-meta supervisor-info))
-    (.set_uptime_secs (long (:uptime-secs supervisor-info)))))
+    (.set_uptime_secs (long (:uptime-secs supervisor-info)))
+    (.set_version (:version supervisor-info))
+    ))
 
 (defn clojurify-supervisor-info [^SupervisorInfo supervisor-info]
   (if supervisor-info
@@ -23,7 +26,9 @@
       (if (.get_used_ports supervisor-info) (into [] (.get_used_ports supervisor-info)))
       (if (.get_meta supervisor-info) (into [] (.get_meta supervisor-info)))
       (if (.get_scheduler_meta supervisor-info) (into {} (.get_scheduler_meta supervisor-info)))
-      (.get_uptime_secs supervisor-info))))
+      (.get_uptime_secs supervisor-info)
+      (.get_version supervisor-info);;log
+      )))
 
 (defn thriftify-assignment [assignment]
   (doto (Assignment.)

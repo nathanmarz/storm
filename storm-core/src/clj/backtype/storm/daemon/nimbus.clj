@@ -1251,7 +1251,9 @@
                                                                 (:uptime-secs info)
                                                                 (count ports)
                                                                 (count (:used-ports info))
-                                                                id )
+                                                                id
+                                                                (:version info))
+                                            (log-message "supervisor-version " :version info)
                                             ))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)

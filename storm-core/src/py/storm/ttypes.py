@@ -2355,6 +2355,7 @@ class SupervisorSummary:
    - num_workers
    - num_used_workers
    - supervisor_id
+   - version
   """
 
   thrift_spec = (
@@ -2364,14 +2365,16 @@ class SupervisorSummary:
     (3, TType.I32, 'num_workers', None, None, ), # 3
     (4, TType.I32, 'num_used_workers', None, None, ), # 4
     (5, TType.STRING, 'supervisor_id', None, None, ), # 5
+    (6, TType.STRING, 'version', None, None, ), # 6
   )
 
-  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None,):
+  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, version=None,):
     self.host = host
     self.uptime_secs = uptime_secs
     self.num_workers = num_workers
     self.num_used_workers = num_used_workers
     self.supervisor_id = supervisor_id
+    self.version = version
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2407,6 +2410,11 @@ class SupervisorSummary:
           self.supervisor_id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.STRING:
+          self.version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2437,6 +2445,10 @@ class SupervisorSummary:
       oprot.writeFieldBegin('supervisor_id', TType.STRING, 5)
       oprot.writeString(self.supervisor_id.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.version is not None:
+      oprot.writeFieldBegin('version', TType.STRING, 6)
+      oprot.writeString(self.version.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2451,6 +2463,8 @@ class SupervisorSummary:
       raise TProtocol.TProtocolException(message='Required field num_used_workers is unset!')
     if self.supervisor_id is None:
       raise TProtocol.TProtocolException(message='Required field supervisor_id is unset!')
+    if self.version is None:
+      raise TProtocol.TProtocolException(message='Required field version is unset!')
     return
 
 
@@ -2461,6 +2475,7 @@ class SupervisorSummary:
     value = (value * 31) ^ hash(self.num_workers)
     value = (value * 31) ^ hash(self.num_used_workers)
     value = (value * 31) ^ hash(self.supervisor_id)
+    value = (value * 31) ^ hash(self.version)
     return value
 
   def __repr__(self):
@@ -4580,6 +4595,7 @@ class SupervisorInfo:
    - meta
    - scheduler_meta
    - uptime_secs
+   - version
   """
 
   thrift_spec = (
@@ -4591,9 +4607,10 @@ class SupervisorInfo:
     (5, TType.LIST, 'meta', (TType.I64,None), None, ), # 5
     (6, TType.MAP, 'scheduler_meta', (TType.STRING,None,TType.STRING,None), None, ), # 6
     (7, TType.I64, 'uptime_secs', None, None, ), # 7
+    (8, TType.STRING, 'version', None, None, ), # 8
   )
 
-  def __init__(self, time_secs=None, hostname=None, assignment_id=None, used_ports=None, meta=None, scheduler_meta=None, uptime_secs=None,):
+  def __init__(self, time_secs=None, hostname=None, assignment_id=None, used_ports=None, meta=None, scheduler_meta=None, uptime_secs=None, version=None,):
     self.time_secs = time_secs
     self.hostname = hostname
     self.assignment_id = assignment_id
@@ -4601,6 +4618,7 @@ class SupervisorInfo:
     self.meta = meta
     self.scheduler_meta = scheduler_meta
     self.uptime_secs = uptime_secs
+    self.version = version
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -4662,6 +4680,11 @@ class SupervisorInfo:
           self.uptime_secs = iprot.readI64();
         else:
           iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.STRING:
+          self.version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -4710,6 +4733,10 @@ class SupervisorInfo:
       oprot.writeFieldBegin('uptime_secs', TType.I64, 7)
       oprot.writeI64(self.uptime_secs)
       oprot.writeFieldEnd()
+    if self.version is not None:
+      oprot.writeFieldBegin('version', TType.STRING, 8)
+      oprot.writeString(self.version.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -4730,6 +4757,7 @@ class SupervisorInfo:
     value = (value * 31) ^ hash(self.meta)
     value = (value * 31) ^ hash(self.scheduler_meta)
     value = (value * 31) ^ hash(self.uptime_secs)
+    value = (value * 31) ^ hash(self.version)
     return value
 
   def __repr__(self):

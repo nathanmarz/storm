@@ -580,7 +580,8 @@
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
        "slotsTotal" (.get_num_workers s)
-       "slotsUsed" (.get_num_used_workers s)})}))
+       "slotsUsed" (.get_num_used_workers s)
+       "version" (.get_version s)})}))
 
 (defn all-topologies-summary
   ([]

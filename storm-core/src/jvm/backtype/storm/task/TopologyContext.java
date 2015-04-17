@@ -260,12 +260,17 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         }
         obj.put("stream->target->grouping", stringTargets);
         // Convert sources to a JSON serializable format
-        Map<String, String> stringSources = new HashMap<String, String>();
+        Map<String, Map<String, Object>> stringSources = new HashMap<String, Map<String, Object>>();
         for (Map.Entry<GlobalStreamId, Grouping> entry : this.getThisSources().entrySet()) {
-        	Map stringSourceMap = new HashMap<String, Object>();
-        	stringSourceMap.put(entry.getKey().toString(), groupingToJSONableObject(entry.getValue()));
+        	GlobalStreamId gid = entry.getKey();
+        	Map<String, Object> stringSourceMap = stringSources.get(gid.get_componentId());
+        	if (stringSourceMap == null) {
+        		stringSourceMap = new HashMap<String, Object>();
+        		stringSources.put(gid.get_componentId(), stringSourceMap);
+        	}
+        	stringSourceMap.put(gid.get_streamId(), groupingToJSONableObject(entry.getValue()));        	
         }
-        obj.put("sources->grouping", stringSources);
+        obj.put("source->stream->grouping", stringSources);
         return JSONValue.toJSONString(obj);
     }
 

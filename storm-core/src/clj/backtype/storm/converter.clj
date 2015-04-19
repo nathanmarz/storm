@@ -5,8 +5,7 @@
   (:require [backtype.storm.daemon [common :as common]]))
 
 (defn thriftify-supervisor-info [supervisor-info]
-  (log-message "supervisor-version " (:version supervisor-info))
-  (doto (SupervisorInfo.);;log
+  (doto (SupervisorInfo.)
     (.set_time_secs (long (:time-secs supervisor-info)))
     (.set_hostname (:hostname supervisor-info))
     (.set_assignment_id (:assignment-id supervisor-info))

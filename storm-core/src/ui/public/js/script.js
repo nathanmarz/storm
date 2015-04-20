@@ -120,7 +120,7 @@ function formatConfigData(data) {
        if(data.hasOwnProperty(prop)) {
            mustacheFormattedData['config'].push({
                'key': prop,
-               'value': data[prop]
+               'value': JSON.stringify(data[prop])
            });
        }
     }

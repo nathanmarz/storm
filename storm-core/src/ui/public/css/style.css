@@ -85,3 +85,14 @@ table.dataTable thead .sorting_desc {
     border-color: transparent;
     box-shadow: none;
 }
+
+PRE.jsonFormatter-codeContainer 
+.jsonFormatter-number {
+    color: #A00;
+}
+
+PRE.jsonFormatter-codeContainer {
+  border: none;
+  padding: 0px;
+  background-color: transparent;
+}

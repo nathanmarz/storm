@@ -153,7 +153,7 @@ struct SupervisorSummary {
   3: required i32 num_workers;
   4: required i32 num_used_workers;
   5: required string supervisor_id;
-  6: required string version;
+  6: optional string version = "VERSION_NOT_PROVIDED";
 }
 
 struct ClusterSummary {

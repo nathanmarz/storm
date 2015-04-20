@@ -26,8 +26,7 @@
       (if (.get_meta supervisor-info) (into [] (.get_meta supervisor-info)))
       (if (.get_scheduler_meta supervisor-info) (into {} (.get_scheduler_meta supervisor-info)))
       (.get_uptime_secs supervisor-info)
-      (.get_version supervisor-info);;log
-      )))
+      (.get_version supervisor-info))))
 
 (defn thriftify-assignment [assignment]
   (doto (Assignment.)

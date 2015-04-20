@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-788: UI Fix key for process latencies
  * STORM-773: backtype.storm.transactional-test fails periodically with timeout
  * STORM-772: Tasts fail periodically with InterruptedException or InterruptedIOException
  * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.

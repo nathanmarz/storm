@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-786: KafkaBolt should ack tick tuples
  * STORM-791: Storm UI displays maps in the config incorrectly
  * STORM-788: UI Fix key for process latencies
  * STORM-773: backtype.storm.transactional-test fails periodically with timeout

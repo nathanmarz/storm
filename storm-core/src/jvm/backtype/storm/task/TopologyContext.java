@@ -145,25 +145,25 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         return getComponentId(_taskId);
     }
 
-    /**
-     * Gets the declared output fields for the specified stream id for the component
-     * this task is a part of.
-     */
-    public Fields getThisOutputFields(String streamId) {
-        return getComponentOutputFields(getThisComponentId(), streamId);
-    }
+	/**
+	 * Gets the declared output fields for the specified stream id for the
+	 * component this task is a part of.
+	 */
+	public Fields getThisOutputFields(String streamId) {
+		return getComponentOutputFields(getThisComponentId(), streamId);
+	}
 
-    /**
-     * Gets the declared output fields for the specified stream id for the component
-     * this task is a part of.
-     */
-    public Map<String, List<String>> getThisOutputFieldsForStreams() {
-    	Map<String, List<String>> streamToFields = new HashMap<String, List<String>>();
-    	for (String stream : this.getThisStreams()) {
-    		streamToFields.put(stream, this.getThisOutputFields(stream).toList());
-    	}
-    	return streamToFields;
-    }
+	/**
+	 * Gets the declared output fields for the specified stream id for the
+	 * component this task is a part of.
+	 */
+	public Map<String, List<String>> getThisOutputFieldsForStreams() {
+		Map<String, List<String>> streamToFields = new HashMap<String, List<String>>();
+		for (String stream : this.getThisStreams()) {
+			streamToFields.put(stream, this.getThisOutputFields(stream).toList());
+		}
+		return streamToFields;
+	}
 
     /**
      * Gets the set of streams declared for the component of this task.
@@ -231,13 +231,14 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         return _hooks;
     }
 
-    public Object groupingToJSONableObject(Grouping grouping) {
-    	if (grouping.is_set_fields()) {
-    		return grouping.get_fields();
-    	} else {
-    		return grouping.getSetField().toString();
-    	}
-    }
+	private static Map<String, Object> groupingToJSONableMap(Grouping grouping) {
+		Map groupingMap = new HashMap<String, Object>();
+		groupingMap.put("type", grouping.getSetField().toString());
+		if (grouping.is_set_fields()) {
+			groupingMap.put("fields", grouping.get_fields());
+		}
+		return groupingMap;
+	}
     
     @Override
     public String toJSONString() {
@@ -254,7 +255,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         for (Map.Entry<String, Map<String, Grouping>> entry : this.getThisTargets().entrySet()) {
         	Map stringTargetMap = new HashMap<String, Object>();
         	for (Map.Entry<String, Grouping> innerEntry : entry.getValue().entrySet()) {
-        		stringTargetMap.put(innerEntry.getKey(), groupingToJSONableObject(innerEntry.getValue()));
+        		stringTargetMap.put(innerEntry.getKey(), groupingToJSONableMap(innerEntry.getValue()));
         	}
         	stringTargets.put(entry.getKey(), stringTargetMap);
         }
@@ -268,7 +269,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         		stringSourceMap = new HashMap<String, Object>();
         		stringSources.put(gid.get_componentId(), stringSourceMap);
         	}
-        	stringSourceMap.put(gid.get_streamId(), groupingToJSONableObject(entry.getValue()));        	
+        	stringSourceMap.put(gid.get_streamId(), groupingToJSONableMap(entry.getValue()));        	
         }
         obj.put("source->stream->grouping", stringSources);
         return JSONValue.toJSONString(obj);

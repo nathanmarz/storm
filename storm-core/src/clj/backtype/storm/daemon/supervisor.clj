@@ -507,12 +507,11 @@
                                                  (:my-hostname supervisor)
                                                  (:assignment-id supervisor)
                                                  (keys @(:curr-assignment supervisor))
-                                                 ;; used ports
+                                                  ;; used ports
                                                  (.getMetadata isupervisor)
                                                  (conf SUPERVISOR-SCHEDULER-META)
                                                  ((:uptime supervisor))
-						 ((:version supervisor))))]
-                                
+                                                 (:version supervisor))))]
     (heartbeat-fn)
 
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)

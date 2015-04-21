@@ -1,4 +1,10 @@
 ## 0.11.0
+ * STORM-786: KafkaBolt should ack tick tuples
+ * STORM-791: Storm UI displays maps in the config incorrectly
+ * STORM-788: UI Fix key for process latencies
+ * STORM-773: backtype.storm.transactional-test fails periodically with timeout
+ * STORM-772: Tasts fail periodically with InterruptedException or InterruptedIOException
+ * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
  * STORM-765: Thrift serialization for local state
  * STORM-762: uptime for worker heartbeats is lost when converted to thrift
  * STORM-757: Simulated time can leak out on errors

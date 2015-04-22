@@ -133,7 +133,7 @@ setting `KafkaConfig.startOffsetTime` as follows:
 
 1. `kafka.api.OffsetRequest.EarliestTime()`:  read from the beginning of the topic (i.e. from the oldest messages onwards)
 2. `kafka.api.OffsetRequest.LatestTime()`: read from the end of the topic (i.e. any new messsages that are being written to the topic)
-3. A Unix timestamp aka seconds since the epoch (e.g. via `System.time.currentTimeMillis()`):
+3. A Unix timestamp aka seconds since the epoch (e.g. via `System.currentTimeMillis()`):
    see [How do I accurately get offsets of messages for a certain timestamp using OffsetRequest?](https://cwiki.apache.org/confluence/display/KAFKA/FAQ#FAQ-HowdoIaccuratelygetoffsetsofmessagesforacertaintimestampusingOffsetRequest?) in the Kafka FAQ
 
 As the topology runs the Kafka spout keeps track of the offsets it has read and emitted by storing state information

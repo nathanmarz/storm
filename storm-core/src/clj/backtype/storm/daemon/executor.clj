@@ -530,7 +530,8 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
-                                         (if rooted?
+                                         (if (and rooted?
+                                                  (not (.isEmpty out-ids)))
                                            (do
                                              (.put pending root-id [task-id
                                                                     message-id

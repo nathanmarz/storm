@@ -547,8 +547,6 @@ public class Utils {
         //Running in daemon mode, we would pass Error to calling thread.
         throw (Error) t;
       }
-    } else {
-      LOG.error("Thread threw an Exception.", t);
     }
   }
 }

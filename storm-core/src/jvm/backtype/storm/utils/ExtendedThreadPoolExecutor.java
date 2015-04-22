@@ -60,6 +60,8 @@ public class ExtendedThreadPoolExecutor extends ThreadPoolExecutor{
         Thread.currentThread().interrupt();
       }
     }
-    Utils.handleUncaughtException(t);
+    if (t != null) {
+      Utils.handleUncaughtException(t);
+    }
   }
 }

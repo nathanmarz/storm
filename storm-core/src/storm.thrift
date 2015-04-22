@@ -369,7 +369,13 @@ service Nimbus {
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+   */
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+   */
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
 }
 

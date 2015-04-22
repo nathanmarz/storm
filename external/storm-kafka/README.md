@@ -148,7 +148,7 @@ This means that when a topology has run once the setting `KafkaConfig.startOffse
 subsequent runs of the topology because now the topology will rely on the consumer state information (offsets) in
 ZooKeeper to determine from where it should begin (more precisely: resume) reading.
 If you want to force the spout to ignore any consumer state information stored in ZooKeeper, then you should
-set the the parameter `KafkaConfig.ignoreZkOffsets` to `true`.  If `true`, the spout will always begin reading from the
+set the parameter `KafkaConfig.ignoreZkOffsets` to `true`.  If `true`, the spout will always begin reading from the
 offset defined by `KafkaConfig.startOffsetTime` as described above.
 
 

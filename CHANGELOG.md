@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-789: Send more topology context to Multi-Lang components via initial handshake
  * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
  * STORM-766: Include version info in the service page
  * STORM-786: KafkaBolt should ack tick tuples

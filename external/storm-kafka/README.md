@@ -100,18 +100,23 @@ also controls the naming of your output field.
   public Fields getOutputFields();
 ```
 
-The default RawMultiScheme just takes the byte[] and returns a tuple with byte[] as is. The name of the outputField is
-"bytes". There are alternative implementation like SchemeAsMultiScheme and KeyValueSchemeAsMultiScheme which can convert
-the byte[] to String. 
+The default `RawMultiScheme` just takes the `byte[]` and returns a tuple with `byte[]` as is. The name of the
+outputField is "bytes".  There are alternative implementation like `SchemeAsMultiScheme` and
+`KeyValueSchemeAsMultiScheme` which can convert the `byte[]` to `String`.
+
+
 ### Examples
-####Core Spout
+
+#### Core Spout
+
 ```java
 BrokerHosts hosts = new ZkHosts(zkConnString);
 SpoutConfig spoutConfig = new SpoutConfig(hosts, topicName, "/" + topicName, UUID.randomUUID().toString());
 spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 KafkaSpout kafkaSpout = new KafkaSpout(spoutConfig);
 ```
-####Trident Spout
+
+#### Trident Spout
 ```java
 TridentTopology topology = new TridentTopology();
 BrokerHosts zk = new ZkHosts("localhost");
@@ -120,24 +125,29 @@ spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 OpaqueTridentKafkaSpout spout = new OpaqueTridentKafkaSpout(spoutConf);
 ```
 
-### How KafkaSpout stores offsets of a kafka topic and recovers incase of failures
 
-As shown in the above KafkaConfig properties , user can control where in the topic they can start reading by setting **KafkaConfig.startOffsetTime.**
+### How KafkaSpout stores offsets of a Kafka topic and recovers in case of failures
 
-These are the options
-1. **kafka.api.OffsetRequest.EarliestTime()  or -2 (value returned by EarliestTime())** which makes the KafkaSpout to read from the begining of the topic 
-2. **kafka.api.OffsetRequest.LatestTime() or -1 (value returned by LatestTime())** which starts at the end of the topic ,any new messsages that are being written to the topic
-3. **System.time.currentTimeMillis()**
+As shown in the above KafkaConfig properties, you can control from where in the Kafka topic the spout begins to read by
+setting `KafkaConfig.startOffsetTime` as follows:
 
-When user first deploys a KakfaSpout based topology they can use one of the above options. As the topology runs 
-KafkaSpout keeps track of the offsets its reading and writes these offset information under **SpoutConfig.zkRoot+ "/" + SpoutConfig.id**
-Incase of failures it recovers from the last written offset from zookeeper. 
+1. `kafka.api.OffsetRequest.EarliestTime()`:  read from the beginning of the topic (i.e. from the oldest messages onwards)
+2. `kafka.api.OffsetRequest.LatestTime()`: read from the end of the topic (i.e. any new messsages that are being written to the topic)
+3. A Unix timestamp aka seconds since the epoch (e.g. via `System.time.currentTimeMillis()`):
+   see [How do I accurately get offsets of messages for a certain timestamp using OffsetRequest?](https://cwiki.apache.org/confluence/display/KAFKA/FAQ#FAQ-HowdoIaccuratelygetoffsetsofmessagesforacertaintimestampusingOffsetRequest?) in the Kafka FAQ
 
-If users deployed a topology , later killed and re-deploying should make sure that **SpoutConfig.id** and **SpoutConfig.zkRoot** 
-remains the same otherwise Kafkaspout won't be able to start from stored zookeeper offsets.
+As the topology runs the Kafka spout keeps track of the offsets it has read and emitted by storing state information
+under the ZooKeeper path `SpoutConfig.zkRoot+ "/" + SpoutConfig.id`.  In the case of failures it recovers from the last
+written offset in ZooKeeper.
 
-Users can set **KafkaConfig.ignoreZkOffsets** to **true** to make KafkaSpout ignore any zookeeper based offsets 
-and start from configured **KafkaConfig.startOffsetTime**.
+> **Important:**  When re-deploying a topology make sure that the settings for `SpoutConfig.zkRoot` and `SpoutConfig.id`
+> were not modified, otherwise the spout will not be able to read its previous consumer state information (i.e. the
+> offsets) from ZooKeeper -- which may lead to unexpected behavior and/or to data loss, depending on your use case.
+
+If you want to force the spout to ignore any consumer state information (offsets) stored in ZooKeeper, then you should
+set the the parameter `KafkaConfig.ignoreZkOffsets` to `true`.  If `true`, the spout will begin reading from the offset
+defined by `KafkaConfig.startOffsetTime` as described above.
+
 
 ## Using storm-kafka with different versions of Scala
 

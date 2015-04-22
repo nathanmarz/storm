@@ -135,7 +135,7 @@
                     (let [remote (.get remoteMap node+port)]
                       (if (not-nil? task)
                         (.add remote (TaskMessage. task (.serialize serializer tuple)))
-                        (log-warn "Can't transfer tuple - task value is null. tuple information: " tuple))
+                        (log-warn "Can't transfer tuple - task value is null. tuple type: " (type tuple) " and information: " tuple))
                      ))))
                 (local-transfer local)
                 (disruptor/publish transfer-queue remoteMap)

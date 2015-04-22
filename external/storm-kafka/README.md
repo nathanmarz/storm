@@ -144,9 +144,12 @@ written offset in ZooKeeper.
 > were not modified, otherwise the spout will not be able to read its previous consumer state information (i.e. the
 > offsets) from ZooKeeper -- which may lead to unexpected behavior and/or to data loss, depending on your use case.
 
-If you want to force the spout to ignore any consumer state information (offsets) stored in ZooKeeper, then you should
-set the the parameter `KafkaConfig.ignoreZkOffsets` to `true`.  If `true`, the spout will begin reading from the offset
-defined by `KafkaConfig.startOffsetTime` as described above.
+This means that when a topology has run once the setting `KafkaConfig.startOffsetTime` will not have an effect for
+subsequent runs of the topology because now the topology will rely on the consumer state information (offsets) in
+ZooKeeper to determine from where it should begin (more precisely: resume) reading.
+If you want to force the spout to ignore any consumer state information stored in ZooKeeper, then you should
+set the the parameter `KafkaConfig.ignoreZkOffsets` to `true`.  If `true`, the spout will always begin reading from the
+offset defined by `KafkaConfig.startOffsetTime` as described above.
 
 
 ## Using storm-kafka with different versions of Scala

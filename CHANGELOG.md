@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
  * STORM-766: Include version info in the service page
  * STORM-786: KafkaBolt should ack tick tuples
  * STORM-791: Storm UI displays maps in the config incorrectly

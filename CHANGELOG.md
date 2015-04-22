@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-483: provide dedicated directories for classpath extension
  * STORM-764: Have option to compress thrift heartbeat
  * STORM-787: test-ns should announce test failures with 'BUILD FAILURE'
  * STORM-789: Send more topology context to Multi-Lang components via initial handshake

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread
  * STORM-730: remove extra curly brace
  * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
  * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change

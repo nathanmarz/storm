@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change
  * STORM-746: Skip ack init when there are no output tasks
  * STORM-483: provide dedicated directories for classpath extension
  * STORM-764: Have option to compress thrift heartbeat

@@ -20,9 +20,10 @@ cd ${STORM_SRC_ROOT_DIR}
 # Travis CI doesn't allow stdout bigger than 4M, so we have to reduce log while running tests
 export LOG_LEVEL=WARN
 # We should concern that Travis CI could be very slow cause it uses VM
-export export STORM_TEST_TIMEOUT_MS=100000
+export STORM_TEST_TIMEOUT_MS=100000
 
-mvn clean test
+# We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
+mvn test
 
 BUILD_RET_VAL=$?
 

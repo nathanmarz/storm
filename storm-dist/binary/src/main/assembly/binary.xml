@@ -136,7 +136,25 @@
             <includes>
                 <include>README.*</include>
             </includes>
+		</fileSet>
+
+        <!-- $STORM_HOME/extlib -->
+        <fileSet>
+            <directory></directory>
+            <outputDirectory>extlib</outputDirectory>
+            <includes>
+                <include></include>
+            </includes>
         </fileSet>
+        <!-- $STORM_HOME/extlib-daemon, for daemons only -->
+        <fileSet>
+            <directory></directory>
+            <outputDirectory>extlib-daemon</outputDirectory>
+            <includes>
+                <include></include>
+            </includes>
+        </fileSet>
+
     </fileSets>
 
     <files>

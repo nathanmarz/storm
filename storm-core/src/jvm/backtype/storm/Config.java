@@ -42,6 +42,9 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+    //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
+    private static final long serialVersionUID = -1550278723792864455L;
+
     /**
      * This is part of a temporary workaround to a ZK bug, it is the 'scheme:acl' for
      * the user Nimbus and Supervisors use to authenticate with ZK.
@@ -1226,6 +1229,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
     public static final Object TRANSACTIONAL_ZOOKEEPER_PORT_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
+     * The user as which the nimbus client should be acquired to perform the operation.
+     */
+    public static final String STORM_DO_AS_USER="storm.doAsUser";
+    public static final Object STORM_DO_AS_USER_SCHEMA = String.class;
 
     /**
      * The number of threads that should be used by the zeromq context in each worker process.

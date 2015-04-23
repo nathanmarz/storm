@@ -231,11 +231,6 @@ Response fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
-|antiForgeryToken| String | CSRF token|
-
-Caution: users need to unescape the antiForgeryToken value before using this token to make POST calls(simple-json escapes forward slashes)
-[ISSUE-8](https://code.google.com/p/json-simple/issues/detail?id=8)
-
 
 Examples:
 
@@ -380,8 +375,7 @@ Sample response:
         "storm.zookeeper.retry.intervalceiling.millis": 30000,
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
-    },
-    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
+    }
 }
 ```
 
@@ -579,43 +573,38 @@ Sample response:
 }
 ```
 
-### /api/v1/token (GET)
-
-Returns a anti forgery token to use in POST calls
-
-Response fields:
-
-|Field  |Value |Description|
-|antiForgeryToken| String | CSRF token|
-
-Sample response:
-
-```json
-{
-    "antiForgeryToken": "Dygf1UHQF7qL0syKLTKEGSX5y0rZhhQTxS2f/WWwI2PhN1zmRdh8MQ1KTd5CXRmjMVmAJ43eklqYmvD5"
-}
-```
-
-
 ## POST Operations
 
-### Cross site request forgery (CSRF) prevention in POST requests
 
-In order to prevent CSRF vulnerability, the REST API uses a CSRF token. This is primarily done for the UI, however we
-do not have alternative APIs/paths for UI and non-UI clients.
+### /api/v1/uploadTopology (POST)
 
-The token is generated during the `/api/v1/topology/:id` (GET) request. The JSON response for this GET request contains
-a field called "antiForgeryToken". All the post requests below must include a header "x-csrf-token" with the value of
-"antiForgeryToken" from the GET response. In absence of this header with the right token value you will get following
-error response:
+uploads a topology.
 
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|topologyConfig |String (required)| topology json config  |
+|topologyJar |String (required)| topology jar file |
+
+Sample topologyConfig json:
+```json
+{"topologyMainClass": "storm.starter.WordCountTopology", "topologyMainClassArgs": ["wordcount1"]}
 ```
-{
-    "error" : "Forbidden action.",
-    "errorMessage" : "missing CSRF token."
-}
+
+Examples:
+
+```no-highlight
+curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
+-F topologyConfig='{"topologyMainClass": "storm.starter.WordCountTopology", "topologyMainClassArgs": ["wordcount1"]}' 
+-F topologyJar=@examples/storm-starter/storm-starter-topologies-0.10.0-SNAPSHOT.jar 
+http://localhost:8080/api/v1/uploadTopology
 ```
 
+Sample Response:
+
+```json
+{"status":"success"}
+```
 
 ### /api/v1/topology/:id/activate (POST)
 
@@ -668,7 +657,6 @@ Examples:
 
 ```no-highlight
 curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
--H 'x-csrf-token:nRXggIDItGA/rxjPETo9ok65DM3rpQqOLoNwWXZWbGuaZZjtms5/tU+h36uQCR34z50DtFybkwh1ZB5e' 
 -H "Content-Type: application/json" 
 -d  '{"rebalanceOptions": {"numWorkers": 2, "executors": { "spout" : "5", "split": 7, "count": 5 }}, "callback":"foo"}' 
 http://localhost:8080/api/v1/topology/wordcount-1-1420308665/rebalance/0

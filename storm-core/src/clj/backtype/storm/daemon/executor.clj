@@ -253,7 +253,11 @@
      :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
                              ((:report-error <>) error)
-                             ((:suicide-fn <>)))
+                             (if (or
+                                    (exception-cause? InterruptedException error)
+                                    (exception-cause? java.io.InterruptedIOException error))
+                               (log-message "Got interrupted excpetion shutting thread down...")
+                               ((:suicide-fn <>))))
      :deserializer (KryoTupleDeserializer. storm-conf worker-context)
      :sampler (mk-stats-sampler storm-conf)
      ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolt-data function?
@@ -526,7 +530,8 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
-                                         (if rooted?
+                                         (if (and rooted?
+                                                  (not (.isEmpty out-ids)))
                                            (do
                                              (.put pending root-id [task-id
                                                                     message-id

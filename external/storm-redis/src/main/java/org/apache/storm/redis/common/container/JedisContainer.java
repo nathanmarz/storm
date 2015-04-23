@@ -49,12 +49,7 @@ public class JedisContainer implements JedisCommandsInstanceContainer, Closeable
         try {
             ((Closeable) jedisCommands).close();
         } catch (IOException e) {
-            LOG.warn("Failed to close (return) instance to pool");
-            try {
-                jedisPool.returnBrokenResource((Jedis) jedisCommands);
-            } catch (Exception e2) {
-                LOG.error("Failed to discard instance from pool");
-            }
+            LOG.error("Failed to close (return) instance to pool");
         }
     }
 

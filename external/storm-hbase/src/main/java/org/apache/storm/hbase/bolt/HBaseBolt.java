@@ -62,7 +62,7 @@ public class HBaseBolt  extends AbstractHBaseBolt {
         try {
             this.hBaseClient.batchMutate(mutations);
         } catch(Exception e){
-            LOG.warn("Failing tuple. Error writing rowKey " + rowKey, e);
+            this.collector.reportError(e);
             this.collector.fail(tuple);
             return;
         }

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
  Licensed to the Apache Software Foundation (ASF) under one or more
  contributor license agreements.  See the NOTICE file distributed with
@@ -14,6 +15,18 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<script id="anti-forgery-template" type="text/html">
-{{#antiForgeryToken}}{{antiForgeryToken}}{{/antiForgeryToken}}
-</script>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>storm</artifactId>
+        <groupId>org.apache.storm</groupId>
+        <version>0.11.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>org.apache.storm</groupId>
+    <artifactId>multilang-python</artifactId>
+    <packaging>jar</packaging>
+    <name>multilang-python</name>
+
+</project>

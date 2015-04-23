@@ -1,7 +1,39 @@
 ## 0.11.0
+ * STORM-730: remove extra curly brace
+ * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
+ * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change
+ * STORM-746: Skip ack init when there are no output tasks
+ * STORM-483: provide dedicated directories for classpath extension
+ * STORM-764: Have option to compress thrift heartbeat
+ * STORM-787: test-ns should announce test failures with 'BUILD FAILURE'
+ * STORM-789: Send more topology context to Multi-Lang components via initial handshake
+ * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
+ * STORM-766: Include version info in the service page
+ * STORM-786: KafkaBolt should ack tick tuples
+ * STORM-791: Storm UI displays maps in the config incorrectly
+ * STORM-788: UI Fix key for process latencies
+ * STORM-773: backtype.storm.transactional-test fails periodically with timeout
+ * STORM-772: Tasts fail periodically with InterruptedException or InterruptedIOException
+ * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
+ * STORM-765: Thrift serialization for local state
+ * STORM-762: uptime for worker heartbeats is lost when converted to thrift
+ * STORM-757: Simulated time can leak out on errors
+ * STORM-694: java.lang.ClassNotFoundException: backtype.storm.daemon.common.SupervisorInfo
+ * STORM-750: Set Config serialVersionUID
+ * STORM-713: Include topic information with Kafka metrics.
+ * STORM-708: CORS support for STORM UI.
+ * STORM-615: Add REST API to upload topology.
+ * STORM-741: Allow users to pass a config value to perform impersonation.
+ * STORM-724: Document RedisStoreBolt and RedisLookupBolt which is missed.
+ * STORM-711: All connectors should use collector.reportError and tuple anchoring.
  * STORM-714: Make CSS more consistent with self, prev release
  * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
  * STORM-691: Add basic lookup / persist bolts
+ * STORM-727: Storm tests should succeed even if a storm process is running locally.
+ * STORM-512: KafkaBolt doesn't handle ticks properly
+ * STORM-188: Allow user to specifiy full configuration path when running storm command
+ * STORM-740: Simple Transport Client cannot configure thrift buffer size
+ * STORM-749: Remove CSRF check from the REST API.
 
 ## 0.10.0
  * STORM-681: Auto insert license header with genthrift.sh

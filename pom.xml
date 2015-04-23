@@ -157,6 +157,9 @@
     <modules>
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-buildtools/storm-maven-plugins</module>
+        <module>storm-multilang/javascript</module>
+        <module>storm-multilang/python</module>
+        <module>storm-multilang/ruby</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
@@ -279,7 +282,7 @@
                                 <goals>
                                     <goal>aggregate</goal>
                                 </goals>
-                                <phase>package</phase>
+                                <phase>site</phase>
                             </execution>
                         </executions>
                     </plugin>

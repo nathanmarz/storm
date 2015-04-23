@@ -1246,12 +1246,14 @@
               ;; in standalone just look at metadata, otherwise just say N/A?
               supervisor-summaries (dofor [[id info] supervisor-infos]
                                           (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
-                                                ]
-                                            (SupervisorSummary. (:hostname info)
+
+                                            sup-sum (SupervisorSummary. (:hostname info)
                                                                 (:uptime-secs info)
                                                                 (count ports)
                                                                 (count (:used-ports info))
-                                                                id )
+                                                                id) ]
+                                            (when-let [version (:version info)] (.set_version sup-sum version))
+                                            sup-sum
                                             ))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)

@@ -96,20 +96,20 @@ You can package a jar suitable for submitting to a Storm cluster with the comman
     $ mvn package
 
 This will package your code and all the non-Storm dependencies into a single "uberjar" (or "fat jar") at the path
-`target/storm-starter-{version}-jar-with-dependencies.jar`.
+`target/storm-starter-{version}.jar`.
 
 Example filename of the uberjar:
 
-    >>> target/storm-starter-0.9.3-incubating-SNAPSHOT-jar-with-dependencies.jar
+    >>> target/storm-starter-0.9.3-incubating-SNAPSHOT.jar
 
 You can submit (run) a topology contained in this uberjar to Storm via the `storm` CLI tool:
 
     # Example 1: Run the RollingTopWords in local mode (LocalCluster)
-    $ storm jar storm-starter-*-jar-with-dependencies.jar storm.starter.RollingTopWords
+    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords
 
     # Example 2: Run the RollingTopWords in remote/cluster mode,
     #            under the name "production-topology"
-    $ storm jar storm-starter-*-jar-with-dependencies.jar storm.starter.RollingTopWords production-topology remote
+    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords production-topology remote
 
 _Submitting a topology in local vs. remote mode:_
 It depends on the actual code of a topology how you can or even must tell Storm whether to run the topology locally (in

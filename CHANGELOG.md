@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-583: Add Microsoft Azure Event Hub spout implementations
  * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread
  * STORM-730: remove extra curly brace
  * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0

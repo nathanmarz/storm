@@ -35,3 +35,7 @@ If you want to send messages to all partitions, use "-1" as partitionId.
 ### Windows Azure Eventhubs ###
 	http://azure.microsoft.com/en-us/services/event-hubs/
 
+## Committer Sponsors
+
+ * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))
+

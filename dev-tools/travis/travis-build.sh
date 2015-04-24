@@ -11,6 +11,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+PYTHON_VERSION_TO_FILE=`python -V > /tmp/python_version 2>&1`
+PYTHON_VERSION=`cat /tmp/python_version`
+RUBY_VERSION=`ruby -v`
+NODEJS_VERSION=`node -v`
+
+echo "Python version : $PYTHON_VERSION"
+echo "Ruby version : $RUBY_VERSION"
+echo "NodeJs version : $NODEJS_VERSION"
+
+
 STORM_SRC_ROOT_DIR=$1
 
 TRAVIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
@@ -23,7 +33,7 @@ export LOG_LEVEL=WARN
 export STORM_TEST_TIMEOUT_MS=100000
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
-mvn test
+mvn test -fae
 
 BUILD_RET_VAL=$?
 
@@ -31,6 +41,10 @@ if [ ${BUILD_RET_VAL} -ne 0 ]
 then
     echo "There may be clojure test errors from storm-core, printing error reports..."
     python ${TRAVIS_SCRIPT_DIR}/print-errors-from-clojure-test-reports.py ${STORM_SRC_ROOT_DIR}/storm-core/target/test-reports
+else
+    echo "Double checking clojure test-report, Errors or Failures:"
+    egrep -il '<fail|<error' */target/test-reports/*.xml | xargs -I '{}' bash -c "echo -n '{}':' '; egrep -ic '<fail|<error' '{}'"
+    egrep -iq '<fail|<error' */target/test-reports/*.xml
 fi
 
 exit ${BUILD_RET_VAL}

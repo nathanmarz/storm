@@ -18,6 +18,13 @@ import glob
 from xml.etree.ElementTree import ElementTree
 
 
+def print_detail_information(testcase, fail_or_error):
+    print "-" * 50
+    print "classname: %s / testname: %s" % (testcase.get("classname"), testcase.get("name"))
+    print fail_or_error.text
+    print "-" * 50
+
+
 def print_error_reports_from_report_file(file_path):
     tree = ElementTree()
     tree.parse(file_path)
@@ -26,10 +33,11 @@ def print_error_reports_from_report_file(file_path):
     for testcase in testcases:
         error = testcase.find("error")
         if error is not None:
-            print "-" * 50
-            print "classname: %s / testname: %s" % (testcase.get("classname"), testcase.get("name"))
-            print error.text
-            print "-" * 50
+            print_detail_information(testcase, error)
+
+        fail = testcase.find("fail")
+        if fail is not None:
+            print_detail_information(testcase, fail)
 
 
 def main(report_dir_path):

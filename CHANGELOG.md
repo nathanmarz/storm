@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-704: Apply Travis CI to Apache Storm Project
  * STORM-721: Storm UI server should support SSL.
  * STORM-583: Add Microsoft Azure Event Hub spout implementations
  * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread

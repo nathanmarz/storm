@@ -17,4 +17,5 @@ before_install:
   - rvm use 2.1.5 --install
   - nvm install 0.12.2
   - nvm use 0.12.2
-script: /bin/bash ./dev-tools/travis/travis-build.sh `pwd`
+install: /bin/bash ./dev-tools/travis/travis-install.sh `pwd`
+script: /bin/bash ./dev-tools/travis/travis-script.sh `pwd`

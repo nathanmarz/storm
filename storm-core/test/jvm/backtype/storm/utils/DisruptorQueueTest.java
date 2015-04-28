@@ -18,6 +18,7 @@
 package backtype.storm.utils;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
@@ -29,20 +30,19 @@ import junit.framework.TestCase;
 
 public class DisruptorQueueTest extends TestCase {
 
-    private final static int TIMEOUT = 5; // MS
+    private final static int TIMEOUT = 1000; // MS
     private final static int PRODUCER_NUM = 4;
 
     @Test
-    public void testMessageDisorder() throws InterruptedException {
+    public void testFirstMessageFirst() throws InterruptedException {
+      for (int i = 0; i < 100; i++) {
+        DisruptorQueue queue = createQueue("firstMessageOrder", 16);
 
-        // Set queue length to bigger enough
-        DisruptorQueue queue = createQueue("messageOrder", 16);
+        queue.publish("FIRST");
 
-        queue.publish("1");
+        Runnable producer = new Producer(queue, String.valueOf(i));
 
-        Runnable producer = new Producer(queue, "2");
-
-        final Object [] result = new Object[1];
+        final AtomicReference<Object> result = new AtomicReference<Object>();
         Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
             private boolean head = true;
 
@@ -51,16 +51,17 @@ public class DisruptorQueueTest extends TestCase {
                     throws Exception {
                 if (head) {
                     head = false;
-                    result[0] = obj;
+                    result.set(obj);
                 }
             }
         });
 
         run(producer, consumer);
-        Assert.assertEquals("We expect to receive first published message first, but received " + result[0],
-                "1", result[0]);
+        Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),
+                "FIRST", result.get());
+      }
     }
-    
+   
     @Test 
     public void testConsumerHang() throws InterruptedException {
         final AtomicBoolean messageConsumed = new AtomicBoolean(false);
@@ -94,16 +95,21 @@ public class DisruptorQueueTest extends TestCase {
         
         Thread consumerThread = new Thread(consumer);
         consumerThread.start();
-                
+        Thread.sleep(10);
         for (int i = 0; i < PRODUCER_NUM; i++) {
             producerThreads[i].interrupt();
-            producerThreads[i].join(TIMEOUT);
         }
         consumerThread.interrupt();
+        
+        for (int i = 0; i < PRODUCER_NUM; i++) {
+            producerThreads[i].join(TIMEOUT);
+            assertFalse("producer "+i+" is still alive", producerThreads[i].isAlive());
+        }
         consumerThread.join(TIMEOUT);
+        assertFalse("consumer is still alive", consumerThread.isAlive());
     }
 
-    private class Producer implements Runnable {
+    private static class Producer implements Runnable {
         private String msg;
         private DisruptorQueue queue;
 
@@ -124,7 +130,7 @@ public class DisruptorQueueTest extends TestCase {
         }
     };
 
-    private class Consumer implements Runnable {
+    private static class Consumer implements Runnable {
         private EventHandler handler;
         private DisruptorQueue queue;
 

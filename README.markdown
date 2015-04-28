@@ -196,6 +196,7 @@ under the License.
 * iBuddha ([@iBuddha](https://github.com/iBuddha))
 * Rekha Joshi ([@rekhajoshm](https://github.com/rekhajoshm))
 * Dave Katten ([@dkatten](https://github.com/dkatten))
+* Mark Davis ([@markdav](https://github.com/markdav))
 
 ## Acknowledgements
 

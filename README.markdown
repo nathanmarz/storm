@@ -197,6 +197,7 @@ under the License.
 * Rekha Joshi ([@rekhajoshm](https://github.com/rekhajoshm))
 * Dave Katten ([@dkatten](https://github.com/dkatten))
 * Mark Davis ([@markdav](https://github.com/markdav))
+* Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 
 ## Acknowledgements
 

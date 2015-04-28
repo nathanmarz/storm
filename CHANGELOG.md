@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-795: Update the user document for the extlib issue
  * STORM-801: Add Travis CI badge to README
  * STORM-797: DisruptorQueueTest has some race conditions in it.
  * STORM-704: Apply Travis CI to Apache Storm Project

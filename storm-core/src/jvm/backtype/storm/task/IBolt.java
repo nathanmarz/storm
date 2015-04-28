@@ -34,7 +34,7 @@ import java.io.Serializable;
  * Nimbus then launches workers which deserialize the object, call prepare on it, and then
  * start processing tuples.</p>
  *
- * <p>If you want to parameterize an IBolt, you should set the parameter's through its
+ * <p>If you want to parameterize an IBolt, you should set the parameters through its
  * constructor and save the parameterization state as instance variables (which will
  * then get serialized and shipped to every task executing this bolt across the cluster).</p>
  *

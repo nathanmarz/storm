@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-797: DisruptorQueueTest has some race conditions in it.
  * STORM-704: Apply Travis CI to Apache Storm Project
  * STORM-721: Storm UI server should support SSL.
  * STORM-583: Add Microsoft Azure Event Hub spout implementations

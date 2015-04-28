@@ -1,4 +1,18 @@
 ## 0.11.0
+ * STORM-704: Apply Travis CI to Apache Storm Project
+ * STORM-721: Storm UI server should support SSL.
+ * STORM-583: Add Microsoft Azure Event Hub spout implementations
+ * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread
+ * STORM-730: remove extra curly brace
+ * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
+ * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change
+ * STORM-746: Skip ack init when there are no output tasks
+ * STORM-483: provide dedicated directories for classpath extension
+ * STORM-764: Have option to compress thrift heartbeat
+ * STORM-787: test-ns should announce test failures with 'BUILD FAILURE'
+ * STORM-789: Send more topology context to Multi-Lang components via initial handshake
+ * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
+ * STORM-766: Include version info in the service page
  * STORM-786: KafkaBolt should ack tick tuples
  * STORM-791: Storm UI displays maps in the config incorrectly
  * STORM-788: UI Fix key for process latencies

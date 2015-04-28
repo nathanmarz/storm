@@ -234,7 +234,7 @@ public class RedisMapState<T> implements IBackingMap<T> {
                 return deserializeValues(keys, values);
             } finally {
                 if (jedis != null) {
-                    jedisPool.returnResource(jedis);
+                    jedis.close();
                 }
             }
         } else {
@@ -245,7 +245,7 @@ public class RedisMapState<T> implements IBackingMap<T> {
                 return deserializeValues(keys, values);
             } finally {
                 if (jedis != null) {
-                    jedisPool.returnResource(jedis);
+                    jedis.close();
                 }
             }
         }
@@ -284,7 +284,7 @@ public class RedisMapState<T> implements IBackingMap<T> {
                 jedis.mset(keyValue);
             } finally {
                 if (jedis != null) {
-                    jedisPool.returnResource(jedis);
+                    jedis.close();
                 }
             }
         } else {
@@ -298,7 +298,9 @@ public class RedisMapState<T> implements IBackingMap<T> {
                 jedis.hmset(this.options.hkey, keyValues);
 
             } finally {
-                jedisPool.returnResource(jedis);
+                if (jedis != null) {
+                    jedis.close();
+                }
             }
         }
     }

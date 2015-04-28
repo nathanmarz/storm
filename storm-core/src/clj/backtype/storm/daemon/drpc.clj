@@ -200,7 +200,7 @@
           drpc-port (int (conf DRPC-PORT))
           drpc-service-handler (service-handler conf)
           ;; requests and returns need to be on separate thread pools, since calls to
-          ;; "execute" don't unblock until other thrift methods are called. So if 
+          ;; "execute" don't unblock until other thrift methods are called. So if
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
           handler-server (when (> drpc-port 0)
@@ -210,7 +210,7 @@
           invoke-server (ThriftServer. conf
                           (DistributedRPCInvocations$Processor. drpc-service-handler)
                           ThriftConnectionType/DRPC_INVOCATIONS)
-          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)] 
+          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
       (add-shutdown-hook-with-force-kill-in-1-sec (fn []
                                                     (if handler-server (.stop handler-server))
                                                     (.stop invoke-server)))
@@ -225,7 +225,13 @@
               https-port (int (conf DRPC-HTTPS-PORT))
               https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
-              https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)]
+              https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)
+              https-key-password (conf DRPC-HTTPS-KEY-PASSWORD)
+              https-ts-path (conf DRPC-HTTPS-TRUSTSTORE-PATH)
+              https-ts-password (conf DRPC-HTTPS-TRUSTSTORE-PASSWORD)
+              https-ts-type (conf DRPC-HTTPS-TRUSTSTORE-TYPE)
+              https-want-client-auth (conf DRPC-HTTPS-WANT-CLIENT-AUTH)
+              https-need-client-auth (conf DRPC-HTTPS-NEED-CLIENT-AUTH)]
 
           (storm-run-jetty
            {:port drpc-http-port
@@ -234,10 +240,17 @@
                                         https-port
                                         https-ks-path
                                         https-ks-password
-                                        https-ks-type)
+                                        https-ks-type
+                                        https-key-password
+                                        https-ts-path
+                                        https-ts-password
+                                        https-ts-type
+                                        https-need-client-auth
+                                        https-want-client-auth)
                             (config-filter server app filters-confs))})))
       (when handler-server
         (.serve handler-server)))))
 
 (defn -main []
+  (setup-default-uncaught-exception-handler)
   (launch-server!))

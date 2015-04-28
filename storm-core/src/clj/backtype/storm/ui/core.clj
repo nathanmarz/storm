@@ -580,7 +580,8 @@
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
        "slotsTotal" (.get_num_workers s)
-       "slotsUsed" (.get_num_used_workers s)})}))
+       "slotsUsed" (.get_num_used_workers s)
+       "version" (.get_version s)})}))
 
 (defn all-topologies-summary
   ([]
@@ -1069,10 +1070,32 @@
     (let [conf *STORM-CONF*
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
-                          :filter-params (conf UI-FILTER-PARAMS)}]]
+                          :filter-params (conf UI-FILTER-PARAMS)}]
+          https-port (if (not-nil? (conf UI-HTTPS-PORT)) (conf UI-HTTPS-PORT) 0)
+          https-ks-path (conf UI-HTTPS-KEYSTORE-PATH)
+          https-ks-password (conf UI-HTTPS-KEYSTORE-PASSWORD)
+          https-ks-type (conf UI-HTTPS-KEYSTORE-TYPE)
+          https-key-password (conf UI-HTTPS-KEY-PASSWORD)
+          https-ts-path (conf UI-HTTPS-TRUSTSTORE-PATH)
+          https-ts-password (conf UI-HTTPS-TRUSTSTORE-PASSWORD)
+          https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
+          https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
+          https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)
+                        :https-port https-port
                         :configurator (fn [server]
+                                        (config-ssl server
+                                                    https-port
+                                                    https-ks-path
+                                                    https-ks-password
+                                                    https-ks-type
+                                                    https-key-password
+                                                    https-ts-path
+                                                    https-ts-password
+                                                    https-ts-type
+                                                    https-need-client-auth
+                                                    https-want-client-auth)
                                         (doseq [connector (.getConnectors server)]
                                           (.setRequestHeaderSize connector header-buffer-size))
                                         (config-filter server app filters-confs))}))

@@ -29,6 +29,7 @@ target
 *.iws
 .idea
 .*
+!/.travis.yml
 !/.gitignore
 _site
 dependency-reduced-pom.xml

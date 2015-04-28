@@ -24,6 +24,7 @@
            [org.apache.commons.io FileUtils]
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
+  (:import [backtype.storm.utils VersionInfo])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]]
             [backtype.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
@@ -288,6 +289,7 @@
    :isupervisor isupervisor
    :active (atom true)
    :uptime (uptime-computer)
+   :version (str (VersionInfo/getVersion))
    :worker-thread-pids-atom (atom {})
    :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                      (Utils/isZkAuthenticationConfiguredStormServer
@@ -505,11 +507,13 @@
                                                  (:my-hostname supervisor)
                                                  (:assignment-id supervisor)
                                                  (keys @(:curr-assignment supervisor))
-                                                 ;; used ports
+                                                  ;; used ports
                                                  (.getMetadata isupervisor)
                                                  (conf SUPERVISOR-SCHEDULER-META)
-                                                 ((:uptime supervisor)))))]
+                                                 ((:uptime supervisor))
+                                                 (:version supervisor))))]
     (heartbeat-fn)
+
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
     (schedule-recurring (:heartbeat-timer supervisor)
                         0
@@ -664,7 +668,7 @@
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
-          classpath (-> (current-classpath)
+          classpath (-> (worker-classpath)
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
@@ -795,4 +799,5 @@
         ))))
 
 (defn -main []
+  (setup-default-uncaught-exception-handler)
   (-launch (standalone-supervisor)))

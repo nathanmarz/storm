@@ -12,7 +12,9 @@
     (.set_used_ports (map long (:used-ports supervisor-info)))
     (.set_meta (map long (:meta supervisor-info)))
     (.set_scheduler_meta (:scheduler-meta supervisor-info))
-    (.set_uptime_secs (long (:uptime-secs supervisor-info)))))
+    (.set_uptime_secs (long (:uptime-secs supervisor-info)))
+    (.set_version (:version supervisor-info))
+    ))
 
 (defn clojurify-supervisor-info [^SupervisorInfo supervisor-info]
   (if supervisor-info
@@ -23,7 +25,8 @@
       (if (.get_used_ports supervisor-info) (into [] (.get_used_ports supervisor-info)))
       (if (.get_meta supervisor-info) (into [] (.get_meta supervisor-info)))
       (if (.get_scheduler_meta supervisor-info) (into {} (.get_scheduler_meta supervisor-info)))
-      (.get_uptime_secs supervisor-info))))
+      (.get_uptime_secs supervisor-info)
+      (.get_version supervisor-info))))
 
 (defn thriftify-assignment [assignment]
   (doto (Assignment.)

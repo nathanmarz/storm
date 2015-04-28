@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-607: storm-hbase HBaseMapState should support user to customize the hbase-key & hbase-qualifier
  * STORM-795: Update the user document for the extlib issue
  * STORM-801: Add Travis CI badge to README
  * STORM-797: DisruptorQueueTest has some race conditions in it.

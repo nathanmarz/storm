@@ -161,6 +161,7 @@
         <module>storm-multilang/python</module>
         <module>storm-multilang/ruby</module>
         <module>storm-core</module>
+        <!--
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
@@ -169,6 +170,7 @@
         <module>external/storm-jdbc</module>
         <module>external/storm-redis</module>
         <module>external/storm-eventhubs</module>
+        -->
     </modules>
 
     <scm>

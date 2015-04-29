@@ -59,7 +59,13 @@
                 <exclude>**/target/**</exclude>
             </excludes>
         </fileSet>
-
+        <fileSet>
+          <directory>${project.basedir}/../../storm-core/target/native/target/usr/local/bin/</directory>
+          <includes>
+            <include>worker-launcher</include>
+          </includes>
+          <outputDirectory>bin</outputDirectory>
+        </fileSet>
         <!-- EXTERNAL -->
         <fileSet>
             <directory>${project.basedir}/../../external/storm-kafka/target</directory>
@@ -103,14 +109,79 @@
                 <include>README.*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-jdbc/target</directory>
+            <outputDirectory>external/storm-jdbc</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-jdbc</directory>
+            <outputDirectory>external/storm-jdbc</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hive/target</directory>
+            <outputDirectory>external/storm-hive</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-hive</directory>
+            <outputDirectory>external/storm-hive</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-eventhubs/target</directory>
+            <outputDirectory>external/storm-eventhubs</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-eventhubs</directory>
+            <outputDirectory>external/storm-eventhubs</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-eventhubs/src/main/resources</directory>
+            <outputDirectory>external/storm-eventhubs</outputDirectory>
+            <includes>
+                <include>Config.properties</include>
+            </includes>
+        </fileSet>
 
+        <!-- $STORM_HOME/extlib -->
+        <fileSet>
+            <directory></directory>
+            <outputDirectory>extlib</outputDirectory>
+            <includes>
+                <include></include>
+            </includes>
+        </fileSet>
+        <!-- $STORM_HOME/extlib-daemon, for daemons only -->
+        <fileSet>
+            <directory></directory>
+            <outputDirectory>extlib-daemon</outputDirectory>
+            <includes>
+                <include></include>
+            </includes>
+        </fileSet>
 
     </fileSets>
 
     <files>
         <!-- EXAMPLES -->
         <file>
-            <source>${project.basedir}/../../examples/storm-starter/target/storm-starter-${project.version}-jar-with-dependencies.jar</source>
+            <source>${project.basedir}/../../examples/storm-starter/target/storm-starter-${project.version}.jar</source>
             <outputDirectory>/examples/storm-starter/</outputDirectory>
             <destName>storm-starter-topologies-${project.version}.jar</destName>
         </file>
@@ -130,13 +201,6 @@
             <destName>storm_env.ini</destName>
         </file>
         <!-- TODO this should be a generated file from "target" -->
-        <file>
-            <source>${project.basedir}/../../VERSION</source>
-            <outputDirectory>/</outputDirectory>
-            <destName>RELEASE</destName>
-            <filtered>true</filtered>
-        </file>
-
         <file>
             <source>${project.basedir}/../../logback/cluster.xml</source>
             <outputDirectory>/logback</outputDirectory>

@@ -15,15 +15,13 @@
 ;; limitations under the License.
 (ns backtype.storm.scheduler.multitenant-scheduler-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing log])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [backtype.storm.scheduler.multitenant Node NodePool FreePool DefaultPool
             IsolatedPool MultitenantScheduler]))
-
-(bootstrap)
 
 (defn gen-supervisors [count]
   (into {} (for [id (range count)
@@ -622,6 +620,8 @@
       (is (= 4 (.size assigned-slots)))
       (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     )
+    ;;The text can be off for a bit until we schedule again
+    (.scheduleAsNeeded isolated-pool (into-array NodePool [free-pool]))
     (is (= "Max Nodes(2) for this user would be exceeded. 1 more nodes needed to run topology." (.get (.getStatusMap cluster) "topology1")))
     (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
 ))

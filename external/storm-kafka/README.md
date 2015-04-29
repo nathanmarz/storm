@@ -18,7 +18,7 @@ Kafka's zookeeper's entries to track brokerHost -> partition mapping. You can in
     public ZkHosts(String brokerZkStr, String brokerZkPath) 
     public ZkHosts(String brokerZkStr)
 ```
-Where brokerZkStr is just ip:port e.g. localhost:9092. brokerZkPath is the root directory under which all the topics and
+Where brokerZkStr is just ip:port e.g. localhost:2181. brokerZkPath is the root directory under which all the topics and
 partition information is stored. by Default this is /brokers which is what default kafka implementation uses.
 
 By default the broker-partition mapping is refreshed every 60 seconds from zookeeper. If you want to change it you
@@ -51,17 +51,29 @@ The optional ClientId is used as a part of the zookeeper path where the spout's 
 
 There are 2 extensions of KafkaConfig currently in use.
 
-SpoutConfig is an extension of KafkaConfig that supports 2 additional fields, zkroot and id. The Zkroot will be used
-as root to store your consumer's offset. The id should uniquely identify your spout.
+Spoutconfig is an extension of KafkaConfig that supports additional fields with ZooKeeper connection info and for controlling
+behavior specific to KafkaSpout. The Zkroot will be used as root to store your consumer's offset. The id should uniquely
+identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);
+public SpoutConfig(BrokerHosts hosts, String topic, String id);
+```
+In addition to these parameters, SpoutConfig contains the following fields that control how KafkaSpout behaves:
+```java
+    // setting for how often to save the current kafka offset to ZooKeeper
+    public long stateUpdateIntervalMs = 2000;
+
+    // Exponential back-off retry settings.  These are used when retrying messages after a bolt
+    // calls OutputCollector.fail().
+    // Note: be sure to set backtype.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
+    // resubmitting the message while still retrying.
+    public long retryInitialDelayMs = 0;
+    public double retryDelayMultiplier = 1.0;
+    public long retryDelayMaxMs = 60 * 1000;
 ```
 Core KafkaSpout only accepts an instance of SpoutConfig.
 
 TridentKafkaConfig is another extension of KafkaConfig.
-```java
-public SpoutConfig(BrokerHosts hosts, String topic, String id);
-```
 TridentKafkaEmitter only accepts TridentKafkaConfig.
 
 The KafkaConfig class also has bunch of public variables that controls your application's behavior. Here are defaults:
@@ -71,7 +83,7 @@ The KafkaConfig class also has bunch of public variables that controls your appl
     public int fetchMaxWait = 10000;
     public int bufferSizeBytes = 1024 * 1024;
     public MultiScheme scheme = new RawMultiScheme();
-    public boolean forceFromStart = false;
+    public boolean ignoreZkOffsets = false;
     public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
     public long maxOffsetBehind = Long.MAX_VALUE;
     public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
@@ -88,18 +100,23 @@ also controls the naming of your output field.
   public Fields getOutputFields();
 ```
 
-The default RawMultiScheme just takes the byte[] and returns a tuple with byte[] as is. The name of the outputField is
-"bytes". There are alternative implementation like SchemeAsMultiScheme and KeyValueSchemeAsMultiScheme which can convert
-the byte[] to String. 
+The default `RawMultiScheme` just takes the `byte[]` and returns a tuple with `byte[]` as is. The name of the
+outputField is "bytes".  There are alternative implementation like `SchemeAsMultiScheme` and
+`KeyValueSchemeAsMultiScheme` which can convert the `byte[]` to `String`.
+
+
 ### Examples
-####Core Spout
+
+#### Core Spout
+
 ```java
 BrokerHosts hosts = new ZkHosts(zkConnString);
 SpoutConfig spoutConfig = new SpoutConfig(hosts, topicName, "/" + topicName, UUID.randomUUID().toString());
 spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 KafkaSpout kafkaSpout = new KafkaSpout(spoutConfig);
 ```
-####Trident Spout
+
+#### Trident Spout
 ```java
 TridentTopology topology = new TridentTopology();
 BrokerHosts zk = new ZkHosts("localhost");
@@ -107,6 +124,33 @@ TridentKafkaConfig spoutConf = new TridentKafkaConfig(zk, "test-topic");
 spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
 OpaqueTridentKafkaSpout spout = new OpaqueTridentKafkaSpout(spoutConf);
 ```
+
+
+### How KafkaSpout stores offsets of a Kafka topic and recovers in case of failures
+
+As shown in the above KafkaConfig properties, you can control from where in the Kafka topic the spout begins to read by
+setting `KafkaConfig.startOffsetTime` as follows:
+
+1. `kafka.api.OffsetRequest.EarliestTime()`:  read from the beginning of the topic (i.e. from the oldest messages onwards)
+2. `kafka.api.OffsetRequest.LatestTime()`: read from the end of the topic (i.e. any new messsages that are being written to the topic)
+3. A Unix timestamp aka seconds since the epoch (e.g. via `System.currentTimeMillis()`):
+   see [How do I accurately get offsets of messages for a certain timestamp using OffsetRequest?](https://cwiki.apache.org/confluence/display/KAFKA/FAQ#FAQ-HowdoIaccuratelygetoffsetsofmessagesforacertaintimestampusingOffsetRequest?) in the Kafka FAQ
+
+As the topology runs the Kafka spout keeps track of the offsets it has read and emitted by storing state information
+under the ZooKeeper path `SpoutConfig.zkRoot+ "/" + SpoutConfig.id`.  In the case of failures it recovers from the last
+written offset in ZooKeeper.
+
+> **Important:**  When re-deploying a topology make sure that the settings for `SpoutConfig.zkRoot` and `SpoutConfig.id`
+> were not modified, otherwise the spout will not be able to read its previous consumer state information (i.e. the
+> offsets) from ZooKeeper -- which may lead to unexpected behavior and/or to data loss, depending on your use case.
+
+This means that when a topology has run once the setting `KafkaConfig.startOffsetTime` will not have an effect for
+subsequent runs of the topology because now the topology will rely on the consumer state information (offsets) in
+ZooKeeper to determine from where it should begin (more precisely: resume) reading.
+If you want to force the spout to ignore any consumer state information stored in ZooKeeper, then you should
+set the parameter `KafkaConfig.ignoreZkOffsets` to `true`.  If `true`, the spout will always begin reading from the
+offset defined by `KafkaConfig.startOffsetTime` as described above.
+
 
 ## Using storm-kafka with different versions of Scala
 

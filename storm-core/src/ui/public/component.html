@@ -17,38 +17,57 @@
 -->
 <html><head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Storm UI</title>
-<link href="/css/bootstrap-1.4.0.css" rel="stylesheet" type="text/css">
+<link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
+<link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
+<link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
 <link href="/css/style.css" rel="stylesheet" type="text/css">
-<script src="/js/jquery-1.6.2.min.js" type="text/javascript"></script>
-<script src="/js/jquery.tablesorter.min.js" type="text/javascript"></script>
+<script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
 <script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
 <script src="/js/jquery.mustache.js" type="text/javascript"></script>
 <script src="/js/url.min.js" type="text/javascript"></script>
-<script src="/js/bootstrap-twipsy.js" type="text/javascript"></script>
+<script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
 <script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
-<script src="/js/script.js" type="text/javascript"></script>
 <script src="/js/moment.min.js" type="text/javascript"></script>
+<script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
 </head>
 <body>
-<div id="ui-user">
-</div>
-<h1><a href="/">Storm UI</a></h1>
-<div id="component-summary">
-</div>
-<div id="component-stats-detail">
-</div>
-<div id="component-input-stats">
-</div>
-<div id="component-output-stats">
-</div>
-<div id="component-executor-stats">
-</div>
-<div id="component-errors">
-</div>
-<div id="json-response-error">
-</div>
-<p id="toggle-switch" style="display: block;" class="js-only"></p>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-11">
+      <h1><a href="/">Storm UI</a></h1>
+    </div>
+    <div id="ui-user" class="col-md-1"></div>
+  </div>
+  <div class="row">
+    <div id="component-summary" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="component-stats-detail" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="component-input-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="component-output-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="component-executor-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="component-errors" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="json-response-error" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-1">
+      <p id="toggle-switch" style="display: block;" class="js-only"></p>
+    </div>
+  </div>
 <script>
 $(document).ajaxStop($.unblockUI);
 $(document).ajaxStart(function(){
@@ -57,10 +76,24 @@ $(document).ajaxStart(function(){
 $(document).ready(function() {
     var componentId = $.url("?id");
     var topologyId = $.url("?topology_id");
+    var tableStateKey = ":".concat(topologyId, ":", componentId);
     var window = $.url("?window");
     var sys = $.cookies.get("sys") || "false";
     var url = "/api/v1/topology/"+topologyId+"/component/"+componentId+"?sys="+sys;
     if(window) url += "&window="+window;
+
+    $.extend( $.fn.dataTable.defaults, {
+      stateSave: true,
+      stateSaveCallback: function (oSettings, oData) {
+        sessionStorage.setItem( oSettings.sTableId.concat(tableStateKey), JSON.stringify(oData) );
+      },
+      stateLoadCallback: function (oSettings) {
+        return JSON.parse( sessionStorage.getItem(oSettings.sTableId.concat(tableStateKey)) );
+      },
+      lengthMenu: [[20,40,60,100,-1], [20, 40, 60, 100, "All"]],
+      pageLength: 20
+    });
+
     renderToggleSys($("#toggle-switch"));
     $.ajaxSetup({
         "error":function(jqXHR,textStatus,response) {
@@ -75,6 +108,7 @@ $(document).ready(function() {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+            $('#ui-user [data-toggle="tooltip"]').tooltip()
         });
 
         var componentSummary = $("#component-summary");
@@ -87,39 +121,71 @@ $(document).ready(function() {
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
-                if (response["spoutSummary"].length > 0) {
-                    $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-                }
+                //window, emitted, transferred, complete latency, acked, failed
+                $("#spout-stats-table").DataTable({
+                  paging: false,
+                  info: false,
+                  searching: false,
+                  columnDefs: [
+                    {type: "num", targets: [1, 2, 3, 4, 5]},
+                    {type: "time-str", targets: [0]}
+                  ]
+                });
+
                 outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
-                if (response["outputStats"].length > 0) {
-                    $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-                }
+                //stream, emitted, transferred, compltete latency, acked, failed
+                dtAutoPage("#output-stats-table", {
+                  columnDefs: [
+                    {type: "num", targets: [1, 2, 3, 4, 5]}
+                  ]
+                });
+
                 executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
-                if (response["executorStats"].length > 0) {
-                    $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
-                }
+                //id, uptime, host, port, emitted, transferred, complete latency, acked, failed
+                dtAutoPage("#executor-stats-table", {
+                  columnDefs: [
+                    {type: "num", targets: [4, 5, 6, 7, 8]},
+                    {type: "time-str", targets: [1]}
+                  ]
+                });
             } else {
                 componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
-                if (response["boltStats"].length > 0) {
-                    $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-                }
+                //window, emitted, transferred, execute latency, executed, process latency, acked, failed
+                dtAutoPage("#bolt-stats-table", {
+                  columnDefs: [
+                    {type: "num", targets: [1, 2, 3, 4, 5, 6, 7]},
+                    {type: "time-str", targets: [0]}
+                  ]
+                });
+
                 inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
-                if (response["inputStats"].length > 0) {
-                    $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
-                }
+                //component, stream, execute latency, executed, process latency, acked, failed
+                dtAutoPage("#bolt-input-stats-table", {
+                  columnDefs: [
+                    {type: "num", targets: [2, 3, 4, 5, 6]}
+                  ]
+                });
+
                 outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
-                if (response["outputStats"].length > 0) {
-                    $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
-                }
+                //stream, emitted, transferred
+                dtAutoPage("#bolt-output-stats-table", {
+                  columnDefs: [
+                    {type: "num", targets: [1, 2]}
+                  ]
+                });
+
                 executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
-                if(response["executorStats"].length > 0) {
-                    $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: { 1: { sorter: "stormtimestr"}}});
-                }
+                //id, uptime, host, port, emitted, transferred, capacity, execute latency, executed, process latency, acked, failed
+                dtAutoPage("#bolt-executor-table", {
+                  columnDefs: [
+                    {type: "num", targets: [4, 5, 6, 7, 8, 9, 10, 11]},
+                    {type: "time-str", targets: [1]}
+                  ]
+                });
             }
             componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),formatErrorTimeSecs(response)));
-            if(response["componentErrors"].length > 0) {
-                $("#component-errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
-            }
+            //time, error
+            dtAutoPage("#component-errors-table", {});
 
             var errorCells = document.getElementsByClassName("errorSpan");
             for (i =0; i < errorCells.length; i++)
@@ -130,9 +196,16 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
+            $('#component-summary [data-toggle="tooltip"]').tooltip();
+            $('#component-stats-detail [data-toggle="tooltip"]').tooltip();
+            $('#component-input-stats [data-toggle="tooltip"]').tooltip();
+            $('#component-output-stats [data-toggle="tooltip"]').tooltip();
+            $('#component-executor-stats [data-toggle="tooltip"]').tooltip();
+            $('#component-errors [data-toggle="tooltip"]').tooltip();
         });
     });
 });
 </script>
+</div>
 </body>
 </html>

@@ -123,9 +123,10 @@ GitHub.
 
 ## Contribute documentation
 
-Documentation contributions are very welcome!  The best way to send contributions is as emails through the
-[Storm Developers](http://storm.apache.org/community.html) mailing list.
+Documentation contributions are very welcome!
 
+You can contribute documentation by pull request, as same as code contribution.
+Main directory is ```docs/```, and you can refer to docs/README.md for how to build / test website.
 
 <a name="pull-requests"></a>
 
@@ -227,6 +228,8 @@ To pull in a merge request you should generally follow the command line instruct
 The following commands must be run from the top-level directory.
 
     # Build the code and run the tests (requires nodejs, python and ruby installed) 
+    # `mvn clean package` will fail because storm-core requires storm-maven-plugin.
+    # This plugin should be installed before compiling storm-core.
     $ mvn clean install
 
     # Build the code and run the tests, with specifying default test timeout (in millisecond)
@@ -235,6 +238,35 @@ The following commands must be run from the top-level directory.
 
     # Build the code but skip the tests
     $ mvn clean install -DskipTests=true
+
+In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
+
+```sh
+cd storm-core/src
+sh genthrift.sh
+```
+
+You can also run tests selectively via the Clojure REPL.  The following example runs the tests in
+[auth_test.clj](storm-core/test/clj/backtype/storm/security/auth/auth_test.clj), which has the namespace
+`backtype.storm.security.auth.auth-test`.
+
+First, start the REPL from within the relevant sub-project (here: `storm-core`):
+
+    $ cd storm-core/
+    $ mvn clojure:repl
+
+Now we run the tests in `auth_test.clj` in the REPL:
+
+```clojure
+;; You can use both absolute as well as relative paths to the .clj file.
+(load-file "test/clj/backtype/storm/security/auth/auth_test.clj")
+(ns backtype.storm.security.auth.auth-test)
+(run-tests)
+```
+
+> Tip: IDEs such as IntelliJ IDEA support a built-in Clojure REPL, which you can also use to run tests selectively.
+> Sometimes you may find that tests pass/fail depending on which REPL you use, which -- although frustrating --
+> can be helpful to narrow down errors.
 
 
 <a name="packaging"></a>

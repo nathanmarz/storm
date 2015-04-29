@@ -63,7 +63,7 @@ public class SequenceFileTopology {
         FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
-                .withPath("/source/")
+                .withPath("/tmp/source/")
                 .withExtension(".seq");
 
         // create sequence format instance.
@@ -77,7 +77,7 @@ public class SequenceFileTopology {
                 .withSyncPolicy(syncPolicy)
                 .withCompressionType(SequenceFile.CompressionType.RECORD)
                 .withCompressionCodec("deflate")
-                .addRotationAction(new MoveFileAction().toDestination("/dest/"));
+                .addRotationAction(new MoveFileAction().toDestination("/tmp/dest/"));
 
 
 

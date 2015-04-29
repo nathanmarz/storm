@@ -22,6 +22,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.InetAddress;
 import com.google.common.annotations.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
@@ -39,6 +42,10 @@ public class ReqContext {
     private InetAddress _remoteAddr;
     private Integer _reqID;
     private Map _storm_conf;
+    private Principal realPrincipal;
+
+    private static final Logger LOG = LoggerFactory.getLogger(ReqContext.class);
+
 
     /**
      * Get a request context associated with current thread
@@ -87,7 +94,7 @@ public class ReqContext {
      * Set remote subject explicitly
      */
     public void setSubject(Subject subject) {
-        _subject = subject;	
+        _subject = subject;
     }
 
     /**
@@ -106,6 +113,24 @@ public class ReqContext {
         if (princs.size()==0) return null;
         return (Principal) (princs.toArray()[0]);
     }
+
+    public void setRealPrincipal(Principal realPrincipal) {
+        this.realPrincipal = realPrincipal;
+    }
+    /**
+     * The real principal associated with the subject.
+     */
+    public Principal realPrincipal() {
+        return this.realPrincipal;
+    }
+
+    /**
+     * Returns true if this request is an impersonation request.
+     * @return
+     */
+    public boolean isImpersonating() {
+        return this.realPrincipal != null;
+    }
     
     /**
      * request ID of this request
@@ -113,4 +138,5 @@ public class ReqContext {
     public Integer requestID() {
         return _reqID;
     }
+
 }

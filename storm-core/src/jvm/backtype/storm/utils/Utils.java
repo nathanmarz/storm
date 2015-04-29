@@ -17,37 +17,18 @@
  */
 package backtype.storm.utils;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.zip.GZIPOutputStream;
-import java.util.zip.GZIPInputStream;
-
+import backtype.storm.Config;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.ComponentCommon;
+import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.StormTopology;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
+import clojure.lang.IFn;
+import clojure.lang.RT;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
@@ -58,14 +39,17 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-import backtype.storm.Config;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.AuthorizationException;
-
-import clojure.lang.IFn;
-import clojure.lang.RT;
+import java.io.*;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.*;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
@@ -86,13 +70,69 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
- 
+
     public static byte[] serialize(Object obj) {
         return serializationDelegate.serialize(obj);
     }
 
-    public static Object deserialize(byte[] serialized) {
-        return serializationDelegate.deserialize(serialized);
+    public static <T> T deserialize(byte[] serialized, Class<T> clazz) {
+        return serializationDelegate.deserialize(serialized, clazz);
+    }
+
+    public static byte[] javaSerialize(Object obj) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T javaDeserialize(byte[] serialized, Class<T> clazz) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            Object ret = ois.readObject();
+            ois.close();
+            return (T)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] gzip(byte[] data) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            GZIPOutputStream out = new GZIPOutputStream(bos);
+            out.write(data);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] gunzip(byte[] data) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ByteArrayInputStream bis = new ByteArrayInputStream(data);
+            GZIPInputStream in = new GZIPInputStream(bis);
+            byte[] buffer = new byte[1024];
+            int len = 0;
+            while ((len = in.read(buffer)) >= 0) {
+                bos.write(buffer, 0, len);
+            }
+            in.close();
+            bos.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {
@@ -114,7 +154,7 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static List<URL> findResources(String name) {
         try {
             Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(name);
@@ -129,34 +169,67 @@ public class Utils {
     }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
+        InputStream in = null;
+        boolean confFileEmpty = false;
         try {
-            HashSet<URL> resources = new HashSet<URL>(findResources(name));
-            if(resources.isEmpty()) {
-                if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
-                else return new HashMap();
+            in = getConfigFileInputStream(name);
+            if (null != in) {
+                Yaml yaml = new Yaml(new SafeConstructor());
+                Map ret = (Map) yaml.load(new InputStreamReader(in));
+                if (null != ret) {
+                    return new HashMap(ret);
+                } else {
+                    confFileEmpty = true;
+                }
             }
-            if(resources.size() > 1) {
-                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "
-                  + resources);
-            }
-            URL resource = resources.iterator().next();
-            Yaml yaml = new Yaml(new SafeConstructor());
-            Map ret = null;
-            InputStream input = resource.openStream();
-            try {
-                ret = (Map) yaml.load(new InputStreamReader(input));
-            } finally {
-                input.close();
-            }
-            if(ret==null) ret = new HashMap();
-            
 
-            return new HashMap(ret);
-            
+            if (mustExist) {
+                if(confFileEmpty)
+                    throw new RuntimeException("Config file " + name + " doesn't have any valid storm configs");
+                else
+                    throw new RuntimeException("Could not find config file on classpath " + name);
+            } else {
+                return new HashMap();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            if (null != in) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
+
+    private static InputStream getConfigFileInputStream(String configFilePath)
+            throws IOException {
+        if (null == configFilePath) {
+            throw new IOException(
+                    "Could not find config file, name not specified");
+        }
+
+        HashSet<URL> resources = new HashSet<URL>(findResources(configFilePath));
+        if (resources.isEmpty()) {
+            File configFile = new File(configFilePath);
+            if (configFile.exists()) {
+                return new FileInputStream(configFile);
+            }
+        } else if (resources.size() > 1) {
+            throw new IOException(
+                    "Found multiple " + configFilePath
+                            + " resources. You're probably bundling the Storm jars with your topology jar. "
+                            + resources);
+        } else {
+            LOG.info("Using "+configFilePath+" from resources");
+            URL resource = resources.iterator().next();
+            return resource.openStream();
+        }
+        return null;
+    }
+
 
     public static Map findAndReadConfigFile(String name) {
        return findAndReadConfigFile(name, true);
@@ -165,7 +238,7 @@ public class Utils {
     public static Map readDefaultConfig() {
         return findAndReadConfigFile("defaults.yaml", true);
     }
-    
+
     public static Map readCommandLineOpts() {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
@@ -199,7 +272,7 @@ public class Utils {
         ret.putAll(readCommandLineOpts());
         return ret;
     }
-    
+
     private static Object normalizeConf(Object conf) {
         if(conf==null) return new HashMap();
         if(conf instanceof Map) {
@@ -224,14 +297,14 @@ public class Utils {
             return conf;
         }
     }
-    
+
     public static boolean isValidConf(Map<String, Object> stormConf) {
         return normalizeConf(stormConf).equals(normalizeConf((Map) JSONValue.parse(JSONValue.toJSONString(stormConf))));
     }
 
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {
-            return Utils.deserialize(obj.get_serialized_java());
+            return Utils.javaDeserialize(obj.get_serialized_java(), Serializable.class);
         } else if(obj.getSetField()==ComponentObject._Fields.JAVA_OBJECT) {
             return obj.get_java_object();
         } else {
@@ -246,7 +319,7 @@ public class Utils {
         }
         return ret;
     }
-    
+
     public static List<Object> tuple(Object... values) {
         List<Object> ret = new ArrayList<Object>();
         for(Object v: values) {
@@ -266,20 +339,20 @@ public class Utils {
         }
         out.close();
     }
-    
+
     public static IFn loadClojureFn(String namespace, String name) {
         try {
           clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));
         } catch (Exception e) {
           //if playing from the repl and defining functions, file won't exist
         }
-        return (IFn) RT.var(namespace, name).deref();        
+        return (IFn) RT.var(namespace, name).deref();
     }
-    
+
     public static boolean isSystemId(String id) {
         return id.startsWith("__");
     }
-        
+
     public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
         Map<V, K> ret = new HashMap<V, K>();
         for(K key: map.keySet()) {
@@ -287,7 +360,7 @@ public class Utils {
         }
         return ret;
     }
-    
+
     public static ComponentCommon getComponentCommon(StormTopology topology, String id) {
         if(topology.get_spouts().containsKey(id)) {
             return topology.get_spouts().get(id).get_common();
@@ -300,7 +373,7 @@ public class Utils {
         }
         throw new IllegalArgumentException("Could not find component with id " + id);
     }
-    
+
     public static Integer getInt(Object o) {
       Integer result = getInt(o, null);
       if (null == result) {
@@ -308,7 +381,7 @@ public class Utils {
       }
       return result;
     }
-    
+
     public static Integer getInt(Object o, Integer defaultValue) {
       if (null == o) {
         return defaultValue;
@@ -334,18 +407,18 @@ public class Utils {
       if (null == o) {
         return defaultValue;
       }
-      
+
       if(o instanceof Boolean) {
           return (Boolean) o;
       } else {
           throw new IllegalArgumentException("Don't know how to convert " + o + " + to boolean");
       }
     }
-    
+
     public static long secureRandomLong() {
         return UUID.randomUUID().getLeastSignificantBits();
     }
-    
+
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
         return newCurator(conf, servers, port, root, null);
     }
@@ -359,7 +432,7 @@ public class Utils {
         CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder();
 
         setupBuilder(builder, zkStr, conf, auth);
-        
+
         return builder.build();
     }
 
@@ -392,8 +465,8 @@ public class Utils {
         CuratorFramework ret = newCurator(conf, servers, port, auth);
         ret.start();
         return ret;
-    }    
-    
+    }
+
     /**
      *
 (defn integer-divided [sum num-pieces]
@@ -406,9 +479,9 @@ public class Utils {
       )))
      * @param sum
      * @param numPieces
-     * @return 
+     * @return
      */
-    
+
     public static TreeMap<Integer, Integer> integerDivided(int sum, int numPieces) {
         int base = sum / numPieces;
         int numInc = sum % numPieces;
@@ -533,4 +606,21 @@ public class Utils {
         delegate.prepare(stormConf);
         return delegate;
     }
+
+  public static void handleUncaughtException(Throwable t) {
+    if (t != null && t instanceof Error) {
+      if (t instanceof OutOfMemoryError) {
+        try {
+          System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
+        } catch (Throwable err) {
+          //Again we don't want to exit because of logging issues.
+        }
+        Runtime.getRuntime().halt(-1);
+      } else {
+        //Running in daemon mode, we would pass Error to calling thread.
+        throw (Error) t;
+      }
+    }
+  }
 }
+

@@ -41,7 +41,7 @@ public class GzipBridgeSerializationDelegateTest {
 
         byte[] serialized = new GzipSerializationDelegate().serialize(pojo);
 
-        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized);
+        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized, TestPojo.class);
 
         assertEquals(pojo2.name, pojo.name);
         assertEquals(pojo2.age, pojo.age);
@@ -55,7 +55,7 @@ public class GzipBridgeSerializationDelegateTest {
 
         byte[] serialized = new GzipBridgeSerializationDelegate().serialize(pojo);
 
-        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized);
+        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized, TestPojo.class);
 
         assertEquals(pojo2.name, pojo.name);
         assertEquals(pojo2.age, pojo.age);
@@ -69,7 +69,7 @@ public class GzipBridgeSerializationDelegateTest {
 
         byte[] serialized = new DefaultSerializationDelegate().serialize(pojo);
 
-        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized);
+        TestPojo pojo2 = (TestPojo)testDelegate.deserialize(serialized, TestPojo.class);
 
         assertEquals(pojo2.name, pojo.name);
         assertEquals(pojo2.age, pojo.age);

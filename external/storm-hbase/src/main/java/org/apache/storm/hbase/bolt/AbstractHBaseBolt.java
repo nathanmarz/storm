@@ -17,6 +17,7 @@
  */
 package org.apache.storm.hbase.bolt;
 
+import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.base.BaseRichBolt;
@@ -28,6 +29,7 @@ import org.apache.storm.hbase.common.HBaseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 
 // TODO support more configuration options, for now we're defaulting to the hbase-*.xml files found on the classpath
@@ -57,6 +59,7 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
         if(conf == null) {
             throw new IllegalArgumentException("HBase configuration not found using key '" + this.configKey + "'");
         }
+
         if(conf.get("hbase.rootdir") == null) {
             LOG.warn("No 'hbase.rootdir' value found in configuration! Using HBase defaults.");
         }
@@ -64,6 +67,10 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
             hbConfig.set(key, String.valueOf(conf.get(key)));
         }
 
-        this.hBaseClient = new HBaseClient(conf, hbConfig, tableName);
+        //heck for backward compatibility, we need to pass TOPOLOGY_AUTO_CREDENTIALS to hbase conf
+        //the conf instance is instance of persistentMap so making a copy.
+        Map<String, Object> hbaseConfMap = new HashMap<String, Object>(conf);
+        hbaseConfMap.put(Config.TOPOLOGY_AUTO_CREDENTIALS, map.get(Config.TOPOLOGY_AUTO_CREDENTIALS));
+        this.hBaseClient = new HBaseClient(hbaseConfMap, hbConfig, tableName);
     }
 }

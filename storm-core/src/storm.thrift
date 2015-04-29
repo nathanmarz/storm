@@ -153,6 +153,7 @@ struct SupervisorSummary {
   3: required i32 num_workers;
   4: required i32 num_used_workers;
   5: required string supervisor_id;
+  6: optional string version = "VERSION_NOT_PROVIDED";
 }
 
 struct ClusterSummary {
@@ -193,6 +194,7 @@ struct ExecutorStats {
   1: required map<string, map<string, i64>> emitted;
   2: required map<string, map<string, i64>> transferred;
   3: required ExecutorSpecificStats specific;
+  4: required double rate;
 }
 
 struct ExecutorInfo {
@@ -243,6 +245,102 @@ struct SubmitOptions {
   2: optional Credentials creds;
 }
 
+struct SupervisorInfo {
+    1: required i64 time_secs;
+    2: required string hostname;
+    3: optional string assignment_id;
+    4: optional list<i64> used_ports;
+    5: optional list<i64> meta;
+    6: optional map<string, string> scheduler_meta;
+    7: optional i64 uptime_secs;
+    8: optional string version;
+}
+
+struct NodeInfo {
+    1: required string node;
+    2: required set<i64> port;
+}
+
+struct Assignment {
+    1: required string master_code_dir;
+    2: optional map<string, string> node_host = {};
+    3: optional map<list<i64>, NodeInfo> executor_node_port = {};
+    4: optional map<list<i64>, i64> executor_start_time_secs = {};
+}
+
+enum TopologyStatus {
+    ACTIVE = 1,
+    INACTIVE = 2,
+    REBALANCING = 3,
+    KILLED = 4
+}
+
+union TopologyActionOptions {
+    1: optional KillOptions kill_options;
+    2: optional RebalanceOptions rebalance_options;
+}
+
+struct StormBase {
+    1: required string name;
+    2: required TopologyStatus status;
+    3: required i32 num_workers;
+    4: optional map<string, i32> component_executors;
+    5: optional i32 launch_time_secs;
+    6: optional string owner;
+    7: optional TopologyActionOptions topology_action_options;
+    8: optional TopologyStatus prev_status;//currently only used during rebalance action.
+}
+
+struct ClusterWorkerHeartbeat {
+    1: required string storm_id;
+    2: required map<ExecutorInfo,ExecutorStats> executor_stats;
+    3: required i32 time_secs;
+    4: required i32 uptime_secs;
+}
+
+struct ThriftSerializedObject {
+  1: required string name;
+  2: required binary bits;
+}
+
+struct LocalStateData {
+   1: required map<string, ThriftSerializedObject> serialized_parts;
+}
+
+struct LocalAssignment {
+  1: required string topology_id;
+  2: required list<ExecutorInfo> executors;
+}
+
+struct LSSupervisorId {
+   1: required string supervisor_id;
+}
+
+struct LSApprovedWorkers {
+   1: required map<string, i32> approved_workers;
+}
+
+struct LSSupervisorAssignments {
+   1: required map<i32, LocalAssignment> assignments; 
+}
+
+struct LSWorkerHeartbeat {
+   1: required i32 time_secs;
+   2: required string topology_id;
+   3: required list<ExecutorInfo> executors
+   4: required i32 port;
+}
+
+enum NumErrorsChoice {
+  ALL,
+  NONE,
+  ONE
+}
+
+struct GetInfoOptions {
+  1: optional NumErrorsChoice num_err_choice;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -268,9 +366,16 @@ service Nimbus {
   // stats functions
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+   */
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+   */
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
 }
 

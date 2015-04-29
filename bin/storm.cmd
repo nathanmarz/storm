@@ -89,7 +89,7 @@
     %JAVA% %JAVA_HEAP_MAX% %STORM_OPTS% %STORM_LOG_FILE% %CLASS% %storm-command-arguments%
   )
   set path=%PATH%;%STORM_BIN_DIR%;%STORM_SBIN_DIR%
-  call start /b %JAVA% %JAVA_HEAP_MAX% %STORM_OPTS% %STORM_LOG_FILE% %CLASS% %storm-command-arguments%
+  call start /b "%storm-command%" "%JAVA%" %JAVA_HEAP_MAX% %STORM_OPTS% %STORM_LOG_FILE% %CLASS% %storm-command-arguments%
   goto :eof
 
 
@@ -114,8 +114,8 @@
 
 :drpc
   set CLASS=backtype.storm.daemon.drpc
-  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value drpc.childopts > temp.txt
-  FOR /F "delims=" %%i in (temp.txt) do (
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value drpc.childopts > %CMD_TEMP_FILE%
+  FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
 	   set CHILDOPTS=%%b
@@ -140,8 +140,8 @@
 
 :logviewer
   set CLASS=backtype.storm.daemon.logviewer
-   %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value logviewer.childopts > temp.txt
-  FOR /F "delims=" %%i in (temp.txt) do (
+   "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value logviewer.childopts > %CMD_TEMP_FILE%
+  FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
 	   set CHILDOPTS=%%b
@@ -152,8 +152,8 @@
 
 :nimbus
   set CLASS=backtype.storm.daemon.nimbus
-  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value nimbus.childopts > temp.txt
-  FOR /F "delims=" %%i in (temp.txt) do (
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value nimbus.childopts > %CMD_TEMP_FILE%
+  FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
 	   set CHILDOPTS=%%b
@@ -184,8 +184,8 @@
   
 :supervisor
   set CLASS=backtype.storm.daemon.supervisor
-  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value supervisor.childopts > temp.txt
-  FOR /F "delims=" %%i in (temp.txt) do (
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value supervisor.childopts > %CMD_TEMP_FILE%
+  FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
 	   set CHILDOPTS=%%b
@@ -197,8 +197,8 @@
 :ui
   set CLASS=backtype.storm.ui.core
   set CLASSPATH=%CLASSPATH%;%STORM_HOME%
-  %JAVA% -client -Dstorm.options= -Dstorm.conf.file= -cp %CLASSPATH% backtype.storm.command.config_value ui.childopts > temp.txt
-  FOR /F "delims=" %%i in (temp.txt) do (
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value ui.childopts > %CMD_TEMP_FILE%
+  FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
 	   set CHILDOPTS=%%b
@@ -208,7 +208,19 @@
   goto :eof
 
 :version
-  type %STORM_HOME%\RELEASE
+  set CLASS=backtype.storm.utils.VersionInfo
+  set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
+  goto :eof
+
+:makeServiceXml
+  set arguments=%*
+  @echo ^<service^>
+  @echo   ^<id^>storm_%storm-command%^</id^>
+  @echo   ^<name^>storm_%storm-command%^</name^>
+  @echo   ^<description^>This service runs Storm %storm-command%^</description^>
+  @echo   ^<executable^>%JAVA%^</executable^>
+  @echo   ^<arguments^>%arguments%^</arguments^>
+  @echo ^</service^>
   goto :eof
 
 :make_command_arguments
@@ -230,7 +242,7 @@
   
 :set_childopts
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS% %CHILDOPTS%
-  del /F temp.txt
+  del /F %CMD_TEMP_FILE%
   goto :eof
 
 :print_usage

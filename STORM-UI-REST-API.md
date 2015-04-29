@@ -32,6 +32,18 @@ You can use a tool such as `curl` to talk to the REST API:
     # Note: We assume ui.port is configured to the default value of 8080.
     $ curl http://<ui-host>:8080/api/v1/cluster/configuration
 
+##Impersonating a user in secure environment
+In a secure environment an authenticated user can impersonate another user. To impersonate a user the caller must pass
+`doAsUser` param or header with value set to the user that the request needs to be performed as. Please see SECURITY.MD
+to learn more about how to setup impersonation ACLs and authorization. The rest API uses the same configs and acls that
+are used by nimbus.
+
+Examples:
+
+```no-highlight
+ 1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1425844354\?doAsUser=testUSer1
+ 2. curl 'http://localhost:8080/api/v1/topology/wordcount-1-1425844354/activate' -X POST -H 'doAsUser:testUSer1'
+```
 
 ## GET Operations
 
@@ -73,7 +85,8 @@ Response fields:
 |---	|---	|---
 |stormVersion|String| Storm version|
 |nimbusUptime|String| Shows how long the cluster is running|
-|supervisors|Integer|  Number of supervisors running|
+|supervisors|Integer| Number of supervisors running|
+|topologies| Integer| Number of topologies running| 
 |slotsTotal| Integer|Total number of available worker slots|
 |slotsUsed| Integer| Number of worker slots used|
 |slotsFree| Integer |Number of worker slots available|
@@ -218,8 +231,6 @@ Response fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
-|antiForgeryToken| String | CSRF token|
-
 
 Examples:
 
@@ -364,8 +375,7 @@ Sample response:
         "storm.zookeeper.retry.intervalceiling.millis": 30000,
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
-    },
-    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
+    }
 }
 ```
 
@@ -565,23 +575,36 @@ Sample response:
 
 ## POST Operations
 
-### Cross site request forgery (CSRF) prevention in POST requests
 
-In order to prevent CSRF vulnerability, the REST API uses a CSRF token. This is primarily done for the UI, however we
-do not have alternative APIs/paths for UI and non-UI clients.
+### /api/v1/uploadTopology (POST)
 
-The token is generated during the `/api/v1/topology/:id` (GET) request. The JSON response for this GET request contains
-a field called "antiForgeryToken". All the post requests below must include a header "x-csrf-token" with the value of
-"antiForgeryToken" from the GET response. In absence of this header with the right token value you will get following
-error response:
+uploads a topology.
 
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|topologyConfig |String (required)| topology json config  |
+|topologyJar |String (required)| topology jar file |
+
+Sample topologyConfig json:
+```json
+{"topologyMainClass": "storm.starter.WordCountTopology", "topologyMainClassArgs": ["wordcount1"]}
 ```
-{
-    "error" : "Forbidden action.",
-    "errorMessage" : "missing CSRF token."
-}
+
+Examples:
+
+```no-highlight
+curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
+-F topologyConfig='{"topologyMainClass": "storm.starter.WordCountTopology", "topologyMainClassArgs": ["wordcount1"]}' 
+-F topologyJar=@examples/storm-starter/storm-starter-topologies-0.10.0-SNAPSHOT.jar 
+http://localhost:8080/api/v1/uploadTopology
 ```
 
+Sample Response:
+
+```json
+{"status":"success"}
+```
 
 ### /api/v1/topology/:id/activate (POST)
 
@@ -590,6 +613,12 @@ Activates a topology.
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
+
+Sample Response:
+
+```json
+{"topologyOperation":"activate","topologyId":"wordcount-1-1420308665","status":"success"}
+```
 
 
 ### /api/v1/topology/:id/deactivate (POST)
@@ -600,6 +629,12 @@ Deactivates a topology.
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 
+Sample Response:
+
+```json
+{"topologyOperation":"deactivate","topologyId":"wordcount-1-1420308665","status":"success"}
+```
+
 
 ### /api/v1/topology/:id/rebalance/:wait-time (POST)
 
@@ -609,6 +644,30 @@ Rebalances a topology.
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 |wait-time |String (required)| Wait time before rebalance happens |
+|rebalanceOptions| Json (optional) | topology rebalance options |
+
+
+Sample rebalanceOptions json:
+
+```json
+{"rebalanceOptions" : {"numWorkers" : 2, "executors" : {"spout" :4, "count" : 10}}, "callback" : "foo"}
+```
+
+Examples:
+
+```no-highlight
+curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
+-H "Content-Type: application/json" 
+-d  '{"rebalanceOptions": {"numWorkers": 2, "executors": { "spout" : "5", "split": 7, "count": 5 }}, "callback":"foo"}' 
+http://localhost:8080/api/v1/topology/wordcount-1-1420308665/rebalance/0
+```
+
+Sample Response:
+
+```json
+{"topologyOperation":"rebalance","topologyId":"wordcount-1-1420308665","status":"success"}
+```
+
 
 
 ### /api/v1/topology/:id/kill/:wait-time (POST)
@@ -624,6 +683,11 @@ Caution: Small wait times (0-5 seconds) may increase the probability of triggeri
 [STORM-112](https://issues.apache.org/jira/browse/STORM-112), which may result in broker Supervisor
 daemons.
 
+Sample Response:
+
+```json
+{"topologyOperation":"kill","topologyId":"wordcount-1-1420308665","status":"success"}
+```
 
 ## API errors
 

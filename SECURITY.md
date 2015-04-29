@@ -8,7 +8,7 @@ can be turned on as needed.
 
 You can still have a secure storm cluster without turning on formal
 Authentication and Authorization. But to do so usually requires 
-configuring your Operating System to ristrict the operations that can be done.
+configuring your Operating System to restrict the operations that can be done.
 This is generally a good idea even if you plan on running your cluster with Auth.
 
 The exact detail of how to setup these precautions varies a lot and is beyond
@@ -31,7 +31,9 @@ IPsec to encrypt all traffic being sent between the hosts in the cluster.
 | 8000 | `logviewer.port` | Client Web Browsers | Logviewer |
 | 3772 | `drpc.port` | External DRPC Clients | DRPC |
 | 3773 | `drpc.invocations.port` | Worker Processes | DRPC |
+| 3774 | `drpc.http.port` | External HTTP DRPC Clients | DRPC |
 | 670{0,1,2,3} | `supervisor.slots.ports` | Worker Processes | Worker Processes |
+
 
 ### UI/Logviewer
 
@@ -52,7 +54,7 @@ proxy the connection to the storm process.  To make this work the ui process mus
 logviewer.port set to the port of the proxy in its storm.yaml, while the logviewers
 must have it set to the actual port that they are going to bind to.
 
-The servlet filters are prefered because it allows indavidual topologies to
+The servlet filters are preferred because it allows individual topologies to
 specificy who is and who is not allowed to access the pages associated with
 them.  
 
@@ -65,15 +67,66 @@ ui.filter.params:
    "kerberos.keytab": "/vagrant/keytabs/http.keytab"
    "kerberos.name.rules": "RULE:[2:$1@$0]([jt]t@.*EXAMPLE.COM)s/.*/$MAPRED_USER/ RULE:[2:$1@$0]([nd]n@.*EXAMPLE.COM)s/.*/$HDFS_USER/DEFAULT"
 ```
-make sure to create a prinicpal 'HTTP/{hostname}' (here hostname should be the one where UI daemon runs
+make sure to create a principal 'HTTP/{hostname}' (here hostname should be the one where UI daemon runs
 
 Once configured users needs to do kinit before accessing UI.
 Ex:
 curl  -i --negotiate -u:anyUser  -b ~/cookiejar.txt -c ~/cookiejar.txt  http://storm-ui-hostname:8080/api/v1/cluster/summary
 
-1) Firefox: Goto about:config and search for network.negotiate-auth.trusted-uris double-click to  add value "http://storm-ui-hostname:8080"
-2) Google-chrome:  start from command line with: google-chrome --auth-server-whitelist="*storm-ui-hostname" --auth-negotiate-delegate-whitelist="*storm-ui-hostname"   
-3) IE:  Configure trusted websites to include "storm-ui-hostname" and allow negotiation for that website 
+1. Firefox: Goto about:config and search for network.negotiate-auth.trusted-uris double-click to  add value "http://storm-ui-hostname:8080"
+2. Google-chrome:  start from command line with: google-chrome --auth-server-whitelist="*storm-ui-hostname" --auth-negotiate-delegate-whitelist="*storm-ui-hostname"   
+3. IE:  Configure trusted websites to include "storm-ui-hostname" and allow negotiation for that website 
+
+**Caution**: In AD MIT Keberos setup the key size is bigger than the default UI jetty server request header size. Make sure you set ui.header.buffer.bytes to 65536 in storm.yaml. More details are on [STORM-633](https://issues.apache.org/jira/browse/STORM-633)
+
+
+## UI / DRPC SSL 
+
+Both UI and DRPC allows users to configure ssl .
+
+### UI
+
+For UI users needs to set following config in storm.yaml. Generating keystores with proper keys and certs should be taken care by the user before this step.
+
+1. ui.https.port 
+2. ui.https.keystore.type (example "jks")
+3. ui.https.keystore.path (example "/etc/ssl/storm_keystore.jks")
+4. ui.https.keystore.password (keystore password)
+5. ui.https.key.password (private key password)
+
+optional config 
+6. ui.https.truststore.path (example "/etc/ssl/storm_truststore.jks")
+7. ui.https.truststore.password (truststore password)
+8. ui.https.truststore.type (example "jks")
+
+If users want to setup 2-way auth
+9. ui.https.want.client.auth (If this set to true server requests for client certifcate authentication, but keeps the connection if no authentication provided)
+10. ui.https.need.client.auth (If this set to true server requires client to provide authentication)
+
+
+
+
+### DRPC
+similarly to UI , users need to configure following for DRPC
+
+1. drpc.https.port 
+2. drpc.https.keystore.type (example "jks")
+3. drpc.https.keystore.path (example "/etc/ssl/storm_keystore.jks")
+4. drpc.https.keystore.password (keystore password)
+5. drpc.https.key.password (private key password)
+
+optional config 
+6. drpc.https.truststore.path (example "/etc/ssl/storm_truststore.jks")
+7. drpc.https.truststore.password (truststore password)
+8. drpc.https.truststore.type (example "jks")
+
+If users want to setup 2-way auth
+9. drpc.https.want.client.auth (If this set to true server requests for client certifcate authentication, but keeps the connection if no authentication provided)
+10. drpc.https.need.client.auth (If this set to true server requires client to provide authentication)
+
+
+
+
 
 ## Authentication (Kerberos)
 
@@ -89,7 +142,7 @@ this document and it is assumed that you have done that already.
 Each Zookeeper Server, Nimbus, and DRPC server will need a service principal, which, by convention, includes the FQDN of the host it will run on.  Be aware that the zookeeper user *MUST* be zookeeper.  
 The supervisors and UI also need a principal to run as, but because they are outgoing connections they do not need to be service principals. 
 The following is an example of how to setup kerberos principals, but the
-details may varry depending on your KDC and OS.
+details may vary depending on your KDC and OS.
 
 
 ```bash
@@ -274,9 +327,9 @@ The *SimpleACLAuthorizer* plug-in needs to know who the supervisor users are, an
 
 These are set through *nimbus.supervisor.users* and *nimbus.admins* respectively.  Each can either be a full Kerberos principal name, or the name of the user with host and realm stripped off.
 
-The UI and Log servers have their own authorization configurations.  These are set through *logs.users* and *ui.users*.  These should be set to the admin users for all of the nodes in the cluster.  
+The Log servers have their own authorization configurations.  These are set through *logs.users* and *logs.groups*.  These should be set to the admin users or groups for all of the nodes in the cluster.  
 
-When a topology is sumbitted, the sumbitting user can specify users in this list as well.  The users specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's details in the ui and/or to the topology's worker logs in the logviewers.  
+When a topology is submitted, the submitting user can specify users in this list as well.  The users and groups specified-in addition to the users in the cluster-wide setting-will be granted access to the submitted topology's worker logs in the logviewers.
 
 ### Supervisors headless User and group Setup
 
@@ -307,7 +360,7 @@ multitenant.scheduler.user.pools:
     "derek": 10
 ```
 
-### Run as User
+### Run worker processes as user who submitted the topology
 By default storm runs workers as the user that is running the supervisor.  This is not ideal for security.  To make storm run the topologies as the user that launched them set.
 
 ```yaml
@@ -318,7 +371,7 @@ There are several files that go along with this that are needed to be configured
 
 The worker-launcher executable is a special program that allows the supervisor to launch workers as different users.  For this to work it needs to be owned by root, but with the group set to be a group that only teh supervisor headless user is a part of.
 It also needs to have 6550 permissions.
-There is also a worker-launcher.cfg file, usually located under /etc/ that should look somethign like the following
+There is also a worker-launcher.cfg file, usually located under /etc/ that should look something like the following
 
 ```
 storm.worker-launcher.group=$(worker_launcher_group)
@@ -327,25 +380,53 @@ min.user.id=$(min_user_id)
 where worker_launcher_group is the same group the supervisor is a part of, and min.user.id is set to the first real user id on the system.
 This config file also needs to be owned by root and not have world or group write permissions.
 
+### Impersonating a user
+A storm client may submit requests on behalf of another user. For example, if a `userX` submits an oozie workflow and as part of workflow execution if user `oozie` wants to submit a topology on behalf of `userX`
+it can do so by leveraging the impersonation feature.In order to submit topology as some other user , you can use `StormSubmitter.submitTopologyAs` API. Alternatively you can use `NimbusClient.getConfiguredClientAs` 
+to get a nimbus client as some other user and perform any nimbus action(i.e. kill/rebalance/activate/deactivate) using this client. 
+
+To ensure only authorized users can perform impersonation you should start nimbus with `nimbus.impersonation.authorizer` set to `backtype.storm.security.auth.authorizer.ImpersonationAuthorizer`. 
+The `ImpersonationAuthorizer` uses `nimbus.impersonation.acl` as the acl to authorize users. Following is a sample nimbus config for supporting impersonation:
+
+```yaml
+nimbus.impersonation.authorizer: backtype.storm.security.auth.authorizer.ImpersonationAuthorizer
+nimbus.impersonation.acl:
+    impersonating_user1:
+        hosts:
+            [comma separated list of hosts from which impersonating_user1 is allowed to impersonate other users]
+        groups:
+            [comma separated list of groups whose users impersonating_user1 is allowed to impersonate]
+    impersonating_user2:
+        hosts:
+            [comma separated list of hosts from which impersonating_user2 is allowed to impersonate other users]
+        groups:
+            [comma separated list of groups whose users impersonating_user2 is allowed to impersonate]
+```
+
+To support the oozie use case following config can be supplied:
+```yaml
+nimbus.impersonation.acl:
+    oozie:
+        hosts:
+            [oozie-host1, oozie-host2, 127.0.0.1]
+        groups:
+            [some-group-that-userX-is-part-of]
+```
+
 ### Automatic Credentials Push and Renewal
 Individual topologies have the ability to push credentials (tickets and tokens) to workers so that they can access secure services.  Exposing this to all of the users can be a pain for them.
 To hide this from them in the common case plugins can be used to populate the credentials, unpack them on the other side into a java Subject, and also allow Nimbus to renew the credentials if needed.
-These are controlled by the following configs. topology.auto-credentials is a list of java plugins that populate the credentials and unpack them on the worker side.
-On a kerberos secure cluster they should be set by default to point to backtype.storm.security.auth.kerberos.AutoTGT.  nimbus.credential.renewers.classes should also be set to this value so that nimbus can periodically renew the TGT on behalf of the user.
+These are controlled by the following configs. topology.auto-credentials is a list of java plugins, all of which must implement IAutoCredentials interface, that populate the credentials on gateway 
+and unpack them on the worker side. On a kerberos secure cluster they should be set by default to point to backtype.storm.security.auth.kerberos.AutoTGT.  
+nimbus.credential.renewers.classes should also be set to this value so that nimbus can periodically renew the TGT on behalf of the user.
 
 nimbus.credential.renewers.freq.secs controls how often the renewer will poll to see if anything needs to be renewed, but the default should be fine.
 
-#### Automatic HDFS credential push and renewal
-If your topology is going to use secure HDFS , your administrator can configure nimbus to automatically get delegation tokens on behalf of the topology submitter user. The nimbus need to start with 
-nimbus.autocredential.plugins.classes=backtype.storm.security.auth.hadoop.AutoHDFS and nimbus.credential.renewers.classes=backtype.storm.security.auth.hadoop.AutoHDFS. Your topology configuration
-should  have topology.auto-credentials=backtype.storm.security.auth.hadoop.AutoHDFS so workers can automatically get the credentials in the Subject.
-
-If nimbus did not have the above configuration you need to add it and then restart it. Ensure all the hadoop configuration files are present in the nimbus' classpath. Please read more about setting up
-secure hadoop on http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SecureMode.html.
-
-You also need to ensure that nimbus user is allowed to act as a super user and get delegation tokens on behalf of other users. To achieve this you need to follow configuration directions listed on this link
-http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/Superusers.html.
-
+In addition Nimbus itself can be used to get credentials on behalf of the user submitting topologies. This can be configures using nimbus.autocredential.plugins.classes which is a list 
+of fully qualified class names ,all of which must implement INimbusCredentialPlugin.  Nimbus will invoke the populateCredentials method of all the configured implementation as part of topology
+submission. You should use this config with topology.auto-credentials and nimbus.credential.renewers.classes so the credentials can be populated on worker side and nimbus can automatically renew
+them. Currently there are 2 examples of using this config, AutoHDFS and AutoHBase which auto populates hdfs and hbase delegation tokens for topology submitter so they don't have to distribute keytabs
+on all possible worker hosts.
 
 ### Limits
 By default storm allows any sized topology to be submitted. But ZK and others have limitations on how big a topology can actually be.  The following configs allow you to limit the maximum size a topology can be.
@@ -356,7 +437,7 @@ By default storm allows any sized topology to be submitted. But ZK and others ha
 | nimbus.executors.perTopology | The maximum number of executors/threads a topology can use. |
 
 ### Log Cleanup
-The Logviewer deamon now is also responsible for cleaning up old log files for dead topologies.
+The Logviewer daemon now is also responsible for cleaning up old log files for dead topologies.
 
 | YAML Setting | Description |
 |--------------|-------------------------------------|
@@ -364,5 +445,28 @@ The Logviewer deamon now is also responsible for cleaning up old log files for d
 | logviewer.cleanup.interval.secs | Interval of time in seconds that the logviewer cleans up worker logs. |
 
 
+### Allowing specific users or groups to access storm
+
+ With SimpleACLAuthorizer any user with valid kerberos ticket can deploy a topology or do further operations such as activate, deactivate , access cluster information.
+ One can restrict this access by specifying nimbus.users or nimbus.groups. If nimbus.users configured only the users in the list can deploy a topology or access cluster.
+ Similarly nimbus.groups restrict storm cluster access to users who belong to those groups.
+ 
+ To configure specify the following config in storm.yaml
+
+```yaml
+nimbus.users: 
+   - "testuser"
+```
+
+or 
+
+```yaml
+nimbus.groups: 
+   - "storm"
+```
+ 
+
 ### DRPC
 Hopefully more on this soon
+
+

@@ -15,7 +15,7 @@ Storm is a distributed realtime computation system. Similar to how Hadoop provid
 
 * [Documentation Index](/doc-index.html)
 * [Manual](Documentation.html)
-* [Javadoc](http://nathanmarz.github.com/storm)
+* [Javadoc](/javadoc/apidocs/index.html)
 * [FAQ](FAQ.html)
 
 ### Getting help

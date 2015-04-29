@@ -14,23 +14,34 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [org.apache.thrift.exception])
+  (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
+  (:import [org.apache.commons.io FileUtils])
   (:import [java.nio ByteBuffer]
-           [java.util Collections])
-  (:import [java.io FileNotFoundException])
+           [java.util Collections HashMap])
+  (:import [java.io FileNotFoundException File FileOutputStream])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-  (:import [backtype.storm.generated AuthorizationException])
-  (:use [backtype.storm bootstrap util])
-  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
+  (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils
+            BufferFileInputStream])
+  (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
+            ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
+            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
+            ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:use [backtype.storm util config log timer])
+  (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
+  (:require [clojure.set :as set])
+  (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
-
-(bootstrap)
 
 (defn file-cache-map [conf]
   (TimeCacheMap.
@@ -68,6 +79,7 @@
     {:conf conf
      :inimbus inimbus
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
+     :impersonation-authorization-handler (mk-authorization-handler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
@@ -96,18 +108,10 @@
 (defn- read-storm-conf [conf storm-id]
   (let [stormroot (master-stormdist-root conf storm-id)]
     (merge conf
-           (Utils/deserialize
+           (Utils/javaDeserialize
             (FileUtils/readFileToByteArray
              (File. (master-stormconf-path stormroot))
-             )))))
-
-(defn set-topology-status! [nimbus storm-id status]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)]
-   (.update-storm! storm-cluster-state
-                   storm-id
-                   {:status status})
-   (log-message "Updated " storm-id " with status " status)
-   ))
+             ) java.util.Map))))
 
 (declare delay-event)
 (declare mk-assignments)
@@ -122,8 +126,9 @@
                    storm-id
                    delay
                    :remove)
-      {:type :killed
-       :kill-time-secs delay})
+      {
+        :status {:type :killed}
+        :topology-action-options {:delay-secs delay :action :kill}})
     ))
 
 (defn rebalance-transition [nimbus storm-id status]
@@ -136,24 +141,24 @@
                    storm-id
                    delay
                    :do-rebalance)
-      {:type :rebalancing
-       :delay-secs delay
-       :old-status status
-       :num-workers num-workers
-       :executor-overrides executor-overrides
+      {:status {:type :rebalancing}
+       :prev-status status
+       :topology-action-options (-> {:delay-secs delay :action :rebalance}
+                                  (assoc-non-nil :num-workers num-workers)
+                                  (assoc-non-nil :component->executors executor-overrides))
        })))
 
-(defn do-rebalance [nimbus storm-id status]
-  (.update-storm! (:storm-cluster-state nimbus)
-                  storm-id
-                  (assoc-non-nil
-                    {:component->executors (:executor-overrides status)}
-                    :num-workers
-                    (:num-workers status)))
+(defn do-rebalance [nimbus storm-id status storm-base]
+  (let [rebalance-options (:topology-action-options storm-base)]
+    (.update-storm! (:storm-cluster-state nimbus)
+      storm-id
+        (-> {:topology-action-options nil}
+          (assoc-non-nil :component->executors (:component->executors rebalance-options))
+          (assoc-non-nil :num-workers (:num-workers rebalance-options)))))
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
-(defn state-transitions [nimbus storm-id status]
-  {:active {:inactivate :inactive            
+(defn state-transitions [nimbus storm-id status storm-base]
+  {:active {:inactivate :inactive
             :activate nil
             :rebalance (rebalance-transition nimbus storm-id status)
             :kill (kill-transition nimbus storm-id)
@@ -165,7 +170,7 @@
               }
    :killed {:startup (fn [] (delay-event nimbus
                                          storm-id
-                                         (:kill-time-secs status)
+                                         (:delay-secs storm-base)
                                          :remove)
                              nil)
             :kill (kill-transition nimbus storm-id)
@@ -177,17 +182,14 @@
             }
    :rebalancing {:startup (fn [] (delay-event nimbus
                                               storm-id
-                                              (:delay-secs status)
+                                              (:delay-secs storm-base)
                                               :do-rebalance)
                                  nil)
                  :kill (kill-transition nimbus storm-id)
                  :do-rebalance (fn []
-                                 (do-rebalance nimbus storm-id status)
-                                 (:old-status status))
+                                 (do-rebalance nimbus storm-id status storm-base)
+                                 (:type (:prev-status storm-base)))
                  }})
-
-(defn topology-status [nimbus storm-id]
-  (-> nimbus :storm-cluster-state (.storm-base storm-id nil) :status))
 
 (defn transition!
   ([nimbus storm-id event]
@@ -196,7 +198,8 @@
      (locking (:submit-lock nimbus)
        (let [system-events #{:startup}
              [event & event-args] (if (keyword? event) [event] event)
-             status (topology-status nimbus storm-id)]
+             storm-base (-> nimbus :storm-cluster-state  (.storm-base storm-id nil))
+             status (:status storm-base)]
          ;; handles the case where event was scheduled but topology has been removed
          (if-not status
            (log-message "Cannot apply event " event " to " storm-id " because topology no longer exists")
@@ -212,19 +215,20 @@
                                          (log-message msg))
                                        nil))
                                  )))
-                 transition (-> (state-transitions nimbus storm-id status)
+                 transition (-> (state-transitions nimbus storm-id status storm-base)
                                 (get (:type status))
                                 (get-event event))
                  transition (if (or (nil? transition)
                                     (keyword? transition))
                               (fn [] transition)
                               transition)
-                 new-status (apply transition event-args)
-                 new-status (if (keyword? new-status)
-                              {:type new-status}
-                              new-status)]
-             (when new-status
-               (set-topology-status! nimbus storm-id new-status)))))
+                 storm-base-updates (apply transition event-args)
+                 storm-base-updates (if (keyword? storm-base-updates) ;if it's just a symbol, that just indicates new status.
+                                      {:status {:type storm-base-updates}}
+                                      storm-base-updates)]
+
+             (when storm-base-updates
+               (.update-storm! (:storm-cluster-state nimbus) storm-id storm-base-updates)))))
        )))
 
 (defn transition-name! [nimbus storm-name event & args]
@@ -296,7 +300,7 @@
   [nimbus topologies missing-assignment-topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
-        
+
         supervisor-infos (all-supervisor-info storm-cluster-state nil)
 
         supervisor-details (dofor [[id info] supervisor-infos]
@@ -319,7 +323,7 @@
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
-   (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/serialize storm-conf))
+   (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/javaSerialize storm-conf))
    ))
 
 (defn- read-storm-topology [conf storm-id]
@@ -327,7 +331,7 @@
     (Utils/deserialize
       (FileUtils/readFileToByteArray
         (File. (master-stormcode-path stormroot))
-        ))))
+        ) StormTopology)))
 
 (declare compute-executor->component)
 
@@ -365,7 +369,8 @@
                        nimbus-time
                        (>= (time-delta nimbus-time) timeout))
        :nimbus-time nimbus-time
-       :executor-reported-time reported-time}))
+       :executor-reported-time reported-time
+       :heartbeat hb}))
 
 (defn update-heartbeat-cache [cache executor-beats all-executors timeout]
   (let [cache (select-keys cache all-executors)]
@@ -467,7 +472,7 @@
                                          all-executors
                                          (set (alive-executors nimbus topology-details all-executors assignment)))]]
              {tid alive-executors})))
-  
+
 (defn- compute-supervisor->dead-ports [nimbus existing-assignments topology->executors topology->alive-executors]
   (let [dead-slots (into [] (for [[tid assignment] existing-assignments
                                   :let [all-executors (topology->executors tid)
@@ -513,7 +518,7 @@
                                                                   ((fn [ports] (map int ports))))
                                                     supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
                                           {sid supervisor-details}))]
-    (merge all-supervisor-details 
+    (merge all-supervisor-details
            (into {}
               (for [[sid ports] nonexistent-supervisor-slots]
                 [sid (SupervisorDetails. sid nil ports)]))
@@ -575,7 +580,7 @@
         topology->scheduler-assignment (compute-topology->scheduler-assignment nimbus
                                                                                existing-assignments
                                                                                topology->alive-executors)
-                                                                               
+
         missing-assignment-topologies (->> topologies
                                            .getTopologies
                                            (map (memfn getId))
@@ -593,7 +598,7 @@
         all-scheduling-slots (->> (all-scheduling-slots nimbus topologies missing-assignment-topologies)
                                   (map (fn [[node-id port]] {node-id #{port}}))
                                   (apply merge-with set/union))
-        
+
         supervisors (read-all-supervisor-details nimbus all-scheduling-slots supervisor->dead-ports)
         cluster (Cluster. (:inimbus nimbus) supervisors topology->scheduler-assignment)
 
@@ -658,7 +663,7 @@
 (defnk mk-assignments [nimbus :scratch-topology-id nil]
   (let [conf (:conf nimbus)
         storm-cluster-state (:storm-cluster-state nimbus)
-        ^INimbus inimbus (:inimbus nimbus) 
+        ^INimbus inimbus (:inimbus nimbus)
         ;; read all the topologies
         topology-ids (.active-storms storm-cluster-state)
         topologies (into {} (for [tid topology-ids]
@@ -678,13 +683,13 @@
                                        existing-assignments
                                        topologies
                                        scratch-topology-id)
-        
+
         topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)
-        
+
         now-secs (current-time-secs)
-        
+
         basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state)
-        
+
         ;; construct the final Assignments by adding start-times etc into it
         new-assignments (into {} (for [[topology-id executor->node+port] topology->executor->node+port
                                         :let [existing-assignment (get existing-assignments topology-id)
@@ -722,14 +727,14 @@
     (->> new-assignments
           (map (fn [[topology-id assignment]]
             (let [existing-assignment (get existing-assignments topology-id)]
-              [topology-id (map to-worker-slot (newly-added-slots existing-assignment assignment))] 
+              [topology-id (map to-worker-slot (newly-added-slots existing-assignment assignment))]
               )))
           (into {})
           (.assignSlots inimbus topologies))
     ))
 
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
-  {:pre [(#{:active :inactive} topology-initial-status)]}                
+  {:pre [(#{:active :inactive} topology-initial-status)]}
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
         storm-conf (read-storm-conf conf storm-id)
@@ -743,7 +748,9 @@
                                   {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
                                   num-executors
-                                  (storm-conf TOPOLOGY-SUBMITTER-USER)))))
+                                  (storm-conf TOPOLOGY-SUBMITTER-USER)
+                                  nil
+                                  nil))))
 
 ;; Master:
 ;; job submit:
@@ -766,9 +773,22 @@
 (defn check-authorization! 
   ([nimbus storm-name storm-conf operation context]
      (let [aclHandler (:authorization-handler nimbus)
+           impersonation-authorizer (:impersonation-authorization-handler nimbus)
            ctx (or context (ReqContext/context))
            check-conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
        (log-message "[req " (.requestID ctx) "] Access from: " (.remoteAddress ctx) " principal:" (.principal ctx) " op:" operation)
+
+       (if (.isImpersonating ctx)
+         (do
+          (log-warn "principal: " (.realPrincipal ctx) " is trying to impersonate principal: " (.principal ctx))
+          (if impersonation-authorizer
+           (if-not (.permit impersonation-authorizer ctx operation check-conf)
+             (throw (AuthorizationException. (str "principal " (.realPrincipal ctx) " is not authorized to impersonate
+                        principal " (.principal ctx) " from host " (.remoteAddress ctx) " Please see SECURITY.MD to learn
+                        how to configure impersonation acls."))))
+           (log-warn "impersonation attempt but " NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. potential
+                      security risk, please see SECURITY.MD to learn how to configure impersonation authorizer."))))
+
        (if aclHandler
          (if-not (.permit aclHandler ctx operation check-conf)
            (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
@@ -891,6 +911,13 @@
        (map #(doto (ErrorInfo. (:error %) (:time-secs %))
                    (.set_host (:host %))
                    (.set_port (:port %))))))
+
+(defn- get-last-error
+  [storm-cluster-state storm-id component-id]
+  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
+    (doto (ErrorInfo. (:error e) (:time-secs e))
+                      (.set_host (:host e))
+                      (.set_port (:port e)))))
 
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
@@ -1219,12 +1246,14 @@
               ;; in standalone just look at metadata, otherwise just say N/A?
               supervisor-summaries (dofor [[id info] supervisor-infos]
                                           (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
-                                                ]
-                                            (SupervisorSummary. (:hostname info)
+
+                                            sup-sum (SupervisorSummary. (:hostname info)
                                                                 (:uptime-secs info)
                                                                 (count ports)
                                                                 (count (:used-ports info))
-                                                                id )
+                                                                id) ]
+                                            (when-let [version (:version info)] (.set_version sup-sum version))
+                                            sup-sum
                                             ))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
@@ -1254,21 +1283,33 @@
                            topology-summaries)
           ))
       
-      (^TopologyInfo getTopologyInfo [this ^String storm-id]
+      (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               topology-conf (try-read-storm-conf conf storm-id)
               storm-name (topology-conf TOPOLOGY-NAME)
               _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
               task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               base (.storm-base storm-cluster-state storm-id nil)
-              storm-name (if base (:storm-name base) (throw (NotAliveException. (str storm-id))))
               launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
-              task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
+              beats (map-val :heartbeat (get @(:heartbeats-cache nimbus) storm-id))
               all-components (-> task->component reverse-map keys)
+              num-err-choice (or (.get_num_err_choice options)
+                                 NumErrorsChoice/ALL)
+              errors-fn (condp = num-err-choice
+                          NumErrorsChoice/NONE (fn [& _] ()) ;; empty list only
+                          NumErrorsChoice/ONE (comp #(remove nil? %)
+                                                    list
+                                                    get-last-error)
+                          NumErrorsChoice/ALL get-errors
+                          ;; Default
+                          (do
+                            (log-warn "Got invalid NumErrorsChoice '"
+                                      num-err-choice
+                                      "'")
+                            get-errors))
               errors (->> all-components
-                          (map (fn [c] [c (get-errors storm-cluster-state storm-id c)]))
+                          (map (fn [c] [c (errors-fn storm-cluster-state storm-id c)]))
                           (into {}))
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
                                         (let [host (-> assignment :node->host (get node))
@@ -1295,7 +1336,12 @@
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
             topo-info
           ))
-      
+
+      (^TopologyInfo getTopologyInfo [this ^String storm-id]
+        (.getTopologyInfoWithOpts this
+                                  storm-id
+                                  (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
+
       Shutdownable
       (shutdown [this]
         (log-message "Shutting down master")
@@ -1364,4 +1410,5 @@
     ))
 
 (defn -main []
+  (setup-default-uncaught-exception-handler)
   (-launch (standalone-nimbus)))

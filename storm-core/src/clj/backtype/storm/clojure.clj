@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.clojure
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm util])
   (:import [backtype.storm StormSubmitter])
   (:import [backtype.storm.generated StreamInfo])
   (:import [backtype.storm.tuple Tuple])

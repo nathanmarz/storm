@@ -18,19 +18,17 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:require [clojure.contrib [string :as contrib-str]])
-  (:require [clojure [string :as string]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:require [clojure [string :as string] [set :as set]])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [backtype.storm.scheduler ISupervisor])
+  (:import [backtype.storm.generated RebalanceOptions])
   (:import [java.util UUID])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing util timer])
   (:use [backtype.storm.daemon common])
-  (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]])
+  (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]]
+            [backtype.storm [thrift :as thrift] [cluster :as cluster]])
   (:use [conjure core])
-  (:require [clojure.java.io :as io])
-  )
-
-(bootstrap)
-
+  (:require [clojure.java.io :as io]))
 
 (defn worker-assignment
   "Return [storm-id executors]"
@@ -96,10 +94,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup1" 3]
-                           [4] ["sup1" 3]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup1" 3]
+                           [4 4] ["sup1" 3]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2 3])
@@ -147,10 +145,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup2" 1]
-                           [4] ["sup2" 1]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup2" 1]
+                           [4 4] ["sup2" 1]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2])
@@ -168,9 +166,9 @@
                           {1 "1"
                            2 "1"
                            3 "1"}
-                          {[1] ["sup1" 3]
-                           [2] ["sup1" 3]
-                           [3] ["sup2" 2]
+                          {[1 1] ["sup1" 3]
+                           [2 2] ["sup1" 3]
+                           [3 3] ["sup2" 2]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [3])
@@ -358,7 +356,7 @@
 (defn rm-r [f]
   (if (.isDirectory f)
     (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f) 
+    (.delete f)
   ))
 
 (deftest test-worker-launch-command-run-as-user
@@ -494,12 +492,16 @@
           exp-storm-id "0123456789"
           exp-port 4242
           exp-logs-users ["bob" "charlie" "daryl"]
+          exp-logs-groups ["read-only-group" "special-group"]
           storm-conf {TOPOLOGY-SUBMITTER-USER "alice"
                       TOPOLOGY-USERS ["charlie" "bob"]
+                      TOPOLOGY-GROUPS ["special-group"]
+                      LOGS-GROUPS ["read-only-group"]
                       LOGS-USERS ["daryl"]}
           exp-data {TOPOLOGY-SUBMITTER-USER exp-owner
                     "worker-id" exp-worker-id
-                    LOGS-USERS exp-logs-users}
+                    LOGS-USERS exp-logs-users
+                    LOGS-GROUPS exp-logs-groups}
           conf {}]
       (mocking [supervisor/write-log-metadata-to-yaml-file!]
         (supervisor/write-log-metadata! storm-conf exp-owner exp-worker-id
@@ -517,7 +519,7 @@
 (defn found? [sub-str input-str]
   (if (string? input-str)
     (contrib-str/substring? sub-str (str input-str))
-    (some? #(contrib-str/substring? sub-str %) input-str)))
+    (boolean (some #(contrib-str/substring? sub-str %) input-str))))
 
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))
@@ -607,8 +609,8 @@
                      topology1
                      {1 "1"
                       2 "1"}
-                     {[1] ["sup1" 1]
-                      [2] ["sup1" 2]
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]
                       })
                     (submit-mocked-assignment
                      (:nimbus cluster)
@@ -617,8 +619,8 @@
                      topology2
                      {1 "1"
                       2 "1"}
-                     {[1] ["sup1" 1]
-                      [2] ["sup1" 2]
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]
                       })
                     (advance-cluster-time cluster 10)
                     ))

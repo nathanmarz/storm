@@ -103,10 +103,10 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
 
             try {
                 client.result(id, result);
-            } catch(TException e) {
-                collector.reportError(e);
             } catch (AuthorizationException aze) {
                 collector.reportError(aze);                
+            } catch(TException e) {
+                collector.reportError(e);
             }
         }
     }

@@ -59,7 +59,7 @@ The resulting tuples would have fields ["a", "b", "c", "d"] and look like this:
 Filters take in a tuple as input and decide whether or not to keep that tuple or not. Suppose you had this filter:
 
 ```java
-public class MyFilter extends BaseFunction {
+public class MyFilter extends BaseFilter {
     public boolean isKeep(TridentTuple tuple) {
         return tuple.getInteger(0) == 1 && tuple.getInteger(1) == 2;
     }
@@ -154,7 +154,7 @@ public class Count implements CombinerAggregator<Long> {
 }
 ```
 
-The benefits of CombinerAggregators are seen when you use the with the aggregate method instead of partitionAggregate. In that case, Trident automatically optimizes the computation by doing partial aggregations before transferring tuples over the network.
+The benefits of CombinerAggregators are seen when you use them with the aggregate method instead of partitionAggregate. In that case, Trident automatically optimizes the computation by doing partial aggregations before transferring tuples over the network.
 
 A ReducerAggregator has the following interface:
 
@@ -270,7 +270,7 @@ mystream.aggregate(new Count(), new Fields("count"))
 
 Like partitionAggregate, aggregators for aggregate can be chained. However, if you chain a CombinerAggregator with a non-CombinerAggregator, Trident is unable to do the partial aggregation optimization.
 
-You can read more about how to use persistentAggregate in the [Trident state doc](https://github.com/apache/incubator-storm/wiki/Trident-state).
+You can read more about how to use persistentAggregate in the [Trident state doc](https://github.com/apache/storm/wiki/Trident-state).
 
 ## Operations on grouped streams
 
@@ -278,7 +278,7 @@ The groupBy operation repartitions the stream by doing a partitionBy on the spec
 
 ![Grouping](images/grouping.png)
 
-If you run aggregators on a grouped stream, the aggregation will be run within each group instead of against the whole batch. persistentAggregate can also be run on a GroupedStream, in which case the results will be stored in a [MapState](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/state/map/MapState.java) with the key being the grouping fields. You can read more about persistentAggregate in the [Trident state doc](Trident-state.html).
+If you run aggregators on a grouped stream, the aggregation will be run within each group instead of against the whole batch. persistentAggregate can also be run on a GroupedStream, in which case the results will be stored in a [MapState](https://github.com/apache/storm/blob/master/storm-core/src/jvm/storm/trident/state/map/MapState.java) with the key being the grouping fields. You can read more about persistentAggregate in the [Trident state doc](Trident-state.html).
 
 Like regular streams, aggregators on grouped streams can be chained.
 

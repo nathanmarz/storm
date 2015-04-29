@@ -18,7 +18,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(worker-launcher, 1.0.0, storm-user@googlegroups.com)
+AC_INIT(worker-launcher, 1.0.0, user@storm.apache.org)
 AC_GNU_SOURCE
 
 AM_INIT_AUTOMAKE([subdir-objects foreign no-dist])

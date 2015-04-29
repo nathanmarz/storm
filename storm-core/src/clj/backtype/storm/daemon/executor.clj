@@ -15,21 +15,31 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:import [backtype.storm.generated Grouping]
+           [java.io Serializable])
+  (:use [backtype.storm util config log timer stats])
+  (:import [java.util List Random HashMap ArrayList LinkedList Map])
   (:import [backtype.storm ICredentialsListener])
   (:import [backtype.storm.hooks ITaskHook])
-  (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.spout ISpoutWaitStrategy])
+  (:import [backtype.storm.tuple Tuple Fields TupleImpl MessageId])
+  (:import [backtype.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
-  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
-  (:import [backtype.storm Config])
+  (:import [backtype.storm.grouping CustomStreamGrouping])
+  (:import [backtype.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
+  (:import [backtype.storm.generated GlobalStreamId])
+  (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time])
+  (:import [com.lmax.disruptor InsufficientCapacityException])
+  (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
+  (:import [backtype.storm Config Constants])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:require [backtype.storm [tuple :as tuple]])
+  (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
+             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [backtype.storm.daemon [task :as task]])
-  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
-
-(bootstrap)
+  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
+  (:require [clojure.set :as set]))
 
 (defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
@@ -86,7 +96,7 @@
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :custom-serialized
-        (let [grouping (Utils/deserialize (.get_custom_serialized thrift-grouping))]
+        (let [grouping (Utils/javaDeserialize (.get_custom_serialized thrift-grouping) Serializable)]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
       :direct
         :direct
@@ -243,7 +253,11 @@
      :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
                              ((:report-error <>) error)
-                             ((:suicide-fn <>)))
+                             (if (or
+                                    (exception-cause? InterruptedException error)
+                                    (exception-cause? java.io.InterruptedIOException error))
+                               (log-message "Got interrupted excpetion shutting thread down...")
+                               ((:suicide-fn <>))))
      :deserializer (KryoTupleDeserializer. storm-conf worker-context)
      :sampler (mk-stats-sampler storm-conf)
      ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolt-data function?
@@ -516,7 +530,8 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
-                                         (if rooted?
+                                         (if (and rooted?
+                                                  (not (.isEmpty out-ids)))
                                            (do
                                              (.put pending root-id [task-id
                                                                     message-id

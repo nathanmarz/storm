@@ -70,6 +70,8 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
                 throw new TException("Client is not connected...");
             }
             c.result(id, result);
+        } catch(AuthorizationException aze) {
+            throw aze;
         } catch(TException e) {
             client.compareAndSet(c, null);
             throw e;
@@ -83,6 +85,8 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
                 throw new TException("Client is not connected...");
             }
             return c.fetchRequest(func);
+        } catch(AuthorizationException aze) {
+            throw aze;
         } catch(TException e) {
             client.compareAndSet(c, null);
             throw e;
@@ -96,6 +100,8 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
                 throw new TException("Client is not connected...");
             }
             c.failRequest(id);
+        } catch(AuthorizationException aze) {
+            throw aze;
         } catch(TException e) {
             client.compareAndSet(c, null);
             throw e;

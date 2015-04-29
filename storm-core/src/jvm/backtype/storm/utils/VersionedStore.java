@@ -94,13 +94,14 @@ public class VersionedStore {
     public void deleteVersion(long version) throws IOException {
         File versionFile = new File(versionPath(version));
         File tokenFile = new File(tokenPath(version));
-        
+
+        if(tokenFile.exists()) {
+            FileUtils.forceDelete(tokenFile);
+        }
+
         if(versionFile.exists()) {
             FileUtils.forceDelete(versionFile);
         }
-        if(tokenFile.exists()) {
-            FileUtils.forceDelete(tokenFile);
-        }        
     }
 
     public void succeedVersion(String path) throws IOException {

@@ -107,3 +107,14 @@ class GitHub:
 			
 	def openPulls(self, user, repo):
 		return self.pulls(user, repo, "open")
+
+	def pull(self, user, repo, number):
+		url = "https://api.github.com/repos/"+user+"/"+repo+"/pulls/"+number
+		req = urllib2.Request(url,None,self.headers)
+		result = urllib2.urlopen(req)
+		contents = result.read()
+		if result.getcode() != 200:
+			raise Exception(result.getcode() + " != 200 "+ contents)
+		got = json.loads(contents)
+		return GitPullRequest(got, self)
+

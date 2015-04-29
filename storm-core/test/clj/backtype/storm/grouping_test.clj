@@ -15,12 +15,11 @@
 ;; limitations under the License.
 (ns backtype.storm.grouping-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter NGrouping])
-  (:use [backtype.storm bootstrap testing])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter NGrouping]
+           [backtype.storm.generated JavaObject JavaObjectArg])
+  (:use [backtype.storm testing clojure])
   (:use [backtype.storm.daemon common])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-shuffle
   (with-simulated-time-local-cluster [cluster :supervisors 4]

@@ -12,4 +12,4 @@ A **topology** is a network of spouts and bolts, with each edge in the network r
 
 Storm has a "local mode" where a Storm cluster is simulated in-process. This is useful for development and testing. The "storm" command line client is used when ready to submit a topology for execution on an actual cluster.
 
-The [storm-starter](https://github.com/apache/incubator-storm/tree/master/examples/storm-starter) project contains example topologies for learning the basics of Storm. Learn more about how to use Storm by reading the [tutorial](/documentation/Tutorial.html) and the [documentation](/documentation/Home.html).
+The [storm-starter](https://github.com/apache/storm/tree/master/examples/storm-starter) project contains example topologies for learning the basics of Storm. Learn more about how to use Storm by reading the [tutorial](/documentation/Tutorial.html) and the [documentation](/documentation/Home.html).

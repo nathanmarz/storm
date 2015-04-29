@@ -39,6 +39,7 @@
   (:require [clojure [set :as set]])
   (:require [clojure.java.io :as io])
   (:use [clojure walk])
+  (:require [ring.util.codec :as codec])
   (:use [backtype.storm log]))
 
 (defn wrap-in-runtime
@@ -246,6 +247,9 @@
   (prewalk (fn [x]
              (cond (instance? Map x) (into {} x)
                    (instance? List x) (vec x)
+                   ;; (Boolean. false) does not evaluate to false in an if.
+                   ;; This fixes that.
+                   (instance? Boolean x) (boolean x)
                    true x))
            s))
 
@@ -585,6 +589,24 @@
   []
   (System/getProperty "java.class.path"))
 
+(defn get-full-jars
+  [dir]
+  (map #(str dir file-path-separator %) (filter #(.endsWith % ".jar") (read-dir-contents dir))))
+
+(defn worker-classpath
+  []
+  (let [storm-dir (System/getProperty "storm.home")
+        storm-lib-dir (str storm-dir file-path-separator "lib")
+        storm-conf-dir (if-let [confdir (System/getenv "STORM_CONF_DIR")]
+                         confdir 
+                         (str storm-dir file-path-separator "conf"))
+        storm-extlib-dir (str storm-dir file-path-separator "extlib")
+        extcp (System/getenv "STORM_EXT_CLASSPATH")]
+    (if (nil? storm-dir) 
+      (current-classpath)
+      (str/join class-path-separator
+                (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir])))))
+
 (defn add-to-classpath
   [classpath paths]
   (if (empty? paths)
@@ -610,15 +632,6 @@
        (try (.lock wlock#)
          ~@body
          (finally (.unlock wlock#))))))
-
-(defn wait-for-condition
-  [apredicate]
-  (while (not (apredicate))
-    (Time/sleep 100)))
-
-(defn some?
-  [pred aseq]
-  ((complement nil?) (some pred aseq)))
 
 (defn time-delta
   [time-secs]
@@ -853,15 +866,15 @@
 (defn zip-contains-dir?
   [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target "/")) entries)))
+    (boolean (some #(.startsWith % (str target "/")) entries))))
 
 (defn url-encode
   [s]
-  (java.net.URLEncoder/encode s "UTF-8"))
+  (codec/url-encode s))
 
 (defn url-decode
   [s]
-  (java.net.URLDecoder/decode s "UTF-8"))
+  (codec/url-decode s))
 
 (defn join-maps
   [& maps]
@@ -1031,3 +1044,17 @@
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
+
+(defn setup-default-uncaught-exception-handler
+  "Set a default uncaught exception handler to handle exceptions not caught in other threads."
+  []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (proxy [Thread$UncaughtExceptionHandler] []
+      (uncaughtException [thread thrown]
+        (try
+          (Utils/handleUncaughtException thrown)
+          (catch Error err
+            (do
+              (log-error err "Received error in main thread.. terminating server...")
+              (.exit (Runtime/getRuntime) -2))))))))
+

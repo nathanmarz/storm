@@ -60,10 +60,7 @@ public class KafkaUtils {
 
 
     public static long getOffset(SimpleConsumer consumer, String topic, int partition, KafkaConfig config) {
-        long startOffsetTime = kafka.api.OffsetRequest.LatestTime();
-        if ( config.forceFromStart ) {
-            startOffsetTime = config.startOffsetTime;
-        }
+        long startOffsetTime = config.startOffsetTime;
         return getOffset(consumer, topic, partition, startOffsetTime);
     }
 
@@ -115,25 +112,25 @@ public class KafkaUtils {
                         }
                         long latestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.LatestTime());
                         long earliestTimeOffset = getOffset(consumer, _topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
-                        if (latestTimeOffset == 0) {
+                        if (latestTimeOffset == KafkaUtils.NO_OFFSET) {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
                         long latestEmittedOffset = e.getValue();
                         long spoutLag = latestTimeOffset - latestEmittedOffset;
-                        ret.put(partition.getId() + "/" + "spoutLag", spoutLag);
-                        ret.put(partition.getId() + "/" + "earliestTimeOffset", earliestTimeOffset);
-                        ret.put(partition.getId() + "/" + "latestTimeOffset", latestTimeOffset);
-                        ret.put(partition.getId() + "/" + "latestEmittedOffset", latestEmittedOffset);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "spoutLag", spoutLag);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "earliestTimeOffset", earliestTimeOffset);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "latestTimeOffset", latestTimeOffset);
+                        ret.put(_topic + "/" + partition.getId() + "/" + "latestEmittedOffset", latestEmittedOffset);
                         totalSpoutLag += spoutLag;
                         totalEarliestTimeOffset += earliestTimeOffset;
                         totalLatestTimeOffset += latestTimeOffset;
                         totalLatestEmittedOffset += latestEmittedOffset;
                     }
-                    ret.put("totalSpoutLag", totalSpoutLag);
-                    ret.put("totalEarliestTimeOffset", totalEarliestTimeOffset);
-                    ret.put("totalLatestTimeOffset", totalLatestTimeOffset);
-                    ret.put("totalLatestEmittedOffset", totalLatestEmittedOffset);
+                    ret.put(_topic + "/" + "totalSpoutLag", totalSpoutLag);
+                    ret.put(_topic + "/" + "totalEarliestTimeOffset", totalEarliestTimeOffset);
+                    ret.put(_topic + "/" + "totalLatestTimeOffset", totalLatestTimeOffset);
+                    ret.put(_topic + "/" + "totalLatestEmittedOffset", totalLatestEmittedOffset);
                     return ret;
                 } else {
                     LOG.info("Metrics Tick: Not enough data to calculate spout lag.");
@@ -155,7 +152,8 @@ public class KafkaUtils {
         }
     }
 
-    public static ByteBufferMessageSet fetchMessages(KafkaConfig config, SimpleConsumer consumer, Partition partition, long offset) throws UpdateOffsetException {
+    public static ByteBufferMessageSet fetchMessages(KafkaConfig config, SimpleConsumer consumer, Partition partition, long offset)
+            throws TopicOffsetOutOfRangeException, FailedFetchException,RuntimeException {
         ByteBufferMessageSet msgs = null;
         String topic = config.topic;
         int partitionId = partition.partition;
@@ -180,10 +178,9 @@ public class KafkaUtils {
         if (fetchResponse.hasError()) {
             KafkaError error = KafkaError.getError(fetchResponse.errorCode(topic, partitionId));
             if (error.equals(KafkaError.OFFSET_OUT_OF_RANGE) && config.useStartOffsetTimeIfOffsetOutOfRange) {
-                LOG.warn("Got fetch request with offset out of range: [" + offset + "]; " +
-                        "retrying with default start offset time from configuration. " +
-                        "configured start offset time: [" + config.startOffsetTime + "]");
-                throw new UpdateOffsetException();
+                String msg = "Got fetch request with offset out of range: [" + offset + "]";
+                LOG.warn(msg);
+                throw new TopicOffsetOutOfRangeException(msg);
             } else {
                 String message = "Error fetching data from [" + partition + "] for topic [" + topic + "]: [" + error + "]";
                 LOG.error(message);

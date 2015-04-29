@@ -19,7 +19,7 @@
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
             ClusterSummary TopologyInfo TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
             SpoutStats BoltStats ErrorInfo SupervisorSummary])
-  (:use [backtype.storm util])
+  (:use [backtype.storm util log])
   (:use [clojure.math.numeric-tower :only [ceil]]))
 
 ;;TODO: consider replacing this with some sort of RRD
@@ -301,42 +301,76 @@
   (value-bolt-stats! stats))
 
 (defmulti thriftify-specific-stats :type)
+(defmulti clojurify-specific-stats class-selector)
 
 (defn window-set-converter
-  ([stats key-fn]
-   ;; make the first key a string,
-   (into {}
-         (for [[k v] stats]
-           [(str k)
-            (into {} (for [[k2 v2] v]
-                       [(key-fn k2) v2]))])))
-  ([stats]
-   (window-set-converter stats identity)))
+  ([stats key-fn first-key-fun]
+    (into {}
+      (for [[k v] stats]
+        ;apply the first-key-fun only to first key.
+        [(first-key-fun k)
+         (into {} (for [[k2 v2] v]
+                    [(key-fn k2) v2]))])))
+  ([stats first-key-fun]
+    (window-set-converter stats identity first-key-fun)))
 
 (defn to-global-stream-id
   [[component stream]]
   (GlobalStreamId. component stream))
 
+(defn from-global-stream-id [global-stream-id]
+  [(.get_componentId global-stream-id) (.get_streamId global-stream-id)])
+
+(defmethod clojurify-specific-stats BoltStats [^BoltStats stats]
+  [(window-set-converter (.get_acked stats) from-global-stream-id symbol)
+   (window-set-converter (.get_failed stats) from-global-stream-id symbol)
+   (window-set-converter (.get_process_ms_avg stats) from-global-stream-id symbol)
+   (window-set-converter (.get_executed stats) from-global-stream-id symbol)
+   (window-set-converter (.get_execute_ms_avg stats) from-global-stream-id symbol)])
+
+(defmethod clojurify-specific-stats SpoutStats [^SpoutStats stats]
+  [(window-set-converter (.get_acked stats) symbol)
+   (window-set-converter (.get_failed stats) symbol)
+   (window-set-converter (.get_complete_ms_avg stats) symbol)])
+
+
+(defn clojurify-executor-stats
+  [^ExecutorStats stats]
+  (let [ specific-stats (.get_specific stats)
+         is_bolt? (.is_set_bolt specific-stats)
+         specific-stats (if is_bolt? (.get_bolt specific-stats) (.get_spout specific-stats))
+         specific-stats (clojurify-specific-stats specific-stats)
+         common-stats (CommonStats. (window-set-converter (.get_emitted stats) symbol) (window-set-converter (.get_transferred stats) symbol) (.get_rate stats))]
+    (if is_bolt?
+      ; worker heart beat does not store the BoltExecutorStats or SpoutExecutorStats , instead it stores the result returned by render-stats!
+      ; which flattens the BoltExecutorStats/SpoutExecutorStats by extracting values from all atoms and merging all values inside :common to top
+      ;level map we are pretty much doing the same here.
+      (dissoc (merge common-stats {:type :bolt}  (apply ->BoltExecutorStats (into [nil] specific-stats))) :common)
+      (dissoc (merge common-stats {:type :spout} (apply ->SpoutExecutorStats (into [nil] specific-stats))) :common)
+      )))
+
 (defmethod thriftify-specific-stats :bolt
   [stats]
   (ExecutorSpecificStats/bolt
     (BoltStats.
-      (window-set-converter (:acked stats) to-global-stream-id)
-      (window-set-converter (:failed stats) to-global-stream-id)
-      (window-set-converter (:process-latencies stats) to-global-stream-id)
-      (window-set-converter (:executed stats) to-global-stream-id)
-      (window-set-converter (:execute-latencies stats) to-global-stream-id))))
+      (window-set-converter (:acked stats) to-global-stream-id str)
+      (window-set-converter (:failed stats) to-global-stream-id str)
+      (window-set-converter (:process-latencies stats) to-global-stream-id str)
+      (window-set-converter (:executed stats) to-global-stream-id str)
+      (window-set-converter (:execute-latencies stats) to-global-stream-id str))))
 
 (defmethod thriftify-specific-stats :spout
   [stats]
   (ExecutorSpecificStats/spout
-    (SpoutStats. (window-set-converter (:acked stats))
-                 (window-set-converter (:failed stats))
-                 (window-set-converter (:complete-latencies stats)))))
+    (SpoutStats. (window-set-converter (:acked stats) str)
+      (window-set-converter (:failed stats) str)
+      (window-set-converter (:complete-latencies stats) str))))
 
 (defn thriftify-executor-stats
   [stats]
-  (let [specific-stats (thriftify-specific-stats stats)]
-    (ExecutorStats. (window-set-converter (:emitted stats))
-                    (window-set-converter (:transferred stats))
-                    specific-stats)))
+  (let [specific-stats (thriftify-specific-stats stats)
+        rate (:rate stats)]
+    (ExecutorStats. (window-set-converter (:emitted stats) str)
+      (window-set-converter (:transferred stats) str)
+      specific-stats
+      rate)))

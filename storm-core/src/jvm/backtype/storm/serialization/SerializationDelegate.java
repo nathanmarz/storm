@@ -31,5 +31,5 @@ public interface SerializationDelegate {
 
     byte[] serialize(Object object);
 
-    Object deserialize(byte[] bytes);
+    <T> T deserialize(byte[] bytes, Class<T> clazz);
 }

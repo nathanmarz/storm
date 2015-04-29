@@ -54,6 +54,8 @@ public interface ITransportPlugin {
      * Connect to the specified server via framed transport 
      * @param transport The underlying Thrift transport.
      * @param serverHost server host
+     * @param asUser the user as which the connection should be established, and all the subsequent actions should be executed.
+     *               Only applicable when using secure storm cluster. A null/blank value here will just indicate to use the logged in user.
      */
-    public TTransport connect(TTransport transport, String serverHost) throws IOException, TTransportException;
+    public TTransport connect(TTransport transport, String serverHost, String asUser) throws IOException, TTransportException;
 }

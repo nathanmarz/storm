@@ -42,6 +42,9 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+    //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
+    private static final long serialVersionUID = -1550278723792864455L;
+
     /**
      * This is part of a temporary workaround to a ZK bug, it is the 'scheme:acl' for
      * the user Nimbus and Supervisors use to authenticate with ZK.
@@ -60,6 +63,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_MESSAGING_NETTY_BUFFER_SIZE = "storm.messaging.netty.buffer_size";
     public static final Object STORM_MESSAGING_NETTY_BUFFER_SIZE_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
+     * Netty based messaging: Sets the backlog value to specify when the channel binds to a local address
+     */
+    public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog";
+    public static final Object STORM_MESSAGING_NETTY_SOCKET_BACKLOG_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * Netty based messaging: The max # of retries that a peer will perform when a remote is not accessible
@@ -333,6 +342,20 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_ADMINS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of users that are the only ones allowed to run user operation on storm cluster.
+     * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    public static final String NIMBUS_USERS = "nimbus.users";
+    public static final Object NIMBUS_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of groups , users belong to these groups are the only ones allowed to run user operation on storm cluster.
+     * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    public static final String NIMBUS_GROUPS = "nimbus.groups";
+    public static final Object NIMBUS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * A list of users that run the supervisors and should be authorized to interact with
      * nimbus as a supervisor would.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
@@ -435,6 +458,20 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_AUTHORIZER = "nimbus.authorizer";
     public static final Object NIMBUS_AUTHORIZER_SCHEMA = String.class;
 
+
+    /**
+     * Impersonation user ACL config entries.
+     */
+    public static final String NIMBUS_IMPERSONATION_AUTHORIZER = "nimbus.impersonation.authorizer";
+    public static final Object NIMBUS_IMPERSONATION_AUTHORIZER_SCHEMA = String.class;
+
+
+    /**
+     * Impersonation user ACL config entries.
+     */
+    public static final String NIMBUS_IMPERSONATION_ACL = "nimbus.impersonation.acl";
+    public static final Object NIMBUS_IMPERSONATION_ACL_SCHEMA = ConfigValidation.MapOfStringToMapValidator;
+
     /**
      * How often nimbus should wake up to renew credentials if needed.
      */
@@ -453,6 +490,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
     public static final Object NIMBUS_AUTO_CRED_PLUGINS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * Storm UI binds to this host/interface.
+     */
+    public static final String UI_HOST = "ui.host";
+    public static final Object UI_HOST_SCHEMA = String.class;
 
     /**
      * Storm UI binds to this port.
@@ -491,6 +534,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of groups allowed to view logs via the Log Viewer
+     */
+    public static final String LOGS_GROUPS = "logs.groups";
+    public static final Object LOGS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Appender name used by log viewer to determine log directory.
      */
     public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
@@ -521,10 +570,64 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
 
     /**
-     * A list of users allowed to view topologies via the UI
+     * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
      */
-    public static final String UI_USERS = "ui.users";
-    public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
+    public static final String UI_HTTPS_PORT = "ui.https.port";
+    public static final Object UI_HTTPS_PORT_SCHEMA = Number.class;
+
+    /**
+     * Path to the keystore used by Storm UI for setting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEYSTORE_PATH = "ui.https.keystore.path";
+    public static final Object UI_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the keystore used by Storm UI for setting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEYSTORE_PASSWORD = "ui.https.keystore.password";
+    public static final Object UI_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of keystore used by Storm UI for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String UI_HTTPS_KEYSTORE_TYPE = "ui.https.keystore.type";
+    public static final Object UI_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEY_PASSWORD = "ui.https.key.password";
+    public static final Object UI_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Path to the truststore used by Storm UI settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_TRUSTSTORE_PATH = "ui.https.truststore.path";
+    public static final Object UI_HTTPS_TRUSTSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm UI settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_TRUSTSTORE_PASSWORD = "ui.https.truststore.password";
+    public static final Object UI_HTTPS_TRUSTSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of truststore used by Storm UI for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String UI_HTTPS_TRUSTSTORE_TYPE = "ui.https.truststore.type";
+    public static final Object UI_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_WANT_CLIENT_AUTH = "ui.https.want.client.auth";
+    public static final Object UI_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+    public static final String UI_HTTPS_NEED_CLIENT_AUTH = "ui.https.need.client.auth";
+    public static final Object UI_HTTPS_NEED_CLIENT_AUTH_SCHEMA = Boolean.class;
+
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
@@ -562,6 +665,40 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DRPC_HTTPS_KEYSTORE_TYPE = "drpc.https.keystore.type";
     public static final Object DRPC_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_KEY_PASSWORD = "drpc.https.key.password";
+    public static final Object DRPC_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Path to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_TRUSTSTORE_PATH = "drpc.https.truststore.path";
+    public static final Object DRPC_HTTPS_TRUSTSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_TRUSTSTORE_PASSWORD = "drpc.https.truststore.password";
+    public static final Object DRPC_HTTPS_TRUSTSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of truststore used by Storm DRPC for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String DRPC_HTTPS_TRUSTSTORE_TYPE = "drpc.https.truststore.type";
+    public static final Object DRPC_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_WANT_CLIENT_AUTH = "drpc.https.want.client.auth";
+    public static final Object DRPC_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+    public static final String DRPC_HTTPS_NEED_CLIENT_AUTH = "drpc.https.need.client.auth";
+    public static final Object DRPC_HTTPS_NEED_CLIENT_AUTH_SCHEMA = Boolean.class;
 
     /**
      * The DRPC transport plug-in for Thrift client/server communication
@@ -720,6 +857,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_WORKER_TIMEOUT_SECS = "supervisor.worker.timeout.secs";
     public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
+     * How many seconds to sleep for before shutting down threads on worker
+     */
+    public static final String SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS = "supervisor.worker.shutdown.sleep.secs";
+    public static final Object SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * How long a worker can go without heartbeating during the initial launch before
@@ -1175,6 +1318,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TRANSACTIONAL_ZOOKEEPER_PORT_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * The user as which the nimbus client should be acquired to perform the operation.
+     */
+    public static final String STORM_DO_AS_USER="storm.doAsUser";
+    public static final Object STORM_DO_AS_USER_SCHEMA = String.class;
+
+    /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
     public static final String ZMQ_THREADS = "zmq.threads";
@@ -1232,22 +1381,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
-
-    /**
-     * HDFS information, used to get the delegation token on behalf of the topology
-     * submitter user and renew the tokens. see {@link backtype.storm.security.auth.hadoop.AutoHDFS}
-     * kerberos principal name with realm should be provided.
-     */
-    public static final Object TOPOLOGY_HDFS_PRINCIPAL = "topology.hdfs.user";
-    public static final Object TOPOLOGY_HDFS_PRINCIPAL_SCHEMA = String.class;
-
-    /**
-     * The HDFS URI to be used by AutoHDFS.java to grab the delegation token on topology
-     * submitter user's behalf by the nimbus. If this is not provided the default URI provided
-     * in the hdfs configuration files will be used.
-     */
-    public static final Object TOPOLOGY_HDFS_URI = "topology.hdfs.uri";
-    public static final Object TOPOLOGY_HDFS_URI_SCHEMA = String.class;
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

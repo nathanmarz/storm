@@ -15,18 +15,25 @@
 ;; limitations under the License.
 (ns backtype.storm.nimbus-test
   (:use [clojure test])
-  (:require [backtype.storm [util :as util]])
+  (:require [backtype.storm [util :as util] [stats :as stats]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
+            TestAggregatesCounter TestPlannerSpout TestPlannerBolt])
   (:import [backtype.storm.scheduler INimbus])
-  (:import [backtype.storm.generated Credentials])
-  (:use [backtype.storm bootstrap testing MockAutoCred])
+  (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
+            TopologyInitialStatus AlreadyAliveException KillOptions RebalanceOptions
+            InvalidTopologyException AuthorizationException])
+  (:import [java.util HashMap])
+  (:import [java.io File])
+  (:import [backtype.storm.utils Time])
+  (:import [org.apache.commons.io FileUtils])
+  (:use [backtype.storm testing MockAutoCred util config log timer])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
-  (:use [conjure core])
-  )
-
-(bootstrap)
+  (:require [backtype.storm
+             [thrift :as thrift]
+             [cluster :as cluster]])
+  (:use [conjure core]))
 
 (defn storm-component->task-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
@@ -113,7 +120,7 @@
         curr-beat (.get-worker-heartbeat state storm-id node port)
         stats (:executor-stats curr-beat)]
     (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10 :executor-stats (merge stats {executor nil})}
+      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})}
       )))
 
 (defn slot-assignments [cluster storm-id]
@@ -486,7 +493,7 @@
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
-      
+
       (advance-cluster-time cluster 59)
       (do-executor-heartbeat cluster storm-id executor-id1)
       (do-executor-heartbeat cluster storm-id executor-id2)

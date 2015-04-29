@@ -16,11 +16,9 @@
 (ns backtype.storm.messaging-test
   (:use [clojure test])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestEventLogSpout TestEventOrderCheckBolt])
-  (:use [backtype.storm bootstrap testing])
+  (:use [backtype.storm testing config])
   (:use [backtype.storm.daemon common])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-local-transport
   (doseq [transport-on? [false true]] 

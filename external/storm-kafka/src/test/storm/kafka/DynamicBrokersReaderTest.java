@@ -171,7 +171,7 @@ public class DynamicBrokersReaderTest {
         assertEquals(newHost, brokerInfo.getBrokerFor(partition).host);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = NullPointerException.class)
     public void testErrorLogsWhenConfigIsMissing() throws Exception {
         String connectionString = server.getConnectString();
         Map conf = new HashMap();

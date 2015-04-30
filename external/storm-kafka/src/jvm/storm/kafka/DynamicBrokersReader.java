@@ -19,6 +19,7 @@ package storm.kafka;
 
 import backtype.storm.Config;
 import backtype.storm.utils.Utils;
+import com.google.common.base.Preconditions;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
@@ -42,12 +43,13 @@ public class DynamicBrokersReader {
 
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
         // Check required parameters
-        if(conf == null) {LOG.error("conf cannot be null");}
+        Preconditions.checkNotNull(conf, "conf cannot be null");
+
         validateConfig(conf);
 
-        if(zkStr == null) {LOG.error("zkString cannot be null");}
-        if(zkPath == null) {LOG.error("zkPath cannot be null");}
-        if(topic == null) {LOG.error("topic cannot be null");}
+        Preconditions.checkNotNull(zkStr,"zkString cannot be null");
+        Preconditions.checkNotNull(zkPath, "zkPath cannot be null");
+        Preconditions.checkNotNull(topic, "topic cannot be null");
 
         _zkPath = zkPath;
         _topic = topic;
@@ -158,19 +160,19 @@ public class DynamicBrokersReader {
         }
     }
 
+    /**
+     * Validate required parameters in the input configuration Map
+     * @param conf
+     */
     private void validateConfig(final Map conf) {
-        if(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT) == null) {
-            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_SESSION_TIMEOUT);
-        }
-        if(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT) == null) {
-            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT);
-        }
-        if(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES) == null) {
-            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_RETRY_TIMES);
-        }
-        if(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL) == null) {
-            LOG.error("{} cannot be null", Config.STORM_ZOOKEEPER_RETRY_INTERVAL);
-        }
+        Preconditions.checkNotNull(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT),
+                "%s cannot be null", Config.STORM_ZOOKEEPER_SESSION_TIMEOUT);
+        Preconditions.checkNotNull(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT),
+                "%s cannot be null", Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT);
+        Preconditions.checkNotNull(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES),
+                "%s cannot be null", Config.STORM_ZOOKEEPER_RETRY_TIMES);
+        Preconditions.checkNotNull(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL),
+                "%s cannot be null", Config.STORM_ZOOKEEPER_RETRY_INTERVAL);
     }
 
 }

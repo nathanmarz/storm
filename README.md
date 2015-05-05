@@ -67,6 +67,39 @@ the layout and configuration of your topologies.
 To use Flux, add it as a dependency and package all your Storm components in a fat jar, then create a YAML document
 to define your topology (see below for YAML configuration options).
 
+### Building from Source
+The easiest way to use Flux, is to add it as a Maven dependency in you project as described below.
+
+If you would like to build Flux from source and run the unit/integration tests, you will need the following installed
+on your system:
+
+* Python 2.6.x or later
+* Node.js 0.10.x or later
+
+#### Building with unit tests enabled:
+
+```
+mvn clean install
+```
+
+#### Building with unit tests disabled:
+If you would like to build Flux without installing Python or Node.js you can simply skip the unit tests:
+
+```
+mvn clean install -DskipTests=true
+```
+
+Note that if you plan on using Flux to deploy topologies to a remote cluster, you will still need to have Python
+installed since it is required by Apache Storm.
+
+
+#### Building with integration tests enabled:
+
+```
+mvn clean install -DskipIntegration=false
+```
+
+
 ### Packaging with Maven
 To enable Flux for your Storm components, you need to add it as a dependency such that it's included in the Storm
 topology jar. This can be accomplished with the Maven shade plugin (preferred) or the Maven assembly plugin (not

@@ -45,7 +45,6 @@ public class TopologyDef {
     private TopologySourceDef topologySource;
 
     // the following are required if we're defining a core storm topology DAG in YAML, etc.
-    //TODO if any of these are specified and `topologySource != null` it should be considered an error.
     private Map<String, BoltDef> boltMap = new LinkedHashMap<String, BoltDef>();
     private Map<String, SpoutDef> spoutMap = new LinkedHashMap<String, SpoutDef>();
     private List<StreamDef> streams = new ArrayList<StreamDef>();

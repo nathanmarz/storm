@@ -786,7 +786,7 @@ public class Config extends HashMap<String, Object> {
      * timeout for the topology implementing the DRPC function.
      */
     public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";
-    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * Childopts for Storm DRPC Java process.

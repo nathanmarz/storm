@@ -19,13 +19,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.github.ptgoetz</groupId>
+        <groupId>org.apache.storm</groupId>
         <artifactId>flux</artifactId>
-        <version>0.3.1-SNAPSHOT</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.github.ptgoetz</groupId>
     <artifactId>flux-core</artifactId>
     <packaging>jar</packaging>
 
@@ -34,26 +33,26 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.ptgoetz</groupId>
+            <groupId>org.apache.storm</groupId>
             <artifactId>flux-wrappers</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-kafka</artifactId>
-            <version>${storm.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-hdfs</artifactId>
-            <version>${storm.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-hbase</artifactId>
-            <version>${storm.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

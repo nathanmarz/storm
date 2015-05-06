@@ -169,6 +169,7 @@
         <module>external/storm-jdbc</module>
         <module>external/storm-redis</module>
         <module>external/storm-eventhubs</module>
+        <module>external/flux</module>
     </modules>
 
     <scm>

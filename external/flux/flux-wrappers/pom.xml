@@ -19,17 +19,33 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.github.ptgoetz</groupId>
+        <groupId>org.apache.storm</groupId>
         <artifactId>flux</artifactId>
-        <version>0.3.1-SNAPSHOT</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.github.ptgoetz</groupId>
     <artifactId>flux-wrappers</artifactId>
     <packaging>jar</packaging>
 
     <name>flux-wrappers</name>
-    <url>https://github.com/ptgoetz/flux</url>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>multilang-javascript</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>multilang-ruby</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>multilang-python</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>

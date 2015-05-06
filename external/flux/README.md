@@ -829,17 +829,6 @@ topologySource:
   methodName: "getTopologyWithDifferentMethodName"
 ```
 
-## Author
-P. Taylor Goetz
+## Committer Sponsors
 
-## Contributors
-
-
-## Contributing
-
-Contributions in any form are more than welcome.
-
-The intent of this project is that it will be donated to Apache Storm.
-
-By offering any contributions to this project, you should be willing and able to submit an
-[Apache ICLA](http://www.apache.org/licenses/icla.txt), if you have not done so already.
+ * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))

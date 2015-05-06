@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.ptgoetz</groupId>
+    <artifactId>flux</artifactId>
+    <version>0.3.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>flux</name>
+    <url>https://github.com/ptgoetz/flux</url>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+    <scm>
+        <connection>scm:git:git@github.com:ptgoetz/flux.git</connection>
+        <developerConnection>scm:git:git@github.com:ptgoetz/flux.git</developerConnection>
+        <url>:git@github.com:ptgoetz/flux.git</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>ptgoetz</id>
+            <name>P. Taylor Goetz</name>
+            <email>ptgoetz@apache.org</email>
+        </developer>
+    </developers>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <storm.version>0.9.3</storm.version>
+        <!-- see comment below... This fixes an annoyance with intellij -->
+        <provided.scope>provided</provided.scope>
+    </properties>
+
+    <profiles>
+        <!--
+            Hack to make intellij behave.
+            If you use intellij, enable this profile in your IDE.
+            It should make life easier.
+        -->
+        <profile>
+            <id>intellij</id>
+            <properties>
+                <provided.scope>compile</provided.scope>
+            </properties>
+        </profile>
+    </profiles>
+
+    <modules>
+        <module>flux-wrappers</module>
+        <module>flux-core</module>
+        <module>flux-examples</module>
+    </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-core</artifactId>
+            <version>${storm.version}</version>
+            <scope>${provided.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.10</artifactId>
+            <version>0.8.1.1</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.zookeeper</groupId>
+                    <artifactId>zookeeper</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <resources>
+
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.3</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,9 @@
+---
+
+name: "existing-topology"
+
+config:
+  topology.workers: 1
+
+topologySource:
+  className: "org.apache.storm.flux.test.TridentTopologySource"

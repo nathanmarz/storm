@@ -154,6 +154,8 @@ public class ShellSpout implements ISpout {
                     return;
                 } else if (command.equals("log")) {
                     handleLog(shellMsg);
+                } else if (command.equals("error")) {
+                    handleError(shellMsg.getMsg());
                 } else if (command.equals("emit")) {
                     String stream = shellMsg.getStream();
                     Long task = shellMsg.getTask();
@@ -204,6 +206,10 @@ public class ShellSpout implements ISpout {
                 LOG.info(msg);
                 break;
         }
+    }
+
+    private void handleError(String msg) {
+        _collector.reportError(new Exception("Shell Process Exception: " + msg));
     }
 
     @Override

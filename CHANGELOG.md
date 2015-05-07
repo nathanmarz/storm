@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
  * STORM-603: Log errors when required kafka params are missing
  * STORM-607: storm-hbase HBaseMapState should support user to customize the hbase-key & hbase-qualifier
  * STORM-795: Update the user document for the extlib issue

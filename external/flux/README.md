@@ -109,9 +109,9 @@ recommended).
 The current version of Flux is available in Maven Central at the following coordinates:
 ```xml
 <dependency>
-    <groupId>com.github.ptgoetz</groupId>
+    <groupId>org.apache.storm</groupId>
     <artifactId>flux-core</artifactId>
-    <version>0.3.0</version>
+    <version>${storm.version}</version>
 </dependency>
 ```
 
@@ -123,9 +123,9 @@ The example below illustrates Flux usage with the Maven shade plugin:
 <dependencies>
     <!-- Flux include -->
     <dependency>
-        <groupId>com.github.ptgoetz</groupId>
+        <groupId>org.apache.storm</groupId>
         <artifactId>flux-core</artifactId>
-        <version>0.3.0</version>
+        <version>${storm.version}</version>
     </dependency>
 
     <!-- add user dependencies here... -->

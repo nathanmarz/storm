@@ -6,24 +6,24 @@ A collection of examples illustrating various capabilities.
 Checkout the projects source and perform a top level Maven build (i.e. from the `flux` directory):
 
 ```bash
-git clone https://github.com/ptgoetz/flux.git
-cd flux
-mvn install
+git clone https://github.com/apache/storm.git
+cd storm
+mvn install -DskipTests=true
 ```
 
-This will create a shaded (i.e. "fat" or "uber") jar in the `flux-examples/target` directory that can run/deployed with
+This will create a shaded (i.e. "fat" or "uber") jar in the `external/flux/flux-examples/target` directory that can run/deployed with
 the `storm` command:
 
 ```bash
 cd flux-examples
-storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_wordcount.yaml
+storm jar ./target/flux-examples-*-SNAPSHOT.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_wordcount.yaml
 ```
 
 The example YAML files are also packaged in the examples jar, so they can also be referenced with Flux's `--resource`
 command line switch:
 
 ```bash
-storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local --resource /simple_wordcount.yaml
+storm jar ./target/flux-examples-*.jar org.apache.storm.flux.Flux --local --resource /simple_wordcount.yaml
 ```
 
 ## Available Examples
@@ -51,7 +51,7 @@ To run the `simple_hdfs.yaml` example, copy the `hdfs_bolt.properties` file to a
 least, the property `hdfs.url` to point to a HDFS cluster. Then you can run the example something like:
 
 ```bash
-storm jar ./target/flux-examples-0.2.3-SNAPSHOT.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_hdfs.yaml --filter my_hdfs_bolt.properties
+storm jar ./target/flux-examples-*.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_hdfs.yaml --filter my_hdfs_bolt.properties
 ```
 
 ### [simple_hbase.yaml](src/main/resources/simple_hbase.yaml)

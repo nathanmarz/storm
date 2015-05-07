@@ -29,7 +29,6 @@
     <packaging>jar</packaging>
 
     <name>flux-examples</name>
-    <url>https://github.com/ptgoetz/flux</url>
 
     <dependencies>
         <dependency>

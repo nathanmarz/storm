@@ -30,8 +30,6 @@ public class IntegrationTest {
         }
     }
 
-
-
     @Test
     public void testRunTopologySource() throws Exception {
         if(!skipTest) {

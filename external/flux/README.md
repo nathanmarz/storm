@@ -183,7 +183,7 @@ usage: storm jar <my_topology_uber_jar.jar> org.apache.storm.flux.Flux
                               build, validate, and print information about
                               the topology.
  -e,--env-filter              Perform environment variable substitution.
-                              Replace keysidentified with `${ENV-[NAME]}`
+                              Replace keys identified with `${ENV-[NAME]}`
                               will be replaced with the corresponding
                               `NAME` environment value
  -f,--filter <file>           Perform property substitution. Use the

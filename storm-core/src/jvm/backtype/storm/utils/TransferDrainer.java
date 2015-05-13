@@ -23,34 +23,26 @@ import java.util.Iterator;
 
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
+import com.google.common.collect.Maps;
 
 public class TransferDrainer {
 
   private HashMap<Integer, ArrayList<ArrayList<TaskMessage>>> bundles = new HashMap();
   
   public void add(HashMap<Integer, ArrayList<TaskMessage>> taskTupleSetMap) {
-    for (Integer key : taskTupleSetMap.keySet()) {
-      
-      ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(key);
-      if (null == bundle) {
-        bundle = new ArrayList<ArrayList<TaskMessage>>();
-        bundles.put(key, bundle);
-      }
-      
-      ArrayList tupleSet = taskTupleSetMap.get(key);
-      if (null != tupleSet && tupleSet.size() > 0) {
-        bundle.add(tupleSet);
-      }
-    } 
+    for (Integer task : taskTupleSetMap.keySet()) {
+      addListRefToMap(this.bundles, task, taskTupleSetMap.get(task));
+    }
   }
   
   public void send(HashMap<Integer, String> taskToNode, HashMap<String, IConnection> connections) {
-    for (Integer task : bundles.keySet()) {
-      String hostPort = taskToNode.get(task);
+    HashMap<String, ArrayList<ArrayList<TaskMessage>>> bundleMapByDestination = groupBundleByDestination(taskToNode);
+
+    for (String hostPort : bundleMapByDestination.keySet()) {
       if (hostPort != null) {
         IConnection connection = connections.get(hostPort);
         if (null != connection) {
-          ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(task);
+          ArrayList<ArrayList<TaskMessage>> bundle = bundleMapByDestination.get(hostPort);
           Iterator<TaskMessage> iter = getBundleIterator(bundle);
           if (null != iter && iter.hasNext()) {
             connection.send(iter);
@@ -59,7 +51,34 @@ public class TransferDrainer {
       }
     }
   }
-  
+
+  private HashMap<String, ArrayList<ArrayList<TaskMessage>>> groupBundleByDestination(HashMap<Integer, String> taskToNode) {
+    HashMap<String, ArrayList<ArrayList<TaskMessage>>> bundleMap = Maps.newHashMap();
+    for (Integer task : this.bundles.keySet()) {
+      String hostPort = taskToNode.get(task);
+      if (hostPort != null) {
+        for (ArrayList<TaskMessage> chunk : this.bundles.get(task)) {
+          addListRefToMap(bundleMap, hostPort, chunk);
+        }
+      }
+    }
+    return bundleMap;
+  }
+
+  private <T> void addListRefToMap(HashMap<T, ArrayList<ArrayList<TaskMessage>>> bundles,
+                                   T key, ArrayList<TaskMessage> tuples) {
+    ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(key);
+
+    if (null == bundle) {
+      bundle = new ArrayList<ArrayList<TaskMessage>>();
+      bundles.put(key, bundle);
+    }
+
+    if (null != tuples && tuples.size() > 0) {
+      bundle.add(tuples);
+    }
+  }
+
   private Iterator<TaskMessage> getBundleIterator(final ArrayList<ArrayList<TaskMessage>> bundle) {
     
     if (null == bundle) {

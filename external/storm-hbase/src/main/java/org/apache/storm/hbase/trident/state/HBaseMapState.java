@@ -26,12 +26,12 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.storm.hbase.security.HBaseSecurityUtil;
+import org.apache.storm.hbase.trident.mapper.TridentHBaseMapMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.trident.state.*;
 import storm.trident.state.map.*;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.Serializable;
@@ -102,7 +102,7 @@ public class HBaseMapState<T> implements IBackingMap<T> {
         public String configKey = "hbase.config";
         public String tableName;
         public String columnFamily;
-        public String qualifier;
+        public TridentHBaseMapMapper mapMapper;
     }
 
 
@@ -155,6 +155,10 @@ public class HBaseMapState<T> implements IBackingMap<T> {
             if (this.options.serializer == null) {
                 throw new RuntimeException("Serializer should be specified for type: " + stateType);
             }
+
+            if (this.options.mapMapper == null) {
+                throw new RuntimeException("MapMapper should be specified for type: " + stateType);
+            }
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -189,17 +193,22 @@ public class HBaseMapState<T> implements IBackingMap<T> {
     public List<T> multiGet(List<List<Object>> keys) {
         List<Get> gets = new ArrayList<Get>();
         for(List<Object> key : keys){
-            LOG.info("Partition: {}, GET: {}", this.partitionNum, key);
-            Get get = new Get(toRowKey(key));
-            get.addColumn(this.options.columnFamily.getBytes(), this.options.qualifier.getBytes());
+            byte[] hbaseKey = this.options.mapMapper.rowKey(key);
+            String qualifier = this.options.mapMapper.qualifier(key);
+
+            LOG.info("Partition: {}, GET: {}", this.partitionNum, new String(hbaseKey));
+            Get get = new Get(hbaseKey);
+            get.addColumn(this.options.columnFamily.getBytes(), qualifier.getBytes());
             gets.add(get);
         }
 
         List<T> retval = new ArrayList<T>();
         try {
             Result[] results = this.table.get(gets);
-            for (Result result : results) {
-                byte[] value = result.getValue(this.options.columnFamily.getBytes(), this.options.qualifier.getBytes());
+            for (int i = 0; i < keys.size(); i++) {
+                String qualifier = this.options.mapMapper.qualifier(keys.get(i));
+                Result result = results[i];
+                byte[] value = result.getValue(this.options.columnFamily.getBytes(), qualifier.getBytes());
                 if(value != null) {
                     retval.add(this.serializer.deserialize(value));
                 } else {
@@ -216,11 +225,13 @@ public class HBaseMapState<T> implements IBackingMap<T> {
     public void multiPut(List<List<Object>> keys, List<T> values) {
         List<Put> puts = new ArrayList<Put>(keys.size());
         for (int i = 0; i < keys.size(); i++) {
-            LOG.info("Partiton: {}, Key: {}, Value: {}", new Object[]{this.partitionNum, keys.get(i), new String(this.serializer.serialize(values.get(i)))});
-            Put put = new Put(toRowKey(keys.get(i)));
+            byte[] hbaseKey = this.options.mapMapper.rowKey(keys.get(i));
+            String qualifier = this.options.mapMapper.qualifier(keys.get(i));
+            LOG.info("Partiton: {}, Key: {}, Value: {}", new Object[]{this.partitionNum, new String(hbaseKey), new String(this.serializer.serialize(values.get(i)))});
+            Put put = new Put(hbaseKey);
             T val = values.get(i);
             put.add(this.options.columnFamily.getBytes(),
-                    this.options.qualifier.getBytes(),
+                    qualifier.getBytes(),
                     this.serializer.serialize(val));
 
             puts.add(put);
@@ -234,19 +245,5 @@ public class HBaseMapState<T> implements IBackingMap<T> {
         } catch (IOException e) {
             throw new FailedException("IOException while writing to HBase", e);
         }
-    }
-
-
-    private byte[] toRowKey(List<Object> keys) {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try {
-            for (Object key : keys) {
-                bos.write(String.valueOf(key).getBytes());
-            }
-            bos.close();
-        } catch (IOException e){
-            throw new RuntimeException("IOException creating HBase row key.", e);
-        }
-        return bos.toByteArray();
     }
 }

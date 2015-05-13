@@ -603,6 +603,8 @@
      
      (bind results (complete-topology cluster
                                       (.buildTopology builder)
+                                      :storm-conf {TOPOLOGY-DEBUG true
+                                                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 300} ;;simulated time can take a while for things to calm down
                                       :cleanup-state false))
 
      (is (ms= [[5] [0] [1] [0]] (->> (read-tuples results "count")
@@ -615,7 +617,9 @@
                                  ["b"]]
                               })
      
-     (bind results (complete-topology cluster (.buildTopology builder)))
+     (bind results (complete-topology cluster (.buildTopology builder)
+                                      :storm-conf {TOPOLOGY-DEBUG true
+                                                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 300}))
 
      ;; need to do it this way (check for nothing transaction) because there is one transaction already saved up before that emits nothing (because of how memorytransctionalspout detects partition completion)
      (is (ms= [[0] [0] [2] [0]] (->> (read-tuples results "count")

@@ -23,6 +23,7 @@
 <link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
 <link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
 <link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
+<link href="/css/jsonFormatter.min.css" rel="stylesheet" type="text/css">
 <link href="/css/style.css" rel="stylesheet" type="text/css">
 <script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
 <script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
@@ -31,6 +32,7 @@
 <script src="/js/url.min.js" type="text/javascript"></script>
 <script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
 <script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
+<script src="/js/jsonFormatter.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
 <script src="/js/visualization.js" type="text/javascript"></script>
 <script src="/js/arbor.js" type="text/javascript"></script>
@@ -166,6 +168,7 @@ $(document).ready(function() {
             $("#show-hide-visualization").click(function () { show_visualization(null) });
 
             config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
+            $('#topology-configuration td').jsonFormatter()
             //key, value
             dtAutoPage("#topology-configuration-table", {});
 

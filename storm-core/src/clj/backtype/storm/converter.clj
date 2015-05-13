@@ -12,7 +12,9 @@
     (.set_used_ports (map long (:used-ports supervisor-info)))
     (.set_meta (map long (:meta supervisor-info)))
     (.set_scheduler_meta (:scheduler-meta supervisor-info))
-    (.set_uptime_secs (long (:uptime-secs supervisor-info)))))
+    (.set_uptime_secs (long (:uptime-secs supervisor-info)))
+    (.set_version (:version supervisor-info))
+    ))
 
 (defn clojurify-supervisor-info [^SupervisorInfo supervisor-info]
   (if supervisor-info
@@ -23,7 +25,8 @@
       (if (.get_used_ports supervisor-info) (into [] (.get_used_ports supervisor-info)))
       (if (.get_meta supervisor-info) (into [] (.get_meta supervisor-info)))
       (if (.get_scheduler_meta supervisor-info) (into {} (.get_scheduler_meta supervisor-info)))
-      (.get_uptime_secs supervisor-info))))
+      (.get_uptime_secs supervisor-info)
+      (.get_version supervisor-info))))
 
 (defn thriftify-assignment [assignment]
   (doto (Assignment.)
@@ -162,7 +165,7 @@
   (if worker-hb
     {:storm-id (.get_storm_id worker-hb)
      :executor-stats (clojurify-stats (into {} (.get_executor_stats worker-hb)))
-     :uptime (time-delta (.get_time_secs worker-hb))
+     :uptime (.get_uptime_secs worker-hb)
      :time-secs (.get_time_secs worker-hb)
      }
     {}))
@@ -170,6 +173,7 @@
 (defn thriftify-zk-worker-hb [worker-hb]
   (if (not-empty (filter second (:executor-stats worker-hb)))
     (doto (ClusterWorkerHeartbeat.)
+      (.set_uptime_secs (:uptime worker-hb))
       (.set_storm_id (:storm-id worker-hb))
       (.set_executor_stats (thriftify-stats (filter second (:executor-stats worker-hb))))
       (.set_time_secs (:time-secs worker-hb)))))

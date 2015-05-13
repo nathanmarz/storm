@@ -85,6 +85,8 @@ CONFFILE = ""
 JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 JAVA_HOME = os.getenv('JAVA_HOME', None)
 JAVA_CMD = 'java' if not JAVA_HOME else os.path.join(JAVA_HOME, 'bin', 'java')
+STORM_EXT_CLASSPATH = os.getenv('STORM_EXT_CLASSPATH', None)
+STORM_EXT_CLASSPATH_DAEMON = os.getenv('STORM_EXT_CLASSPATH_DAEMON', None)
 
 def get_config_opts():
     global CONFIG_OPTS
@@ -105,17 +107,24 @@ def get_jars_full(adir):
             ret.append(os.path.join(adir, f))
     return ret
 
-def get_classpath(extrajars):
+def get_classpath(extrajars, daemon=True):
     ret = get_jars_full(STORM_DIR)
-    ret.extend(get_jars_full(STORM_LIB_DIR))
+    ret.extend(get_jars_full(STORM_DIR + "/lib"))
+    ret.extend(get_jars_full(STORM_DIR + "/extlib"))
+    if daemon:
+        ret.extend(get_jars_full(STORM_DIR + "/extlib-daemon"))
+    if STORM_EXT_CLASSPATH != None:
+        ret.extend(STORM_EXT_CLASSPATH)
+    if daemon and STORM_EXT_CLASSPATH_DAEMON != None:
+        ret.extend(STORM_EXT_CLASSPATH_DAEMON)
     ret.extend(extrajars)
     return normclasspath(os.pathsep.join(ret))
 
-def confvalue(name, extrapaths):
+def confvalue(name, extrapaths, daemon=True):
     global CONFFILE
     command = [
         JAVA_CMD, "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
+        "-cp", get_classpath(extrapaths, daemon), "backtype.storm.command.config_value", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
@@ -168,7 +177,7 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True):
     global CONFFILE
     storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
     if(storm_log_dir == None or storm_log_dir == "nil"):
@@ -177,9 +186,9 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         "java", jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR,
         "-Dstorm.log.dir=" + storm_log_dir,
-        "-Djava.library.path=" + confvalue("java.library.path", extrajars),
+        "-Djava.library.path=" + confvalue("java.library.path", extrajars, daemon),
         "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", get_classpath(extrajars),
+        "-cp", get_classpath(extrajars, daemon),
     ] + jvmopts + [klass] + list(args)
     print("Running: " + " ".join(all_args))
     if fork:
@@ -204,6 +213,7 @@ def jar(jarfile, klass, *args):
         jvmtype="-client",
         extrajars=[jarfile, USER_CONF_DIR, STORM_BIN_DIR],
         args=args,
+        daemon=False,
         jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
 def kill(*args):

@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm config log util timer])
+  (:use [backtype.storm config log util timer local-state])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:require [backtype.storm [disruptor :as disruptor] [cluster :as cluster]])
   (:require [clojure.set :as set])
@@ -68,19 +68,9 @@
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        hb (mk-local-worker-heartbeat
-             (current-time-secs)
-             (:storm-id worker)
-             (:executors worker)
-             (:port worker))
         state (worker-state conf (:worker-id worker))]
-    (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
-    (.put state
-        LS-WORKER-HEARTBEAT
-        hb
-        false
-        )
+    (ls-worker-heartbeat! state (current-time-secs) (:storm-id worker) (:executors worker) (:port worker))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
 
@@ -544,6 +534,7 @@
 
 (defn -main [storm-id assignment-id port-str worker-id]  
   (let [conf (read-storm-config)]
+    (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown worker)))))

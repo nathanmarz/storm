@@ -1,4 +1,35 @@
 ## 0.11.0
+ * STORM-807: quote args to storm.py correctly
+ * STORM-796: Add support for "error" command in ShellSpout
+ * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
+ * STORM-603: Log errors when required kafka params are missing
+ * STORM-607: storm-hbase HBaseMapState should support user to customize the hbase-key & hbase-qualifier
+ * STORM-795: Update the user document for the extlib issue
+ * STORM-801: Add Travis CI badge to README
+ * STORM-797: DisruptorQueueTest has some race conditions in it.
+ * STORM-704: Apply Travis CI to Apache Storm Project
+ * STORM-721: Storm UI server should support SSL.
+ * STORM-583: Add Microsoft Azure Event Hub spout implementations
+ * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread
+ * STORM-730: remove extra curly brace
+ * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
+ * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change
+ * STORM-746: Skip ack init when there are no output tasks
+ * STORM-483: provide dedicated directories for classpath extension
+ * STORM-764: Have option to compress thrift heartbeat
+ * STORM-787: test-ns should announce test failures with 'BUILD FAILURE'
+ * STORM-789: Send more topology context to Multi-Lang components via initial handshake
+ * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
+ * STORM-766: Include version info in the service page
+ * STORM-786: KafkaBolt should ack tick tuples
+ * STORM-791: Storm UI displays maps in the config incorrectly
+ * STORM-788: UI Fix key for process latencies
+ * STORM-773: backtype.storm.transactional-test fails periodically with timeout
+ * STORM-772: Tasts fail periodically with InterruptedException or InterruptedIOException
+ * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
+ * STORM-765: Thrift serialization for local state
+ * STORM-762: uptime for worker heartbeats is lost when converted to thrift
+ * STORM-757: Simulated time can leak out on errors
  * STORM-694: java.lang.ClassNotFoundException: backtype.storm.daemon.common.SupervisorInfo
  * STORM-750: Set Config serialVersionUID
  * STORM-713: Include topic information with Kafka metrics.

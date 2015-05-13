@@ -18,6 +18,7 @@
 package storm.kafka.bolt;
 
 import backtype.storm.Config;
+import backtype.storm.Constants;
 import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
@@ -26,6 +27,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.TupleUtils;
 import backtype.storm.utils.Utils;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
@@ -45,7 +47,10 @@ import java.util.HashMap;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class KafkaBoltTest {
 
@@ -81,6 +86,18 @@ public class KafkaBoltTest {
         BrokerHosts brokerHosts = new StaticHosts(globalPartitionInformation);
         kafkaConfig = new KafkaConfig(brokerHosts, TEST_TOPIC);
         simpleConsumer = new SimpleConsumer("localhost", broker.getPort(), 60000, 1024, "testClient");
+    }
+
+    @Test
+    public void shouldAcknowledgeTickTuples() throws Exception {
+        // Given
+        Tuple tickTuple = mockTickTuple();
+
+        // When
+        bolt.execute(tickTuple);
+
+        // Then
+        verify(collector).ack(tickTuple);
     }
 
     @Test
@@ -185,4 +202,14 @@ public class KafkaBoltTest {
         };
         return new TupleImpl(topologyContext, new Values(message), 1, "");
     }
+
+    private Tuple mockTickTuple() {
+        Tuple tuple = mock(Tuple.class);
+        when(tuple.getSourceComponent()).thenReturn(Constants.SYSTEM_COMPONENT_ID);
+        when(tuple.getSourceStreamId()).thenReturn(Constants.SYSTEM_TICK_STREAM_ID);
+        // Sanity check
+        assertTrue(TupleUtils.isTick(tuple));
+        return tuple;
+    }
+
 }

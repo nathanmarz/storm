@@ -44,15 +44,14 @@ public class EventHubSender {
     this.partitionId = partitionId;
     this.destinationAddress = this.getDestinationAddress();
   }
-
-  public void send(String data) throws EventHubException {
+  
+  public void send(byte[] data) throws EventHubException {
     try {
       if (this.sender == null) {
         this.ensureSenderCreated();
       }
 
-      //For interop with other language, convert string to bytes
-      Binary bin = new Binary(data.getBytes());
+      Binary bin = new Binary(data);
       Message message = new Message(new Data(bin));
       this.sender.send(message);
 
@@ -69,6 +68,11 @@ public class EventHubSender {
     } catch (Exception e) {
       logger.error(e.getMessage());
     }
+  }
+
+  public void send(String data) throws EventHubException {
+    //For interop with other language, convert string to bytes
+    send(data.getBytes());
   }
 
   public void close() {

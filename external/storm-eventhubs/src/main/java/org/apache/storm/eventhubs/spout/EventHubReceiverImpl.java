@@ -46,6 +46,7 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
   private final String entityName;
   private final String partitionId;
   private final int defaultCredits;
+  private final String consumerGroupName;
 
   private EventHubReceiver receiver;
   private String lastOffset = null;
@@ -58,6 +59,7 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
     this.entityName = config.getEntityPath();
     this.defaultCredits = config.getReceiverCredits();
     this.partitionId = partitionId;
+    this.consumerGroupName = config.getConsumerGroupName();
     receiveApiLatencyMean = new ReducedMetric(new MeanReducer());
     receiveApiCallCount = new CountMetric();
     receiveMessageCount = new CountMetric();
@@ -70,14 +72,20 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
     long start = System.currentTimeMillis();
     EventHubClient eventHubClient = EventHubClient.create(connectionString, entityName);
     if(filter.getOffset() != null) {
-      receiver = eventHubClient.getDefaultConsumerGroup().createReceiver(partitionId, filter.getOffset(), defaultCredits);
+      receiver = eventHubClient
+          .getConsumerGroup(consumerGroupName)
+          .createReceiver(partitionId, filter.getOffset(), defaultCredits);
     }
     else if(filter.getEnqueueTime() != 0) {
-      receiver = eventHubClient.getDefaultConsumerGroup().createReceiver(partitionId, filter.getEnqueueTime(), defaultCredits);
+      receiver = eventHubClient
+          .getConsumerGroup(consumerGroupName)
+          .createReceiver(partitionId, filter.getEnqueueTime(), defaultCredits);
     }
     else {
       logger.error("Invalid IEventHubReceiverFilter, use default offset as filter");
-      receiver = eventHubClient.getDefaultConsumerGroup().createReceiver(partitionId, Constants.DefaultStartingOffset, defaultCredits);
+      receiver = eventHubClient
+          .getConsumerGroup(consumerGroupName)
+          .createReceiver(partitionId, Constants.DefaultStartingOffset, defaultCredits);
     }
     long end = System.currentTimeMillis();
     logger.info("created eventhub receiver, time taken(ms): " + (end-start));
@@ -107,6 +115,12 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
     receiveApiCallCount.incr();
 
     if (message == null) {
+      //Temporary workaround for AMQP/EH bug of failing to receive messages
+      if(timeoutInMilliseconds > 100 && millis < timeoutInMilliseconds/2) {
+        throw new RuntimeException(
+            "Restart EventHubSpout due to failure of receiving messages in "
+            + millis + " millisecond");
+      }
       return null;
     }
     receiveMessageCount.incr();

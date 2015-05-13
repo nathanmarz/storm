@@ -57,8 +57,11 @@ public class EventHubClient {
     return new EventHubSender(this.connection.createSession(), this.entityPath, partitionId);
   }
 
-  public EventHubConsumerGroup getDefaultConsumerGroup() {
-    return new EventHubConsumerGroup(this.connection, this.entityPath, DefaultConsumerGroupName);
+  public EventHubConsumerGroup getConsumerGroup(String cgName) {
+    if(cgName == null || cgName.length() == 0) {
+      cgName = DefaultConsumerGroupName;
+    }
+    return new EventHubConsumerGroup(connection, entityPath, cgName);
   }
 
   public void close() {

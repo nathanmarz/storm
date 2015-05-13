@@ -77,6 +77,7 @@ public class EventCount {
     if(enqueueTimeDiff != 0) {
       enqueueTimeFilter = System.currentTimeMillis() - enqueueTimeDiff*1000;
     }
+    String consumerGroupName = properties.getProperty("eventhubspout.consumer.group.name");
     
     System.out.println("Eventhub spout config: ");
     System.out.println("  partition count: " + partitionCount);
@@ -84,12 +85,14 @@ public class EventCount {
     System.out.println("  receiver credits: " + receiverCredits);
     spoutConfig = new EventHubSpoutConfig(username, password,
       namespaceName, entityPath, partitionCount, zkEndpointAddress,
-      checkpointIntervalInSeconds, receiverCredits, maxPendingMsgsPerPartition, enqueueTimeFilter);
+      checkpointIntervalInSeconds, receiverCredits, maxPendingMsgsPerPartition,
+      enqueueTimeFilter);
 
     if(targetFqnAddress != null)
     {
       spoutConfig.setTargetAddress(targetFqnAddress);      
     }
+    spoutConfig.setConsumerGroupName(consumerGroupName);
 
     //set the number of workers to be the same as partition number.
     //the idea is to have a spout and a partial count bolt co-exist in one

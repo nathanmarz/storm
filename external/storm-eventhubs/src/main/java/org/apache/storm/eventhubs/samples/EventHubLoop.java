@@ -21,6 +21,7 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.TopologyBuilder;
 
 import org.apache.storm.eventhubs.bolt.EventHubBolt;
+import org.apache.storm.eventhubs.bolt.EventHubBoltConfig;
 import org.apache.storm.eventhubs.spout.EventHubSpout;
 
 /**
@@ -34,11 +35,11 @@ public class EventHubLoop extends EventCount {
 
     topologyBuilder.setSpout("EventHubsSpout", eventHubSpout, spoutConfig.getPartitionCount())
       .setNumTasks(spoutConfig.getPartitionCount());
+    EventHubBoltConfig boltConfig = new EventHubBoltConfig(spoutConfig.getConnectionString(),
+        spoutConfig.getEntityPath(), true);
     
-    EventHubBolt eventHubBolt = new EventHubBolt(spoutConfig.getConnectionString(),
-        spoutConfig.getEntityPath());
-    //For every spout, let's create multiple bolts because send is much slower
-    int boltTasks = spoutConfig.getPartitionCount() * 50;
+    EventHubBolt eventHubBolt = new EventHubBolt(boltConfig);
+    int boltTasks = spoutConfig.getPartitionCount();
     topologyBuilder.setBolt("EventHubsBolt", eventHubBolt, boltTasks)
       .localOrShuffleGrouping("EventHubsSpout").setNumTasks(boltTasks);
     return topologyBuilder.createTopology();

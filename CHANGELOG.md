@@ -123,7 +123,6 @@
  * STORM-687: Storm UI does not display up to date information despite refreshes in IE
  * STORM-557: High Quality Images for presentations
  * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
- * STORM-469: Storm UI Last Error Detail Insufficient for debugging
  * STORM-656: Document "external" modules and "Committer Sponsors"
  * STORM-657: make the shutdown-worker sleep time before kill -9 configurable
  * STORM-663: Create javadocs for BoltDeclarer

@@ -91,10 +91,14 @@
 (deftest test-get-log-root->files-map
   (testing "returns map of root name to list of files"
     (let [files (vec (map #(java.io.File. %) ["log-1-2-worker-3.log"
+                                              "log-1-2-worker-3.log.1.gz"
+                                              "log-1-2-worker-3.log.err"
+                                              "log-1-2-worker-3.log.out"
+                                              "log-1-2-worker-3.log.out.1.gz"
                                               "log-1-2-worker-3.log.1"
                                               "log-2-4-worker-6.log.1"]))
-          expected {"log-1-2-worker-3" #{(files 0) (files 1)}
-                    "log-2-4-worker-6" #{(files 2)}}]
+          expected {"log-1-2-worker-3" #{(files 0) (files 1) (files 2) (files 3) (files 4) (files 5)}
+                    "log-2-4-worker-6" #{(files 6)}}]
       (is (= expected (logviewer/get-log-root->files-map files))))))
 
 (deftest test-identify-worker-log-files

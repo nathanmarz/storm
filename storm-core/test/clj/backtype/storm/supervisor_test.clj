@@ -252,8 +252,18 @@
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
           mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
+          mock-sensitivity "S3"
+          mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
-                       (concat [(supervisor/java-cmd) "-server"]
+                       (concat [(supervisor/java-cmd) "-cp" classpath 
+                               (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                               "-Dstorm.home="
+                                (str "-Dstorm.id=" mock-storm-id)
+                                (str "-Dworker.id=" mock-worker-id)
+                                (str "-Dworker.port=" mock-port)
+                               "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                               "backtype.storm.LogWriter"]
+                               [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="
@@ -262,7 +272,8 @@
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
-                                (str "-Dlogback.configurationFile=" file-path-separator "logback" file-path-separator "worker.xml")
+                                (str "-Dlogging.sensitivity=" mock-sensitivity)
+                                (str "-Dlog4j.configurationFile=" file-path-separator "log4j2" file-path-separator "worker.xml")
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -364,6 +375,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           storm-local (str "/tmp/" (UUID/randomUUID))
           worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
@@ -373,7 +385,16 @@
                       (str storm-local "/workers/" mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
+                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
+                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dstorm.home='"
+                                " '-Dstorm.id=" mock-storm-id "'"
+                                " '-Dworker.id=" mock-worker-id "'"
+                                " '-Dworker.port=" mock-port "'"
+                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " 'backtype.storm.LogWriter'"
+                                " 'java' '-server'"
                                 " " (shell-cmd opts)
                                 " " (shell-cmd topo-opts)
                                 " '-Djava.library.path='"
@@ -382,7 +403,8 @@
                                 " '-Dstorm.conf.file='"
                                 " '-Dstorm.options='"
                                 " '-Dstorm.log.dir=/logs'"
-                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
+                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"

@@ -33,7 +33,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <qpid.version>0.32</qpid.version>
+        <eventhubs.client.version>0.9</eventhubs.client.version>
     </properties>
     <build>
         <plugins>
@@ -77,14 +77,9 @@
     </build>
     <dependencies>
         <dependency>
-            <groupId>org.apache.qpid</groupId>
-            <artifactId>qpid-client</artifactId>
-            <version>${qpid.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.qpid</groupId>
-            <artifactId>qpid-amqp-1-0-client-jms</artifactId>
-            <version>${qpid.version}</version>
+            <groupId>com.microsoft.eventhubs.client</groupId>
+            <artifactId>eventhubs-client</artifactId>
+            <version>${eventhubs.client.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>

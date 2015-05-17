@@ -25,10 +25,10 @@ import backtype.storm.metric.api.CountMetric;
 import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 
-import org.apache.storm.eventhubs.client.Constants;
-import org.apache.storm.eventhubs.client.EventHubClient;
-import org.apache.storm.eventhubs.client.EventHubException;
-import org.apache.storm.eventhubs.client.EventHubReceiver;
+import com.microsoft.eventhubs.client.Constants;
+import com.microsoft.eventhubs.client.EventHubException;
+import com.microsoft.eventhubs.client.IEventHubFilter;
+import com.microsoft.eventhubs.client.ResilientEventHubReceiver;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,8 +39,8 @@ import org.apache.qpid.amqp_1_0.type.messaging.MessageAnnotations;
 
 public class EventHubReceiverImpl implements IEventHubReceiver {
   private static final Logger logger = LoggerFactory.getLogger(EventHubReceiverImpl.class);
-  private static final Symbol OffsetKey = Symbol.valueOf("x-opt-offset");
-  private static final Symbol SequenceNumberKey = Symbol.valueOf("x-opt-sequence-number");
+  private static final Symbol OffsetKey = Symbol.valueOf(Constants.OffsetKey);
+  private static final Symbol SequenceNumberKey = Symbol.valueOf(Constants.SequenceNumberKey);
 
   private final String connectionString;
   private final String entityName;
@@ -48,8 +48,7 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
   private final int defaultCredits;
   private final String consumerGroupName;
 
-  private EventHubReceiver receiver;
-  private String lastOffset = null;
+  private ResilientEventHubReceiver receiver;
   private ReducedMetric receiveApiLatencyMean;
   private CountMetric receiveApiCallCount;
   private CountMetric receiveMessageCount;
@@ -66,27 +65,13 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
   }
 
   @Override
-  public void open(IEventHubReceiverFilter filter) throws EventHubException {
-    logger.info("creating eventhub receiver: partitionId=" + partitionId + ", offset=" + filter.getOffset()
-        + ", enqueueTime=" + filter.getEnqueueTime());
+  public void open(IEventHubFilter filter) throws EventHubException {
+    logger.info("creating eventhub receiver: partitionId=" + partitionId + 
+    		", filterString=" + filter.getFilterString());
     long start = System.currentTimeMillis();
-    EventHubClient eventHubClient = EventHubClient.create(connectionString, entityName);
-    if(filter.getOffset() != null) {
-      receiver = eventHubClient
-          .getConsumerGroup(consumerGroupName)
-          .createReceiver(partitionId, filter.getOffset(), defaultCredits);
-    }
-    else if(filter.getEnqueueTime() != 0) {
-      receiver = eventHubClient
-          .getConsumerGroup(consumerGroupName)
-          .createReceiver(partitionId, filter.getEnqueueTime(), defaultCredits);
-    }
-    else {
-      logger.error("Invalid IEventHubReceiverFilter, use default offset as filter");
-      receiver = eventHubClient
-          .getConsumerGroup(consumerGroupName)
-          .createReceiver(partitionId, Constants.DefaultStartingOffset, defaultCredits);
-    }
+    receiver = new ResilientEventHubReceiver(connectionString, entityName,
+    		partitionId, consumerGroupName, defaultCredits, filter);
+    
     long end = System.currentTimeMillis();
     logger.info("created eventhub receiver, time taken(ms): " + (end-start));
   }
@@ -113,21 +98,20 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
     long millis = (end - start);
     receiveApiLatencyMean.update(millis);
     receiveApiCallCount.incr();
-
+    
     if (message == null) {
       //Temporary workaround for AMQP/EH bug of failing to receive messages
-      if(timeoutInMilliseconds > 100 && millis < timeoutInMilliseconds/2) {
+      /*if(timeoutInMilliseconds > 100 && millis < timeoutInMilliseconds/2) {
         throw new RuntimeException(
             "Restart EventHubSpout due to failure of receiving messages in "
             + millis + " millisecond");
-      }
+      }*/
       return null;
     }
+
     receiveMessageCount.incr();
 
-    //logger.info(String.format("received a message. PartitionId: %s, Offset: %s", partitionId, this.lastOffset));
     MessageId messageId = createMessageId(message);
-
     return EventData.create(message, messageId);
   }
   

@@ -18,10 +18,9 @@
 package org.apache.storm.eventhubs.spout;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import com.microsoft.eventhubs.client.ConnectionStringBuilder;
 
 public class EventHubSpoutConfig implements Serializable {
   private static final long serialVersionUID = 1L; 
@@ -48,7 +47,8 @@ public class EventHubSpoutConfig implements Serializable {
       String entityPath, int partitionCount) {
     this.userName = username;
     this.password = password;
-    this.connectionString = buildConnectionString(username, password, namespace);
+    this.connectionString = new ConnectionStringBuilder(username, password,
+    		namespace).getConnectionString();
     this.namespace = namespace;
     this.entityPath = entityPath;
     this.partitionCount = partitionCount;
@@ -173,28 +173,7 @@ public class EventHubSpoutConfig implements Serializable {
   }
 
   public void setTargetAddress(String targetFqnAddress) {
-    this.connectionString = buildConnectionString(
-        userName, password, namespace, targetFqnAddress);
+    this.connectionString = new ConnectionStringBuilder(userName, password,
+    		namespace, targetFqnAddress).getConnectionString();
   }
-
-  public static String buildConnectionString(String username, String password, String namespace) {
-    return buildConnectionString(username, password, namespace, EH_SERVICE_FQDN_SUFFIX);
-  }
-
-  public static String buildConnectionString(String username, String password,
-      String namespace, String targetFqnAddress) {
-    return "amqps://" + username + ":" + encodeString(password)
-        + "@" + namespace + "." + targetFqnAddress;
-  }	
-
-  private static String encodeString(String input) {
-    try {
-      return URLEncoder.encode(input, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      //We don't need to throw this exception because the exception won't
-      //happen because of user input. Our unit tests will catch this error.
-      return "";
-    }
-  }
-
 }

@@ -19,11 +19,12 @@ package org.apache.storm.eventhubs.spout;
 
 import java.util.Map;
 
-import org.apache.storm.eventhubs.client.EventHubException;
+import com.microsoft.eventhubs.client.EventHubException;
+import com.microsoft.eventhubs.client.IEventHubFilter;
 
 public interface IEventHubReceiver {
 
-  void open(IEventHubReceiverFilter filter) throws EventHubException;
+  void open(IEventHubFilter filter) throws EventHubException;
 
   void close();
   

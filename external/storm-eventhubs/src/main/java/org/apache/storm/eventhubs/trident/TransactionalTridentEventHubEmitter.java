@@ -29,7 +29,7 @@ import org.apache.storm.eventhubs.spout.EventHubReceiverImpl;
 import org.apache.storm.eventhubs.spout.EventHubSpoutConfig;
 import org.apache.storm.eventhubs.spout.IEventHubReceiver;
 import org.apache.storm.eventhubs.spout.IEventHubReceiverFactory;
-import org.apache.storm.eventhubs.client.Constants;
+import com.microsoft.eventhubs.client.Constants;
 
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;

@@ -39,14 +39,12 @@ public class TransferDrainer {
     HashMap<String, ArrayList<ArrayList<TaskMessage>>> bundleMapByDestination = groupBundleByDestination(taskToNode);
 
     for (String hostPort : bundleMapByDestination.keySet()) {
-      if (hostPort != null) {
-        IConnection connection = connections.get(hostPort);
-        if (null != connection) {
-          ArrayList<ArrayList<TaskMessage>> bundle = bundleMapByDestination.get(hostPort);
-          Iterator<TaskMessage> iter = getBundleIterator(bundle);
-          if (null != iter && iter.hasNext()) {
-            connection.send(iter);
-          }
+      IConnection connection = connections.get(hostPort);
+      if (null != connection) {
+        ArrayList<ArrayList<TaskMessage>> bundle = bundleMapByDestination.get(hostPort);
+        Iterator<TaskMessage> iter = getBundleIterator(bundle);
+        if (null != iter && iter.hasNext()) {
+          connection.send(iter);
         }
       }
     }
@@ -65,13 +63,13 @@ public class TransferDrainer {
     return bundleMap;
   }
 
-  private <T> void addListRefToMap(HashMap<T, ArrayList<ArrayList<TaskMessage>>> bundles,
+  private <T> void addListRefToMap(HashMap<T, ArrayList<ArrayList<TaskMessage>>> bundleMap,
                                    T key, ArrayList<TaskMessage> tuples) {
-    ArrayList<ArrayList<TaskMessage>> bundle = bundles.get(key);
+    ArrayList<ArrayList<TaskMessage>> bundle = bundleMap.get(key);
 
     if (null == bundle) {
       bundle = new ArrayList<ArrayList<TaskMessage>>();
-      bundles.put(key, bundle);
+      bundleMap.put(key, bundle);
     }
 
     if (null != tuples && tuples.size() > 0) {

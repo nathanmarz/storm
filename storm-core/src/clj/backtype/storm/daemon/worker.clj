@@ -129,12 +129,12 @@
                   (.add local pair) 
 
                   ;;Using java objects directly to avoid performance issues in java code
-                  (let []
+                  (do
                     (when (not (.get remoteMap task))
                       (.put remoteMap task (ArrayList.)))
                     (let [remote (.get remoteMap task)]
                       (.add remote (TaskMessage. task (.serialize serializer tuple)))
-                    ))))
+                      ))))
                 (local-transfer local)
                 (disruptor/publish transfer-queue remoteMap)
               ))]

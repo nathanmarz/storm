@@ -15,11 +15,21 @@
  limitations under the License.
 -->
 <script id="user-template" type="text/html">
- {{#user}}
-  <div class="ui-user"><p>
-    <span data-toggle="tooltip" data-placement="below" data-original-title="This should be you.">
-            User: {{user}}
-    </span>
-  </p></div>
-  {{/user}}
+ <div class="ui-user">
+     {{#central-log-url}}
+        <span data-toggle="tooltip" data-placement="bottom" data-original-title="Link to Central Logging">
+                <a href="{{central-log-url}}" target="_blank"><image src="/images/statistic.png" class="image_pre_format"/></a>
+        </span>
+      {{/central-log-url}}
+     {{#jira-url}}
+        <span data-toggle="tooltip" data-placement="bottom" data-original-title="Submit Jira for Help.">
+                <a href="{{jira-url}}" target="_blank"><image src="/images/jira.png" class="image_pre_format"/></a>
+        </span>
+     {{/jira-url}}
+     {{#user}}
+        <span data-toggle="tooltip" data-placement="bottom" data-original-title="This should be you.">
+                User: {{user}}
+        </span>
+     {{/user}}
+ </div>
 </script>

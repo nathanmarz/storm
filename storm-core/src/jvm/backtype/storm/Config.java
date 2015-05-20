@@ -504,6 +504,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_PORT_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * Storm UI Project JIRA Link for reporting issue.
+     */
+    public static final String UI_PROJECT_JIRA_URL = "ui.project.jira.url";
+    public static final Object UI_PROJECT_JIRA_URL_SCHEMA = String.class;
+
+    /**
+     * Storm UI Central Logging URL.
+     */
+    public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
+    public static final Object UI_CENTRAL_LOGGING_URL_SCHEMA = String.class;
+
+    /**
      * HTTP UI port for log viewer
      */
     public static final String LOGVIEWER_PORT = "logviewer.port";

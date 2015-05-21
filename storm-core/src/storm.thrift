@@ -222,6 +222,86 @@ struct TopologyInfo {
 514: optional string owner;
 }
 
+struct CommonAggregateStats {
+513: optional i32 num_executors;
+514: optional i32 num_tasks;
+515: optional i64 emitted;
+516: optional i64 transferred;
+517: optional i64 acked;
+518: optional i64 failed;
+}
+
+struct SpoutAggregateStats {
+513: optional double complete_latency_ms;
+}
+
+struct BoltAggregateStats {
+513: optional double execute_latency_ms;
+514: optional double process_latency_ms;
+515: optional i64    executed;
+516: optional double capacity;
+}
+
+union SpecificAggregateStats {
+1: BoltAggregateStats  bolt;
+2: SpoutAggregateStats spout;
+}
+
+enum ComponentType {
+  BOLT = 1,
+  SPOUT = 2
+}
+
+struct ComponentAggregateStats {
+513: optional ComponentType type;
+514: optional CommonAggregateStats common_stats;
+515: optional SpecificAggregateStats specific_stats;
+516: optional ErrorInfo last_error;
+}
+
+struct TopologyStats {
+513: optional map<string, i64> window_to_emitted;
+514: optional map<string, i64> window_to_transferred;
+515: optional map<string, double> window_to_complete_latencies_ms;
+516: optional map<string, i64> window_to_acked;
+517: optional map<string, i64> window_to_failed;
+}
+
+struct TopologyPageInfo {
+  1: required string id;
+513: optional string name;
+514: optional i32 uptime_secs;
+515: optional string status;
+516: optional i32 num_tasks;
+517: optional i32 num_workers;
+518: optional i32 num_executors;
+519: optional string topology_conf;
+520: optional map<string,ComponentAggregateStats> id_to_spout_agg_stats;
+521: optional map<string,ComponentAggregateStats> id_to_bolt_agg_stats;
+522: optional string sched_status;
+523: optional TopologyStats topology_stats;
+524: optional string owner;
+}
+
+struct ExecutorAggregateStats {
+513: optional ExecutorSummary exec_summary;
+514: optional ComponentAggregateStats stats;
+}
+
+struct ComponentPageInfo {
+  1: required string component_id;
+  2: required ComponentType component_type;
+513: optional string topology_id;
+514: optional string topology_name;
+515: optional i32 num_executors;
+516: optional i32 num_tasks;
+517: optional map<string,ComponentAggregateStats> window_to_stats;
+518: optional map<GlobalStreamId,ComponentAggregateStats> gsid_to_input_stats;
+519: optional map<string,ComponentAggregateStats> sid_to_output_stats;
+520: optional list<ExecutorAggregateStats> exec_stats;
+521: optional list<ErrorInfo> errors;
+}
+
 struct KillOptions {
   1: optional i32 wait_secs;
 }
@@ -367,6 +447,8 @@ service Nimbus {
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyPageInfo getTopologyPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   /**

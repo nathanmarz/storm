@@ -15,7 +15,9 @@
 ;; limitations under the License.
 
 (ns backtype.storm.log
-  (:require [clojure.tools [logging :as log]]))
+  (:require [clojure.tools [logging :as log]])
+  (:use [clojure pprint])
+  (:import [java.io StringWriter]))
 
 (defmacro log-message
   [& args]
@@ -44,3 +46,11 @@
 (defn log-stream
   [& args]
   (apply log/log-stream args))
+
+(defmacro pprint-message
+  [& args]
+  `(let [^StringWriter writer# (StringWriter.)]
+     (doall
+       (for [object# [~@args]]
+         (pprint object# writer#)))
+     (log-message "\n" writer#)))

@@ -76,7 +76,6 @@ ui.filter.params: null
 ui.users: null
 ui.header.buffer.bytes: 4096
 ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
-ui.project.jira.url: https://issues.apache.org/jira/secure/CreateIssue!default.jspa
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"

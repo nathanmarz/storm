@@ -55,7 +55,7 @@ public class WordCountTridentRedis {
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisStateUpdater("test_", tupleMapper).withExpire(86400000),
                                 new Fields());
 
         TridentState state = topology.newStaticState(factory);

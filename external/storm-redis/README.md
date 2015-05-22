@@ -192,7 +192,7 @@ RedisState
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisStateUpdater("test_", tupleMapper).withExpire(86400000),
                                 new Fields());
 ```
 
@@ -213,7 +213,7 @@ RedisClusterState
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisClusterStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisClusterStateUpdater("test_", tupleMapper).withExpire(86400000),
                                 new Fields());
 ```
 

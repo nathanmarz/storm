@@ -112,7 +112,7 @@ outputField is "bytes".  There are alternative implementation like `SchemeAsMult
 ```java
 BrokerHosts hosts = new ZkHosts(zkConnString);
 SpoutConfig spoutConfig = new SpoutConfig(hosts, topicName, "/" + topicName, UUID.randomUUID().toString());
-spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme());
+spoutConfig.scheme = new SchemeAsMultiScheme(new StringScheme());
 KafkaSpout kafkaSpout = new KafkaSpout(spoutConfig);
 ```
 
@@ -235,8 +235,8 @@ For the bolt :
         spout.setCycle(true);
         builder.setSpout("spout", spout, 5);
         KafkaBolt bolt = new KafkaBolt()
-                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
+                .withTopicSelector(new DefaultTopicSelector("test"))
+                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
         builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
         
         Config conf = new Config();
@@ -245,7 +245,7 @@ For the bolt :
         props.put("metadata.broker.list", "localhost:9092");
         props.put("request.required.acks", "1");
         props.put("serializer.class", "kafka.serializer.StringEncoder");
-        conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
+        conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         
         StormSubmitter.submitTopology("kafkaboltTest", conf, builder.createTopology());
 ```

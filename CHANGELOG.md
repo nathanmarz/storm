@@ -53,6 +53,7 @@
  * STORM-749: Remove CSRF check from the REST API.
 
 ## 0.10.0
+ * STORM-752: [storm-redis] Clarify Redis*StateUpdater's expire is optional
  * STORM-681: Auto insert license header with genthrift.sh
  * STORM-707: Client (Netty): improve logging to help troubleshooting connection woes
  * STORM-699: storm-jdbc should support custom insert queries. 

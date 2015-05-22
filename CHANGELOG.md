@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-827: Allow AutoTGT to work with storm-hdfs too.
  * STORM-811: remove old metastor_db before running tests again.
  * STORM-807: quote args to storm.py correctly
  * STORM-796: Add support for "error" command in ShellSpout

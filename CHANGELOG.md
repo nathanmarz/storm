@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-596: remove config topology.receiver.buffer.size
  * STORM-808: allow null to be parsed as null
  * STORM-816: maven-gpg-plugin does not work with gpg 2.1
  * STORM-827: Allow AutoTGT to work with storm-hdfs too.

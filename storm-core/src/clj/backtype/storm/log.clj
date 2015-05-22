@@ -47,7 +47,7 @@
   [& args]
   (apply log/log-stream args))
 
-(defmacro pprint-message
+(defmacro log-pprint
   [& args]
   `(let [^StringWriter writer# (StringWriter.)]
      (doall

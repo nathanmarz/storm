@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-811: remove old metastor_db before running tests again.
  * STORM-807: quote args to storm.py correctly
  * STORM-796: Add support for "error" command in ShellSpout
  * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'

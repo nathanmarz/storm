@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-808: allow null to be parsed as null
  * STORM-816: maven-gpg-plugin does not work with gpg 2.1
  * STORM-827: Allow AutoTGT to work with storm-hdfs too.
  * STORM-811: remove old metastor_db before running tests again.

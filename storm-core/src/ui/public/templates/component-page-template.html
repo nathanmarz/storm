@@ -88,7 +88,7 @@
       </tr>
     </thead>
     <tbody>
-      {{#spoutStats}}
+      {{#spoutSummary}}
       <tr>
         <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
         <td>{{transferred}}</td>
@@ -97,7 +97,7 @@
         <td>{{acked}}</td>
         <td>{{failed}}</td>
       </tr>
-      {{/spoutStats}}
+      {{/spoutSummary}}
     </tbody>
   </table>
 </script>

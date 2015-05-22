@@ -643,7 +643,7 @@
 (defmethod unpack-component-page-info ComponentType/SPOUT
   [^ComponentPageInfo info topology-id window include-sys?]
   (merge
-    {"spoutStats" (map unpack-comp-agg-stat (.get_window_to_stats info))
+    {"spoutSummary" (map unpack-comp-agg-stat (.get_window_to_stats info))
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id)
                           (.get_exec_stats info))}

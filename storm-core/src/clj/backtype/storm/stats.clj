@@ -363,7 +363,7 @@
       rate)))
 
 (defn- agg-bolt-lat-and-count
-  "Aggregates number executed and process & execute latencies across all
+  "Aggregates number executed, process latency, and execute latency across all
   streams."
   [idk->exec-avg idk->proc-avg idk->num-executed]
   {:pre (apply = (map #(set (keys %))
@@ -440,8 +440,11 @@
             :acked (get idk->acked k)}]))))
 
 (defn swap-map-order
-  "{:a {:A 3, :B 5}, :b {:A 1, :B 2}}
-    -> {:A {:b 1, :a 3}, :B {:b 2, :a 5}}"
+  "For a nested map, rearrange data such that the top-level keys become the
+  nested map's keys and vice versa.
+  Example:
+  {:a {:X :banana, :Y :pear}, :b {:X :apple, :Y :orange}}
+  -> {:Y {:a :pear, :b :orange}, :X {:a :banana, :b :apple}}"
   [m]
   (apply merge-with
          merge

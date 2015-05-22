@@ -29,6 +29,8 @@
 
 ;;TODO: consider replacing this with some sort of RRD
 
+(def TEN-MIN-IN-SECONDS (* 10 60))
+
 (defn curr-time-bucket
   [^Integer time-secs ^Integer bucket-size-secs]
   (* bucket-size-secs (unchecked-divide-int time-secs bucket-size-secs)))
@@ -464,13 +466,13 @@
       (merge-with (fn weighted-avg+count-fn
                     [avg cnt]
                     [(* avg cnt) cnt])
-                  (get (:execute-latencies m) "600")
-                  (get (:executed m) "600"))
+                  (get (:execute-latencies m) (str TEN-MIN-IN-SECONDS))
+                  (get (:executed m) (str TEN-MIN-IN-SECONDS)))
       vals ;; Ignore the stream ids.
       (reduce add-pairs
               [0. 0]) ;; Combine weighted averages and counts.
       ((fn [[weighted-avg cnt]]
-        (div weighted-avg (* 1000 (min uptime 600))))))))
+        (div weighted-avg (* 1000 (min uptime TEN-MIN-IN-SECONDS))))))))
 
 (defn agg-pre-merge-comp-page-bolt
   [{exec-id :exec-id
@@ -1518,9 +1520,9 @@
                     (aggregate-bolt-stats true)
                     (aggregate-bolt-streams)
                     swap-map-order
-                    (get "600")))
+                    (get (str TEN-MIN-IN-SECONDS))))
         uptime (nil-to-zero (.get_uptime_secs e))
-        window (if (< uptime 600) uptime 600)
+        window (if (< uptime TEN-MIN-IN-SECONDS) uptime TEN-MIN-IN-SECONDS)
         executed (-> stats :executed nil-to-zero)
         latency (-> stats :execute-latencies nil-to-zero)]
     (if (> window 0)

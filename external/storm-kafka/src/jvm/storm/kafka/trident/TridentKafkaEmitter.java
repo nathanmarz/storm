@@ -36,10 +36,7 @@ import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
 import storm.trident.topology.TransactionAttempt;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TridentKafkaEmitter {
 
@@ -58,7 +55,7 @@ public class TridentKafkaEmitter {
         _topologyInstanceId = topologyInstanceId;
         _connections = new DynamicPartitionConnections(_config, KafkaUtils.makeBrokerReader(conf, _config));
         _topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
-        _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_config.topic, _connections);
+        _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_connections);
         context.registerMetric("kafkaOffset", _kafkaOffsetMetric, _config.metricsTimeBucketSizeInSecs);
         _kafkaMeanFetchLatencyMetric = context.registerMetric("kafkaFetchAvg", new MeanReducer(), _config.metricsTimeBucketSizeInSecs);
         _kafkaMaxFetchLatencyMetric = context.registerMetric("kafkaFetchMax", new MaxMetric(), _config.metricsTimeBucketSizeInSecs);
@@ -85,7 +82,7 @@ public class TridentKafkaEmitter {
                 ret.put("nextOffset", lastMeta.get("nextOffset"));
                 ret.put("partition", partition.partition);
                 ret.put("broker", ImmutableMap.of("host", partition.host.host, "port", partition.host.port));
-                ret.put("topic", _config.topic);
+                ret.put("topic", partition.topic);
                 ret.put("topology", ImmutableMap.of("name", _topologyName, "id", _topologyInstanceId));
                 return ret;
             }
@@ -101,19 +98,19 @@ public class TridentKafkaEmitter {
                 lastInstanceId = (String) lastTopoMeta.get("id");
             }
             if (_config.ignoreZkOffsets && !_topologyInstanceId.equals(lastInstanceId)) {
-                offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config.startOffsetTime);
+                offset = KafkaUtils.getOffset(consumer, partition.topic, partition.partition, _config.startOffsetTime);
             } else {
                 offset = (Long) lastMeta.get("nextOffset");
             }
         } else {
-            offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
+            offset = KafkaUtils.getOffset(consumer, partition.topic, partition.partition, _config);
         }
 
         ByteBufferMessageSet msgs = null;
         try {
             msgs = fetchMessages(consumer, partition, offset);
         } catch (TopicOffsetOutOfRangeException e) {
-            long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
+            long newOffset = KafkaUtils.getOffset(consumer, partition.topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
             LOG.warn("OffsetOutOfRange: Updating offset from offset = " + offset + " to offset = " + newOffset);
             offset = newOffset;
             msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
@@ -130,7 +127,7 @@ public class TridentKafkaEmitter {
         newMeta.put("instanceId", _topologyInstanceId);
         newMeta.put("partition", partition.partition);
         newMeta.put("broker", ImmutableMap.of("host", partition.host.host, "port", partition.host.port));
-        newMeta.put("topic", _config.topic);
+        newMeta.put("topic", partition.topic);
         newMeta.put("topology", ImmutableMap.of("name", _topologyName, "id", _topologyInstanceId));
         return newMeta;
     }
@@ -192,8 +189,11 @@ public class TridentKafkaEmitter {
         _connections.clear();
     }
 
-    private List<Partition> orderPartitions(GlobalPartitionInformation partitions) {
-        return partitions.getOrderedPartitions();
+    private List<Partition> orderPartitions(List<GlobalPartitionInformation> partitions) {
+        List<Partition> part = new ArrayList<Partition>();
+        for (GlobalPartitionInformation globalPartitionInformation : partitions)
+            part.addAll(globalPartitionInformation.getOrderedPartitions());
+        return part;
     }
 
     private void refresh(List<Partition> list) {
@@ -202,9 +202,9 @@ public class TridentKafkaEmitter {
     }
 
 
-    public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map> asOpaqueEmitter() {
+    public IOpaquePartitionedTridentSpout.Emitter<List<GlobalPartitionInformation>, Partition, Map> asOpaqueEmitter() {
 
-        return new IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map>() {
+        return new IOpaquePartitionedTridentSpout.Emitter<List<GlobalPartitionInformation>, Partition, Map>() {
 
             /**
              * Emit a batch of tuples for a partition/transaction.
@@ -223,7 +223,7 @@ public class TridentKafkaEmitter {
             }
 
             @Override
-            public List<Partition> getOrderedPartitions(GlobalPartitionInformation partitionInformation) {
+            public List<Partition> getOrderedPartitions(List<GlobalPartitionInformation> partitionInformation) {
                 return orderPartitions(partitionInformation);
             }
 
@@ -235,7 +235,7 @@ public class TridentKafkaEmitter {
     }
 
     public IPartitionedTridentSpout.Emitter asTransactionalEmitter() {
-        return new IPartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map>() {
+        return new IPartitionedTridentSpout.Emitter<List<GlobalPartitionInformation>, Partition, Map>() {
 
             /**
              * Emit a batch of tuples for a partition/transaction that's never been emitted before.
@@ -265,7 +265,7 @@ public class TridentKafkaEmitter {
             }
 
             @Override
-            public List<Partition> getOrderedPartitions(GlobalPartitionInformation partitionInformation) {
+            public List<Partition> getOrderedPartitions(List<GlobalPartitionInformation> partitionInformation) {
                 return orderPartitions(partitionInformation);
             }
 

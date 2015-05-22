@@ -21,9 +21,10 @@ import storm.kafka.KafkaUtils;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
 
+import java.util.List;
 import java.util.Map;
 
-class Coordinator implements IPartitionedTridentSpout.Coordinator<GlobalPartitionInformation>, IOpaquePartitionedTridentSpout.Coordinator<GlobalPartitionInformation> {
+class Coordinator implements IPartitionedTridentSpout.Coordinator<List<GlobalPartitionInformation>>, IOpaquePartitionedTridentSpout.Coordinator<List<GlobalPartitionInformation>> {
 
     private IBrokerReader reader;
     private TridentKafkaConfig config;
@@ -44,7 +45,7 @@ class Coordinator implements IPartitionedTridentSpout.Coordinator<GlobalPartitio
     }
 
     @Override
-    public GlobalPartitionInformation getPartitionsForBatch() {
-        return reader.getCurrentBrokers();
+    public List<GlobalPartitionInformation> getPartitionsForBatch() {
+        return reader.getAllBrokers();
     }
 }

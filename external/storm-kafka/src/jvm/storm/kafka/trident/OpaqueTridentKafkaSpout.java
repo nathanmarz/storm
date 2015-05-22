@@ -22,11 +22,12 @@ import backtype.storm.tuple.Fields;
 import storm.kafka.Partition;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 
-public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<GlobalPartitionInformation, Partition, Map> {
+public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<List<GlobalPartitionInformation>, Partition, Map> {
 
 
     TridentKafkaConfig _config;
@@ -37,7 +38,7 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<G
     }
 
     @Override
-    public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map> getEmitter(Map conf, TopologyContext context) {
+    public IOpaquePartitionedTridentSpout.Emitter<List<GlobalPartitionInformation>, Partition, Map> getEmitter(Map conf, TopologyContext context) {
         return new TridentKafkaEmitter(conf, context, _config, _topologyInstanceId).asOpaqueEmitter();
     }
 

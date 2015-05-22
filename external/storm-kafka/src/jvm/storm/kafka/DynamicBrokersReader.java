@@ -30,8 +30,10 @@ import storm.kafka.trident.GlobalPartitionInformation;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 
 public class DynamicBrokersReader {
 
@@ -40,6 +42,7 @@ public class DynamicBrokersReader {
     private CuratorFramework _curator;
     private String _zkPath;
     private String _topic;
+    private Boolean _wildcardTopic;
 
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
         // Check required parameters
@@ -53,6 +56,7 @@ public class DynamicBrokersReader {
 
         _zkPath = zkPath;
         _topic = topic;
+        _wildcardTopic = Utils.getBoolean(conf.get("kafka.topic.wildcard.match"), false);
         try {
             _curator = CuratorFrameworkFactory.newClient(
                     zkStr,
@@ -70,35 +74,40 @@ public class DynamicBrokersReader {
     /**
      * Get all partitions with their current leaders
      */
-    public GlobalPartitionInformation getBrokerInfo() throws SocketTimeoutException {
-      GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation();
-        try {
-            int numPartitionsForTopic = getNumPartitions();
-            String brokerInfoPath = brokerPath();
-            for (int partition = 0; partition < numPartitionsForTopic; partition++) {
-                int leader = getLeaderFor(partition);
-                String path = brokerInfoPath + "/" + leader;
-                try {
-                    byte[] brokerData = _curator.getData().forPath(path);
-                    Broker hp = getBrokerHost(brokerData);
-                    globalPartitionInformation.addPartition(partition, hp);
-                } catch (org.apache.zookeeper.KeeperException.NoNodeException e) {
-                    LOG.error("Node {} does not exist ", path);
-                }
-            }
-        } catch (SocketTimeoutException e) {
-					throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        LOG.info("Read partition info from zookeeper: " + globalPartitionInformation);
-        return globalPartitionInformation;
+    public List<GlobalPartitionInformation> getBrokerInfo() throws SocketTimeoutException {
+      List<String> topics =  getTopics();
+      List<GlobalPartitionInformation> partitions =  new ArrayList<GlobalPartitionInformation>();
+
+      for (String topic : topics) {
+          GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation(topic, this._wildcardTopic);
+          try {
+              int numPartitionsForTopic = getNumPartitions(topic);
+              String brokerInfoPath = brokerPath();
+              for (int partition = 0; partition < numPartitionsForTopic; partition++) {
+                  int leader = getLeaderFor(topic,partition);
+                  String path = brokerInfoPath + "/" + leader;
+                  try {
+                      byte[] brokerData = _curator.getData().forPath(path);
+                      Broker hp = getBrokerHost(brokerData);
+                      globalPartitionInformation.addPartition(partition, hp);
+                  } catch (org.apache.zookeeper.KeeperException.NoNodeException e) {
+                      LOG.error("Node {} does not exist ", path);
+                  }
+              }
+          } catch (SocketTimeoutException e) {
+              throw e;
+          } catch (Exception e) {
+              throw new RuntimeException(e);
+          }
+          LOG.info("Read partition info from zookeeper: " + globalPartitionInformation);
+          partitions.add(globalPartitionInformation);
+      }
+        return partitions;
     }
 
-
-    private int getNumPartitions() {
+    private int getNumPartitions(String topic) {
         try {
-            String topicBrokersPath = partitionPath();
+            String topicBrokersPath = partitionPath(topic);
             List<String> children = _curator.getChildren().forPath(topicBrokersPath);
             return children.size();
         } catch (Exception e) {
@@ -106,24 +115,50 @@ public class DynamicBrokersReader {
         }
     }
 
-    public String partitionPath() {
-        return _zkPath + "/topics/" + _topic + "/partitions";
+    private List<String> getTopics() {
+        List<String> topics = new ArrayList<String>();
+        if (!_wildcardTopic) {
+            topics.add(_topic);
+            return topics;
+        } else {
+            try {
+                List<String> children = _curator.getChildren().forPath(topicsPath());
+                for (String t : children) {
+                    if (t.matches(_topic)) {
+                        LOG.info(String.format("Found matching topic %s", t));
+                        topics.add(t);
+                    }
+                }
+                return topics;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public String topicsPath () {
+        return _zkPath + "/topics";
+    }
+    public String partitionPath(String topic) {
+        return topicsPath() + "/" + topic + "/partitions";
     }
 
     public String brokerPath() {
         return _zkPath + "/ids";
     }
 
+
+
     /**
      * get /brokers/topics/distributedTopic/partitions/1/state
      * { "controller_epoch":4, "isr":[ 1, 0 ], "leader":1, "leader_epoch":1, "version":1 }
-     *
+     * @param topic
      * @param partition
      * @return
      */
-    private int getLeaderFor(long partition) {
+    private int getLeaderFor(String topic, long partition) {
         try {
-            String topicBrokersPath = partitionPath();
+            String topicBrokersPath = partitionPath(topic);
             byte[] hostPortData = _curator.getData().forPath(topicBrokersPath + "/" + partition + "/state");
             Map<Object, Object> value = (Map<Object, Object>) JSONValue.parse(new String(hostPortData, "UTF-8"));
             Integer leader = ((Number) value.get("leader")).intValue();

@@ -461,7 +461,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      *
      * If the write operation fails, then we will close the channel and trigger a reconnect.
      */
-    private synchronized void flushMessages(Channel channel, final MessageBatch batch) {
+    private synchronized void flushMessages(Channel channel, MessageBatch batch) {
         if (!containsMessages(batch)) {
             return;
         }
@@ -476,7 +476,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
                 pendingMessages.getAndAdd(0 - numMessages);
                 if (future.isSuccess()) {
                     LOG.debug("sent {} messages to {}", numMessages, dstAddressPrefixedName);
-                    messagesSent.getAndAdd(batch.size());
+                    messagesSent.getAndAdd(numMessages);
                 }
                 else {
                     LOG.error("failed to send {} messages to {}: {}", numMessages, dstAddressPrefixedName,

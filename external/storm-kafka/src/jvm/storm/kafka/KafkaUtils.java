@@ -232,18 +232,19 @@ public class KafkaUtils {
     public static List<Partition> calculatePartitionsForTask(List<GlobalPartitionInformation> partitons, int totalTasks, int taskIndex) {
         Preconditions.checkArgument(taskIndex < totalTasks, "task index must be less that total tasks");
         List<Partition> taskPartitions = new ArrayList<Partition>();
+        List<Partition> partitions = new ArrayList<Partition>();
         for(GlobalPartitionInformation partitionInformation : partitons) {
-            List<Partition> partitions = partitionInformation.getOrderedPartitions();
-            int numPartitions = partitions.size();
-            if (numPartitions < totalTasks) {
-                LOG.warn(partitionInformation.topic + "there are more tasks than partitions (tasks: " + totalTasks + "; partitions: " + numPartitions + "), some tasks will be idle");
-            }
-            for (int i = taskIndex; i < numPartitions; i += totalTasks) {
-                Partition taskPartition = partitions.get(i);
-                taskPartitions.add(taskPartition);
-            }
-            logPartitionMapping(totalTasks, taskIndex, taskPartitions);
+            partitions.addAll(partitionInformation.getOrderedPartitions());
         }
+        int numPartitions = partitions.size();
+        if (numPartitions < totalTasks) {
+            LOG.warn("there are more tasks than partitions (tasks: " + totalTasks + "; partitions: " + numPartitions + "), some tasks will be idle");
+        }
+        for (int i = taskIndex; i < numPartitions; i += totalTasks) {
+            Partition taskPartition = partitions.get(i);
+            taskPartitions.add(taskPartition);
+        }
+        logPartitionMapping(totalTasks, taskIndex, taskPartitions);
         return taskPartitions;
     }
 

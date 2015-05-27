@@ -142,7 +142,7 @@ public class KafkaUtilsTest {
         createTopicAndSendMessage(key, value);
         ByteBufferMessageSet messageAndOffsets = getLastMessage();
         for (MessageAndOffset msg : messageAndOffsets) {
-            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), null);
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), config.topic);
             assertEquals(ImmutableMap.of(key, value), lists.iterator().next().get(0));
         }
     }
@@ -154,6 +154,20 @@ public class KafkaUtilsTest {
     }
 
     @Test
+    public void generateTuplesWithValueAndStringMultiSchemeWithTopic() {
+        config.scheme = new StringMultiSchemeWithTopic();
+        String value = "value";
+        createTopicAndSendMessage(value);
+        ByteBufferMessageSet messageAndOffsets = getLastMessage();
+        for (MessageAndOffset msg : messageAndOffsets) {
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), config.topic);
+            List<Object> list = lists.iterator().next();
+            assertEquals(value, list.get(0));
+            assertEquals(config.topic, list.get(1));
+        }
+    }
+
+    @Test
     public void generateTuplesWithValueSchemeAndKeyValueMessage() {
         config.scheme = new SchemeAsMultiScheme(new StringScheme());
         String value = "value";
@@ -161,25 +175,8 @@ public class KafkaUtilsTest {
         createTopicAndSendMessage(key, value);
         ByteBufferMessageSet messageAndOffsets = getLastMessage();
         for (MessageAndOffset msg : messageAndOffsets) {
-            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), null);
-            assertEquals(value, lists.iterator().next().get(0));
-
-        }
-    }
-
-
-    @Test
-    public void generateTuplesWithStringMultSchemeWithTopic() {
-        config.scheme = new StringMultiSchemeWithTopic();
-        String value = "value";
-        String key = "key";
-        createTopicAndSendMessage(key, value);
-        ByteBufferMessageSet messageAndOffsets = getLastMessage();
-        for (MessageAndOffset msg : messageAndOffsets) {
             Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), config.topic);
-            List<Object> list = lists.iterator().next();
-            assertEquals(value, list.get(0));
-            assertEquals(config.topic, list.get(1));
+            assertEquals(value, lists.iterator().next().get(0));
         }
     }
 
@@ -193,7 +190,7 @@ public class KafkaUtilsTest {
         createTopicAndSendMessage(null, value);
         ByteBufferMessageSet messageAndOffsets = getLastMessage();
         for (MessageAndOffset msg : messageAndOffsets) {
-            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), null);
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), config.topic);
             assertEquals(value, lists.iterator().next().get(0));
         }
     }

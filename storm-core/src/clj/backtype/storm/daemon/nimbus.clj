@@ -367,8 +367,8 @@
   (if (< min-replication-count @current-replication-count)
     (log-message "desired replication count "  min-replication-count " achieved,
       current-replication-count" @current-replication-count)
-    (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time
-      so moving on with replication count = " @current-replication-count)
+    (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time "
+      max-replication-wait-time " so moving on with replication count = " @current-replication-count)
     )))
 
 (defn- read-storm-topology [conf storm-id]
@@ -1485,7 +1485,7 @@
 (defmethod sync-code :distributed [conf nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         code-ids (set (code-ids (:conf nimbus)))
-        active-topologies (set (.code-distributor storm-cluster-state nil))
+        active-topologies (set (.code-distributor storm-cluster-state (fn [] (sync-code conf nimbus))))
         missing-topologies (set/difference active-topologies code-ids)]
     (if (not (empty? missing-topologies))
       (do
@@ -1499,8 +1499,8 @@
                 (try
                   (download-code conf nimbus missing (.getHost nimbus-host-port) (.getPort nimbus-host-port))
                   (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing)))))))))
-    (.addToLeaderLockQueue (:leader-elector nimbus))
-    (log-message "local disk is completely in sync with zk code-distributor.")))
+    ;;TODO Ideally This should only be called if all missing topology code was successfully downloaded.
+    (.addToLeaderLockQueue (:leader-elector nimbus))))
 
 (defmethod sync-code :local [conf nimbus]
   nil)

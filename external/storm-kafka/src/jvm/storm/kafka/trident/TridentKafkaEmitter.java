@@ -118,7 +118,7 @@ public class TridentKafkaEmitter {
 
         long endoffset = offset;
         for (MessageAndOffset msg : msgs) {
-            emit(collector, msg.message());
+            emit(collector, msg.message(), partition.topic);
             endoffset = msg.nextOffset();
         }
         Map newMeta = new HashMap();
@@ -169,15 +169,15 @@ public class TridentKafkaEmitter {
                     if (offset > nextOffset) {
                         throw new RuntimeException("Error when re-emitting batch. overshot the end offset");
                     }
-                    emit(collector, msg.message());
+                    emit(collector, msg.message(), partition.topic);
                     offset = msg.nextOffset();
                 }
             }
         }
     }
 
-    private void emit(TridentCollector collector, Message msg) {
-        Iterable<List<Object>> values = KafkaUtils.generateTuples(_config, msg);
+    private void emit(TridentCollector collector, Message msg, String topic) {
+        Iterable<List<Object>> values = KafkaUtils.generateTuples(_config, msg, topic);
         if (values != null) {
             for (List<Object> value : values) {
                 collector.emit(value);

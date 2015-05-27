@@ -136,7 +136,7 @@ public class PartitionManager {
             if (toEmit == null) {
                 return EmitState.NO_EMITTED;
             }
-            Iterable<List<Object>> tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg);
+            Iterable<List<Object>> tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg, _partition.topic);
             if (tups != null) {
                 for (List<Object> tup : tups) {
                     collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));

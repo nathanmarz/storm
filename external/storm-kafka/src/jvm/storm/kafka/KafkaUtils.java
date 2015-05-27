@@ -213,7 +213,7 @@ public class KafkaUtils {
     }
 
 
-    public static Iterable<List<Object>> generateTuples(KafkaConfig kafkaConfig, Message msg) {
+    public static Iterable<List<Object>> generateTuples(KafkaConfig kafkaConfig, Message msg, String topic) {
         Iterable<List<Object>> tups;
         ByteBuffer payload = msg.payload();
         if (payload == null) {
@@ -223,7 +223,11 @@ public class KafkaUtils {
         if (key != null && kafkaConfig.scheme instanceof KeyValueSchemeAsMultiScheme) {
             tups = ((KeyValueSchemeAsMultiScheme) kafkaConfig.scheme).deserializeKeyAndValue(Utils.toByteArray(key), Utils.toByteArray(payload));
         } else {
-            tups = kafkaConfig.scheme.deserialize(Utils.toByteArray(payload));
+            if (kafkaConfig.scheme instanceof StringMultiSchemeWithTopic) {
+                tups = ((StringMultiSchemeWithTopic)kafkaConfig.scheme).deserializeWithTopic(topic, Utils.toByteArray(payload));
+            } else {
+                tups = kafkaConfig.scheme.deserialize(Utils.toByteArray(payload));
+            }
         }
         return tups;
     }

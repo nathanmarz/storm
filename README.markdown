@@ -198,6 +198,7 @@ under the License.
 * Mark Davis ([@markdav](https://github.com/markdav))
 * Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 * jangie ([@jangie](https://github.com/jangie))
+* Hailei Zhang ([@Hailei](https://github.com/Hailei))
 
 ## Acknowledgements
 

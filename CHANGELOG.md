@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-835: Netty Client hold batch object until io operation complete
  * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
  * STORM-596: remove config topology.receiver.buffer.size
  * STORM-808: allow null to be parsed as null

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-715: Add a link to AssignableMetric.java in Metrics.md
  * STORM-729: Include Executors (Window Hint) if the component is of Bolt type
  * STORM-835: Netty Client hold batch object until io operation complete
  * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn

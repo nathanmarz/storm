@@ -1179,7 +1179,7 @@
       (reduce init-val data)))
 
 (defmulti aggregate-comp-stats
-  (fn dispatch-fn [& args] (-> args last first :stats :type)))
+  (fn dispatch-fn [& args] (-> args last first :type)))
 
 (defmethod aggregate-comp-stats :bolt
   [& args]
@@ -1290,7 +1290,7 @@
                                          comp-id
                                          host
                                          port
-                                         uptime))
+                                         (or uptime 0)))
     (.set_stats ((condp = comp-type
                    :bolt thriftify-bolt-agg-stats
                    :spout thriftify-spout-agg-stats) stats))))

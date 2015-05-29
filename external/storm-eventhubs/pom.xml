@@ -33,7 +33,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <eventhubs.client.version>0.9</eventhubs.client.version>
+        <eventhubs.client.version>0.9.1</eventhubs.client.version>
     </properties>
     <build>
         <plugins>

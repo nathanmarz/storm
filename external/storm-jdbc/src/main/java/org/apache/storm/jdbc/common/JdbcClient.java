@@ -21,8 +21,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,14 +32,11 @@ import java.util.*;
 public class JdbcClient {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcClient.class);
 
-    private HikariDataSource dataSource;
+    private ConnectionProvider connectionProvider;
     private int queryTimeoutSecs;
 
-    public JdbcClient(Map<String, Object> hikariConfigMap, int queryTimeoutSecs) {
-        Properties properties = new Properties();
-        properties.putAll(hikariConfigMap);
-        HikariConfig config = new HikariConfig(properties);
-        this.dataSource = new HikariDataSource(config);
+    public JdbcClient(ConnectionProvider connectionProvider, int queryTimeoutSecs) {
+        this.connectionProvider = connectionProvider;
         this.queryTimeoutSecs = queryTimeoutSecs;
     }
 
@@ -53,7 +48,7 @@ public class JdbcClient {
     public void executeInsertQuery(String query, List<List<Column>> columnLists) {
         Connection connection = null;
         try {
-            connection = this.dataSource.getConnection();
+            connection = connectionProvider.getConnection();
             boolean autoCommit = connection.getAutoCommit();
             if(autoCommit) {
                 connection.setAutoCommit(false);
@@ -110,7 +105,7 @@ public class JdbcClient {
     public List<List<Column>> select(String sqlQuery, List<Column> queryParams) {
         Connection connection = null;
         try {
-            connection = this.dataSource.getConnection();
+            connection = connectionProvider.getConnection();
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
             if(queryTimeoutSecs > 0) {
                 preparedStatement.setQueryTimeout(queryTimeoutSecs);
@@ -166,7 +161,7 @@ public class JdbcClient {
         Connection connection = null;
         List<Column> columns = new ArrayList<Column>();
         try {
-            connection = this.dataSource.getConnection();
+            connection = connectionProvider.getConnection();
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet resultSet = metaData.getColumns(null, null, tableName, null);
             while (resultSet.next()) {
@@ -183,7 +178,7 @@ public class JdbcClient {
     public void executeSql(String sql) {
         Connection connection = null;
         try {
-            connection = this.dataSource.getConnection();
+            connection = connectionProvider.getConnection();
             Statement statement = connection.createStatement();
             statement.execute(sql);
         } catch (SQLException e) {

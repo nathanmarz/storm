@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-737: Check task->node+port with read lock to prevent sending to closed connection
  * STORM-715: Add a link to AssignableMetric.java in Metrics.md
  * STORM-729: Include Executors (Window Hint) if the component is of Bolt type
  * STORM-835: Netty Client hold batch object until io operation complete

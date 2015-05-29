@@ -129,10 +129,10 @@
                   (.add local pair) 
 
                   ;;Using java objects directly to avoid performance issues in java code
-                  (let [node+port (get @task->node+port task)]
-                    (when (not (.get remoteMap node+port))
-                      (.put remoteMap node+port (ArrayList.)))
-                    (let [remote (.get remoteMap node+port)]
+                  (do
+                    (when (not (.get remoteMap task))
+                      (.put remoteMap task (ArrayList.)))
+                    (let [remote (.get remoteMap task)]
                       (if (not-nil? task)
                         (.add remote (TaskMessage. task (.serialize serializer tuple)))
                         (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
@@ -342,8 +342,9 @@
         
         (when batch-end?
           (read-locked endpoint-socket-lock
-            (let [node+port->socket @node+port->socket]
-              (.send drainer node+port->socket)))
+             (let [node+port->socket @node+port->socket
+                   task->node+port @task->node+port]
+               (.send drainer task->node+port node+port->socket)))
           (.clear drainer))))))
 
 ;; Check whether this messaging connection is ready to send data

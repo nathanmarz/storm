@@ -25,7 +25,6 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler]]])
-  (:use [ring.middleware.anti-forgery])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
@@ -581,7 +580,8 @@
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
        "slotsTotal" (.get_num_workers s)
-       "slotsUsed" (.get_num_used_workers s)})}))
+       "slotsUsed" (.get_num_used_workers s)
+       "version" (.get_version s)})}))
 
 (defn all-topologies-summary
   ([]
@@ -734,8 +734,7 @@
         "spouts" (spout-comp id spout-comp-summs (.get_errors summ) window include-sys?)
         "bolts" (bolt-comp id bolt-comp-summs (.get_errors summ) window include-sys?)
         "configuration" topology-conf
-        "visualizationTable" (stream-boxes visualizer-data)
-        "antiForgeryToken" *anti-forgery-token*}))))
+        "visualizationTable" (stream-boxes visualizer-data)}))))
 
 (defn spout-output-stats
   [stream-summary window]
@@ -839,7 +838,7 @@
        "encodedComponent" (url-encode (.get_componentId s))
        "stream" (.get_streamId s)
        "executeLatency" (float-str (:execute-latencies stats))
-       "processLatency" (float-str (:execute-latencies stats))
+       "processLatency" (float-str (:process-latencies stats))
        "executed" (nil-to-zero (:executed stats))
        "acked" (nil-to-zero (:acked stats))
        "failed" (nil-to-zero (:failed stats))})))
@@ -963,8 +962,6 @@
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getTopology" (topology-config id))
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
-  (GET "/api/v1/token" [ & m]
-       (json-response (format "{\"antiForgeryToken\": \"%s\"}" *anti-forgery-token*) (:callback m) :serialize-fn identity))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
     (assert-authorized-user servlet-request "activate" (topology-config id))
     (with-nimbus nimbus
@@ -975,7 +972,7 @@
             name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
-    (json-response (topology-op-response id "deactivate") (m "callback")))
+    (json-response (topology-op-response id "activate") (m "callback")))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
     (assert-authorized-user servlet-request "deactivate" (topology-config id))
     (with-nimbus nimbus
@@ -1060,16 +1057,11 @@
         (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
 
 
-(def csrf-error-response
-  (json-response {"error" "Forbidden action."
-                  "errorMessage" "missing CSRF token."} 403))
-
 (def app
   (handler/site (-> main-routes
                     (wrap-json-params)
                     (wrap-multipart-params)
                     (wrap-reload '[backtype.storm.ui.core])
-                    (wrap-anti-forgery {:error-response csrf-error-response})
                     catch-errors)))
 
 (defn start-server!
@@ -1078,10 +1070,32 @@
     (let [conf *STORM-CONF*
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
-                          :filter-params (conf UI-FILTER-PARAMS)}]]
+                          :filter-params (conf UI-FILTER-PARAMS)}]
+          https-port (if (not-nil? (conf UI-HTTPS-PORT)) (conf UI-HTTPS-PORT) 0)
+          https-ks-path (conf UI-HTTPS-KEYSTORE-PATH)
+          https-ks-password (conf UI-HTTPS-KEYSTORE-PASSWORD)
+          https-ks-type (conf UI-HTTPS-KEYSTORE-TYPE)
+          https-key-password (conf UI-HTTPS-KEY-PASSWORD)
+          https-ts-path (conf UI-HTTPS-TRUSTSTORE-PATH)
+          https-ts-password (conf UI-HTTPS-TRUSTSTORE-PASSWORD)
+          https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
+          https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
+          https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)
+                        :https-port https-port
                         :configurator (fn [server]
+                                        (config-ssl server
+                                                    https-port
+                                                    https-ks-path
+                                                    https-ks-password
+                                                    https-ks-type
+                                                    https-key-password
+                                                    https-ts-path
+                                                    https-ts-password
+                                                    https-ts-type
+                                                    https-need-client-auth
+                                                    https-want-client-auth)
                                         (doseq [connector (.getConnectors server)]
                                           (.setRequestHeaderSize connector header-buffer-size))
                                         (config-filter server app filters-confs))}))

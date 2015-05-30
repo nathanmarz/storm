@@ -193,7 +193,7 @@ RedisState
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisStateUpdater(storeMapper, 86400000),
+                                new RedisStateUpdater("test_", tupleMapper).withExpire(86400000),
                                 new Fields());
 
         TridentState state = topology.newStaticState(factory);
@@ -220,7 +220,7 @@ RedisClusterState
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisClusterStateUpdater(storeMapper, 86400000),
+                                new RedisClusterStateUpdater("test_", tupleMapper).withExpire(86400000),
                                 new Fields());
 
         TridentState state = topology.newStaticState(factory);

@@ -25,8 +25,13 @@ import redis.clients.jedis.Pipeline;
 import java.util.Map;
 
 public class RedisStateUpdater extends AbstractRedisStateUpdater<RedisState> {
-    public RedisStateUpdater(RedisStoreMapper storeMapper, int expireIntervalSec) {
-        super(storeMapper, expireIntervalSec);
+    public RedisStateUpdater(RedisStoreMapper storeMapper) {
+        super(storeMapper);
+    }
+
+    public RedisStateUpdater withExpire(int expireIntervalSec) {
+        setExpireInterval(expireIntervalSec);
+        return this;
     }
 
     @Override

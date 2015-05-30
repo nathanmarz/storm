@@ -84,8 +84,7 @@ function ensureInt(n) {
 function confirmAction(id, name, action, wait, defaultWait) {
     var opts = {
         type:'POST',
-        url:'/api/v1/topology/' + id + '/' + action,
-        headers: { 'x-csrf-token': $.trim($('#anti-forgery-token').text()) }
+        url:'/api/v1/topology/' + id + '/' + action
     };
     if (wait) {
         var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +
@@ -121,7 +120,7 @@ function formatConfigData(data) {
        if(data.hasOwnProperty(prop)) {
            mustacheFormattedData['config'].push({
                'key': prop,
-               'value': data[prop]
+               'value': JSON.stringify(data[prop])
            });
        }
     }

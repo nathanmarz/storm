@@ -31,16 +31,18 @@ import java.util.Map;
 public abstract class AbstractRedisStateUpdater<T extends State> extends BaseStateUpdater<T> {
 	private final RedisStoreMapper storeMapper;
 
-	protected final int expireIntervalSec;
+	protected int expireIntervalSec = 0;
 	protected final RedisDataTypeDescription.RedisDataType dataType;
 	protected final String additionalKey;
 
-	public AbstractRedisStateUpdater(RedisStoreMapper storeMapper, int expireIntervalSec) {
+	public AbstractRedisStateUpdater(RedisStoreMapper storeMapper) {
 		this.storeMapper = storeMapper;
 		RedisDataTypeDescription dataTypeDescription = storeMapper.getDataTypeDescription();
 		this.dataType = dataTypeDescription.getDataType();
 		this.additionalKey = dataTypeDescription.getAdditionalKey();
+	}
 
+	public void setExpireInterval(int expireIntervalSec) {
 		if (expireIntervalSec > 0) {
 			this.expireIntervalSec = expireIntervalSec;
 		} else {

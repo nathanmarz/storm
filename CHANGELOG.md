@@ -1,4 +1,48 @@
 ## 0.11.0
+ * STORM-821: Adding connection provider interface to decouple jdbc connector from a single connection pooling implementation.
+ * STORM-737: Check task->node+port with read lock to prevent sending to closed connection
+ * STORM-715: Add a link to AssignableMetric.java in Metrics.md
+ * STORM-729: Include Executors (Window Hint) if the component is of Bolt type
+ * STORM-835: Netty Client hold batch object until io operation complete
+ * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
+ * STORM-596: remove config topology.receiver.buffer.size
+ * STORM-808: allow null to be parsed as null
+ * STORM-816: maven-gpg-plugin does not work with gpg 2.1
+ * STORM-827: Allow AutoTGT to work with storm-hdfs too.
+ * STORM-811: remove old metastor_db before running tests again.
+ * STORM-807: quote args to storm.py correctly
+ * STORM-796: Add support for "error" command in ShellSpout
+ * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
+ * STORM-603: Log errors when required kafka params are missing
+ * STORM-607: storm-hbase HBaseMapState should support user to customize the hbase-key & hbase-qualifier
+ * STORM-795: Update the user document for the extlib issue
+ * STORM-801: Add Travis CI badge to README
+ * STORM-797: DisruptorQueueTest has some race conditions in it.
+ * STORM-704: Apply Travis CI to Apache Storm Project
+ * STORM-721: Storm UI server should support SSL.
+ * STORM-583: Add Microsoft Azure Event Hub spout implementations
+ * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread
+ * STORM-730: remove extra curly brace
+ * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
+ * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change
+ * STORM-746: Skip ack init when there are no output tasks
+ * STORM-483: provide dedicated directories for classpath extension
+ * STORM-764: Have option to compress thrift heartbeat
+ * STORM-787: test-ns should announce test failures with 'BUILD FAILURE'
+ * STORM-789: Send more topology context to Multi-Lang components via initial handshake
+ * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
+ * STORM-766: Include version info in the service page
+ * STORM-786: KafkaBolt should ack tick tuples
+ * STORM-791: Storm UI displays maps in the config incorrectly
+ * STORM-788: UI Fix key for process latencies
+ * STORM-773: backtype.storm.transactional-test fails periodically with timeout
+ * STORM-772: Tasts fail periodically with InterruptedException or InterruptedIOException
+ * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
+ * STORM-765: Thrift serialization for local state
+ * STORM-762: uptime for worker heartbeats is lost when converted to thrift
+ * STORM-757: Simulated time can leak out on errors
+ * STORM-694: java.lang.ClassNotFoundException: backtype.storm.daemon.common.SupervisorInfo
+ * STORM-750: Set Config serialVersionUID
  * STORM-713: Include topic information with Kafka metrics.
  * STORM-708: CORS support for STORM UI.
  * STORM-615: Add REST API to upload topology.
@@ -12,8 +56,11 @@
  * STORM-512: KafkaBolt doesn't handle ticks properly
  * STORM-188: Allow user to specifiy full configuration path when running storm command
  * STORM-740: Simple Transport Client cannot configure thrift buffer size
+ * STORM-749: Remove CSRF check from the REST API.
 
 ## 0.10.0
+ * STORM-728: Put emitted and transferred stats under correct columns
+ * STORM-752: [storm-redis] Clarify Redis*StateUpdater's expire is optional
  * STORM-681: Auto insert license header with genthrift.sh
  * STORM-707: Client (Netty): improve logging to help troubleshooting connection woes
  * STORM-699: storm-jdbc should support custom insert queries. 
@@ -89,7 +136,6 @@
  * STORM-687: Storm UI does not display up to date information despite refreshes in IE
  * STORM-557: High Quality Images for presentations
  * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
- * STORM-469: Storm UI Last Error Detail Insufficient for debugging
  * STORM-656: Document "external" modules and "Committer Sponsors"
  * STORM-657: make the shutdown-worker sleep time before kill -9 configurable
  * STORM-663: Create javadocs for BoltDeclarer

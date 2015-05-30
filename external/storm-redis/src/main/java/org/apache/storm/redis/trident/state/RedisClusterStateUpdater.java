@@ -24,8 +24,13 @@ import redis.clients.jedis.JedisCluster;
 import java.util.Map;
 
 public class RedisClusterStateUpdater extends AbstractRedisStateUpdater<RedisClusterState> {
-    public RedisClusterStateUpdater(RedisStoreMapper storeMapper, int expireIntervalSec) {
-        super(storeMapper, expireIntervalSec);
+    public RedisClusterStateUpdater(RedisStoreMapper storeMapper) {
+        super(storeMapper);
+    }
+
+    public RedisClusterStateUpdater withExpire(int expireIntervalSec) {
+        setExpireInterval(expireIntervalSec);
+        return this;
     }
 
     @Override

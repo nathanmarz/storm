@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm config log util timer])
+  (:use [backtype.storm config log util timer local-state])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:require [backtype.storm [disruptor :as disruptor] [cluster :as cluster]])
   (:require [clojure.set :as set])
@@ -68,19 +68,9 @@
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        hb (mk-local-worker-heartbeat
-             (current-time-secs)
-             (:storm-id worker)
-             (:executors worker)
-             (:port worker))
         state (worker-state conf (:worker-id worker))]
-    (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
-    (.put state
-        LS-WORKER-HEARTBEAT
-        hb
-        false
-        )
+    (ls-worker-heartbeat! state (current-time-secs) (:storm-id worker) (:executors worker) (:port worker))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
 
@@ -139,12 +129,14 @@
                   (.add local pair) 
 
                   ;;Using java objects directly to avoid performance issues in java code
-                  (let [node+port (get @task->node+port task)]
-                    (when (not (.get remoteMap node+port))
-                      (.put remoteMap node+port (ArrayList.)))
-                    (let [remote (.get remoteMap node+port)]
-                      (.add remote (TaskMessage. task (.serialize serializer tuple)))
-                     )))) 
+                  (do
+                    (when (not (.get remoteMap task))
+                      (.put remoteMap task (ArrayList.)))
+                    (let [remote (.get remoteMap task)]
+                      (if (not-nil? task)
+                        (.add remote (TaskMessage. task (.serialize serializer tuple)))
+                        (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
+                     ))))
                 (local-transfer local)
                 (disruptor/publish transfer-queue remoteMap)
               ))]
@@ -350,8 +342,9 @@
         
         (when batch-end?
           (read-locked endpoint-socket-lock
-            (let [node+port->socket @node+port->socket]
-              (.send drainer node+port->socket)))
+             (let [node+port->socket @node+port->socket
+                   task->node+port @task->node+port]
+               (.send drainer task->node+port node+port->socket)))
           (.clear drainer))))))
 
 ;; Check whether this messaging connection is ready to send data
@@ -394,7 +387,6 @@
     (:receiver-thread-count worker)
     (:port worker)
     (:transfer-local-fn worker)
-    (-> worker :storm-conf (get TOPOLOGY-RECEIVER-BUFFER-SIZE))
     :kill-fn (fn [t] (exit-process! 11))))
 
 (defn- close-resources [worker]
@@ -543,6 +535,7 @@
 
 (defn -main [storm-id assignment-id port-str worker-id]  
   (let [conf (read-storm-config)]
+    (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown worker)))))

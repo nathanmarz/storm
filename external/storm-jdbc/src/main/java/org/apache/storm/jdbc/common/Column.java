@@ -84,19 +84,18 @@ public class Column<T> implements Serializable {
         if (this == o) return true;
         if (!(o instanceof Column)) return false;
 
-        Column column = (Column) o;
+        Column<?> column = (Column<?>) o;
 
         if (sqlType != column.sqlType) return false;
         if (!columnName.equals(column.columnName)) return false;
-        if (!val.equals(column.val)) return false;
+        return val != null ? val.equals(column.val) : column.val == null;
 
-        return true;
     }
 
     @Override
     public int hashCode() {
         int result = columnName.hashCode();
-        result = 31 * result + val.hashCode();
+        result = 31 * result + (val != null ? val.hashCode() : 0);
         result = 31 * result + sqlType;
         return result;
     }

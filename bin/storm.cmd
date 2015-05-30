@@ -70,11 +70,11 @@
     set CLASSPATH=%CLASSPATH%;%2
     set CLASS=%3
     set args=%4
-    shift
+    goto start
     :start
+    shift
     if [%4] == [] goto done
     set args=%args% %4
-    shift
     goto start
 
     :done

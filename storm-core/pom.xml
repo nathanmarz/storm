@@ -35,6 +35,12 @@
     </properties>
 
     <dependencies>
+        <!-- multi-lang resources -->
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>multilang-ruby</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!--clojure-->
         <dependency>
             <groupId>org.clojure</groupId>
@@ -65,11 +71,6 @@
                     <artifactId>servlet-api</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>ring</groupId>
-            <artifactId>ring-anti-forgery</artifactId>
-            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>ring</groupId>
@@ -515,6 +516,35 @@
                             <includeScope>runtime</includeScope>
                         </configuration>
                     </execution>
+                    <!-- multi-lang resources -->
+                               <execution>
+                                 <id>unpack</id>
+                                 <phase>process-test-resources</phase>
+                                 <goals>
+                                   <goal>unpack</goal>
+                                 </goals>
+                                 <configuration>
+                                   <artifactItems>
+                                     <artifactItem>
+                                       <groupId>org.apache.storm</groupId>
+                                       <artifactId>multilang-ruby</artifactId>
+                                       <version>${project.version}</version>
+                                     </artifactItem>
+                                     <artifactItem>
+                                        <groupId>org.apache.storm</groupId>
+                                        <artifactId>multilang-python</artifactId>
+                                        <version>${project.version}</version>
+                                      </artifactItem>
+                                      <artifactItem>
+                                         <groupId>org.apache.storm</groupId>
+                                         <artifactId>multilang-javascript</artifactId>
+                                         <version>${project.version}</version>
+                                       </artifactItem>
+                                   </artifactItems>
+                                   <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                                 </configuration>
+                               </execution>
+
                 </executions>
             </plugin>
             <plugin>

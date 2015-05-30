@@ -1,3 +1,5 @@
+Master Branch: [![Travis CI](https://travis-ci.org/apache/storm.svg?branch=master)](https://travis-ci.org/apache/storm)
+
 Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](http://storm-project.net/documentation/Powered-By.html), and is a lot of fun to use!
 
 The [Rationale page](http://storm-project.net/documentation/Rationale.html) explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
@@ -192,8 +194,11 @@ under the License.
 * Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
 * Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
 * iBuddha ([@iBuddha](https://github.com/iBuddha))
-* Rekha Joshi ([@rekhajoshm](https://github.com/rekhajoshm))
 * Dave Katten ([@dkatten](https://github.com/dkatten))
+* Mark Davis ([@markdav](https://github.com/markdav))
+* Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
+* jangie ([@jangie](https://github.com/jangie))
+* Hailei Zhang ([@Hailei](https://github.com/Hailei))
 
 ## Acknowledgements
 

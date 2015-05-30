@@ -153,6 +153,7 @@ struct SupervisorSummary {
   3: required i32 num_workers;
   4: required i32 num_used_workers;
   5: required string supervisor_id;
+  6: optional string version = "VERSION_NOT_PROVIDED";
 }
 
 struct ClusterSummary {
@@ -252,7 +253,9 @@ struct SupervisorInfo {
     5: optional list<i64> meta;
     6: optional map<string, string> scheduler_meta;
     7: optional i64 uptime_secs;
+    8: optional string version;
 }
+
 struct NodeInfo {
     1: required string node;
     2: required set<i64> port;
@@ -292,6 +295,40 @@ struct ClusterWorkerHeartbeat {
     1: required string storm_id;
     2: required map<ExecutorInfo,ExecutorStats> executor_stats;
     3: required i32 time_secs;
+    4: required i32 uptime_secs;
+}
+
+struct ThriftSerializedObject {
+  1: required string name;
+  2: required binary bits;
+}
+
+struct LocalStateData {
+   1: required map<string, ThriftSerializedObject> serialized_parts;
+}
+
+struct LocalAssignment {
+  1: required string topology_id;
+  2: required list<ExecutorInfo> executors;
+}
+
+struct LSSupervisorId {
+   1: required string supervisor_id;
+}
+
+struct LSApprovedWorkers {
+   1: required map<string, i32> approved_workers;
+}
+
+struct LSSupervisorAssignments {
+   1: required map<i32, LocalAssignment> assignments; 
+}
+
+struct LSWorkerHeartbeat {
+   1: required i32 time_secs;
+   2: required string topology_id;
+   3: required list<ExecutorInfo> executors
+   4: required i32 port;
 }
 
 enum NumErrorsChoice {
@@ -332,7 +369,13 @@ service Nimbus {
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+   */
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+   */
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
 }
 

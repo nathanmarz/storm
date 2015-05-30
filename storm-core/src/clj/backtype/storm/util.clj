@@ -589,6 +589,24 @@
   []
   (System/getProperty "java.class.path"))
 
+(defn get-full-jars
+  [dir]
+  (map #(str dir file-path-separator %) (filter #(.endsWith % ".jar") (read-dir-contents dir))))
+
+(defn worker-classpath
+  []
+  (let [storm-dir (System/getProperty "storm.home")
+        storm-lib-dir (str storm-dir file-path-separator "lib")
+        storm-conf-dir (if-let [confdir (System/getenv "STORM_CONF_DIR")]
+                         confdir 
+                         (str storm-dir file-path-separator "conf"))
+        storm-extlib-dir (str storm-dir file-path-separator "extlib")
+        extcp (System/getenv "STORM_EXT_CLASSPATH")]
+    (if (nil? storm-dir) 
+      (current-classpath)
+      (str/join class-path-separator
+                (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir])))))
+
 (defn add-to-classpath
   [classpath paths]
   (if (empty? paths)
@@ -614,11 +632,6 @@
        (try (.lock wlock#)
          ~@body
          (finally (.unlock wlock#))))))
-
-(defn wait-for-condition
-  [apredicate]
-  (while (not (apredicate))
-    (Time/sleep 100)))
 
 (defn time-delta
   [time-secs]
@@ -1031,3 +1044,17 @@
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
+
+(defn setup-default-uncaught-exception-handler
+  "Set a default uncaught exception handler to handle exceptions not caught in other threads."
+  []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (proxy [Thread$UncaughtExceptionHandler] []
+      (uncaughtException [thread thrown]
+        (try
+          (Utils/handleUncaughtException thrown)
+          (catch Error err
+            (do
+              (log-error err "Received error in main thread.. terminating server...")
+              (.exit (Runtime/getRuntime) -2))))))))
+

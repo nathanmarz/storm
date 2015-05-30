@@ -91,8 +91,8 @@
       {{#spoutSummary}}
       <tr>
         <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
-        <td>{{transferred}}</td>
         <td>{{emitted}}</td>
+        <td>{{transferred}}</td>
         <td>{{completeLatency}}</td>
         <td>{{acked}}</td>
         <td>{{failed}}</td>
@@ -375,7 +375,7 @@
   </table>
 </script>
 <script id="bolt-executor-template" type="text/html">
-  <h2>Executors</h2>
+  <h2>Executors ({{windowHint}})</h2>
   <table class="table table-striped compact" id="bolt-executor-table">
     <thead>
       <tr>
@@ -444,7 +444,7 @@
     <tbody>
       {{#executorStats}}
       <tr>
-        <td>{{id}}}</td>
+        <td>{{id}}</td>
         <td>{{uptime}}</td>
         <td>{{host}}</td>
         <td><a href="{{workerLogLink}}">{{port}}</a></td>
@@ -479,7 +479,7 @@
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
-          <span id="{{errorLapsedSecs}}" class="errorSpan"><a href="{{errorWorkerLogLink}}">{{error}}</a></span>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{error}}</span>
         </td>
       </tr>
       {{/componentErrors}}

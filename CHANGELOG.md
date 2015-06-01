@@ -120,7 +120,6 @@
  * STORM-567: Move Storm Documentation/Website from SVN to git
  * STORM-565: Fix NPE when topology.groups is null.
  * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
- * STORM-559: ZkHosts in README should use 2181 as port.
  * STORM-557: High Quality Images for presentations
  * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
  * STORM-552: Add netty socket backlog config

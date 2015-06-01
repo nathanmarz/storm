@@ -19,10 +19,19 @@ package org.apache.storm.redis.trident.state;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import storm.trident.state.*;
+import storm.trident.state.JSONNonTransactionalSerializer;
+import storm.trident.state.JSONOpaqueSerializer;
+import storm.trident.state.JSONTransactionalSerializer;
+import storm.trident.state.Serializer;
+import storm.trident.state.StateType;
 import storm.trident.state.map.IBackingMap;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractRedisMapState<T> implements IBackingMap<T> {
 	public static final EnumMap<StateType, Serializer> DEFAULT_SERIALIZERS = Maps.newEnumMap(ImmutableMap.of(

@@ -1,6 +1,7 @@
 ## 0.11.0
 
 ## 0.10.0
+ * STORM-753: Improve RedisStateQuerier to convert List<Values> from Redis value
  * STORM-835: Netty Client hold batch object until io operation complete
  * STORM-827: Allow AutoTGT to work with storm-hdfs too.
  * STORM-821: Adding connection provider interface to decouple jdbc connector from a single connection pooling implementation.

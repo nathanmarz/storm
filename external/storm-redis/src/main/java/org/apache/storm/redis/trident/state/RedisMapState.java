@@ -23,6 +23,7 @@ import org.apache.storm.redis.common.config.JedisPoolConfig;
 import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Pipeline;
 import storm.trident.state.OpaqueValue;
 import storm.trident.state.Serializer;
 import storm.trident.state.State;
@@ -227,10 +228,20 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
             case STRING:
                 String[] keyValue = buildKeyValuesList(keyValues);
                 jedis.mset(keyValue);
+                if(this.options.expireIntervalSec > 0){
+                    Pipeline pipe = jedis.pipelined();
+                    for(int i = 0; i < keyValue.length; i += 2){
+                        pipe.expire(keyValue[i], this.options.expireIntervalSec);
+                    }
+                    pipe.sync();
+                }
                 break;
 
             case HASH:
                 jedis.hmset(description.getAdditionalKey(), keyValues);
+                if (this.options.expireIntervalSec > 0) {
+                    jedis.expire(description.getAdditionalKey(), this.options.expireIntervalSec);
+                }
                 break;
 
             default:

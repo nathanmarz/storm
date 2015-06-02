@@ -30,4 +30,5 @@ public class Options<T> implements Serializable {
 	public KeyFactory keyFactory = null;
 	public Serializer<T> serializer = null;
 	public RedisDataTypeDescription dataTypeDescription = DEFAULT_REDIS_DATATYPE;
+	public int expireIntervalSec = 0;
 }

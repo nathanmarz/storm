@@ -216,12 +216,19 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         switch (description.getDataType()) {
         case STRING:
             for (Map.Entry<String, String> kvEntry : keyValues.entrySet()) {
-                jedisCluster.set(kvEntry.getKey(), kvEntry.getValue());
+                if(this.options.expireIntervalSec > 0){
+                    jedisCluster.setex(kvEntry.getKey(), this.options.expireIntervalSec, kvEntry.getValue());
+                } else {
+                    jedisCluster.set(kvEntry.getKey(), kvEntry.getValue());
+                }
             }
             break;
 
         case HASH:
             jedisCluster.hmset(description.getAdditionalKey(), keyValues);
+            if (this.options.expireIntervalSec > 0) {
+                jedisCluster.expire(description.getAdditionalKey(), this.options.expireIntervalSec);
+            }
             break;
 
         default:

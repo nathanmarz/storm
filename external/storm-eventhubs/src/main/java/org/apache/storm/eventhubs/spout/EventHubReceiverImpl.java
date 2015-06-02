@@ -71,6 +71,7 @@ public class EventHubReceiverImpl implements IEventHubReceiver {
     long start = System.currentTimeMillis();
     receiver = new ResilientEventHubReceiver(connectionString, entityName,
     		partitionId, consumerGroupName, defaultCredits, filter);
+    receiver.initialize();
     
     long end = System.currentTimeMillis();
     logger.info("created eventhub receiver, time taken(ms): " + (end-start));

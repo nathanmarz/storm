@@ -1,7 +1,6 @@
 ## 0.11.0
 
 ## 0.10.0
- * STORM-753: Improve RedisStateQuerier to convert List<Values> from Redis value
  * STORM-835: Netty Client hold batch object until io operation complete
  * STORM-827: Allow AutoTGT to work with storm-hdfs too.
  * STORM-821: Adding connection provider interface to decouple jdbc connector from a single connection pooling implementation.
@@ -26,7 +25,9 @@
  * STORM-765: Thrift serialization for local state
  * STORM-764: Have option to compress thrift heartbeat
  * STORM-762: uptime for worker heartbeats is lost when converted to thrift
+ * STORM-761: An option for new/updated Redis keys to expire in RedisMapState
  * STORM-757: Simulated time can leak out on errors
+ * STORM-753: Improve RedisStateQuerier to convert List<Values> from Redis value
  * STORM-752: [storm-redis] Clarify Redis*StateUpdater's expire is optional
  * STORM-750: Set Config serialVersionUID
  * STORM-749: Remove CSRF check from the REST API.

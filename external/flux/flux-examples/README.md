@@ -58,11 +58,9 @@ storm jar ./target/flux-examples-*.jar org.apache.storm.flux.Flux --local ./src/
 
 This example illustrates how to use Flux to setup a storm-hbase bolt to write to HBase.
 
-In order to use this example, you will need to edit the `src/main resrouces/hbase-site.xml` file to reflect your HBase
-environment, and then rebuild the topology jar.
-
-You can do so by running the following Maven command in the `flux-examples` directory:
+To run the `simple_hbase.yaml` example, copy the `hbase_bolt.properties` file to a convenient location and change the properties
+ `hbase.rootdir` and `hbase.zookeeper.quorum`. Then you can run the example something like:
 
 ```bash
-mvn clean install
+storm jar ./target/flux-examples-*.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_hbase.yaml --filter my_hbase_bolt.properties
 ```

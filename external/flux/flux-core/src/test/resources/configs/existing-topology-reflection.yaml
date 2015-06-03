@@ -1,0 +1,9 @@
+---
+
+# configuration that uses an existing topology that does not implement TopologySource
+name: "existing-topology"
+topologySource:
+  className: "org.apache.storm.flux.test.SimpleTopology"
+  constructorArgs:
+    - "foo"
+    - "bar"

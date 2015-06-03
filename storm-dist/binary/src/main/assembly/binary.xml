@@ -159,6 +159,50 @@
             </includes>
         </fileSet>
 
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-core/target</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>flux*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-wrappers/target</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>flux*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-examples/target</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>flux*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-examples</directory>
+            <outputDirectory>external/flux/examples</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-examples/src/main/resources</directory>
+            <outputDirectory>external/flux/examples</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+
+
         <!-- $STORM_HOME/extlib -->
         <fileSet>
             <directory></directory>

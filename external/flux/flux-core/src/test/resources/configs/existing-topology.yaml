@@ -1,0 +1,8 @@
+---
+
+name: "existing-topology"
+topologySource:
+  className: "org.apache.storm.flux.test.SimpleTopologySource"
+  constructorArgs:
+    - "foo"
+    - "bar"

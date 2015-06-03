@@ -43,13 +43,13 @@
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
-            <version>0.9.4</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
-            <version>1.5.0</version>
+            <version>${elasticsearch.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

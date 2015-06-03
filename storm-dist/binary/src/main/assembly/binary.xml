@@ -201,6 +201,20 @@
                 <include>README.*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-redis/target</directory>
+            <outputDirectory>external/storm-redis</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-redis</directory>
+            <outputDirectory>external/storm-redis</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
 
 
         <!-- $STORM_HOME/extlib -->

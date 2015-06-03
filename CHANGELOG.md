@@ -1,11 +1,11 @@
 ## 0.11.0
 
 ## 0.10.0
- * STORM-818: storm-eventhubs configuration improvement and refactoring
  * STORM-842: Drop Support for Java 1.6
  * STORM-835: Netty Client hold batch object until io operation complete
  * STORM-827: Allow AutoTGT to work with storm-hdfs too.
  * STORM-821: Adding connection provider interface to decouple jdbc connector from a single connection pooling implementation.
+ * STORM-818: storm-eventhubs configuration improvement and refactoring
  * STORM-816: maven-gpg-plugin does not work with gpg 2.1
  * STORM-811: remove old metastor_db before running tests again.
  * STORM-808: allow null to be parsed as null
@@ -124,6 +124,7 @@
  * STORM-567: Move Storm Documentation/Website from SVN to git
  * STORM-565: Fix NPE when topology.groups is null.
  * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
+ * STORM-561: Add flux as an external module
  * STORM-557: High Quality Images for presentations
  * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
  * STORM-552: Add netty socket backlog config

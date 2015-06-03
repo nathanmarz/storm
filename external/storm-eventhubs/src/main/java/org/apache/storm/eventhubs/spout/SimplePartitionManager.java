@@ -22,7 +22,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.storm.eventhubs.client.Constants;
+import com.microsoft.eventhubs.client.Constants;
+import com.microsoft.eventhubs.client.EventHubEnqueueTimeFilter;
+import com.microsoft.eventhubs.client.EventHubOffsetFilter;
+import com.microsoft.eventhubs.client.IEventHubFilter;
 
 /**
  * A simple partition manager that does not re-send failed messages
@@ -62,13 +65,13 @@ public class SimplePartitionManager implements IPartitionManager {
       offset = Constants.DefaultStartingOffset;
     }
 
-    EventHubReceiverFilter filter = new EventHubReceiverFilter();
+    IEventHubFilter filter;
     if (offset.equals(Constants.DefaultStartingOffset)
         && config.getEnqueueTimeFilter() != 0) {
-      filter.setEnqueueTime(config.getEnqueueTimeFilter());
+      filter = new EventHubEnqueueTimeFilter(config.getEnqueueTimeFilter());
     }
     else {
-      filter.setOffset(offset);
+      filter = new EventHubOffsetFilter(offset);
     }
 
     receiver.open(filter);

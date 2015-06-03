@@ -15,24 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package org.apache.storm.eventhubs.client;
+package org.apache.storm.eventhubs.bolt;
 
-import org.apache.qpid.amqp_1_0.type.messaging.Filter;
+import backtype.storm.tuple.Tuple;
 
-public class SelectorFilter implements Filter {
-
-  private final String value;
-
-  public SelectorFilter(String value) {
-    this.value = value;
-  }
-
-  public String getValue() {
-    return value;
+/**
+ * A default implementation of IEventDataFormat that converts the tuple
+ * into a delimited string.
+ */
+public class DefaultEventDataFormat implements IEventDataFormat {
+  private static final long serialVersionUID = 1L;
+  private String delimiter = ",";
+  
+  public DefaultEventDataFormat withFieldDelimiter(String delimiter) {
+    this.delimiter = delimiter;
+    return this;
   }
 
   @Override
-  public String toString() {
-    return value;
+  public byte[] serialize(Tuple tuple) {
+    StringBuilder sb = new StringBuilder();
+    for(Object obj : tuple.getValues()) {
+      if(sb.length() != 0) {
+        sb.append(delimiter);
+      }
+      sb.append(obj.toString());
+    }
+    return sb.toString().getBytes();
   }
+
 }

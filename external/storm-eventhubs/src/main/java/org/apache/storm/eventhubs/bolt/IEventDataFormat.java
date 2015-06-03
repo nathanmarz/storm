@@ -15,23 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package org.apache.storm.eventhubs.client;
+package org.apache.storm.eventhubs.bolt;
 
-public class EventHubException extends Exception {
+import java.io.Serializable;
+import backtype.storm.tuple.Tuple;
 
-  public EventHubException() {
-    super();
-  }
-
-  public EventHubException(String message) {
-    super(message);
-  }
-
-  public EventHubException(Throwable cause) {
-    super(cause);
-  }
-
-  public EventHubException(String message, Throwable cause) {
-    super(message, cause);
-  }
+/**
+ * Serialize a tuple to a byte array to be sent to EventHubs
+ */
+public interface IEventDataFormat extends Serializable {
+  public byte[] serialize(Tuple tuple);
 }

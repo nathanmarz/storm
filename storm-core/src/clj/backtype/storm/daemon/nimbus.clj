@@ -1089,7 +1089,10 @@
             (when (and (Utils/isZkAuthenticationConfiguredStormServer conf)
                        (not (Utils/isZkAuthenticationConfiguredTopology storm-conf)))
                 (throw (IllegalArgumentException. "The cluster is configured for zookeeper authentication, but no payload was provided.")))
-            (log-message "Received topology submission for " storm-name " with conf " storm-conf)
+            (log-message "Received topology submission for "
+                         storm-name
+                         " with conf "
+                         (redact-value storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)

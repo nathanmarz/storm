@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
  Licensed to the Apache Software Foundation (ASF) under one or more
  contributor license agreements.  See the NOTICE file distributed with
@@ -16,26 +16,17 @@
  limitations under the License.
 -->
 
-<configuration scan="true" scanPeriod="60 seconds">
-  <appender name="A1" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${storm.log.dir}/${logfile.name}</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>${storm.log.dir}/${logfile.name}.%i</fileNamePattern>
-      <minIndex>1</minIndex>
-      <maxIndex>9</maxIndex>
-    </rollingPolicy>
-
-    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-      <maxFileSize>100MB</maxFileSize>
-    </triggeringPolicy>
-
-    <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
-    </encoder>
-  </appender>
-
-  <root level="INFO">
-    <appender-ref ref="A1"/>
-  </root>
-
+<configuration monitorInterval="60">
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+     <PatternLayout pattern="%-4r [%t] %-5p %c{1.} - %msg%n"/>
+    </Console>
+  </Appenders>
+  <Loggers>
+    <Logger name="org.apache.zookeeper" level="WARN"/>
+    <Root level="info">
+      <AppenderRef ref="Console"/>
+    </Root>
+  </Loggers>
 </configuration>
+

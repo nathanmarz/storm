@@ -209,9 +209,9 @@
         <disruptor.version>2.10.1</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>16.0.1</guava.version>
-        <logback-classic.version>1.0.13</logback-classic.version>
-        <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
         <netty.version>3.9.0.Final</netty.version>
+        <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
+        <log4j.version>2.1</log4j.version>
         <clojure.tools.nrepl.version>0.2.3</clojure.tools.nrepl.version>
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>
@@ -468,9 +468,24 @@
                 <version>${guava.version}</version>
             </dependency>
             <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback-classic.version}</version>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${log4j-over-slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>

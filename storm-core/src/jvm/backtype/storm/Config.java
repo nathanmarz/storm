@@ -1298,6 +1298,17 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_SHELLBOLT_MAX_PENDING_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * Topology central logging sensitivity to determine who has access to logs in central logging system.
+     * The possible values are:
+     *   S0 - Public (open to all users on grid)
+     *   S1 - Restricted
+     *   S2 - Confidential
+     *   S3 - Secret (default.)
+     */
+    public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
+    public static final Object TOPOLOGY_LOGGING_SENSITIVITY_SCHEMA = String.class;
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";

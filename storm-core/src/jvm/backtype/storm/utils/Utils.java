@@ -136,6 +136,32 @@ public class Utils {
         }
     }
 
+    public static byte[] toCompressedJsonConf(Map<String, Object> stormConf) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            OutputStreamWriter out = new OutputStreamWriter(new GZIPOutputStream(bos));
+            JSONValue.writeJSONString(stormConf, out);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, Object> fromCompressedJsonConf(byte[] serialized) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            InputStreamReader in = new InputStreamReader(new GZIPInputStream(bis));
+            Object ret = JSONValue.parseWithException(in);
+            in.close();
+            return (Map<String,Object>)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ParseException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T> String join(Iterable<T> coll, String sep) {
         Iterator<T> it = coll.iterator();
         String ret = "";

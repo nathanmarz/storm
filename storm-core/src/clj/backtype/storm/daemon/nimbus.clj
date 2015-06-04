@@ -108,10 +108,10 @@
 (defn- read-storm-conf [conf storm-id]
   (let [stormroot (master-stormdist-root conf storm-id)]
     (merge conf
-           (Utils/javaDeserialize
-            (FileUtils/readFileToByteArray
-             (File. (master-stormconf-path stormroot))
-             ) java.util.Map))))
+       (clojurify-structure
+         (Utils/fromCompressedJsonConf
+           (FileUtils/readFileToByteArray
+             (File. (master-stormconf-path stormroot))))))))
 
 (declare delay-event)
 (declare mk-assignments)
@@ -323,7 +323,7 @@
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
    (FileUtils/writeByteArrayToFile (File. (master-stormcode-path stormroot)) (Utils/serialize topology))
-   (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/javaSerialize storm-conf))
+   (FileUtils/writeByteArrayToFile (File. (master-stormconf-path stormroot)) (Utils/toCompressedJsonConf storm-conf))
    ))
 
 (defn- read-storm-topology [conf storm-id]

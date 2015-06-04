@@ -58,6 +58,7 @@
                 <exclude>org.clojure:tools.cli</exclude>
                 <exclude>org.clojure:tools.macro</exclude>
                 <exclude>joda-time:joda-time</exclude>
+                <exclude>org.eclipse.jetty:*</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

@@ -424,6 +424,7 @@
                             <include>org.clojure:tools.cli</include>
                             <include>org.clojure:tools.macro</include>
                             <include>joda-time:joda-time</include>
+                            <include>org.eclipse.jetty:*</include>
                         </includes>
                     </artifactSet>
 
@@ -563,6 +564,10 @@
                         <relocation>
                           <pattern>org.joda.time</pattern>
                           <shadedPattern>org.apache.storm.joda.time</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.eclipse.jetty</pattern>
+                          <shadedPattern>org.apache.storm.jetty</shadedPattern>
                         </relocation>
                     </relocations>
                     <transformers>

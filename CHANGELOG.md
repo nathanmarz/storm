@@ -1,6 +1,9 @@
 ## 0.11.0
 
 ## 0.10.0
+ * STORM-850: Convert storm-core's logback-test.xml to log4j2-test.xml
+ * STORM-848: Shade external dependencies
+ * STORM-849: Add storm-redis to storm binary distribution
  * STORM-760: Use JSON for serialized conf
  * STORM-833: Logging framework logback -> log4j 2.x
  * STORM-842: Drop Support for Java 1.6

@@ -1,6 +1,7 @@
 ## 0.11.0
 
 ## 0.10.0
+ * STORM-849: Add storm-redis to storm binary distribution
  * STORM-760: Use JSON for serialized conf
  * STORM-833: Logging framework logback -> log4j 2.x
  * STORM-842: Drop Support for Java 1.6

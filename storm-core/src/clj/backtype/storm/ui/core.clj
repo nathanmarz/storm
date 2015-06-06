@@ -525,8 +525,9 @@
         storm-cmd (str storm-home file-path-separator "bin" file-path-separator "storm")
         tplg-cmd-response (apply sh
                             (flatten
-                              [storm-cmd "jar" tplg-jar-file tplg-main-class tplg-main-class-args
-                                (if (not= user "unknown") (str "-c storm.doAsUser=" user) "")]))]
+                              [storm-cmd "jar" tplg-jar-file tplg-main-class
+                                (if (not-nil? tplg-main-class-args) tplg-main-class-args [])
+                                (if (not= user "unknown") (str "-c storm.doAsUser=" user) [])]))]
     (log-message "tplg-cmd-response " tplg-cmd-response)
     (cond
      (= (tplg-cmd-response :exit) 0) {"status" "success"}

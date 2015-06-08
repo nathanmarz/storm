@@ -315,7 +315,7 @@ def get_errors(*args):
         "backtype.storm.command.get_errors",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"

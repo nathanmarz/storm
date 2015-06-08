@@ -47,6 +47,6 @@
         (println (to-json {"Failure" (str "No topologies running with name " name)}))
         (let [topology-name (.get_name topo-info)
               topology-errors (.get_errors topo-info)]
-          (println  (to-json (hash-map
-                                   "Topology Name" topology-name
-                                   "Comp-Errors" (get-component-errors topology-errors)))))))))
+          (println (to-json (hash-map
+                              "Topology Name" topology-name
+                              "Comp-Errors" (get-component-errors topology-errors)))))))))

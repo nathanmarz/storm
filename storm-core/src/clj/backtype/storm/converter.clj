@@ -134,10 +134,13 @@
       thrift-topology-action-options)))
 
 (defn clojurify-topology-action-options [^TopologyActionOptions topology-action-options]
-  (if (and topology-action-options (.is_set_kill_options topology-action-options))
-      (clojurify-kill-options (.get_kill_options topology-action-options)))
-  (if (and topology-action-options (.is_set_rebalance_options topology-action-options))
-      (clojurify-rebalance-options (.get_rebalance_options topology-action-options))))
+  (if topology-action-options
+    (or (and (.is_set_kill_options topology-action-options)
+             (clojurify-kill-options
+               (.get_kill_options topology-action-options)))
+        (and (.is_set_rebalance_options topology-action-options)
+             (clojurify-rebalance-options
+               (.get_rebalance_options topology-action-options))))))
 
 (defn thriftify-storm-base [storm-base]
   (doto (StormBase.)

@@ -31,11 +31,11 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellProcess implements Serializable {
-    public static Logger LOG = Logger.getLogger(ShellProcess.class);
+    public static Logger LOG = LoggerFactory.getLogger(ShellProcess.class);
     public static Logger ShellLogger;
     private Process      _subprocess;
     private InputStream  processErrorStream;
@@ -52,7 +52,7 @@ public class ShellProcess implements Serializable {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(new File(context.getCodeDir()));
 
-        ShellLogger = Logger.getLogger(context.getThisComponentId());
+        ShellLogger = LoggerFactory.getLogger(context.getThisComponentId());
 
         this.componentName = context.getThisComponentId();
         this.serializer = getSerializer(conf);

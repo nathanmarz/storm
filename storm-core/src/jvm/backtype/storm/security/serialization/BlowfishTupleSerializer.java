@@ -19,7 +19,8 @@ package backtype.storm.security.serialization;
 
 import java.util.Map;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -43,7 +44,7 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
      * You should use in via "storm -c topology.tuple.serializer.blowfish.key=YOURKEY -c topology.tuple.serializer=backtype.storm.security.serialization.BlowfishTupleSerializer jar ...".
      */
     public static String SECRET_KEY = "topology.tuple.serializer.blowfish.key";
-    private static final Logger LOG = Logger.getLogger(BlowfishTupleSerializer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BlowfishTupleSerializer.class);
     private BlowfishSerializer _serializer;
 
     public BlowfishTupleSerializer(Kryo kryo, Map storm_conf) {

@@ -1,7 +1,8 @@
 ## 0.11.0
 
 ## 0.10.0
- * STORM-853 Fix upload API to handle multi-args properly
+ * STORM-813: Change storm-starter's README so that it explains mvn exec:java cannot run multilang topology
+ * STORM-853: Fix upload API to handle multi-args properly
  * STORM-850: Convert storm-core's logback-test.xml to log4j2-test.xml
  * STORM-848: Shade external dependencies
  * STORM-849: Add storm-redis to storm binary distribution

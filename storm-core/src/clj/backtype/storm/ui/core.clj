@@ -515,8 +515,7 @@
 
 (defn run-tplg-submit-cmd [tplg-jar-file tplg-config user]
   (let [tplg-main-class (if (not-nil? tplg-config) (trim (tplg-config "topologyMainClass")))
-        tplg-main-class-args (if (not-nil? tplg-config) (clojure.string/join " " (tplg-config "topologyMainClassArgs")))
-        tplg-jvm-opts (if (not-nil? tplg-config) (clojure.string/join " " (tplg-config "topologyJvmOpts")))
+        tplg-main-class-args (if (not-nil? tplg-config) (tplg-config "topologyMainClassArgs"))
         storm-home (System/getProperty "storm.home")
         storm-conf-dir (str storm-home file-path-separator "conf")
         storm-log-dir (if (not-nil? (*STORM-CONF* "storm.log.dir")) (*STORM-CONF* "storm.log.dir")
@@ -524,10 +523,11 @@
         storm-libs (str storm-home file-path-separator "lib" file-path-separator "*")
         java-cmd (str (System/getProperty "java.home") file-path-separator "bin" file-path-separator "java")
         storm-cmd (str storm-home file-path-separator "bin" file-path-separator "storm")
-        tplg-cmd-response (sh storm-cmd "jar" tplg-jar-file
-                              tplg-main-class
-                              tplg-main-class-args
-                              (if (not= user "unknown") (str "-c storm.doAsUser=" user) ""))]
+        tplg-cmd-response (apply sh
+                            (flatten
+                              [storm-cmd "jar" tplg-jar-file tplg-main-class
+                                (if (not-nil? tplg-main-class-args) tplg-main-class-args [])
+                                (if (not= user "unknown") (str "-c storm.doAsUser=" user) [])]))]
     (log-message "tplg-cmd-response " tplg-cmd-response)
     (cond
      (= (tplg-cmd-response :exit) 0) {"status" "success"}

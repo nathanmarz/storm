@@ -1,6 +1,7 @@
 ## 0.11.0
 
 ## 0.10.0
+ * STORM-852: Replaced Apache Log4j Logger with SLF4J API
  * STORM-813: Change storm-starter's README so that it explains mvn exec:java cannot run multilang topology
  * STORM-853: Fix upload API to handle multi-args properly
  * STORM-850: Convert storm-core's logback-test.xml to log4j2-test.xml

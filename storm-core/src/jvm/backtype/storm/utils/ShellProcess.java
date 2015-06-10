@@ -18,16 +18,14 @@
 package backtype.storm.utils;
 
 import backtype.storm.Config;
-import backtype.storm.multilang.ISerializer;
-import backtype.storm.multilang.BoltMsg;
-import backtype.storm.multilang.NoOutputException;
-import backtype.storm.multilang.ShellMsg;
-import backtype.storm.multilang.SpoutMsg;
+import backtype.storm.multilang.*;
 import backtype.storm.task.TopologyContext;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +38,7 @@ public class ShellProcess implements Serializable {
     private Process      _subprocess;
     private InputStream  processErrorStream;
     private String[]     command;
+    private Map<String, String> env = new HashMap<String, String>();
     public ISerializer   serializer;
     public Number pid;
     public String componentName;
@@ -48,8 +47,26 @@ public class ShellProcess implements Serializable {
         this.command = command;
     }
 
+    public void setEnv(Map<String, String> env) {
+        this.env = env;
+    }
+
+    private void modifyEnvironment(Map<String, String> buildEnv) {
+        for (Map.Entry<String, String> entry : env.entrySet()) {
+            if (entry.getKey().equals("PATH")) {
+                buildEnv.put("PATH", buildEnv.get("PATH") + ":" + env.get("PATH"));
+            } else {
+                buildEnv.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
     public Number launch(Map conf, TopologyContext context) {
         ProcessBuilder builder = new ProcessBuilder(command);
+        if (!env.isEmpty()) {
+            Map<String, String> buildEnv = builder.environment();
+            modifyEnvironment(buildEnv);
+        }
         builder.directory(new File(context.getCodeDir()));
 
         ShellLogger = LoggerFactory.getLogger(context.getThisComponentId());

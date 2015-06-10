@@ -152,7 +152,7 @@ function topologyActionJson(id, encodedId, name,status,msgTimeout) {
     jsonData["encodedId"] = encodedId;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;
-    jsonData["activateStatus"] = (status === "ACTIVE") ? "disabled" : "enabled";
+    jsonData["activateStatus"] = (status === "INACTIVE") ? "enabled" : "disabled";
     jsonData["deactivateStatus"] = (status === "ACTIVE") ? "enabled" : "disabled";
     jsonData["rebalanceStatus"] = (status === "ACTIVE" || status === "INACTIVE" ) ? "enabled" : "disabled";
     jsonData["killStatus"] = (status !== "KILLED") ? "enabled" : "disabled";

@@ -27,12 +27,12 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.ArrayList;		
+import java.util.HashMap;		
+import java.util.HashSet;		
+import java.util.List;		
+import java.util.Map;		
+import java.util.Random;		
 import java.util.Set;
 import storm.trident.topology.TridentBoltExecutor;
 import storm.trident.tuple.ConsList;
@@ -173,6 +173,10 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
         public void reportError(Throwable t) {
             _collector.reportError(t);
         }
-        
+
+        @Override
+        public long getPendingCount() {
+            return _collector.getPendingCount();
+        }
     }
 }

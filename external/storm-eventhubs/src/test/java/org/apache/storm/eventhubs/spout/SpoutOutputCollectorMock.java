@@ -17,9 +17,10 @@
  *******************************************************************************/
 package org.apache.storm.eventhubs.spout;
 
-import java.util.List;
-
 import backtype.storm.spout.ISpoutOutputCollector;
+import backtype.storm.spout.SpoutOutputCollector;
+
+import java.util.List;
 
 /**
  * Mock of ISpoutOutputCollector
@@ -27,6 +28,7 @@ import backtype.storm.spout.ISpoutOutputCollector;
 public class SpoutOutputCollectorMock implements ISpoutOutputCollector {
   //comma separated offsets
   StringBuilder emittedOffset;
+  SpoutOutputCollector _collector;
   
   public SpoutOutputCollectorMock() {
     emittedOffset = new StringBuilder();
@@ -58,4 +60,11 @@ public class SpoutOutputCollectorMock implements ISpoutOutputCollector {
   @Override
   public void reportError(Throwable arg0) {
   }
+
+  @Override
+  public long getPendingCount() {
+    return _collector.getPendingCount();
+  }
+
+
 }

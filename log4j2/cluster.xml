@@ -23,8 +23,8 @@
 </properties>
 <appenders>
     <RollingFile name="A1"
-                 fileName="${sys:storm.log.dir}/logs/${sys:logfile.name}"
-                 filePattern="${sys:storm.log.dir}/logs/${sys:logfile.name}.%i">
+                 fileName="${sys:storm.log.dir}/${sys:logfile.name}"
+                 filePattern="${sys:storm.log.dir}/${sys:logfile.name}.%i">
         <PatternLayout>
             <pattern>${pattern}</pattern>
         </PatternLayout>
@@ -34,8 +34,8 @@
         </Policies>
     </RollingFile>
     <RollingFile name="ACCESS"
-                 fileName="${sys:storm.log.dir}/logs/access.log"
-                 filePattern="${sys:storm.log.dir}/logs/access.log.%i">
+                 fileName="${sys:storm.log.dir}/access.log"
+                 filePattern="${sys:storm.log.dir}/access.log.%i">
         <PatternLayout>
             <pattern>${pattern}</pattern>
         </PatternLayout>
@@ -45,8 +45,8 @@
         </Policies>
     </RollingFile>
     <RollingFile name="METRICS"
-                 fileName="${sys:storm.log.dir}/logs/metrics.log"
-                 filePattern="${sys:storm.log.dir}/logs/metrics.log.%i">
+                 fileName="${sys:storm.log.dir}/metrics.log"
+                 filePattern="${sys:storm.log.dir}/metrics.log.%i">
         <PatternLayout>
             <pattern>${patternMetris}</pattern>
         </PatternLayout>

@@ -26,20 +26,33 @@ import redis.clients.jedis.JedisPool;
 import java.io.Closeable;
 import java.io.IOException;
 
+/**
+ * Container for managing Jedis instances.
+ */
 public class JedisContainer implements JedisCommandsInstanceContainer, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(JedisContainer.class);
 
     private JedisPool jedisPool;
 
+    /**
+     * Constructor
+     * @param jedisPool JedisPool which actually manages Jedis instances
+     */
     public JedisContainer(JedisPool jedisPool) {
         this.jedisPool = jedisPool;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public JedisCommands getInstance() {
         return jedisPool.getResource();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void returnInstance(JedisCommands jedisCommands) {
         if (jedisCommands == null) {
@@ -53,6 +66,9 @@ public class JedisContainer implements JedisCommandsInstanceContainer, Closeable
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() {
         jedisPool.close();

@@ -17,6 +17,13 @@
  */
 package org.apache.storm.redis.common.mapper;
 
+/**
+ * RedisMapper is for defining data type for querying / storing from / to Redis.
+ */
 public interface RedisMapper {
-    public RedisDataTypeDescription getDataTypeDescription();
+    /**
+     * Returns descriptor which defines data type.
+     * @return data type descriptor
+     */
+    RedisDataTypeDescription getDataTypeDescription();
 }

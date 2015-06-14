@@ -27,26 +27,47 @@ import storm.trident.state.StateFactory;
 
 import java.util.Map;
 
+/**
+ * Implementation of State for Redis Cluster environment.
+ */
 public class RedisClusterState implements State {
-    private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void beginCommit(Long aLong) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void commit(Long aLong) {
     }
 
+    /**
+     * RedisClusterState.Factory implements StateFactory for Redis Cluster environment.
+     *
+     * @see StateFactory
+     */
     public static class Factory implements StateFactory {
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
         private JedisClusterConfig jedisClusterConfig;
 
+        /**
+         * Constructor
+         *
+         * @param config configuration of JedisCluster
+         */
         public Factory(JedisClusterConfig config) {
             this.jedisClusterConfig = config;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public State makeState(@SuppressWarnings("rawtypes") Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
             JedisCluster jedisCluster = new JedisCluster(jedisClusterConfig.getNodes(),
                                                     jedisClusterConfig.getTimeout(),
@@ -59,20 +80,31 @@ public class RedisClusterState implements State {
 
     private JedisCluster jedisCluster;
 
+    /**
+     * Constructor
+     *
+     * @param jedisCluster JedisCluster
+     */
     public RedisClusterState(JedisCluster jedisCluster) {
         this.jedisCluster = jedisCluster;
     }
 
     /**
-     * The state updater and querier can get a JedisCluster instance
-     * */
+     * Borrows JedisCluster instance.
+     * <p/>
+     * Note that you should return borrowed instance when you finish using instance.
+     *
+     * @return JedisCluster instance
+     */
     public JedisCluster getJedisCluster() {
         return this.jedisCluster;
     }
 
     /**
-     * The state updater and querier return the JedisCluster instance
-     * */
+     * Returns JedisCluster instance to pool.
+     *
+     * @param jedisCluster JedisCluster instance to return to pool
+     */
     public void returnJedisCluster(JedisCluster jedisCluster) {
         //do nothing
     }

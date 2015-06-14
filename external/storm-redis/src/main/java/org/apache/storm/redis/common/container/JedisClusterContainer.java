@@ -22,24 +22,42 @@ import redis.clients.jedis.JedisCommands;
 
 import java.io.Closeable;
 
+/**
+ * Container for managing JedisCluster.
+ * <p/>
+ * Note that JedisCluster doesn't need to be pooled since it's thread-safe and it stores pools internally.
+ */
 public class JedisClusterContainer implements JedisCommandsInstanceContainer, Closeable {
 
     private JedisCluster jedisCluster;
 
+    /**
+     * Constructor
+     * @param jedisCluster JedisCluster instance
+     */
     public JedisClusterContainer(JedisCluster jedisCluster) {
         this.jedisCluster = jedisCluster;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public JedisCommands getInstance() {
         return this.jedisCluster;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void returnInstance(JedisCommands jedisCommands) {
         // do nothing
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() {
         this.jedisCluster.close();

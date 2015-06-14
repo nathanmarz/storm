@@ -20,10 +20,32 @@ package org.apache.storm.redis.trident.state;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * KeyFactory defines conversion of state key (which could be compounded) -> Redis key.
+ */
 public interface KeyFactory extends Serializable {
+    /**
+     * Converts state key to Redis key.
+     * @param key state key
+     * @return Redis key
+     */
 	String build(List<Object> key);
 
+    /**
+     * Default Key Factory
+     */
 	class DefaultKeyFactory implements KeyFactory {
+        /**
+         * {@inheritDoc}
+         * <p/>
+         * Currently DefaultKeyFactory returns just first element of list.
+         *
+         * @param key state key
+         * @return Redis key
+         * @throws RuntimeException when key is compound key
+         * @see KeyFactory#build(List)
+         */
+        @Override
 		public String build(List<Object> key) {
 			if (key.size() != 1)
 				throw new RuntimeException("Default KeyFactory does not support compound keys");

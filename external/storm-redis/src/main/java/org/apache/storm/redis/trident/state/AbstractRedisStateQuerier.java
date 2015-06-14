@@ -28,11 +28,24 @@ import storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 
+/**
+ * AbstractRedisStateQuerier is base class of any RedisStateQuerier, which implements BaseQueryFunction.
+ * <p/>
+ * Derived classes should provide how to retrieve values from Redis,
+ * and AbstractRedisStateQuerier takes care of rest things.
+ *
+ * @param <T> type of State
+ */
 public abstract class AbstractRedisStateQuerier<T extends State> extends BaseQueryFunction<T, List<Values>> {
 	private final RedisLookupMapper lookupMapper;
 	protected final RedisDataTypeDescription.RedisDataType dataType;
 	protected final String additionalKey;
 
+	/**
+	 * Constructor
+	 *
+	 * @param lookupMapper mapper for querying
+	 */
 	public AbstractRedisStateQuerier(RedisLookupMapper lookupMapper) {
 		this.lookupMapper = lookupMapper;
 
@@ -41,6 +54,9 @@ public abstract class AbstractRedisStateQuerier<T extends State> extends BaseQue
 		this.additionalKey = dataTypeDescription.getAdditionalKey();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public List<List<Values>> batchRetrieve(T state, List<TridentTuple> inputs) {
 		List<List<Values>> values = Lists.newArrayList();
@@ -58,6 +74,9 @@ public abstract class AbstractRedisStateQuerier<T extends State> extends BaseQue
 		return values;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void execute(TridentTuple tuple, List<Values> values, TridentCollector collector) {
 		for (Values value : values) {
@@ -65,5 +84,12 @@ public abstract class AbstractRedisStateQuerier<T extends State> extends BaseQue
 		}
 	}
 
-	protected abstract List<String> retrieveValuesFromRedis(T redisClusterState, List<String> keys);
+	/**
+	 * Retrieves values from Redis that each value is corresponding to each key.
+	 *
+	 * @param state State for handling query
+	 * @param keys keys having state values
+	 * @return values which are corresponding to keys
+	 */
+	protected abstract List<String> retrieveValuesFromRedis(T state, List<String> keys);
 }

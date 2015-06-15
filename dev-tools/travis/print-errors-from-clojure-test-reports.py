@@ -15,6 +15,7 @@
 import os
 import sys
 import glob
+import traceback
 from xml.etree.ElementTree import ElementTree
 
 
@@ -48,6 +49,7 @@ def main(report_dir_path):
         except Exception, e:
             print "Error while reading report file, %s" % file_path
             print "Exception: %s" % e
+            traceback.print_exc()
 
 
 if __name__ == "__main__":

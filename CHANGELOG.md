@@ -1,6 +1,7 @@
 ## 0.11.0
  * STORM-847: Add cli to get the last storm error from the topology
  * STORM-864: Exclude storm-kafka tests from Travis CI build
+ * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
 
 ## 0.10.0
  * STORM-856: use serialized value of delay secs for topo actions

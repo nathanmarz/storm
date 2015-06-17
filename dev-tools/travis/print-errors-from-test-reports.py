@@ -35,7 +35,15 @@ def print_detail_information(testcase, fail_or_error):
 
 def print_error_reports_from_report_file(file_path):
     tree = ElementTree()
-    tree.parse(file_path)
+    try:
+        tree.parse(file_path)
+    except:
+        print "-" * 50
+        print "Error parsing %s"%file_path
+        f = open(file_path, "r");
+        print f.read();
+        print "-" * 50
+        return
 
     testcases = tree.findall(".//testcase")
     for testcase in testcases:

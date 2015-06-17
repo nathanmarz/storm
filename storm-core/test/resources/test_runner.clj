@@ -23,8 +23,10 @@
 (import `java.io.FileWriter)
 (import `java.io.File)
 (import `java.io.OutputStream)
+(import `java.io.OutputStreamWriter)
 (import `java.io.PrintStream)
 (import `java.io.PrintWriter)
+(import `backtype.storm.utils.XMLEscapeOutputStream)
 (use 'clojure.test)
 (use 'clojure.test.junit)
 
@@ -47,43 +49,49 @@
       sys-err System/err
       num-bad (atom 0)
       original-junit-report junit-report
-      cached-out (atom nil)
-      test-error (atom 0)
       orig-out *out*]
   (dorun (for [ns namespaces]
-    (with-open [writer (FileWriter. (str output-dir "/" ns ".xml"))
-                out-stream (FileOutputStream. (str output-dir "/" ns "-output.txt"))
-                out-writer (PrintStream. out-stream true)]
+    (with-open [out-stream (FileOutputStream. (str output-dir "/" ns ".xml"))
+                escape-out-stream (XMLEscapeOutputStream. out-stream)
+                test-print-writer (PrintWriter. out-stream true)
+                print-writer (PrintWriter. escape-out-stream true)
+                print-stream (PrintStream. escape-out-stream true)]
+      (System/setOut print-stream)
+      (System/setErr print-stream)
       (.println sys-out (str "Running " ns))
       (try
-        (System/setOut out-writer)
-        (System/setErr out-writer)
-        (binding [*test-out* writer
-                  *out* (PrintWriter. out-stream true)
+        (let [in-sys-out (atom false)]
+        (binding [*test-out* test-print-writer
+                  *out* print-writer
                   junit-report (fn [data]
                                    (let [type (data :type)]
                                      (cond
                                        (= type :begin-test-var) (do
-                                                                   (reset! cached-out (ByteArrayOutputStream.))
-                                                                   (let [writer (PrintStream. @cached-out true)]
-                                                                     (set! *out* (PrintWriter. @cached-out true))
-                                                                     (System/setOut writer)
-                                                                     (System/setErr writer))
-                                                                   (reset! test-error 0))
-                                       (= type :end-test-var) (do
-                                                                  (.write out-writer (.toByteArray @cached-out))
-                                                                  (when (> @test-error 0)
+                                                                  (when @in-sys-out
+                                                                    (reset! in-sys-out false)
                                                                     (with-test-out
-                                                                      (start-element 'system-out true)
-                                                                      (element-content (String. (.toByteArray @cached-out)))
-                                                                      (finish-element 'system-out true))))
-                                       (= type :fail) (swap! test-error inc)
-                                       (= type :error) (swap! test-error inc)))
-                                   (original-junit-report data))]
+                                                                      (finish-element 'system-out true)))
+                                                                   (original-junit-report data)
+                                                                   (reset! in-sys-out true)
+                                                                   (with-test-out
+                                                                     (start-element 'system-out true)))
+                                       (= type :end-test-var) (when @in-sys-out
+                                                                (reset! in-sys-out false)
+                                                                (with-test-out
+                                                                  (finish-element 'system-out true)))
+                                       (= type :fail) (when @in-sys-out
+                                                                (reset! in-sys-out false)
+                                                                (with-test-out
+                                                                  (finish-element 'system-out true)))
+                                       (= type :error) (when @in-sys-out
+                                                                (reset! in-sys-out false)
+                                                                (with-test-out
+                                                                  (finish-element 'system-out true))))
+                                     (if (not (= type :begin-test-var)) (original-junit-report data))))]
           (with-junit-output
             (let [result (run-tests ns)]
                (.println sys-out (str "Tests run: " (result :test) ", Passed: " (result :pass) ", Failures: " (result :fail) ", Errors: " (result :error)))
-               (reset! num-bad (+ @num-bad (result :error) (result :fail))))))
+               (reset! num-bad (+ @num-bad (result :error) (result :fail)))))))
         (finally 
           (System/setOut sys-out)
           (System/setErr sys-err))))))

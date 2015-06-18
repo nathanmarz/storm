@@ -82,6 +82,17 @@ public class TCKTest {
     }
 
     @Test
+    public void testDiamondTopology() throws Exception {
+        TopologyDef topologyDef = FluxParser.parseResource("/configs/diamond-topology.yaml", false, true, null, false);
+        Config conf = FluxBuilder.buildConfig(topologyDef);
+        ExecutionContext context = new ExecutionContext(topologyDef, conf);
+        StormTopology topology = FluxBuilder.buildTopology(context);
+        assertNotNull(topology);
+        topology.validate();
+    }
+
+
+    @Test
     public void testHbase() throws Exception {
         TopologyDef topologyDef = FluxParser.parseResource("/configs/simple_hbase.yaml", false, true, null, false);
         Config conf = FluxBuilder.buildConfig(topologyDef);

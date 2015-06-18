@@ -29,10 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FluxBuilder {
     private static Logger LOG = LoggerFactory.getLogger(FluxBuilder.class);
@@ -151,18 +148,25 @@ public class FluxBuilder {
             IllegalAccessException {
         TopologyDef topologyDef = context.getTopologyDef();
         // process stream definitions
+        HashMap<String, BoltDeclarer> declarers = new HashMap<String, BoltDeclarer>();
         for (StreamDef stream : topologyDef.getStreams()) {
             Object boltObj = context.getBolt(stream.getTo());
-            BoltDeclarer declarer = null;
+            BoltDeclarer declarer = declarers.get(stream.getTo());
             if (boltObj instanceof IRichBolt) {
-                declarer = builder.setBolt(stream.getTo(),
-                        (IRichBolt) boltObj,
-                        topologyDef.parallelismForBolt(stream.getTo()));
+                if(declarer == null) {
+                    declarer = builder.setBolt(stream.getTo(),
+                            (IRichBolt) boltObj,
+                            topologyDef.parallelismForBolt(stream.getTo()));
+                    declarers.put(stream.getTo(), declarer);
+                }
             } else if (boltObj instanceof IBasicBolt) {
-                declarer = builder.setBolt(
-                        stream.getTo(),
-                        (IBasicBolt) boltObj,
-                        topologyDef.parallelismForBolt(stream.getTo()));
+                if(declarer == null) {
+                    declarer = builder.setBolt(
+                            stream.getTo(),
+                            (IBasicBolt) boltObj,
+                            topologyDef.parallelismForBolt(stream.getTo()));
+                    declarers.put(stream.getTo(), declarer);
+                }
             } else {
                 throw new IllegalArgumentException("Class does not appear to be a bolt: " +
                         boltObj.getClass().getName());

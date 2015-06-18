@@ -26,7 +26,6 @@
 (import `java.io.OutputStreamWriter)
 (import `java.io.PrintStream)
 (import `java.io.PrintWriter)
-(import `backtype.storm.utils.XMLEscapeOutputStream)
 (use 'clojure.test)
 (use 'clojure.test.junit)
 
@@ -52,40 +51,56 @@
       orig-out *out*]
   (dorun (for [ns namespaces]
     (with-open [out-stream (FileOutputStream. (str output-dir "/" ns ".xml"))
-                escape-out-stream (XMLEscapeOutputStream. out-stream)
-                test-print-writer (PrintWriter. out-stream true)
-                print-writer (PrintWriter. escape-out-stream true)
-                print-stream (PrintStream. escape-out-stream true)]
-      (System/setOut print-stream)
-      (System/setErr print-stream)
+                print-writer (PrintWriter. out-stream true)
+                print-stream (PrintStream. out-stream true)]
       (.println sys-out (str "Running " ns))
       (try
         (let [in-sys-out (atom false)]
-        (binding [*test-out* test-print-writer
-                  *out* print-writer
+        (binding [*test-out* print-writer
+                  *out* orig-out
                   junit-report (fn [data]
                                    (let [type (data :type)]
                                      (cond
                                        (= type :begin-test-var) (do
                                                                   (when @in-sys-out
                                                                     (reset! in-sys-out false)
+                                                                    (System/setOut sys-out)
+                                                                    (System/setErr sys-err)
+                                                                    (set! *out* orig-out)
                                                                     (with-test-out
+                                                                      (print "]]>")
                                                                       (finish-element 'system-out true)))
                                                                    (original-junit-report data)
                                                                    (reset! in-sys-out true)
                                                                    (with-test-out
-                                                                     (start-element 'system-out true)))
+                                                                     (start-element 'system-out true)
+                                                                     (print "<![CDATA[") (flush))
+                                                                   (System/setOut print-stream)
+                                                                   (System/setErr print-stream)
+                                                                   (set! *out* print-writer))
                                        (= type :end-test-var) (when @in-sys-out
                                                                 (reset! in-sys-out false)
+                                                                (System/setOut sys-out)
+                                                                (System/setErr sys-err)
+                                                                (set! *out* orig-out)
                                                                 (with-test-out
+                                                                  (print "]]>")
                                                                   (finish-element 'system-out true)))
                                        (= type :fail) (when @in-sys-out
                                                                 (reset! in-sys-out false)
+                                                                (System/setOut sys-out)
+                                                                (System/setErr sys-err)
+                                                                (set! *out* orig-out)
                                                                 (with-test-out
+                                                                  (print "]]>")
                                                                   (finish-element 'system-out true)))
                                        (= type :error) (when @in-sys-out
                                                                 (reset! in-sys-out false)
+                                                                (System/setOut sys-out)
+                                                                (System/setErr sys-err)
+                                                                (set! *out* orig-out)
                                                                 (with-test-out
+                                                                  (print "]]>")
                                                                   (finish-element 'system-out true))))
                                      (if (not (= type :begin-test-var)) (original-junit-report data))))]
           (with-junit-output

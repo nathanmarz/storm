@@ -1016,25 +1016,6 @@
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "kill") (m "callback")))
-  (POST "/api/v1/uploadTopology" [:as {:keys [cookies servlet-request]} id & params]
-        (assert-authorized-user servlet-request "submitTopology")
-        (let [valid-tplg (validate-tplg-submit-params params)
-              valid (valid-tplg :valid)
-              context (ReqContext/context)]
-          (if http-creds-handler (.populateContext http-creds-handler context servlet-request))
-          (if (= valid true)
-            (let [tplg-file-data (params :topologyJar)
-                  tplg-temp-file (tplg-file-data :tempfile)
-                  tplg-file-name (tplg-file-data :filename)
-                  tplg-jar-file (clojure.string/join [(.getParent tplg-temp-file) file-path-separator tplg-file-name])
-                  tplg-config (if (not-nil? (params :topologyConfig)) (from-json (params :topologyConfig)))
-                  principal (if (.isImpersonating context) (.realPrincipal context) (.principal context))
-                  user (if principal (.getName principal) "unknown")]
-              (.renameTo tplg-temp-file (File. tplg-jar-file))
-              (let [ret (run-tplg-submit-cmd tplg-jar-file tplg-config user)]
-                (json-response ret (params "callback"))))
-            (json-response {"status" "failed" "error" (valid-tplg :error)} (params "callback"))
-            )))
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))
   (route/resources "/")

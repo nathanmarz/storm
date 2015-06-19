@@ -575,37 +575,6 @@ Sample response:
 
 ## POST Operations
 
-
-### /api/v1/uploadTopology (POST)
-
-uploads a topology.
-
-
-|Parameter |Value   |Description  |
-|----------|--------|-------------|
-|topologyConfig |String (required)| topology json config  |
-|topologyJar |String (required)| topology jar file |
-
-Sample topologyConfig json:
-```json
-{"topologyMainClass": "storm.starter.WordCountTopology", "topologyMainClassArgs": ["wordcount1"]}
-```
-
-Examples:
-
-```no-highlight
-curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
--F topologyConfig='{"topologyMainClass": "storm.starter.WordCountTopology", "topologyMainClassArgs": ["wordcount1"]}' 
--F topologyJar=@examples/storm-starter/storm-starter-topologies-0.10.0-SNAPSHOT.jar 
-http://localhost:8080/api/v1/uploadTopology
-```
-
-Sample Response:
-
-```json
-{"status":"success"}
-```
-
 ### /api/v1/topology/:id/activate (POST)
 
 Activates a topology.

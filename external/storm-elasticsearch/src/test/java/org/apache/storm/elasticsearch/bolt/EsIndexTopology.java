@@ -48,8 +48,7 @@ public class EsIndexTopology {
         builder.setSpout(SPOUT_ID, spout, 1);
         EsConfig esConfig = new EsConfig();
         esConfig.setClusterName(EsConstants.clusterName);
-        esConfig.setHost(new String[]{"localhost"});
-        esConfig.setPort(9300);
+        esConfig.setNodes(new String[]{"localhost:9300"});
         builder.setBolt(BOLT_ID, new EsIndexBolt(esConfig), 1).shuffleGrouping(SPOUT_ID);
 
         EsTestUtil.startEsNode();

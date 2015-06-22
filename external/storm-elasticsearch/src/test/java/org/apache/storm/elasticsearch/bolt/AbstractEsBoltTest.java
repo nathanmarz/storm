@@ -19,6 +19,7 @@ package org.apache.storm.elasticsearch.bolt;
 
 import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
+import org.apache.commons.io.FileUtils;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.client.Requests;
@@ -31,20 +32,23 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
+
+import java.io.File;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class AbstractEsBoltTest {
-    protected Config config = new Config();
-    protected OutputCollector collector = mock(OutputCollector.class);
-    protected Node node;
+    protected static Config config = new Config();
+    protected static OutputCollector collector = mock(OutputCollector.class);
+    protected static Node node;
 
-    @Before
-    public void setup() throws Exception {
-        System.out.println("setup");
+    @BeforeClass
+    public static void setup() throws Exception {
         node = NodeBuilder.nodeBuilder().data(true).settings(
                 ImmutableSettings.builder()
                         .put(ClusterName.SETTING, "test-cluster")
@@ -59,18 +63,17 @@ public class AbstractEsBoltTest {
         ensureEsGreen(node);
         ClusterHealthResponse chr = node.client().admin().cluster()
                 .health(Requests.clusterHealthRequest().timeout(TimeValue.timeValueSeconds(30)).waitForGreenStatus().waitForRelocatingShards(0)).actionGet();
-        System.out.println(chr.getStatus());
         Thread.sleep(1000);
     }
 
-    @After
-    public void cleanup() throws Exception {
-        System.out.println("cleanup");
+    @AfterClass
+    public static void cleanup() throws Exception {
         node.stop();
         node.close();
+        FileUtils.deleteDirectory(new File("./data"));
     }
 
-    private void ensureEsGreen(Node node) {
+    private static void ensureEsGreen(Node node) {
         ClusterHealthResponse chr = node.client().admin().cluster()
                 .health(Requests.clusterHealthRequest().timeout(TimeValue.timeValueSeconds(30)).waitForGreenStatus().waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)).actionGet();
         assertThat("cluster status is green", chr.getStatus(), equalTo(ClusterHealthStatus.GREEN));

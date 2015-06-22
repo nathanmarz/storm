@@ -47,7 +47,6 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
-        System.out.println(this.getClass().getName());
         try {
             this.collector = outputCollector;
             synchronized (AbstractEsBolt.class) {
@@ -56,8 +55,12 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
                             ImmutableSettings.settingsBuilder().put("cluster.name", esConfig.getClusterName())
                                     .put("client.transport.sniff", "false").build();
                     List<InetSocketTransportAddress> transportAddressList = new ArrayList<InetSocketTransportAddress>();
-                    for (String host : esConfig.getHost()) {
-                        transportAddressList.add(new InetSocketTransportAddress(host, esConfig.getPort()));
+                    for (String node : esConfig.getNodes()) {
+                        String[] hostAndPort = node.split(":");
+                        if(hostAndPort.length != 2){
+                            throw new Exception("incorrect ElasticSearch node format, should follow {host}:{port} pattern");
+                        }
+                        transportAddressList.add(new InetSocketTransportAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])));
                     }
                     client = new TransportClient(settings)
                             .addTransportAddresses(transportAddressList.toArray(new InetSocketTransportAddress[transportAddressList.size()]));

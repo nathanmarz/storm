@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,20 +57,27 @@ public class EsState implements State {
     }
 
     public void prepare(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-        synchronized (EsState.class) {
-            if (client == null) {
-                Settings settings =
-                        ImmutableSettings.settingsBuilder().put("cluster.name", esConfig.getClusterName())
-                                .put("client.transport.sniff", "true").build();
-                List<InetSocketTransportAddress> transportAddressList = new ArrayList<InetSocketTransportAddress>();
-                for (String host : esConfig.getHost()) {
-                    transportAddressList.add(new InetSocketTransportAddress(host, esConfig.getPort()));
+        try {
+            synchronized (EsState.class) {
+                if (client == null) {
+                    Settings settings =
+                            ImmutableSettings.settingsBuilder().put("cluster.name", esConfig.getClusterName())
+                                    .put("client.transport.sniff", "true").build();
+                    List<InetSocketTransportAddress> transportAddressList = new ArrayList<InetSocketTransportAddress>();
+                    for (String node : esConfig.getNodes()) {
+                        String[] hostAndPort = node.split(":");
+                        if (hostAndPort.length != 2) {
+                            throw new Exception("incorrect ElasticSearch node format, should follow {host}:{port} pattern");
+                        }
+                        transportAddressList.add(new InetSocketTransportAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])));
+                    }
+                    client = new TransportClient(settings)
+                            .addTransportAddresses(transportAddressList.toArray(new InetSocketTransportAddress[transportAddressList.size()]));
                 }
-                client = new TransportClient(settings)
-                        .addTransportAddresses(transportAddressList.toArray(new InetSocketTransportAddress[transportAddressList.size()]));
             }
+        } catch (Exception e) {
+            LOG.warn("unable to initialize EsState ", e);
         }
-
     }
 
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {

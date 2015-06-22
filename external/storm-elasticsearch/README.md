@@ -13,8 +13,7 @@ User should make sure that there are "index","type", and "source" fields declare
 ```java
 EsConfig esConfig = new EsConfig();
 esConfig.setClusterName(clusterName);
-esConfig.setHost(new String[]{"localhost"});
-esConfig.setPort(9300);
+esConfig.setNodes(new String[]{"localhost:9300"});
 EsIndexBolt indexBolt = new IndexBolt(esConfig);
 ```
 
@@ -28,8 +27,7 @@ User should make sure that there are "index","type", and "source" fields declare
 ```java
 EsConfig esConfig = new EsConfig();
 esConfig.setClusterName(clusterName);
-esConfig.setHost(new String[]{"localhost"});
-esConfig.setPort(9300);
+esConfig.setNodes(new String[]{"localhost:9300"});
 EsPercolateBolt percolateBolt = new EsPercolateBolt(esConfig);
 ```
 
@@ -40,8 +38,7 @@ Two bolts above takes in EsConfig as a constructor arg.
   ```java
    EsConfig esConfig = new EsConfig();
    esConfig.setClusterName(clusterName);
-   esConfig.setHost(new String[]{"localhost"});
-   esConfig.setPort(9300);
+   esConfig.setNodes(new String[]{"localhost:9300"});
   ```
 
 EsConfig params
@@ -49,8 +46,7 @@ EsConfig params
 |Arg  |Description | Type
 |---	|--- |---
 |clusterName | ElasticSearch cluster name | String (required) |
-|host | ElasticSearch host | String array (required) |
-|port | ElasticSearch port | int (required) |
+|nodes | ElasticSearch nodes in a String array, each element should follow {host}:{port} pattern | String array (required) |
 
 
  
@@ -61,9 +57,8 @@ ElasticSearch Trident state also follows similar pattern to EsBolts. It takes in
 ```code
    EsConfig esConfig = new EsConfig();
    esConfig.setClusterName(clusterName);
-   esConfig.setHost(new String[]{"localhost"});
-   esConfig.setPort(9300);
-                	     		
+   esConfig.setNodes(new String[]{"localhost:9300"});
+
    StateFactory factory = new EsStateFactory(esConfig);
    TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());
  ```

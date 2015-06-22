@@ -21,16 +21,14 @@ import java.io.Serializable;
 
 public class EsConfig implements Serializable{
     private String clusterName;
-    private String[] host;
-    private int port;
+    private String[] nodes;
 
     public EsConfig() {
     }
 
-    public EsConfig(String clusterName, String[] host, int port) {
+    public EsConfig(String clusterName, String[] nodes, int port) {
         this.clusterName = clusterName;
-        this.host = host;
-        this.port = port;
+        this.nodes = nodes;
     }
 
     public String getClusterName() {
@@ -41,19 +39,11 @@ public class EsConfig implements Serializable{
         this.clusterName = clusterName;
     }
 
-    public String[] getHost() {
-        return host;
+    public String[] getNodes() {
+        return nodes;
     }
 
-    public void setHost(String[] host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
+    public void setNodes(String[] nodes) {
+        this.nodes = nodes;
     }
 }

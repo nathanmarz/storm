@@ -35,8 +35,7 @@ public class EsIndexBoltTest extends AbstractEsBoltTest{
             throws Exception {
         EsConfig esConfig = new EsConfig();
         esConfig.setClusterName("test-cluster");
-        esConfig.setHost(new String[]{"127.0.0.1"});
-        esConfig.setPort(9300);
+        esConfig.setNodes(new String[]{"127.0.0.1:9300"});
         bolt = new EsIndexBolt(esConfig);
         bolt.prepare(config, null, collector);
         String index = "index1";

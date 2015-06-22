@@ -36,8 +36,7 @@ public class EsPercolateBoltTest extends AbstractEsBoltTest {
             throws Exception {
         EsConfig esConfig = new EsConfig();
         esConfig.setClusterName("test-cluster");
-        esConfig.setHost(new String[]{"127.0.0.1"});
-        esConfig.setPort(9300);
+        esConfig.setNodes(new String[]{"localhost:9300"});
         bolt = new EsPercolateBolt(esConfig);
         bolt.prepare(config, null, collector);
         String index = "index1";

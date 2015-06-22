@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-809: topology.message.timeout.secs should not allow for null or <= 0 values
  * STORM-847: Add cli to get the last storm error from the topology
  * STORM-864: Exclude storm-kafka tests from Travis CI build
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning

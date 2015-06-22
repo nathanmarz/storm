@@ -74,6 +74,20 @@
     (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" (inc Integer/MAX_VALUE))))))
 
+(deftest test-pos-integer-validator
+  (let [validator ConfigValidation/NotNullPosIntegerValidator]
+    (is (thrown-cause? java.lang.IllegalArgumentException
+        (.validateField validator "test" nil)))
+    (.validateField validator "test" 1000)
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 1.34)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 0)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -100)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" (inc Integer/MAX_VALUE))))))
+
 (deftest test-integers-validator
   (let [validator ConfigValidation/IntegersValidator]
     (.validateField validator "test" nil)

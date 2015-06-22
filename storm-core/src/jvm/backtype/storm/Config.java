@@ -786,7 +786,7 @@ public class Config extends HashMap<String, Object> {
      * timeout for the topology implementing the DRPC function.
      */
     public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";
-    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * Childopts for Storm DRPC Java process.
@@ -856,7 +856,7 @@ public class Config extends HashMap<String, Object> {
      * restart the worker process.
      */
     public static final String SUPERVISOR_WORKER_TIMEOUT_SECS = "supervisor.worker.timeout.secs";
-    public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * How many seconds to sleep for before shutting down threads on worker
@@ -871,7 +871,7 @@ public class Config extends HashMap<String, Object> {
      * overhead to starting and configuring the JVM on launch.
      */
     public static final String SUPERVISOR_WORKER_START_TIMEOUT_SECS = "supervisor.worker.start.timeout.secs";
-    public static final Object SUPERVISOR_WORKER_START_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object SUPERVISOR_WORKER_START_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * Whether or not the supervisor should launch workers assigned to it. Defaults
@@ -1035,7 +1035,7 @@ public class Config extends HashMap<String, Object> {
      * the message at a later time.
      */
     public static final String TOPOLOGY_MESSAGE_TIMEOUT_SECS = "topology.message.timeout.secs";
-    public static final Object TOPOLOGY_MESSAGE_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object TOPOLOGY_MESSAGE_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * A list of serialization registrations for Kryo ( http://code.google.com/p/kryo/ ),
@@ -1128,7 +1128,7 @@ public class Config extends HashMap<String, Object> {
      * synchronization again.
      */
     public static final String TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS="topology.state.synchronization.timeout.secs";
-    public static final Object TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * The percentage of tuples to sample to produce stats for a task.

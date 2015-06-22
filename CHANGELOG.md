@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-806: use storm.zookeeper.connection.timeout in storm-kafka ZkState when newCurator
  * STORM-809: topology.message.timeout.secs should not allow for null or <= 0 values
  * STORM-847: Add cli to get the last storm error from the topology
  * STORM-864: Exclude storm-kafka tests from Travis CI build

@@ -4,6 +4,7 @@
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
 
 ## 0.10.0-beta
+ * STORM-867: fix bug with mk-ssl-connector
  * STORM-856: use serialized value of delay secs for topo actions
  * STORM-852: Replaced Apache Log4j Logger with SLF4J API
  * STORM-813: Change storm-starter's README so that it explains mvn exec:java cannot run multilang topology

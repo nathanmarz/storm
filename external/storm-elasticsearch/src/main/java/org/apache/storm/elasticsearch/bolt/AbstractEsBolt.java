@@ -37,8 +37,8 @@ import java.util.Map;
 
 public abstract class AbstractEsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractEsBolt.class);
-    protected OutputCollector collector;
     protected static Client client;
+    protected OutputCollector collector;
     private EsConfig esConfig;
 
     public AbstractEsBolt(EsConfig esConfig) {
@@ -53,12 +53,12 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
                 if (client == null) {
                     Settings settings =
                             ImmutableSettings.settingsBuilder().put("cluster.name", esConfig.getClusterName())
-                                    .put("client.transport.sniff", "false").build();
+                                    .put("client.transport.sniff", "true").build();
                     List<InetSocketTransportAddress> transportAddressList = new ArrayList<InetSocketTransportAddress>();
                     for (String node : esConfig.getNodes()) {
                         String[] hostAndPort = node.split(":");
                         if(hostAndPort.length != 2){
-                            throw new Exception("incorrect ElasticSearch node format, should follow {host}:{port} pattern");
+                            throw new IllegalArgumentException("incorrect Elasticsearch node format, should follow {host}:{port} pattern");
                         }
                         transportAddressList.add(new InetSocketTransportAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])));
                     }

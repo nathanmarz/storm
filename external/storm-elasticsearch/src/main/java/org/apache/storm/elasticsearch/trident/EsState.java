@@ -38,9 +38,9 @@ import java.util.List;
 import java.util.Map;
 
 public class EsState implements State {
-    private EsConfig esConfig;
-    private static Client client;
     private static final Logger LOG = LoggerFactory.getLogger(EsState.class);
+    private static Client client;
+    private EsConfig esConfig;
 
     public EsState(EsConfig esConfig) {
         this.esConfig = esConfig;
@@ -67,7 +67,7 @@ public class EsState implements State {
                     for (String node : esConfig.getNodes()) {
                         String[] hostAndPort = node.split(":");
                         if (hostAndPort.length != 2) {
-                            throw new Exception("incorrect ElasticSearch node format, should follow {host}:{port} pattern");
+                            throw new IllegalArgumentException("incorrect Elasticsearch node format, should follow {host}:{port} pattern");
                         }
                         transportAddressList.add(new InetSocketTransportAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])));
                     }

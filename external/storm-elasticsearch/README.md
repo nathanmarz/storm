@@ -1,11 +1,11 @@
-# Storm ElasticSearch Bolt & Trident State
+# Storm Elasticsearch Bolt & Trident State
 
-  EsIndexBolt, EsPercolateBolt and EsState allows users to stream data from storm into ElasticSearch directly.
+  EsIndexBolt, EsPercolateBolt and EsState allows users to stream data from storm into Elasticsearch directly.
   For detailed description, please refer to the following.   
 
 ## EsIndexBolt (org.apache.storm.elasticsearch.bolt.EsIndexBolt)
 
-EsIndexBolt streams tuples directly into ElasticSearch. Tuples are indexed in specified index & type combination. 
+EsIndexBolt streams tuples directly into Elasticsearch. Tuples are indexed in specified index & type combination. 
 User should make sure that there are "index","type", and "source" fields declared in preceding bolts or spout.
 "index" and "type" fields are used for identifying target index and type.
 "source" is a document in JSON format string that will be indexed in elastic search.
@@ -19,7 +19,7 @@ EsIndexBolt indexBolt = new IndexBolt(esConfig);
 
 ## EsPercolateBolt (org.apache.storm.elasticsearch.bolt.EsPercolateBolt)
 
-EsPercolateBolt streams tuples directly into ElasticSearch. Tuples are used to send percolate request to specified index & type combination. 
+EsPercolateBolt streams tuples directly into Elasticsearch. Tuples are used to send percolate request to specified index & type combination. 
 User should make sure that there are "index","type", and "source" fields declared in preceding bolts or spout.
 "index" and "type" fields are used for identifying target index and type.
 "source" is a document in JSON format string that will be sent in percolate request to elastic search.
@@ -45,14 +45,14 @@ EsConfig params
 
 |Arg  |Description | Type
 |---	|--- |---
-|clusterName | ElasticSearch cluster name | String (required) |
-|nodes | ElasticSearch nodes in a String array, each element should follow {host}:{port} pattern | String array (required) |
+|clusterName | Elasticsearch cluster name | String (required) |
+|nodes | Elasticsearch nodes in a String array, each element should follow {host}:{port} pattern | String array (required) |
 
 
  
 ## EsState (org.apache.storm.elasticsearch.trident.EsState)
 
-ElasticSearch Trident state also follows similar pattern to EsBolts. It takes in EsConfig as an arg.
+Elasticsearch Trident state also follows similar pattern to EsBolts. It takes in EsConfig as an arg.
 
 ```code
    EsConfig esConfig = new EsConfig();

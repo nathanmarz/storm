@@ -32,6 +32,7 @@
     <properties>
         <worker-launcher.conf.dir>/etc/storm</worker-launcher.conf.dir>
         <worker-launcher.additional_cflags></worker-launcher.additional_cflags>
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -368,9 +369,11 @@
                         <id>test-clojure</id>
                         <phase>test</phase>
                         <goals>
-                            <goal>test-with-junit</goal>
+                            <goal>test</goal>
                         </goals>
                         <configuration>
+                            <junitOutput>true</junitOutput>
+                            <testScript>test/resources/test_runner.clj</testScript>
                             <!-- argLine is set by JaCoCo for code coverage -->
                             <vmargs>${argLine} ${test.extra.args}</vmargs>
                         </configuration>

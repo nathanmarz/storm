@@ -200,6 +200,7 @@ under the License.
 * jangie ([@jangie](https://github.com/jangie))
 * Hailei Zhang ([@Hailei](https://github.com/Hailei))
 * Nikhil Singh ([@snikhil5](https://github.com/snikhil5))
+* Paul Poulosky ([@ppoulosk](https://github.com/ppoulosk))
 
 ## Acknowledgements
 

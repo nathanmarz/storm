@@ -5,6 +5,7 @@
  * STORM-847: Add cli to get the last storm error from the topology
  * STORM-864: Exclude storm-kafka tests from Travis CI build
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
+ * STORM-477: Add warning for invalid JAVA_HOME
 
 ## 0.10.0-beta
  * STORM-867: fix bug with mk-ssl-connector

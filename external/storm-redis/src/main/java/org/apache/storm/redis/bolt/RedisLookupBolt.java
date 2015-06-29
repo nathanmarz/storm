@@ -28,11 +28,21 @@ import redis.clients.jedis.JedisCommands;
 
 import java.util.List;
 
+/**
+ * Basic bolt for querying from Redis and emits response as tuple.
+ * <p/>
+ * Various data types are supported: STRING, LIST, HASH, SET, SORTED_SET, HYPER_LOG_LOG
+ */
 public class RedisLookupBolt extends AbstractRedisBolt {
     private final RedisLookupMapper lookupMapper;
     private final RedisDataTypeDescription.RedisDataType dataType;
     private final String additionalKey;
 
+    /**
+     * Constructor for single Redis environment (JedisPool)
+     * @param config configuration for initializing JedisPool
+     * @param lookupMapper mapper containing which datatype, query key, output key that Bolt uses
+     */
     public RedisLookupBolt(JedisPoolConfig config, RedisLookupMapper lookupMapper) {
         super(config);
 
@@ -43,6 +53,11 @@ public class RedisLookupBolt extends AbstractRedisBolt {
         this.additionalKey = dataTypeDescription.getAdditionalKey();
     }
 
+    /**
+     * Constructor for Redis Cluster environment (JedisCluster)
+     * @param config configuration for initializing JedisCluster
+     * @param lookupMapper mapper containing which datatype, query key, output key that Bolt uses
+     */
     public RedisLookupBolt(JedisClusterConfig config, RedisLookupMapper lookupMapper) {
         super(config);
 
@@ -53,10 +68,13 @@ public class RedisLookupBolt extends AbstractRedisBolt {
         this.additionalKey = dataTypeDescription.getAdditionalKey();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void execute(Tuple input) {
         String key = lookupMapper.getKeyFromTuple(input);
-        Object lookupValue = null;
+        Object lookupValue;
 
         JedisCommands jedisCommand = null;
         try {
@@ -105,6 +123,9 @@ public class RedisLookupBolt extends AbstractRedisBolt {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         lookupMapper.declareOutputFields(declarer);

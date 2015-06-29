@@ -28,6 +28,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * AbstractRedisStateUpdater is base class of any RedisStateUpdater, which implements BaseStateUpdater.
+ * <p/>
+ * Derived classes should provide how to update (key, value) pairs to Redis,
+ * and AbstractRedisStateUpdater takes care of rest things.
+ *
+ * @param <T> type of State
+ */
 public abstract class AbstractRedisStateUpdater<T extends State> extends BaseStateUpdater<T> {
 	private final RedisStoreMapper storeMapper;
 
@@ -35,6 +43,11 @@ public abstract class AbstractRedisStateUpdater<T extends State> extends BaseSta
 	protected final RedisDataTypeDescription.RedisDataType dataType;
 	protected final String additionalKey;
 
+	/**
+	 * Constructor
+	 *
+	 * @param storeMapper mapper for storing
+	 */
 	public AbstractRedisStateUpdater(RedisStoreMapper storeMapper) {
 		this.storeMapper = storeMapper;
 		RedisDataTypeDescription dataTypeDescription = storeMapper.getDataTypeDescription();
@@ -42,6 +55,11 @@ public abstract class AbstractRedisStateUpdater<T extends State> extends BaseSta
 		this.additionalKey = dataTypeDescription.getAdditionalKey();
 	}
 
+	/**
+	 * Sets expire (time to live) if needed
+	 *
+	 * @param expireIntervalSec time to live in seconds
+	 */
 	public void setExpireInterval(int expireIntervalSec) {
 		if (expireIntervalSec > 0) {
 			this.expireIntervalSec = expireIntervalSec;
@@ -50,6 +68,9 @@ public abstract class AbstractRedisStateUpdater<T extends State> extends BaseSta
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void updateState(T state, List<TridentTuple> inputs,
 			TridentCollector collector) {
@@ -65,5 +86,11 @@ public abstract class AbstractRedisStateUpdater<T extends State> extends BaseSta
 		updateStatesToRedis(state, keyToValue);
 	}
 
+	/**
+	 * Updates (key, value) pairs to Redis.
+	 *
+	 * @param state State for handling query
+	 * @param keyToValue (key, value) pairs
+	 */
 	protected abstract void updateStatesToRedis(T state, Map<String, String> keyToValue);
 }

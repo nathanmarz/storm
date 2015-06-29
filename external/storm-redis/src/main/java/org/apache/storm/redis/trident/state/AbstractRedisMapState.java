@@ -33,6 +33,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * AbstractRedisMapState is base class of any RedisMapState, which implements IBackingMap.
+ * <p/>
+ * Derived classes should provide<br/>
+ * - which Serializer it uses<br/>
+ * - which KeyFactory it uses<br/>
+ * - how to retrieve values from Redis<br/>
+ * - how to store values to Redis<br/>
+ * and AbstractRedisMapState takes care of rest things.
+ *
+ * @param <T> value's type class
+ */
 public abstract class AbstractRedisMapState<T> implements IBackingMap<T> {
 	public static final EnumMap<StateType, Serializer> DEFAULT_SERIALIZERS = Maps.newEnumMap(ImmutableMap.of(
 			StateType.NON_TRANSACTIONAL, new JSONNonTransactionalSerializer(),
@@ -40,6 +52,9 @@ public abstract class AbstractRedisMapState<T> implements IBackingMap<T> {
 			StateType.OPAQUE, new JSONOpaqueSerializer()
 	));
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override public List<T> multiGet(List<List<Object>> keys) {
 		if (keys.size() == 0) {
 			return Collections.emptyList();
@@ -51,6 +66,9 @@ public abstract class AbstractRedisMapState<T> implements IBackingMap<T> {
 		return deserializeValues(keys, values);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void multiPut(List<List<Object>> keys, List<T> vals) {
 		if (keys.size() == 0) {
@@ -89,8 +107,31 @@ public abstract class AbstractRedisMapState<T> implements IBackingMap<T> {
 		return result;
 	}
 
+	/**
+	 * Returns Serializer which is used for serializing tuple value and deserializing Redis value.
+	 *
+	 * @return serializer
+	 */
 	protected abstract Serializer getSerializer();
+
+	/**
+	 * Returns KeyFactory which is used for converting state key -> Redis key.
+	 * @return key factory
+	 */
 	protected abstract KeyFactory getKeyFactory();
+
+	/**
+	 * Retrieves values from Redis that each value is corresponding to each key.
+	 *
+	 * @param keys keys having state values
+	 * @return values which are corresponding to keys
+	 */
 	protected abstract List<String> retrieveValuesFromRedis(List<String> keys);
+
+	/**
+	 * Updates (key, value) pairs to Redis.
+	 *
+	 * @param keyValues (key, value) pairs
+	 */
 	protected abstract void updateStatesToRedis(Map<String, String> keyValues);
 }

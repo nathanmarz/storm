@@ -23,16 +23,35 @@ import redis.clients.jedis.JedisCluster;
 
 import java.util.Map;
 
+/**
+ * BaseStateUpdater implementation for Redis Cluster environment.
+ *
+ * @see AbstractRedisStateUpdater
+ */
 public class RedisClusterStateUpdater extends AbstractRedisStateUpdater<RedisClusterState> {
+    /**
+     * Constructor
+     *
+     * @param storeMapper mapper for storing
+     */
     public RedisClusterStateUpdater(RedisStoreMapper storeMapper) {
         super(storeMapper);
     }
 
+    /**
+     * Sets expire (time to live) if needed.
+     *
+     * @param expireIntervalSec time to live in seconds
+     * @return RedisClusterStateUpdater itself
+     */
     public RedisClusterStateUpdater withExpire(int expireIntervalSec) {
         setExpireInterval(expireIntervalSec);
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void updateStatesToRedis(RedisClusterState redisClusterState, Map<String, String> keyToValue) {
         JedisCluster jedisCluster = null;

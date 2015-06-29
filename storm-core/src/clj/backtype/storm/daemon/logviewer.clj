@@ -370,7 +370,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])
-          https-port (int (conf LOGVIEWER-HTTPS-PORT))
+          https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
           keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
           keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
           keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)

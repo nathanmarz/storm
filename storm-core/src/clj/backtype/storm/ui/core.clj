@@ -295,7 +295,7 @@
 
 (defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
-    (if secure?
+    (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
       (url-format "https://%s:%s/log?file=%s"
                   host
                   (*STORM-CONF* LOGVIEWER-HTTPS-PORT)

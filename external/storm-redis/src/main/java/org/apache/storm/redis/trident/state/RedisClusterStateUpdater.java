@@ -17,55 +17,53 @@
  */
 package org.apache.storm.redis.trident.state;
 
-import org.apache.storm.redis.common.mapper.TupleMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
+import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import redis.clients.jedis.JedisCluster;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
 
-import java.util.List;
+import java.util.Map;
 
-public class RedisClusterStateUpdater extends BaseStateUpdater<RedisClusterState> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisClusterState.class);
+public class RedisClusterStateUpdater extends AbstractRedisStateUpdater<RedisClusterState> {
+    public RedisClusterStateUpdater(RedisStoreMapper storeMapper) {
+        super(storeMapper);
+    }
 
-    private final String redisKeyPrefix;
-    private final TupleMapper tupleMapper;
-    private final int expireIntervalSec;
-
-    public RedisClusterStateUpdater(String redisKeyPrefix, TupleMapper tupleMapper, int expireIntervalSec) {
-        this.redisKeyPrefix = redisKeyPrefix;
-        this.tupleMapper = tupleMapper;
-        if (expireIntervalSec > 0) {
-            this.expireIntervalSec = expireIntervalSec;
-        } else {
-            this.expireIntervalSec = 0;
-        }
+    public RedisClusterStateUpdater withExpire(int expireIntervalSec) {
+        setExpireInterval(expireIntervalSec);
+        return this;
     }
 
     @Override
-    public void updateState(RedisClusterState redisClusterState, List<TridentTuple> inputs,
-                            TridentCollector collector) {
-
+    protected void updateStatesToRedis(RedisClusterState redisClusterState, Map<String, String> keyToValue) {
         JedisCluster jedisCluster = null;
         try {
             jedisCluster = redisClusterState.getJedisCluster();
-            for (TridentTuple input : inputs) {
-                String key = this.tupleMapper.getKeyFromTuple(input);
-                String redisKey = key;
-                if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
-                    redisKey = redisKeyPrefix + redisKey;
-                }
-                String value = this.tupleMapper.getValueFromTuple(input);
 
-                logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
+            for (Map.Entry<String, String> kvEntry : keyToValue.entrySet()) {
+                String key = kvEntry.getKey();
+                String value = kvEntry.getValue();
 
-                if (this.expireIntervalSec > 0) {
-                    jedisCluster.setex(redisKey, expireIntervalSec, value);
-                } else {
-                    jedisCluster.set(redisKey, value);
+                switch (dataType) {
+                case STRING:
+                    if (this.expireIntervalSec > 0) {
+                        jedisCluster.setex(key, expireIntervalSec, value);
+                    } else {
+                        jedisCluster.set(key, value);
+                    }
+                    break;
+                case HASH:
+                    jedisCluster.hset(additionalKey, key, value);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Cannot process such data type: " + dataType);
                 }
+            }
+
+            // send expire command for hash only once
+            // it expires key itself entirely, so use it with caution
+            if (dataType == RedisDataTypeDescription.RedisDataType.HASH &&
+                    this.expireIntervalSec > 0) {
+                jedisCluster.expire(additionalKey, expireIntervalSec);
             }
         } finally {
             if (jedisCluster != null) {

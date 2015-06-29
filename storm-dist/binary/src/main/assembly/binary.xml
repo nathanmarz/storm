@@ -30,6 +30,36 @@
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
             <unpack>false</unpack>
+            <excludes>
+                <exclude>org.apache.thrift:*</exclude>
+                <exclude>io.netty:netty</exclude>
+                <exclude>com.google.guava:guava</exclude>
+                <exclude>org.apache.httpcomponents:http*</exclude>
+                <exclude>org.apache.zookeeper:zookeeper</exclude>
+                <exclude>org.apache.curator:*</exclude>
+                <exclude>org.apache.httpcomponents:http*</exclude>
+                <exclude>org.apache.zookeeper:zookeeper</exclude>
+                <exclude>org.apache.curator:*</exclude>
+                <exclude>com.twitter:carbonite</exclude>
+                <exclude>com.twitter:chill-java</exclude>
+                <exclude>org.objenesis:objenesis</exclude>
+                <exclude>org.tukaani:xz</exclude>
+                <exclude>org.yaml:snakeyaml</exclude>
+                <exclude>org.jgrapht:jgrapht-core</exclude>
+                <exclude>commons-httpclient:commons-httpclient</exclude>
+                <exclude>org.apache.commons:commons-compress</exclude>
+                <exclude>org.apache.commons:commons-exec</exclude>
+                <exclude>commons-io:commons-io</exclude>
+                <exclude>commons-codec:commons-codec</exclude>
+                <exclude>commons-fileupload:commons-fileupload</exclude>
+                <exclude>commons-lang:commons-lang</exclude>
+                <exclude>com.googlecode.json-simple:json-simple</exclude>
+                <exclude>org.clojure:math.numeric-tower</exclude>
+                <exclude>org.clojure:tools.cli</exclude>
+                <exclude>org.clojure:tools.macro</exclude>
+                <exclude>joda-time:joda-time</exclude>
+                <exclude>org.eclipse.jetty:*</exclude>
+            </excludes>
         </dependencySet>
     </dependencySets>
 
@@ -159,6 +189,64 @@
             </includes>
         </fileSet>
 
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-core/target</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>flux*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-wrappers/target</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>flux*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-examples/target</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>flux*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-examples</directory>
+            <outputDirectory>external/flux/examples</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux/flux-examples/src/main/resources</directory>
+            <outputDirectory>external/flux/examples</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/flux</directory>
+            <outputDirectory>external/flux</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-redis/target</directory>
+            <outputDirectory>external/storm-redis</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-redis</directory>
+            <outputDirectory>external/storm-redis</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+
+
         <!-- $STORM_HOME/extlib -->
         <fileSet>
             <directory></directory>
@@ -202,13 +290,13 @@
         </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>
-            <source>${project.basedir}/../../logback/cluster.xml</source>
-            <outputDirectory>/logback</outputDirectory>
+            <source>${project.basedir}/../../log4j2/cluster.xml</source>
+            <outputDirectory>/log4j2</outputDirectory>
         </file>
 
         <file>
-            <source>${project.basedir}/../../logback/worker.xml</source>
-            <outputDirectory>/logback</outputDirectory>
+            <source>${project.basedir}/../../log4j2/worker.xml</source>
+            <outputDirectory>/log4j2</outputDirectory>
         </file>
 
         <file>

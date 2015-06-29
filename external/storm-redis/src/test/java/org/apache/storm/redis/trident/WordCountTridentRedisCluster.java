@@ -23,7 +23,8 @@ import backtype.storm.StormSubmitter;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import org.apache.storm.redis.common.mapper.TupleMapper;
+import org.apache.storm.redis.common.mapper.RedisLookupMapper;
+import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import org.apache.storm.redis.trident.state.RedisClusterState;
 import org.apache.storm.redis.trident.state.RedisClusterStateQuerier;
 import org.apache.storm.redis.trident.state.RedisClusterStateUpdater;
@@ -55,7 +56,9 @@ public class WordCountTridentRedisCluster {
         }
         JedisClusterConfig clusterConfig = new JedisClusterConfig.Builder().setNodes(nodes)
                                         .build();
-        TupleMapper tupleMapper = new WordCountTupleMapper();
+
+        RedisStoreMapper storeMapper = new WordCountStoreMapper();
+        RedisLookupMapper lookupMapper = new WordCountLookupMapper();
         RedisClusterState.Factory factory = new RedisClusterState.Factory(clusterConfig);
 
         TridentTopology topology = new TridentTopology();
@@ -63,12 +66,12 @@ public class WordCountTridentRedisCluster {
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisClusterStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisClusterStateUpdater(storeMapper).withExpire(86400000),
                                 new Fields());
 
         TridentState state = topology.newStaticState(factory);
         stream = stream.stateQuery(state, new Fields("word"),
-                                new RedisClusterStateQuerier("test_", tupleMapper),
+                                new RedisClusterStateQuerier(lookupMapper),
                                 new Fields("columnName","columnValue"));
         stream.each(new Fields("word","columnValue"), new PrintFunction(), new Fields());
         return topology.build();

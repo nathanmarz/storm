@@ -76,7 +76,7 @@ if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
 
 STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
 STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
-STORM_LOGBACK_CONF_DIR = os.path.join(STORM_DIR, "logback")
+STORM_LOG4J_CONF_DIR = os.path.join(STORM_DIR, "log4j2")
 
 init_storm_env()
 
@@ -85,6 +85,9 @@ CONFFILE = ""
 JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 JAVA_HOME = os.getenv('JAVA_HOME', None)
 JAVA_CMD = 'java' if not JAVA_HOME else os.path.join(JAVA_HOME, 'bin', 'java')
+if JAVA_HOME and not os.path.exists(JAVA_CMD):
+    print "ERROR:  JAVA_HOME is invalid.  Could not find bin/java at %s." % JAVA_HOME
+    sys.exit(1)
 STORM_EXT_CLASSPATH = os.getenv('STORM_EXT_CLASSPATH', None)
 STORM_EXT_CLASSPATH_DAEMON = os.getenv('STORM_EXT_CLASSPATH_DAEMON', None)
 
@@ -177,13 +180,15 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True, daemonName=""):
     global CONFFILE
     storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
     if(storm_log_dir == None or storm_log_dir == "nil"):
         storm_log_dir = os.path.join(STORM_DIR, "logs")
     all_args = [
-        "java", jvmtype, get_config_opts(),
+        JAVA_CMD, jvmtype,
+        "-Ddaemon.name=" + daemonName,
+        get_config_opts(),
         "-Dstorm.home=" + STORM_DIR,
         "-Dstorm.log.dir=" + storm_log_dir,
         "-Djava.library.path=" + confvalue("java.library.path", extrajars, daemon),
@@ -304,6 +309,19 @@ def rebalance(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
+def get_errors(*args):
+    """Syntax: [storm get-errors topology-name]
+
+    Get the latest error from the running topology. The returned result contains
+    the key value pairs for component-name and component-error for the components in error.
+    The result is returned in json format.
+    """
+    exec_storm_class(
+        "backtype.storm.command.get_errors",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
     os.system("jar cf %s %s" % (tmpjarpath, resourcesdir))
@@ -326,12 +344,12 @@ def repl():
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class("clojure.main", jvmtype="-client", extrajars=cppaths)
 
-def get_logback_conf_dir():
+def get_log4j_conf_dir():
     cppaths = [CLUSTER_CONF_DIR]
-    storm_logback_conf_dir = confvalue("storm.logback.conf.dir", cppaths)
-    if(storm_logback_conf_dir == None or storm_logback_conf_dir == "nil"):
-        storm_logback_conf_dir = STORM_LOGBACK_CONF_DIR
-    return storm_logback_conf_dir
+    storm_log4j_conf_dir = confvalue("storm.logback.conf.dir", cppaths)
+    if(storm_log4j_conf_dir == None or storm_log4j_conf_dir == "nil"):
+        storm_log4j_conf_dir = STORM_LOG4J_CONF_DIR
+    return storm_log4j_conf_dir
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
@@ -345,11 +363,12 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml"),
+        "-Dlog4j.configurationFile=" + os.path.join(get_log4j_conf_dir(), "cluster.xml"),
     ]
     exec_storm_class(
         klass,
         jvmtype="-server",
+        daemonName="nimbus",
         extrajars=cppaths,
         jvmopts=jvmopts)
 
@@ -365,11 +384,12 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml"),
+        "-Dlog4j.configurationFile=" + os.path.join(get_log4j_conf_dir(), "cluster.xml"),
     ]
     exec_storm_class(
         klass,
         jvmtype="-server",
+        daemonName="supervisor",
         extrajars=cppaths,
         jvmopts=jvmopts)
 
@@ -386,11 +406,12 @@ def ui():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
+        "-Dlog4j.configurationFile=" + os.path.join(get_log4j_conf_dir(), "cluster.xml")
     ]
     exec_storm_class(
         "backtype.storm.ui.core",
         jvmtype="-server",
+        daemonName="ui",
         jvmopts=jvmopts,
         extrajars=[STORM_DIR, CLUSTER_CONF_DIR])
 
@@ -407,11 +428,12 @@ def logviewer():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
+        "-Dlog4j.configurationFile=" + os.path.join(get_log4j_conf_dir(), "cluster.xml")
     ]
     exec_storm_class(
         "backtype.storm.daemon.logviewer",
         jvmtype="-server",
+        daemonName="logviewer",
         jvmopts=jvmopts,
         extrajars=[STORM_DIR, CLUSTER_CONF_DIR])
 
@@ -427,11 +449,12 @@ def drpc():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
+        "-Dlog4j.configurationFile=" + os.path.join(get_log4j_conf_dir(), "cluster.xml")
     ]
     exec_storm_class(
         "backtype.storm.daemon.drpc",
         jvmtype="-server",
+        daemonName="drpc",
         jvmopts=jvmopts,
         extrajars=[CLUSTER_CONF_DIR])
 
@@ -512,7 +535,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials}
+            "upload-credentials": upload_credentials, "get-errors": get_errors }
 
 def parse_config(config_list):
     global CONFIG_OPTS

@@ -110,7 +110,7 @@ if not %STORM_LOGBACK_CONFIGURATION_DIR% == nil (
 @rem
 
 if not defined STORM_LOGBACK_CONFIGURATION_FILE (
-  set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_HOME%\logback\cluster.xml
+  set STORM_LOGBACK_CONFIGURATION_FILE=%STORM_HOME%\log4j2\cluster.xml
 )
 
 "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value java.library.path > %CMD_TEMP_FILE%
@@ -126,7 +126,7 @@ FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
 
 :storm_opts
  set STORM_OPTS=-Dstorm.options= -Dstorm.home=%STORM_HOME% -Djava.library.path=%JAVA_LIBRARY_PATH%;%JAVA_HOME%\bin;%JAVA_HOME%\lib;%JAVA_HOME%\jre\bin;%JAVA_HOME%\jre\lib
- set STORM_OPTS=%STORM_OPTS% -Dlogback.configurationFile=%STORM_LOGBACK_CONFIGURATION_FILE%
+ set STORM_OPTS=%STORM_OPTS% -Dlog4j.configurationFile=%STORM_LOGBACK_CONFIGURATION_FILE%
  set STORM_OPTS=%STORM_OPTS% -Dstorm.log.dir=%STORM_LOG_DIR%
  del /F %CMD_TEMP_FILE%
 

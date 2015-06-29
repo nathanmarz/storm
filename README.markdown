@@ -197,6 +197,10 @@ under the License.
 * Dave Katten ([@dkatten](https://github.com/dkatten))
 * Mark Davis ([@markdav](https://github.com/markdav))
 * Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
+* jangie ([@jangie](https://github.com/jangie))
+* Hailei Zhang ([@Hailei](https://github.com/Hailei))
+* Nikhil Singh ([@snikhil5](https://github.com/snikhil5))
+* Paul Poulosky ([@ppoulosk](https://github.com/ppoulosk))
 
 ## Acknowledgements
 

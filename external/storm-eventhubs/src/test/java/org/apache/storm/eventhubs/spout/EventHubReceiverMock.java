@@ -24,14 +24,15 @@ import java.util.Map;
 import org.apache.storm.eventhubs.spout.MessageId;
 import org.apache.storm.eventhubs.spout.EventData;
 import org.apache.storm.eventhubs.spout.IEventHubReceiver;
-
 import org.apache.qpid.amqp_1_0.client.Message;
 import org.apache.qpid.amqp_1_0.jms.impl.TextMessageImpl;
 import org.apache.qpid.amqp_1_0.type.Binary;
 import org.apache.qpid.amqp_1_0.type.Section;
 import org.apache.qpid.amqp_1_0.type.messaging.Data;
 
-import org.apache.storm.eventhubs.client.EventHubException;
+import com.microsoft.eventhubs.client.EventHubException;
+import com.microsoft.eventhubs.client.EventHubOffsetFilter;
+import com.microsoft.eventhubs.client.IEventHubFilter;
 
 /**
  * A mock receiver that emits fake data with offset starting from given offset
@@ -58,17 +59,8 @@ public class EventHubReceiverMock implements IEventHubReceiver {
   }
 
   @Override
-  public void open(IEventHubReceiverFilter filter) throws EventHubException {
-    if(filter.getOffset() != null) {
-      currentOffset = Long.parseLong(filter.getOffset());
-    }
-    else if(filter.getEnqueueTime() != 0) {
-      //assume if it's time based filter the offset matches the enqueue time.
-      currentOffset = filter.getEnqueueTime();
-    }
-    else {
-      throw new EventHubException("Invalid IEventHubReceiverFilter");
-    }
+  public void open(IEventHubFilter filter) throws EventHubException {
+    currentOffset = Long.parseLong(filter.getFilterValue());
     isOpen = true;
   }
 

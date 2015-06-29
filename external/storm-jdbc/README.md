@@ -1,10 +1,37 @@
 #Storm JDBC
 Storm/Trident integration for JDBC. This package includes the core bolts and trident states that allows a storm topology
 to either insert storm tuples in a database table or to execute select queries against a database and enrich tuples 
-in a storm topology. This code uses HikariCP for connection pooling. See http://brettwooldridge.github.io/HikariCP.
+in a storm topology.
 
 ## Inserting into a database.
 The bolt and trident state included in this package for inserting data into a database tables are tied to a single table.
+
+### ConnectionProvider
+An interface that should be implemented by different connection pooling mechanism `org.apache.storm.jdbc.common.ConnectionPrvoider`
+
+```java
+public interface ConnectionPrvoider extends Serializable {
+    /**
+     * method must be idempotent.
+     */
+    void prepare();
+
+    /**
+     *
+     * @return a DB connection over which the queries can be executed.
+     */
+    Connection getConnection();
+
+    /**
+     * called once when the system is shutting down, should be idempotent.
+     */
+    void cleanup();
+}
+```
+
+Out of the box we support `org.apache.storm.jdbc.common.HikariCPConnectionProvider` which is an implementation that uses HikariCP.
+
+###JdbcMapper
 The main API for inserting data in a table using JDBC is the `org.apache.storm.jdbc.mapper.JdbcMapper` interface:
 
 ```java
@@ -17,11 +44,12 @@ The `getColumns()` method defines how a storm tuple maps to a list of columns re
 **The order of the returned list is important. The place holders in the supplied queries are resolved in the same order as returned list.**
 For example if the user supplied insert query is `insert into user(user_id, user_name, create_date) values (?,?, now())` the 1st item 
 of the returned list of `getColumns` method will map to the 1st place holder and the 2nd to the 2nd and so on. We do not parse
-the supplied queries to try and resolve place holder by column names. 
+the supplied queries to try and resolve place holder by column names. Not making any assumptions about the query syntax allows this connector
+to be used by some non-standard sql frameworks like Pheonix which only supports upsert into.
 
 ### JdbcInsertBolt
-To use the `JdbcInsertBolt`, you construct an instance of it and specify a configuration key in your storm config that holds the 
-hikari configuration map and a `JdbcMapper` implementation that coverts storm tuple to DB row. In addition, you must either supply 
+To use the `JdbcInsertBolt`, you construct an instance of it by specifying a `ConnectionProvider` implementation
+and a `JdbcMapper` implementation that converts storm tuple to DB row. In addition, you must either supply
 a table name  using `withTableName` method or an insert query using `withInsertQuery`. 
 If you specify a insert query you should ensure that your `JdbcMapper` implementation will return a list of columns in the same order as in your insert query.
 You can optionally specify a query timeout seconds param that specifies max seconds an insert query can take. 
@@ -29,13 +57,21 @@ The default is set to value of topology.message.timeout.secs and a value of -1 w
 You should set the query timeout value to be <= topology.message.timeout.secs.
 
  ```java
-Config config = new Config();
-config.put("jdbc.conf", hikariConfigMap);
-JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf",simpleJdbcMapper)
+Map hikariConfigMap = Maps.newHashMap();
+hikariConfigMap.put("dataSourceClassName","com.mysql.jdbc.jdbc2.optional.MysqlDataSource");
+hikariConfigMap.put("dataSource.url", "jdbc:mysql://localhost/test");
+hikariConfigMap.put("dataSource.user","root");
+hikariConfigMap.put("dataSource.password","password");
+ConnectionProvider connectionProvider = new HikariCPConnectionProvider(map);
+
+String tableName = "user_details";
+JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, connectionProvider);
+
+JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(connectionProvider, simpleJdbcMapper)
                                     .withTableName("user")
                                     .withQueryTimeoutSecs(30);
                                     Or
-JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf",simpleJdbcMapper)
+JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(connectionProvider, simpleJdbcMapper)
                                     .withInsertQuery("insert into user values (?,?)")
                                     .withQueryTimeoutSecs(30);                                    
  ```
@@ -45,7 +81,7 @@ JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt("jdbc.conf",simpleJdbcMa
 tuple to a Database row. `SimpleJdbcMapper` assumes that the storm tuple has fields with same name as the column name in 
 the database table that you intend to write to.
 
-To use `SimpleJdbcMapper`, you simply tell it the tableName that you want to write to and provide a hikari configuration map. 
+To use `SimpleJdbcMapper`, you simply tell it the tableName that you want to write to and provide a connectionProvider instance.
 
 The following code creates a `SimpleJdbcMapper` instance that:
 
@@ -60,8 +96,9 @@ hikariConfigMap.put("dataSourceClassName","com.mysql.jdbc.jdbc2.optional.MysqlDa
 hikariConfigMap.put("dataSource.url", "jdbc:mysql://localhost/test");
 hikariConfigMap.put("dataSource.user","root");
 hikariConfigMap.put("dataSource.password","password");
+ConnectionProvider connectionProvider = new HikariCPConnectionProvider(map);
 String tableName = "user_details";
-JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, map);
+JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, connectionProvider);
 ```
 The mapper initialized in the example above assumes a storm tuple has value for all the columns of the table you intend to insert data into and its `getColumn`
 method will return the columns in the order in which Jdbc connection instance's `connection.getMetaData().getColumns();` method returns them.
@@ -89,12 +126,12 @@ JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(columnSchema);
 ```
 ### JdbcTridentState
 We also support a trident persistent state that can be used with trident topologies. To create a jdbc persistent trident
-state you need to initialize it with the table name, the JdbcMapper instance and name of storm config key that holds the
-hikari configuration map. See the example below:
+state you need to initialize it with the table name or an insert query, the JdbcMapper instance and connection provider instance.
+See the example below:
 
 ```java
 JdbcState.Options options = new JdbcState.Options()
-        .withConfigKey("jdbc.conf")
+        .withConnectionProvider(connectionProvider)
         .withMapper(jdbcMapper)
         .withTableName("user_details")
         .withQueryTimeoutSecs(30);
@@ -151,15 +188,14 @@ this.jdbcLookupMapper = new SimpleJdbcLookupMapper(outputFields, queryParamColum
 ```
 
 ### JdbcLookupBolt
-To use the `JdbcLookupBolt`, construct an instance of it and specify a configuration key in your storm config that hold the 
-hikari configuration map. In addition you must specify the `JdbcLookupMapper` and the select query to execute.
+To use the `JdbcLookupBolt`, construct an instance of it using a `ConnectionProvider` instance, `JdbcLookupMapper` instance and the select query to execute.
 You can optionally specify a query timeout seconds param that specifies max seconds the select query can take. 
 The default is set to value of topology.message.timeout.secs. You should set this value to be <= topology.message.timeout.secs.
 
 ```java
 String selectSql = "select user_name from user_details where user_id = ?";
 SimpleJdbcLookupMapper lookupMapper = new SimpleJdbcLookupMapper(outputFields, queryParamColumns)
-JdbcLookupBolt userNameLookupBolt = new JdbcLookupBolt("jdbc.conf", selectSql, lookupMapper)
+JdbcLookupBolt userNameLookupBolt = new JdbcLookupBolt(connectionProvider, selectSql, lookupMapper)
         .withQueryTimeoutSecs(30);
 ```
 
@@ -168,7 +204,7 @@ We also support a trident query state that can be used with trident topologies.
 
 ```java
 JdbcState.Options options = new JdbcState.Options()
-        .withConfigKey("jdbc.conf")
+        .withConnectionProvider(connectionProvider)
         .withJdbcLookupMapper(new SimpleJdbcLookupMapper(new Fields("user_name"), Lists.newArrayList(new Column("user_id", Types.INTEGER))))
         .withSelectQuery("select user_name from user_details where user_id = ?");
         .withQueryTimeoutSecs(30);
@@ -210,7 +246,7 @@ To make it work with Mysql, you can add the following to the pom.xml
 ```
 
 You can generate a single jar with dependencies using mvn assembly plugin. To use the plugin add the following to your pom.xml and execute 
-mvn clean compile assembly:single.
+`mvn clean compile assembly:single`
 
 ```
 <plugin>

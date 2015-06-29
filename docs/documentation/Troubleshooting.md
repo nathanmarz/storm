@@ -140,6 +140,43 @@ Caused by: java.lang.NullPointerException
     ... 6 more
 ```
 
+or 
+
+```
+java.lang.RuntimeException: java.lang.NullPointerException
+        at
+backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:128)
+~[storm-core-0.9.3.jar:0.9.3]
+        at
+backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:99)
+~[storm-core-0.9.3.jar:0.9.3]
+        at
+backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:80)
+~[storm-core-0.9.3.jar:0.9.3]
+        at
+backtype.storm.disruptor$consume_loop_STAR_$fn__759.invoke(disruptor.clj:94)
+~[storm-core-0.9.3.jar:0.9.3]
+        at backtype.storm.util$async_loop$fn__458.invoke(util.clj:463)
+~[storm-core-0.9.3.jar:0.9.3]
+        at clojure.lang.AFn.run(AFn.java:24) [clojure-1.5.1.jar:na]
+        at java.lang.Thread.run(Thread.java:745) [na:1.7.0_65]
+Caused by: java.lang.NullPointerException: null
+        at clojure.lang.RT.intCast(RT.java:1087) ~[clojure-1.5.1.jar:na]
+        at
+backtype.storm.daemon.worker$mk_transfer_fn$fn__3548.invoke(worker.clj:129)
+~[storm-core-0.9.3.jar:0.9.3]
+        at
+backtype.storm.daemon.executor$start_batch_transfer__GT_worker_handler_BANG_$fn__3282.invoke(executor.clj:258)
+~[storm-core-0.9.3.jar:0.9.3]
+        at
+backtype.storm.disruptor$clojure_handler$reify__746.onEvent(disruptor.clj:58)
+~[storm-core-0.9.3.jar:0.9.3]
+        at
+backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:125)
+~[storm-core-0.9.3.jar:0.9.3]
+        ... 6 common frames omitted
+```
+
 Solution:
 
  * This is caused by having multiple threads issue methods on the `OutputCollector`. All emits, acks, and fails must happen on the same thread. One subtle way this can happen is if you make a `IBasicBolt` that emits on a separate thread. `IBasicBolt`'s automatically ack after execute is called, so this would cause multiple threads to use the `OutputCollector` leading to this exception. When using a basic bolt, all emits must happen in the same thread that runs `execute`.

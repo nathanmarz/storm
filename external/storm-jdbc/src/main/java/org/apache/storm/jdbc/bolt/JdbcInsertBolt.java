@@ -22,6 +22,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.storm.jdbc.common.Column;
+import org.apache.storm.jdbc.common.ConnectionProvider;
 import org.apache.storm.jdbc.mapper.JdbcMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,8 +43,8 @@ public class JdbcInsertBolt extends AbstractJdbcBolt {
     private String insertQuery;
     private JdbcMapper jdbcMapper;
 
-    public JdbcInsertBolt(String configKey, JdbcMapper jdbcMapper) {
-        super(configKey);
+    public JdbcInsertBolt(ConnectionProvider connectionProvider,  JdbcMapper jdbcMapper) {
+        super(connectionProvider);
         this.jdbcMapper = jdbcMapper;
     }
 

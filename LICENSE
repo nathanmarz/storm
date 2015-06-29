@@ -477,8 +477,8 @@ THE SOFTWARE.
 
 For jquery dataTables bootstrap integration
 
-(storm-core/src/ui/public/js/dataTables.bootstrap.min.js
-storm-core/src/ui/public/css/dataTables.bootstrap.css)
+(storm-core/src/ui/public/js/jquery.dataTables.1.10.4.min.js
+torm-core/src/ui/public/css/dataTables.bootstrap.css)
 
 Copyright (c) 2013-2014 SpryMedia Limited
 http://datatables.net/license

@@ -44,7 +44,7 @@ public class UserPersistanceTridentTopology extends AbstractUserTopology {
         TridentTopology topology = new TridentTopology();
 
         JdbcState.Options options = new JdbcState.Options()
-                .withConfigKey(JDBC_CONF)
+                .withConnectionPrvoider(connectionProvider)
                 .withMapper(this.jdbcMapper)
                 .withJdbcLookupMapper(new SimpleJdbcLookupMapper(new Fields("dept_name"), Lists.newArrayList(new Column("user_id", Types.INTEGER))))
                 .withTableName(TABLE_NAME)

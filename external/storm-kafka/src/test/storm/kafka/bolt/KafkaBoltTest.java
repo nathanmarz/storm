@@ -34,9 +34,7 @@ import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
 import kafka.message.MessageAndOffset;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import storm.kafka.*;
@@ -77,8 +75,8 @@ public class KafkaBoltTest {
     public void shutdown() {
         simpleConsumer.close();
         broker.shutdown();
+        bolt.cleanup();
     }
-
 
     private void setupKafkaConsumer() {
         GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation(TEST_TOPIC);
@@ -110,9 +108,12 @@ public class KafkaBoltTest {
         verifyMessage(key, message);
     }
 
+    /* test synchronous sending */
     @Test
-    public void executeWithByteArrayKeyAndMessage() {
-        bolt = generateDefaultSerializerBolt();
+    public void executeWithByteArrayKeyAndMessageSync() {
+        boolean async = false;
+        boolean fireAndForget = false;
+        bolt = generateDefaultSerializerBolt(async, fireAndForget);
         String keyString = "test-key";
         String messageString = "test-message";
         byte[] key = keyString.getBytes();
@@ -123,24 +124,77 @@ public class KafkaBoltTest {
         verifyMessage(keyString, messageString);
     }
 
+    /* test asynchronous sending (default) */
+    @Test
+    public void executeWithByteArrayKeyAndMessageAsync() {
+        boolean async = true;
+        boolean fireAndForget = false;
+        bolt = generateDefaultSerializerBolt(async, fireAndForget);
+        String keyString = "test-key";
+        String messageString = "test-message";
+        byte[] key = keyString.getBytes();
+        byte[] message = messageString.getBytes();
+        Tuple tuple = generateTestTuple(key, message);
+        bolt.execute(tuple);
+        try {
+            Thread.sleep(1000);                 
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+        verify(collector).ack(tuple);
+        verifyMessage(keyString, messageString);
+    }
+
+    /* test with fireAndForget option enabled */
+    @Test
+    public void executeWithByteArrayKeyAndMessageFire() {
+        boolean async = true;
+        boolean fireAndForget = true;
+        bolt = generateDefaultSerializerBolt(async, fireAndForget);
+        String keyString = "test-key";
+        String messageString = "test-message";
+        byte[] key = keyString.getBytes();
+        byte[] message = messageString.getBytes();
+        Tuple tuple = generateTestTuple(key, message);
+        bolt.execute(tuple);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+        verify(collector).ack(tuple);
+        verifyMessage(keyString, messageString);
+    }
+
     private KafkaBolt generateStringSerializerBolt() {
         KafkaBolt bolt = new KafkaBolt();
         Properties props = new Properties();
-        props.put("metadata.broker.list", broker.getBrokerConnectionString());
         props.put("request.required.acks", "1");
         props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", broker.getBrokerConnectionString());
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("metadata.fetch.timeout.ms", 1000);
         config.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         bolt.prepare(config, null, new OutputCollector(collector));
+        bolt.setAsync(false);
         return bolt;
     }
 
-    private KafkaBolt generateDefaultSerializerBolt() {
+    private KafkaBolt generateDefaultSerializerBolt(boolean async, boolean fireAndForget) {
         KafkaBolt bolt = new KafkaBolt();
         Properties props = new Properties();
-        props.put("metadata.broker.list", broker.getBrokerConnectionString());
         props.put("request.required.acks", "1");
+        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", broker.getBrokerConnectionString());
+        props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        props.put("metadata.fetch.timeout.ms", 1000);
+        props.put("linger.ms", 0);
         config.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         bolt.prepare(config, null, new OutputCollector(collector));
+        bolt.setAsync(async);
+        bolt.setFireAndForget(fireAndForget);
         return bolt;
     }
 
@@ -162,7 +216,6 @@ public class KafkaBoltTest {
         bolt.execute(tuple);
         verify(collector).fail(tuple);
     }
-
 
     private boolean verifyMessage(String key, String message) {
         long lastMessageOffset = KafkaUtils.getOffset(simpleConsumer, kafkaConfig.topic, 0, OffsetRequest.LatestTime()) - 1;
@@ -211,5 +264,4 @@ public class KafkaBoltTest {
         assertTrue(TupleUtils.isTick(tuple));
         return tuple;
     }
-
 }

@@ -18,34 +18,47 @@
 package org.apache.storm.eventhubs.spout;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import com.microsoft.eventhubs.client.ConnectionStringBuilder;
 
 public class EventHubSpoutConfig implements Serializable {
+  private static final long serialVersionUID = 1L; 
 
-  private static final long serialVersionUID = 1L;
+  public static final String EH_SERVICE_FQDN_SUFFIX = "servicebus.windows.net";
   private final String userName;
   private final String password;
   private final String namespace;
   private final String entityPath;
-  private final String zkConnectionString;
   private final int partitionCount;
-  private final int checkpointIntervalInSeconds;
-  private final int receiverCredits;
-  private final int maxPendingMsgsPerPartition;
-  private final long enqueueTimeFilter; //timestamp in millisecond
 
+  private String zkConnectionString = null; //if null then use zookeeper used by Storm
+  private int checkpointIntervalInSeconds = 10;
+  private int receiverCredits = 1024;
+  private int maxPendingMsgsPerPartition = 1024;
+  private long enqueueTimeFilter = 0; //timestamp in millisecond, 0 means disabling filter
   private String connectionString;
-  private String targetFqnAddress;
   private String topologyName;
-  private IEventDataScheme scheme;
+  private IEventDataScheme scheme = new EventDataScheme();
+  private String consumerGroupName = null; //if null then use default consumer group
 
+  //These are mandatory parameters
+  public EventHubSpoutConfig(String username, String password, String namespace,
+      String entityPath, int partitionCount) {
+    this.userName = username;
+    this.password = password;
+    this.connectionString = new ConnectionStringBuilder(username, password,
+    		namespace).getConnectionString();
+    this.namespace = namespace;
+    this.entityPath = entityPath;
+    this.partitionCount = partitionCount;
+  }
+
+  //Keep this constructor for backward compatibility
   public EventHubSpoutConfig(String username, String password, String namespace,
       String entityPath, int partitionCount, String zkConnectionString) {
-    this(username, password, namespace, entityPath, partitionCount,
-        zkConnectionString, 10, 1024, 1024, 0);
+    this(username, password, namespace, entityPath, partitionCount);
+    setZkConnectionString(zkConnectionString);
   }
   
   //Keep this constructor for backward compatibility
@@ -53,28 +66,20 @@ public class EventHubSpoutConfig implements Serializable {
       String entityPath, int partitionCount, String zkConnectionString,
       int checkpointIntervalInSeconds, int receiverCredits) {
     this(username, password, namespace, entityPath, partitionCount,
-        zkConnectionString, checkpointIntervalInSeconds, receiverCredits, 1024, 0);
+        zkConnectionString);
+    setCheckpointIntervalInSeconds(checkpointIntervalInSeconds);
+    setReceiverCredits(receiverCredits);
   }
-      
+
+  //Keep this constructor for backward compatibility
   public EventHubSpoutConfig(String username, String password, String namespace,
     String entityPath, int partitionCount, String zkConnectionString,
     int checkpointIntervalInSeconds, int receiverCredits, int maxPendingMsgsPerPartition, long enqueueTimeFilter) {
-    this.userName = username;
-    this.password = password;
-    this.connectionString = buildConnectionString(username, password, namespace);
-    this.namespace = namespace;
-    this.entityPath = entityPath;
-    this.partitionCount = partitionCount;
-    this.zkConnectionString = zkConnectionString;
-    this.checkpointIntervalInSeconds = checkpointIntervalInSeconds;
-    this.receiverCredits = receiverCredits;
-    this.maxPendingMsgsPerPartition = maxPendingMsgsPerPartition;
-    this.enqueueTimeFilter = enqueueTimeFilter;
-    this.scheme = new EventDataScheme();
-  }
-
-  public String getConnectionString() {
-    return connectionString;
+    
+    this(username, password, namespace, entityPath, partitionCount,
+        zkConnectionString, checkpointIntervalInSeconds, receiverCredits);
+    setMaxPendingMsgsPerPartition(maxPendingMsgsPerPartition);
+    setEnqueueTimeFilter(enqueueTimeFilter);
   }
 
   public String getNamespace() {
@@ -85,28 +90,48 @@ public class EventHubSpoutConfig implements Serializable {
     return entityPath;
   }
 
+  public int getPartitionCount() {
+    return partitionCount;
+  }
+
   public String getZkConnectionString() {
     return zkConnectionString;
+  }
+
+  public void setZkConnectionString(String value) {
+    zkConnectionString = value;
   }
 
   public int getCheckpointIntervalInSeconds() {
     return checkpointIntervalInSeconds;
   }
 
-  public int getPartitionCount() {
-    return partitionCount;
+  public void setCheckpointIntervalInSeconds(int value) {
+    checkpointIntervalInSeconds = value;
   }
   
   public int getReceiverCredits() {
     return receiverCredits;
   }
+
+  public void setReceiverCredits(int value) {
+    receiverCredits = value;
+  }
   
   public int getMaxPendingMsgsPerPartition() {
     return maxPendingMsgsPerPartition;
   }
+
+  public void setMaxPendingMsgsPerPartition(int value) {
+    maxPendingMsgsPerPartition = value;
+  }
   
   public long getEnqueueTimeFilter() {
     return enqueueTimeFilter;
+  }
+
+  public void setEnqueueTimeFilter(long value) {
+    enqueueTimeFilter = value;
   }
 
   public String getTopologyName() {
@@ -125,6 +150,14 @@ public class EventHubSpoutConfig implements Serializable {
     this.scheme = scheme;
   }
 
+  public String getConsumerGroupName() {
+    return consumerGroupName;
+  }
+
+  public void setConsumerGroupName(String value) {
+    consumerGroupName = value;
+  }
+
   public List<String> getPartitionList() {
     List<String> partitionList = new ArrayList<String>();
 
@@ -134,32 +167,13 @@ public class EventHubSpoutConfig implements Serializable {
 
     return partitionList;
   }
-  
+
+  public String getConnectionString() {
+    return connectionString;
+  }
+
   public void setTargetAddress(String targetFqnAddress) {
-    this.targetFqnAddress = targetFqnAddress;
-    this.connectionString = buildConnectionString(
-        this.userName, this.password, this.namespace, this.targetFqnAddress);
+    this.connectionString = new ConnectionStringBuilder(userName, password,
+    		namespace, targetFqnAddress).getConnectionString();
   }
-
-  public static String buildConnectionString(String username, String password, String namespace) {
-    String targetFqnAddress = "servicebus.windows.net";
-    return buildConnectionString(username, password, namespace, targetFqnAddress);
-  }
-
-  public static String buildConnectionString(String username, String password,
-      String namespace, String targetFqnAddress) {
-    return "amqps://" + username + ":" + encodeString(password)
-        + "@" + namespace + "." + targetFqnAddress;
-  }	
-
-  private static String encodeString(String input) {
-    try {
-      return URLEncoder.encode(input, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      //We don't need to throw this exception because the exception won't
-      //happen because of user input. Our unit tests will catch this error.
-      return "";
-    }
-  }
-
 }

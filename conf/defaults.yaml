@@ -185,7 +185,6 @@ topology.fall.back.on.java.serialization: true
 topology.worker.childopts: null
 topology.executor.receive.buffer.size: 1024 #batched
 topology.executor.send.buffer.size: 1024 #individual messages
-topology.receiver.buffer.size: 8 # setting it too high causes a lot of problems (heartbeat thread gets starved, throughput plummets)
 topology.transfer.buffer.size: 1024 # batched
 topology.tick.tuple.freq.secs: null
 topology.worker.shared.thread.pool.size: 4

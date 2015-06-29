@@ -7,6 +7,8 @@
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
  * STORM-477: Add warning for invalid JAVA_HOME
  * STORM-826: Update KafkaBolt to use the new kafka producer API
+ * STORM-843: [storm-redis] Add Javadoc to storm-redis
+
 
 ## 0.10.0-beta
  * STORM-867: fix bug with mk-ssl-connector

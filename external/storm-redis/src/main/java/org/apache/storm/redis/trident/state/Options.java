@@ -22,6 +22,12 @@ import storm.trident.state.Serializer;
 
 import java.io.Serializable;
 
+/**
+ * Options of State.<br/>
+ * It's a data structure (whole things are public) and you can access and modify all fields.
+ *
+ * @param <T> value's type class
+ */
 public class Options<T> implements Serializable {
 	private static final RedisDataTypeDescription DEFAULT_REDIS_DATATYPE = new RedisDataTypeDescription(RedisDataTypeDescription.RedisDataType.STRING);
 

@@ -24,16 +24,35 @@ import redis.clients.jedis.Pipeline;
 
 import java.util.Map;
 
+/**
+ * BaseStateUpdater implementation for single Redis environment.
+ *
+ * @see AbstractRedisStateUpdater
+ */
 public class RedisStateUpdater extends AbstractRedisStateUpdater<RedisState> {
+    /**
+     * Constructor
+     *
+     * @param storeMapper mapper for storing
+     */
     public RedisStateUpdater(RedisStoreMapper storeMapper) {
         super(storeMapper);
     }
 
+    /**
+     * Sets expire (time to live) if needed.
+     *
+     * @param expireIntervalSec time to live in seconds
+     * @return RedisStateUpdater itself
+     */
     public RedisStateUpdater withExpire(int expireIntervalSec) {
         setExpireInterval(expireIntervalSec);
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void updateStatesToRedis(RedisState redisState, Map<String, String> keyToValue) {
         Jedis jedis = null;

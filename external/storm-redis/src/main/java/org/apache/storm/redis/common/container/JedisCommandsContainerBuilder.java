@@ -22,15 +22,30 @@ import org.apache.storm.redis.common.config.JedisPoolConfig;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPool;
 
+/**
+ * Container Builder which helps abstraction of two env. - single instance or Redis Cluster.
+ */
 public class JedisCommandsContainerBuilder {
 
+    // FIXME: We're using default config since it cannot be serialized
+    // We still needs to provide some options externally
     public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
+    /**
+     * Builds container for single Redis environment.
+     * @param config configuration for JedisPool
+     * @return container for single Redis environment
+     */
     public static JedisCommandsInstanceContainer build(JedisPoolConfig config) {
         JedisPool jedisPool = new JedisPool(DEFAULT_POOL_CONFIG, config.getHost(), config.getPort(), config.getTimeout(), config.getPassword(), config.getDatabase());
         return new JedisContainer(jedisPool);
     }
 
+    /**
+     * Builds container for Redis Cluster environment.
+     * @param config configuration for JedisCluster
+     * @return container for Redis Cluster environment
+     */
     public static JedisCommandsInstanceContainer build(JedisClusterConfig config) {
         JedisCluster jedisCluster = new JedisCluster(config.getNodes(), config.getTimeout(), config.getMaxRedirections(), DEFAULT_POOL_CONFIG);
         return new JedisClusterContainer(jedisCluster);

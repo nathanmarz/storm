@@ -22,16 +22,29 @@ import redis.clients.jedis.Jedis;
 
 import java.util.List;
 
+/**
+ * BaseQueryFunction implementation for single Redis environment.
+ *
+ * @see AbstractRedisStateQuerier
+ */
 public class RedisStateQuerier extends AbstractRedisStateQuerier<RedisState> {
+    /**
+     * Constructor
+     *
+     * @param lookupMapper mapper for querying
+     */
     public RedisStateQuerier(RedisLookupMapper lookupMapper) {
         super(lookupMapper);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected List<String> retrieveValuesFromRedis(RedisState redisState, List<String> keys) {
+    protected List<String> retrieveValuesFromRedis(RedisState state, List<String> keys) {
         Jedis jedis = null;
         try {
-            jedis = redisState.getJedis();
+            jedis = state.getJedis();
             List<String> redisVals;
 
             String[] keysForRedis = keys.toArray(new String[keys.size()]);
@@ -49,7 +62,7 @@ public class RedisStateQuerier extends AbstractRedisStateQuerier<RedisState> {
             return redisVals;
         } finally {
             if (jedis != null) {
-                redisState.returnJedis(jedis);
+                state.returnJedis(jedis);
             }
         }
     }

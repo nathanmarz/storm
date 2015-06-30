@@ -9,6 +9,8 @@
  * STORM-826: Update KafkaBolt to use the new kafka producer API
  * STORM-843: [storm-redis] Add Javadoc to storm-redis
  * STORM-912: Support SSL on Logviewer
+ * STORM-866: Use storm.log.dir instead of storm.home in log4j2 config
+
 
 ## 0.10.0-beta
  * STORM-867: fix bug with mk-ssl-connector

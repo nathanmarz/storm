@@ -293,10 +293,17 @@
               (bolt-comp-summs id))]
     (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)))
 
-(defn worker-log-link [host port topology-id]
+(defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
-    (url-format (str "http://%s:%s/log?file=%s")
-          host (*STORM-CONF* LOGVIEWER-PORT) fname)))
+    (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
+      (url-format "https://%s:%s/log?file=%s"
+                  host
+                  (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
+                  fname)
+      (url-format "http://%s:%s/log?file=%s"
+                  host
+                  (*STORM-CONF* LOGVIEWER-PORT)
+                  fname))))
 
 (defn compute-executor-capacity
   [^ExecutorSummary e]
@@ -618,7 +625,7 @@
        "acked" (get-in stats [:acked k])
        "failed" (get-in stats [:failed k])})))
 
-(defn spout-comp [top-id summ-map errors window include-sys?]
+(defn spout-comp [top-id summ-map errors window include-sys? secure?]
   (for [[id summs] summ-map
         :let [stats-seq (get-filled-stats summs)
               stats (aggregate-spout-streams
@@ -638,11 +645,11 @@
      "failed" (get-in stats [:failed window])
      "errorHost" error-host
      "errorPort" error-port
-     "errorWorkerLogLink" (worker-log-link error-host error-port top-id)
+     "errorWorkerLogLink" (worker-log-link error-host error-port top-id secure?)
      "errorLapsedSecs" (get-error-time last-error)
      "lastError" (get-error-data last-error)}))
 
-(defn bolt-comp [top-id summ-map errors window include-sys?]
+(defn bolt-comp [top-id summ-map errors window include-sys? secure?]
   (for [[id summs] summ-map
         :let [stats-seq (get-filled-stats summs)
               stats (aggregate-bolt-streams
@@ -665,7 +672,7 @@
      "failed" (get-in stats [:failed window])
      "errorHost" error-host
      "errorPort" error-port
-     "errorWorkerLogLink" (worker-log-link error-host error-port top-id)
+     "errorWorkerLogLink" (worker-log-link error-host error-port top-id secure?)
      "errorLapsedSecs" (get-error-time last-error)
      "lastError" (get-error-data last-error)}))
 
@@ -698,7 +705,7 @@
         "acked" (get-in stats [:acked k])
         "failed" (get-in stats [:failed k])})))
 
-(defn topology-page [id window include-sys? user]
+(defn topology-page [id window include-sys? user secure?]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
@@ -731,8 +738,8 @@
         "windowHint" window-hint
         "msgTimeout" msg-timeout
         "topologyStats" (topology-stats id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
-        "spouts" (spout-comp id spout-comp-summs (.get_errors summ) window include-sys?)
-        "bolts" (bolt-comp id bolt-comp-summs (.get_errors summ) window include-sys?)
+        "spouts" (spout-comp id spout-comp-summs (.get_errors summ) window include-sys? secure?)
+        "bolts" (bolt-comp id bolt-comp-summs (.get_errors summ) window include-sys? secure?)
         "configuration" topology-conf
         "visualizationTable" (stream-boxes visualizer-data)}))))
 
@@ -748,7 +755,7 @@
        "failed" (nil-to-zero (:failed stats))})))
 
 (defn spout-executor-stats
-  [topology-id executors window include-sys?]
+  [topology-id executors window include-sys? secure?]
   (for [^ExecutorSummary e executors
         :let [stats (.get_stats e)
               stats (if stats
@@ -767,10 +774,10 @@
      "completeLatency" (float-str (:complete-latencies stats))
      "acked" (nil-to-zero (:acked stats))
      "failed" (nil-to-zero (:failed stats))
-     "workerLogLink" (worker-log-link (.get_host e) (.get_port e) topology-id)}))
+     "workerLogLink" (worker-log-link (.get_host e) (.get_port e) topology-id secure?)}))
 
 (defn component-errors
-  [errors-list topology-id]
+  [errors-list topology-id secure?]
   (let [errors (->> errors-list
                     (sort-by #(.get_error_time_secs ^ErrorInfo %))
                     reverse)]
@@ -779,12 +786,12 @@
        {"time" (* 1000 (long (.get_error_time_secs e)))
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
-        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e) topology-id)
+        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e) topology-id secure?)
         "errorLapsedSecs" (get-error-time e)
         "error" (.get_error e)})}))
 
 (defn spout-stats
-  [window ^TopologyInfo topology-info component executors include-sys?]
+  [window ^TopologyInfo topology-info component executors include-sys? secure?]
   (let [window-hint (str " (" (window-hint window) ")")
         stats (get-filled-stats executors)
         stream-summary (-> stats (aggregate-spout-stats include-sys?))
@@ -793,7 +800,7 @@
                       (.get_id topology-info) component summary window)
      "outputStats" (spout-output-stats stream-summary window)
      "executorStats" (spout-executor-stats (.get_id topology-info)
-                                           executors window include-sys?)}))
+                                           executors window include-sys? secure?)}))
 
 (defn bolt-summary
   [topology-id id stats window]
@@ -844,7 +851,7 @@
        "failed" (nil-to-zero (:failed stats))})))
 
 (defn bolt-executor-stats
-  [topology-id executors window include-sys?]
+  [topology-id executors window include-sys? secure?]
   (for [^ExecutorSummary e executors
         :let [stats (.get_stats e)
               stats (if stats
@@ -866,10 +873,10 @@
      "processLatency" (float-str (:process-latencies stats))
      "acked" (nil-to-zero (:acked stats))
      "failed" (nil-to-zero (:failed stats))
-     "workerLogLink" (worker-log-link (.get_host e) (.get_port e) topology-id)}))
+     "workerLogLink" (worker-log-link (.get_host e) (.get_port e) topology-id secure?)}))
 
 (defn bolt-stats
-  [window ^TopologyInfo topology-info component executors include-sys?]
+  [window ^TopologyInfo topology-info component executors include-sys? secure?]
   (let [window-hint (str " (" (window-hint window) ")")
         stats (get-filled-stats executors)
         stream-summary (-> stats (aggregate-bolt-stats include-sys?))
@@ -878,10 +885,10 @@
      "inputStats" (bolt-input-stats stream-summary window)
      "outputStats" (bolt-output-stats stream-summary window)
      "executorStats" (bolt-executor-stats
-                       (.get_id topology-info) executors window include-sys?)}))
+                       (.get_id topology-info) executors window include-sys? secure?)}))
 
 (defn component-page
-  [topology-id component window include-sys? user]
+  [topology-id component window include-sys? user secure?]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
           summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
@@ -889,9 +896,9 @@
           topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))
           type (component-type topology component)
           summs (component-task-summs summ topology component)
-          spec (cond (= type :spout) (spout-stats window summ component summs include-sys?)
-                     (= type :bolt) (bolt-stats window summ component summs include-sys?))
-          errors (component-errors (get (.get_errors summ) component) topology-id)]
+          spec (cond (= type :spout) (spout-stats window summ component summs include-sys? secure?)
+                     (= type :bolt) (bolt-stats window summ component summs include-sys? secure?))
+          errors (component-errors (get (.get_errors summ) component) topology-id secure?)]
       (merge
         {"user" user
          "id" component
@@ -951,17 +958,19 @@
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
        (assert-authorized-user servlet-request "getClusterInfo")
        (json-response (all-topologies-summary) (:callback m)))
-  (GET  "/api/v1/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
+  (GET  "/api/v1/topology/:id" [:as {:keys [cookies servlet-request schema]} id & m]
         (let [user (.getUserName http-creds-handler servlet-request)]
           (assert-authorized-user servlet-request "getTopology" (topology-config id))
-          (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
+          (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= schema :https)) (:callback m))))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
         (assert-authorized-user servlet-request "getTopology" (topology-config id))
         (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
-  (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request]} id component & m]
+  (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getTopology" (topology-config id))
-         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
+         (json-response
+          (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https))
+          (:callback m))))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
     (assert-authorized-user servlet-request "activate" (topology-config id))
     (with-nimbus nimbus

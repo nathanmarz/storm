@@ -18,14 +18,16 @@
 package backtype.storm.utils;
 
 import backtype.storm.Config;
-import backtype.storm.multilang.*;
+import backtype.storm.multilang.ISerializer;
+import backtype.storm.multilang.BoltMsg;
+import backtype.storm.multilang.NoOutputException;
+import backtype.storm.multilang.ShellMsg;
+import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,8 +55,8 @@ public class ShellProcess implements Serializable {
 
     private void modifyEnvironment(Map<String, String> buildEnv) {
         for (Map.Entry<String, String> entry : env.entrySet()) {
-            if (entry.getKey().equals("PATH")) {
-                buildEnv.put("PATH", buildEnv.get("PATH") + ":" + env.get("PATH"));
+            if ("PATH".equals(entry.getKey())) {
+                buildEnv.put("PATH", buildEnv.get("PATH") + File.pathSeparatorChar + env.get("PATH"));
             } else {
                 buildEnv.put(entry.getKey(), entry.getValue());
             }

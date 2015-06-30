@@ -25,19 +25,18 @@ import backtype.storm.multilang.ShellMsg;
 import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
-import clojure.lang.RT;
-import com.google.common.util.concurrent.MoreExecutors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import clojure.lang.RT;
+import com.google.common.util.concurrent.MoreExecutors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ShellSpout implements ISpout {
@@ -47,9 +46,9 @@ public class ShellSpout implements ISpout {
     private String[] _command;
     private Map<String, String> env = new HashMap<String, String>();
     private ShellProcess _process;
-
+    
     private TopologyContext _context;
-
+    
     private SpoutMsg _spoutMsg;
 
     private int workerTimeoutMills;

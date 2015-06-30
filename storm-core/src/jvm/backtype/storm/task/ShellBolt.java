@@ -99,7 +99,6 @@ public class ShellBolt implements IBolt {
         _command = command;
     }
 
-
     public ShellBolt setEnv(Map<String, String> env) {
         this.env = env;
         return this;

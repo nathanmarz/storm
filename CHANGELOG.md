@@ -8,7 +8,7 @@
  * STORM-477: Add warning for invalid JAVA_HOME
  * STORM-826: Update KafkaBolt to use the new kafka producer API
  * STORM-843: [storm-redis] Add Javadoc to storm-redis
-
+ * STORM-912: Support SSL on Logviewer
 
 ## 0.10.0-beta
  * STORM-867: fix bug with mk-ssl-connector

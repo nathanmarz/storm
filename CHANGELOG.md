@@ -10,6 +10,7 @@
  * STORM-843: [storm-redis] Add Javadoc to storm-redis
  * STORM-912: Support SSL on Logviewer
  * STORM-866: Use storm.log.dir instead of storm.home in log4j2 config
+ * STORM-810: PartitionManager in storm-kafka should commit latest offset before close
 
 
 ## 0.10.0-beta

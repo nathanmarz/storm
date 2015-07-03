@@ -26,6 +26,7 @@ import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;

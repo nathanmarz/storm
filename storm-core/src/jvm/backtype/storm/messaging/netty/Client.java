@@ -116,15 +116,18 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      */
     private volatile boolean closing = false;
 
+    private final Context context;
+
     private final HashedWheelTimer scheduler;
 
     private final MessageBuffer batcher;
 
     @SuppressWarnings("rawtypes")
-    Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port) {
+    Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
         this.stormConf = stormConf;
         closing = false;
         this.scheduler = scheduler;
+        this.context = context;
         int bufferSize = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
         LOG.info("creating Netty Client, connecting to {}:{}, bufferSize: {}", host, port, bufferSize);
         int messageBatchSize = Utils.getInt(stormConf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
@@ -359,6 +362,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     public void close() {
         if (!closing) {
             LOG.info("closing Netty Client {}", dstAddressPrefixedName);
+            context.removeClient(dstAddress.getHostName(),dstAddress.getPort());
             // Set closing to true to prevent any further reconnection attempts.
             closing = true;
             waitForPendingMessagesToBeSent();

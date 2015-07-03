@@ -85,7 +85,7 @@ public class Context implements IContext {
             return connection;
         }
         IConnection client =  new Client(storm_conf, clientChannelFactory, 
-                clientScheduleService, host, port);
+                clientScheduleService, host, port, this);
         connections.put(key(host, port), client);
         return client;
     }

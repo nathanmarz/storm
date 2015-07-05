@@ -139,22 +139,27 @@ As you can see, the implementation is very straightforward.
 public static class ExclamationBolt implements IRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void cleanup() {
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }
     
+    @Override
     public Map getComponentConfiguration() {
         return null;
     }
@@ -179,15 +184,18 @@ Methods like `cleanup` and `getComponentConfiguration` are often not needed in a
 public static class ExclamationBolt extends BaseRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }    

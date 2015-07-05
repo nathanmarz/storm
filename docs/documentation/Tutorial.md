@@ -33,7 +33,7 @@ storm jar all-my-code.jar backtype.storm.MyTopology arg1 arg2
 
 This runs the class `backtype.storm.MyTopology` with the arguments `arg1` and `arg2`. The main function of the class defines the topology and submits it to Nimbus. The `storm jar` part takes care of connecting to Nimbus and uploading the jar.
 
-Since topology definitions are just Thrift structs, and Nimbus is a Thrift service, you can create and submit topologies using any programming language. The above example is the easiest way to do it from a JVM-based language. See [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html)] for more information on starting and stopping topologies.
+Since topology definitions are just Thrift structs, and Nimbus is a Thrift service, you can create and submit topologies using any programming language. The above example is the easiest way to do it from a JVM-based language. See [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html) for more information on starting and stopping topologies.
 
 ## Streams
 

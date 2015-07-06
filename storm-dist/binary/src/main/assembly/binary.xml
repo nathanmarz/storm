@@ -290,6 +290,7 @@
             <source>${project.basedir}/../../conf/storm_env.ini</source>
             <outputDirectory>/conf</outputDirectory>
             <destName>storm_env.ini</destName>
+            <fileMode>0644</fileMode>
         </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>

@@ -24,13 +24,12 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.RotatingMap;
-import storm.trident.operation.TridentCollector;
-import storm.trident.topology.TransactionAttempt;
-import storm.trident.util.TridentUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import storm.trident.operation.TridentCollector;
+import storm.trident.topology.TransactionAttempt;
+import storm.trident.util.TridentUtils;
 
 public class RichSpoutBatchExecutor implements ITridentSpout {
     public static final String MAX_BATCH_SIZE_CONF = "topology.spout.max.batch.size";
@@ -82,8 +81,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
             idsMap = new RotatingMap(3);
             rotateTime = 1000L * ((Number)conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)).intValue();
         }
-
-
+        
         @Override
         public void emitBatch(TransactionAttempt tx, Object coordinatorMeta, TridentCollector collector) {
             long txid = tx.getTransactionId();
@@ -140,8 +138,6 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
                 }
             }
         }
-
-
         
         @Override
         public void close() {
@@ -198,7 +194,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         public void emitDirect(int task, String stream, List<Object> values, Object id) {
             throw new UnsupportedOperationException("Trident does not support direct streams");
         }
-
+        
         @Override
         public long getPendingCount() {
             return pendingCount;

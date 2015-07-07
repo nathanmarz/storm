@@ -191,6 +191,28 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     }
 
     /**
+     * Gets the declared input fields for this component.
+     *
+     * @return A map from sources to streams to fields.
+     */
+    public Map<String, Map<String, List<String>>> getThisInputFields() {
+    	Map<String, Map<String, List<String>>> outputMap = new HashMap<>();
+        for (Map.Entry<GlobalStreamId, Grouping> entry : this.getThisSources().entrySet()) {
+        	String componentId = entry.getKey().get_componentId();
+        	Set<String> streams = getComponentStreams(componentId);
+        	for (String stream : streams) {
+        		Map<String, List<String>> streamFieldMap = outputMap.get(componentId);
+        		if (streamFieldMap == null) {
+        			streamFieldMap = new HashMap<>();
+        			outputMap.put(componentId, streamFieldMap);
+        		}
+        		streamFieldMap.put(stream, getComponentOutputFields(componentId, stream).toList());
+        	}
+        }
+        return outputMap;
+    }
+
+    /**
      * Gets the declared inputs to this component.
      *
      * @return A map from subscribed component/stream to the grouping subscribed with.
@@ -274,6 +296,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         	stringSourceMap.put(gid.get_streamId(), groupingToJSONableMap(entry.getValue()));        	
         }
         obj.put("source->stream->grouping", stringSources);
+        obj.put("source->stream->fields", this.getThisInputFields());
         return JSONValue.toJSONString(obj);
     }
 

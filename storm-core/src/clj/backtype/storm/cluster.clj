@@ -19,6 +19,8 @@
            [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials NimbusSummary]
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.apache.curator.framework.state ConnectionStateListener ConnectionState])
+  (:import [org.apache.curator.framework CuratorFramework])
   (:import [backtype.storm.utils Utils])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
@@ -41,7 +43,8 @@
   (exists-node? [this path watch?])
   (close [this])
   (register [this callback])
-  (unregister [this id]))
+  (unregister [this id])
+  (add-listener [this listener]))
 
 (defn mk-topo-only-acls
   [topo-conf]
@@ -137,7 +140,12 @@
      (close
        [this]
        (reset! active false)
-       (.close zk)))))
+       (.close zk))
+
+      (add-listener
+        [this listener]
+        (zk/add-listener zk listener))
+      )))
 
 (defprotocol StormClusterState
   (assignments [this callback])
@@ -368,6 +376,15 @@
         [this nimbus-id nimbus-summary]
         ;explicit delete for ephmeral node to ensure this session creates the entry.
         (delete-node cluster-state (nimbus-path nimbus-id))
+
+        (add-listener cluster-state (reify ConnectionStateListener
+                        (^void stateChanged[this ^CuratorFramework client ^ConnectionState newState]
+                          (log-message "Connection state listener invoked, zookeeper connection state has changed to " newState)
+                          (if (.equals newState ConnectionState/RECONNECTED)
+                            (do
+                              (log-message "Connection state has changed to reconnected so setting nimbuses entry one more time")
+                              (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))))))
+
         (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))
 
       (code-distributor-info

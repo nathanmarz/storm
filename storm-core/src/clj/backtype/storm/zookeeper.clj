@@ -18,6 +18,7 @@
   (:import [org.apache.curator.retry RetryNTimes]
            [backtype.storm Config])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
+  (:import [org.apache.curator.framework.state ConnectionStateListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
   (:import [org.apache.curator.framework.recipes.leader LeaderLatch LeaderLatch$State Participant LeaderLatchListener])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
@@ -128,6 +129,17 @@
           ))
       )))
 
+
+(defn sync-path
+  [^CuratorFramework zk ^String path]
+  (try
+    (.. zk (sync) (forPath (normalize-path path)))
+    (catch Exception e (throw (wrap-in-runtime e)))))
+
+
+(defn add-listener [^CuratorFramework zk ^ConnectionStateListener listener]
+  (.. zk (getConnectionStateListenable) (addListener listener)))
+
 (defn get-data
   [^CuratorFramework zk ^String path watch?]
   (let [path (normalize-path path)]
@@ -146,7 +158,7 @@
   (let [stats (org.apache.zookeeper.data.Stat. )
         path (normalize-path path)]
     (try-cause
-     (if-let [data 
+     (if-let [data
               (if (exists-node? zk path watch?)
                 (if watch?
                   (.. zk (getData) (watched) (storingStatIn stats) (forPath path))

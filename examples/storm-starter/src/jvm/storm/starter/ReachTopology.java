@@ -47,8 +47,8 @@ import java.util.*;
  * minutes on a single machine into one that takes just a couple seconds.
  * <p/>
  * For the purposes of demonstration, this topology replaces the use of actual DBs with in-memory hashmaps.
- * <p/>
- * See https://github.com/nathanmarz/storm/wiki/Distributed-RPC for more information on Distributed RPC.
+ *
+ * @see <a href="http://storm.apache.org/documentation/Distributed-RPC.html">Distributed RPC</a>
  */
 public class ReachTopology {
   public static Map<String, List<String>> TWEETERS_DB = new HashMap<String, List<String>>() {{

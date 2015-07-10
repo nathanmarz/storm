@@ -60,8 +60,10 @@ public class DisruptorQueue implements IStatefulObject {
     
     private static String PREFIX = "disruptor-";
     private String _queueName = "";
+
+    private long _waitTimeout;
     
-    public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait) {
+    public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait, long timeout) {
          this._queueName = PREFIX + queueName;
         _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
         _consumer = new Sequence();
@@ -77,6 +79,8 @@ public class DisruptorQueue implements IStatefulObject {
                 throw new RuntimeException("This code should be unreachable!", e);
             }
         }
+
+        _waitTimeout = timeout;
     }
     
     public String getName() {
@@ -94,7 +98,7 @@ public class DisruptorQueue implements IStatefulObject {
     public void consumeBatchWhenAvailable(EventHandler<Object> handler) {
         try {
             final long nextSequence = _consumer.get() + 1;
-            final long availableSequence = _barrier.waitFor(nextSequence, 1000, TimeUnit.MILLISECONDS);
+            final long availableSequence = _barrier.waitFor(nextSequence, _waitTimeout, TimeUnit.MILLISECONDS);
             if(availableSequence >= nextSequence) {
                 consumeBatchToCursor(availableSequence, handler);
             }

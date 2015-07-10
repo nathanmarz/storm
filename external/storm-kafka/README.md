@@ -219,6 +219,17 @@ You can provide all the produce properties , see http://kafka.apache.org/documen
 section "Important configuration properties for the producer", in your storm topology config by setting the properties
 map with key kafka.broker.properties.
 
+###Using wildcard kafka topic match
+You can do a wildcard topic match by adding the following config
+```
+     Config config = new Config();
+     config.put("kafka.topic.wildcard.match",true);
+
+```
+
+After this you can specifiy a wildcard topic for matching e.g. clickstream.*.log.  This will match all streams matching clickstream.my.log, clickstream.cart.log etc
+
+
 ###Putting it all together
 
 For the bolt :

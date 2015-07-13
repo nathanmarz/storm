@@ -15,6 +15,7 @@
  * STORM-843: [storm-redis] Add Javadoc to storm-redis
  * STORM-866: Use storm.log.dir instead of storm.home in log4j2 config
  * STORM-810: PartitionManager in storm-kafka should commit latest offset before close
+ * STORM-928: Add sources->streams->fields map to Multi-Lang Handshake
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

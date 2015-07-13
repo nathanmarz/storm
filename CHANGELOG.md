@@ -9,6 +9,7 @@
  * STORM-826: Update KafkaBolt to use the new kafka producer API
  * STORM-912: Support SSL on Logviewer
  * STORM-934: The current doc for topology ackers is outdated
+ * STORM-160: Allow ShellBolt to set env vars (particularly PATH)
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

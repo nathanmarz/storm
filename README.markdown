@@ -202,6 +202,7 @@ under the License.
 * Nikhil Singh ([@snikhil5](https://github.com/snikhil5))
 * Paul Poulosky ([@ppoulosk](https://github.com/ppoulosk))
 * Brendan W. Lyon ([@lyonbrw](https://github.com/lyonbrw))
+* Shyam Rajendran ([@bourneagain](https://github.com/bourneagain))
 
 ## Acknowledgements
 

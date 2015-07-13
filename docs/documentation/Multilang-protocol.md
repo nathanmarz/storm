@@ -66,7 +66,7 @@ The initial handshake is the same for both types of shell components:
             "4": "example-bolt2"
         },
         "taskid": 3,
-        // Everything below this line is only available in Storm 0.11.0+
+        // Everything below this line is only available in Storm 0.10.0+
         "componentid": "example-bolt"
         "stream->target->grouping": {
         	"default": {
@@ -82,6 +82,11 @@ The initial handshake is the same for both types of shell components:
 	    		}
 	    	}
 	    }
+	    "source->stream->fields": {
+	    	"example-spout": {
+	    		"default": ["word"]
+	    	}
+	    }
 	}
 }
 ```
@@ -90,7 +95,7 @@ Your script should create an empty file named with its PID in this directory. e.
 the PID is 1234, so an empty file named 1234 is created in the directory. This
 file lets the supervisor know the PID so it can shutdown the process later on.
 
-As of Storm 0.11.0, the context sent by Storm to shell components has been
+As of Storm 0.10.0, the context sent by Storm to shell components has been
 enhanced substantially to include all aspects of the topology context available
 to JVM components.  One key addition is the ability to determine a shell
 component's source and targets (i.e., inputs and outputs) in the topology via

@@ -201,6 +201,7 @@ under the License.
 * Hailei Zhang ([@Hailei](https://github.com/Hailei))
 * Nikhil Singh ([@snikhil5](https://github.com/snikhil5))
 * Paul Poulosky ([@ppoulosk](https://github.com/ppoulosk))
+* Brendan W. Lyon ([@lyonbrw](https://github.com/lyonbrw))
 
 ## Acknowledgements
 

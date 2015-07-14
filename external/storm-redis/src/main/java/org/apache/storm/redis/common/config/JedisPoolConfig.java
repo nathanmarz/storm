@@ -21,6 +21,9 @@ import redis.clients.jedis.Protocol;
 
 import java.io.Serializable;
 
+/**
+ * Configuration for JedisPool.
+ */
 public class JedisPoolConfig implements Serializable {
     public static final String DEFAULT_HOST = "127.0.0.1";
 
@@ -30,6 +33,17 @@ public class JedisPoolConfig implements Serializable {
     private int database;
     private String password;
 
+    /**
+     * Constructor
+     * <p/>
+     * You can use JedisPoolConfig.Builder() for leaving some fields to apply default value.
+     *
+     * @param host hostname or IP
+     * @param port port
+     * @param timeout socket / connection timeout
+     * @param database database index
+     * @param password password, if any
+     */
     public JedisPoolConfig(String host, int port, int timeout, String password, int database) {
         this.host = host;
         this.port = port;
@@ -38,26 +52,49 @@ public class JedisPoolConfig implements Serializable {
         this.password = password;
     }
 
+    /**
+     * Returns host.
+     * @return hostname or IP
+     */
     public String getHost() {
         return host;
     }
 
+    /**
+     * Returns port.
+     * @return port
+     */
     public int getPort() {
         return port;
     }
 
+    /**
+     * Returns timeout.
+     * @return socket / connection timeout
+     */
     public int getTimeout() {
         return timeout;
     }
 
+    /**
+     * Returns database index.
+     * @return database index
+     */
     public int getDatabase() {
         return database;
     }
 
+    /**
+     * Returns password.
+     * @return password
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * Builder for initializing JedisPoolConfig.
+     */
     public static class Builder {
         private String host = DEFAULT_HOST;
         private int port = Protocol.DEFAULT_PORT;
@@ -65,31 +102,60 @@ public class JedisPoolConfig implements Serializable {
         private int database = Protocol.DEFAULT_DATABASE;
         private String password;
 
+        /**
+         * Sets host.
+         * @param host host
+         * @return Builder itself
+         */
         public Builder setHost(String host) {
             this.host = host;
             return this;
         }
 
+        /**
+         * Sets port.
+         * @param port port
+         * @return Builder itself
+         */
         public Builder setPort(int port) {
             this.port = port;
             return this;
         }
 
+        /**
+         * Sets timeout.
+         * @param timeout timeout
+         * @return Builder itself
+         */
         public Builder setTimeout(int timeout) {
             this.timeout = timeout;
             return this;
         }
 
+        /**
+         * Sets database index.
+         * @param database database index
+         * @return Builder itself
+         */
         public Builder setDatabase(int database) {
             this.database = database;
             return this;
         }
 
+        /**
+         * Sets password.
+         * @param password password, if any
+         * @return Builder itself
+         */
         public Builder setPassword(String password) {
             this.password = password;
             return this;
         }
 
+        /**
+         * Builds JedisPoolConfig.
+         * @return JedisPoolConfig
+         */
         public JedisPoolConfig build() {
             return new JedisPoolConfig(host, port, timeout, password, database);
         }

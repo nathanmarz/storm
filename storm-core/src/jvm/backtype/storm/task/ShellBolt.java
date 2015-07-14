@@ -74,6 +74,7 @@ public class ShellBolt implements IBolt {
     Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
 
     private String[] _command;
+    private Map<String, String> env = new HashMap<String, String>();
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
@@ -98,6 +99,11 @@ public class ShellBolt implements IBolt {
         _command = command;
     }
 
+    public ShellBolt setEnv(Map<String, String> env) {
+        this.env = env;
+        return this;
+    }
+
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
         Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
@@ -112,6 +118,9 @@ public class ShellBolt implements IBolt {
         workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
 
         _process = new ShellProcess(_command);
+        if (!env.isEmpty()) {
+            _process.setEnv(env);
+        }
 
         //subprocesses must send their pid first thing
         Number subpid = _process.launch(stormConf, context);

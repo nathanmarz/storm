@@ -1,9 +1,27 @@
 ## 0.11.0
+ * STORM_803: Better CI logs
+ * STORM-806: use storm.zookeeper.connection.timeout in storm-kafka ZkState when newCurator
+ * STORM-809: topology.message.timeout.secs should not allow for null or <= 0 values
  * STORM-847: Add cli to get the last storm error from the topology
  * STORM-864: Exclude storm-kafka tests from Travis CI build
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
+ * STORM-477: Add warning for invalid JAVA_HOME
+ * STORM-826: Update KafkaBolt to use the new kafka producer API
+ * STORM-912: Support SSL on Logviewer
+ * STORM-934: The current doc for topology ackers is outdated
+ * STORM-160: Allow ShellBolt to set env vars (particularly PATH)
+
+## 0.10.0-beta2
+ * STORM-843: [storm-redis] Add Javadoc to storm-redis
+ * STORM-866: Use storm.log.dir instead of storm.home in log4j2 config
+ * STORM-810: PartitionManager in storm-kafka should commit latest offset before close
+ * STORM-928: Add sources->streams->fields map to Multi-Lang Handshake
+
+## 0.10.0-beta1
+ * STORM-873: Flux does not handle diamond topologies
 
 ## 0.10.0-beta
+ * STORM-867: fix bug with mk-ssl-connector
  * STORM-856: use serialized value of delay secs for topo actions
  * STORM-852: Replaced Apache Log4j Logger with SLF4J API
  * STORM-813: Change storm-starter's README so that it explains mvn exec:java cannot run multilang topology
@@ -165,12 +183,14 @@
  * STORM-188: Allow user to specifiy full configuration path when running storm command
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
+## 0.9.6
+ * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A
 
 ## 0.9.5
  * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
  * STORM-796: Add support for "error" command in ShellSpout
  * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
-  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.4
  * STORM-559: ZkHosts in README should use 2181 as port.

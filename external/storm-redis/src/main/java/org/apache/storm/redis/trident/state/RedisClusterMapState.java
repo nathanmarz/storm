@@ -39,76 +39,157 @@ import storm.trident.state.map.TransactionalMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * IBackingMap implementation for Redis Cluster environment.
+ *
+ * @param <T> value's type class
+ * @see AbstractRedisMapState
+ */
 public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
     /**
-     * OpaqueTransactional for redis-cluster.
-     * */
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisClusterConfig jedisClusterConfig) {
         return opaque(jedisClusterConfig, new Options());
     }
 
+    /**
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param dataTypeDescription definition of data type
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
         opts.dataTypeDescription = dataTypeDescription;
         return opaque(jedisClusterConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param factory key factory
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
         return opaque(jedisClusterConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param opts options of State
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisClusterConfig jedisClusterConfig, Options<OpaqueValue> opts) {
         return new Factory(jedisClusterConfig, StateType.OPAQUE, opts);
     }
 
     /**
-     * Transactional for redis-cluster.
-     * */
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisClusterConfig jedisClusterConfig) {
         return transactional(jedisClusterConfig, new Options());
     }
 
+    /**
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param dataTypeDescription definition of data type
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
         opts.dataTypeDescription = dataTypeDescription;
         return transactional(jedisClusterConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param factory key factory
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
         return transactional(jedisClusterConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param opts options of State
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisClusterConfig jedisClusterConfig, Options<TransactionalValue> opts) {
         return new Factory(jedisClusterConfig, StateType.TRANSACTIONAL, opts);
     }
 
     /**
-     * NonTransactional for redis-cluster.
-     * */
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig) {
         return nonTransactional(jedisClusterConfig, new Options());
     }
 
+    /**
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param dataTypeDescription definition of data type
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
         opts.dataTypeDescription = dataTypeDescription;
         return nonTransactional(jedisClusterConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param factory key factory
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
         return nonTransactional(jedisClusterConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisClusterConfig configuration for JedisCluster
+     * @param opts options of State
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisClusterConfig jedisClusterConfig, Options<Object> opts) {
         return new Factory(jedisClusterConfig, StateType.NON_TRANSACTIONAL, opts);
     }
 
+    /**
+     * RedisClusterMapState.Factory provides Redis Cluster environment version of StateFactory.
+     */
     protected static class Factory implements StateFactory {
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
@@ -119,6 +200,13 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         KeyFactory keyFactory;
         Options options;
 
+        /**
+         * Constructor
+         *
+         * @param jedisClusterConfig configuration for JedisCluster
+         * @param type StateType
+         * @param options options of State
+         */
         public Factory(JedisClusterConfig jedisClusterConfig, StateType type, Options options) {
             this.jedisClusterConfig = jedisClusterConfig;
             this.type = type;
@@ -137,6 +225,10 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
             }
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public State makeState(@SuppressWarnings("rawtypes") Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
             JedisCluster jedisCluster = new JedisCluster(jedisClusterConfig.getNodes(),
                                                             jedisClusterConfig.getTimeout(),
@@ -169,6 +261,14 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
     private Serializer serializer;
     private KeyFactory keyFactory;
 
+    /**
+     * Constructor
+     *
+     * @param jedisCluster JedisCluster
+     * @param options options of State
+     * @param serializer Serializer
+     * @param keyFactory KeyFactory
+     */
     public RedisClusterMapState(JedisCluster jedisCluster, Options options,
                                 Serializer<T> serializer, KeyFactory keyFactory) {
         this.jedisCluster = jedisCluster;
@@ -177,16 +277,25 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         this.keyFactory = keyFactory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected Serializer getSerializer() {
         return serializer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected KeyFactory getKeyFactory() {
         return keyFactory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected List<String> retrieveValuesFromRedis(List<String> keys) {
         String[] stringKeys = keys.toArray(new String[keys.size()]);
@@ -210,6 +319,9 @@ public class RedisClusterMapState<T> extends AbstractRedisMapState<T> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void updateStatesToRedis(Map<String, String> keyValues) {
         RedisDataTypeDescription description = this.options.dataTypeDescription;

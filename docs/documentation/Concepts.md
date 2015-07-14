@@ -67,7 +67,7 @@ When you declare a bolt's input streams, you always subscribe to specific stream
 
 The main method in bolts is the `execute` method which takes in as input a new tuple. Bolts emit new tuples using the [OutputCollector](/javadoc/apidocs/backtype/storm/task/OutputCollector.html) object. Bolts must call the `ack` method on the `OutputCollector` for every tuple they process so that Storm knows when tuples are completed (and can eventually determine that its safe to ack the original spout tuples). For the common case of processing an input tuple, emitting 0 or more tuples based on that tuple, and then acking the input tuple, Storm provides an [IBasicBolt](/javadoc/apidocs/backtype/storm/topology/IBasicBolt.html) interface which does the acking automatically.
 
-Its perfectly fine to launch new threads in bolts that do processing asynchronously. [OutputCollector](/javadoc/apidocs/backtype/storm/task/OutputCollector.html) is thread-safe and can be called at any time.
+Please note that [OutputCollector](/javadoc/apidocs/backtype/storm/task/OutputCollector.html) is not thread-safe, and all emits, acks, and fails must happen on the same thread. Please refer [Troubleshooting](troubleshooting.html) for more details.
 
 **Resources:**
 

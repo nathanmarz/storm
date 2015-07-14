@@ -23,16 +23,29 @@ import redis.clients.jedis.JedisCluster;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * BaseQueryFunction implementation for Redis Cluster environment.
+ *
+ * @see AbstractRedisStateQuerier
+ */
 public class RedisClusterStateQuerier extends AbstractRedisStateQuerier<RedisClusterState> {
+    /**
+     * Constructor
+     *
+     * @param lookupMapper mapper for querying
+     */
     public RedisClusterStateQuerier(RedisLookupMapper lookupMapper) {
         super(lookupMapper);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected List<String> retrieveValuesFromRedis(RedisClusterState redisClusterState, List<String> keys) {
+    protected List<String> retrieveValuesFromRedis(RedisClusterState state, List<String> keys) {
         JedisCluster jedisCluster = null;
         try {
-            jedisCluster = redisClusterState.getJedisCluster();
+            jedisCluster = state.getJedisCluster();
             List<String> redisVals = new ArrayList<String>();
 
             for (String key : keys) {
@@ -51,7 +64,7 @@ public class RedisClusterStateQuerier extends AbstractRedisStateQuerier<RedisClu
             return redisVals;
         } finally {
             if (jedisCluster != null) {
-                redisClusterState.returnJedisCluster(jedisCluster);
+                state.returnJedisCluster(jedisCluster);
             }
         }
     }

@@ -29,6 +29,7 @@ import backtype.storm.metric.api.CombinedMetric;
 import backtype.storm.state.ISubscribedState;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.lang.NotImplementedException;
 import org.json.simple.JSONValue;
 
@@ -61,7 +63,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             Map<String, Map<String, Fields>> componentToStreamToFields,
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
-            Map<String, Object> userResources, Map<String, Object> executorData, Map registeredMetrics,
+            Map<String, Object> userResources, Map<String, Object> executorData, Map<Integer, Map<Integer, Map<String, IMetric>>> registeredMetrics,
             clojure.lang.Atom openOrPrepareWasCalled) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
                 componentToStreamToFields, stormId, codeDir, pidDir,
@@ -154,11 +156,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
 	}
 
 	/**
-	 * Gets the declared output fields for the specified stream id for the
+	 * Gets the declared output fields for all streams for the
 	 * component this task is a part of.
 	 */
 	public Map<String, List<String>> getThisOutputFieldsForStreams() {
-		Map<String, List<String>> streamToFields = new HashMap<String, List<String>>();
+		Map<String, List<String>> streamToFields = new HashMap<>();
 		for (String stream : this.getThisStreams()) {
 			streamToFields.put(stream, this.getThisOutputFields(stream).toList());
 		}
@@ -178,7 +180,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
      * accesses which resource in a distributed resource to ensure an even distribution.
      */
     public int getThisTaskIndex() {
-        List<Integer> tasks = new ArrayList<Integer>(getComponentTasks(getThisComponentId()));
+        List<Integer> tasks = new ArrayList<>(getComponentTasks(getThisComponentId()));
         Collections.sort(tasks);
         for(int i=0; i<tasks.size(); i++) {
             if(tasks.get(i) == getThisTaskId()) {
@@ -186,6 +188,28 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             }
         }
         throw new RuntimeException("Fatal: could not find this task id in this component");
+    }
+
+    /**
+     * Gets the declared input fields for this component.
+     *
+     * @return A map from sources to streams to fields.
+     */
+    public Map<String, Map<String, List<String>>> getThisInputFields() {
+    	Map<String, Map<String, List<String>>> outputMap = new HashMap<>();
+        for (Map.Entry<GlobalStreamId, Grouping> entry : this.getThisSources().entrySet()) {
+        	String componentId = entry.getKey().get_componentId();
+        	Set<String> streams = getComponentStreams(componentId);
+        	for (String stream : streams) {
+        		Map<String, List<String>> streamFieldMap = outputMap.get(componentId);
+        		if (streamFieldMap == null) {
+        			streamFieldMap = new HashMap<>();
+        			outputMap.put(componentId, streamFieldMap);
+        		}
+        		streamFieldMap.put(stream, getComponentOutputFields(componentId, stream).toList());
+        	}
+        }
+        return outputMap;
     }
 
     /**
@@ -232,7 +256,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     }
 
 	private static Map<String, Object> groupingToJSONableMap(Grouping grouping) {
-		Map groupingMap = new HashMap<String, Object>();
+		Map<String, Object> groupingMap = new HashMap<>();
 		groupingMap.put("type", grouping.getSetField().toString());
 		if (grouping.is_set_fields()) {
 			groupingMap.put("fields", grouping.get_fields());
@@ -242,18 +266,18 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     
     @Override
     public String toJSONString() {
-        Map obj = new HashMap();
+        Map<String, Object> obj = new HashMap<>();
         obj.put("task->component", this.getTaskToComponent());
         obj.put("taskid", this.getThisTaskId());
         obj.put("componentid", this.getThisComponentId());
-        List<String> streamList = new ArrayList<String>();
+        List<String> streamList = new ArrayList<>();
         streamList.addAll(this.getThisStreams());
         obj.put("streams", streamList);
         obj.put("stream->outputfields", this.getThisOutputFieldsForStreams());
         // Convert targets to a JSON serializable format
-        Map<String, Map> stringTargets = new HashMap<String, Map>();
+        Map<String, Map<String, Object>> stringTargets = new HashMap<>();
         for (Map.Entry<String, Map<String, Grouping>> entry : this.getThisTargets().entrySet()) {
-        	Map stringTargetMap = new HashMap<String, Object>();
+        	Map<String, Object> stringTargetMap = new HashMap<>();
         	for (Map.Entry<String, Grouping> innerEntry : entry.getValue().entrySet()) {
         		stringTargetMap.put(innerEntry.getKey(), groupingToJSONableMap(innerEntry.getValue()));
         	}
@@ -261,17 +285,18 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
         }
         obj.put("stream->target->grouping", stringTargets);
         // Convert sources to a JSON serializable format
-        Map<String, Map<String, Object>> stringSources = new HashMap<String, Map<String, Object>>();
+        Map<String, Map<String, Object>> stringSources = new HashMap<>();
         for (Map.Entry<GlobalStreamId, Grouping> entry : this.getThisSources().entrySet()) {
         	GlobalStreamId gid = entry.getKey();
         	Map<String, Object> stringSourceMap = stringSources.get(gid.get_componentId());
         	if (stringSourceMap == null) {
-        		stringSourceMap = new HashMap<String, Object>();
+        		stringSourceMap = new HashMap<>();
         		stringSources.put(gid.get_componentId(), stringSourceMap);
         	}
         	stringSourceMap.put(gid.get_streamId(), groupingToJSONableMap(entry.getValue()));        	
         }
         obj.put("source->stream->grouping", stringSources);
+        obj.put("source->stream->fields", this.getThisInputFields());
         return JSONValue.toJSONString(obj);
     }
 
@@ -301,17 +326,17 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
         }
 
-        Map m1 = _registeredMetrics;
+        Map<Integer, Map<Integer, Map<String, IMetric>>> m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {
-            m1.put(timeBucketSizeInSecs, new HashMap());
+            m1.put(timeBucketSizeInSecs, new HashMap<Integer, Map<String, IMetric>>());
         }
 
-        Map m2 = (Map)m1.get(timeBucketSizeInSecs);
+        Map<Integer, Map<String, IMetric>> m2 = m1.get(timeBucketSizeInSecs);
         if(!m2.containsKey(_taskId)) {
-            m2.put(_taskId, new HashMap());
+            m2.put(_taskId, new HashMap<String, IMetric>());
         }
 
-        Map m3 = (Map)m2.get(_taskId);
+        Map<String, IMetric> m3 = m2.get(_taskId);
         if(m3.containsKey(name)) {
             throw new RuntimeException("The same metric name `" + name + "` was registered twice." );
         } else {
@@ -346,13 +371,13 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     }
 
     /*
-     * Convinience method for registering ReducedMetric.
+     * Convenience method for registering ReducedMetric.
      */
     public ReducedMetric registerMetric(String name, IReducer reducer, int timeBucketSizeInSecs) {
         return registerMetric(name, new ReducedMetric(reducer), timeBucketSizeInSecs);
     }
     /*
-     * Convinience method for registering CombinedMetric.
+     * Convenience method for registering CombinedMetric.
      */
     public CombinedMetric registerMetric(String name, ICombiner combiner, int timeBucketSizeInSecs) {
         return registerMetric(name, new CombinedMetric(combiner), timeBucketSizeInSecs);

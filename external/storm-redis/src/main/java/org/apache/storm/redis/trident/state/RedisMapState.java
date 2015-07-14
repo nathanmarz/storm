@@ -40,76 +40,157 @@ import storm.trident.state.map.TransactionalMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * IBackingMap implementation for single Redis environment.
+ *
+ * @param <T> value's type class
+ * @see AbstractRedisMapState
+ */
 public class RedisMapState<T> extends AbstractRedisMapState<T> {
     /**
-     * OpaqueTransactional for redis.
-     * */
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisPoolConfig jedisPoolConfig) {
         return opaque(jedisPoolConfig, new Options());
     }
 
+    /**
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param dataTypeDescription definition of data type
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
         opts.dataTypeDescription = dataTypeDescription;
         return opaque(jedisPoolConfig, opts);
     }
 
-    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig,  KeyFactory factory) {
+    /**
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param factory key factory
+     * @return StateFactory
+     */
+    public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
         return opaque(jedisPoolConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for opaque transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param opts options of State
+     * @return StateFactory
+     */
     public static StateFactory opaque(JedisPoolConfig jedisPoolConfig, Options<OpaqueValue> opts) {
         return new Factory(jedisPoolConfig, StateType.OPAQUE, opts);
     }
 
     /**
-     * Transactional for redis.
-     * */
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisPoolConfig jedisPoolConfig) {
         return transactional(jedisPoolConfig, new Options());
     }
 
+    /**
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param dataTypeDescription definition of data type
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
         opts.dataTypeDescription = dataTypeDescription;
         return transactional(jedisPoolConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param factory key factory
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
         return transactional(jedisPoolConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param opts options of State
+     * @return StateFactory
+     */
     public static StateFactory transactional(JedisPoolConfig jedisPoolConfig, Options<TransactionalValue> opts) {
         return new Factory(jedisPoolConfig, StateType.TRANSACTIONAL, opts);
     }
 
     /**
-     * NonTransactional for redis.
-     * */
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig) {
         return nonTransactional(jedisPoolConfig, new Options());
     }
 
+    /**
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param dataTypeDescription definition of data type
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, RedisDataTypeDescription dataTypeDescription) {
         Options opts = new Options();
         opts.dataTypeDescription = dataTypeDescription;
         return nonTransactional(jedisPoolConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param factory key factory
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, KeyFactory factory) {
         Options opts = new Options();
         opts.keyFactory = factory;
         return nonTransactional(jedisPoolConfig, opts);
     }
 
+    /**
+     * Provides StateFactory for non transactional.
+     *
+     * @param jedisPoolConfig configuration for JedisPool
+     * @param opts options of State
+     * @return StateFactory
+     */
     public static StateFactory nonTransactional(JedisPoolConfig jedisPoolConfig, Options<Object> opts) {
         return new Factory(jedisPoolConfig, StateType.NON_TRANSACTIONAL, opts);
     }
 
+    /**
+     * RedisMapState.Factory provides single Redis environment version of StateFactory.
+     */
     protected static class Factory implements StateFactory {
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
@@ -120,6 +201,13 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         KeyFactory keyFactory;
         Options options;
 
+        /**
+         * Constructor
+         *
+         * @param jedisPoolConfig configuration for JedisPool
+         * @param type StateType
+         * @param options options of State
+         */
         public Factory(JedisPoolConfig jedisPoolConfig, StateType type, Options options) {
             this.jedisPoolConfig = jedisPoolConfig;
             this.type = type;
@@ -138,6 +226,10 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
             }
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public State makeState(@SuppressWarnings("rawtypes") Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
             JedisPool jedisPool = new JedisPool(DEFAULT_POOL_CONFIG,
                                                     jedisPoolConfig.getHost(),
@@ -171,6 +263,14 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
     private Serializer serializer;
     private KeyFactory keyFactory;
 
+    /**
+     * Constructor
+     *
+     * @param jedisPool JedisPool
+     * @param options options of State
+     * @param serializer Serializer
+     * @param keyFactory KeyFactory
+     */
     public RedisMapState(JedisPool jedisPool, Options options,
                                             Serializer<T> serializer, KeyFactory keyFactory) {
         this.jedisPool = jedisPool;
@@ -179,16 +279,25 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         this.keyFactory = keyFactory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected Serializer getSerializer() {
         return serializer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected KeyFactory getKeyFactory() {
         return keyFactory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected List<String> retrieveValuesFromRedis(List<String> keys) {
         String[] stringKeys = keys.toArray(new String[keys.size()]);
@@ -216,6 +325,9 @@ public class RedisMapState<T> extends AbstractRedisMapState<T> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void updateStatesToRedis(Map<String, String> keyValues) {
         Jedis jedis = null;

@@ -183,12 +183,14 @@
  * STORM-188: Allow user to specifiy full configuration path when running storm command
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
+## 0.9.6
+ * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A
 
 ## 0.9.5
  * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
  * STORM-796: Add support for "error" command in ShellSpout
  * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
-  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.4
  * STORM-559: ZkHosts in README should use 2181 as port.

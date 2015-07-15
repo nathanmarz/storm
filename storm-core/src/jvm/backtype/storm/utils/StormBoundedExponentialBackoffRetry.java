@@ -44,8 +44,8 @@ public class StormBoundedExponentialBackoffRetry extends BoundedExponentialBacko
         expRetriesThreshold = 1;
         while ((1 << (expRetriesThreshold + 1)) < ((maxSleepTimeMs - baseSleepTimeMs) / 2))
             expRetriesThreshold++;
-        LOG.info("The baseSleepTimeMs [" + baseSleepTimeMs + "] the maxSleepTimeMs [" + maxSleepTimeMs + "] " +
-                "the maxRetries [" + maxRetries + "]");
+        LOG.debug("The baseSleepTimeMs [{}] the maxSleepTimeMs [{}] the maxRetries [{}]", 
+				baseSleepTimeMs, maxSleepTimeMs, maxRetries);
         if (baseSleepTimeMs > maxSleepTimeMs) {
             LOG.warn("Misconfiguration: the baseSleepTimeMs [" + baseSleepTimeMs + "] can't be greater than " +
                     "the maxSleepTimeMs [" + maxSleepTimeMs + "].");

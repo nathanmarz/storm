@@ -37,7 +37,7 @@ The following sections give an overview of the various configuration options and
 ### Number of executors (threads)
 
 * Description: How many executors to spawn _per component_.
-* Configuration option: ?
+* Configuration option: None (pass ``parallelism_hint`` parameter to ``setSpout`` or ``setBolt``)
 * How to set in your code (examples):
     * [TopologyBuilder#setSpout()](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
     * [TopologyBuilder#setBolt()](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
@@ -120,4 +120,3 @@ $ storm rebalance mytopology -n 5 -e blue-spout=3 -e yellow-bolt=10
 * [Local mode](Local-mode.html)
 * [Tutorial](Tutorial.html)
 * [Storm API documentation](/javadoc/apidocs/), most notably the class ``Config``
-

@@ -11,6 +11,7 @@
  * STORM-934: The current doc for topology ackers is outdated
  * STORM-160: Allow ShellBolt to set env vars (particularly PATH)
  * STORM-937: Changing noisy log level from info to debug
+ * STORM-931: Python Scritps to Produce Formatted JIRA and GitHub Join
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

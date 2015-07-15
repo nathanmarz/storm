@@ -204,6 +204,7 @@ under the License.
 * Brendan W. Lyon ([@lyonbrw](https://github.com/lyonbrw))
 * Shyam Rajendran ([@bourneagain](https://github.com/bourneagain))
 * Reza Farivar ([@rfarivar](https://github.com/rfarivar))
+* Hugo Louro ([@hmcl](https://github.com/hmcl))
 
 ## Acknowledgements
 

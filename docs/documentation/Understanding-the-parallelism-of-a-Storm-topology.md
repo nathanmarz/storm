@@ -56,7 +56,7 @@ Here is an example code snippet to show these settings in practice:
 ```java
 topologyBuilder.setBolt("green-bolt", new GreenBolt(), 2)
                .setNumTasks(4)
-               .shuffleGrouping("blue-spout);
+               .shuffleGrouping("blue-spout");
 ```
 
 In the above code we configured Storm to run the bolt ``GreenBolt`` with an initial number of two executors and four associated tasks. Storm will run two tasks per executor (thread). If you do not explicitly configure the number of tasks, Storm will run by default one task per executor.

@@ -291,7 +291,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (if (nil? (get-log-user-group-whitelist fname))
       (-> (resp/response "Page not found")
         (resp/status 404))
-      (unauthorized-user-html user)))
+      (unauthorized-user-html user))))
 
 (defn download-log-file [fname req resp user ^String root-dir]
   (let [file (.getCanonicalFile (File. root-dir fname))]

@@ -70,9 +70,9 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>1.4</version>
             <configuration>
                 <createDependencyReducedPom>true</createDependencyReducedPom>
+                <minimizeJar>true</minimizeJar>
             </configuration>
             <executions>
                 <execution>

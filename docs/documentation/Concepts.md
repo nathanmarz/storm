@@ -80,7 +80,7 @@ Please note that [OutputCollector](/javadoc/apidocs/backtype/storm/task/OutputCo
 
 Part of defining a topology is specifying for each bolt which streams it should receive as input. A stream grouping defines how that stream should be partitioned among the bolt's tasks.
 
-There are seven built-in stream groupings in Storm, and you can implement a custom stream grouping by implementing the [CustomStreamGrouping](/javadoc/apidocs/backtype/storm/grouping/CustomStreamGrouping.html) interface:
+There are eight built-in stream groupings in Storm, and you can implement a custom stream grouping by implementing the [CustomStreamGrouping](/javadoc/apidocs/backtype/storm/grouping/CustomStreamGrouping.html) interface:
 
 1. **Shuffle grouping**: Tuples are randomly distributed across the bolt's tasks in a way such that each bolt is guaranteed to get an equal number of tuples.
 2. **Fields grouping**: The stream is partitioned by the fields specified in the grouping. For example, if the stream is grouped by the "user-id" field, tuples with the same "user-id" will always go to the same task, but tuples with different "user-id"'s may go to different tasks.

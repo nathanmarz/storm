@@ -17,6 +17,7 @@
  * STORM-926: change pom to use maven-shade-plugin:2.2
  * STORM-793: Made change to logviewer.clj in order to remove the invalid http 500 response
  * STORM-857: create logs metadata dir when running securely
+ * STORM-942: Add FluxParser method parseInputStream() to eliminate disk usage
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

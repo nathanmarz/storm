@@ -8,7 +8,7 @@ To develop topologies, you'll need the Storm jars on your classpath. You should 
 <dependency>
   <groupId>org.apache.storm</groupId>
   <artifactId>storm-core</artifactId>
-  <version>0.9.3</version>
+  <version>0.9.5</version>
   <scope>provided</scope>
 </dependency>
 ```

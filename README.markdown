@@ -206,6 +206,7 @@ under the License.
 * Reza Farivar ([@rfarivar](https://github.com/rfarivar))
 * Hugo Louro ([@hmcl](https://github.com/hmcl))
 * Xin Wang ([@vesense](https://github.com/vesense))
+* Aaron Dossett ([@dossett](https://github.com/dossett))
 
 ## Acknowledgements
 

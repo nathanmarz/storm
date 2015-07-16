@@ -65,7 +65,7 @@ public class FluxParser {
     public static TopologyDef parseInputStream(InputStream inputStream, boolean dumpYaml, boolean processIncludes,
             String propertiesFile, boolean envSub) throws IOException {
 		
-    	Yaml yaml = yaml();
+    		Yaml yaml = yaml();
     	
 		if (inputStream == null) {
 			LOG.error("Unable to load input stream");
@@ -73,7 +73,6 @@ public class FluxParser {
 		}
 		
 		TopologyDef topology = loadYaml(yaml, inputStream, propertiesFile, envSub);
-		inputStream.close();
 		
 		if (dumpYaml) {
 			dumpYaml(topology, yaml);

@@ -209,6 +209,7 @@ under the License.
 * Aaron Dossett ([@dossett](https://github.com/dossett))
 * Charles Chan ([@charleswhchan](https://github.com/charleswhchan))
 * Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
+* Xingyu Su ([@errordaiwa](https://github.com/errordaiwa))
 
 ## Acknowledgements
 

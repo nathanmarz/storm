@@ -208,6 +208,7 @@ under the License.
 * Xin Wang ([@vesense](https://github.com/vesense))
 * Aaron Dossett ([@dossett](https://github.com/dossett))
 * Charles Chan ([@charleswhchan](https://github.com/charleswhchan))
+* Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
 
 ## Acknowledgements
 

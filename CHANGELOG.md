@@ -14,6 +14,7 @@
  * STORM-931: Python Scritps to Produce Formatted JIRA and GitHub Join
  * STORM-924: Set the file mode of the files included when packaging release packages
  * STORM-799: Use IErrorReport interface more broadly
+ * STORM-926: change pom to use maven-shade-plugin:2.2
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

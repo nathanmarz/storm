@@ -206,7 +206,7 @@
         <snakeyaml.version>1.11</snakeyaml.version>
         <httpclient.version>4.3.3</httpclient.version>
         <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
-        <disruptor.version>2.10.1</disruptor.version>
+        <disruptor.version>2.10.4</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>16.0.1</guava.version>
         <netty.version>3.9.0.Final</netty.version>

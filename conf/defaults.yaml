@@ -198,5 +198,6 @@ topology.testing.always.try.serialize: false
 topology.classpath: null
 topology.environment: null
 topology.bolts.outgoing.overflow.buffer.enable: false
+topology.disruptor.wait.timeout.millis: 1000
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"

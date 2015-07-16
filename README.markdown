@@ -205,6 +205,7 @@ under the License.
 * Shyam Rajendran ([@bourneagain](https://github.com/bourneagain))
 * Reza Farivar ([@rfarivar](https://github.com/rfarivar))
 * Hugo Louro ([@hmcl](https://github.com/hmcl))
+* Xin Wang ([@vesense](https://github.com/vesense))
 
 ## Acknowledgements
 

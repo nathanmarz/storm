@@ -46,7 +46,7 @@ public class MetricsConsumerBolt implements IBolt {
             throw new RuntimeException("Could not instantiate a class listed in config under section " +
                 Config.TOPOLOGY_METRICS_CONSUMER_REGISTER + " with fully qualified name " + _consumerClassName, e);
         }
-        _metricsConsumer.prepare(stormConf, _registrationArgument, context, (IErrorReporter)collector);
+        _metricsConsumer.prepare(stormConf, _registrationArgument, context, collector);
         _collector = collector;
     }
     

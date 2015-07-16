@@ -45,10 +45,10 @@
 ;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue,
 ;; unblocking the consumer
 (defnk disruptor-queue
-  [^String queue-name buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
+  [^String queue-name buffer-size timeout :claim-strategy :multi-threaded :wait-strategy :block]
   (DisruptorQueue. queue-name
                    ((CLAIM-STRATEGY claim-strategy) buffer-size)
-                   (mk-wait-strategy wait-strategy)))
+                   (mk-wait-strategy wait-strategy) timeout))
 
 (defn clojure-handler
   [afn]

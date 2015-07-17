@@ -27,7 +27,6 @@
   (:import [backtype.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
   (:require [backtype.storm
-             [tuple :as tuple]
              [thrift :as thrift]
              [stats :as stats]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))

@@ -15,8 +15,11 @@
 ;; limitations under the License.
 
 (ns backtype.storm.tuple
-  (:import [java.util List]))
+  (:import [java.util Arrays List]))
 
 (defn list-hash-code
   [^List alist]
-  (.hashCode alist))
+  (if (nil? alist)
+    1
+    (let [^"[Ljava.lang.Object;" array (.toArray alist)] ;; Object[]
+      (Arrays/deepHashCode array))))

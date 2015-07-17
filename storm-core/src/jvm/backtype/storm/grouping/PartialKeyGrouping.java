@@ -20,6 +20,7 @@ package backtype.storm.grouping;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import backtype.storm.generated.GlobalStreamId;
@@ -65,7 +66,11 @@ public class PartialKeyGrouping implements CustomStreamGrouping, Serializable {
                 List<Object> selectedFields = outFields.select(fields, values);
                 ByteBuffer out = ByteBuffer.allocate(selectedFields.size() * 4);
                 for (Object o: selectedFields) {
-                    out.putInt(o.hashCode());
+                    if (o instanceof Object[]) {
+                        out.putInt(Arrays.deepHashCode((Object[])o));
+                    } else {
+                        out.putInt(o.hashCode());
+                    }
                 }
                 raw = out.array();
             } else {

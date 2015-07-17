@@ -169,8 +169,12 @@
         <module>external/storm-redis</module>
         <module>external/storm-eventhubs</module>
         <module>external/flux</module>
+<<<<<<< HEAD
         <module>examples/storm-starter</module>
         <module>external/storm-elasticsearch</module>
+=======
+        <module>external/storm-solr</module>
+>>>>>>> STORM-851: Storm Solr Connector
     </modules>
 
     <scm>

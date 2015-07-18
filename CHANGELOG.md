@@ -11,13 +11,14 @@
  * STORM-934: The current doc for topology ackers is outdated
  * STORM-160: Allow ShellBolt to set env vars (particularly PATH)
  * STORM-937: Changing noisy log level from info to debug
- * STORM-931: Python Scritps to Produce Formatted JIRA and GitHub Join
+ * STORM-931: Python Scripts to Produce Formatted JIRA and GitHub Join
  * STORM-924: Set the file mode of the files included when packaging release packages
  * STORM-799: Use IErrorReport interface more broadly
  * STORM-926: change pom to use maven-shade-plugin:2.2
  * STORM-793: Made change to logviewer.clj in order to remove the invalid http 500 response
  * STORM-857: create logs metadata dir when running securely
  * STORM-942: Add FluxParser method parseInputStream() to eliminate disk usage
+ * STORM-67: Provide API for spouts to know how many pending messages there are
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

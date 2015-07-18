@@ -22,7 +22,6 @@ import random
 import subprocess as sub
 import re
 import shlex
-import inspect
 try:
     # python 3
     from urllib.parse import quote_plus
@@ -162,9 +161,6 @@ def print_remoteconfvalue(name):
     """
     print(name + ": " + confvalue(name, [CLUSTER_CONF_DIR]))
 
-def print_help(func):
-    print(func.__doc__)
-    sys.exit(0)
 def parse_args(string):
     r"""Takes a string of whitespace-separated tokens and parses it into a list.
     Whitespace inside tokens may be quoted with single quotes, double quotes or
@@ -186,11 +182,6 @@ def parse_args(string):
 
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True, daemonName=""):
     global CONFFILE
-    arg_check = ['kill', 'upload_credentials', 'activate', 'deactivate', 'rebalance', 'get_errors']
-    func = inspect.stack()[1][3]
-    if not args and func in arg_check:
-        print(eval(func).__doc__)
-        sys.exit(0)
     storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
     if(storm_log_dir == None or storm_log_dir == "nil"):
         storm_log_dir = os.path.join(STORM_DIR, "logs")
@@ -241,7 +232,8 @@ def kill(*args):
     of time Storm waits between deactivation and shutdown with the -w flag.
     """
     if not args:
-        print_help(kill)
+        print_usage(command="kill")
+        sys.exit(2)
     exec_storm_class(
         "backtype.storm.command.kill_topology",
         args=args,
@@ -255,7 +247,8 @@ def upload_credentials(*args):
     Uploads a new set of credentials to a running topology
     """
     if not args:
-        print_help(upload_credentials)
+        print_usage(command="upload_credentials")
+        sys.exit(2)
     exec_storm_class(
         "backtype.storm.command.upload_credentials",
         args=args,
@@ -268,7 +261,8 @@ def activate(*args):
     Activates the specified topology's spouts.
     """
     if not args:
-        print_help(activate)
+        print_usage(command="activate")
+        sys.exit(2)
     exec_storm_class(
         "backtype.storm.command.activate",
         args=args,
@@ -292,7 +286,8 @@ def deactivate(*args):
     Deactivates the specified topology's spouts.
     """
     if not args:
-        print_help(deactivate)
+        print_usage(command="deactivate")
+        sys.exit(2)
     exec_storm_class(
         "backtype.storm.command.deactivate",
         args=args,
@@ -321,7 +316,8 @@ def rebalance(*args):
     respectively.
     """
     if not args:
-        print_help(rebalance)
+        print_usage(command="rebalance")
+        sys.exit(2)
     exec_storm_class(
         "backtype.storm.command.rebalance",
         args=args,
@@ -336,7 +332,8 @@ def get_errors(*args):
     The result is returned in json format.
     """
     if not args:
-        print_help(get_errors)
+        print_usage(command="get_errors")
+        sys.exit(2)
     exec_storm_class(
         "backtype.storm.command.get_errors",
         args=args,

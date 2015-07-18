@@ -174,5 +174,9 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
             _collector.reportError(t);
         }
         
+        @Override
+        public long getPendingCount() {
+            return _collector.getPendingCount();
+        }
     }
 }

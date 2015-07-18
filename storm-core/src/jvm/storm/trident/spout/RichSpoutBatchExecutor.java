@@ -112,6 +112,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
                 }
             }
             idsMap.put(txid, _collector.ids);
+            _collector.pendingCount = idsMap.size();
 
         }
 
@@ -170,7 +171,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         TridentCollector _collector;
         public List<Object> ids;
         public int numEmitted;
-        
+        public long pendingCount;
         public void reset(TridentCollector c) {
             _collector = c;
             ids = new ArrayList<Object>();
@@ -194,6 +195,10 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
             throw new UnsupportedOperationException("Trident does not support direct streams");
         }
         
+        @Override
+        public long getPendingCount() {
+            return pendingCount;
+        }
     }
     
 }

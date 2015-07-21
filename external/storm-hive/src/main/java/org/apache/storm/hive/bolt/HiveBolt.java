@@ -106,7 +106,7 @@ public class HiveBolt extends  BaseRichBolt {
             writer.write(options.getMapper().mapRecord(tuple));
             currentBatchSize++;
             if(currentBatchSize >= options.getBatchSize()) {
-                flushAllWriters();
+                flushAllWriters(true);
                 currentBatchSize = 0;
             }
             collector.ack(tuple);
@@ -170,10 +170,10 @@ public class HiveBolt extends  BaseRichBolt {
         }
     }
 
-    private void flushAllWriters()
+    private void flushAllWriters(boolean rollToNext)
         throws HiveWriter.CommitFailure, HiveWriter.TxnBatchFailure, HiveWriter.TxnFailure, InterruptedException {
         for(HiveWriter writer: allWriters.values()) {
-            writer.flush(true);
+            writer.flush(rollToNext);
         }
     }
 
@@ -196,7 +196,7 @@ public class HiveBolt extends  BaseRichBolt {
 
     private void flushAndCloseWriters() {
         try {
-            flushAllWriters();
+            flushAllWriters(false);
         } catch(Exception e) {
             LOG.warn("unable to flush hive writers. ", e);
         } finally {

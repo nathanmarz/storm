@@ -57,6 +57,11 @@ public class TimedRotationPolicy implements FileRotationPolicy {
         return false;
     }
 
+    @Override
+    public boolean mark(long offset) {
+        return false;
+    }
+
     /**
      * Called after the HdfsBolt rotates a file.
      */

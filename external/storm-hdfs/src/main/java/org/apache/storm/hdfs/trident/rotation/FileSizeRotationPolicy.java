@@ -66,6 +66,11 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
 
     @Override
     public boolean mark(TridentTuple tuple, long offset) {
+        return mark(offset);
+    }
+
+    @Override
+    public boolean mark(long offset) {
         long diff = offset - this.lastOffset;
         this.currentBytesWritten += diff;
         this.lastOffset = offset;

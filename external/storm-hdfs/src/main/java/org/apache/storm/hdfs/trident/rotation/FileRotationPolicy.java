@@ -41,6 +41,14 @@ public interface FileRotationPolicy extends Serializable {
      */
     boolean mark(TridentTuple tuple, long offset);
 
+    /**
+     * Check if a file rotation should be performed based on
+     * the offset at which file is being written.
+     * 
+     * @param offset the current offset of file being written
+     * @return true if a file rotation should be performed.
+     */
+    boolean mark(long offset);
 
     /**
      * Called after the HdfsBolt rotates a file.

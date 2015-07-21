@@ -19,6 +19,7 @@
  * STORM-857: create logs metadata dir when running securely
  * STORM-942: Add FluxParser method parseInputStream() to eliminate disk usage
  * STORM-67: Provide API for spouts to know how many pending messages there are
+ * STORM-918: Storm CLI could validate arguments/print usage
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

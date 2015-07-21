@@ -5,7 +5,7 @@ documentation: true
 ---
 ### Basics of Storm
 
-* [Javadoc](http://nathanmarz.github.com/storm)
+* [Javadoc](/javadoc/apidocs/index.html)
 * [Concepts](Concepts.html)
 * [Configuration](Configuration.html)
 * [Guaranteeing message processing](Guaranteeing-message-processing.html)

@@ -193,6 +193,7 @@ public class HdfsState implements State {
         private transient FSDataOutputStream out;
         protected RecordFormat format;
         private long offset = 0;
+        private int bufferSize =  131072; // default 128 K
 
         public HdfsFileOptions withFsUrl(String fsUrl) {
             this.fsUrl = fsUrl;
@@ -216,6 +217,11 @@ public class HdfsState implements State {
 
         public HdfsFileOptions withRotationPolicy(FileRotationPolicy rotationPolicy) {
             this.rotationPolicy = rotationPolicy;
+            return this;
+        }
+
+        public HdfsFileOptions withBufferSize(int size) {
+            this.bufferSize = Math.max(4096, size); // at least 4K
             return this;
         }
 
@@ -262,7 +268,7 @@ public class HdfsState implements State {
         }
 
         private void copyBytes(FSDataInputStream is, FSDataOutputStream out, long bytesToCopy) throws IOException {
-            byte[] buf = new byte[4096];
+            byte[] buf = new byte[bufferSize];
             int n;
             while ((n = is.read(buf)) != -1 && bytesToCopy > 0) {
                 out.write(buf, 0, (int) Math.min(n, bytesToCopy));

@@ -21,7 +21,10 @@ import backtype.storm.Config;
 import backtype.storm.task.IMetricsContext;
 import backtype.storm.topology.FailedException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
@@ -32,7 +35,6 @@ import org.apache.storm.hdfs.trident.format.FileNameFormat;
 import org.apache.storm.hdfs.trident.format.RecordFormat;
 import org.apache.storm.hdfs.trident.format.SequenceFormat;
 import org.apache.storm.hdfs.trident.rotation.FileRotationPolicy;
-
 import org.apache.storm.hdfs.trident.rotation.TimedRotationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +42,19 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class HdfsState implements State {
 

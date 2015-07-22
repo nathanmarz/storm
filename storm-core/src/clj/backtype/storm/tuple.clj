@@ -21,5 +21,4 @@
   [^List alist]
   (if (nil? alist)
     1
-    (let [^"[Ljava.lang.Object;" array (.toArray alist)] ;; Object[]
-      (Arrays/deepHashCode array))))
+    (Arrays/deepHashCode (.toArray alist))))

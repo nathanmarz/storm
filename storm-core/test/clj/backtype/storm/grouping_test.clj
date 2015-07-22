@@ -21,23 +21,23 @@
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm [thrift :as thrift]]))
 
- (deftest test-shuffle
-   (with-simulated-time-local-cluster [cluster :supervisors 4]
-     (let [topology (thrift/mk-topology
-                     {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
-                     {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
-                                             :parallelism-hint 6)
-                      })
-           results (complete-topology cluster
-                                      topology
-                                      ;; important for test that
-                                      ;; #tuples = multiple of 4 and 6
-                                      :mock-sources {"1" (->> [["a"] ["b"]]
-                                                              (repeat 12)
-                                                              (apply concat))})]
-       (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
-                (read-tuples results "2")))
-       )))
+(deftest test-shuffle
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
+                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
+                                            :parallelism-hint 6)
+                     })
+          results (complete-topology cluster
+                                     topology
+                                     ;; important for test that
+                                     ;; #tuples = multiple of 4 and 6
+                                     :mock-sources {"1" (->> [["a"] ["b"]]
+                                                             (repeat 12)
+                                                             (apply concat))})]
+      (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
+               (read-tuples results "2")))
+      )))
 
 (deftest test-field
   (with-simulated-time-local-cluster [cluster :supervisors 4]

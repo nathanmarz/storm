@@ -32,10 +32,7 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IBatchSpout;
 import storm.trident.state.StateFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TridentEsTopology {
 
@@ -72,10 +69,10 @@ public class TridentEsTopology {
         int maxBatchSize;
         HashMap<Long, List<List<Object>>> batches = new HashMap<Long, List<List<Object>>>();
         private Values[] outputs = {
-                new Values("index1", "type1", "{\"user\":\"user1\"}"),
-                new Values("index1", "type2", "{\"user\":\"user2\"}"),
-                new Values("index2", "type1", "{\"user\":\"user3\"}"),
-                new Values("index2", "type2", "{\"user\":\"user4\"}")
+                new Values("{\"user\":\"user1\"}", "index1", "type1", UUID.randomUUID().toString()),
+                new Values("{\"user\":\"user2\"}", "index1", "type2", UUID.randomUUID().toString()),
+                new Values("{\"user\":\"user3\"}", "index2", "type1", UUID.randomUUID().toString()),
+                new Values("{\"user\":\"user4\"}", "index2", "type2", UUID.randomUUID().toString())
         };
         private int index = 0;
         boolean cycle = false;
@@ -90,7 +87,7 @@ public class TridentEsTopology {
 
         @Override
         public Fields getOutputFields() {
-            return new Fields("index", "type", "source");
+            return new Fields("source", "index", "type", "id");
         }
 
         @Override

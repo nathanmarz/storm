@@ -34,6 +34,10 @@ public class EsStateFactory implements StateFactory {
 
     }
 
+    /**
+     * EsStateFactory constructor
+     * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     */
     public EsStateFactory(EsConfig esConfig){
         this.esConfig = esConfig;
     }

@@ -20,6 +20,12 @@ package org.apache.storm.elasticsearch.bolt;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountRequestBuilder;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.TermQueryBuilder;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,14 +42,27 @@ public class EsIndexBoltTest extends AbstractEsBoltTest{
         EsConfig esConfig = new EsConfig();
         esConfig.setClusterName("test-cluster");
         esConfig.setNodes(new String[]{"127.0.0.1:9300"});
+
         bolt = new EsIndexBolt(esConfig);
         bolt.prepare(config, null, collector);
+
+        String source = "{\"user\":\"user1\"}";
         String index = "index1";
         String type = "type1";
-        String source = "{\"user\":\"user1\"}";
-        Tuple tuple = EsTestUtil.generateTestTuple(index, type, source);
+        String id = "docId";
+        Tuple tuple = EsTestUtil.generateTestTuple(source, index, type, id);
+
         bolt.execute(tuple);
+
         verify(collector).ack(tuple);
+
+        node.client().admin().indices().prepareRefresh(index).execute().actionGet();
+        CountResponse resp = node.client().prepareCount(index)
+                .setQuery(new TermQueryBuilder("_type", type))
+                .execute().actionGet();
+
+        Assert.assertEquals(1, resp.getCount());
+
         bolt.cleanup();
     }
 }

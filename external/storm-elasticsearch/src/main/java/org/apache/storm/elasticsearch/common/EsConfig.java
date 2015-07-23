@@ -26,7 +26,12 @@ public class EsConfig implements Serializable{
     public EsConfig() {
     }
 
-    public EsConfig(String clusterName, String[] nodes, int port) {
+    /**
+     * EsConfig Constructor to be used in EsIndexBolt, EsPercolateBolt and EsStateFactory
+     * @param clusterName Elasticsearch cluster name
+     * @param nodes Elasticsearch addresses in host:port pattern string array
+     */
+    public EsConfig(String clusterName, String[] nodes) {
         this.clusterName = clusterName;
         this.nodes = nodes;
     }

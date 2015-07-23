@@ -6,7 +6,7 @@
 ## EsIndexBolt (org.apache.storm.elasticsearch.bolt.EsIndexBolt)
 
 EsIndexBolt streams tuples directly into Elasticsearch. Tuples are indexed in specified index & type combination. 
-User should make sure that there are "index","type", and "source" fields declared in preceding bolts or spout.
+User should make sure that there are "source", "index","type", and "id" fields declared in preceding bolts or spout.
 "index" and "type" fields are used for identifying target index and type.
 "source" is a document in JSON format string that will be indexed in elastic search.
 
@@ -20,7 +20,7 @@ EsIndexBolt indexBolt = new IndexBolt(esConfig);
 ## EsPercolateBolt (org.apache.storm.elasticsearch.bolt.EsPercolateBolt)
 
 EsPercolateBolt streams tuples directly into Elasticsearch. Tuples are used to send percolate request to specified index & type combination. 
-User should make sure that there are "index","type", and "source" fields declared in preceding bolts or spout.
+User should make sure that there are "source", "index", and "type" fields declared in preceding bolts or spout.
 "index" and "type" fields are used for identifying target index and type.
 "source" is a document in JSON format string that will be sent in percolate request to elastic search.
 

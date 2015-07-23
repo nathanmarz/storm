@@ -42,15 +42,33 @@ public class EsState implements State {
     private static Client client;
     private EsConfig esConfig;
 
+    /**
+     * EsState constructor
+     * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     */
     public EsState(EsConfig esConfig) {
         this.esConfig = esConfig;
     }
 
+    /**
+     * @param txid
+     *
+     * Elasticsearch index requests with same id will result in update operation
+     * which means if same tuple replays, only one record will be stored in elasticsearch for same document
+     * without control with txid
+     */
     @Override
     public void beginCommit(Long txid) {
 
     }
 
+    /**
+     * @param txid
+     *
+     * Elasticsearch index requests with same id will result in update operation
+     * which means if same tuple replays, only one record will be stored in elasticsearch for same document
+     * without control with txid
+     */
     @Override
     public void commit(Long txid) {
 
@@ -83,10 +101,12 @@ public class EsState implements State {
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {
         BulkRequestBuilder bulkRequest = client.prepareBulk();
         for (TridentTuple tuple : tuples) {
+            String source = tuple.getStringByField("source");
             String index = tuple.getStringByField("index");
             String type = tuple.getStringByField("type");
-            String source = tuple.getStringByField("source");
-            bulkRequest.add(client.prepareIndex(index, type).setSource(source));
+            String id = tuple.getStringByField("id");
+
+            bulkRequest.add(client.prepareIndex(index, type, id).setSource(source));
         }
         BulkResponse bulkResponse = bulkRequest.execute().actionGet();
         if (bulkResponse.hasFailures()) {

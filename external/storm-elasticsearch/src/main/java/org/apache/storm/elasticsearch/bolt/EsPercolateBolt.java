@@ -34,6 +34,10 @@ import java.util.Map;
 public class EsPercolateBolt extends AbstractEsBolt {
     private static final Logger LOG = LoggerFactory.getLogger(EsPercolateBolt.class);
 
+    /**
+     * EsPercolateBolt constructor
+     * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     */
     public EsPercolateBolt(EsConfig esConfig) {
         super(esConfig);
     }
@@ -43,12 +47,17 @@ public class EsPercolateBolt extends AbstractEsBolt {
         super.prepare(map, topologyContext, outputCollector);
     }
 
+    /**
+     * Executes percolate request for given tuple.
+     * @param tuple should contain string values of 3 declared fields: "source", "index", "type"
+     */
     @Override
     public void execute(Tuple tuple) {
         try {
+            String source = tuple.getStringByField("source");
             String index = tuple.getStringByField("index");
             String type = tuple.getStringByField("type");
-            String source = tuple.getStringByField("source");
+
             PercolateResponse response = client.preparePercolate().setIndices(index).setDocumentType(type)
                     .setPercolateDoc(PercolateSourceBuilder.docBuilder().setDoc(source)).execute().actionGet();
             if (response.getCount() > 0) {

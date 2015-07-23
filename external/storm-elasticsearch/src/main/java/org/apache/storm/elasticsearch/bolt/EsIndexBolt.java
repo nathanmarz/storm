@@ -30,6 +30,10 @@ import java.util.Map;
 public class EsIndexBolt extends AbstractEsBolt {
     private static final Logger LOG = LoggerFactory.getLogger(EsIndexBolt.class);
 
+    /**
+     * EsIndexBolt constructor
+     * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     */
     public EsIndexBolt(EsConfig esConfig) {
         super(esConfig);
     }
@@ -39,13 +43,19 @@ public class EsIndexBolt extends AbstractEsBolt {
         super.prepare(map, topologyContext, outputCollector);
     }
 
+    /**
+     * Executes index request for given tuple.
+     * @param tuple should contain string values of 4 declared fields: "source", "index", "type", "id"
+     */
     @Override
     public void execute(Tuple tuple) {
         try {
+            String source = tuple.getStringByField("source");
             String index = tuple.getStringByField("index");
             String type = tuple.getStringByField("type");
-            String source = tuple.getStringByField("source");
-            client.prepareIndex(index, type).setSource(source).execute().actionGet();
+            String id = tuple.getStringByField("id");
+
+            client.prepareIndex(index, type, id).setSource(source).execute().actionGet();
             collector.ack(tuple);
         } catch (Exception e) {
             e.printStackTrace();

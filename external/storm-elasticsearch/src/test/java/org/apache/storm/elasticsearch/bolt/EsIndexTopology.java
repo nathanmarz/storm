@@ -80,7 +80,7 @@ public class EsIndexTopology {
         private String typeName = "type1";
 
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("index", "type", "source"));
+            declarer.declare(new Fields("source", "index", "type", "id"));
         }
 
         public void open(Map config, TopologyContext context,
@@ -91,8 +91,8 @@ public class EsIndexTopology {
 
         public void nextTuple() {
             String source = sources[index];
-            Values values = new Values(indexName, typeName, source);
             UUID msgId = UUID.randomUUID();
+            Values values = new Values(source, indexName, typeName, msgId);
             this.pending.put(msgId, values);
             this.collector.emit(values, msgId);
             index++;

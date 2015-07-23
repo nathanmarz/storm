@@ -21,6 +21,9 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.index.query.TermQueryBuilder;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +42,22 @@ public class EsPercolateBoltTest extends AbstractEsBoltTest {
         esConfig.setNodes(new String[]{"localhost:9300"});
         bolt = new EsPercolateBolt(esConfig);
         bolt.prepare(config, null, collector);
+
+        String source = "{\"user\":\"user1\"}";
         String index = "index1";
         String type = ".percolator";
-        String source = "{\"user\":\"user1\"}";
+
         node.client().prepareIndex("index1",".percolator")
                 .setId("1")
                 .setSource("{\"query\":{\"match\":{\"user\":\"user1\"}}}").
                 execute().actionGet();
-        Tuple tuple = EsTestUtil.generateTestTuple(index, type, source);
+        Tuple tuple = EsTestUtil.generateTestTuple(source, index, type, null);
+
         bolt.execute(tuple);
+
         verify(collector).ack(tuple);
         verify(collector).emit(new Values("1"));
+
         bolt.cleanup();
     }
 }

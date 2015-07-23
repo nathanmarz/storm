@@ -34,16 +34,16 @@ import org.elasticsearch.node.NodeBuilder;
 import java.util.HashMap;
 
 public class EsTestUtil {
-    public static Tuple generateTestTuple(String index, String type, String source) {
+    public static Tuple generateTestTuple(String source, String index, String type, String id) {
         TopologyBuilder builder = new TopologyBuilder();
         GeneralTopologyContext topologyContext = new GeneralTopologyContext(builder.createTopology(),
                 new Config(), new HashMap(), new HashMap(), new HashMap(), "") {
             @Override
             public Fields getComponentOutputFields(String componentId, String streamId) {
-                return new Fields("index", "type", "source");
+                return new Fields("source", "index", "type", "id");
             }
         };
-        return new TupleImpl(topologyContext, new Values(index, type, source), 1, "");
+        return new TupleImpl(topologyContext, new Values(source, index, type, id), 1, "");
     }
 
     public static Node startEsNode(){

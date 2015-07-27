@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 public class EsIndexBolt extends AbstractEsBolt {
-    private static final Logger LOG = LoggerFactory.getLogger(EsIndexBolt.class);
 
     /**
      * EsIndexBolt constructor
@@ -58,8 +57,6 @@ public class EsIndexBolt extends AbstractEsBolt {
             client.prepareIndex(index, type, id).setSource(source).execute().actionGet();
             collector.ack(tuple);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e);
             collector.reportError(e);
             collector.fail(tuple);
         }

@@ -27,7 +27,6 @@ import storm.trident.state.StateFactory;
 import java.util.Map;
 
 public class EsStateFactory implements StateFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(EsStateFactory.class);
     private EsConfig esConfig;
 
     public EsStateFactory(){

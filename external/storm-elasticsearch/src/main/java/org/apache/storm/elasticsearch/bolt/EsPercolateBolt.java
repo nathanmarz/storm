@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 public class EsPercolateBolt extends AbstractEsBolt {
-    private static final Logger LOG = LoggerFactory.getLogger(EsPercolateBolt.class);
 
     /**
      * EsPercolateBolt constructor
@@ -62,13 +61,11 @@ public class EsPercolateBolt extends AbstractEsBolt {
                     .setPercolateDoc(PercolateSourceBuilder.docBuilder().setDoc(source)).execute().actionGet();
             if (response.getCount() > 0) {
                 for (PercolateResponse.Match match : response) {
-                    String id = match.getId().toString();
-                    collector.emit(new Values(id));
+                    collector.emit(new Values(source, match));
                 }
             }
             collector.ack(tuple);
         } catch (Exception e) {
-            e.printStackTrace();
             collector.reportError(e);
             collector.fail(tuple);
         }
@@ -76,6 +73,6 @@ public class EsPercolateBolt extends AbstractEsBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-        outputFieldsDeclarer.declare(new Fields("id"));
+        outputFieldsDeclarer.declare(new Fields("source", "match"));
     }
 }

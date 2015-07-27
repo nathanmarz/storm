@@ -1,7 +1,7 @@
 # Storm Elasticsearch Bolt & Trident State
 
   EsIndexBolt, EsPercolateBolt and EsState allows users to stream data from storm into Elasticsearch directly.
-  For detailed description, please refer to the following.   
+  For detailed description, please refer to the following.
 
 ## EsIndexBolt (org.apache.storm.elasticsearch.bolt.EsIndexBolt)
 
@@ -31,7 +31,10 @@ esConfig.setNodes(new String[]{"localhost:9300"});
 EsPercolateBolt percolateBolt = new EsPercolateBolt(esConfig);
 ```
 
-### EsConfig (org.apache.storm.elasticsearch.common.EsConfig)
+If there exists non-empty percolate response, EsPercolateBolt will emit tuple with original source and Percolate.Match
+for each Percolate.Match in PercolateResponse.
+
+## EsConfig (org.apache.storm.elasticsearch.common.EsConfig)
   
 Two bolts above takes in EsConfig as a constructor arg.
 
@@ -41,7 +44,7 @@ Two bolts above takes in EsConfig as a constructor arg.
    esConfig.setNodes(new String[]{"localhost:9300"});
   ```
 
-EsConfig params
+### EsConfig params
 
 |Arg  |Description | Type
 |---	|--- |---

@@ -22,6 +22,7 @@ import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
 import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.percolate.PercolateResponse;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.any;
 
 public class EsPercolateBoltTest extends AbstractEsBoltTest {
     private static final Logger LOG = LoggerFactory.getLogger(EsIndexBoltTest.class);
@@ -56,7 +58,7 @@ public class EsPercolateBoltTest extends AbstractEsBoltTest {
         bolt.execute(tuple);
 
         verify(collector).ack(tuple);
-        verify(collector).emit(new Values("1"));
+        verify(collector).emit(new Values(source, any(PercolateResponse.Match.class)));
 
         bolt.cleanup();
     }

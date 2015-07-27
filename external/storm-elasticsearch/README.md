@@ -68,5 +68,5 @@ Elasticsearch Trident state also follows similar pattern to EsBolts. It takes in
   
 ## Committer Sponsors
 
- * Robert Evans ([@revans2](https://github.com/revans2))
+ * Sriharsha Chintalapani ([@harshach](https://github.com/harshach))
  * Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))

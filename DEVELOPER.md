@@ -160,12 +160,9 @@ your fork up to date with the latest changes of the upstream (official) `storm` 
 
 ### Approve a pull request
 
-_NOTE: The information in this section may need to be formalized via proper project bylaws._
+[BYLAWS](http://storm.apache.org/documentation/BYLAWS.html) describes the condition of approval for code / non-code change. 
 
-Pull requests are approved with two +1s from committers and need to be up for at least 72 hours for all committers to
-have a chance to comment.  In case it was a committer who sent the pull request than two _different_ committers must +1
-the request.
-
+Please refer Approvals -> Actions section for more details.
 
 <a name="merge-pull-request"></a>
 

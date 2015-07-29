@@ -675,7 +675,7 @@
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
-          topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)
+          topo-worker-logwriter-childopts (conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
           logfilename (logs-filename storm-id port)
@@ -688,7 +688,7 @@
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
                     [(java-cmd) "-cp" classpath 
-                     topo-worker-lw-childopts
+                     topo-worker-logwriter-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dstorm.id=" storm-id)

@@ -1221,6 +1221,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * Topology-specific options for the logwriter process of a worker.
+     */
+    public static final String TOPOLOGY_WORKER_LW_CHILDOPTS="topology.worker.lw.childopts";
+    public static final Object TOPOLOGY_WORKER_LW_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
      * Topology-specific classpath for the worker child process. This is combined to the usual classpath.
      */
     public static final String TOPOLOGY_CLASSPATH="topology.classpath";

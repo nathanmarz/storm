@@ -254,26 +254,6 @@ public class ConfigValidation {
     };
 
     /**
-     * Validates a Double.
-     */
-    public static Object DoubleValidator = new FieldValidator() {
-        @Override
-        public void validateField(String name, Object o) throws IllegalArgumentException {
-            if (o == null) {
-                // A null value is acceptable.
-                return;
-            }
-
-            // we can provide a lenient way to convert int/long to double with losing some precision
-            if (o instanceof Number) {
-                return;
-            }
-
-            throw new IllegalArgumentException("Field " + name + " must be an Double.");
-        }
-    };
-
-    /**
      * Validates a power of 2.
      */
     public static Object PowerOf2Validator = new FieldValidator() {

@@ -140,8 +140,7 @@ public class HiveWriter {
                 if(rollToNext) {
                     txnBatch = nextTxnBatch(recordWriter);
                 }
-            }
-            if(rollToNext) {
+            } else if(rollToNext) {
                 LOG.debug("Switching to next Txn for {}", endPoint);
                 txnBatch.beginNextTransaction(); // does not block
             }
@@ -247,8 +246,8 @@ public class HiveWriter {
                     return connection.fetchTransactionBatch(txnsPerBatch, recordWriter); // could block
                 }
             });
-        LOG.debug("Acquired {}. Switching to first txn", batch);
         batch.beginNextTransaction();
+        LOG.debug("Acquired {}. Switching to first txn", batch);
         } catch(TimeoutException e) {
             throw new TxnBatchFailure(endPoint, e);
         } catch(StreamingException e) {

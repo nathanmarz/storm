@@ -254,6 +254,25 @@ public class ConfigValidation {
     };
 
     /**
+     * Validates a Positive Number
+     */
+    public static Object PositiveNumberValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            if(o instanceof Number) {
+                if(((Number)o).doubleValue() > 0.0) {
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Field " + name + " must be a Number");
+        }
+    };
+
+    /**
      * Validates a power of 2.
      */
     public static Object PowerOf2Validator = new FieldValidator() {

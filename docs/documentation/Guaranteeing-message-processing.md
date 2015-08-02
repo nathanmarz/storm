@@ -136,7 +136,7 @@ As always in software design, the answer is "it depends." Storm 0.7.0 introduced
 
 ### How does Storm implement reliability in an efficient way?
 
-A Storm topology has a set of special "acker" tasks that track the DAG of tuples for every spout tuple. When an acker sees that a DAG is complete, it sends a message to the spout task that created the spout tuple to ack the message. You can set the number of acker tasks for a topology in the topology configuration using [Config.TOPOLOGY_ACKERS](/javadoc/apidocs/backtype/storm/Config.html#TOPOLOGY_ACKERS). Storm defaults TOPOLOGY_ACKERS to one task -- you will need to increase this number for topologies processing large amounts of messages.
+A Storm topology has a set of special "acker" tasks that track the DAG of tuples for every spout tuple. When an acker sees that a DAG is complete, it sends a message to the spout task that created the spout tuple to ack the message. You can set the number of acker executors for a topology in the topology configuration using [Config.TOPOLOGY_ACKER_EXECUTORS](/javadoc/apidocs/backtype/storm/Config.html#TOPOLOGY_ACKER_EXECUTORS). Storm defaults TOPOLOGY_ACKER_EXECUTORS to be equal to the number of workers configured in the topology -- you will need to increase this number for topologies processing large amounts of messages.
 
 The best way to understand Storm's reliability implementation is to look at the lifecycle of tuples and tuple DAGs. When a tuple is created in a topology, whether in a spout or a bolt, it is given a random 64 bit id. These ids are used by ackers to track the tuple DAG for every spout tuple.
 

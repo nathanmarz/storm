@@ -40,7 +40,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
                 <executions>
                     <execution>
                         <goals>
@@ -50,6 +49,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <minimizeJar>true</minimizeJar>
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer">
                         </transformer>

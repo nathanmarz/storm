@@ -33,7 +33,7 @@ storm jar all-my-code.jar backtype.storm.MyTopology arg1 arg2
 
 This runs the class `backtype.storm.MyTopology` with the arguments `arg1` and `arg2`. The main function of the class defines the topology and submits it to Nimbus. The `storm jar` part takes care of connecting to Nimbus and uploading the jar.
 
-Since topology definitions are just Thrift structs, and Nimbus is a Thrift service, you can create and submit topologies using any programming language. The above example is the easiest way to do it from a JVM-based language. See [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html)] for more information on starting and stopping topologies.
+Since topology definitions are just Thrift structs, and Nimbus is a Thrift service, you can create and submit topologies using any programming language. The above example is the easiest way to do it from a JVM-based language. See [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html) for more information on starting and stopping topologies.
 
 ## Streams
 
@@ -139,22 +139,27 @@ As you can see, the implementation is very straightforward.
 public static class ExclamationBolt implements IRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void cleanup() {
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }
     
+    @Override
     public Map getComponentConfiguration() {
         return null;
     }
@@ -179,15 +184,18 @@ Methods like `cleanup` and `getComponentConfiguration` are often not needed in a
 public static class ExclamationBolt extends BaseRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }    

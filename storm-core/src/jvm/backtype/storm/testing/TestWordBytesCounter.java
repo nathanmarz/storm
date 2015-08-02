@@ -15,15 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.kafka;
+package backtype.storm.testing;
 
-import java.util.Set;
+import backtype.storm.tuple.Tuple;
 
-public interface FailedMsgRetryManager {
-    public void failed(Long offset);
-    public void acked(Long offset);
-    public void retryStarted(Long offset);
-    public Long nextFailedMessageToRetry();
-    public boolean shouldRetryMsg(Long offset);
-    public Set<Long> clearInvalidMessages(Long kafkaOffset);
+public class TestWordBytesCounter extends TestWordCounter {
+    @Override
+    protected String getTupleValue(Tuple t, int idx) {
+      return new String(t.getBinary(idx));
+    }
 }

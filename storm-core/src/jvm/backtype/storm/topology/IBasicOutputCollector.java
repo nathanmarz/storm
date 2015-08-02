@@ -17,10 +17,11 @@
  */
 package backtype.storm.topology;
 
+import backtype.storm.task.IErrorReporter;
+
 import java.util.List;
 
-public interface IBasicOutputCollector {
+public interface IBasicOutputCollector extends IErrorReporter{
     List<Integer> emit(String streamId, List<Object> tuple);
     void emitDirect(int taskId, String streamId, List<Object> tuple);
-    void reportError(Throwable t);
 }

@@ -131,4 +131,9 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
     public void reportError(Throwable error) {
         _delegate.reportError(error);
     }
+
+    @Override
+    public long getPendingCount() {
+        return _delegate.getPendingCount();
+    }
 }

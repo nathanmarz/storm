@@ -223,6 +223,7 @@
         batch-transfer->worker (disruptor/disruptor-queue
                                   (str "executor"  executor-id "-send-queue")
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
+                                  (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
                                   :claim-strategy :single-threaded
                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         ]
@@ -558,6 +559,9 @@
                  (:user-context task-data)
                  (SpoutOutputCollector.
                   (reify ISpoutOutputCollector
+                    (^long getPendingCount[this]
+                      (.size pending)
+                      )
                     (^List emit [this ^String stream-id ^List tuple ^Object message-id]
                       (send-spout-msg stream-id tuple message-id nil)
                       )

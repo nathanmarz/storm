@@ -73,6 +73,7 @@
             <includes>
                 <include>storm*</include>
             </includes>
+            <fileMode>0755</fileMode>
         </fileSet>
         <fileSet>
             <directory>${project.basedir}/../../storm-core/src/ui/public</directory>
@@ -187,6 +188,7 @@
             <includes>
                 <include>Config.properties</include>
             </includes>
+            <fileMode>0644</fileMode>
         </fileSet>
 
         <fileSet>
@@ -282,21 +284,25 @@
             <source>${project.basedir}/../../conf/storm.yaml.example</source>
             <outputDirectory>/conf</outputDirectory>
             <destName>storm.yaml</destName>
+            <fileMode>0644</fileMode>
         </file>
         <file>
             <source>${project.basedir}/../../conf/storm_env.ini</source>
             <outputDirectory>/conf</outputDirectory>
             <destName>storm_env.ini</destName>
+            <fileMode>0644</fileMode>
         </file>
         <!-- TODO this should be a generated file from "target" -->
         <file>
             <source>${project.basedir}/../../log4j2/cluster.xml</source>
             <outputDirectory>/log4j2</outputDirectory>
+            <fileMode>0644</fileMode>
         </file>
 
         <file>
             <source>${project.basedir}/../../log4j2/worker.xml</source>
             <outputDirectory>/log4j2</outputDirectory>
+            <fileMode>0644</fileMode>
         </file>
 
         <file>

@@ -1080,8 +1080,9 @@ public class Config extends HashMap<String, Object> {
     /**
      * How many executors to spawn for ackers.
      *
-     * <p>If this is set to 0, then Storm will immediately ack tuples as soon
-     * as they come off the spout, effectively disabling reliability.</p>
+     * <p>By not setting this variable or setting it as null, Storm will set the number of acker executors
+     * to be equal to the number of workers configured for this topology. If this variable is set to 0,
+     * then Storm will immediately ack tuples as soon as they come off the spout, effectively disabling reliability.</p>
      */
     public static final String TOPOLOGY_ACKER_EXECUTORS = "topology.acker.executors";
     public static final Object TOPOLOGY_ACKER_EXECUTORS_SCHEMA = ConfigValidation.IntegerValidator;
@@ -1451,6 +1452,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
+
+    /**
+     * Configure timeout milliseconds used for disruptor queue wait strategy. Can be used to tradeoff latency
+     * vs. CPU usage
+     */
+    public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
+    public static final Object TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

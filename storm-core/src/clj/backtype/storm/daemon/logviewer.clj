@@ -181,12 +181,15 @@
 
 (defn get-log-user-group-whitelist [fname]
   (let [wl-file (get-log-metadata-file fname)
-        m (clojure-from-yaml-file wl-file)
-        user-wl (.get m LOGS-USERS)
-        user-wl (if user-wl user-wl [])
-        group-wl (.get m LOGS-GROUPS)
-        group-wl (if group-wl group-wl [])]
-    [user-wl group-wl]))
+        m (clojure-from-yaml-file wl-file)]
+    (if (not-nil? m)
+      (do
+        (let [user-wl (.get m LOGS-USERS)
+              user-wl (if user-wl user-wl [])
+              group-wl (.get m LOGS-GROUPS)
+              group-wl (if group-wl group-wl [])]
+          [user-wl group-wl]))
+        nil)))
 
 (def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
 (defn user-groups
@@ -194,7 +197,7 @@
   (if (blank? user) [] (.getGroups igroup-mapper user)))
 
 (defn authorized-log-user? [user fname conf]
-  (if (or (blank? user) (blank? fname))
+  (if (or (blank? user) (blank? fname) (nil? (get-log-user-group-whitelist fname)))
     nil
     (let [groups (user-groups user)
           [user-wl group-wl] (get-log-user-group-whitelist fname)
@@ -220,7 +223,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defnk to-btn-link
   "Create a link that is formatted like a button"
   [url text :enabled true]
-  [:a {:href (java.net.URI. url) 
+  [:a {:href (java.net.URI. url)
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
 (defn pager-links [fname start length file-size]
@@ -248,7 +251,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                            :start (min (max 0 (- file-size length))
                                        (+ start length))
                            :length length})
-                        "Next" :enabled (> next-start start))])]])) 
+                        "Next" :enabled (> next-start start))])]]))
 
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
@@ -285,7 +288,10 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             pager-data)))))
         (-> (resp/response "Page not found")
             (resp/status 404))))
-    (unauthorized-user-html user)))
+    (if (nil? (get-log-user-group-whitelist fname))
+      (-> (resp/response "Page not found")
+        (resp/status 404))
+      (unauthorized-user-html user))))
 
 (defn download-log-file [fname req resp user ^String root-dir]
   (let [file (.getCanonicalFile (File. root-dir fname))]

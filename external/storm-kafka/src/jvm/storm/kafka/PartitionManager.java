@@ -172,6 +172,18 @@ public class PartitionManager {
             _emittedToOffset = KafkaUtils.getOffset(_consumer, _partition.topic, _partition.partition, kafka.api.OffsetRequest.EarliestTime());
             LOG.warn("{} Using new offset: {}", _partition.partition, _emittedToOffset);
             // fetch failed, so don't update the metrics
+            
+            //fix bug [STORM-643] : remove outdated failed offsets
+            if (!processingNewTuples) {
+                // For the case of EarliestTime it would be better to discard
+                // all the failed offsets, that are earlier than actual EarliestTime
+                // offset, since they are anyway not there.
+                // These calls to broker API will be then saved.
+                Set<Long> omitted = this._failedMsgRetryManager.clearInvalidMessages(_emittedToOffset);
+                
+                LOG.warn("Removing the failed offsets that are out of range: {}", omitted);
+            }
+            
             return;
         }
         long end = System.nanoTime();

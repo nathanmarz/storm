@@ -43,40 +43,46 @@ public class FluxParser {
 
     // TODO refactor input stream processing (see parseResource() method).
     public static TopologyDef parseFile(String inputFile, boolean dumpYaml, boolean processIncludes,
-                                        String propertiesFile, boolean envSub) throws IOException {
-        Yaml yaml = yaml();
+    	String propertiesFile, boolean envSub) throws IOException {
+   
         FileInputStream in = new FileInputStream(inputFile);
-        // TODO process properties, etc.
-        TopologyDef topology = loadYaml(yaml, in, propertiesFile, envSub);
+        TopologyDef topology = parseInputStream(in, dumpYaml, processIncludes, propertiesFile, envSub);
         in.close();
-        if(dumpYaml){
-            dumpYaml(topology, yaml);
-        }
-        if(processIncludes) {
-            return processIncludes(yaml, topology, propertiesFile, envSub);
-        } else {
-            return topology;
-        }
+        
+        return topology;
     }
 
     public static TopologyDef parseResource(String resource, boolean dumpYaml, boolean processIncludes,
-                                            String propertiesFile, boolean envSub) throws IOException {
-        Yaml yaml = yaml();
+    	String propertiesFile, boolean envSub) throws IOException {
+        
         InputStream in = FluxParser.class.getResourceAsStream(resource);
-        if(in == null){
-            LOG.error("Unable to load classpath resource: " + resource);
-            System.exit(1);
-        }
-        TopologyDef topology = loadYaml(yaml, in, propertiesFile, envSub);
+        TopologyDef topology = parseInputStream(in, dumpYaml, processIncludes, propertiesFile, envSub);
         in.close();
-        if(dumpYaml){
-            dumpYaml(topology, yaml);
-        }
-        if(processIncludes) {
-            return processIncludes(yaml, topology, propertiesFile, envSub);
-        } else {
-            return topology;
-        }
+        
+        return topology;
+    }
+    
+    public static TopologyDef parseInputStream(InputStream inputStream, boolean dumpYaml, boolean processIncludes,
+    	String propertiesFile, boolean envSub) throws IOException {
+		
+	Yaml yaml = yaml();
+    	
+	if (inputStream == null) {
+		LOG.error("Unable to load input stream");
+		System.exit(1);
+	}
+		
+	TopologyDef topology = loadYaml(yaml, inputStream, propertiesFile, envSub);
+		
+	if (dumpYaml) {
+		dumpYaml(topology, yaml);
+	}
+	
+	if (processIncludes) {
+		return processIncludes(yaml, topology, propertiesFile, envSub);
+	} else {
+		return topology;
+	}
     }
 
     private static TopologyDef loadYaml(Yaml yaml, InputStream in, String propsFile, boolean envSubstitution) throws IOException {

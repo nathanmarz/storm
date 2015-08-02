@@ -58,7 +58,7 @@ public class FluxBuilder {
      * @throws NoSuchMethodException
      * @throws InvocationTargetException
      */
-    static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException,
+    public static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException,
             InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
 
         StormTopology topology = null;

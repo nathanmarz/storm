@@ -40,8 +40,9 @@ import java.util.Map;
 
 /**
  * This is a basic example of a transactional topology. It keeps a count of the number of tuples seen so far in a
- * database. The source of data and the databases are mocked out as in memory maps for demonstration purposes. This
- * class is defined in depth on the wiki at https://github.com/nathanmarz/storm/wiki/Transactional-topologies
+ * database. The source of data and the databases are mocked out as in memory maps for demonstration purposes.
+ *
+ * @see <a href="http://storm.apache.org/documentation/Transactional-topologies.html">Transactional topologies</a>
  */
 public class TransactionalGlobalCount {
   public static final int PARTITION_TAKE_PER_BATCH = 3;

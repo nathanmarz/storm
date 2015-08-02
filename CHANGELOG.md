@@ -202,6 +202,7 @@
  * STORM-503: Short disruptor queue wait time leads to high CPU usage when idle
  * STORM-728: Put emitted and transferred stats under correct columns
  * STORM-643: KafkaUtils repeatedly fetches messages whose offset is out of range
+ * STORM-933: NullPointerException during KafkaSpout deactivation
 
 ## 0.9.5
  * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn

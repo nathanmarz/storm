@@ -35,6 +35,7 @@ import org.apache.storm.hdfs.trident.format.FileNameFormat;
 import org.apache.storm.hdfs.trident.format.RecordFormat;
 import org.apache.storm.hdfs.trident.format.SequenceFormat;
 import org.apache.storm.hdfs.trident.rotation.FileRotationPolicy;
+import org.apache.storm.hdfs.trident.rotation.FileSizeRotationPolicy;
 import org.apache.storm.hdfs.trident.rotation.TimedRotationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,9 +125,16 @@ public class HdfsState implements State {
             this.writeLock = new Object();
             if (this.rotationPolicy == null) {
                 throw new IllegalStateException("RotationPolicy must be specified.");
+            } else if (this.rotationPolicy instanceof FileSizeRotationPolicy) {
+                long limit = FileSizeRotationPolicy.Units.GB.getByteCount();
+                if(((FileSizeRotationPolicy) rotationPolicy).getMaxBytes() > limit) {
+                    LOG.warn("*** Exactly once semantics is not supported for FileSizeRotationPolicy with size > 1 GB ***");
+                    LOG.warn("Turning off exactly once.");
+                    this.exactlyOnce = false;
+                }
             } else if (this.rotationPolicy instanceof TimedRotationPolicy) {
-                LOG.warn("*** Exactly once semantics is not supported with TimedRotationPolicy ***");
-                LOG.warn("*** Turning off exactly once.");
+                LOG.warn("*** Exactly once semantics is not supported for TimedRotationPolicy ***");
+                LOG.warn("Turning off exactly once.");
                 this.exactlyOnce = false;
             }
             if (this.fsUrl == null) {
@@ -220,8 +228,18 @@ public class HdfsState implements State {
             return this;
         }
 
-        public HdfsFileOptions withBufferSize(int size) {
-            this.bufferSize = Math.max(4096, size); // at least 4K
+        /**
+         * <p>Set the size of the buffer used for hdfs file copy in case of recovery. The default
+         * value is 131072.</p>
+         *
+         * <p> Note: The lower limit for the parameter is 4096, below which the
+         * option is ignored. </p>
+         *
+         * @param sizeInBytes the buffer size in bytes
+         * @return {@link HdfsFileOptions}
+         */
+        public HdfsFileOptions withBufferSize(int sizeInBytes) {
+            this.bufferSize = Math.max(4096, sizeInBytes); // at least 4K
             return this;
         }
 

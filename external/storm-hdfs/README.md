@@ -317,6 +317,15 @@ that of the bolts.
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 ```
 
+### Note
+Whenever a batch is replayed by storm (due to failures), the trident state implementation automatically removes 
+duplicates from the current data file by copying the data up to the last transaction to another file . Since this 
+operation involves a lot of data copy, the exactly once semantics is enabled only if `FileSizeRotationPolicy` with 
+file size less than 1 GB is specified.
+
+The exactly once semantics is automatically disabled if `FileSizeRotationPolicy` with size greater than 1 GB or
+`TimedRotationPolicy` is in use.
+
 ##Working with Secure HDFS
 If your topology is going to interact with secure HDFS, your bolts/states needs to be authenticated by NameNode. We 
 currently have 2 options to support this:

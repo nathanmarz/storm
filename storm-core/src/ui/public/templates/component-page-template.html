@@ -39,6 +39,11 @@
             Tasks
           </span>
         </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Click on the link below to open the logviewer and view the events emitted by this component.">
+            Debug
+          </span>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -47,6 +52,7 @@
         <td><a href="/topology.html?id={{encodedTopologyId}}">{{name}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
+        <td><a href="{{eventLogLink}}">events</a></td>
     </tbody>
   </table>
 </script>

@@ -21,14 +21,14 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log])
+  (:use [backtype.storm config util log tuple])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler]]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
-            ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
+            ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions GetInfoOptions NumErrorsChoice])
@@ -293,17 +293,52 @@
               (bolt-comp-summs id))]
     (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)))
 
+(defn logviewer-link [host fname secure?]
+  (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
+    (url-format "https://%s:%s/log?file=%s"
+      host
+      (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
+      fname)
+    (url-format "http://%s:%s/log?file=%s"
+      host
+      (*STORM-CONF* LOGVIEWER-PORT)
+      fname))
+  )
+
+(defn executor-has-task-id? [task-id executor-info]
+  (between? task-id (.get_task_start executor-info) (.get_task_end executor-info)))
+
+(defn get-host-port [task-id executor-summs]
+  (let [ex-sum (some #(if (executor-has-task-id? task-id (.get_executor_info %)) %) executor-summs)]
+    {:host (.get_host ex-sum) :port (.get_port ex-sum)}))
+
+(defn get-sorted-eventlogger-task-ids [executor-summs]
+  (let [executor-infos (map #(.get_executor_info %) executor-summs)]
+  (sort (flatten (map #(range (.get_task_start %) (inc (.get_task_end %))) executor-infos)))))
+
+(defn get-eventlogger-executor-summs [^TopologyInfo topology-info topology]
+  (let [bolt-summs (filter (partial bolt-summary? topology) (.get_executors topology-info))]
+        ((group-by-comp bolt-summs) "__eventlogger")))
+
+;
+; The eventlogger uses fields grouping on the component-id so that events from same component
+; always goes to the same event logger task. Here we use the same fields grouping
+; to find the correct eventlogger task.
+(defn get-mapped-task-id [sorted-task-ids ^String component-id]
+  (nth sorted-task-ids (mod (list-hash-code [component-id]) (count sorted-task-ids))))
+
+(defn event-log-link
+  [topology-id ^TopologyInfo topology-info topology component-id secure?]
+  (let [executor-summs (get-eventlogger-executor-summs topology-info topology)
+        sorted-task-ids (get-sorted-eventlogger-task-ids executor-summs)
+        mapped-task-id (get-mapped-task-id sorted-task-ids component-id)
+        host-port (get-host-port mapped-task-id executor-summs)
+        fname (event-logs-filename topology-id (host-port :port))]
+    (logviewer-link (host-port :host) fname secure?)))
+
 (defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
-    (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
-      (url-format "https://%s:%s/log?file=%s"
-                  host
-                  (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
-                  fname)
-      (url-format "http://%s:%s/log?file=%s"
-                  host
-                  (*STORM-CONF* LOGVIEWER-PORT)
-                  fname))))
+    (logviewer-link host fname secure?)))
 
 (defn compute-executor-capacity
   [^ExecutorSummary e]
@@ -910,7 +945,8 @@
          "encodedTopologyId" (url-encode topology-id)
          "window" window
          "componentType" (name type)
-         "windowHint" (window-hint window)}
+         "windowHint" (window-hint window)
+         "eventLogLink" (event-log-link topology-id summ topology component secure?)}
        spec errors))))
 
 (defn topology-config [topology-id]

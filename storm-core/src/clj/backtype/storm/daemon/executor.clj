@@ -488,6 +488,7 @@
         receive-queue (:receive-queue executor-data)
         event-handler (mk-task-receiver executor-data tuple-action-fn)
         has-ackers? (has-ackers? storm-conf)
+        has-eventloggers? (has-eventloggers? storm-conf)
         emitted-count (MutableLong. 0)
         empty-emit-streak (MutableLong. 0)
         
@@ -531,6 +532,13 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
+                                         ; Send data to the eventlogger.
+                                         (if has-eventloggers?
+                                           (task/send-unanchored
+                                             task-data
+                                             EVENTLOGGER-STREAM-ID
+                                             [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
+                                             overflow-buffer))
                                          (if (and rooted?
                                                   (not (.isEmpty out-ids)))
                                            (do
@@ -700,7 +708,8 @@
         ;; buffers filled up)
         ;; the overflow buffer is might gradually fill degrading the performance gradually
         ;; eventually running out of memory, but at least prevent live-locks/deadlocks.
-        overflow-buffer (if (storm-conf TOPOLOGY-BOLTS-OUTGOING-OVERFLOW-BUFFER-ENABLE) (ConcurrentLinkedQueue.) nil)]
+        overflow-buffer (if (storm-conf TOPOLOGY-BOLTS-OUTGOING-OVERFLOW-BUFFER-ENABLE) (ConcurrentLinkedQueue.) nil)
+        has-eventloggers? (has-eventloggers? storm-conf)]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -729,13 +738,19 @@
                                                                             (fast-list-iter [root-id root-ids]
                                                                                             (put-xor! anchors-to-ids root-id edge-id))
                                                                             ))))
-                                                      (transfer-fn t
+                                                        (transfer-fn t
                                                                    (TupleImpl. worker-context
                                                                                values
                                                                                task-id
                                                                                stream
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
+                                    ; send the data to the eventlogger
+                                    (if has-eventloggers?
+                                      (task/send-unanchored task-data
+                                        EVENTLOGGER-STREAM-ID
+                                        [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
+                                        overflow-buffer))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 

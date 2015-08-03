@@ -102,6 +102,7 @@ Hive Trident state also follows similar pattern to HiveBolt it takes in HiveOpti
    
  
 ## Committer Sponsors
+ * Sriharha Chintalapani ([sriharsha@apache.org](mailto:sriharsha@apache.org))
  * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))
  * Bobby Evans ([bobby@apache.org](mailto:bobby@apache.org))
 

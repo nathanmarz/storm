@@ -30,8 +30,8 @@
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="9"/>
         </Policies>
+        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="STDOUT"
                  fileName="${sys:storm.log.dir}/${sys:logfile.name}.out"
@@ -41,8 +41,8 @@
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="4"/>
         </Policies>
+        <DefaultRolloverStrategy max="4"/>
     </RollingFile>
     <RollingFile name="STDERR"
                  fileName="${sys:storm.log.dir}/${sys:logfile.name}.err"
@@ -52,8 +52,8 @@
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="4"/>
         </Policies>
+        <DefaultRolloverStrategy max="4"/>
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" host="localhost" port="514"
         protocol="UDP" appName="[${sys:storm.id}:${sys:worker.port}]" mdcId="mdc" includeMDC="true"

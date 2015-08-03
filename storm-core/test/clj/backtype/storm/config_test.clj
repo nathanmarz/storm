@@ -99,6 +99,20 @@
     (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" [-100 (inc Integer/MAX_VALUE)])))))
 
+(deftest test-positive-number-validator
+  (let [validator ConfigValidation/PositiveNumberValidator]
+    (.validateField validator "test" nil)
+    (.validateField validator "test" 1.0)
+    (.validateField validator "test" 1)
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1.0)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 0)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 0.0)))))
+
 (deftest test-topology-workers-is-integer
   (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKERS)]
     (.validateField validator "test" 42)

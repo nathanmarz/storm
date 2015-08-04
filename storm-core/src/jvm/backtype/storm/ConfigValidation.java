@@ -28,6 +28,7 @@ public class ConfigValidation {
     /**
      * Declares methods for validating configuration values.
      */
+    public static interface FieldValidator {
         /**
          * Validates the given field.
          * @param name the name of the field.

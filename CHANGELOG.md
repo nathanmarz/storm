@@ -22,6 +22,7 @@
  * STORM-859: Add regression test of STORM-856
  * STORM-913: Use Curator's delete().deletingChildrenIfNeeded() instead of zk/delete-recursive
  * STORM-968: Adding support to generate the id based on names in Trident
+ * STORM-845: Storm ElasticSearch connector
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

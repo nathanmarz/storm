@@ -1180,3 +1180,32 @@
         (is (thrown-cause? InvalidTopologyException
           (submit-local-topology-with-opts nimbus "test" bad-config topology
                                            (SubmitOptions.))))))))
+
+(deftest test-stateless-with-scheduled-topology-to-be-killed
+  ; tests regression of STORM-856
+  (with-inprocess-zookeeper zk-port
+    (with-local-tmp [nimbus-dir]
+      (letlocals
+        (bind conf (merge (read-storm-config)
+                     {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                      STORM-CLUSTER-MODE "local"
+                      STORM-ZOOKEEPER-PORT zk-port
+                      STORM-LOCAL-DIR nimbus-dir}))
+        (bind cluster-state (cluster/mk-storm-cluster-state conf))
+        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+        (bind topology (thrift/mk-topology
+                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                         {}))
+        (submit-local-topology nimbus "t1" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
+        ; make transition for topology t1 to be killed -> nimbus applies this event to cluster state
+        (.killTopology nimbus "t1")
+        ; shutdown nimbus immediately to achieve nimbus doesn't handle event right now
+        (.shutdown nimbus)
+
+        ; in startup of nimbus it reads cluster state and take proper actions
+        ; in this case nimbus registers topology transition event to scheduler again
+        ; before applying STORM-856 nimbus was killed with NPE
+        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+        (.shutdown nimbus)
+        (.disconnect cluster-state)
+        ))))

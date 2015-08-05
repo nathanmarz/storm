@@ -82,7 +82,11 @@ public class DRPCSpout extends BaseRichSpout {
         _function = function;
         _local_drpc_id = drpc.getServiceId();
     }
-   
+
+    public String get_function() {
+        return _function;
+    }
+
     private class Adder implements Callable<Void> {
         private String server;
         private int port;

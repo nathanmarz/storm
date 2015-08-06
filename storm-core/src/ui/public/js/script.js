@@ -81,13 +81,16 @@ function ensureInt(n) {
     return isInt;
 }
 
-function confirmAction(id, name, action, wait, defaultWait) {
+function confirmAction(id, name, action, wait, defaultWait, actionText) {
     var opts = {
         type:'POST',
         url:'/api/v1/topology/' + id + '/' + action
     };
+    if (actionText === undefined) {
+        actionText = action;
+    }
     if (wait) {
-        var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +
+        var waitSecs = prompt('Do you really want to ' + actionText + ' topology "' + name + '"? ' +
                               'If yes, please, specify wait time in seconds:',
                               defaultWait);
 
@@ -96,7 +99,7 @@ function confirmAction(id, name, action, wait, defaultWait) {
         } else {
             return false;
         }
-    } else if (!confirm('Do you really want to ' + action + ' topology "' + name + '"?')) {
+    } else if (!confirm('Do you really want to ' + actionText + ' topology "' + name + '"?')) {
         return false;
     }
 
@@ -146,7 +149,7 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id, encodedId, name,status,msgTimeout) {
+function topologyActionJson(id, encodedId, name, status, msgTimeout, debug) {
     var jsonData = {};
     jsonData["id"] = id;
     jsonData["encodedId"] = encodedId;
@@ -156,6 +159,8 @@ function topologyActionJson(id, encodedId, name,status,msgTimeout) {
     jsonData["deactivateStatus"] = (status === "ACTIVE") ? "enabled" : "disabled";
     jsonData["rebalanceStatus"] = (status === "ACTIVE" || status === "INACTIVE" ) ? "enabled" : "disabled";
     jsonData["killStatus"] = (status !== "KILLED") ? "enabled" : "disabled";
+    jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
+    jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
     return jsonData;
 }
 

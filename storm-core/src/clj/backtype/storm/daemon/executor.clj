@@ -240,6 +240,7 @@
      :conf (:conf worker)
      :shared-executor-data (HashMap.)
      :storm-active-atom (:storm-active-atom worker)
+     :storm-debug-atom (:storm-debug-atom worker)
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
@@ -533,7 +534,7 @@
                                                                         overflow-buffer)
                                                            ))
                                          ; Send data to the eventlogger.
-                                         (if has-eventloggers?
+                                         (if (and has-eventloggers? @(:storm-debug-atom executor-data))
                                            (task/send-unanchored
                                              task-data
                                              EVENTLOGGER-STREAM-ID
@@ -746,7 +747,7 @@
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
                                     ; send the data to the eventlogger
-                                    (if has-eventloggers?
+                                    (if (and has-eventloggers? @(:storm-debug-atom executor-data))
                                       (task/send-unanchored task-data
                                         EVENTLOGGER-STREAM-ID
                                         [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector

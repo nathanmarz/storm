@@ -17,11 +17,12 @@
   (:use [clojure test])
   (:require [backtype.storm [util :as util] [stats :as stats]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
+  (:require [backtype.storm [converter :as converter]])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt])
   (:import [backtype.storm.scheduler INimbus])
   (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
-            TopologyInitialStatus AlreadyAliveException KillOptions RebalanceOptions
+            TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
             InvalidTopologyException AuthorizationException])
   (:import [java.util HashMap])
   (:import [java.io File])
@@ -1180,3 +1181,11 @@
         (is (thrown-cause? InvalidTopologyException
           (submit-local-topology-with-opts nimbus "test" bad-config topology
                                            (SubmitOptions.))))))))
+
+(deftest test-debug-on
+  (with-local-cluster [cluster]
+    (let [nimbus (:nimbus cluster)]
+      (stubbing [converter/clojurify-storm-base (backtype.storm.daemon.common.StormBase. "storm-name" 100
+                                                  {:type :active} 1 nil nil nil nil nil)
+                 cluster/maybe-deserialize nil]
+        (.debug nimbus "test" true)))))

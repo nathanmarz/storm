@@ -218,6 +218,7 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+  7: required bool debug;
 513: optional string sched_status;
 514: optional string owner;
 }
@@ -289,6 +290,7 @@ struct StormBase {
     6: optional string owner;
     7: optional TopologyActionOptions topology_action_options;
     8: optional TopologyStatus prev_status;//currently only used during rebalance action.
+    9: optional bool debug;
 }
 
 struct ClusterWorkerHeartbeat {
@@ -349,6 +351,7 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+  void debug(1: string name, 2: bool enable) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs

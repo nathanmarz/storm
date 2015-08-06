@@ -754,7 +754,8 @@
                                   num-executors
                                   (storm-conf TOPOLOGY-SUBMITTER-USER)
                                   nil
-                                  nil))))
+                                  nil
+                                  false))))
 
 ;; Master:
 ;; job submit:
@@ -1160,6 +1161,18 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
+      ;; TODO
+      (debug [this storm-name enable?]
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              storm-id (get-storm-id storm-cluster-state storm-name)
+              storm-base-updates {:debug enable?}]
+;;          (check-authorization! nimbus storm-name topology-conf "debug")
+;;          (when-not storm-id
+;;            (throw (NotAliveException. storm-name)))
+          (log-message "Nimbus setting debug to " enable? " for storm-name " storm-name " storm-id " storm-id)
+          (locking (:submit-lock nimbus)
+            (.update-storm! storm-cluster-state storm-id storm-base-updates))))
+
       (uploadNewCredentials [this storm-name credentials]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
@@ -1339,6 +1352,7 @@
                            executor-summaries
                            (extract-status-str base)
                            errors
+                           (:debug base)
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))

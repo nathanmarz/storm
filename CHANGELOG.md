@@ -34,6 +34,7 @@
  * STORM-793: Made change to logviewer.clj in order to remove the invalid http 500 response
  * STORM-139: hashCode does not work for byte[]
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
+ * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

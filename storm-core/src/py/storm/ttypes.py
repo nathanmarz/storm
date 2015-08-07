@@ -2365,10 +2365,10 @@ class SupervisorSummary:
     (3, TType.I32, 'num_workers', None, None, ), # 3
     (4, TType.I32, 'num_used_workers', None, None, ), # 4
     (5, TType.STRING, 'supervisor_id', None, None, ), # 5
-    (6, TType.STRING, 'version', None, None, ), # 6
+    (6, TType.STRING, 'version', None, "VERSION_NOT_PROVIDED", ), # 6
   )
 
-  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, version=None,):
+  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, version=thrift_spec[6][4],):
     self.host = host
     self.uptime_secs = uptime_secs
     self.num_workers = num_workers
@@ -2463,8 +2463,6 @@ class SupervisorSummary:
       raise TProtocol.TProtocolException(message='Required field num_used_workers is unset!')
     if self.supervisor_id is None:
       raise TProtocol.TProtocolException(message='Required field supervisor_id is unset!')
-    if self.version is None:
-      raise TProtocol.TProtocolException(message='Required field version is unset!')
     return
 
 
@@ -3568,6 +3566,7 @@ class TopologyInfo:
    - executors
    - status
    - errors
+   - debug
    - sched_status
    - owner
   """
@@ -3580,7 +3579,7 @@ class TopologyInfo:
     (4, TType.LIST, 'executors', (TType.STRUCT,(ExecutorSummary, ExecutorSummary.thrift_spec)), None, ), # 4
     (5, TType.STRING, 'status', None, None, ), # 5
     (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
-    None, # 7
+    (7, TType.BOOL, 'debug', None, None, ), # 7
     None, # 8
     None, # 9
     None, # 10
@@ -4090,13 +4089,14 @@ class TopologyInfo:
     (514, TType.STRING, 'owner', None, None, ), # 514
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, sched_status=None, owner=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, debug=None, sched_status=None, owner=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
     self.executors = executors
     self.status = status
     self.errors = errors
+    self.debug = debug
     self.sched_status = sched_status
     self.owner = owner
 
@@ -4157,6 +4157,11 @@ class TopologyInfo:
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.BOOL:
+          self.debug = iprot.readBool();
+        else:
+          iprot.skip(ftype)
       elif fid == 513:
         if ftype == TType.STRING:
           self.sched_status = iprot.readString().decode('utf-8')
@@ -4211,6 +4216,10 @@ class TopologyInfo:
         oprot.writeListEnd()
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
+    if self.debug is not None:
+      oprot.writeFieldBegin('debug', TType.BOOL, 7)
+      oprot.writeBool(self.debug)
+      oprot.writeFieldEnd()
     if self.sched_status is not None:
       oprot.writeFieldBegin('sched_status', TType.STRING, 513)
       oprot.writeString(self.sched_status.encode('utf-8'))
@@ -4235,6 +4244,8 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
     if self.errors is None:
       raise TProtocol.TProtocolException(message='Required field errors is unset!')
+    if self.debug is None:
+      raise TProtocol.TProtocolException(message='Required field debug is unset!')
     return
 
 
@@ -4246,6 +4257,7 @@ class TopologyInfo:
     value = (value * 31) ^ hash(self.executors)
     value = (value * 31) ^ hash(self.status)
     value = (value * 31) ^ hash(self.errors)
+    value = (value * 31) ^ hash(self.debug)
     value = (value * 31) ^ hash(self.sched_status)
     value = (value * 31) ^ hash(self.owner)
     return value
@@ -5117,6 +5129,7 @@ class StormBase:
    - owner
    - topology_action_options
    - prev_status
+   - debug
   """
 
   thrift_spec = (
@@ -5129,9 +5142,10 @@ class StormBase:
     (6, TType.STRING, 'owner', None, None, ), # 6
     (7, TType.STRUCT, 'topology_action_options', (TopologyActionOptions, TopologyActionOptions.thrift_spec), None, ), # 7
     (8, TType.I32, 'prev_status', None, None, ), # 8
+    (9, TType.BOOL, 'debug', None, None, ), # 9
   )
 
-  def __init__(self, name=None, status=None, num_workers=None, component_executors=None, launch_time_secs=None, owner=None, topology_action_options=None, prev_status=None,):
+  def __init__(self, name=None, status=None, num_workers=None, component_executors=None, launch_time_secs=None, owner=None, topology_action_options=None, prev_status=None, debug=None,):
     self.name = name
     self.status = status
     self.num_workers = num_workers
@@ -5140,6 +5154,7 @@ class StormBase:
     self.owner = owner
     self.topology_action_options = topology_action_options
     self.prev_status = prev_status
+    self.debug = debug
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -5197,6 +5212,11 @@ class StormBase:
           self.prev_status = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 9:
+        if ftype == TType.BOOL:
+          self.debug = iprot.readBool();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -5243,6 +5263,10 @@ class StormBase:
       oprot.writeFieldBegin('prev_status', TType.I32, 8)
       oprot.writeI32(self.prev_status)
       oprot.writeFieldEnd()
+    if self.debug is not None:
+      oprot.writeFieldBegin('debug', TType.BOOL, 9)
+      oprot.writeBool(self.debug)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -5266,6 +5290,7 @@ class StormBase:
     value = (value * 31) ^ hash(self.owner)
     value = (value * 31) ^ hash(self.topology_action_options)
     value = (value * 31) ^ hash(self.prev_status)
+    value = (value * 31) ^ hash(self.debug)
     return value
 
   def __repr__(self):

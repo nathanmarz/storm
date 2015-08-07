@@ -81,6 +81,28 @@ function ensureInt(n) {
     return isInt;
 }
 
+function confirmComponentAction(topologyId, componentId, componentName, action, actionText) {
+    var opts = {
+        type:'POST',
+        url:'/api/v1/topology/' + topologyId + '/component/' + componentId + '/' + action
+    };
+    if (actionText === undefined) {
+        actionText = action;
+    }
+    if (!confirm('Do you really want to ' + actionText + ' component "' + componentName + '"?')) {
+        return false;
+    }
+
+    $("input[type=button]").attr("disabled", "disabled");
+    $.ajax(opts).always(function () {
+        window.location.reload();
+    }).fail(function () {
+        alert("Error while communicating with Nimbus.");
+    });
+
+    return false;
+}
+
 function confirmAction(id, name, action, wait, defaultWait, actionText) {
     var opts = {
         type:'POST',
@@ -161,6 +183,16 @@ function topologyActionJson(id, encodedId, name, status, msgTimeout, debug) {
     jsonData["killStatus"] = (status !== "KILLED") ? "enabled" : "disabled";
     jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
     jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
+    return jsonData;
+}
+
+function componentActionJson(encodedTopologyId, encodedId, componentName, debug) {
+    var jsonData = {};
+    jsonData["encodedTopologyId"] = encodedTopologyId;
+    jsonData["encodedId"] = encodedId;
+    jsonData["componentName"] = componentName;
+    jsonData["startDebugStatus"] = (!debug) ? "enabled" : "disabled";
+    jsonData["stopDebugStatus"] = debug ? "enabled" : "disabled";
     return jsonData;
 }
 

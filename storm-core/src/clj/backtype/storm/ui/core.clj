@@ -947,6 +947,7 @@
          "window" window
          "componentType" (name type)
          "windowHint" (window-hint window)
+         "debug" (.is_debug summ)
          "eventLogLink" (event-log-link topology-id summ topology component secure?)}
        spec errors))))
 
@@ -1040,7 +1041,19 @@
             name (.get_name tplg)
             enable? (= "enable" action)]
         (.debug nimbus name enable?)
-        (log-message "Debug topology '" name "' [" action "]")))
+        (log-message "Debug topology [" name "] action [" action "]")))
+    (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
+  (POST "/api/v1/topology/:id/component/:component/debug/:action" [:as {:keys [cookies servlet-request]} id component action & m]
+    (assert-authorized-user servlet-request "debug" (topology-config id))
+    (with-nimbus nimbus
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                   (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+            name (.get_name tplg)
+            enable? (= "enable" action)]
+        (.debug nimbus name enable?) ;; TODO: include component id in the nimbus api
+        (log-message "Debug topology [" name "] component [" component "] action [" action "]")))
     (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (assert-authorized-user servlet-request "rebalance" (topology-config id))

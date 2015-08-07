@@ -492,3 +492,10 @@
     </tbody>
   </table>
 </script>
+<script id="component-actions-template" type="text/html">
+  <h2>Component actions</h2>
+  <p id="component-actions">
+    <input {{startDebugStatus}} onclick="confirmComponentAction('{{encodedTopologyId}}', '{{encodedId}}', '{{componentName}}', 'debug/enable', 'debug')" type="button" value="Debug" class="btn btn-default">
+    <input {{stopDebugStatus}} onclick="confirmComponentAction('{{encodedTopologyId}}', '{{encodedId}}', '{{componentName}}', 'debug/disable', 'stop debugging')" type="button" value="Stop Debug" class="btn btn-default">
+  </p>
+</script>

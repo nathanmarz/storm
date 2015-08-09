@@ -94,10 +94,11 @@ class Iface:
     """
     pass
 
-  def debug(self, name, enable):
+  def debug(self, name, component, enable):
     """
     Parameters:
      - name
+     - component
      - enable
     """
     pass
@@ -451,19 +452,21 @@ class Client(Iface):
       raise result.aze
     return
 
-  def debug(self, name, enable):
+  def debug(self, name, component, enable):
     """
     Parameters:
      - name
+     - component
      - enable
     """
-    self.send_debug(name, enable)
+    self.send_debug(name, component, enable)
     self.recv_debug()
 
-  def send_debug(self, name, enable):
+  def send_debug(self, name, component, enable):
     self._oprot.writeMessageBegin('debug', TMessageType.CALL, self._seqid)
     args = debug_args()
     args.name = name
+    args.component = component
     args.enable = enable
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
@@ -1084,7 +1087,7 @@ class Processor(Iface, TProcessor):
     iprot.readMessageEnd()
     result = debug_result()
     try:
-      self._handler.debug(args.name, args.enable)
+      self._handler.debug(args.name, args.component, args.enable)
     except NotAliveException, e:
       result.e = e
     except AuthorizationException, aze:
@@ -2476,17 +2479,20 @@ class debug_args:
   """
   Attributes:
    - name
+   - component
    - enable
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'name', None, None, ), # 1
-    (2, TType.BOOL, 'enable', None, None, ), # 2
+    (2, TType.STRING, 'component', None, None, ), # 2
+    (3, TType.BOOL, 'enable', None, None, ), # 3
   )
 
-  def __init__(self, name=None, enable=None,):
+  def __init__(self, name=None, component=None, enable=None,):
     self.name = name
+    self.component = component
     self.enable = enable
 
   def read(self, iprot):
@@ -2504,6 +2510,11 @@ class debug_args:
         else:
           iprot.skip(ftype)
       elif fid == 2:
+        if ftype == TType.STRING:
+          self.component = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
         if ftype == TType.BOOL:
           self.enable = iprot.readBool();
         else:
@@ -2522,8 +2533,12 @@ class debug_args:
       oprot.writeFieldBegin('name', TType.STRING, 1)
       oprot.writeString(self.name.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.component is not None:
+      oprot.writeFieldBegin('component', TType.STRING, 2)
+      oprot.writeString(self.component.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.enable is not None:
-      oprot.writeFieldBegin('enable', TType.BOOL, 2)
+      oprot.writeFieldBegin('enable', TType.BOOL, 3)
       oprot.writeBool(self.enable)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -2536,6 +2551,7 @@ class debug_args:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.name)
+    value = (value * 31) ^ hash(self.component)
     value = (value * 31) ^ hash(self.enable)
     return value
 

@@ -755,7 +755,7 @@
                                   (storm-conf TOPOLOGY-SUBMITTER-USER)
                                   nil
                                   nil
-                                  false))))
+                                  {}))))
 
 ;; Master:
 ;; job submit:
@@ -1162,10 +1162,10 @@
         (transition-name! nimbus storm-name :inactivate true))
 
       ;; TODO
-      (debug [this storm-name enable?]
+      (debug [this storm-name component-id enable?]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
-              storm-base-updates {:debug enable?}]
+              storm-base-updates (assoc {} :component->debug (if (empty? component-id) {storm-id enable?} {component-id enable?}))]
 ;;          (check-authorization! nimbus storm-name topology-conf "debug")
 ;;          (when-not storm-id
 ;;            (throw (NotAliveException. storm-name)))
@@ -1352,7 +1352,7 @@
                            executor-summaries
                            (extract-status-str base)
                            errors
-                           (:debug base)
+                           (map-val boolean (:component->debug base))
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))

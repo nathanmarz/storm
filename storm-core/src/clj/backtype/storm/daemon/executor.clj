@@ -240,7 +240,7 @@
      :conf (:conf worker)
      :shared-executor-data (HashMap.)
      :storm-active-atom (:storm-active-atom worker)
-     :storm-debug-atom (:storm-debug-atom worker)
+     :storm-component->debug-atom (:storm-component->debug-atom worker)
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
@@ -534,12 +534,14 @@
                                                                         overflow-buffer)
                                                            ))
                                          ; Send data to the eventlogger.
-                                         (if (and has-eventloggers? @(:storm-debug-atom executor-data))
-                                           (task/send-unanchored
-                                             task-data
-                                             EVENTLOGGER-STREAM-ID
-                                             [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
-                                             overflow-buffer))
+                                         (if has-eventloggers?
+                                           (let [c->d @(:storm-component->debug-atom executor-data)]
+                                             (if (get c->d component-id (get c->d (:storm-id executor-data) false))
+                                               (task/send-unanchored
+                                                 task-data
+                                                 EVENTLOGGER-STREAM-ID
+                                                 [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
+                                                 overflow-buffer))))
                                          (if (and rooted?
                                                   (not (.isEmpty out-ids)))
                                            (do
@@ -747,11 +749,13 @@
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
                                     ; send the data to the eventlogger
-                                    (if (and has-eventloggers? @(:storm-debug-atom executor-data))
-                                      (task/send-unanchored task-data
-                                        EVENTLOGGER-STREAM-ID
-                                        [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
-                                        overflow-buffer))
+                                    (if has-eventloggers?
+                                      (let [c->d @(:storm-component->debug-atom executor-data)]
+                                        (if (get c->d component-id (get c->d (:storm-id executor-data) false))
+                                          (task/send-unanchored task-data
+                                            EVENTLOGGER-STREAM-ID
+                                            [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
+                                            overflow-buffer))))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 

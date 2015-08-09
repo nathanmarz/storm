@@ -714,8 +714,10 @@
 (defn topology-summary [^TopologyInfo summ]
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors]
-                       [(.get_host e) (.get_port e)]))]
-      {"id" (.get_id summ)
+                       [(.get_host e) (.get_port e)]))
+        topology-id (.get_id summ)
+        component->debug (.get_component_debug summ)]
+      {"id" topology-id
        "encodedId" (url-encode (.get_id summ))
        "owner" (.get_owner summ)
        "name" (.get_name summ)
@@ -725,7 +727,7 @@
        "workersTotal" (count workers)
        "executorsTotal" (count executors)
        "schedulerInfo" (.get_sched_status summ)
-       "debug" (.is_debug summ)}))
+       "debug" (get component->debug topology-id false)}))
 
 (defn spout-summary-json [topology-id id stats window]
   (let [times (stats-times (:emitted stats))
@@ -934,7 +936,8 @@
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-stats window summ component summs include-sys? secure?)
                      (= type :bolt) (bolt-stats window summ component summs include-sys? secure?))
-          errors (component-errors (get (.get_errors summ) component) topology-id secure?)]
+          errors (component-errors (get (.get_errors summ) component) topology-id secure?)
+          component->debug (.get_component_debug summ)]
       (merge
         {"user" user
          "id" component
@@ -947,7 +950,7 @@
          "window" window
          "componentType" (name type)
          "windowHint" (window-hint window)
-         "debug" (.is_debug summ)
+         "debug" (get component->debug component (get component->debug topology-id false))
          "eventLogLink" (event-log-link topology-id summ topology component secure?)}
        spec errors))))
 
@@ -958,6 +961,13 @@
 (defn topology-op-response [topology-id op]
   {"topologyOperation" op,
    "topologyId" topology-id,
+   "status" "success"
+   })
+
+(defn component-op-response [topology-id component-id op]
+  {"topologyOperation" op,
+   "topologyId" topology-id,
+   "componentId" component-id,
    "status" "success"
    })
 
@@ -1040,7 +1050,7 @@
                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             enable? (= "enable" action)]
-        (.debug nimbus name enable?)
+        (.debug nimbus name "" enable?)
         (log-message "Debug topology [" name "] action [" action "]")))
     (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/component/:component/debug/:action" [:as {:keys [cookies servlet-request]} id component action & m]
@@ -1052,9 +1062,9 @@
                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             enable? (= "enable" action)]
-        (.debug nimbus name enable?) ;; TODO: include component id in the nimbus api
+        (.debug nimbus name component enable?)
         (log-message "Debug topology [" name "] component [" component "] action [" action "]")))
-    (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
+    (json-response (component-op-response id component (str "/debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (assert-authorized-user servlet-request "rebalance" (topology-config id))
     (with-nimbus nimbus

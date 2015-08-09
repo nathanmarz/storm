@@ -223,7 +223,7 @@
       ;; and spout and bolt will be activated.
       :worker-active-flag (atom false)
       :storm-active-atom (atom false)
-      :storm-debug-atom (atom false)
+      :storm-component->debug-atom (atom {})
       :executors executors
       :task-ids (->> receive-queue-map keys (map int) sort)
       :storm-conf storm-conf
@@ -328,8 +328,8 @@
       (reset!
         (:storm-active-atom worker)
         (and (= :active (-> base :status :type)) @(:worker-active-flag worker)))
-      (reset! (:storm-debug-atom worker) (-> base :debug))
-      (log-message "debug flag is " @(:storm-debug-atom worker)))))
+      (reset! (:storm-component->debug-atom worker) (-> base :component->debug))
+      (log-message "debug options " @(:storm-component->debug-atom worker)))))
 
 ;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]

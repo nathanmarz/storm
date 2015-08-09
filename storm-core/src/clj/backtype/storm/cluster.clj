@@ -412,7 +412,9 @@
         [this storm-id new-elems]
         (let [base (storm-base this storm-id nil)
               executors (:component->executors base)
-              new-elems (update new-elems :component->executors (partial merge executors))]
+              component->debug (:component->debug base)
+              new-elems (update new-elems :component->executors (partial merge executors))
+              new-elems (update new-elems :component->debug (partial merge component->debug))]
           (set-data cluster-state (storm-path storm-id)
                     (-> base
                         (merge new-elems)

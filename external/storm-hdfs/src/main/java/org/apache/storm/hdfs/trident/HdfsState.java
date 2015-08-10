@@ -54,8 +54,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class HdfsState implements State {
 
@@ -70,12 +68,7 @@ public class HdfsState implements State {
         protected int rotation = 0;
         protected transient Configuration hdfsConfig;
         protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
-        protected transient Object writeLock;
-        protected transient Timer rotationTimer;
-        /**
-         * This is on by default unless TimedRotationPolicy is in use.
-         */
-        private boolean exactlyOnce = true;
+
 
         abstract void closeOutputFile() throws IOException;
 
@@ -91,29 +84,21 @@ public class HdfsState implements State {
 
         abstract void doRecover(Path srcPath, long nBytes) throws Exception;
 
-        protected boolean isExactlyOnce() {
-            return this.exactlyOnce;
-        }
-
         protected void rotateOutputFile(boolean doRotateAction) throws IOException {
             LOG.info("Rotating output file...");
             long start = System.currentTimeMillis();
-            synchronized (this.writeLock) {
-                closeOutputFile();
-                this.rotation++;
-                Path newFile = createOutputFile();
-                if (doRotateAction) {
-                    LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
-                    for (RotationAction action : this.rotationActions) {
-                        action.execute(this.fs, this.currentFile);
-                    }
+            closeOutputFile();
+            this.rotation++;
+            Path newFile = createOutputFile();
+            if (doRotateAction) {
+                LOG.info("Performing {} file rotation actions.", this.rotationActions.size());
+                for (RotationAction action : this.rotationActions) {
+                    action.execute(this.fs, this.currentFile);
                 }
-                this.currentFile = newFile;
             }
+            this.currentFile = newFile;
             long time = System.currentTimeMillis() - start;
             LOG.info("File rotation took {} ms.", time);
-
-
         }
 
         protected void rotateOutputFile() throws IOException {
@@ -122,20 +107,17 @@ public class HdfsState implements State {
 
 
         void prepare(Map conf, int partitionIndex, int numPartitions) {
-            this.writeLock = new Object();
             if (this.rotationPolicy == null) {
                 throw new IllegalStateException("RotationPolicy must be specified.");
             } else if (this.rotationPolicy instanceof FileSizeRotationPolicy) {
-                long limit = FileSizeRotationPolicy.Units.GB.getByteCount();
-                if(((FileSizeRotationPolicy) rotationPolicy).getMaxBytes() > limit) {
-                    LOG.warn("*** Exactly once semantics is not supported for FileSizeRotationPolicy with size > 1 GB ***");
-                    LOG.warn("Turning off exactly once.");
-                    this.exactlyOnce = false;
-                }
+                long rotationBytes = ((FileSizeRotationPolicy) rotationPolicy).getMaxBytes();
+                LOG.warn("FileSizeRotationPolicy specified with {} bytes.", rotationBytes);
+                LOG.warn("Recovery will fail if data files cannot be copied within topology.message.timeout.secs.");
+                LOG.warn("Ensure that the data files does not grow too big with the FileSizeRotationPolicy.");
             } else if (this.rotationPolicy instanceof TimedRotationPolicy) {
-                LOG.warn("*** Exactly once semantics is not supported for TimedRotationPolicy ***");
-                LOG.warn("Turning off exactly once.");
-                this.exactlyOnce = false;
+                LOG.warn("TimedRotationPolicy specified with interval {} ms.", ((TimedRotationPolicy) rotationPolicy).getInterval());
+                LOG.warn("Recovery will fail if data files cannot be copied within topology.message.timeout.secs.");
+                LOG.warn("Ensure that the data files does not grow too big with the TimedRotationPolicy.");
             }
             if (this.fsUrl == null) {
                 throw new IllegalStateException("File system URL must be specified.");
@@ -158,19 +140,7 @@ public class HdfsState implements State {
             }
 
             if (this.rotationPolicy instanceof TimedRotationPolicy) {
-                long interval = ((TimedRotationPolicy) this.rotationPolicy).getInterval();
-                this.rotationTimer = new Timer(true);
-                TimerTask task = new TimerTask() {
-                    @Override
-                    public void run() {
-                        try {
-                            rotateOutputFile();
-                        } catch (IOException e) {
-                            LOG.warn("IOException during scheduled file rotation.", e);
-                        }
-                    }
-                };
-                this.rotationTimer.scheduleAtFixedRate(task, interval, interval);
+                ((TimedRotationPolicy) this.rotationPolicy).start();
             }
         }
 
@@ -181,13 +151,16 @@ public class HdfsState implements State {
         private void recover(String srcFile, long nBytes) {
             try {
                 Path srcPath = new Path(srcFile);
+                rotateOutputFile(false);
+                this.rotationPolicy.reset();
                 if (nBytes > 0) {
-                    rotateOutputFile(false);
-                    this.rotationPolicy.reset();
                     doRecover(srcPath, nBytes);
                     LOG.info("Recovered {} bytes from {} to {}", nBytes, srcFile, currentFile);
+                } else {
+                    LOG.info("Nothing to recover from {}", srcFile);
                 }
                 fs.delete(srcPath, false);
+                LOG.info("Deleted file {} that had partial commits.", srcFile);
             } catch (Exception e) {
                 LOG.warn("Recovery failed.", e);
                 throw new RuntimeException(e);
@@ -251,7 +224,7 @@ public class HdfsState implements State {
 
         @Override
         void doPrepare(Map conf, int partitionIndex, int numPartitions) throws IOException {
-            LOG.info("Preparing HDFS Bolt...");
+            LOG.info("Preparing HDFS File state...");
             this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
         }
 
@@ -262,17 +235,15 @@ public class HdfsState implements State {
 
         @Override
         public void doCommit(Long txId) throws IOException {
-            synchronized (writeLock) {
-                if (this.rotationPolicy.mark(this.offset)) {
-                    rotateOutputFile();
-                    this.offset = 0;
-                    this.rotationPolicy.reset();
+            if (this.rotationPolicy.mark(this.offset)) {
+                rotateOutputFile();
+                this.offset = 0;
+                this.rotationPolicy.reset();
+            } else {
+                if (this.out instanceof HdfsDataOutputStream) {
+                    ((HdfsDataOutputStream) this.out).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
                 } else {
-                    if (this.out instanceof HdfsDataOutputStream) {
-                        ((HdfsDataOutputStream) this.out).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
-                    } else {
-                        this.out.hsync();
-                    }
+                    this.out.hsync();
                 }
             }
         }
@@ -308,12 +279,10 @@ public class HdfsState implements State {
 
         @Override
         public void execute(List<TridentTuple> tuples) throws IOException {
-            synchronized (this.writeLock) {
-                for (TridentTuple tuple : tuples) {
-                    byte[] bytes = this.format.format(tuple);
-                    out.write(bytes);
-                    this.offset += bytes.length;
-                }
+            for (TridentTuple tuple : tuples) {
+                byte[] bytes = this.format.format(tuple);
+                out.write(bytes);
+                this.offset += bytes.length;
             }
         }
     }
@@ -381,13 +350,11 @@ public class HdfsState implements State {
 
         @Override
         public void doCommit(Long txId) throws IOException {
-            synchronized (writeLock) {
-                if (this.rotationPolicy.mark(this.writer.getLength())) {
-                    rotateOutputFile();
-                    this.rotationPolicy.reset();
-                } else {
-                    this.writer.hsync();
-                }
+            if (this.rotationPolicy.mark(this.writer.getLength())) {
+                rotateOutputFile();
+                this.rotationPolicy.reset();
+            } else {
+                this.writer.hsync();
             }
         }
 
@@ -425,9 +392,7 @@ public class HdfsState implements State {
         @Override
         public void execute(List<TridentTuple> tuples) throws IOException {
             for (TridentTuple tuple : tuples) {
-                synchronized (this.writeLock) {
-                    this.writer.append(this.format.key(tuple), this.format.value(tuple));
-                }
+                this.writer.append(this.format.key(tuple), this.format.value(tuple));
             }
         }
 
@@ -468,9 +433,7 @@ public class HdfsState implements State {
 
     void prepare(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
         this.options.prepare(conf, partitionIndex, numPartitions);
-        if (options.isExactlyOnce()) {
-            initLastTxn(conf, partitionIndex);
-        }
+        initLastTxn(conf, partitionIndex);
     }
 
     private TxnRecord readTxnRecord(Path path) throws IOException {
@@ -558,15 +521,13 @@ public class HdfsState implements State {
 
     @Override
     public void beginCommit(Long txId) {
-        if (options.isExactlyOnce()) {
-            if (txId <= lastSeenTxn.txnid) {
-                LOG.info("txID {} is already processed, lastSeenTxn {}. Triggering recovery.", txId, lastSeenTxn);
-                long start = System.currentTimeMillis();
-                options.recover(lastSeenTxn.dataFilePath, lastSeenTxn.offset);
-                LOG.info("Recovery took {} ms.", System.currentTimeMillis() - start);
-            }
-            updateIndex(txId);
+        if (txId <= lastSeenTxn.txnid) {
+            LOG.info("txID {} is already processed, lastSeenTxn {}. Triggering recovery.", txId, lastSeenTxn);
+            long start = System.currentTimeMillis();
+            options.recover(lastSeenTxn.dataFilePath, lastSeenTxn.offset);
+            LOG.info("Recovery took {} ms.", System.currentTimeMillis() - start);
         }
+        updateIndex(txId);
     }
 
     @Override
@@ -586,5 +547,12 @@ public class HdfsState implements State {
             LOG.warn("Failing batch due to IOException.", e);
             throw new FailedException(e);
         }
+    }
+
+    /**
+     * for unit tests
+     */
+    void close() throws IOException {
+        this.options.closeOutputFile();
     }
 }

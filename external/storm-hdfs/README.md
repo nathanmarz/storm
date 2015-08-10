@@ -319,12 +319,9 @@ that of the bolts.
 
 ### Note
 Whenever a batch is replayed by storm (due to failures), the trident state implementation automatically removes 
-duplicates from the current data file by copying the data up to the last transaction to another file . Since this 
-operation involves a lot of data copy, the exactly once semantics is enabled only if `FileSizeRotationPolicy` with 
-file size less than 1 GB is specified.
-
-The exactly once semantics is automatically disabled if `FileSizeRotationPolicy` with size greater than 1 GB or
-`TimedRotationPolicy` is in use.
+duplicates from the current data file by copying the data up to the last transaction to another file. Since this 
+operation involves a lot of data copy, ensure that the data files are rotated at reasonable sizes with `FileSizeRotationPolicy` 
+and at reasonable intervals with `TimedRotationPolicy` so that the recovery can complete within topology.message.timeout.secs.
 
 ##Working with Secure HDFS
 If your topology is going to interact with secure HDFS, your bolts/states needs to be authenticated by NameNode. We 

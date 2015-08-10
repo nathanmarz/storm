@@ -107,7 +107,7 @@
 
      (delete-node
        [this path]
-       (zk/delete-recursive zk path))
+       (zk/delete-node zk path))
 
      (get-data
        [this path watch?]

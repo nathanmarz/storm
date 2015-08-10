@@ -190,6 +190,20 @@
             </includes>
             <fileMode>0644</fileMode>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-elasticsearch/target</directory>
+            <outputDirectory>external/storm-elasticsearch</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-elasticsearch</directory>
+            <outputDirectory>external/storm-elasticsearch</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
 
         <fileSet>
             <directory>${project.basedir}/../../external/flux/flux-core/target</directory>

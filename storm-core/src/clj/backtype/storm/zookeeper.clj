@@ -88,7 +88,7 @@
   ([^CuratorFramework zk ^String path ^bytes data mode acls]
     (let [mode  (zk-create-modes mode)]
       (try
-        (.. zk (create) (withMode mode) (withACL acls) (forPath (normalize-path path) data))
+        (.. zk (create) (creatingParentsIfNeeded) (withMode mode) (withACL acls) (forPath (normalize-path path) data))
         (catch Exception e (throw (wrap-in-runtime e))))))
   ([^CuratorFramework zk ^String path ^bytes data acls]
     (create-node zk path data :persistent acls)))
@@ -103,11 +103,14 @@
      (catch Exception e (throw (wrap-in-runtime e))))))
 
 (defnk delete-node
-  [^CuratorFramework zk ^String path :force false]
-  (try-cause  (.. zk (delete) (forPath (normalize-path path)))
-             (catch KeeperException$NoNodeException e
-               (when-not force (throw e)))
-             (catch Exception e (throw (wrap-in-runtime e)))))
+  [^CuratorFramework zk ^String path]
+  (let [path (normalize-path path)]
+    (when (exists-node? zk path false)
+      (try-cause  (.. zk (delete) (deletingChildrenIfNeeded) (forPath (normalize-path path)))
+                  (catch KeeperException$NoNodeException e
+                    ;; do nothing
+                  )
+                  (catch Exception e (throw (wrap-in-runtime e)))))))
 
 (defn mkdirs
   [^CuratorFramework zk ^String path acls]
@@ -176,17 +179,6 @@
 (defn exists
   [^CuratorFramework zk ^String path watch?]
   (exists-node? zk path watch?))
-
-(defn delete-recursive
-  [^CuratorFramework zk ^String path]
-  (let [path (normalize-path path)]
-    (when (exists-node? zk path false)
-      (let [children (try-cause
-                       (get-children zk path false)
-                       (catch KeeperException$NoNodeException e []))]
-        (doseq [c children]
-          (delete-recursive zk (full-path path c)))
-        (delete-node zk path :force true)))))
 
 (defnk mk-inprocess-zookeeper
   [localdir :port nil]

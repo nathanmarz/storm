@@ -170,6 +170,7 @@
         <module>external/storm-eventhubs</module>
         <module>external/flux</module>
         <module>examples/storm-starter</module>
+        <module>external/storm-elasticsearch</module>
     </modules>
 
     <scm>

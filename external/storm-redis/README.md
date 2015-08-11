@@ -251,3 +251,4 @@ under the License.
 ## Committer Sponsors
 
  * Robert Evans ([@revans2](https://github.com/revans2))
+ * Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))

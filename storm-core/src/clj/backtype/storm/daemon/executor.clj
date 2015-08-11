@@ -533,7 +533,8 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
-                                         ; Send data to the eventlogger.
+                                         ;; Send data to the eventlogger if event logging is enabled in conf
+                                         ;; and the global or component level debug flag is set (via nimbus api).
                                          (if has-eventloggers?
                                            (let [c->d @(:storm-component->debug-atom executor-data)]
                                              (if (get c->d component-id (get c->d (:storm-id executor-data) false))
@@ -748,7 +749,8 @@
                                                                                stream
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
-                                    ; send the data to the eventlogger
+                                    ;; Send data to the eventlogger if event logging is enabled in conf
+                                    ;; and the global or component level debug flag is set (via nimbus api).
                                     (if has-eventloggers?
                                       (let [c->d @(:storm-component->debug-atom executor-data)]
                                         (if (get c->d component-id (get c->d (:storm-id executor-data) false))

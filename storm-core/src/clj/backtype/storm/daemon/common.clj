@@ -186,12 +186,15 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
+;; the event logger receives inputs from all the spouts and bolts
+;; with a field grouping on component id so that all tuples from a component
+;; goes to same executor and can be viewed via logviewer.
 (defn eventlogger-inputs [^StormTopology topology]
   (let [bolt-ids (.. topology get_bolts keySet)
         spout-ids (.. topology get_spouts keySet)
         spout-inputs (apply merge
                        (for [id spout-ids]
-                         {[id EVENTLOGGER-STREAM-ID] ["component-id"]} ;grouping on component id
+                         {[id EVENTLOGGER-STREAM-ID] ["component-id"]}
                          ))
         bolt-inputs (apply merge
                       (for [id bolt-ids]
@@ -290,7 +293,7 @@
      (metrics-consumer-register-ids storm-conf)
      (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))
 
-; return the fields that event logger bolt expects
+;; return the fields that event logger bolt expects
 (defn eventlogger-bolt-fields []
   [(EventLoggerBolt/FIELD_COMPONENT_ID)  (EventLoggerBolt/FIELD_TS) (EventLoggerBolt/FIELD_VALUES)]
   )

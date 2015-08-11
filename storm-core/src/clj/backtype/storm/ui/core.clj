@@ -946,6 +946,7 @@
          "executors" (count summs)
          "tasks" (sum-tasks summs)
          "topologyId" topology-id
+         "topologyStatus" (.get_status summ)
          "encodedTopologyId" (url-encode topology-id)
          "window" window
          "componentType" (name type)

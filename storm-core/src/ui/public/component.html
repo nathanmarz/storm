@@ -116,7 +116,8 @@ $(document).ready(function() {
 
         var componentSummary = $("#component-summary");
         var componentActions = $("#component-actions");
-        var buttonJsonData = componentActionJson(response["encodedTopologyId"], response["encodedId"], response["id"], response["debug"]);
+        var buttonJsonData = componentActionJson(response["encodedTopologyId"], response["encodedId"], response["id"],
+                                                 response["topologyStatus"], response["debug"]);
         var componentStatsDetail = $("#component-stats-detail")
         var inputStats = $("#component-input-stats");
         var outputStats = $("#component-output-stats");

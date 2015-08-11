@@ -329,7 +329,7 @@
         (:storm-active-atom worker)
         (and (= :active (-> base :status :type)) @(:worker-active-flag worker)))
       (reset! (:storm-component->debug-atom worker) (-> base :component->debug))
-      (log-message "debug options " @(:storm-component->debug-atom worker)))))
+      (log-debug "Event debug options " @(:storm-component->debug-atom worker)))))
 
 ;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]

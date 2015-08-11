@@ -1161,14 +1161,14 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
-      ;; TODO
       (debug [this storm-name component-id enable?]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
+              topology-conf (try-read-storm-conf conf storm-id)
               storm-base-updates (assoc {} :component->debug (if (empty? component-id) {storm-id enable?} {component-id enable?}))]
-;;          (check-authorization! nimbus storm-name topology-conf "debug")
-;;          (when-not storm-id
-;;            (throw (NotAliveException. storm-name)))
+          (check-authorization! nimbus storm-name topology-conf "debug")
+          (when-not storm-id
+            (throw (NotAliveException. storm-name)))
           (log-message "Nimbus setting debug to " enable? " for storm-name " storm-name " storm-id " storm-id)
           (locking (:submit-lock nimbus)
             (.update-storm! storm-cluster-state storm-id storm-base-updates))))

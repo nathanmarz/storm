@@ -186,13 +186,13 @@ function topologyActionJson(id, encodedId, name, status, msgTimeout, debug) {
     return jsonData;
 }
 
-function componentActionJson(encodedTopologyId, encodedId, componentName, debug) {
+function componentActionJson(encodedTopologyId, encodedId, componentName, status, debug) {
     var jsonData = {};
     jsonData["encodedTopologyId"] = encodedTopologyId;
     jsonData["encodedId"] = encodedId;
     jsonData["componentName"] = componentName;
-    jsonData["startDebugStatus"] = (!debug) ? "enabled" : "disabled";
-    jsonData["stopDebugStatus"] = debug ? "enabled" : "disabled";
+    jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
+    jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
     return jsonData;
 }
 

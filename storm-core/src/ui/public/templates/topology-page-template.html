@@ -226,6 +226,10 @@
         </th>
         <th class="header">Last error
         </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="left" title="Format: Hours:Minutes:Seconds">
+            Time Elapsed Since Error
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -243,6 +247,9 @@
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
+        <td>
+          <span id="{{errorLapsedSecs}}" class="elapsedErrorTime">{{errorLapsedSecs}}</span>
         </td>
         {{/spouts}}
     </tbody>
@@ -313,6 +320,10 @@
         </th>
         <th class="header">Last error
         </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="left" title="Format: Hours:Minutes:Seconds">
+            Time Elapsed Since Error
+        </th>
     </tr></thead>
     <tbody>
       {{#bolts}}
@@ -332,6 +343,9 @@
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
+        <td>
+          <span id="{{errorLapsedSecs}}" class="elapsedErrorTime">{{errorLapsedSecs}}</span>
         </td>
         {{/bolts}}
     </tbody>

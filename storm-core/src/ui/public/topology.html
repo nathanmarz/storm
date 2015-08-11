@@ -181,6 +181,24 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
+            var errorElapsedTime = document.getElementsByClassName("elapsedErrorTime");
+            for (i =0; i < errorElapsedTime.length; i++)
+            {
+                if((errorElapsedTime[i].id))
+                {
+                    var sec_num = parseInt(errorElapsedTime[i].id, 10);
+                    var hours   = Math.floor(sec_num / 3600);
+                    var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+                    var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+                    if (hours   < 10) {hours   = "0"+hours;}
+                    if (minutes < 10) {minutes = "0"+minutes;}
+                    if (seconds < 10) {seconds = "0"+seconds;}
+                    var time    = hours+':'+minutes+':'+seconds;
+
+                    errorElapsedTime[i].innerHTML = time;
+                }
+            }
             $('#topology-summary [data-toggle="tooltip"]').tooltip();
             $('#topology-stats [data-toggle="tooltip"]').tooltip();
             $('#spout-stats [data-toggle="tooltip"]').tooltip();

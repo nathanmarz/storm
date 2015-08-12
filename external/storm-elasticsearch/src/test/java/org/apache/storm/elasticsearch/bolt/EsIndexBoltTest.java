@@ -20,6 +20,7 @@ package org.apache.storm.elasticsearch.bolt;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
@@ -43,7 +44,9 @@ public class EsIndexBoltTest extends AbstractEsBoltTest{
         esConfig.setClusterName("test-cluster");
         esConfig.setNodes(new String[]{"127.0.0.1:9300"});
 
-        bolt = new EsIndexBolt(esConfig);
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+
+        bolt = new EsIndexBolt(esConfig, tupleMapper);
         bolt.prepare(config, null, collector);
 
         String source = "{\"user\":\"user1\"}";

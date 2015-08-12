@@ -25,6 +25,7 @@ import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsConstants;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import storm.trident.Stream;
 import storm.trident.TridentState;
 import storm.trident.TridentTopology;
@@ -48,8 +49,9 @@ public class TridentEsTopology {
         EsConfig esConfig = new EsConfig();
         esConfig.setClusterName(EsConstants.clusterName);
         esConfig.setNodes(new String[]{"localhost:9300"});
-        Fields esFields = new Fields("index", "type", "source");
-        StateFactory factory = new EsStateFactory(esConfig);
+        Fields esFields = new Fields("index", "type", "source", "id");
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        StateFactory factory = new EsStateFactory(esConfig, tupleMapper);
         TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());
 
         EsTestUtil.startEsNode();

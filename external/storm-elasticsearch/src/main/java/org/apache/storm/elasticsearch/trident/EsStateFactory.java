@@ -19,6 +19,7 @@ package org.apache.storm.elasticsearch.trident;
 
 import backtype.storm.task.IMetricsContext;
 import org.apache.storm.elasticsearch.common.EsConfig;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.trident.state.State;
@@ -26,8 +27,12 @@ import storm.trident.state.StateFactory;
 
 import java.util.Map;
 
+/**
+ * StateFactory for providing EsState.
+ */
 public class EsStateFactory implements StateFactory {
     private EsConfig esConfig;
+    private EsTupleMapper tupleMapper;
 
     public EsStateFactory(){
 
@@ -36,14 +41,16 @@ public class EsStateFactory implements StateFactory {
     /**
      * EsStateFactory constructor
      * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     * @param tupleMapper Tuple to ES document mapper {@link EsTupleMapper}
      */
-    public EsStateFactory(EsConfig esConfig){
+    public EsStateFactory(EsConfig esConfig, EsTupleMapper tupleMapper){
         this.esConfig = esConfig;
+        this.tupleMapper = tupleMapper;
     }
 
     @Override
     public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-        EsState esState = new EsState(esConfig);
+        EsState esState = new EsState(esConfig, tupleMapper);
         esState.prepare(conf, metrics, partitionIndex, numPartitions);
         return esState;
     }

@@ -21,6 +21,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.percolate.PercolateResponse;
 import org.elasticsearch.index.query.TermQueryBuilder;
@@ -42,7 +43,8 @@ public class EsPercolateBoltTest extends AbstractEsBoltTest {
         EsConfig esConfig = new EsConfig();
         esConfig.setClusterName("test-cluster");
         esConfig.setNodes(new String[]{"localhost:9300"});
-        bolt = new EsPercolateBolt(esConfig);
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        bolt = new EsPercolateBolt(esConfig, tupleMapper);
         bolt.prepare(config, null, collector);
 
         String source = "{\"user\":\"user1\"}";

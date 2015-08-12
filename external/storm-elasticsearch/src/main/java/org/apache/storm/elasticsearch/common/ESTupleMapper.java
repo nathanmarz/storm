@@ -15,21 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.elasticsearch.trident;
+package org.apache.storm.elasticsearch.common;
 
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
+import backtype.storm.tuple.ITuple;
 
-import java.util.List;
+import java.io.Serializable;
 
-public class EsUpdater extends BaseStateUpdater<EsState> {
+/**
+ * TupleMapper defines how to extract source, index, type, and id from tuple for ElasticSearch.
+ */
+public interface EsTupleMapper extends Serializable {
     /**
-     * {@inheritDoc}
-     * Each tuple should have relevant fields (source, index, type, id) for EsState's tupleMapper to extract ES document.
+     * Extracts source from tuple.
+     * @param tuple source tuple
+     * @return source
      */
-    @Override
-    public void updateState(EsState state, List<TridentTuple> tuples, TridentCollector collector) {
-        state.updateState(tuples, collector);
-    }
+    String getSource(ITuple tuple);
+
+    /**
+     * Extracts index from tuple.
+     * @param tuple source tuple
+     * @return index
+     */
+    String getIndex(ITuple tuple);
+
+    /**
+     * Extracts type from tuple.
+     * @param tuple source tuple
+     * @return type
+     */
+    String getType(ITuple tuple);
+
+    /**
+     * Extracts id from tuple.
+     * @param tuple source tuple
+     * @return id
+     */
+    String getId(ITuple tuple);
 }

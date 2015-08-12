@@ -44,7 +44,8 @@
   (close [this])
   (register [this callback])
   (unregister [this id])
-  (add-listener [this listener]))
+  (add-listener [this listener])
+  (sync-path [this path]))
 
 (defn mk-topo-only-acls
   [topo-conf]
@@ -145,6 +146,10 @@
       (add-listener
         [this listener]
         (zk/add-listener zk listener))
+
+      (sync-path
+        [this path]
+        (zk/sync-path zk path))
       )))
 
 (defprotocol StormClusterState
@@ -365,7 +370,9 @@
         [this callback]
         (when callback
           (reset! code-distributor-callback callback))
-        (get-children cluster-state CODE-DISTRIBUTOR-SUBTREE (not-nil? callback)))
+        (do
+          (sync-path cluster-state CODE-DISTRIBUTOR-SUBTREE)
+          (get-children cluster-state CODE-DISTRIBUTOR-SUBTREE (not-nil? callback))))
 
       (nimbuses
         [this]
@@ -389,7 +396,11 @@
 
       (code-distributor-info
         [this storm-id]
-        (map (fn [nimbus-info] (NimbusInfo/parse nimbus-info)) (get-children cluster-state (code-distributor-path storm-id) false)))
+        (map (fn [nimbus-info] (NimbusInfo/parse nimbus-info))
+          (let [path (code-distributor-path storm-id)]
+            (do
+              (sync-path cluster-state path)
+              (get-children cluster-state path false)))))
 
       (active-storms
         [this]

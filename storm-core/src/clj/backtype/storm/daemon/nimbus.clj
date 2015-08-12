@@ -1492,8 +1492,6 @@
         (.removeFromLeaderLockQueue (:leader-elector nimbus))
         (doseq [missing missing-topologies]
           (log-message "missing topology " missing " has state on zookeeper but doesn't have a local dir on this host.")
-          ;; complete heck to get around zookeeper eventual consistency issue. zk/sync is not helping us so adding a sleep.
-          (sleep-secs 5)
           (let [nimbuses-with-missing (.code-distributor-info storm-cluster-state missing)]
             (log-message "trying to download missing topology code from " (clojure.string/join "," nimbuses-with-missing))
             (doseq [nimbus-host-port nimbuses-with-missing]
@@ -1501,8 +1499,9 @@
                 (try
                   (download-code conf nimbus missing (.getHost nimbus-host-port) (.getPort nimbus-host-port))
                   (catch Exception e (log-error e "Exception while trying to syn-code for missing topology" missing)))))))))
-    ;;TODO Ideally This should only be called if all missing topology code was successfully downloaded.
-    (.addToLeaderLockQueue (:leader-elector nimbus))))
+
+    (if (empty? (set/difference active-topologies (set (code-ids (:conf nimbus)))))
+      (.addToLeaderLockQueue (:leader-elector nimbus)))))
 
 (defmethod sync-code :local [conf nimbus]
   nil)

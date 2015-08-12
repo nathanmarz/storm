@@ -1,3 +1,4 @@
+
 <html><head>
     <!--
      Licensed to the Apache Software Foundation (ASF) under one or more
@@ -48,6 +49,12 @@
     </div>
   </div>
   <div class="row">
+     <div class="col-md-12">
+        <h2>Nimbus Summary</h2>
+        <div id="nimbus-summary"></div>
+     </div>
+  </div>
+  <div class="row">
     <div class="col-md-12">
       <h2>Topology Summary</h2>
       <div id="topology-summary"></div>
@@ -96,6 +103,7 @@ $(document).ready(function() {
     });
     var uiUser = $("#ui-user");
     var clusterSummary = $("#cluster-summary");
+    var nimbusSummary = $("#nimbus-summary");
     var topologySummary = $("#topology-summary");
     var supervisorSummary = $("#supervisor-summary");
     var config = $("#nimbus-configuration");
@@ -110,6 +118,19 @@ $(document).ready(function() {
             clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
             $('#cluster-summary [data-toggle="tooltip"]').tooltip();
         });
+    });
+    $.getJSON("/api/v1/nimbus/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          nimbusSummary.append(Mustache.render($(template).filter("#nimbus-summary-template").html(),response));
+          //host, port, isLeader, version, uptime
+          dtAutoPage("#nimbus-summary-table", {
+            columnDefs: [
+              {type: "num", targets: [1]},
+              {type: "time-str", targets: [4]}
+            ]
+          });
+          $('#nimbus-summary [data-toggle="tooltip"]').tooltip();
+      });
     });
     $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
       $.get("/templates/index-page-template.html", function(template) {

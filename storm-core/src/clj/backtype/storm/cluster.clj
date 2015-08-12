@@ -16,12 +16,13 @@
 
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat ACL Id]
-           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials NimbusSummary]
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
+  (:import [backtype.storm.nimbus NimbusInfo])
   (:use [backtype.storm util log config converter])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]]))
@@ -143,6 +144,16 @@
   (assignment-info [this storm-id callback])
   (assignment-info-with-version [this storm-id callback])
   (assignment-version [this storm-id callback])
+  ;returns topologyIds under /stormroot/code-distributor
+  (code-distributor [this callback])
+  ;returns lits of nimbusinfos under /stormroot/code-distributor/storm-id
+  (code-distributor-info [this storm-id])
+
+  ;returns list of nimbus summaries stored under /stormroot/nimbuses/<nimbus-ids> -> <data>
+  (nimbuses [this])
+  ;adds the NimbusSummary to /stormroot/nimbuses/nimbus-id
+  (add-nimbus-host! [this nimbus-id nimbus-summary])
+
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
@@ -161,6 +172,8 @@
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
+  ;adds nimbusinfo under /stormroot/code-distributor/storm-id
+  (setup-code-distributor! [this storm-id info])
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id node port error])
   (errors [this storm-id task-id])
@@ -175,13 +188,18 @@
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
+(def CODE-DISTRIBUTOR-ROOT "code-distributor")
+(def NIMBUSES-ROOT "nimbuses")
 (def CREDENTIALS-ROOT "credentials")
+
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
+(def CODE-DISTRIBUTOR-SUBTREE (str "/" CODE-DISTRIBUTOR-ROOT))
+(def NIMBUSES-SUBTREE (str "/" NIMBUSES-ROOT))
 (def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 
 (defn supervisor-path
@@ -191,6 +209,14 @@
 (defn assignment-path
   [id]
   (str ASSIGNMENTS-SUBTREE "/" id))
+
+(defn code-distributor-path
+  [id]
+  (str CODE-DISTRIBUTOR-SUBTREE "/" id))
+
+(defn nimbus-path
+  [id]
+  (str NIMBUSES-SUBTREE "/" id))
 
 (defn storm-path
   [id]
@@ -276,6 +302,7 @@
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
+        code-distributor-callback (atom nil)
         credentials-callback (atom {})
         state-id (register
                   cluster-state
@@ -289,11 +316,12 @@
                                                (issue-map-callback! assignment-version-callback (first args))
                                                (issue-map-callback! assignment-info-with-version-callback (first args))))
                          SUPERVISORS-ROOT (issue-callback! supervisors-callback)
+                         CODE-DISTRIBUTOR-ROOT (issue-callback! code-distributor-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
-    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE NIMBUSES-SUBTREE]]
       (mkdirs cluster-state p acls))
     (reify
       StormClusterState
@@ -324,6 +352,25 @@
         (when callback
           (swap! assignment-version-callback assoc storm-id callback))
         (get-version cluster-state (assignment-path storm-id) (not-nil? callback)))
+
+      (code-distributor
+        [this callback]
+        (when callback
+          (reset! code-distributor-callback callback))
+        (get-children cluster-state CODE-DISTRIBUTOR-SUBTREE (not-nil? callback)))
+
+      (nimbuses
+        [this]
+        (map #(maybe-deserialize (get-data cluster-state (nimbus-path %1) false) NimbusSummary)
+          (get-children cluster-state NIMBUSES-SUBTREE false)))
+
+      (add-nimbus-host!
+        [this nimbus-id nimbus-summary]
+        (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))
+
+      (code-distributor-info
+        [this storm-id]
+        (map (fn [nimbus-info] (NimbusInfo/parse nimbus-info)) (get-children cluster-state (code-distributor-path storm-id) false)))
 
       (active-storms
         [this]
@@ -434,9 +481,15 @@
         (let [thrift-assignment (thriftify-assignment info)]
           (set-data cluster-state (assignment-path storm-id) (Utils/serialize thrift-assignment) acls)))
 
+      (setup-code-distributor!
+        [this storm-id nimbusInfo]
+        (mkdirs cluster-state (code-distributor-path storm-id) acls)
+        (mkdirs cluster-state (str (code-distributor-path storm-id) "/" (.toHostPortString nimbusInfo)) acls))
+
       (remove-storm!
         [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))
+        (delete-node cluster-state (code-distributor-path storm-id))
         (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
 

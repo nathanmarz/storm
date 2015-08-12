@@ -359,6 +359,15 @@ public class Utils {
 
     public static void downloadFromMaster(Map conf, String file, String localFile) throws AuthorizationException, IOException, TException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
+        download(client, file, localFile);
+    }
+
+    public static void downloadFromHost(Map conf, String file, String localFile, String host, int port) throws IOException, TException, AuthorizationException {
+        NimbusClient client = new NimbusClient (conf, host, port, null);
+        download(client, file, localFile);
+    }
+
+    private static void download(NimbusClient client, String file, String localFile) throws IOException, TException, AuthorizationException {
         String id = client.getClient().beginFileDownload(file);
         WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
         while(true) {

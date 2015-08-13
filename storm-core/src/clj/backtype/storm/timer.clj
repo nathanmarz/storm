@@ -57,7 +57,7 @@
                                    ;; an upper bound, e.g. 1000 millis, to the
                                    ;; sleeping time, to limit the response time
                                    ;; for detecting any new event within 1 secs.
-                                   (Time/sleep (max 1000 (- time-millis (current-time-millis))))
+                                   (Time/sleep (min 1000 (- time-millis (current-time-millis))))
                                    ;; Otherwise poll to see if any new event
                                    ;; was scheduled. This is, in essence, the
                                    ;; response time for detecting any new event

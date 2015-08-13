@@ -5,7 +5,7 @@
   is committed its immediately visible to all hive queries. More info on Hive Streaming API 
   https://cwiki.apache.org/confluence/display/Hive/Streaming+Data+Ingest
   
-  With the help of Hive Streaming API , HiveBolt and HiveState allows users to stream data from storm into hive directly.
+  With the help of Hive Streaming API, HiveBolt and HiveState allows users to stream data from Storm into Hive directly.
   To use Hive streaming API users need to create a bucketed table with ORC format.  Example below
   
   ```code
@@ -15,10 +15,10 @@
 
 ## HiveBolt (org.apache.storm.hive.bolt.HiveBolt)
 
-HiveBolt streams tuples directly into hive. Tuples are written using Hive Transactions. 
-Partiions to which HiveBolt will stream to can either created or pre-created or optionally
-HiveBolt  can create them if they are missing. Fields from Tuples are mapped to table columns.
-User should make sure that Tuple filed names are matched to the table column names.
+HiveBolt streams tuples directly into Hive. Tuples are written using Hive Transactions. 
+Partitions to which HiveBolt will stream to can either created or pre-created or optionally
+HiveBolt can create them if they are missing. Fields from Tuples are mapped to table columns.
+User should make sure that Tuple field names are matched to the table column names.
 
 ```java
 DelimitedRecordHiveMapper mapper = new DelimitedRecordHiveMapper()
@@ -28,7 +28,7 @@ HiveBolt hiveBolt = new HiveBolt(hiveOptions);
 ```
 
 ### RecordHiveMapper
-   This class maps Tuple filed names to Hive table column names.
+   This class maps Tuple field names to Hive table column names.
    There are two implementaitons available
  
    
@@ -47,7 +47,7 @@ HiveBolt hiveBolt = new HiveBolt(hiveOptions);
 
 |Arg | Description | Type
 |--- |--- |---
-|withColumnFields| field names in a tuple to be mapped to table column names | Fileds (required) |
+|withColumnFields| field names in a tuple to be mapped to table column names | Fields (required) |
 |withPartitionFields| field names in a tuple can be mapped to hive table partitions | Fields |
 |withTimeAsPartitionField| users can select system time as partition in hive table| String . Date format|
 

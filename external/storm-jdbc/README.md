@@ -7,10 +7,10 @@ in a storm topology.
 The bolt and trident state included in this package for inserting data into a database tables are tied to a single table.
 
 ### ConnectionProvider
-An interface that should be implemented by different connection pooling mechanism `org.apache.storm.jdbc.common.ConnectionPrvoider`
+An interface that should be implemented by different connection pooling mechanism `org.apache.storm.jdbc.common.ConnectionProvider`
 
 ```java
-public interface ConnectionPrvoider extends Serializable {
+public interface ConnectionProvider extends Serializable {
     /**
      * method must be idempotent.
      */

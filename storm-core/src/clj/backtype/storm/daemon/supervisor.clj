@@ -262,7 +262,7 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -15 " pid))
+        (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
         (kill-process-with-sig-term pid)))
     (when-not (empty? pids)  
       (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
@@ -675,6 +675,7 @@
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
+          topo-worker-logwriter-childopts (storm-conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
           logfilename (logs-filename storm-id port)
@@ -687,6 +688,7 @@
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
                     [(java-cmd) "-cp" classpath 
+                     topo-worker-logwriter-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dstorm.id=" storm-id)

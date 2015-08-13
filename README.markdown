@@ -210,6 +210,9 @@ under the License.
 * Charles Chan ([@charleswhchan](https://github.com/charleswhchan))
 * Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
 * Xingyu Su ([@errordaiwa](https://github.com/errordaiwa))
+* Adrian Seungjin Lee ([@sweetest](https://github.com/sweetest))
+* Randy Gelhausen ([@randerzander](https://github.com/randerzander))
+* Gabor Liptak ([@gliptak](https://github.com/glibtak))
 
 ## Acknowledgements
 

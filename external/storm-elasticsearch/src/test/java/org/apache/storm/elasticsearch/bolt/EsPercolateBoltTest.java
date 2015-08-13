@@ -22,19 +22,13 @@ import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
 import org.apache.storm.elasticsearch.common.EsTupleMapper;
-import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.percolate.PercolateResponse;
-import org.elasticsearch.index.query.TermQueryBuilder;
-import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Matchers.any;
 
 public class EsPercolateBoltTest extends AbstractEsBoltTest {
-    private static final Logger LOG = LoggerFactory.getLogger(EsIndexBoltTest.class);
     private EsPercolateBolt bolt;
 
     @Test

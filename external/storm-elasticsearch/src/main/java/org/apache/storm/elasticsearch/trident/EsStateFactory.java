@@ -20,8 +20,6 @@ package org.apache.storm.elasticsearch.trident;
 import backtype.storm.task.IMetricsContext;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTupleMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 

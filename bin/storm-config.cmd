@@ -83,10 +83,10 @@ if not defined STORM_LOG_DIR (
 )
 
 @rem
-@rem retrieve storm.logback.conf.dir from conf file
+@rem retrieve storm.log4j2.conf.dir from conf file
 @rem
 
-"%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value storm.logback.conf.dir > %CMD_TEMP_FILE%
+"%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" backtype.storm.command.config_value storm.log4j2.conf.dir > %CMD_TEMP_FILE%
   
 FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
 	FOR /F "tokens=1,* delims= " %%a in ("%%i") do (

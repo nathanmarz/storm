@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-964: Add config (with small default value) for logwriter to restrict its memory usage
  * STORM-980: Re-include storm-kafka tests from Travis CI build
  * STORM-960: HiveBolt should ack tuples only after flushing.
  * STORM-951: Storm Hive connector leaking connections.

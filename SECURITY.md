@@ -441,7 +441,7 @@ The Logviewer daemon now is also responsible for cleaning up old log files for d
 
 | YAML Setting | Description |
 |--------------|-------------------------------------|
-| logviewer.cleanup.age.mins | How old (by last modification time) must a worker's log be before that log is considered for clean-up. (Living workers' logs are never cleaned up by the logviewer: Their logs are rolled via logback.) |
+| logviewer.cleanup.age.mins | How old (by last modification time) must a worker's log be before that log is considered for clean-up. (Living workers' logs are never cleaned up by the logviewer: Their logs are rolled via log4j2.) |
 | logviewer.cleanup.interval.secs | Interval of time in seconds that the logviewer cleans up worker logs. |
 
 

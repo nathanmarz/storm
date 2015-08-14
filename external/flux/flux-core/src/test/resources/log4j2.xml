@@ -16,10 +16,10 @@
  limitations under the License.
 -->
 <Configuration scan="true" monitorInterval="30">
-	<Appenders>
+  <Appenders>
 		<Console name="A1" target="SYSTEM_OUT">
       <PatternLayout>
-			  <pattern>%-4r [%t] %-5level %c{1} - %msg%n</pattern>
+				<pattern>%-4r [%t] %-5level %c{1} - %msg%n</pattern>
       </PatternLayout>
     </Console>
   </Appenders>

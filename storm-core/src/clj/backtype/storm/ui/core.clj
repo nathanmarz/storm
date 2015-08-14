@@ -567,6 +567,7 @@
        {"user" user
         "stormVersion" (str (VersionInfo/getVersion))
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
+        "nimbusUptimeSeconds" (.get_nimbus_uptime_secs summ)
         "supervisors" (count sups)
         "topologies" topologies
         "slotsTotal" total-slots
@@ -586,6 +587,7 @@
       {"id" (.get_supervisor_id s)
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
+       "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
        "version" (.get_version s)})}))
@@ -606,6 +608,7 @@
        "name" (.get_name t)
        "status" (.get_status t)
        "uptime" (pretty-uptime-sec (.get_uptime_secs t))
+       "uptimeSeconds" (.get_uptime_secs t)
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
@@ -686,6 +689,7 @@
        "name" (.get_name summ)
        "status" (.get_status summ)
        "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
+       "uptimeSeconds" (.get_uptime_secs summ)
        "tasksTotal" (sum-tasks executors)
        "workersTotal" (count workers)
        "executorsTotal" (count executors)
@@ -767,6 +771,7 @@
     {"id" (pretty-executor-info (.get_executor_info e))
      "encodedId" (url-encode (pretty-executor-info (.get_executor_info e)))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
+     "uptimeSeconds" (.get_uptime_secs e)
      "host" (.get_host e)
      "port" (.get_port e)
      "emitted" (nil-to-zero (:emitted stats))
@@ -863,6 +868,7 @@
     {"id" (pretty-executor-info (.get_executor_info e))
      "encodedId" (url-encode (pretty-executor-info (.get_executor_info e)))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
+     "uptimeSeconds" (.get_uptime_secs e)
      "host" (.get_host e)
      "port" (.get_port e)
      "emitted" (nil-to-zero (:emitted stats))

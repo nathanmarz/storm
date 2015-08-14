@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-837: HdfsState ignores commits
  * STORM-938: storm-hive add a time interval to flush tuples to hive.
  * STORM-977: Incorrect signal (-9) when as-user is true
  * STORM-964: Add config (with small default value) for logwriter to restrict its memory usage

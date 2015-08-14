@@ -39,6 +39,7 @@
  * STORM-139: hashCode does not work for byte[]
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
+ * STORM-742: Let ShellBolt treat all messages to update heartbeat
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

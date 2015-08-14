@@ -55,4 +55,10 @@ public interface FileRotationPolicy extends Serializable {
      *
      */
     void reset();
+
+    /**
+     * Start the policy. Useful in case of policies like timed rotation
+     * where the timer can be started.
+     */
+    void start();
 }

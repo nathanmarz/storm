@@ -83,6 +83,11 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
         this.lastOffset = 0;
     }
 
+    @Override
+    public void start() {
+
+    }
+
     public long getMaxBytes() {
         return maxBytes;
     }

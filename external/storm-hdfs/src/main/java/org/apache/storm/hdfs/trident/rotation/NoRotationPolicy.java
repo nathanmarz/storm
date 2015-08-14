@@ -37,4 +37,9 @@ public class NoRotationPolicy implements FileRotationPolicy {
     @Override
     public void reset() {
     }
+
+    @Override
+    public void start() {
+
+    }
 }

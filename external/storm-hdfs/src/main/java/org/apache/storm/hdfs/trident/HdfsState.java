@@ -139,9 +139,7 @@ public class HdfsState implements State {
                 throw new RuntimeException("Error preparing HdfsState: " + e.getMessage(), e);
             }
 
-            if (this.rotationPolicy instanceof TimedRotationPolicy) {
-                ((TimedRotationPolicy) this.rotationPolicy).start();
-            }
+            rotationPolicy.start();
         }
 
         /**
@@ -455,6 +453,12 @@ public class HdfsState implements State {
     }
 
     /**
+     * Returns temp file path corresponding to a file name.
+     */
+    private Path tmpFilePath(String filename) {
+        return new Path(filename + ".tmp");
+    }
+    /**
      * Reads the last txn record from index file if it exists, if not
      * from .tmp file if exists.
      *
@@ -463,7 +467,7 @@ public class HdfsState implements State {
      * @throws IOException
      */
     private TxnRecord getTxnRecord(Path indexFilePath) throws IOException {
-        Path tmpPath = new Path(indexFilePath.toString() + ".tmp");
+        Path tmpPath = tmpFilePath(indexFilePath.toString());
         if (this.options.fs.exists(indexFilePath)) {
             return readTxnRecord(indexFilePath);
         } else if (this.options.fs.exists(tmpPath)) {
@@ -489,7 +493,7 @@ public class HdfsState implements State {
         FSDataOutputStream out = null;
         LOG.debug("Starting index update.");
         try {
-            Path tmpPath = new Path(this.indexFilePath.toString() + ".tmp");
+            Path tmpPath = tmpFilePath(indexFilePath.toString());
             out = this.options.fs.create(tmpPath, true);
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out));
             TxnRecord txnRecord = new TxnRecord(txId, options.currentFile.toString(), this.options.getCurrentOffset());

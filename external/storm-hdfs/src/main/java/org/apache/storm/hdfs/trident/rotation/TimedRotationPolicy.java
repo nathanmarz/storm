@@ -84,6 +84,7 @@ public class TimedRotationPolicy implements FileRotationPolicy {
     /**
      * Start the timer to run at fixed intervals.
      */
+    @Override
     public void start() {
         rotationTimer = new Timer(true);
         TimerTask task = new TimerTask() {

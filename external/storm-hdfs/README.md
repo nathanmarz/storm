@@ -317,6 +317,15 @@ that of the bolts.
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 ```
 
+### Note
+Whenever a batch is replayed by storm (due to failures), the trident state implementation automatically removes 
+duplicates from the current data file by copying the data up to the last transaction to another file. Since this 
+operation involves a lot of data copy, ensure that the data files are rotated at reasonable sizes with `FileSizeRotationPolicy` 
+and at reasonable intervals with `TimedRotationPolicy` so that the recovery can complete within topology.message.timeout.secs.
+
+Also note with `TimedRotationPolicy` the files are never rotated in the middle of a batch even if the timer ticks, 
+but only when a batch completes so that complete batches can be efficiently recovered in case of failures.
+
 ##Working with Secure HDFS
 If your topology is going to interact with secure HDFS, your bolts/states needs to be authenticated by NameNode. We 
 currently have 2 options to support this:

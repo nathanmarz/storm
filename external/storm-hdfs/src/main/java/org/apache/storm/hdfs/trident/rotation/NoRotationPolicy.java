@@ -30,6 +30,16 @@ public class NoRotationPolicy implements FileRotationPolicy {
     }
 
     @Override
+    public boolean mark(long offset) {
+        return false;
+    }
+
+    @Override
     public void reset() {
+    }
+
+    @Override
+    public void start() {
+
     }
 }

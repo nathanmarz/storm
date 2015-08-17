@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 package backtype.storm;
+import java.util.HashSet;
 import java.util.Map;
-
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Provides functionality for validating configuration fields.
@@ -228,7 +228,7 @@ public class ConfigValidation {
     /**
      * Validates is a list of Integers.
      */
-    public static Object IntegersValidator = new FieldValidator() {
+    public static Object NoDuplicateIntegersValidator = new FieldValidator() {
         @Override
         public void validateField(String name, Object field)
                 throws IllegalArgumentException {
@@ -236,17 +236,24 @@ public class ConfigValidation {
                 // A null value is acceptable.
                 return;
             }
+            int size = 0;
+            Set<Number> integerSet = new HashSet<Number>();
             if (field instanceof Iterable) {
                 for (Object o : (Iterable)field) {
+                    size++;
                     final long i;
                     if (o instanceof Number &&
                             ((i = ((Number)o).longValue()) == ((Number)o).doubleValue()) &&
                             (i <= Integer.MAX_VALUE && i >= Integer.MIN_VALUE)) {
                         // pass the test
+                        integerSet.add((Number) o);
                     } else {
                         throw new IllegalArgumentException(
                                 "Each element of the list " + name + " must be an Integer within type range.");
                     }
+                }
+                if (size != integerSet.size()) {
+                       throw new IllegalArgumentException(name + " should contain no duplicate elements");
                 }
                 return;
             }

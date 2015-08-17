@@ -23,6 +23,8 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.utils.TupleUtils;
+import backtype.storm.Config;
 import org.apache.storm.hive.common.HiveWriter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hive.hcatalog.streaming.*;
@@ -99,16 +101,24 @@ public class HiveBolt extends  BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         try {
-            List<String> partitionVals = options.getMapper().mapPartitions(tuple);
-            HiveEndPoint endPoint = HiveUtils.makeEndPoint(partitionVals, options);
-            HiveWriter writer = getOrCreateWriter(endPoint);
-            if(timeToSendHeartBeat.compareAndSet(true, false)) {
-                enableHeartBeatOnAllWriters();
+            boolean forceFlush = false;
+            if (TupleUtils.isTick(tuple)) {
+                LOG.debug("TICK received! current batch status [" + tupleBatch.size() + "/" + options.getBatchSize() + "]");
+                forceFlush = true;
             }
-            writer.write(options.getMapper().mapRecord(tuple));
-
-            tupleBatch.add(tuple);
-            if(tupleBatch.size() >= options.getBatchSize()) {
+            else {
+                List<String> partitionVals = options.getMapper().mapPartitions(tuple);
+                HiveEndPoint endPoint = HiveUtils.makeEndPoint(partitionVals, options);
+                HiveWriter writer = getOrCreateWriter(endPoint);
+                if (timeToSendHeartBeat.compareAndSet(true, false)) {
+                    enableHeartBeatOnAllWriters();
+                }
+                writer.write(options.getMapper().mapRecord(tuple));
+                tupleBatch.add(tuple);
+                if (tupleBatch.size() >= options.getBatchSize())
+                    forceFlush = true;
+            }
+            if(forceFlush && !tupleBatch.isEmpty()) {
                 flushAllWriters(true);
                 LOG.info("acknowledging tuples after writers flushed ");
                 for(Tuple t : tupleBatch)
@@ -174,6 +184,17 @@ public class HiveBolt extends  BaseRichBolt {
         LOG.info("Hive Bolt stopped");
     }
 
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        Map<String, Object> conf = super.getComponentConfiguration();
+        if (conf == null)
+            conf = new Config();
+
+        if (options.getTickTupleInterval() > 0)
+            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, options.getTickTupleInterval());
+
+        return conf;
+    }
 
     private void setupHeartBeatTimer() {
         if(options.getHeartBeatInterval()>0) {

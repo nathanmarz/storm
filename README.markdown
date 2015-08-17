@@ -211,6 +211,9 @@ under the License.
 * Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
 * Xingyu Su ([@errordaiwa](https://github.com/errordaiwa))
 * Adrian Seungjin Lee ([@sweetest](https://github.com/sweetest))
+* Randy Gelhausen ([@randerzander](https://github.com/randerzander))
+* Gabor Liptak ([@gliptak](https://github.com/glibtak))
+* Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
 
 ## Acknowledgements
 

@@ -11,32 +11,10 @@ Users should make sure that ```EsTupleMapper``` can extract "source", "index", "
 "source" is a document in JSON format string that will be indexed in Elasticsearch.
 
 ```java
-class SampleEsTupleMapper implements EsTupleMapper {
-    @Override
-    public String getSource(ITuple tuple) {
-        return tuple.getStringByField("source");
-    }
-
-    @Override
-    public String getIndex(ITuple tuple) {
-        return tuple.getStringByField("index");
-    }
-
-    @Override
-    public String getType(ITuple tuple) {
-        return tuple.getStringByField("type");
-    }
-
-    @Override
-    public String getId(ITuple tuple) {
-        return tuple.getStringByField("id");
-    }
-}
-
 EsConfig esConfig = new EsConfig();
 esConfig.setClusterName(clusterName);
 esConfig.setNodes(new String[]{"localhost:9300"});
-EsTupleMapper tupleMapper = new SampleEsTupleMapper();
+EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
 EsIndexBolt indexBolt = new EsIndexBolt(esConfig, tupleMapper);
 ```
 
@@ -51,7 +29,7 @@ User should make sure ```EsTupleMapper``` can extract "source", "index", "type" 
 EsConfig esConfig = new EsConfig();
 esConfig.setClusterName(clusterName);
 esConfig.setNodes(new String[]{"localhost:9300"});
-EsTupleMapper tupleMapper = new SampleEsTupleMapper();
+EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
 EsPercolateBolt percolateBolt = new EsPercolateBolt(esConfig, tupleMapper);
 ```
 
@@ -66,7 +44,7 @@ Elasticsearch Trident state also follows similar pattern to EsBolts. It takes in
    EsConfig esConfig = new EsConfig();
    esConfig.setClusterName(clusterName);
    esConfig.setNodes(new String[]{"localhost:9300"});
-   EsTupleMapper tupleMapper = new SampleEsTupleMapper();
+   EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
 
    StateFactory factory = new EsStateFactory(esConfig, tupleMapper);
    TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());
@@ -92,8 +70,9 @@ Provided components (Bolt, State) takes in EsConfig as a constructor arg.
 ## EsTupleMapper (org.apache.storm.elasticsearch.common.EsTupleMapper)
 
 For storing tuple to Elasticsearch or percolating tuple from Elasticsearch, we need to define which fields are used for.
-Users need to define your own by implementing ```EsTupleMapper```. 
-You can refer ```SampleEsTupleMapper``` above to see how to implement your own.
+Users need to define your own by implementing ```EsTupleMapper```.
+Storm-elasticsearch presents default mapper ```org.apache.storm.elasticsearch.common.DefaultEsTupleMapper```, which extracts its source, index, type, id values from identical fields.
+You can refer implementation of DefaultEsTupleMapper to see how to implement your own.
   
 ## Committer Sponsors
 

@@ -1047,6 +1047,48 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
+     * Whether to enable backpressure in for a certain topology
+     */
+    public static final String TOPOLOGY_BACKPRESSURE_ENABLE = "topology.backpressure.enable";
+    public static final Object TOPOLOGY_BACKPRESSURE_ENABLE_SCHEMA = Boolean.class;
+
+    /**
+     * This signifies the tuple congestion in a worker's out-going queue.
+     * When the used ratio of a worker's outgoing queue is higher than the high watermark,
+     * the backpressure scheme, if enabled, should slow down the tuple sending speed of
+     * the spouts until reaching the low watermark.
+     */
+    public static final String BACKPRESSURE_WORKER_HIGH_WATERMARK="backpressure.worker.high.watermark";
+    public static final Object BACKPRESSURE_WORKER_HIGH_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
+     * This signifies a state that a worker has left the congestion.
+     * If the used ratio of a worker's outgoing queue is lower than the low watermark,
+     * it notifies the worker to check whether all its executors have also left congestion,
+     * if yes, it will unset the worker's backpressure flag on the Zookeeper
+     */
+    public static final String BACKPRESSURE_WORKER_LOW_WATERMARK="backpressure.worker.low.watermark";
+    public static final Object BACKPRESSURE_WORKER_LOW_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
+     * This signifies the tuple congestion in an executor's receiving queue.
+     * When the used ratio of an executor's receiving queue is higher than the high watermark,
+     * the backpressure scheme, if enabled, should slow down the tuple sending speed of
+     * the spouts until reaching the low watermark.
+     */
+    public static final String BACKPRESSURE_EXECUTOR_HIGH_WATERMARK="backpressure.executor.high.watermark";
+    public static final Object BACKPRESSURE_EXECUTOR_HIGH_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
+     * This signifies a state that an executor has left the congestion.
+     * If the used ratio of an execuotr's receive queue is lower than the low watermark,
+     * it may notify the worker to check whether all its executors have also left congestion,
+     * if yes, the worker's backpressure flag will be unset on the Zookeeper
+     */
+    public static final String BACKPRESSURE_EXECUTOR_LOW_WATERMARK="backpressure.executor.low.watermark";
+    public static final Object BACKPRESSURE_EXECUTOR_LOW_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
      * A list of users that are allowed to interact with the topology.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
      */

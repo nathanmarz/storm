@@ -28,7 +28,7 @@
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
   (:import [backtype.storm.generated GlobalStreamId])
-  (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time])
+  (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue])
   (:import [com.lmax.disruptor InsufficientCapacityException])
   (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer])
   (:import [backtype.storm.daemon Shutdownable])
@@ -170,7 +170,8 @@
 (defprotocol RunningExecutor
   (render-stats [this])
   (get-executor-id [this])
-  (credentials-changed [this creds]))
+  (credentials-changed [this creds])
+  (get-backpressure-flag [this]))
 
 (defn throttled-report-error-fn [executor]
   (let [storm-conf (:storm-conf executor)
@@ -261,8 +262,28 @@
                                ((:suicide-fn <>))))
      :deserializer (KryoTupleDeserializer. storm-conf worker-context)
      :sampler (mk-stats-sampler storm-conf)
+     :backpressure (atom false)
+     :spout-throttling-metrics (if (= executor-type :spout) 
+                                (builtin-metrics/make-spout-throttling-data)
+                                nil)
      ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolt-data function?
      )))
+
+(defn- mk-disruptor-backpressure-handler [executor-data]
+  "make a handler for the executor's receive disruptor queue to
+  check highWaterMark and lowWaterMark for backpressure"
+  (disruptor/disruptor-backpressure-handler
+    (fn []
+      "When receive queue is above highWaterMark"
+      (if (not @(:backpressure executor-data))
+        (do (reset! (:backpressure executor-data) true)
+            (log-debug "executor " (:executor-id executor-data) " is congested, set backpressure flag true")
+            (disruptor/notify-backpressure-checker (:backpressure-trigger (:worker executor-data))))))
+    (fn []
+      "When receive queue is below lowWaterMark"
+      (if @(:backpressure executor-data)
+        (do (reset! (:backpressure executor-data) false)
+            (disruptor/notify-backpressure-checker (:backpressure-trigger (:worker executor-data))))))))
 
 (defn start-batch-transfer->worker-handler! [worker executor-data]
   (let [worker-transfer-fn (:transfer-fn worker)
@@ -353,6 +374,13 @@
         report-error-and-die (:report-error-and-die executor-data)
         component-id (:component-id executor-data)
 
+
+        disruptor-handler (mk-disruptor-backpressure-handler executor-data)
+        _ (.registerBackpressureCallback (:receive-queue executor-data) disruptor-handler)
+        _ (-> (.setHighWaterMark (:receive-queue executor-data) ((:storm-conf executor-data) BACKPRESSURE-WORKER-HIGH-WATERMARK))
+              (.setLowWaterMark ((:storm-conf executor-data) BACKPRESSURE-WORKER-LOW-WATERMARK))
+              (.setEnableBackpressure ((:storm-conf executor-data) TOPOLOGY-BACKPRESSURE-ENABLE)))
+
         ;; starting the batch-transfer->worker ensures that anything publishing to that queue 
         ;; doesn't block (because it's a single threaded queue and the caching/consumer started
         ;; trick isn't thread-safe)
@@ -369,7 +397,7 @@
       (render-stats [this]
         (stats/render-stats! (:stats executor-data)))
       (get-executor-id [this]
-        executor-id )
+        executor-id)
       (credentials-changed [this creds]
         (let [receive-queue (:receive-queue executor-data)
               context (:worker-context executor-data)]
@@ -377,6 +405,8 @@
             receive-queue
             [[nil (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID)]]
               )))
+      (get-backpressure-flag [this]
+        @(:backpressure executor-data))
       Shutdownable
       (shutdown
         [this]
@@ -512,6 +542,7 @@
           (Thread/sleep 100))
         
         (log-message "Opening spout " component-id ":" (keys task-datas))
+        (builtin-metrics/register-spout-throttling-metrics (:spout-throttling-metrics executor-data) storm-conf (:user-context (first (vals task-datas))))
         (doseq [[task-id task-data] task-datas
                 :let [^ISpout spout-obj (:object task-data)
                      tasks-fn (:tasks-fn task-data)
@@ -596,10 +627,17 @@
             ))
           
           (let [active? @(:storm-active-atom executor-data)
-                curr-count (.get emitted-count)]
+                curr-count (.get emitted-count)
+                ;; suspend-time ((:storm-conf executor-data) BACKPRESSURE-SPOUT-SUSPEND-TIME-MS)
+                backpressure-enabled ((:storm-conf executor-data) TOPOLOGY-BACKPRESSURE-ENABLE)
+                throttle-on (and backpressure-enabled
+                              @(:throttle-on (:worker executor-data)))
+                reached-max-spout-pending (and max-spout-pending
+                                               (>= (.size pending) max-spout-pending))
+                ]
             (if (and (.isEmpty overflow-buffer)
-                     (or (not max-spout-pending)
-                         (< (.size pending) max-spout-pending)))
+                     (not throttle-on)
+                     (not reached-max-spout-pending))
               (if active?
                 (do
                   (when-not @last-active
@@ -607,6 +645,7 @@
                     (log-message "Activating spout " component-id ":" (keys task-datas))
                     (fast-list-iter [^ISpout spout spouts] (.activate spout)))
                
+                    ;; (log-message "Spout executor " (:executor-id executor-data) " found throttle-on, now suspends sending tuples")
                   (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
                 (do
                   (when @last-active
@@ -614,10 +653,16 @@
                     (log-message "Deactivating spout " component-id ":" (keys task-datas))
                     (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
                   ;; TODO: log that it's getting throttled
-                  (Time/sleep 100))))
+                  (Time/sleep 100)
+                  (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
             (if (and (= curr-count (.get emitted-count)) active?)
               (do (.increment empty-emit-streak)
-                  (.emptyEmit spout-wait-strategy (.get empty-emit-streak)))
+                  (.emptyEmit spout-wait-strategy (.get empty-emit-streak))
+                  ;; update the spout throttling metrics
+                  (if throttle-on
+                    (builtin-metrics/skipped-throttle! (:spout-throttling-metrics executor-data) (:stats executor-data))
+                    (if reached-max-spout-pending
+                      (builtin-metrics/skipped-max-spout! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
               (.set empty-emit-streak 0)
               ))           
           0))
@@ -685,7 +730,8 @@
                                     user-context (:user-context task-data)
                                     sampler? (sampler)
                                     execute-sampler? (execute-sampler)
-                                    now (if (or sampler? execute-sampler?) (System/currentTimeMillis))]
+                                    now (if (or sampler? execute-sampler?) (System/currentTimeMillis))
+                                    receive-queue (:receive-queue executor-data)]
                                 (when sampler?
                                   (.setProcessSampleStartTime tuple now))
                                 (when execute-sampler?

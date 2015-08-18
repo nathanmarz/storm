@@ -146,6 +146,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_LOCAL_DIR_SCHEMA = String.class;
 
     /**
+     * A directory that holds configuration files for log4j2.
+     */
+    public static final String STORM_LOG4J2_CONF_DIR = "storm.log4j2.conf.dir";
+    public static final Object STORM_LOG4J2_CONF_DIR_SCHEMA = String.class;
+
+    /**
      * A global task scheduler used to assign topologies's tasks to supervisors' wokers.
      *
      * If this is not set, a default system scheduler will be used.

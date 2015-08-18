@@ -660,9 +660,8 @@
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
           storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home file-path-separator "logs"))
-          storm-conf (read-storm-config)
-          storm-log-conf-dir (storm-conf "storm.logback.conf.dir")
-          storm-logback-conf-dir (or storm-log-conf-dir (str storm-home file-path-separator "log4j2"))
+          storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
+          storm-log4j2-conf-dir (or storm-log-conf-dir (str storm-home file-path-separator "log4j2"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
@@ -694,7 +693,7 @@
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
-                     (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -707,7 +706,7 @@
                      (str "-Dstorm.options=" storm-options)
                      (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
-                     (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)

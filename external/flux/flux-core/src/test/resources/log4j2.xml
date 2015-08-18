@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
  Licensed to the Apache Software Foundation (ASF) under one or more
  contributor license agreements.  See the NOTICE file distributed with
@@ -15,16 +15,20 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<configuration scan="true" scanPeriod="30 seconds">
-  <appender name="A1" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
-    </encoder>
-  </appender>
-  <logger name="org.apache.storm.zookeeper" level="WARN"/>
-    <logger name="org.apache.storm.curator" level="WARN"/>
-    <logger name="org.apache.storm.flux" level="DEBUG"/>
-  <root level="DEBUG">
-    <appender-ref ref="A1"/>
-  </root>
-</configuration>
+<Configuration scan="true" monitorInterval="30">
+  <Appenders>
+    <Console name="A1" target="SYSTEM_OUT">
+      <PatternLayout>
+        <pattern>%-4r [%t] %-5level %c{1} - %msg%n</pattern>
+      </PatternLayout>
+    </Console>
+  </Appenders>
+  <Loggers>
+    <Logger name="org.apache.storm.curator" level="warn"/>
+    <Logger name="org.apache.storm.flux" level="debug"/>
+    <Logger name="org.apache.storm.zookeeper" level="warn"/>
+    <Root level="debug">
+      <appender-ref ref="A1"/>
+    </Root>
+  </Loggers>
+</Configuration>

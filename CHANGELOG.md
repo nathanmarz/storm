@@ -31,6 +31,7 @@
  * STORM-845: Storm ElasticSearch connector
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-988: supervisor.slots.ports should not allow duplicate element values
+ * STORM-975: Storm-Kafka trident topology example
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

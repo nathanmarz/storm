@@ -140,7 +140,7 @@ public class TridentBoltExecutor implements IRichBolt {
         }        
     }
     
-    public class CoordinatedOutputCollector implements IOutputCollector {
+    private static class CoordinatedOutputCollector implements IOutputCollector {
         IOutputCollector _delegate;
         
         TrackedBatch _currBatch = null;;

@@ -188,7 +188,7 @@ public class LinearDRPCTopologyBuilder {
         public void declare(String prevComponent, InputDeclarer declarer);
     }
     
-    private class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
+    private static class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
         Component _component;
         
         public InputDeclarerImpl(Component component) {

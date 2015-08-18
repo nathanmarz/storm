@@ -121,7 +121,7 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
      *  </li>
      * </ul>
      */
-    class MessageRetryRecord {
+    private class MessageRetryRecord {
         private final long offset;
         private final int retryNum;
         private final long retryTimeUTC;
@@ -169,7 +169,7 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
         }
     }
 
-    class RetryTimeComparator implements Comparator<MessageRetryRecord> {
+    private static class RetryTimeComparator implements Comparator<MessageRetryRecord> {
 
         @Override
         public int compare(MessageRetryRecord record1, MessageRetryRecord record2) {

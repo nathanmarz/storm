@@ -1,4 +1,11 @@
 ## 0.11.0
+ * STORM-976: Config storm.logback.conf.dir is specific to previous logging framework
+ * STORM-995: Fix excessive logging
+ * STORM-837: HdfsState ignores commits
+ * STORM-938: storm-hive add a time interval to flush tuples to hive.
+ * STORM-977: Incorrect signal (-9) when as-user is true
+ * STORM-964: Add config (with small default value) for logwriter to restrict its memory usage
+ * STORM-980: Re-include storm-kafka tests from Travis CI build
  * STORM-960: HiveBolt should ack tuples only after flushing.
  * STORM-951: Storm Hive connector leaking connections.
  * STORM_803: Better CI logs
@@ -24,6 +31,9 @@
  * STORM-968: Adding support to generate the id based on names in Trident
  * STORM-845: Storm ElasticSearch connector
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
+ * STORM-988: supervisor.slots.ports should not allow duplicate element values
+ * STORM-975: Storm-Kafka trident topology example
+ * STORM-958: Add config for init params of group mapping service
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis
@@ -36,6 +46,7 @@
  * STORM-139: hashCode does not work for byte[]
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
+ * STORM-742: Let ShellBolt treat all messages to update heartbeat
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

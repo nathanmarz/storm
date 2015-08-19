@@ -89,9 +89,11 @@
           (.validateField validator "test" (inc Integer/MAX_VALUE))))))
 
 (deftest test-integers-validator
-  (let [validator ConfigValidation/IntegersValidator]
+  (let [validator ConfigValidation/NoDuplicateIntegersValidator]
     (.validateField validator "test" nil)
     (.validateField validator "test" [1000 0 -1000])
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [0 10 10])))
     (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" [0 10 1.34])))
     (is (thrown-cause? java.lang.IllegalArgumentException

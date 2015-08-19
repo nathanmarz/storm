@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-976: Config storm.logback.conf.dir is specific to previous logging framework
  * STORM-995: Fix excessive logging
  * STORM-837: HdfsState ignores commits
  * STORM-938: storm-hive add a time interval to flush tuples to hive.
@@ -32,6 +33,7 @@
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-988: supervisor.slots.ports should not allow duplicate element values
  * STORM-975: Storm-Kafka trident topology example
+ * STORM-958: Add config for init params of group mapping service
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

@@ -146,6 +146,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_LOCAL_DIR_SCHEMA = String.class;
 
     /**
+     * A directory that holds configuration files for log4j2.
+     */
+    public static final String STORM_LOG4J2_CONF_DIR = "storm.log4j2.conf.dir";
+    public static final Object STORM_LOG4J2_CONF_DIR_SCHEMA = String.class;
+
+    /**
      * A global task scheduler used to assign topologies's tasks to supervisors' wokers.
      *
      * If this is not set, a default system scheduler will be used.
@@ -187,6 +193,14 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS = "storm.group.mapping.service.cache.duration.secs";
     public static final Object STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS_SCHEMA = Number.class;
+
+    /**
+     * Initialization parameters for the group mapping service plugin.
+     * Provides a way for a @link{STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN}
+     * implementation to access optional settings.
+     */
+    public static final String STORM_GROUP_MAPPING_SERVICE_PARAMS = "storm.group.mapping.service.params";
+    public static final Object STORM_GROUP_MAPPING_SERVICE_PARAMS_SCHEMA = Map.class;
 
     /**
      * The default transport plug-in for Thrift client/server communication

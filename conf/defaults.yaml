@@ -23,6 +23,7 @@ java.library.path: "/usr/local/lib:/opt/local/lib:/usr/lib"
 ### storm.* configs are general configurations
 # the local dir is where jars are kept
 storm.local.dir: "storm-local"
+storm.log4j2.conf.dir: "log4j2"
 storm.zookeeper.servers:
     - "localhost"
 storm.zookeeper.port: 2181
@@ -39,6 +40,7 @@ storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
 storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
+storm.group.mapping.service.params: null
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 storm.nimbus.retry.times: 5
 storm.nimbus.retry.interval.millis: 2000

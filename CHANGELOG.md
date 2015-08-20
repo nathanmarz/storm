@@ -34,6 +34,7 @@
  * STORM-988: supervisor.slots.ports should not allow duplicate element values
  * STORM-975: Storm-Kafka trident topology example
  * STORM-958: Add config for init params of group mapping service
+ * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
  * STORM-843: [storm-redis] Add Javadoc to storm-redis

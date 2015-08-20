@@ -20,6 +20,7 @@ package org.apache.storm.elasticsearch.bolt;
 import java.util.Collection;
 
 import org.apache.storm.elasticsearch.ElasticsearchGetRequest;
+import org.apache.storm.elasticsearch.EsLookupResultOutput;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;

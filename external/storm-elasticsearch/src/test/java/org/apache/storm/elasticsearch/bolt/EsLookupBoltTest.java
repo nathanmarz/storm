@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.storm.elasticsearch.ElasticsearchGetRequest;
+import org.apache.storm.elasticsearch.EsLookupResultOutput;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.get.GetRequest;

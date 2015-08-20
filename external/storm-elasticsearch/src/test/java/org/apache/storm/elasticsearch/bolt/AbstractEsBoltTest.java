@@ -28,7 +28,7 @@ import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 
 @RunWith(MockitoJUnitRunner.class)
-abstract class AbstractEsBoltTest<Bolt extends AbstractEsBolt> {
+public abstract class AbstractEsBoltTest<Bolt extends AbstractEsBolt> {
 
     protected static Config config = new Config();
 

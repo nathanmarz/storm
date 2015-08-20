@@ -215,6 +215,7 @@ under the License.
 * Gabor Liptak ([@gliptak](https://github.com/glibtak))
 * Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
 * Yvonne Ironberg ([@YvonneIronberg](https://github.com/YvonneIronberg))
+* Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 
 ## Acknowledgements
 

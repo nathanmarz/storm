@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
@@ -110,7 +111,7 @@ public class EsLookupBoltIntegrationTest extends AbstractEsBoltIntegrationTest<E
     private class TestElasticsearchGetRequest implements ElasticsearchGetRequest {
 
         @Override
-        public GetRequest extractFrom(Tuple tuple) {
+        public GetRequest extractFrom(ITuple tuple) {
             return node.client().prepareGet().setId(documentId).setIndex(indexName).setType(typeName).request();
         }
     }

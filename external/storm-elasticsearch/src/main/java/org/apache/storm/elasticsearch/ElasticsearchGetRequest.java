@@ -19,9 +19,9 @@ package org.apache.storm.elasticsearch;
 
 import org.elasticsearch.action.get.GetRequest;
 
-import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.ITuple;
 
 public interface ElasticsearchGetRequest {
 
-    GetRequest extractFrom(Tuple tuple);
+    GetRequest extractFrom(ITuple tuple);
 }

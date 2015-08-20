@@ -20,10 +20,7 @@ package org.apache.storm.elasticsearch.bolt;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
-import org.elasticsearch.action.count.CountRequest;
-import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,29 +29,20 @@ import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.verify;
 
-public class EsIndexBoltTest extends AbstractEsBoltTest{
+public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> {
     private static final Logger LOG = LoggerFactory.getLogger(EsIndexBoltTest.class);
-    private EsIndexBolt bolt;
 
     @Test
     public void testEsIndexBolt()
             throws Exception {
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName("test-cluster");
-        esConfig.setNodes(new String[]{"127.0.0.1:9300"});
-
-        bolt = new EsIndexBolt(esConfig);
-        bolt.prepare(config, null, collector);
-
-        String source = "{\"user\":\"user1\"}";
         String index = "index1";
         String type = "type1";
-        String id = "docId";
-        Tuple tuple = EsTestUtil.generateTestTuple(source, index, type, id);
+
+        Tuple tuple = createTestTuple(index, type);
 
         bolt.execute(tuple);
 
-        verify(collector).ack(tuple);
+        verify(outputCollector).ack(tuple);
 
         node.client().admin().indices().prepareRefresh(index).execute().actionGet();
         CountResponse resp = node.client().prepareCount(index)
@@ -62,7 +50,16 @@ public class EsIndexBoltTest extends AbstractEsBoltTest{
                 .execute().actionGet();
 
         Assert.assertEquals(1, resp.getCount());
+    }
 
-        bolt.cleanup();
+    private Tuple createTestTuple(String index, String type) {
+        String source = "{\"user\":\"user1\"}";
+        String id = "docId";
+        return EsTestUtil.generateTestTuple(source, index, type, id);
+    }
+
+    @Override
+    protected EsIndexBolt createBolt(EsConfig esConfig) {
+        return new EsIndexBolt(esConfig);
     }
 }

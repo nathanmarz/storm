@@ -34,6 +34,19 @@ EsPercolateBolt percolateBolt = new EsPercolateBolt(esConfig);
 If there exists non-empty percolate response, EsPercolateBolt will emit tuple with original source and Percolate.Match
 for each Percolate.Match in PercolateResponse.
 
+## EsLookupBolt (org.apache.storm.elasticsearch.bolt.EsLookupBolt)
+
+EsLookupBolt performs a get request to Elasticsearch. Incoming tuple is passed to provided GetRequest creator and the result of that execution is passed to Elasticsearch client.
+The bolt then uses the provider output adapter (EsLookupResultOutput) to convert the GetResponse to Values to emit.
+The output fields are also specified by the user of the bolt via the output adapter (EsLookupResultOutput).
+
+```java
+EsConfig esConfig = createEsConfig();
+ElasticsearchGetRequest getRequestAdapter = createElasticsearchGetRequest();
+EsLookupResultOutput output = createOutput();
+EsLookupBolt lookupBolt = new EsLookupBolt(esConfig, getRequestAdapter, output);
+```
+
 ## EsConfig (org.apache.storm.elasticsearch.common.EsConfig)
   
 Two bolts above takes in EsConfig as a constructor arg.

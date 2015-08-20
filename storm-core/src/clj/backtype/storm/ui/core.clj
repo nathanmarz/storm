@@ -647,7 +647,8 @@
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port top-id secure?)
      "errorLapsedSecs" (get-error-time last-error)
-     "lastError" (get-error-data last-error)}))
+     "lastError" (get-error-data last-error)
+     "time" (if last-error (* 1000 (long (.get_error_time_secs ^ErrorInfo last-error))))}))
 
 (defn bolt-comp [top-id summ-map errors window include-sys? secure?]
   (for [[id summs] summ-map
@@ -674,7 +675,8 @@
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port top-id secure?)
      "errorLapsedSecs" (get-error-time last-error)
-     "lastError" (get-error-data last-error)}))
+     "lastError" (get-error-data last-error)
+     "time" (if last-error (* 1000 (long (.get_error_time_secs ^ErrorInfo last-error))))}))
 
 (defn topology-summary [^TopologyInfo summ]
   (let [executors (.get_executors summ)

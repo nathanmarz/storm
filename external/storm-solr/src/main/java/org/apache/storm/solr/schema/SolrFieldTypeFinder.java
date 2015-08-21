@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.storm.solr.schema;
 
 import org.slf4j.Logger;
@@ -14,14 +32,11 @@ import java.util.TreeSet;
 /**
  * Class containing all the information relating fields with their types. This information is wrapped in the class
  * {@link FieldTypeWrapper}
- * <p></p>
- * Created by hlouro on 7/27/15.
  */
 public class SolrFieldTypeFinder implements Serializable {
-    private static final Logger logger = LoggerFactory.getLogger(SolrFieldTypeFinder.class);
+    private static final Logger log = LoggerFactory.getLogger(SolrFieldTypeFinder.class);
     private Schema schema;
     private Map<String, FieldTypeWrapper> fieldToWrapper;
-
 
     /**
      * Class wrapping all the information for fields and types
@@ -72,9 +87,8 @@ public class SolrFieldTypeFinder implements Serializable {
         buildMapForFields(fieldTypes, schema.getFields());
         // dynamic fields
         buildMapForFields(fieldTypes, schema.getDynamicFields());
-        System.out.println("Completed building Field/Type Map: " + fieldToWrapper);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Completed building Field/Type Map: " + fieldToWrapper);
+        if (log.isDebugEnabled()) {
+            log.debug("Completed building FieldType Map: " + fieldToWrapper);
         }
     }
 
@@ -115,7 +129,7 @@ public class SolrFieldTypeFinder implements Serializable {
                 }
             }
         }
-        logger.debug("Solr Field and Type info: {}, {}", fieldName, typeWrapper);
+        log.debug("Solr Field Name = {}, Solr Type = {}", fieldName, typeWrapper);
         return typeWrapper;
     }
 
@@ -125,7 +139,7 @@ public class SolrFieldTypeFinder implements Serializable {
         for (FieldTypeWrapper typeWrapper : typeWrappers) {
             fieldTypeClasses.add(typeWrapper.getType().getClazz());
         }
-        logger.debug("Field type classes present in schema: {}", fieldTypeClasses);
+        log.debug("Field type classes present in schema: {}", fieldTypeClasses);
         return fieldTypeClasses;
     }
 
@@ -139,8 +153,8 @@ public class SolrFieldTypeFinder implements Serializable {
                 return true;
             }
         }
-        if (logger.isDebugEnabled()) {
-            logger.debug("Field [{}] did NOT match any dynamic field present in {}", fieldName, fieldToWrapper.keySet());
+        if (log.isDebugEnabled()) {
+            log.debug("Field [{}] did NOT match any dynamic field present in {}", fieldName, fieldToWrapper.keySet());
         }
         return false;
     }
@@ -151,14 +165,17 @@ public class SolrFieldTypeFinder implements Serializable {
         }
         if (pattern.startsWith("*")) {
             if (fieldName.endsWith(pattern.substring(1))) {
-                logger.debug("Field [{}] MATCHES dynamic field {}", fieldName, pattern);
+                log.debug("Field [{}] MATCHES dynamic field {}", fieldName, pattern);
                 return true;
             }
         } else if (pattern.endsWith("*")) {
             if (fieldName.startsWith(pattern.substring(0, pattern.length()-1))) {
-                logger.debug("Field [{}] MATCHES dynamic field {}", fieldName, pattern);
+                log.debug("Field [{}] MATCHES dynamic field {}", fieldName, pattern);
                 return true;
             }
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Field [{}] did NOT match any dynamic field present in {}", fieldName, fieldToWrapper.keySet());
         }
         return false;
     }

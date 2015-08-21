@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.solr.trident;
 
 import backtype.storm.task.IMetricsContext;
-import org.apache.storm.solr.config.SolrCommitStrategy;
 import org.apache.storm.solr.config.SolrConfig;
 import org.apache.storm.solr.mapper.SolrMapper;
 import storm.trident.state.State;

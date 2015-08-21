@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.storm.solr.spout;
 
 import backtype.storm.spout.SpoutOutputCollector;
@@ -8,6 +26,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
+import org.apache.storm.solr.util.TestUtil;
 import org.junit.Test;
 
 import java.text.DateFormat;
@@ -17,17 +36,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-/**
- * Created by hlouro on 7/24/15.
- */
 public class SolrJsonSpout extends BaseRichSpout {
     private SpoutOutputCollector collector;
     private static final List<Values> listValues = Lists.newArrayList(
-            new Values((new JsonSchema("_hmcl_json_test_1")).toJson()),
-            new Values((new JsonSchema("_hmcl_json_test_2")).toJson()),
-            new Values((new JsonSchema("_hmcl_json_test_3")).toJson()),
-            new Values(new JsonSchema("_hmcl_json_test_4")),
-            new Values(new JsonSchema("_hmcl_json_test_5")));
+            getJsonValues("1"), getJsonValues("2"), getJsonValues("3"), // Tuple contains String Object in JSON format
+            getPojoValues("1"), getPojoValues("2"));    // Tuple contains Java object that must be serialized to JSON by SolrJsonMapper
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -56,6 +69,18 @@ public class SolrJsonSpout extends BaseRichSpout {
         super.close();
     }
 
+    // ====
+
+    private static Values getJsonValues(String suf) {
+        String suffix = "_json_test_val_" + suf;
+        return new Values((new JsonSchema(suffix)).toJson());
+    }
+
+    private static Values getPojoValues(String suf) {
+        String suffix = "_json_test_val_" + suf;
+        return new Values(new JsonSchema(suffix));
+    }
+
     public static class JsonSchema {
         private String id;
         private String date;
@@ -65,7 +90,7 @@ public class SolrJsonSpout extends BaseRichSpout {
 
         public JsonSchema(String suffix) {
             this.id = "id" + suffix;
-            this.date = getDate();
+            this.date = TestUtil.getDate();
             this.dc_title = "dc_title" + suffix;
         }
 
@@ -88,25 +113,8 @@ public class SolrJsonSpout extends BaseRichSpout {
             return json;
         }
 
-        //TODO: clean this up
         public static JsonSchema fromJson(String jsonStr) {
             return new JsonSchema(gson.fromJson(jsonStr, JsonSchema.class));
         }
-
-        private String getDate() {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            String date = df.format(new Date());
-            System.out.println(date);
-            return date;
-        }
     }
-
-    //TODO Delete
-    @Test
-    public void test() {
-        SolrJsonSpout solrJsonSpout = new SolrJsonSpout();
-        System.out.println("stop");
-    }
-
-
 }

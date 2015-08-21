@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.solr.trident;
 
 import backtype.storm.topology.FailedException;

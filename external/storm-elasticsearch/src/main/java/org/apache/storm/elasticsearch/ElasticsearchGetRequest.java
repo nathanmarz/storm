@@ -17,11 +17,20 @@
  */
 package org.apache.storm.elasticsearch;
 
+import java.io.Serializable;
+
 import org.elasticsearch.action.get.GetRequest;
 
 import backtype.storm.tuple.ITuple;
 
-public interface ElasticsearchGetRequest {
+/**
+ * @since 0.11
+ * The adapter to convert the incoming tuple to Elasticsearch GetRequest.
+ */
+public interface ElasticsearchGetRequest extends Serializable {
 
+    /**
+     * @return GetRequest to perform against Elasticsearch.
+     */
     GetRequest extractFrom(ITuple tuple);
 }

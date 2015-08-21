@@ -36,7 +36,12 @@ for each Percolate.Match in PercolateResponse.
 
 ## EsLookupBolt (org.apache.storm.elasticsearch.bolt.EsLookupBolt)
 
-EsLookupBolt performs a get request to Elasticsearch. Incoming tuple is passed to provided GetRequest creator and the result of that execution is passed to Elasticsearch client.
+EsLookupBolt performs a get request to Elasticsearch. 
+In order to do that, three dependencies need to be satisfied. Apart from usual EsConfig, two other dependencies must be provided:
+    ElasticsearchGetRequest is used to convert the incoming Tuple to the GetRequest that will be executed against Elasticsearch.
+    EsLookupResultOutput is used to declare the output fields and convert the GetResponse to values that are emited by the bolt.
+
+Incoming tuple is passed to provided GetRequest creator and the result of that execution is passed to Elasticsearch client.
 The bolt then uses the provider output adapter (EsLookupResultOutput) to convert the GetResponse to Values to emit.
 The output fields are also specified by the user of the bolt via the output adapter (EsLookupResultOutput).
 

@@ -17,6 +17,7 @@
  */
 package org.apache.storm.elasticsearch;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.elasticsearch.action.get.GetResponse;
@@ -24,9 +25,19 @@ import org.elasticsearch.action.get.GetResponse;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 
-public interface EsLookupResultOutput {
+/**
+ * @since 0.11
+ * The adapter to convert the results fetched from Elasticsearch to values.
+ */
+public interface EsLookupResultOutput extends Serializable {
 
+    /**
+     * @return collection of values to emit.
+     */
     Collection<Values> toValues(GetResponse response);
 
+    /**
+     * @return output fields to declare.
+     */
     Fields fields();
 }

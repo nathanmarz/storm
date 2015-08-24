@@ -145,6 +145,7 @@ struct TopologySummary {
   7: required string status;
 513: optional string sched_status;
 514: optional string owner;
+515: optional i32 replication_count;
 }
 
 struct SupervisorSummary {
@@ -156,10 +157,18 @@ struct SupervisorSummary {
   6: optional string version = "VERSION_NOT_PROVIDED";
 }
 
+struct NimbusSummary {
+  1: required string host;
+  2: required i32 port;
+  3: required i32 uptime_secs;
+  4: required bool isLeader;
+  5: required string version;
+}
+
 struct ClusterSummary {
   1: required list<SupervisorSummary> supervisors;
-  2: required i32 nimbus_uptime_secs;
   3: required list<TopologySummary> topologies;
+  4: required list<NimbusSummary> nimbuses;
 }
 
 struct ErrorInfo {
@@ -220,6 +229,7 @@ struct TopologyInfo {
   6: required map<string, list<ErrorInfo>> errors;
 513: optional string sched_status;
 514: optional string owner;
+515: optional i32 replication_count;
 }
 
 struct KillOptions {

@@ -42,6 +42,7 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+
     //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
     private static final long serialVersionUID = -1550278723792864455L;
 
@@ -324,16 +325,24 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_NIMBUS_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
 
     /**
-     * The host that the master server is running on.
-     */
-    public static final String NIMBUS_HOST = "nimbus.host";
-    public static final Object NIMBUS_HOST_SCHEMA = String.class;
-
-    /**
      * The Nimbus transport plug-in for Thrift client/server communication
      */
     public static final String NIMBUS_THRIFT_TRANSPORT_PLUGIN = "nimbus.thrift.transport";
     public static final Object NIMBUS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * The host that the master server is running on, added only for backward compatibility,
+     * the usage deprecated in favor of nimbus.seeds config.
+     */
+    @Deprecated
+    public static final String NIMBUS_HOST = "nimbus.host";
+    public static final Object NIMBUS_HOST_SCHEMA = String.class;
+
+    /**
+     * List of seed nimbus hosts to use for leader nimbus discovery.
+     */
+    public static final String NIMBUS_SEEDS = "nimbus.seeds";
+    public static final Object NIMBUS_SEEDS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * Which port the Thrift interface of Nimbus should run on. Clients should
@@ -1479,6 +1488,36 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
     public static final Object TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
+
+    /**
+     * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code
+     * distribution.
+     */
+    public static final String STORM_CODE_DISTRIBUTOR_CLASS = "storm.codedistributor.class";
+    public static final Object STORM_CODE_DISTRIBUTOR_CLASS_SCHEMA = String.class;
+
+    /**
+     * Minimum number of nimbus hosts where the code must be replicated before leader nimbus
+     * is allowed to perform topology activation tasks like setting up heartbeats/assignments
+     * and marking the topology as active. default is 0.
+     */
+    public static final String TOPOLOGY_MIN_REPLICATION_COUNT = "topology.min.replication.count";
+    public static final Object TOPOLOGY_MIN_REPLICATION_COUNT_SCHEMA = Number.class;
+
+    /**
+     * Maximum wait time for the nimbus host replication to achieve the nimbus.min.replication.count.
+     * Once this time is elapsed nimbus will go ahead and perform topology activation tasks even
+     * if required nimbus.min.replication.count is not achieved. The default is 0 seconds, a value of
+     * -1 indicates to wait for ever.
+     */
+    public static final String TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC = "topology.max.replication.wait.time.sec";
+    public static final Object TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
+
+    /**
+     * How often nimbus's background thread to sync code for missing topologies should run.
+     */
+    public static final String NIMBUS_CODE_SYNC_FREQ_SECS = "nimbus.code.sync.freq.secs";
+    public static final Object NIMBUS_CODE_SYNC_FREQ_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

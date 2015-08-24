@@ -4254,8 +4254,6 @@ class TopologyInfo:
       raise TProtocol.TProtocolException(message='Required field status is unset!')
     if self.errors is None:
       raise TProtocol.TProtocolException(message='Required field errors is unset!')
-    if self.component_debug is None:
-      raise TProtocol.TProtocolException(message='Required field component_debug is unset!')
     return
 
 

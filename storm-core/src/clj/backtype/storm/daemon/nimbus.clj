@@ -1169,7 +1169,8 @@
           (check-authorization! nimbus storm-name topology-conf "debug")
           (when-not storm-id
             (throw (NotAliveException. storm-name)))
-          (log-message "Nimbus setting debug to " enable? " for storm-name " storm-name " storm-id " storm-id)
+          (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "'"
+            (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
           (locking (:submit-lock nimbus)
             (.update-storm! storm-cluster-state storm-id storm-base-updates))))
 

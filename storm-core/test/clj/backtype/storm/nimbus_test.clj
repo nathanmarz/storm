@@ -1224,7 +1224,7 @@
         (.disconnect cluster-state)
         ))))
 
-(deftest test-debug-on
+(deftest test-debug-on-component
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -1233,3 +1233,11 @@
         (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
         (.debug nimbus "t1" "spout" true))))
 
+(deftest test-debug-on-global
+  (with-local-cluster [cluster]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                     {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                     {})]
+      (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
+      (.debug nimbus "t1" "" true))))

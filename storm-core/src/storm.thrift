@@ -218,7 +218,7 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
-  7: required map<string, bool> component_debug;
+  7: optional map<string, bool> component_debug;
 513: optional string sched_status;
 514: optional string owner;
 }
@@ -351,6 +351,10 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+  /**
+  * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
+  * and if null or empty, the debug flag will apply to the entire topology.
+  **/
   void debug(1: string name, 2: string component, 3: bool enable) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 

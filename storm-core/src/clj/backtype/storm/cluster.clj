@@ -240,8 +240,7 @@
     (when cb
       (cb id))))
 
-;; public for stubbing in nimbus_test
-(defn maybe-deserialize
+(defn- maybe-deserialize
   [ser clazz]
   (when ser
     (Utils/deserialize ser clazz)))

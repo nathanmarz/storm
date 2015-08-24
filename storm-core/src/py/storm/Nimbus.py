@@ -96,6 +96,10 @@ class Iface:
 
   def debug(self, name, component, enable):
     """
+    Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
+    and if null or empty, the debug flag will apply to the entire topology.
+
+
     Parameters:
      - name
      - component
@@ -454,6 +458,10 @@ class Client(Iface):
 
   def debug(self, name, component, enable):
     """
+    Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
+    and if null or empty, the debug flag will apply to the entire topology.
+
+
     Parameters:
      - name
      - component

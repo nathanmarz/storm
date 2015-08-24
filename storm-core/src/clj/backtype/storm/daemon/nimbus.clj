@@ -1353,10 +1353,10 @@
                            executor-summaries
                            (extract-status-str base)
                            errors
-                           (map-val boolean (:component->debug base))
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
+            (when-let [component->debug (:component->debug base)] (.set_component_debug topo-info (map-val boolean component->debug)))
             topo-info
           ))
 

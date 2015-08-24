@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-829: Hadoop dependency confusion
  * STORM-166: Nimbus HA
  * STORM-976: Config storm.logback.conf.dir is specific to previous logging framework
  * STORM-995: Fix excessive logging

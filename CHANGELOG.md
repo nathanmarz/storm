@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-990: Refactored TimeCacheMap to extend RotatingMap
  * STORM-829: Hadoop dependency confusion
  * STORM-166: Nimbus HA
  * STORM-976: Config storm.logback.conf.dir is specific to previous logging framework

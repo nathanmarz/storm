@@ -217,6 +217,7 @@ under the License.
 * Yvonne Ironberg ([@YvonneIronberg](https://github.com/YvonneIronberg))
 * Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 * Li Wang ([@wangli1426](https://github.com/wangli1426))
+* Rohan Agarwal ([@rohanag12](https://github.com/rohanag12))
 
 ## Acknowledgements
 

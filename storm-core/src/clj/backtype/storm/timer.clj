@@ -53,8 +53,11 @@
                                    ;; event generation. If any recurring events
                                    ;; are scheduled then we will always go
                                    ;; through this branch, sleeping only the
-                                   ;; exact necessary amount of time.
-                                   (Time/sleep (- time-millis (current-time-millis)))
+                                   ;; exact necessary amount of time. We give
+                                   ;; an upper bound, e.g. 1000 millis, to the
+                                   ;; sleeping time, to limit the response time
+                                   ;; for detecting any new event within 1 secs.
+                                   (Time/sleep (min 1000 (- time-millis (current-time-millis))))
                                    ;; Otherwise poll to see if any new event
                                    ;; was scheduled. This is, in essence, the
                                    ;; response time for detecting any new event

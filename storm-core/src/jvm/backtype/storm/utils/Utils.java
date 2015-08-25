@@ -359,23 +359,34 @@ public class Utils {
 
     public static void downloadFromMaster(Map conf, String file, String localFile) throws AuthorizationException, IOException, TException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
-        download(client, file, localFile);
+        try {
+        	download(client, file, localFile);
+        } finally {
+        	client.close();
+        }
     }
 
     public static void downloadFromHost(Map conf, String file, String localFile, String host, int port) throws IOException, TException, AuthorizationException {
         NimbusClient client = new NimbusClient (conf, host, port, null);
-        download(client, file, localFile);
+        try {
+        	download(client, file, localFile);
+        } finally {
+        	client.close();
+        }
     }
 
     private static void download(NimbusClient client, String file, String localFile) throws IOException, TException, AuthorizationException {
-        String id = client.getClient().beginFileDownload(file);
         WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
-        while(true) {
-            ByteBuffer chunk = client.getClient().downloadChunk(id);
-            int written = out.write(chunk);
-            if(written==0) break;
+        try {
+            String id = client.getClient().beginFileDownload(file);
+	        while(true) {
+	            ByteBuffer chunk = client.getClient().downloadChunk(id);
+	            int written = out.write(chunk);
+	            if(written==0) break;
+	        }
+        } finally {
+        	out.close();
         }
-        out.close();
     }
 
     public static IFn loadClojureFn(String namespace, String name) {

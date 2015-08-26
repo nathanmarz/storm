@@ -446,6 +446,21 @@
     ret
     ))
 
+;; Send sampled data to the eventlogger if the global or component level
+;; debug flag is set (via nimbus api).
+(defn send-to-eventlogger [executor-data task-data values overflow-buffer component-id random]
+    (let [c->d @(:storm-component->debug-atom executor-data)
+          options (get c->d component-id (get c->d (:storm-id executor-data)))
+          spct    (if (and (not-nil? options) (:enable options)) (:samplingpct options) 0)]
+      ;; the thread's initialized random number generator is used to generate
+      ;; uniformily distributed random numbers.
+      (if (and (> spct 0) (< (* 100 (.nextDouble random)) spct))
+        (task/send-unanchored
+          task-data
+          EVENTLOGGER-STREAM-ID
+          [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
+          overflow-buffer))))
+
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
@@ -533,16 +548,8 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
-                                         ;; Send data to the eventlogger if event logging is enabled in conf
-                                         ;; and the global or component level debug flag is set (via nimbus api).
                                          (if has-eventloggers?
-                                           (let [c->d @(:storm-component->debug-atom executor-data)]
-                                             (if (get c->d component-id (get c->d (:storm-id executor-data) false))
-                                               (task/send-unanchored
-                                                 task-data
-                                                 EVENTLOGGER-STREAM-ID
-                                                 [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
-                                                 overflow-buffer))))
+                                           (send-to-eventlogger executor-data task-data values overflow-buffer component-id rand))
                                          (if (and rooted?
                                                   (not (.isEmpty out-ids)))
                                            (do
@@ -749,15 +756,8 @@
                                                                                stream
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
-                                    ;; Send data to the eventlogger if event logging is enabled in conf
-                                    ;; and the global or component level debug flag is set (via nimbus api).
                                     (if has-eventloggers?
-                                      (let [c->d @(:storm-component->debug-atom executor-data)]
-                                        (if (get c->d component-id (get c->d (:storm-id executor-data) false))
-                                          (task/send-unanchored task-data
-                                            EVENTLOGGER-STREAM-ID
-                                            [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
-                                            overflow-buffer))))
+                                      (send-to-eventlogger executor-data task-data values overflow-buffer component-id rand))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 

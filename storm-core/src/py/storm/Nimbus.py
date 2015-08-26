@@ -94,16 +94,19 @@ class Iface:
     """
     pass
 
-  def debug(self, name, component, enable):
+  def debug(self, name, component, enable, samplingPercentage):
     """
     Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
     and if null or empty, the debug flag will apply to the entire topology.
+
+    If 'samplingPercentage' is specified, it will limit loggging to a percentage of generated tuples. The default is to log all (100 pct).
 
 
     Parameters:
      - name
      - component
      - enable
+     - samplingPercentage
     """
     pass
 
@@ -456,26 +459,30 @@ class Client(Iface):
       raise result.aze
     return
 
-  def debug(self, name, component, enable):
+  def debug(self, name, component, enable, samplingPercentage):
     """
     Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
     and if null or empty, the debug flag will apply to the entire topology.
+
+    If 'samplingPercentage' is specified, it will limit loggging to a percentage of generated tuples. The default is to log all (100 pct).
 
 
     Parameters:
      - name
      - component
      - enable
+     - samplingPercentage
     """
-    self.send_debug(name, component, enable)
+    self.send_debug(name, component, enable, samplingPercentage)
     self.recv_debug()
 
-  def send_debug(self, name, component, enable):
+  def send_debug(self, name, component, enable, samplingPercentage):
     self._oprot.writeMessageBegin('debug', TMessageType.CALL, self._seqid)
     args = debug_args()
     args.name = name
     args.component = component
     args.enable = enable
+    args.samplingPercentage = samplingPercentage
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -1095,7 +1102,7 @@ class Processor(Iface, TProcessor):
     iprot.readMessageEnd()
     result = debug_result()
     try:
-      self._handler.debug(args.name, args.component, args.enable)
+      self._handler.debug(args.name, args.component, args.enable, args.samplingPercentage)
     except NotAliveException, e:
       result.e = e
     except AuthorizationException, aze:
@@ -2489,6 +2496,7 @@ class debug_args:
    - name
    - component
    - enable
+   - samplingPercentage
   """
 
   thrift_spec = (
@@ -2496,12 +2504,14 @@ class debug_args:
     (1, TType.STRING, 'name', None, None, ), # 1
     (2, TType.STRING, 'component', None, None, ), # 2
     (3, TType.BOOL, 'enable', None, None, ), # 3
+    (4, TType.DOUBLE, 'samplingPercentage', None, None, ), # 4
   )
 
-  def __init__(self, name=None, component=None, enable=None,):
+  def __init__(self, name=None, component=None, enable=None, samplingPercentage=None,):
     self.name = name
     self.component = component
     self.enable = enable
+    self.samplingPercentage = samplingPercentage
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2527,6 +2537,11 @@ class debug_args:
           self.enable = iprot.readBool();
         else:
           iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.DOUBLE:
+          self.samplingPercentage = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2549,6 +2564,10 @@ class debug_args:
       oprot.writeFieldBegin('enable', TType.BOOL, 3)
       oprot.writeBool(self.enable)
       oprot.writeFieldEnd()
+    if self.samplingPercentage is not None:
+      oprot.writeFieldBegin('samplingPercentage', TType.DOUBLE, 4)
+      oprot.writeDouble(self.samplingPercentage)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2561,6 +2580,7 @@ class debug_args:
     value = (value * 31) ^ hash(self.name)
     value = (value * 31) ^ hash(self.component)
     value = (value * 31) ^ hash(self.enable)
+    value = (value * 31) ^ hash(self.samplingPercentage)
     return value
 
   def __repr__(self):

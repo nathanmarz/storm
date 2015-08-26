@@ -74,12 +74,15 @@ public class Nimbus {
      * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
      * and if null or empty, the debug flag will apply to the entire topology.
      * 
+     * If 'samplingPercentage' is specified, it will limit loggging to a percentage of generated tuples. The default is to log all (100 pct).
+     * 
      * 
      * @param name
      * @param component
      * @param enable
+     * @param samplingPercentage
      */
-    public void debug(String name, String component, boolean enable) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
+    public void debug(String name, String component, boolean enable, double samplingPercentage) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
     public void uploadNewCredentials(String name, Credentials creds) throws NotAliveException, InvalidTopologyException, AuthorizationException, org.apache.thrift.TException;
 
@@ -135,7 +138,7 @@ public class Nimbus {
 
     public void rebalance(String name, RebalanceOptions options, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void debug(String name, String component, boolean enable, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void debug(String name, String component, boolean enable, double samplingPercentage, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void uploadNewCredentials(String name, Credentials creds, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -385,18 +388,19 @@ public class Nimbus {
       return;
     }
 
-    public void debug(String name, String component, boolean enable) throws NotAliveException, AuthorizationException, org.apache.thrift.TException
+    public void debug(String name, String component, boolean enable, double samplingPercentage) throws NotAliveException, AuthorizationException, org.apache.thrift.TException
     {
-      send_debug(name, component, enable);
+      send_debug(name, component, enable, samplingPercentage);
       recv_debug();
     }
 
-    public void send_debug(String name, String component, boolean enable) throws org.apache.thrift.TException
+    public void send_debug(String name, String component, boolean enable, double samplingPercentage) throws org.apache.thrift.TException
     {
       debug_args args = new debug_args();
       args.set_name(name);
       args.set_component(component);
       args.set_enable(enable);
+      args.set_samplingPercentage(samplingPercentage);
       sendBase("debug", args);
     }
 
@@ -1032,9 +1036,9 @@ public class Nimbus {
       }
     }
 
-    public void debug(String name, String component, boolean enable, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void debug(String name, String component, boolean enable, double samplingPercentage, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      debug_call method_call = new debug_call(name, component, enable, resultHandler, this, ___protocolFactory, ___transport);
+      debug_call method_call = new debug_call(name, component, enable, samplingPercentage, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1043,11 +1047,13 @@ public class Nimbus {
       private String name;
       private String component;
       private boolean enable;
-      public debug_call(String name, String component, boolean enable, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private double samplingPercentage;
+      public debug_call(String name, String component, boolean enable, double samplingPercentage, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.name = name;
         this.component = component;
         this.enable = enable;
+        this.samplingPercentage = samplingPercentage;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1056,6 +1062,7 @@ public class Nimbus {
         args.set_name(name);
         args.set_component(component);
         args.set_enable(enable);
+        args.set_samplingPercentage(samplingPercentage);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1727,7 +1734,7 @@ public class Nimbus {
       public debug_result getResult(I iface, debug_args args) throws org.apache.thrift.TException {
         debug_result result = new debug_result();
         try {
-          iface.debug(args.name, args.component, args.enable);
+          iface.debug(args.name, args.component, args.enable, args.samplingPercentage);
         } catch (NotAliveException e) {
           result.e = e;
         } catch (AuthorizationException aze) {
@@ -2599,7 +2606,7 @@ public class Nimbus {
       }
 
       public void start(I iface, debug_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
-        iface.debug(args.name, args.component, args.enable,resultHandler);
+        iface.debug(args.name, args.component, args.enable, args.samplingPercentage,resultHandler);
       }
     }
 
@@ -10431,6 +10438,7 @@ public class Nimbus {
     private static final org.apache.thrift.protocol.TField NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("name", org.apache.thrift.protocol.TType.STRING, (short)1);
     private static final org.apache.thrift.protocol.TField COMPONENT_FIELD_DESC = new org.apache.thrift.protocol.TField("component", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField ENABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("enable", org.apache.thrift.protocol.TType.BOOL, (short)3);
+    private static final org.apache.thrift.protocol.TField SAMPLING_PERCENTAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("samplingPercentage", org.apache.thrift.protocol.TType.DOUBLE, (short)4);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -10441,12 +10449,14 @@ public class Nimbus {
     private String name; // required
     private String component; // required
     private boolean enable; // required
+    private double samplingPercentage; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       NAME((short)1, "name"),
       COMPONENT((short)2, "component"),
-      ENABLE((short)3, "enable");
+      ENABLE((short)3, "enable"),
+      SAMPLING_PERCENTAGE((short)4, "samplingPercentage");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -10467,6 +10477,8 @@ public class Nimbus {
             return COMPONENT;
           case 3: // ENABLE
             return ENABLE;
+          case 4: // SAMPLING_PERCENTAGE
+            return SAMPLING_PERCENTAGE;
           default:
             return null;
         }
@@ -10508,6 +10520,7 @@ public class Nimbus {
 
     // isset id assignments
     private static final int __ENABLE_ISSET_ID = 0;
+    private static final int __SAMPLINGPERCENTAGE_ISSET_ID = 1;
     private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -10518,6 +10531,8 @@ public class Nimbus {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.ENABLE, new org.apache.thrift.meta_data.FieldMetaData("enable", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.SAMPLING_PERCENTAGE, new org.apache.thrift.meta_data.FieldMetaData("samplingPercentage", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(debug_args.class, metaDataMap);
     }
@@ -10528,13 +10543,16 @@ public class Nimbus {
     public debug_args(
       String name,
       String component,
-      boolean enable)
+      boolean enable,
+      double samplingPercentage)
     {
       this();
       this.name = name;
       this.component = component;
       this.enable = enable;
       set_enable_isSet(true);
+      this.samplingPercentage = samplingPercentage;
+      set_samplingPercentage_isSet(true);
     }
 
     /**
@@ -10549,6 +10567,7 @@ public class Nimbus {
         this.component = other.component;
       }
       this.enable = other.enable;
+      this.samplingPercentage = other.samplingPercentage;
     }
 
     public debug_args deepCopy() {
@@ -10561,6 +10580,8 @@ public class Nimbus {
       this.component = null;
       set_enable_isSet(false);
       this.enable = false;
+      set_samplingPercentage_isSet(false);
+      this.samplingPercentage = 0.0;
     }
 
     public String get_name() {
@@ -10631,6 +10652,28 @@ public class Nimbus {
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ENABLE_ISSET_ID, value);
     }
 
+    public double get_samplingPercentage() {
+      return this.samplingPercentage;
+    }
+
+    public void set_samplingPercentage(double samplingPercentage) {
+      this.samplingPercentage = samplingPercentage;
+      set_samplingPercentage_isSet(true);
+    }
+
+    public void unset_samplingPercentage() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SAMPLINGPERCENTAGE_ISSET_ID);
+    }
+
+    /** Returns true if field samplingPercentage is set (has been assigned a value) and false otherwise */
+    public boolean is_set_samplingPercentage() {
+      return EncodingUtils.testBit(__isset_bitfield, __SAMPLINGPERCENTAGE_ISSET_ID);
+    }
+
+    public void set_samplingPercentage_isSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SAMPLINGPERCENTAGE_ISSET_ID, value);
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case NAME:
@@ -10657,6 +10700,14 @@ public class Nimbus {
         }
         break;
 
+      case SAMPLING_PERCENTAGE:
+        if (value == null) {
+          unset_samplingPercentage();
+        } else {
+          set_samplingPercentage((Double)value);
+        }
+        break;
+
       }
     }
 
@@ -10670,6 +10721,9 @@ public class Nimbus {
 
       case ENABLE:
         return Boolean.valueOf(is_enable());
+
+      case SAMPLING_PERCENTAGE:
+        return Double.valueOf(get_samplingPercentage());
 
       }
       throw new IllegalStateException();
@@ -10688,6 +10742,8 @@ public class Nimbus {
         return is_set_component();
       case ENABLE:
         return is_set_enable();
+      case SAMPLING_PERCENTAGE:
+        return is_set_samplingPercentage();
       }
       throw new IllegalStateException();
     }
@@ -10732,6 +10788,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_samplingPercentage = true;
+      boolean that_present_samplingPercentage = true;
+      if (this_present_samplingPercentage || that_present_samplingPercentage) {
+        if (!(this_present_samplingPercentage && that_present_samplingPercentage))
+          return false;
+        if (this.samplingPercentage != that.samplingPercentage)
+          return false;
+      }
+
       return true;
     }
 
@@ -10753,6 +10818,11 @@ public class Nimbus {
       list.add(present_enable);
       if (present_enable)
         list.add(enable);
+
+      boolean present_samplingPercentage = true;
+      list.add(present_samplingPercentage);
+      if (present_samplingPercentage)
+        list.add(samplingPercentage);
 
       return list.hashCode();
     }
@@ -10795,6 +10865,16 @@ public class Nimbus {
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(is_set_samplingPercentage()).compareTo(other.is_set_samplingPercentage());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_samplingPercentage()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.samplingPercentage, other.samplingPercentage);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -10833,6 +10913,10 @@ public class Nimbus {
       if (!first) sb.append(", ");
       sb.append("enable:");
       sb.append(this.enable);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("samplingPercentage:");
+      sb.append(this.samplingPercentage);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -10903,6 +10987,14 @@ public class Nimbus {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 4: // SAMPLING_PERCENTAGE
+              if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+                struct.samplingPercentage = iprot.readDouble();
+                struct.set_samplingPercentage_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -10928,6 +11020,9 @@ public class Nimbus {
         }
         oprot.writeFieldBegin(ENABLE_FIELD_DESC);
         oprot.writeBool(struct.enable);
+        oprot.writeFieldEnd();
+        oprot.writeFieldBegin(SAMPLING_PERCENTAGE_FIELD_DESC);
+        oprot.writeDouble(struct.samplingPercentage);
         oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
@@ -10956,7 +11051,10 @@ public class Nimbus {
         if (struct.is_set_enable()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.is_set_samplingPercentage()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.is_set_name()) {
           oprot.writeString(struct.name);
         }
@@ -10966,12 +11064,15 @@ public class Nimbus {
         if (struct.is_set_enable()) {
           oprot.writeBool(struct.enable);
         }
+        if (struct.is_set_samplingPercentage()) {
+          oprot.writeDouble(struct.samplingPercentage);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, debug_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(3);
+        BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
           struct.name = iprot.readString();
           struct.set_name_isSet(true);
@@ -10983,6 +11084,10 @@ public class Nimbus {
         if (incoming.get(2)) {
           struct.enable = iprot.readBool();
           struct.set_enable_isSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.samplingPercentage = iprot.readDouble();
+          struct.set_samplingPercentage_isSet(true);
         }
       }
     }

@@ -81,7 +81,7 @@ function ensureInt(n) {
     return isInt;
 }
 
-function confirmComponentAction(topologyId, componentId, componentName, action, actionText) {
+function confirmComponentAction(topologyId, componentId, componentName, action, param, defaultParamValue, paramText, actionText) {
     var opts = {
         type:'POST',
         url:'/api/v1/topology/' + topologyId + '/component/' + componentId + '/' + action
@@ -89,8 +89,22 @@ function confirmComponentAction(topologyId, componentId, componentName, action, 
     if (actionText === undefined) {
         actionText = action;
     }
-    if (!confirm('Do you really want to ' + actionText + ' component "' + componentName + '"?')) {
-        return false;
+    if (param) {
+        var paramValue = prompt('Do you really want to ' + actionText + ' component "' + componentName + '"? ' +
+                                  'If yes, please, specify ' + paramText + ':',
+                                  defaultParamValue);
+        if (paramValue != null && paramValue != "" && ensureInt(paramValue)) {
+            opts.url += '/' + paramValue;
+        } else {
+            return false;
+        }
+    } else {
+        if (typeof defaultParamValue !== 'undefined') {
+            opts.url +=  '/' + defaultParamValue;
+        }
+        if (!confirm('Do you really want to ' + actionText + ' component "' + componentName + '"?')) {
+            return false;
+        }
     }
 
     $("input[type=button]").attr("disabled", "disabled");
@@ -103,7 +117,7 @@ function confirmComponentAction(topologyId, componentId, componentName, action, 
     return false;
 }
 
-function confirmAction(id, name, action, wait, defaultWait, actionText) {
+function confirmAction(id, name, action, param, defaultParamValue, paramText, actionText) {
     var opts = {
         type:'POST',
         url:'/api/v1/topology/' + id + '/' + action
@@ -111,18 +125,23 @@ function confirmAction(id, name, action, wait, defaultWait, actionText) {
     if (actionText === undefined) {
         actionText = action;
     }
-    if (wait) {
-        var waitSecs = prompt('Do you really want to ' + actionText + ' topology "' + name + '"? ' +
-                              'If yes, please, specify wait time in seconds:',
-                              defaultWait);
+    if (param) {
+        var paramValue = prompt('Do you really want to ' + actionText + ' topology "' + name + '"? ' +
+                              'If yes, please, specify ' + paramText + ':',
+                              defaultParamValue);
 
-        if (waitSecs != null && waitSecs != "" && ensureInt(waitSecs)) {
-            opts.url += '/' + waitSecs;
+        if (paramValue != null && paramValue != "" && ensureInt(paramValue)) {
+            opts.url += '/' + paramValue;
         } else {
             return false;
         }
-    } else if (!confirm('Do you really want to ' + actionText + ' topology "' + name + '"?')) {
-        return false;
+    } else {
+        if (typeof defaultParamValue !== 'undefined') {
+            opts.url +=  '/' + defaultParamValue;
+        }
+        if (!confirm('Do you really want to ' + actionText + ' topology "' + name + '"?')) {
+            return false;
+        }
     }
 
     $("input[type=button]").attr("disabled", "disabled");
@@ -171,7 +190,7 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id, encodedId, name, status, msgTimeout, debug) {
+function topologyActionJson(id, encodedId, name, status, msgTimeout, debug, samplingPct) {
     var jsonData = {};
     jsonData["id"] = id;
     jsonData["encodedId"] = encodedId;
@@ -183,16 +202,18 @@ function topologyActionJson(id, encodedId, name, status, msgTimeout, debug) {
     jsonData["killStatus"] = (status !== "KILLED") ? "enabled" : "disabled";
     jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
     jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
+    jsonData["currentSamplingPct"] = samplingPct;
     return jsonData;
 }
 
-function componentActionJson(encodedTopologyId, encodedId, componentName, status, debug) {
+function componentActionJson(encodedTopologyId, encodedId, componentName, status, debug, samplingPct) {
     var jsonData = {};
     jsonData["encodedTopologyId"] = encodedTopologyId;
     jsonData["encodedId"] = encodedId;
     jsonData["componentName"] = componentName;
     jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
     jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
+    jsonData["currentSamplingPct"] = samplingPct;
     return jsonData;
 }
 

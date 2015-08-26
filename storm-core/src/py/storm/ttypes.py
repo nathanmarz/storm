@@ -3579,7 +3579,7 @@ class TopologyInfo:
     (4, TType.LIST, 'executors', (TType.STRUCT,(ExecutorSummary, ExecutorSummary.thrift_spec)), None, ), # 4
     (5, TType.STRING, 'status', None, None, ), # 5
     (6, TType.MAP, 'errors', (TType.STRING,None,TType.LIST,(TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec))), None, ), # 6
-    (7, TType.MAP, 'component_debug', (TType.STRING,None,TType.BOOL,None), None, ), # 7
+    (7, TType.MAP, 'component_debug', (TType.STRING,None,TType.STRUCT,(DebugOptions, DebugOptions.thrift_spec)), None, ), # 7
     None, # 8
     None, # 9
     None, # 10
@@ -4163,7 +4163,8 @@ class TopologyInfo:
           (_ktype280, _vtype281, _size279 ) = iprot.readMapBegin()
           for _i283 in xrange(_size279):
             _key284 = iprot.readString().decode('utf-8')
-            _val285 = iprot.readBool();
+            _val285 = DebugOptions()
+            _val285.read(iprot)
             self.component_debug[_key284] = _val285
           iprot.readMapEnd()
         else:
@@ -4224,10 +4225,10 @@ class TopologyInfo:
       oprot.writeFieldEnd()
     if self.component_debug is not None:
       oprot.writeFieldBegin('component_debug', TType.MAP, 7)
-      oprot.writeMapBegin(TType.STRING, TType.BOOL, len(self.component_debug))
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.component_debug))
       for kiter290,viter291 in self.component_debug.items():
         oprot.writeString(kiter290.encode('utf-8'))
-        oprot.writeBool(viter291)
+        viter291.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.sched_status is not None:
@@ -4268,6 +4269,84 @@ class TopologyInfo:
     value = (value * 31) ^ hash(self.component_debug)
     value = (value * 31) ^ hash(self.sched_status)
     value = (value * 31) ^ hash(self.owner)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class DebugOptions:
+  """
+  Attributes:
+   - enable
+   - samplingpct
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.BOOL, 'enable', None, None, ), # 1
+    (2, TType.DOUBLE, 'samplingpct', None, None, ), # 2
+  )
+
+  def __init__(self, enable=None, samplingpct=None,):
+    self.enable = enable
+    self.samplingpct = samplingpct
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.BOOL:
+          self.enable = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.DOUBLE:
+          self.samplingpct = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('DebugOptions')
+    if self.enable is not None:
+      oprot.writeFieldBegin('enable', TType.BOOL, 1)
+      oprot.writeBool(self.enable)
+      oprot.writeFieldEnd()
+    if self.samplingpct is not None:
+      oprot.writeFieldBegin('samplingpct', TType.DOUBLE, 2)
+      oprot.writeDouble(self.samplingpct)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.enable)
+    value = (value * 31) ^ hash(self.samplingpct)
     return value
 
   def __repr__(self):
@@ -5150,7 +5229,7 @@ class StormBase:
     (6, TType.STRING, 'owner', None, None, ), # 6
     (7, TType.STRUCT, 'topology_action_options', (TopologyActionOptions, TopologyActionOptions.thrift_spec), None, ), # 7
     (8, TType.I32, 'prev_status', None, None, ), # 8
-    (9, TType.MAP, 'component_debug', (TType.STRING,None,TType.BOOL,None), None, ), # 9
+    (9, TType.MAP, 'component_debug', (TType.STRING,None,TType.STRUCT,(DebugOptions, DebugOptions.thrift_spec)), None, ), # 9
   )
 
   def __init__(self, name=None, status=None, num_workers=None, component_executors=None, launch_time_secs=None, owner=None, topology_action_options=None, prev_status=None, component_debug=None,):
@@ -5226,7 +5305,8 @@ class StormBase:
           (_ktype389, _vtype390, _size388 ) = iprot.readMapBegin()
           for _i392 in xrange(_size388):
             _key393 = iprot.readString().decode('utf-8')
-            _val394 = iprot.readBool();
+            _val394 = DebugOptions()
+            _val394.read(iprot)
             self.component_debug[_key393] = _val394
           iprot.readMapEnd()
         else:
@@ -5279,10 +5359,10 @@ class StormBase:
       oprot.writeFieldEnd()
     if self.component_debug is not None:
       oprot.writeFieldBegin('component_debug', TType.MAP, 9)
-      oprot.writeMapBegin(TType.STRING, TType.BOOL, len(self.component_debug))
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.component_debug))
       for kiter397,viter398 in self.component_debug.items():
         oprot.writeString(kiter397.encode('utf-8'))
-        oprot.writeBool(viter398)
+        viter398.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

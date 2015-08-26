@@ -413,7 +413,7 @@
               executors (:component->executors base)
               component->debug (:component->debug base)
               new-elems (update new-elems :component->executors (partial merge executors))
-              new-elems (update new-elems :component->debug (partial merge component->debug))]
+              new-elems (update new-elems :component->debug (partial merge-with merge component->debug))]
           (set-data cluster-state (storm-path storm-id)
                     (-> base
                         (merge new-elems)

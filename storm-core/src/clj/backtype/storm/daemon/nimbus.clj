@@ -35,7 +35,7 @@
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
   (:import [backtype.storm.daemon Shutdownable])
   (:use [backtype.storm util config log timer])
-  (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
+  (:require [backtype.storm [cluster :as cluster] [stats :as stats] [converter :as converter]])
   (:require [clojure.set :as set])
   (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
@@ -1161,15 +1161,21 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
-      (debug [this storm-name component-id enable?]
+      (debug [this storm-name component-id enable? samplingPct]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
               topology-conf (try-read-storm-conf conf storm-id)
-              storm-base-updates (assoc {} :component->debug (if (empty? component-id) {storm-id enable?} {component-id enable?}))]
+              ;; make sure samplingPct is within bounds.
+              spct (Math/max (Math/min samplingPct 100.0) 0.0)
+              ;; while disabling we retain the sampling pct.
+              debug-options (if enable? {:enable enable? :samplingpct spct} {:enable enable?})
+              storm-base-updates (assoc {} :component->debug (if (empty? component-id)
+                                                               {storm-id debug-options}
+                                                               {component-id debug-options}))]
           (check-authorization! nimbus storm-name topology-conf "debug")
           (when-not storm-id
             (throw (NotAliveException. storm-name)))
-          (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "'"
+          (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
             (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
           (locking (:submit-lock nimbus)
             (.update-storm! storm-cluster-state storm-id storm-base-updates))))
@@ -1356,7 +1362,8 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
-            (when-let [component->debug (:component->debug base)] (.set_component_debug topo-info (map-val boolean component->debug)))
+            (when-let [component->debug (:component->debug base)]
+              (.set_component_debug topo-info (map-val converter/thriftify-debugoptions component->debug)))
             topo-info
           ))
 

@@ -218,9 +218,14 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
-  7: optional map<string, bool> component_debug;
+  7: optional map<string, DebugOptions> component_debug;
 513: optional string sched_status;
 514: optional string owner;
+}
+
+struct DebugOptions {
+  1: optional bool enable
+  2: optional double samplingpct
 }
 
 struct KillOptions {
@@ -290,7 +295,7 @@ struct StormBase {
     6: optional string owner;
     7: optional TopologyActionOptions topology_action_options;
     8: optional TopologyStatus prev_status;//currently only used during rebalance action.
-    9: optional map<string, bool> component_debug; // topology/component level debug flags.
+    9: optional map<string, DebugOptions> component_debug; // topology/component level debug option.
 }
 
 struct ClusterWorkerHeartbeat {
@@ -354,8 +359,10 @@ service Nimbus {
   /**
   * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
   * and if null or empty, the debug flag will apply to the entire topology.
+  *
+  * If 'samplingPercentage' is specified, it will limit loggging to a percentage of generated tuples. The default is to log all (100 pct).
   **/
-  void debug(1: string name, 2: string component, 3: bool enable) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  void debug(1: string name, 2: string component, 3: bool enable, 4: double samplingPercentage) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs

@@ -77,7 +77,7 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
   private List<ExecutorSummary> executors; // required
   private String status; // required
   private Map<String,List<ErrorInfo>> errors; // required
-  private Map<String,Boolean> component_debug; // optional
+  private Map<String,DebugOptions> component_debug; // optional
   private String sched_status; // optional
   private String owner; // optional
 
@@ -189,7 +189,7 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
     tmpMap.put(_Fields.COMPONENT_DEBUG, new org.apache.thrift.meta_data.FieldMetaData("component_debug", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT            , "DebugOptions"))));
     tmpMap.put(_Fields.SCHED_STATUS, new org.apache.thrift.meta_data.FieldMetaData("sched_status", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.OWNER, new org.apache.thrift.meta_data.FieldMetaData("owner", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
@@ -260,7 +260,18 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
       this.errors = __this__errors;
     }
     if (other.is_set_component_debug()) {
-      Map<String,Boolean> __this__component_debug = new HashMap<String,Boolean>(other.component_debug);
+      Map<String,DebugOptions> __this__component_debug = new HashMap<String,DebugOptions>(other.component_debug.size());
+      for (Map.Entry<String, DebugOptions> other_element : other.component_debug.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        DebugOptions other_element_value = other_element.getValue();
+
+        String __this__component_debug_copy_key = other_element_key;
+
+        DebugOptions __this__component_debug_copy_value = other_element_value;
+
+        __this__component_debug.put(__this__component_debug_copy_key, __this__component_debug_copy_value);
+      }
       this.component_debug = __this__component_debug;
     }
     if (other.is_set_sched_status()) {
@@ -456,18 +467,18 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
     return (this.component_debug == null) ? 0 : this.component_debug.size();
   }
 
-  public void put_to_component_debug(String key, boolean val) {
+  public void put_to_component_debug(String key, DebugOptions val) {
     if (this.component_debug == null) {
-      this.component_debug = new HashMap<String,Boolean>();
+      this.component_debug = new HashMap<String,DebugOptions>();
     }
     this.component_debug.put(key, val);
   }
 
-  public Map<String,Boolean> get_component_debug() {
+  public Map<String,DebugOptions> get_component_debug() {
     return this.component_debug;
   }
 
-  public void set_component_debug(Map<String,Boolean> component_debug) {
+  public void set_component_debug(Map<String,DebugOptions> component_debug) {
     this.component_debug = component_debug;
   }
 
@@ -586,7 +597,7 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
       if (value == null) {
         unset_component_debug();
       } else {
-        set_component_debug((Map<String,Boolean>)value);
+        set_component_debug((Map<String,DebugOptions>)value);
       }
       break;
 
@@ -1166,13 +1177,14 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map300 = iprot.readMapBegin();
-                struct.component_debug = new HashMap<String,Boolean>(2*_map300.size);
+                struct.component_debug = new HashMap<String,DebugOptions>(2*_map300.size);
                 String _key301;
-                boolean _val302;
+                DebugOptions _val302;
                 for (int _i303 = 0; _i303 < _map300.size; ++_i303)
                 {
                   _key301 = iprot.readString();
-                  _val302 = iprot.readBool();
+                  _val302 = new DebugOptions();
+                  _val302.read(iprot);
                   struct.component_debug.put(_key301, _val302);
                 }
                 iprot.readMapEnd();
@@ -1265,11 +1277,11 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
         if (struct.is_set_component_debug()) {
           oprot.writeFieldBegin(COMPONENT_DEBUG_FIELD_DESC);
           {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BOOL, struct.component_debug.size()));
-            for (Map.Entry<String, Boolean> _iter307 : struct.component_debug.entrySet())
+            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.component_debug.size()));
+            for (Map.Entry<String, DebugOptions> _iter307 : struct.component_debug.entrySet())
             {
               oprot.writeString(_iter307.getKey());
-              oprot.writeBool(_iter307.getValue());
+              _iter307.getValue().write(oprot);
             }
             oprot.writeMapEnd();
           }
@@ -1346,10 +1358,10 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
       if (struct.is_set_component_debug()) {
         {
           oprot.writeI32(struct.component_debug.size());
-          for (Map.Entry<String, Boolean> _iter311 : struct.component_debug.entrySet())
+          for (Map.Entry<String, DebugOptions> _iter311 : struct.component_debug.entrySet())
           {
             oprot.writeString(_iter311.getKey());
-            oprot.writeBool(_iter311.getValue());
+            _iter311.getValue().write(oprot);
           }
         }
       }
@@ -1410,14 +1422,15 @@ public class TopologyInfo implements org.apache.thrift.TBase<TopologyInfo, Topol
       BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map322 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BOOL, iprot.readI32());
-          struct.component_debug = new HashMap<String,Boolean>(2*_map322.size);
+          org.apache.thrift.protocol.TMap _map322 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.component_debug = new HashMap<String,DebugOptions>(2*_map322.size);
           String _key323;
-          boolean _val324;
+          DebugOptions _val324;
           for (int _i325 = 0; _i325 < _map322.size; ++_i325)
           {
             _key323 = iprot.readString();
-            _val324 = iprot.readBool();
+            _val324 = new DebugOptions();
+            _val324.read(iprot);
             struct.component_debug.put(_key323, _val324);
           }
         }

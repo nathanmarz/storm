@@ -31,7 +31,7 @@
             ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
-            KillOptions GetInfoOptions NumErrorsChoice])
+            KillOptions GetInfoOptions NumErrorsChoice DebugOptions])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.security.auth AuthUtils])
@@ -716,7 +716,7 @@
         workers (set (for [^ExecutorSummary e executors]
                        [(.get_host e) (.get_port e)]))
         topology-id (.get_id summ)
-        component->debug (.get_component_debug summ)]
+        debug-options (get (.get_component_debug summ) topology-id)]
       {"id" topology-id
        "encodedId" (url-encode (.get_id summ))
        "owner" (.get_owner summ)
@@ -727,7 +727,8 @@
        "workersTotal" (count workers)
        "executorsTotal" (count executors)
        "schedulerInfo" (.get_sched_status summ)
-       "debug" (get component->debug topology-id false)}))
+       "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
+       "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 100)}))
 
 (defn spout-summary-json [topology-id id stats window]
   (let [times (stats-times (:emitted stats))
@@ -937,7 +938,8 @@
           spec (cond (= type :spout) (spout-stats window summ component summs include-sys? secure?)
                      (= type :bolt) (bolt-stats window summ component summs include-sys? secure?))
           errors (component-errors (get (.get_errors summ) component) topology-id secure?)
-          component->debug (.get_component_debug summ)]
+          component->debug (.get_component_debug summ)
+          debug-options (get component->debug component (get component->debug topology-id))]
       (merge
         {"user" user
          "id" component
@@ -951,7 +953,8 @@
          "window" window
          "componentType" (name type)
          "windowHint" (window-hint window)
-         "debug" (get component->debug component (get component->debug topology-id false))
+         "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
+         "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 100)
          "eventLogLink" (event-log-link topology-id summ topology component secure?)}
        spec errors))))
 
@@ -1042,7 +1045,7 @@
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
     (json-response (topology-op-response id "deactivate") (m "callback")))
-  (POST "/api/v1/topology/:id/debug/:action" [:as {:keys [cookies servlet-request]} id action & m]
+  (POST "/api/v1/topology/:id/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id action spct & m]
     (assert-authorized-user servlet-request "debug" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
@@ -1051,10 +1054,10 @@
                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             enable? (= "enable" action)]
-        (.debug nimbus name "" enable?)
-        (log-message "Debug topology [" name "] action [" action "]")))
+        (.debug nimbus name "" enable? (Integer/parseInt spct))
+        (log-message "Debug topology [" name "] action [" action "] sampling pct [" spct "]")))
     (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
-  (POST "/api/v1/topology/:id/component/:component/debug/:action" [:as {:keys [cookies servlet-request]} id component action & m]
+  (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
     (assert-authorized-user servlet-request "debug" (topology-config id))
     (with-nimbus nimbus
       (let [tplg (->> (doto
@@ -1063,8 +1066,8 @@
                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             enable? (= "enable" action)]
-        (.debug nimbus name component enable?)
-        (log-message "Debug topology [" name "] component [" component "] action [" action "]")))
+        (.debug nimbus name component enable? (Integer/parseInt spct))
+        (log-message "Debug topology [" name "] component [" component "] action [" action "] sampling pct [" spct "]")))
     (json-response (component-op-response id component (str "/debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (assert-authorized-user servlet-request "rebalance" (topology-config id))

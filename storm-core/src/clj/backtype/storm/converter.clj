@@ -153,8 +153,8 @@
 
 (defn thriftify-debugoptions [options]
   (doto (DebugOptions.)
-    (.set_enable (if options (:enable options) false))
-    (.set_samplingpct (if options (:samplingpct options) 0))))
+    (.set_enable (get options :enable false))
+    (.set_samplingpct (get options :samplingpct 100))))
 
 (defn thriftify-storm-base [storm-base]
   (doto (StormBase.)
